@@ -77,65 +77,62 @@ void dwr(int level, const char *fmt, ... );
 
 static char *api_netpath = (char *)0;
 
-        
-    // TODO: Remove before production
-    void set_netpath(char * path)
-    {
-        dwr(MSG_DEBUG,"set_netpath(%s)", path);
-        api_netpath = path;
-        rpc_mutex_init(); // TODO: double-check this
-    }
+// TODO: Remove before production
+void set_netpath(char * path) {
+    dwr(MSG_DEBUG,"set_netpath(%s)", path);
+    api_netpath = path;
+    rpc_mutex_init(); // TODO: double-check this
+}
 
-    const char *get_netpath()
+const char *get_netpath() {
+    return api_netpath;
+}
+        
+    // ------------------------------------------------------------------------------
+    // ---------------------------------- zt_init_rpc -------------------------------
+    // ------------------------------------------------------------------------------
+    
+    void zt_init_rpc(const char *nwid)
     {
-        return api_netpath;
-    }
         
-        // ------------------------------------------------------------------------------
-        // ---------------------------------- zt_init_rpc -------------------------------
-        // ------------------------------------------------------------------------------
-        
-        void zt_init_rpc(const char *nwid)
-        {
-            
 // TODO: Remove before production
 //#if defined(__UNITY_3D__)
-            api_netpath = "/Users/Joseph/utest2/nc_565799d8f6e1c11a";
-            //Debug("Set unix RPC path");
+        api_netpath = "/Users/Joseph/utest2/nc_565799d8f6e1c11a";
+        //Debug("Set unix RPC path");
 //#endif
-            
-//#if defined(__IOS__)
-            //api_netpath = "ZeroTier/One/nc_" + nwid;
-            /*
-            void *spec = pthread_getspecific(thr_id_key);
-            int thr_id = spec != NULL ? *((int*)spec) : -1;
-            // dwr(MSG_DEBUG_EXTRA, "set_up_intercept(thr_id=%d)\n", thr_id);
-            if(thr_id == INTERCEPT_ENABLED) {
-                if (!api_netpath) {
-                    api_netpath = "ZeroTier/One/nc_e5cd7a9e1c3511dd"; // Path allowed on iOS devices
-                    
-                }
-                return 1;
-            }
-            return 0;
-             */
         
-            /*
-#elif defined(__ANDROID__)
-            netpath = "ZeroTier/One/nc_" + nwid;
-            return 1;
-#else
-            if (!netpath) {
-                netpath = getenv("ZT_NC_NETWORK");
-                set_netpath(netpath);
-                if(!netpath) {
-                    return 0;
-                }
+//#if defined(__IOS__)
+        //api_netpath = "ZeroTier/One/nc_" + nwid;
+        /*
+        void *spec = pthread_getspecific(thr_id_key);
+        int thr_id = spec != NULL ? *((int*)spec) : -1;
+        // dwr(MSG_DEBUG_EXTRA, "set_up_intercept(thr_id=%d)\n", thr_id);
+        if(thr_id == INTERCEPT_ENABLED) {
+            if (!api_netpath) {
+                api_netpath = "ZeroTier/One/nc_e5cd7a9e1c3511dd"; // Path allowed on iOS devices
+                
             }
             return 1;
-#endif
-             */
         }
+        return 0;
+         */
+    
+        /*
+#elif defined(__ANDROID__)
+        netpath = "ZeroTier/One/nc_" + nwid;
+        return 1;
+#else
+        if (!netpath) {
+            netpath = getenv("ZT_NC_NETWORK");
+            set_netpath(netpath);
+            if(!netpath) {
+                return 0;
+            }
+        }
+        return 1;
+#endif
+         */
+    }
         
     // ------------------------------------------------------------------------------
     // ------------------------------------ sendto() --------------------------------
@@ -297,6 +294,9 @@ static char *api_netpath = (char *)0;
     }
 #endif
 
+    // ------------------------------------------------------------------------------
+    // ----------------------- Exposed RX/TX API for UNITY 3D -----------------------
+    // ------------------------------------------------------------------------------
         
 #if defined(__UNITY_3D__)
         
@@ -310,7 +310,6 @@ static char *api_netpath = (char *)0;
         return read(fd, buf->array, len);
     }
 #endif
-        
         
     // ------------------------------------------------------------------------------
     // --------------------------------- setsockopt() -------------------------------

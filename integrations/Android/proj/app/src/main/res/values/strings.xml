@@ -1,0 +1,55 @@
+<resources>
+    <string name="app_name">ZeroTier One</string>
+    <string name="title_activity_zero_tier_one__main">ZeroTier One</string>
+
+    <string name="string_n_a">N/A</string>
+
+    <string name="network_name_string">Network Name:</string>
+    <string name="network_id_string">Network ID:</string>
+    <string name="recent_networks">Recent Networks:</string>
+    <string name="network_type_label">Type:</string>
+    <string name="status_label">Status:</string>
+    <string name="mac_label">MAC:</string>
+    <string name="device_label">Device:</string>
+    <string name="ip_addresses_label">IP Addresses</string>
+
+    <string name="leave_button_text">Leave Network</string>
+
+    <string name="menu_join_network">Join Network</string>
+    <string name="join_network">Join Network</string>
+
+    <string name="button_connect">Connect</string>
+    <string name="button_disconnect">Disconnect</string>
+
+    <string name="network_status">Status</string>
+    <string name="network_type">Type</string>
+    <string name="network_mac">MAC</string>
+    <string name="network_mtu">MTU</string>
+    <string name="network_broadcast">Broadcast</string>
+    <string name="network_bridging">Bridging</string>
+    <string name="network_ips">Managed IPs</string>
+
+    <!-- Network Statuses -->
+    <string name="network_status_ok">OK</string>
+    <string name="network_status_access_denied">Access Denied</string>
+    <string name="network_status_client_too_old">Client Out of Date</string>
+    <string name="network_status_not_found">Network Not Found</string>
+    <string name="network_status_port_error">Port Error</string>
+    <string name="network_status_requesting_configuration">Requesting Configuration</string>
+    <string name="network_status_unknown">Unknown</string>
+
+    <!-- Network Types -->
+    <string name="network_type_public">Public</string>
+    <string name="network_type_private">Private</string>
+    <string name="network_type_unknown">Unknown</string>
+
+
+    <!-- preferences -->
+    <string name="settings">Settings</string>
+    <string name="preferences_general">General Settings</string>
+    <string name="preferences_general_start_on_boot">Start ZeroTier One on Device Startup</string>
+
+    <string name="preferences_network">Network Settings</string>
+    <string name="preferences_network_use_cell_data">Use Cellular Data</string>
+    <string name="preferences_network_auto_rejoin">Automatically Re-join Networks on Start</string>
+</resources>

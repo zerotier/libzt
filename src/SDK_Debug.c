@@ -51,6 +51,7 @@
 #define MSG_DEBUG_EXTRA 5 // If nothing in your world makes sense
 
 #define DEBUG_TO_FILE 1
+#define DEBUG_LOGFILE_PATH "/Users/Joseph/code/ztnc_logfile.txt"
 
 void dwr(int level, const char *fmt, ... );
 
@@ -74,18 +75,16 @@ void dwr(int level, const char *fmt, ... )
 #elif defined(__APPLE__)
   pid_t tid = pthread_mach_thread_np(pthread_self());
 #endif
-    
- if(DEBUG_TO_FILE > 0) {
-     FILE *file = fopen("/Users/Joseph/code/ztnc_logfile.txt","a");
+  if(DEBUG_TO_FILE) {
+     FILE *file = fopen(DEBUG_LOGFILE_PATH,"a");
      fprintf(file, "%s [tid=%7d] ", timestring, tid);
- }
-    
+  }
   fprintf(stderr, "%s [tid=%7d] ", timestring, tid);
   vfprintf(stderr, fmt, ap);
   fflush(stderr);
   errno = saveerr;
   va_end(ap);
-#endif // NETCON_DEBUG
+#endif // _SDK_DEBUG
 }
 
 #ifdef __cplusplus

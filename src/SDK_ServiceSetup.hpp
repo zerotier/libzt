@@ -25,8 +25,6 @@
  * LLC. Start here: http://www.zerotier.com/
  */
 
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif

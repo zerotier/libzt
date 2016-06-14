@@ -25,8 +25,8 @@
  * LLC. Start here: http://www.zerotier.com/
  */
 
-#ifndef _SIGNATURES_H
-#define _SIGNATURES_H	1
+#ifndef _SDK_SIGNATURES_H
+#define _SDK_SIGNATURES_H	1
 
 #include <sys/socket.h>
 
@@ -54,4 +54,4 @@
 #define GETSOCKNAME_SIG int sockfd, struct sockaddr *addr, socklen_t *addrlen
 #define SYSCALL_SIG long number, ...
 
-#endif // _SIGNATURES_H
+#endif // _SDK_SIGNATURES_H

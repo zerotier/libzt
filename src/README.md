@@ -74,6 +74,16 @@ The intercept library does nothing unless the *ZT\_NC\_NETWORK* environment vari
 
 Unlike *zerotier-one*, *zerotier-netcon-service* does not need to be run with root privileges and will not modify the host's network configuration in any way. It can be run alongside *zerotier-one* on the same host with no ill effect, though this can be confusing since you'll have to remember the difference between "real" host interfaces (tun/tap) and network containerized endpoints. The latter are completely unknown to the kernel and will not show up in *ifconfig*.
 
+
+# Modes of operation
+
+There are generally two ways one might want to use this SDK/service. The approach is a compile-time static linking of our SDK/service directly into your application.
+![Image](../docs/img/methods_integrated.png)
+
+The second is a service-oriented approach where our SDK is dynamically-linked into your applications upon startup and will communicate to a single ZeroTier service on the host. 
+![Image](../docs/img/methods_service.png)
+
+
 # Linking into an application on Mac OSX
 
 Example:

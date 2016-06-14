@@ -31,7 +31,7 @@ Unlike `zerotier-one`, `zerotier-sdk-service` does not need to be run with root 
 
 There are generally two ways one might want to use this SDK/service. The first approach is a *compile-time static linking* of our SDK/service directly into your application. With this option you can bundle our entire functionality right into your app with no need to communicate with a service externally, it'll all be handled automatically. The second is a service-oriented approach where our SDK is *dynamically-linked* into your applications upon startup and will communicate to a single ZeroTier service on the host. This can be useful if you've already compiled your applications and can't perform a static linking.
 
-![Image](../docs/img/methods.png)
+![Image](docs/img/methods.png)
 
 
 # Linking into an application on Mac OSX
@@ -179,7 +179,7 @@ It's useful to note that the keyword *httpd* in this example is merely a substri
 
 # Mobile App Embedding
 
-For information on the app-embedding aspect of the SDK check out our [ZeroTier SDK](https://github.com/zerotier/ZeroTierSDK/docs/zt_sdk.md) blog post.
+For information on the app-embedding aspect of the SDK check out our [ZeroTier SDK](http://10.6.6.2/ZeroTier/ZeroTierSDK/docs/master/zt_sdk.md) blog post.
 
 # Limitations and Compatibility
 

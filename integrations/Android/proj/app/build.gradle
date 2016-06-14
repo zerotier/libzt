@@ -1,0 +1,55 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
+apply plugin: 'com.android.application'
+apply plugin: 'com.google.gms.google-services'
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion "23.0.2"
+    defaultConfig {
+        applicationId "com.zerotier.one"
+        minSdkVersion 15
+        targetSdkVersion 23
+        versionCode 112
+        versionName "1.1.2"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            jniDebuggable true
+        }
+    }
+    sourceSets.main {
+        jniLibs.srcDir '../../java/libs' //set jniLibs directory to ./libs
+        jni.srcDirs = [] //disable automatic ndk-build call
+        java.srcDirs = ['src/main/java', '../../java/src']
+    }
+    task ndkBuild(type: Exec) {
+        if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+            commandLine "${android.getNdkDirectory().getAbsolutePath()}/ndk-build.cmd", '-j8', '-C', file('../../java').absolutePath, "ZT1=${System.getProperty('user.dir')}/../../.."
+        } else {
+            commandLine "${android.getNdkDirectory().getAbsolutePath()}/ndk-build", '-j8', '-C', file('../../java').absolutePath, "ZT1=${System.getProperty('user.dir')}/../../.."
+        }
+    }
+    tasks.withType(JavaCompile) {
+        compileTask -> compileTask.dependsOn ndkBuild
+    }
+}
+
+repositories {
+    maven {
+        url "http://teleal.org/m2"
+    }
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    compile 'com.android.support:appcompat-v7:23.1.1'
+    compile 'de.greenrobot:eventbus:2.4.0'
+    compile 'com.android.support:support-v4:23.1.1'
+    compile 'org.fourthline.cling:cling-core:2.0.1'
+    compile 'com.google.android.gms:play-services-analytics:8.4.0'
+}

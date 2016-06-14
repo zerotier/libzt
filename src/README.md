@@ -77,11 +77,9 @@ Unlike *zerotier-one*, *zerotier-netcon-service* does not need to be run with ro
 
 # Modes of operation
 
-There are generally two ways one might want to use this SDK/service. The approach is a compile-time static linking of our SDK/service directly into your application.
-<img src="../docs/img/methods_integrated.png" alt="Integrated" style="width: 200px;"/>
+There are generally two ways one might want to use this SDK/service. The first approach is a compile-time static linking of our SDK/service directly into your application. With this option you can bundle our entire functionality right into your app with no need to communicate with a service externally, it'll all be handled automatically. The second is a service-oriented approach where our SDK is dynamically-linked into your applications upon startup and will communicate to a single ZeroTier service on the host. This can be useful if you've already compiled your applications and can't perform a static linking.
 
-The second is a service-oriented approach where our SDK is dynamically-linked into your applications upon startup and will communicate to a single ZeroTier service on the host. 
-<img src="../docs/img/methods_service.png" alt="Service" style="width: 200px;"/>
+![Image](../docs/img/methods.png)
 
 
 # Linking into an application on Mac OSX

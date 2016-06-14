@@ -75,3 +75,5 @@ We think this solution is well suited for low-latency multiplayer games where re
 The ZeroTier protocol is inherently P2P and only falls back to a relay in the event that your direct link is interrupted. It's in our best interest to automatically find the quickest route for your data and to *not* handle your data. This has the obvious benefits of reduced latency for your game, but also provides you better security and control of your data and reduces our costs. It seems non-sensical to do it any other way. ZeroTier is not a "cloud" that you send all of your data to.
 
 Currently we're investigating the possibility of creating a [Unity 3D](https://unity3d.com/) plugin that we would make available on the [Unity Asset Store](https://www.assetstore.unity3d.com/en/). This plugin would allow for stupid simple P2P networking for games and effortless provisioning of networks and device access through the [ZeroTier Central API](https://my.zerotier.com/help/api).
+
+You can check out our BETA [here](unity3d_zerotier_sdk.md)

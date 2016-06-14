@@ -179,12 +179,7 @@ It's useful to note that the keyword *httpd* in this example is merely a substri
 
 # Mobile App Embedding
 
-API               | Hookable      | Proxy-able   |
------------------ | ------------- | ------------ |
-iOS (NSStream)    |      NO       |     YES      |
-iOS (BSD socket)  |      YES      |     NO       |
-Android (socket)  | Not reliably  |     NO       |
-Android (Socket)  | Not reliably  |     YES      |
+For information on the app-embedding aspect of the SDK check out our [ZeroTier SDK](https://github.com/zerotier/ZeroTierSDK/docs/zt_sdk.md) blog post.
 
 # Limitations and Compatibility
 
@@ -192,7 +187,7 @@ The beta version of the SDK **only supports IPv4**. There is no IPv6 support and
 
 The virtual TCP/IP stack will respond to *incoming* ICMP ECHO requests, which means that you can ping it from another host on the same ZeroTier virtual network. This is useful for testing.
 
-### Controlling traffic
+#### Controlling traffic
 
 **Network Containers are currently all or nothing.** If engaged, the intercept library intercepts all network I/O calls and redirects them through the new path. A network-containerized application cannot communicate over the regular network connection of its host or container or with anything else except other hosts on its ZeroTier virtual LAN. Support for optional "fall-through" to the host IP stack for outgoing connections outside the virtual network and for gateway routes within the virtual network is planned. (It will be optional since in some cases total network isolation might be considered a nice security feature.)
 

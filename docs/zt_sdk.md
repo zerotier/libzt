@@ -33,12 +33,12 @@ In addition, since this connectivity is mediated over the ZeroTier protocol, you
 ## What's happening under the hood?
 
 Suppose you write an application that uses sockets to make a connection to some remote server. Normally in order to access resources on a virtual network you'll need to develop some sort of networking layer internally within the app or employ some external software and establish a system-wide connection. Here's an example of how network flow would be handled in this case:
-![Image](doc/netcon/app_flow.png)
+![Image](img/app_flow.png)
 
 As you can see, your app's logic somehow interacts with a networking layer, the calls then would go to the system and eventually interact with the kernel's network stack. 
 
 Now suppose you've added a ZeroTier shim to your app, since our shim will intercept the network calls we can actually define new behaviour for them. Here's an example of how network flow would be handled for a ZeroTier-enabled app:
-![Image](doc/netcon/zt_app_flow.png)
+![Image](img/zt_app_flow.png)
 
 For instance, after you've added one of our shims to your app, when your applcation attempts to establish a connection over a socket the following happens:
 
@@ -63,11 +63,11 @@ We've got a [special implementation](netcon/NetconSockets.c) for most of the soc
 zt_getsockname()`. Each shim is implemented in terms of this set of core functions and has the ability to determine whether the call should be directed to the system or the ZeroTier tap service.
 
 ## Embedded Applications / IoT
-![Image](doc/netcon/archs.png)
+![Image](img/archs.png)
 
 We foresee the largest application of the ZeroTier SDK to be embedded devices that require lightweight, efficient and reliable networking layers that are also secure and effortless to provision. We've specifically engineered the core service and the shims to be as lightweight and portable as possible. We'd like to see people retake control of their data and security by skipping the the "cloud" without adding complexity.
 
-![Image](doc/netcon/zt_why.png)
+![Image](img/zt_why.png)
 
 ## Games
 We think this solution is well suited for low-latency multiplayer games where reliability and ease of use are important.

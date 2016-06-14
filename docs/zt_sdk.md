@@ -23,7 +23,7 @@ If you have any feature or support requests, be sure to let us know [here](https
 The ZeroTier SDK brings together three main technologies:
  - [ZeroTier Core Protocol](https://github.com/zerotier/ZeroTierOne)
  - [Lightweight IP (lwIP) stack](http://savannah.nongnu.org/projects/lwip/)
- - [Code injection (shim)](doc/netcon/shims.md)
+ - [Code injection (shim)](shims_zt_sdk.md)
 
 Combine this functionality with the network/device management capabilities of [ZeroTier Central](https://my.zerotier.com) and its associated [API](https://my.zerotier.com/help/api) and we've hopefully created a simple and reliable way for you to flatten and reduce the complexity of your app's networking layer.
 
@@ -51,7 +51,7 @@ For instance, after you've added one of our shims to your app, when your applcat
 
 From your application's perspective nothing out of the ordinary has happened. It called `socket()`, and got a file descriptor back.
 
-As you can see, the general idea here is to slip in some special code that communicates with our ZeroTier service. Now, depending on your system's OS or architecture we might need to use different methods for getting that "secret sauce" into your application. We discuss that [here](doc/netcon/shims.md).
+As you can see, the general idea here is to slip in some special code that communicates with our ZeroTier service. Now, depending on your system's OS or architecture we might need to use different methods for getting that "secret sauce" into your application. We discuss that [here](shims_zt_sdk.md).
 
 #### You might be wondering some of the following:
 - **What would happen if you attempted to create a socket of the `AF_LOCAL` variety?**
@@ -59,7 +59,7 @@ As you can see, the general idea here is to slip in some special code that commu
 - **What would happen if you performed a `getsockopt()` for the family/domain of an `AF_INET` socket you requested?** 
   - You'd expect this should return `AF_LOCAL` since we repurposed the unix-domain socket, right? Nope. We've got a special implementation of `getsockopt()` which will detect whether that socket is handled under the ZeroTier tap service and if it is, it'll lie to you about the socket domain/family and report `AF_INET`. 
 
-We've got a [special implementation](netcon/NetconSockets.c) for most of the socket API functions: `zt_setsockopt(), zt_getsockopt(),zt_socket(),zt_connect(),zt_bind(),zt_accept4(),zt_accept(),zt_listen(),zt_close(),
+We've got a [special implementation](../src/SDK_Sockets.c) for most of the socket API functions: `zt_setsockopt(), zt_getsockopt(),zt_socket(),zt_connect(),zt_bind(),zt_accept4(),zt_accept(),zt_listen(),zt_close(),
 zt_getsockname()`. Each shim is implemented in terms of this set of core functions and has the ability to determine whether the call should be directed to the system or the ZeroTier tap service.
 
 ## Embedded Applications / IoT
@@ -76,4 +76,4 @@ The ZeroTier protocol is inherently P2P and only falls back to a relay in the ev
 
 Currently we're investigating the possibility of creating a [Unity 3D](https://unity3d.com/) plugin that we would make available on the [Unity Asset Store](https://www.assetstore.unity3d.com/en/). This plugin would allow for stupid simple P2P networking for games and effortless provisioning of networks and device access through the [ZeroTier Central API](https://my.zerotier.com/help/api).
 
-You can check out our BETA [here](unity3d_zerotier_sdk.md)
+You can check out our BETA [here](unity3d_zt_sdk.md)

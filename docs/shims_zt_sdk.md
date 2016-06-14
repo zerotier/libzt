@@ -10,7 +10,7 @@ We suggest selecting one of the architectures you'd like to support and trying o
 ***
 #### iOS
 
-**Integration Option 1:** Using `ZeroTierNetcon.framework` (instructions [here](doc/netcon/ios_and_ztnc.md))
+**Integration Option 1:** Using `ZeroTierSDK.framework` (instructions [here](ios_zt_sdk.md))
 - By including our framework in your app, you'll get a full instance of the ZeroTier service and suite of shim mechanisms built right into your app and ready to use. This option allows for `Hook of BSD-like sockets`, `Proxy of NSStream`, `Changeling of BSD-like sockets`, and `Direct Call`.
 
 *Note: `CFSocket` is not currently supported on `iOS`*
@@ -18,7 +18,7 @@ We suggest selecting one of the architectures you'd like to support and trying o
 ***
 #### OSX
 
-**Integration Option 1:** Using `ZeroTierNetcon.framework` (instructions [here](doc/netcon/ios_and_ztnc.md))
+**Integration Option 1:** Using `ZeroTierSDK.framework` (instructions [here](osx_zt_sdk.md))
 - By including our framework in your app, you'll get a full instance of the ZeroTier service and suite of shim mechanisms built right into your app and ready to use. This option allows for `Hook of BSD-like sockets and CFSocket`, `Proxy of NSStream`, `Changeling of BSD-like sockets`, and `Direct Call`.
 
 **Integration Option 2:** Statically-link `libztintercept.so`
@@ -27,7 +27,7 @@ We suggest selecting one of the architectures you'd like to support and trying o
 ***
 #### Android
 
-**Integration Option 1:** Using `libZeroTierJNI.so` (instructions [here](doc/netcon/android_and_ztnc.md))
+**Integration Option 1:** Using `libZeroTierJNI.so` (instructions [here](android_zt_sdk.md))
 - This is very similar to the approach used for `iOS`, in this case you'll build a shared library for the architectures you wish to support and then add it to your project. This option allows for `Proxy of Socket`, and `Direct Call`.
 
 ***
@@ -43,7 +43,6 @@ We suggest selecting one of the architectures you'd like to support and trying o
 
 ***  
 
-
 ### Further explanation of each shim type:
 
 **Hook**
@@ -53,7 +52,7 @@ We suggest selecting one of the architectures you'd like to support and trying o
 - Provides an integrated SOCKS5 server alongside the ZeroTier service to proxy connections from an application to resources on a ZeroTier network. For instance, a developer which has built an iOS app using the NSStreams API could add ZeroTier to their application and simply use the SOCKS5 support build into NSStreams to reach resources on their network. An Android developer could do the same using the SOCKS5 support provided in the `Socket` API.
 
 **Direct Call**
-- Directly call the `zt_` API specified in [Netcon.h](netcon/Netcon.h). For this to work, just use one of the provided headers that specify the interface for your system/architecture and then either dynamically-load our library into your app or compile it right in. 
+- Directly call the `zt_` API specified in [SDK.h](../src/SDK.h). For this to work, just use one of the provided headers that specify the interface for your system/architecture and then either dynamically-load our library into your app or compile it right in. 
 
 **Changeling**
 - This method is still experimental but the idea is to link `libztkq.so` into your app. You call `start_changeling()`. This will set up a separate thread to monitor all files for the process using kqueue. When an event is detected which indicates something is attempting to connect out or something is accepting a connection, we'll perform a sort of "hot-swap" of that socket for a socket that has been administered by ZeroTier.

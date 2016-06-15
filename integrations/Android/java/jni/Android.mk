@@ -16,10 +16,10 @@ LOCAL_LDLIBS := -llog
 
 # Netcon files
 LOCAL_SRC_FILES := \
-	$(ZT1)/netcon/NetconRPC.c \
-	$(ZT1)/netcon/NetconProxy.cpp \
-	$(ZT1)/netcon/NetconServiceSetup.cpp \
-	$(ZT1)/netcon/NetconEthernetTap.cpp
+	$(ZT1)/src/SDK_RPC.c \
+	$(ZT1)/src/SDK_Proxy.cpp \
+	$(ZT1)/src/SDK_ServiceSetup.cpp \
+	$(ZT1)/src/SDK_EthernetTap.cpp
 
 # ZeroTierOne ext files
 LOCAL_SRC_FILES += \

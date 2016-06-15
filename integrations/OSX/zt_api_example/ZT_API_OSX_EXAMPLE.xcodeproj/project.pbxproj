@@ -12,6 +12,7 @@
 		7C61A51E1CEA4D90007C8521 /* ZeroTierNetcon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7C61A5171CEA4D16007C8521 /* ZeroTierNetcon.framework */; };
 		7C61A51F1CEA4D90007C8521 /* ZeroTierNetcon.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 7C61A5171CEA4D16007C8521 /* ZeroTierNetcon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7C96E6871CEA603D003376E9 /* NetconWrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C96E6851CEA603D003376E9 /* NetconWrapper.cpp */; };
+		7CAA2ADB1D11E30D00DB5872 /* SDK_ServiceSetup.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CAA2AD81D11E30D00DB5872 /* SDK_ServiceSetup.cpp */; };
 		7CE621FD1CEA4B8E000AB143 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CE621FC1CEA4B8E000AB143 /* AppDelegate.swift */; };
 		7CE621FF1CEA4B8E000AB143 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CE621FE1CEA4B8E000AB143 /* ViewController.swift */; };
 		7CE622011CEA4B8E000AB143 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7CE622001CEA4B8E000AB143 /* Assets.xcassets */; };
@@ -89,8 +90,9 @@
 		7C96E67F1CEA603C003376E9 /* ZT_API_OSX_EXAMPLE-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ZT_API_OSX_EXAMPLE-Bridging-Header.h"; sourceTree = "<group>"; };
 		7C96E6851CEA603D003376E9 /* NetconWrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = NetconWrapper.cpp; path = "../../../iOS/Netcon-iOS/NetconWrapper.cpp"; sourceTree = "<group>"; };
 		7C96E6861CEA603D003376E9 /* NetconWrapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = NetconWrapper.hpp; path = "../../../iOS/Netcon-iOS/NetconWrapper.hpp"; sourceTree = "<group>"; };
-		7C96E68E1CEA6481003376E9 /* signatures.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = signatures.h; path = ../../../signatures.h; sourceTree = "<group>"; };
-		7C96E68F1CEA64F7003376E9 /* NetconServiceSetup.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = NetconServiceSetup.hpp; path = ../../../NetconServiceSetup.hpp; sourceTree = "<group>"; };
+		7CAA2AD81D11E30D00DB5872 /* SDK_ServiceSetup.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SDK_ServiceSetup.cpp; path = ../../../../src/SDK_ServiceSetup.cpp; sourceTree = "<group>"; };
+		7CAA2AD91D11E30D00DB5872 /* SDK_ServiceSetup.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SDK_ServiceSetup.hpp; path = ../../../../src/SDK_ServiceSetup.hpp; sourceTree = "<group>"; };
+		7CAA2ADA1D11E30D00DB5872 /* SDK_Signatures.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SDK_Signatures.h; path = ../../../../src/SDK_Signatures.h; sourceTree = "<group>"; };
 		7CE621F91CEA4B8E000AB143 /* ZT_API_OSX_EXAMPLE.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ZT_API_OSX_EXAMPLE.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CE621FC1CEA4B8E000AB143 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7CE621FE1CEA4B8E000AB143 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -146,8 +148,9 @@
 		7CE621FB1CEA4B8E000AB143 /* ZT_API_OSX_EXAMPLE */ = {
 			isa = PBXGroup;
 			children = (
-				7C96E68F1CEA64F7003376E9 /* NetconServiceSetup.hpp */,
-				7C96E68E1CEA6481003376E9 /* signatures.h */,
+				7CAA2AD81D11E30D00DB5872 /* SDK_ServiceSetup.cpp */,
+				7CAA2AD91D11E30D00DB5872 /* SDK_ServiceSetup.hpp */,
+				7CAA2ADA1D11E30D00DB5872 /* SDK_Signatures.h */,
 				7C96E6851CEA603D003376E9 /* NetconWrapper.cpp */,
 				7C96E6861CEA603D003376E9 /* NetconWrapper.hpp */,
 				7CE621FC1CEA4B8E000AB143 /* AppDelegate.swift */,
@@ -283,6 +286,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7CAA2ADB1D11E30D00DB5872 /* SDK_ServiceSetup.cpp in Sources */,
 				7CE621FF1CEA4B8E000AB143 /* ViewController.swift in Sources */,
 				7C96E6871CEA603D003376E9 /* NetconWrapper.cpp in Sources */,
 				7CE621FD1CEA4B8E000AB143 /* AppDelegate.swift in Sources */,

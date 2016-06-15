@@ -1,20 +1,9 @@
-# ZeroTier SDK
+# ZeroTier SDK Primer
 
-
-The ZeroTier SDK (formerly known as Network Containers) offers a microkernel-like networking paradigm for containerized applications and application-specific virtual networking.
-
-The SDK couples the ZeroTier core Ethernet virtualization engine with a user-space TCP/IP stack and a library that intercepts calls to the Posix network API. This allows servers and applications to be used without modification or recompilation. It can be used to run services on virtual networks without elevated privileges, special configuration of the physical host, kernel support, or any other application specific configuration. It's ideal for use with [Docker](http://http://www.docker.com), [LXC](https://linuxcontainers.org), or [Rkt](https://coreos.com/rkt/docs/latest/) to build containerized microservices that automatically connect to a virtual network when deployed. It can also be used on a plain un-containerized Linux system to run applications on virtual networks without elevated privileges or system modification.
-
-More discussion can be found in our [original blog announcement](https://www.zerotier.com/blog/?p=490) and [the SDK product page](https://www.zerotier.com/product-netcon.shtml).
-
-The SDK is currently in **BETA** and is suitable for testing and experimentation. Linux, Android, OSX, and iOS are supported. Future updates will focus on compatibility, full stack support, and improved performance, and may also port to other OSes.
-
-
-## What can it do?
 True P2P injected right into your app with no code changes! A ZeroTier-enabled app. 
 (formerly known as Network Containers)
 
-We use a carefully-crafted [shim](doc/netcon/shims.md) dynamically loaded into your app on startup to redirect network flow to the ZeroTier service and provide your app an innate and seamless ability to communicate with other instances over virtual networks with no external configuration on the host system, without escalated priviledges, and without needing to modify your application's code. 
+The SDK couples the ZeroTier core Ethernet virtualization engine with a user-space TCP/IP stack and a carefully-crafted "shim" which intercepts and re-directs network API calls to our service. This allows servers and applications to be used without modification or recompilation. It can be used to run services on virtual networks without elevated privileges, special configuration of the physical host, kernel support, or any other application specific configuration. It's ideal for [containerized applications](docs/docker_linux_zt_sdk.md), [games](docs/unity3d.md), and [desktop/mobile apps]().
 
 Your only responsibility is to pick a shim appropriate for your app's design. Accessing resources (potentially other instances of your app) on the virtual network will work exactly as it would on a real LAN. The service supports both TCP and UDP. The ZeroTier SDK now works on both *x64* and *ARM* architectures. We've tested a beta version for *iOS*, *Android*, *Linux*, and *Mac OS*
 
@@ -22,18 +11,13 @@ The general idea is this:
 	1) Your application starts.
 	2) The shim initializes inside a separate thread of your app.
 	3) Your app can now reach anything on your virtual network. 
-	4) Fin.
 
 It's as simple as that!
 
 ***
 
+More discussion can be found in our [original blog announcement](https://www.zerotier.com/blog/?p=490) and [the SDK product page](https://www.zerotier.com/product-netcon.shtml).
 If you have any feature or support requests, be sure to let us know [here](https://www.zerotier.com/community/)!
-
-The ZeroTier SDK brings together three main technologies:
- - [ZeroTier Core Protocol](https://github.com/zerotier/ZeroTierOne)
- - [Lightweight IP (lwIP) stack](http://savannah.nongnu.org/projects/lwip/)
- - [Code injection (shim)](shims_zt_sdk.md)
 
 Combine this functionality with the network/device management capabilities of [ZeroTier Central](https://my.zerotier.com) and its associated [API](https://my.zerotier.com/help/api) and we've hopefully created a simple and reliable way for you to flatten and reduce the complexity of your app's networking layer.
 

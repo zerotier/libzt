@@ -1,5 +1,15 @@
 # ZeroTier SDK
 
+
+The ZeroTier SDK (formerly known as Network Containers) offers a microkernel-like networking paradigm for containerized applications and application-specific virtual networking.
+
+The SDK couples the ZeroTier core Ethernet virtualization engine with a user-space TCP/IP stack and a library that intercepts calls to the Posix network API. This allows servers and applications to be used without modification or recompilation. It can be used to run services on virtual networks without elevated privileges, special configuration of the physical host, kernel support, or any other application specific configuration. It's ideal for use with [Docker](http://http://www.docker.com), [LXC](https://linuxcontainers.org), or [Rkt](https://coreos.com/rkt/docs/latest/) to build containerized microservices that automatically connect to a virtual network when deployed. It can also be used on a plain un-containerized Linux system to run applications on virtual networks without elevated privileges or system modification.
+
+More discussion can be found in our [original blog announcement](https://www.zerotier.com/blog/?p=490) and [the SDK product page](https://www.zerotier.com/product-netcon.shtml).
+
+The SDK is currently in **BETA** and is suitable for testing and experimentation. Linux, Android, OSX, and iOS are supported. Future updates will focus on compatibility, full stack support, and improved performance, and may also port to other OSes.
+
+
 ## What can it do?
 True P2P injected right into your app with no code changes! A ZeroTier-enabled app. 
 (formerly known as Network Containers)

@@ -961,19 +961,14 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				HEADER_SEARCH_PATHS = (
-					"$(SRC_ROOT)/../../../ext/lwip/src/include/lwip/**",
-					"$(SRC_ROOT)/../../../ext/lwip/src/include/**",
-					"$(SRC_ROOT)/../../ext/lwip/src/include/**",
-					"$(SRC_ROOT)/../../../../ext/lwip/src/include/**",
-				);
+				HEADER_SEARCH_PATHS = "$(SRC_ROOT)/../../../ext/lwip/src/include";
 				INFOPLIST_FILE = ZeroTierSDK_iOS/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
-				USER_HEADER_SEARCH_PATHS = "$(SRC_ROOT)/../../../ext/lwip/src/include";
+				USER_HEADER_SEARCH_PATHS = "";
 			};
 			name = Debug;
 		};
@@ -985,19 +980,14 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				HEADER_SEARCH_PATHS = (
-					"$(SRC_ROOT)/../../../ext/lwip/src/include/lwip/**",
-					"$(SRC_ROOT)/../../../ext/lwip/src/include/**",
-					"$(SRC_ROOT)/../../ext/lwip/src/include/**",
-					"$(SRC_ROOT)/../../../../ext/lwip/src/include/**",
-				);
+				HEADER_SEARCH_PATHS = "$(SRC_ROOT)/../../../ext/lwip/src/include";
 				INFOPLIST_FILE = ZeroTierSDK_iOS/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
-				USER_HEADER_SEARCH_PATHS = "$(SRC_ROOT)/../../../ext/lwip/src/include";
+				USER_HEADER_SEARCH_PATHS = "";
 			};
 			name = Release;
 		};

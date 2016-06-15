@@ -6,15 +6,15 @@
 //  Copyright © 2016 ZeroTier. All rights reserved.
 //
 
-#include "Netcon.h"
+#include "SDK.h"
 #include "NetconWrapper.hpp"
-#include "signatures.h"
+#include "SDK_Signatures.h"
 #include <sys/socket.h>
 
 #define INTERCEPT_ENABLED   111
 #define INTERCEPT_DISABLED  222
 
-#include "NetconServiceSetup.hpp"
+#include "SDK_ServiceSetup.hpp"
 
 // Starts a service at the specified path
 extern "C" int start_service(const char * path) {

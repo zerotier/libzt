@@ -4,7 +4,7 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
-		<key>ZeroTierSDK_iOS.xcscheme</key>
+		<key>ZeroTierSDK_OSX.xcscheme</key>
 		<dict>
 			<key>orderHint</key>
 			<integer>0</integer>
@@ -12,7 +12,7 @@
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
-		<key>7C936A331D11EBEA00470058</key>
+		<key>7C0FEDC71D1202FD007A4E66</key>
 		<dict>
 			<key>primary</key>
 			<true/>

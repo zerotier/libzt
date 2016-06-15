@@ -3,7 +3,7 @@ OSX + ZeroTier SDK
 
 Welcome!
 
-Imagine a flat, encrypted, no-configuration LAN for all of the instances of your iOS app. 
+Imagine a flat, encrypted, no-configuration LAN for all of the instances of your OSX app. 
 
 This short tutorial will show you how to enable ZeroTier functionality for your iOS app with little to no code modification. Check out our [ZeroTier SDK](https://www.zerotier.com/blog) page for more info on how the integration works and [Shim Techniques](https://www.zerotier.com/blog) for a discussion of shims available for your app/technology.
 
@@ -75,4 +75,27 @@ inputStream!.setProperty(myDict, forKey: NSStreamSOCKSProxyConfigurationKey)
 outputStream!.setProperty(myDict, forKey: NSStreamSOCKSProxyConfigurationKey)
 // END proxy configuration
 ```
+
+
+
+
+
+
+
+
+
+## Linking into an application on Mac OSX
+
+Example:
+
+    gcc myapp.c -o myapp libztintercept.so
+    export ZT_NC_NETWORK=/tmp/netcon-test-home/nc_8056c2e21c000001
+
+Start service
+
+    ./zerotier-netcon-service -d -p8000 /tmp/netcon-test-home
+
+Run application
+
+    ./myapp
 

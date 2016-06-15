@@ -11,11 +11,11 @@ In this example we aim to set up a minimal [Android Studio](https://developer.an
 
 **Step 1: Build Shared Library `libZeroTierOneJNI.so`**
 
-Open `ZeroTierOne/Netcon/Android/proj` and build it. 
+Open `zerotiersdk/integrations/Android/proj` and build it. 
 
 *Note: Building the project will take a while if you are building for all architectures, See note below on how to speed up this process.*
 
-The resultant `ZeroTierOne/netcon/Android/java/libs/YOUR_ARCH/libZeroTierOneJNI.so` will be what you want to import for your own project to provide the shim interface to your app. Select your architecture and copy the shared library into `YourProject/src/main/jniLibs/YOUR_ARCH/`
+The resultant `zerotiersdk/integrations/Android/java/libs/YOUR_ARCH/libZeroTierOneJNI.so` will be what you want to import for your own project to provide the shim interface to your app. Select your architecture and copy the shared library into `YourProject/src/main/jniLibs/YOUR_ARCH/`
 
 **Step 2: App Code Modifications**
 
@@ -58,6 +58,6 @@ Simply call `zt_join_network("XXXXXXXXXXXXXXXX")`
 ***
 **Additional notes**
 
-As mentioned above, you can reduce the amount of time required to build the ZeroTier JNI library by only building for the architectures you want. You can specify the architectures in `ZeroTierOne/netcon/Android/java/jni/Application.mk`
+As mentioned above, you can reduce the amount of time required to build the ZeroTier JNI library by only building for the architectures you want. You can specify the architectures in `zerotiersdk/integrations/Android/java/jni/Application.mk`
 
 If you change the method/class/package name for the Netcon glue code in `NetconWrapper.java` (Not recommended!), you must also change the name of the JNI implementation in the Netcon source to match the new java name. For example, if the glue code is contained in a package `Java.com.example.joseph.NetconProxyTest`, a JNI implementation name of `Java_com_example_joseph_netconproxytest_NetconWrapper_startOneService` would be required in the appropriate C/C++ source/header files.

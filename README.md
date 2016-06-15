@@ -9,7 +9,7 @@ More discussion can be found in our [original blog announcement](https://www.zer
 
 The SDK is currently in **BETA** and is suitable for testing and experimentation. Only Linux is supported. Future updates will focus on compatibility, full stack support, and improved performance, and may also port to other OSes.
 
-# Building the SDK
+## Building the SDK
 
 The SDK works on Linux and has been lightly tested on OSX. To build the service host, IP stack, and intercept library, from the base of the ZeroTier One tree run:
 
@@ -27,14 +27,14 @@ The intercept library does nothing unless the `ZT_NC_NETWORK` environment variab
 Unlike `zerotier-one`, `zerotier-sdk-service` does not need to be run with root privileges and will not modify the host's network configuration in any way. It can be run alongside `zerotier-one` on the same host with no ill effect, though this can be confusing since you'll have to remember the difference between "real" host interfaces (tun/tap) and network containerized endpoints. The latter are completely unknown to the kernel and will not show up in `ifconfig`.
 
 
-# Modes of operation
+## Modes of operation
 
 There are generally two ways one might want to use this SDK/service. The first approach is a *compile-time static linking* of our SDK/service directly into your application. With this option you can bundle our entire functionality right into your app with no need to communicate with a service externally, it'll all be handled automatically. The second is a service-oriented approach where our SDK is *dynamically-linked* into your applications upon startup and will communicate to a single ZeroTier service on the host. This can be useful if you've already compiled your applications and can't perform a static linking.
 
 ![Image](docs/img/methods.png)
 
 
-# Linking into an application on Mac OSX
+## Linking into an application on Mac OSX
 
 Example:
 
@@ -50,7 +50,7 @@ Run application
     ./myapp
 
 
-# Starting the Network Containers Service
+## Starting the Network Containers Service
 
 You don't need Docker or any other container engine to try Network Containers. A simple test can be performed in user space (no root) in your own home directory.
 
@@ -105,7 +105,7 @@ If all went well a small static HTTP server is now serving up the current direct
 
 Replace *NETCON.INSTANCE.IP* with the IP address that *zerotier-netcon-service* was assigned on the virtual network. (This is the same IP you pinged in your first test.) If everything works, you should get back a copy of ZeroTier One's main README.md file.
 
-# Installing in a Docker container (or any other container engine)
+## Installing in a Docker container (or any other container engine)
 
 If it's not immediately obvious, installation into a Docker container is easy. Just install `zerotier-sdk-service`, `libztintercept.so`, and `liblwip.so` into the container at an appropriate locations. We suggest putting it all in `/var/lib/zerotier-one` since this is the default ZeroTier home and will eliminate the need to supply a path to any of ZeroTier's services or utilities. Then, in your Docker container entry point script launch the service with *-d* to run it in the background, set the appropriate environment variables as described above, and launch your container's main application.
 
@@ -126,15 +126,15 @@ Replace 8056c2e21c000001 with the network ID of the network you want your contai
 
 Now each new instance of your container will automatically join the specified network on startup. Authorizing the container on a private network still requires a manual authorization step either via the ZeroTier Central web UI or the API. We're working on some ideas to automate this via bearer token auth or similar since doing this manually or with scripts for large deployments is tedious.
 
-# Tests
+## Tests
 
 For info on testing the SDK, take a look at [docs/testing.md](docs/testing.md)
 
-# Mobile App Embedding
+## Mobile App Embedding
 
 For information on the app-embedding aspect of the SDK check out our [ZeroTier SDK](http://10.6.6.2/ZeroTier/ZeroTierSDK/docs/master/zt_sdk.md) blog post.
 
-# Limitations and Compatibility
+## Limitations and Compatibility
 
 The beta version of the SDK **only supports IPv4**. There is no IPv6 support and no support for ICMP (or RAW sockets). That means network-containerizing *ping* won't work.
 

@@ -63,6 +63,20 @@ std::string netDir;
 extern "C" {
 #endif
 
+#if defined(__UNITY_3D__)
+    // .NET Interop-friendly debug mechanism
+    typedef void (*FuncPtr)( const char * );
+    FuncPtr Debug;
+    
+    void SetDebugFunction( FuncPtr fp ) { Debug = fp; }
+    
+    // Starts a service at the specified path
+    void unity_start_service(char * path, int len) {
+        Debug(path);
+        init_service(INTERCEPT_DISABLED, path);
+    }
+#endif
+    
     void join_network(const char * nwid)
     {
         std::string confFile = netDir + "/" + nwid + ".conf";
@@ -80,11 +94,13 @@ extern "C" {
         zt1Service->leave(nwid);
     }
     
-    void zt_join_network(std::string nwid) {
-        join_network(nwid.c_str());
+    void zt_join_network(char * nwid) {
+        //Debug(nwid.c_str());
+        join_network(nwid);
     }
-    void zt_leave_network(std::string nwid) {
-        leave_network(nwid.c_str());
+    void zt_leave_network(char * nwid) {
+        //Debug(nwid.c_str());
+        leave_network(nwid);
     }
     
     bool zt_is_running() {
@@ -93,21 +109,6 @@ extern "C" {
     void zt_terminate() {
         zt1Service->terminate();
     }
-    
-#if defined(__UNITY_3D__)
-    // .NET Interop-friendly debug mechanism
-    typedef void (*FuncPtr)( const char * );
-    FuncPtr Debug;
-    
-    void SetDebugFunction( FuncPtr fp ) { Debug = fp; }
-    
-    // Starts a service at the specified path
-    void unity_start_service(char * path, int len) {
-        Debug(path);
-        init_service(INTERCEPT_DISABLED, path);
-    }
-#endif
-
     
 #if !defined(__ANDROID__)
     /*

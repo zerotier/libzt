@@ -3,6 +3,7 @@ using System.Collections;
 using System.Threading;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
+using UnityEngine.UI;
 
 public class Demo : MonoBehaviour
 {
@@ -52,8 +53,64 @@ public class Demo : MonoBehaviour
 		networkTestThread.Start();
 	}
 
+	// Demo button methods
+	public void Join()
+	{
+		GameObject go = GameObject.Find ("inputNetworkID"); 
+		InputField input = go.GetComponents<InputField> () [0];
+		Debug.Log ("Joining: " + input.text);
+		zt.JoinNetwork (input.text);
+	}
+
+	public void Leave()
+	{
+		GameObject go = GameObject.Find ("inputNetworkID"); 
+		InputField input = go.GetComponents<InputField> () [0];
+		Debug.Log ("Leaving: " + input.text);
+		zt.LeaveNetwork (input.text);
+	}
+
+
+	public void Connect()
+	{
+		GameObject go = GameObject.Find ("inputServerAddress"); 
+		//Text text = go.GetComponents<Text> ()[0];
+		InputField input = go.GetComponents<InputField> () [0];
+		Debug.Log ("Connecting to: " + input.text);
+		//zt.Connect(0, input.text
+	}
+
+	public void Disconnect()
+	{
+		GameObject go = GameObject.Find ("inputServerAddress"); 
+		InputField text = go.GetComponents<InputField> () [0];
+		Debug.Log ("Disconnecting from: " + text.text);
+	}
+
+
+	public void SendMessage()
+	{
+		GameObject go = GameObject.Find ("inputMessage"); 
+		InputField text = go.GetComponents<InputField> () [0];
+		Debug.Log ("Sending Message: " + text.text);
+	}
+
+
 	void Start()
 	{
+		// Set defaults
+		InputField input;
+		GameObject go;
+		go = GameObject.Find ("inputNetworkID"); 
+		input = go.GetComponents<InputField> () [0];
+		input.text = "565799d8f6e1c11a";
+		go = GameObject.Find ("inputServerAddress"); 
+		input = go.GetComponents<InputField> () [0];
+		input.text = "172.22.211.245";
+		go = GameObject.Find ("inputMessage"); 
+		input = go.GetComponents<InputField> () [0];
+		input.text = "Welcome to the machine";
+
 		// Create new instance of ZeroTier in separate thread
 		zt = new ZeroTierNetworkInterface ("/Users/Joseph/utest2");
 

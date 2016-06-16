@@ -25,6 +25,8 @@
  * LLC. Start here: http://www.zerotier.com/
  */
 
+#if defined(ZT_SDK_INTERCEPT)
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -568,4 +570,6 @@ pthread_key_t thr_id_key;
 
 #endif
 #endif
+
+#endif // ZT_SDK_INTERCEPT
 

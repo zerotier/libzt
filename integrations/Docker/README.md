@@ -9,7 +9,7 @@ This short tutorial will show you how to enable ZeroTier functionality for your 
 
 **Step 1: Build the ZeroTier service binaries**
 
-From the ZeroTier source directory,  `make netcon` Optionally, if you'd like to see some debug output during execution, use `make netcon NETCON_DEBUG=1`
+From the ZeroTier source directory,  `make netcon` Optionally, if you'd like to see some debug output during execution, use `make sdk ZT_SDK_DEBUG=1`
 
 **Step 2: Build your Docker image**
 

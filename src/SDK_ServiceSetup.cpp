@@ -132,9 +132,9 @@ extern "C" {
         intercept_thread_id = (int*)malloc(sizeof(int));
         *intercept_thread_id = mode;
         pthread_setspecific(thr_id_key, intercept_thread_id);
-        #if  !defined(__UNITY_3D__)
-            check_intercept_enabled_for_thread();
-        #endif
+        //#if  !defined(__UNITY_3D__)
+        //   check_intercept_enabled_for_thread();
+        //#endif
     }
 #endif
 

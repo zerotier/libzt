@@ -57,7 +57,7 @@ void dwr(int level, const char *fmt, ... );
 
 void dwr(int level, const char *fmt, ... )
 {
-#if defined(_SDK_DEBUG)
+#if defined(ZT_SDK_DEBUG)
   if(level > DEBUG_LEVEL)
       return;
   int saveerr;

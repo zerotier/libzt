@@ -38,8 +38,31 @@ using System.Net;
 
 using System.IO;
 
-
 public class ZeroTierNetworkInterface {
+
+	// Apple
+	#if UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
+	const string DLL_PATH = "ZeroTierSDK_Unity3D_OSX";
+	#endif
+
+	#if UNITY_IOS || UNITY_IPHONE
+	const string DLL_PATH = "ZeroTierSDK_Unity3D_iOS";
+	#endif
+
+	// Windows
+	#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+	const string DLL_PATH = "ZeroTierSDK_Unity3D_WIN";
+	#endif
+
+	// Linux
+	#if UNITY_STANDALONE_LINUX
+	const string DLL_PATH = "ZeroTierSDK_Unity3D_LINUX";
+	#endif
+
+	// Android
+	#if UNITY_ANDROID
+	const string DLL_PATH = "ZeroTierSDK_Unity3D_ANDROID";
+	#endif 
 
 	// ZeroTier background thread
 	private Thread ztThread;
@@ -66,44 +89,43 @@ public class ZeroTierNetworkInterface {
 	}
 
 	// ZeroTier service / debug initialization
-	[DllImport ("ZeroTierSDK_Unity3D_OSX")]
+	[DllImport (DLL_PATH)]
 	public static extern void SetDebugFunction( IntPtr fp );
-	[DllImport ("ZeroTierSDK_Unity3D_OSX")]
+	[DllImport (DLL_PATH)]
 	private static extern int unity_start_service(string path);
 
 	// Connection calls
-	[DllImport ("ZeroTierSDK_Unity3D_OSX")]
+	[DllImport (DLL_PATH)]
 	private static extern int zt_socket(int family, int type, int protocol);
 
-
-	[DllImport ("ZeroTierSDK_Unity3D_OSX")]
+	[DllImport (DLL_PATH)]
 	unsafe private static extern int zt_bind(int sockfd, System.IntPtr addr, int addrlen);
-	[DllImport ("ZeroTierSDK_Unity3D_OSX")]
+	[DllImport (DLL_PATH)]
 	unsafe private static extern int zt_connect(int sockfd, System.IntPtr addr, int addrlen);
 
-	[DllImport ("ZeroTierSDK_Unity3D_OSX")]
+	[DllImport (DLL_PATH)]
 	private static extern int zt_accept(int sockfd);
-	[DllImport ("ZeroTierSDK_Unity3D_OSX")]
+	[DllImport (DLL_PATH)]
 	private static extern int zt_listen(int sockfd, int backlog);
-	[DllImport ("ZeroTierSDK_Unity3D_OSX")]
+	[DllImport (DLL_PATH)]
 	private static extern int zt_close(int sockfd);
 
 	// RX / TX
-	[DllImport ("ZeroTierSDK_Unity3D_OSX")]
+	[DllImport (DLL_PATH)]
 	unsafe private static extern int zt_recv(int sockfd, System.IntPtr buf, int len);
-	[DllImport ("ZeroTierSDK_Unity3D_OSX")]
+	[DllImport (DLL_PATH)]
 	unsafe private static extern int zt_send(int sockfd, System.IntPtr buf, int len);
 
 	// ZT Thread controls
-	[DllImport ("ZeroTierSDK_Unity3D_OSX")]
+	[DllImport (DLL_PATH)]
 	private static extern bool zt_is_running();
-	[DllImport ("ZeroTierSDK_Unity3D_OSX")]
+	[DllImport (DLL_PATH)]
 	private static extern void zt_terminate();
 
 	// ZT Network controls
-	[DllImport ("ZeroTierSDK_Unity3D_OSX")]
+	[DllImport (DLL_PATH)]
 	private static extern bool zt_join_network(string nwid);
-	[DllImport ("ZeroTierSDK_Unity3D_OSX")]
+	[DllImport (DLL_PATH)]
 	private static extern void zt_leave_network(string nwid);
 
 	// Thread which starts the ZeroTier service

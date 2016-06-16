@@ -1382,8 +1382,18 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../../../zerotierone",
+					"$(SRCROOT)/../../../ext/lwip/src/include/",
+					"$(SRCROOT)/../../../ext/lwip/src/include/ipv4/",
+				);
 				INFOPLIST_FILE = ZeroTierSDK_Unity3D_iOS/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
+				OTHER_CFLAGS = (
+					"-D__UNITY_3D__",
+					"-DZT_SDK",
+					"-DZT_SDK_DEBUG",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-Unity3D-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1396,8 +1406,18 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../../../zerotierone",
+					"$(SRCROOT)/../../../ext/lwip/src/include/",
+					"$(SRCROOT)/../../../ext/lwip/src/include/ipv4/",
+				);
 				INFOPLIST_FILE = ZeroTierSDK_Unity3D_iOS/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
+				OTHER_CFLAGS = (
+					"-D__UNITY_3D__",
+					"-DZT_SDK",
+					"-DZT_SDK_DEBUG",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-Unity3D-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1586,6 +1606,7 @@
 				7CC0031D1D1216B0003E68DC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		7CC003281D1216E3003E68DC /* Build configuration list for PBXNativeTarget "ZeroTierSDK_iOS" */ = {
 			isa = XCConfigurationList;
@@ -1594,6 +1615,7 @@
 				7CC0032A1D1216E3003E68DC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		7CC003351D1216F8003E68DC /* Build configuration list for PBXNativeTarget "ZeroTierSDK_OSX" */ = {
 			isa = XCConfigurationList;
@@ -1602,6 +1624,7 @@
 				7CC003371D1216F8003E68DC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		7CC0033F1D121742003E68DC /* Build configuration list for PBXNativeTarget "ZeroTierSDK_Unity3D_OSX" */ = {
 			isa = XCConfigurationList;
@@ -1610,6 +1633,7 @@
 				7CC003411D121742003E68DC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

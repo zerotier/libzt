@@ -73,6 +73,7 @@ extern "C" {
     // Starts a service at the specified path
     void unity_start_service(char * path, int len) {
         Debug(path);
+        zt_init_rpc(path);
         init_service(INTERCEPT_DISABLED, path);
     }
 #endif
@@ -89,26 +90,11 @@ extern "C" {
         zt1Service->join(nwid);
     }
     
-    void leave_network(const char *nwid)
-    {
-        zt1Service->leave(nwid);
-    }
-    
-    void zt_join_network(char * nwid) {
-        //Debug(nwid.c_str());
-        join_network(nwid);
-    }
-    void zt_leave_network(char * nwid) {
-        //Debug(nwid.c_str());
-        leave_network(nwid);
-    }
-    
-    bool zt_is_running() {
-        return zt1Service->isRunning();
-    }
-    void zt_terminate() {
-        zt1Service->terminate();
-    }
+    void leave_network(const char *nwid) { zt1Service->leave(nwid); }
+    void zt_join_network(char * nwid) { join_network(nwid); }
+    void zt_leave_network(char * nwid) { leave_network(nwid); }
+    bool zt_is_running() { return zt1Service->isRunning(); }
+    void zt_terminate() { zt1Service->terminate(); }
     
 #if !defined(__ANDROID__)
     /*
@@ -133,9 +119,6 @@ extern "C" {
         intercept_thread_id = (int*)malloc(sizeof(int));
         *intercept_thread_id = mode;
         pthread_setspecific(thr_id_key, intercept_thread_id);
-        //#if  !defined(__UNITY_3D__)
-        //   check_intercept_enabled_for_thread();
-        //#endif
     }
 #endif
 

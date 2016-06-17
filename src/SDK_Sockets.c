@@ -303,6 +303,8 @@ const char *get_netpath() {
         
 #if defined(__UNITY_3D__)
        
+        // Just expose some basic calls for configuring and RX/TXing through ZT sockets
+        
         ssize_t zt_send(int fd, void *buf, int len)
         {
             return write(fd, buf, len);
@@ -313,17 +315,10 @@ const char *get_netpath() {
             return read(fd, buf, len);
         }
         
-    /*
-    ssize_t zt_send(int fd, struct UnityArrayInput *buf, int len)
-    {
-        return write(fd, buf->array, len);
-    }
-    
-    ssize_t zt_recv(int fd, struct UnityArrayInput *buf, int len)
-    {
-        return read(fd, buf->array, len);
-    }
-    */
+        int zt_set_nonblock(int fd)
+        {
+            return 	fcntl(fd, F_SETFL, O_NONBLOCK);
+        }
 #endif
         
     // ------------------------------------------------------------------------------

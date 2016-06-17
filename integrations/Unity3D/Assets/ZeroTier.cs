@@ -114,7 +114,9 @@ public class ZeroTierNetworkInterface {
 	[DllImport (DLL_PATH)]
 	unsafe private static extern int zt_recv(int sockfd, string buf, int len);
 	[DllImport (DLL_PATH)]
-	unsafe private static extern int zt_send(int sockfd, string buf, int len);
+	unsafe private static extern int zt_send(int sockfd, IntPtr buf, int len);
+	[DllImport (DLL_PATH)]
+	unsafe private static extern int zt_set_nonblock(int sockfd);
 
 	// ZT Thread controls
 	[DllImport (DLL_PATH)]
@@ -140,6 +142,7 @@ public class ZeroTierNetworkInterface {
 			Marshal.GetFunctionPointerForDelegate(callback_delegate);
 		// Call the API passing along the function pointer.
 		SetDebugFunction( intptr_delegate );
+		Debug.Log ("rpc_path = " + rpc_path);
 		unity_start_service (rpc_path);
 	}
 
@@ -202,6 +205,10 @@ public class ZeroTierNetworkInterface {
 		GCHandle sockaddr_ptr = ZeroTierUtils.Generate_unmananged_sockaddr("0.0.0.0" + ":" + port);
 		IntPtr pSockAddr = sockaddr_ptr.AddrOfPinnedObject ();
 		int addrlen = Marshal.SizeOf (pSockAddr);
+
+		// Set socket to non-blocking for RX polling in Receive()
+		zt_set_nonblock(sockfd);
+
 		return zt_bind (sockfd, pSockAddr, addrlen);
 	}
 
@@ -219,6 +226,10 @@ public class ZeroTierNetworkInterface {
 		IntPtr pSockAddr = sockaddr_ptr.AddrOfPinnedObject ();
 		int addrlen = Marshal.SizeOf (pSockAddr);
 		error = (byte)zt_connect (sockfd, pSockAddr, addrlen);
+
+		// Set socket to non-blocking for RX polling in Receive()
+		zt_set_nonblock(sockfd);
+
 		return sockfd;
 	}
 
@@ -239,32 +250,9 @@ public class ZeroTierNetworkInterface {
 	{
 		return zt_close (fd);
 	}
-
-	// Sends data out over the network
-
-	/*
-	public int Send(int fd, char[] buf, int len, out byte error)
-	{
-		int bytes_written = 0;
-		error = 0;
-
-		GCHandle buf_handle = GCHandle.Alloc (buf, GCHandleType.Pinned);
-		IntPtr pBufPtr = buf_handle.AddrOfPinnedObject ();
-		if((bytes_written = zt_send (fd, pBufPtr, len)) < 0) {
-			error = (byte)bytes_written;
-		}
-		return bytes_written;
-	}
-	*/
-
-	// Structure used to house arrays meant to be sent to unmanaged memory and passed to the 
-	// ZeroTier service
-	public struct UnityArrayInput
-	{
-		public IntPtr array;
-	}
-
+		
 	// Write data to a ZeroTier socket
+	/*
 	public int Send(int fd, char[] buf, int len, out byte error)
 	{
 		GCHandle buf_handle = GCHandle.Alloc (buf, GCHandleType.Pinned);
@@ -278,41 +266,52 @@ public class ZeroTierNetworkInterface {
 		}
 		return bytes_written;
 	}
-
-	// Sends data out over the network
-	/*
-	public int Send(int fd, char[] bufx, int len, out byte error)
-	{
-		char[] buf = "this is another test".ToCharArray();
-		UnityArrayInput data = new UnityArrayInput ();
-		data.array = Marshal.AllocHGlobal (Marshal.SizeOf (typeof(char))*buf.Length);
-		//data.len = buf.Length;
-		int bytes_written = 0;
-		error = 0;
-
-		try
-		{
-			//Marshal.Copy(buf, 0, data.array, buf.Length);
-		
-			Debug.Log(buf.Length);
-			// ZT API call
-			if((bytes_written = zt_send (fd, data.array, buf.Length)) < 0) {
-				error = (byte)bytes_written;
-			}
-			return bytes_written;
-		}
-		finally
-		{
-			Marshal.FreeHGlobal (data.array);
-		}
-		return 0;
-	}
 	*/
 
-	// Checks for data to RX
-	public int OnReceive(int fd, byte[] buf, int len)
+	// Write data to a ZeroTier socket
+	public int Send(int fd, char[] buf, int len, out byte error)
 	{
-		return 0;
-		//return zt_read(fd, buf, len);
+		GCHandle handle = GCHandle.Alloc(buf, GCHandleType.Pinned);
+		IntPtr ptr = handle.AddrOfPinnedObject();
+		error = 0;
+		int bytes_written;
+		// FIXME: Sending a length of 2X the buffer size seems to fix the object pinning issue
+		if((bytes_written = zt_send(fd, ptr, len*2)) < 0) {
+			error = (byte)bytes_written;
+		}
+		return bytes_written;
+	}
+
+	// Checks for data to RX
+	/*
+	public enum NetworkEventType
+	{
+		DataEvent,
+		ConnectEvent,
+		DisconnectEvent,
+		Nothing,
+		BroadcastEvent
+	}
+	*/
+	public NetworkEventType Receive(out int hostId, out int connectionId, out int channelId, byte[] buffer, int bufferSize, out int receivedSize, out byte error)
+	{
+		int res;
+		res = zt_recv (connectionId, buffer, bufferSize);
+
+		// FIXME: Not quite semantically the same, but close enough for alpha release?
+		// FIXME: Get notifications of disconnect events?
+		if (res == -1) {
+			error = -1;
+			return NetworkEventType.DisconnectEvent; 
+		}
+		if(res == 0) {
+			error = 0;
+			return NetworkEventType.Nothing; // No data read
+		}
+		if (res > 0) {
+			receivedSize = res;
+			Marshal.Copy(buffer, buffer, 0, res);
+			return NetworkEventType.DataEvent; // Data read into buffer
+		}
 	}
 }

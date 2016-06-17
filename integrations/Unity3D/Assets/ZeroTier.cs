@@ -299,6 +299,13 @@ public class ZeroTierNetworkInterface {
 	*/
 	public NetworkEventType Receive(out int hostId, out int connectionId, out int channelId, byte[] buffer, int bufferSize, out int receivedSize, out byte error)
 	{
+		/*
+		 *  If recBuffer is big enough to contain data, data will be copied in the buffer. 
+		 *  If not, error will contain MessageToLong error and you will need reallocate 
+		 *  buffer and call this function again. */
+
+
+
 		for (int i = 0; i < connections.Count; i++) {
 		
 		}

@@ -1,7 +1,7 @@
 ZeroTier Unity LLAPI
 ====
 
-We've tried to replicate the behavior of the Unity3D LLAPI to make using ZeroTier as easy as possible. All you need to do is add the `ZeroTierSDK_Unity3D_YOUR-PLATFORM` library in the `assets/plugins` folder of your project and start using the `ZeroTierNetworkInterface`:
+We've tried to replicate the behavior of the Unity3D LLAPI to make using ZeroTier as easy as possible. All you need to do is add the `ZeroTierSDK_Unity3D_YOUR-PLATFORM` library to the `assets/plugins` folder of your project and start using the `ZeroTierNetworkInterface`:
 
 ## Creating a host and receiving data
 
@@ -13,12 +13,20 @@ public class MyObject
 	void Start()
 	{
 		zt = new ZeroTierNetworkInterface("/Users/Bob/UnityGame/nc_8c493f5bef1747a6");
-		zt.AddHost();
+		zt.AddHost(8888);
 	}
 
 	void Update()
 	{
-		NetworkEventType ne = zt.Receive();
+		int hostId;
+		int connectionId;
+		int channelId;
+		byte[] buffer;
+		int bufferSize;
+		int receivedSize;
+		byte error;
+		
+		NetworkEventType ne = zt.Receive(out hostId, out connectionId, out channelId, buffer, bufferSize, out receivedSize, out error);
 
 		switch(ne)
 		{

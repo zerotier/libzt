@@ -15,48 +15,6 @@ public class Demo : MonoBehaviour
 
 	int server_connection_socket; // The "connection id"
 
-	private void zt_sample_network_test_thread()
-	{
-		print("test_network");
-
-		byte error;
-		// Prepare sample data buffer
-		/*
-		byte[] buffer = new byte[1024];
-		Stream stream = new MemoryStream(buffer);
-		BinaryFormatter f = new BinaryFormatter();
-		f.Serialize ( stream , "Welcome to the machine! (from Unity3D)" );
-		int error;
-		*/
-
-		// Connect to server
-		int connfd = zt.Connect (0, "172.22.211.245", 8888, out error);
-		print(connfd);
-
-		// Send sample data to server
-		//int bytes_written = zt.Send(connfd,buffer,0, out error);
-		//print(bytes_written);
-
-		//char[] buffer = new char[1024];
-		//buffer = "hello".ToCharArray();
-		//print (buffer);
-		//Stream stream = new MemoryStream(buffer);
-		//BinaryFormatter formatter = new BinaryFormatter();
-		//formatter.Serialize(stream, "HelloServer");
-		//int bufferSize = 1024;
-
-		Debug.Log ("Sending...");
-		int bytes_written = zt.Send(connfd, "hello".ToCharArray(),4, out error);
-		print(bytes_written);
-	}
-
-	public void zt_test_network()
-	{
-		Thread networkTestThread = new Thread(() => { zt_sample_network_test_thread();});
-		networkTestThread.IsBackground = true;
-		networkTestThread.Start();
-	}
-
 	// Demo button methods
 	public void Join()
 	{

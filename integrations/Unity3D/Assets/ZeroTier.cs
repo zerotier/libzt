@@ -27,16 +27,16 @@
 
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Networking;
+
 using System;
 using System.Collections;
 using System.Runtime.InteropServices;
 using System.Threading;
-using UnityEngine.Networking;
-
 using System.Net.Sockets;
 using System.Net;
-
 using System.IO;
+using C5;
 
 public class ZeroTierNetworkInterface {
 
@@ -64,9 +64,6 @@ public class ZeroTierNetworkInterface {
 	const string DLL_PATH = "ZeroTierSDK_Unity3D_ANDROID";
 	#endif 
 
-	// ZeroTier background thread
-	private Thread ztThread;
-
 	// Interop structures
 	[System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet=System.Runtime.InteropServices.CharSet.Ansi)]
 	public struct sockaddr {
@@ -76,6 +73,11 @@ public class ZeroTierNetworkInterface {
 		[System.Runtime.InteropServices.MarshalAsAttribute(System.Runtime.InteropServices.UnmanagedType.ByValTStr, SizeConst=14)]
 		public string sa_data;
 	}
+
+	// ZeroTier background thread
+	private Thread ztThread;
+
+	private ArrayList<int> connections = new ArrayList<int> ();
 
 	// Virtual network interace config
 	private int MaxPacketSize;
@@ -88,6 +90,7 @@ public class ZeroTierNetworkInterface {
 		Debug.Log("Native ZT Plugin: " + str);
 	}
 
+#region
 	// ZeroTier service / debug initialization
 	[DllImport (DLL_PATH)]
 	public static extern void SetDebugFunction( IntPtr fp );
@@ -129,6 +132,7 @@ public class ZeroTierNetworkInterface {
 	private static extern bool zt_join_network(string nwid);
 	[DllImport (DLL_PATH)]
 	private static extern void zt_leave_network(string nwid);
+#endregion
 
 	// Thread which starts the ZeroTier service
 	// The ZeroTier service may spin off a SOCKS5 proxy server 
@@ -295,6 +299,10 @@ public class ZeroTierNetworkInterface {
 	*/
 	public NetworkEventType Receive(out int hostId, out int connectionId, out int channelId, byte[] buffer, int bufferSize, out int receivedSize, out byte error)
 	{
+		for (int i = 0; i < connections.Count; i++) {
+		
+		}
+			
 		int res;
 		res = zt_recv (connectionId, buffer, bufferSize);
 

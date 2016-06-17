@@ -299,7 +299,18 @@ const char *get_netpath() {
     // ------------------------------------------------------------------------------
         
 #if defined(__UNITY_3D__)
+       
+        ssize_t zt_send(int fd, void *buf, int len)
+        {
+            return write(fd, buf, len);
+        }
         
+        ssize_t zt_recv(int fd, void *buf, int len)
+        {
+            return read(fd, buf, len);
+        }
+        
+    /*
     ssize_t zt_send(int fd, struct UnityArrayInput *buf, int len)
     {
         return write(fd, buf->array, len);
@@ -309,6 +320,7 @@ const char *get_netpath() {
     {
         return read(fd, buf->array, len);
     }
+    */
 #endif
         
     // ------------------------------------------------------------------------------

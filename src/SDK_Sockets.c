@@ -94,16 +94,20 @@ const char *get_netpath() {
     
     void zt_init_rpc(const char *nwid)
     {
+    #if defined(__UNITY_3D__)
+        char *nw = "565799d8f6e1c11a";
+        char *path = "/Users/Joseph/utest2/nc_";
+        char *fullpath = malloc(strlen(path)+strlen(nw)+1);
+        if(fullpath) {
+            strcpy(fullpath, path);
+            strcat(fullpath, nw);
+            api_netpath = fullpath;
+        }
+    #endif
         
-// TODO: Remove before production
-//#if defined(__UNITY_3D__)
-        api_netpath = "/Users/Joseph/utest2/nc_565799d8f6e1c11a";
-        //Debug("Set unix RPC path");
-//#endif
+    #if defined(__IOS__)
+        api_netpath = "ZeroTier/One/nc_" + nwid;
         
-//#if defined(__IOS__)
-        //api_netpath = "ZeroTier/One/nc_" + nwid;
-        /*
         void *spec = pthread_getspecific(thr_id_key);
         int thr_id = spec != NULL ? *((int*)spec) : -1;
         // dwr(MSG_DEBUG_EXTRA, "set_up_intercept(thr_id=%d)\n", thr_id);
@@ -115,23 +119,19 @@ const char *get_netpath() {
             return 1;
         }
         return 0;
-         */
-    
-        /*
-#elif defined(__ANDROID__)
-        netpath = "ZeroTier/One/nc_" + nwid;
+        
+    #elif defined(__ANDROID__)
+        api_netpath = "ZeroTier/One/nc_" + nwid;
         return 1;
-#else
-        if (!netpath) {
-            netpath = getenv("ZT_NC_NETWORK");
-            set_netpath(netpath);
-            if(!netpath) {
-                return 0;
+    #else
+        if (!api_netpath) {
+            api_netpath = getenv("ZT_NC_NETWORK");
+            set_netpath(api_netpath);
+            if(!api_netpath) {
+                // return 0;
             }
         }
-        return 1;
-#endif
-         */
+    #endif
     }
         
     // ------------------------------------------------------------------------------

@@ -12,6 +12,8 @@ public class Demo : MonoBehaviour
 	private ZeroTierNetworkInterface zt;
 	string nwid = "";
 
+	int server_connection_socket; // The "connection id"
+
 	private void zt_sample_network_test_thread()
 	{
 		print("test_network");
@@ -69,32 +71,39 @@ public class Demo : MonoBehaviour
 		Debug.Log ("Leaving: " + input.text);
 		zt.LeaveNetwork (input.text);
 	}
-
-
+		
 	public void Connect()
 	{
-		GameObject go = GameObject.Find ("inputServerAddress"); 
-		//Text text = go.GetComponents<Text> ()[0];
-		InputField input = go.GetComponents<InputField> () [0];
-		Debug.Log ("Connecting to: " + input.text);
-		//zt.Connect(0, input.text
+		GameObject addr_go = GameObject.Find ("inputServerAddress"); 
+		GameObject port_go = GameObject.Find ("inputServerPort"); 
+		InputField addr = addr_go.GetComponents<InputField> () [0];
+		InputField port = port_go.GetComponents<InputField> () [0];
+		Debug.Log ("Connecting to: " + addr.text + ":" + port.text);
+		byte error = 0;
+		server_connection_socket = zt.Connect (0, addr.text, int.Parse (port.text), out error);
+		Debug.Log ("server_connection_socket = " + server_connection_socket);
+		Debug.Log ("Conenct(): " + error);
 	}
 
 	public void Disconnect()
 	{
-		GameObject go = GameObject.Find ("inputServerAddress"); 
-		InputField text = go.GetComponents<InputField> () [0];
-		Debug.Log ("Disconnecting from: " + text.text);
+		GameObject addr_go = GameObject.Find ("inputServerAddress"); 
+		GameObject port_go = GameObject.Find ("inputServerAddress"); 
+		InputField addr = addr_go.GetComponents<InputField> () [0];
+		InputField port = port_go.GetComponents<InputField> () [0];
+		Debug.Log ("Disconnecting from: " + addr.text + ":" + port.text);
+		Debug.Log ("Disconnect(): " + zt.Disconnect (server_connection_socket));
 	}
-
-
+		
 	public void SendMessage()
 	{
 		GameObject go = GameObject.Find ("inputMessage"); 
-		InputField text = go.GetComponents<InputField> () [0];
-		Debug.Log ("Sending Message: " + text.text);
+		InputField msg = go.GetComponents<InputField> () [0];
+		Debug.Log ("Sending Message: " + msg.text);
+		byte error = 0;
+		zt.Send (server_connection_socket, msg.text.ToCharArray (), msg.text.ToCharArray ().Length, out error);
+		Debug.Log ("Send(): " + error);
 	}
-
 
 	void Start()
 	{

@@ -80,8 +80,13 @@ ssize_t zt_recvmsg(RECVMSG_SIG);
         int len;
     };
     
-    ssize_t zt_send(int fd, struct UnityArrayInput *buf, int len);
-    ssize_t zt_recv(int fd, struct UnityArrayInput *buf, int len);
+    ssize_t zt_recv(int fd, void *buf, int len);
+
+    ssize_t zt_send(int fd, void *buf, int len);
+
+    
+    //ssize_t zt_send(int fd, struct UnityArrayInput *buf, int len);
+    //ssize_t zt_recv(int fd, struct UnityArrayInput *buf, int len);
 #endif
     
     

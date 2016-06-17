@@ -36,14 +36,15 @@ public class Demo : MonoBehaviour
 		//int bytes_written = zt.Send(connfd,buffer,0, out error);
 		//print(bytes_written);
 
-		char[] buffer = new char[1024];
-		buffer = "hello".ToCharArray();
+		//char[] buffer = new char[1024];
+		//buffer = "hello".ToCharArray();
 		//print (buffer);
 		//Stream stream = new MemoryStream(buffer);
 		//BinaryFormatter formatter = new BinaryFormatter();
 		//formatter.Serialize(stream, "HelloServer");
 		//int bufferSize = 1024;
 
+		Debug.Log ("Sending...");
 		int bytes_written = zt.Send(connfd, "hello".ToCharArray(),4, out error);
 		print(bytes_written);
 	}
@@ -79,10 +80,15 @@ public class Demo : MonoBehaviour
 		InputField addr = addr_go.GetComponents<InputField> () [0];
 		InputField port = port_go.GetComponents<InputField> () [0];
 		Debug.Log ("Connecting to: " + addr.text + ":" + port.text);
-		byte error = 0;
-		server_connection_socket = zt.Connect (0, addr.text, int.Parse (port.text), out error);
-		Debug.Log ("server_connection_socket = " + server_connection_socket);
-		Debug.Log ("Conenct(): " + error);
+
+		Thread connectThread = new Thread(() => { 
+			byte error = 0;
+			server_connection_socket = zt.Connect (0, addr.text, int.Parse (port.text), out error);
+			Debug.Log ("server_connection_socket = " + server_connection_socket);
+			Debug.Log ("Connect(): " + error);
+		});
+		connectThread.IsBackground = true;
+		connectThread.Start();
 	}
 
 	public void Disconnect()
@@ -97,12 +103,19 @@ public class Demo : MonoBehaviour
 		
 	public void SendMessage()
 	{
+		//zt_test_network ();
 		GameObject go = GameObject.Find ("inputMessage"); 
 		InputField msg = go.GetComponents<InputField> () [0];
-		Debug.Log ("Sending Message: " + msg.text);
-		byte error = 0;
-		zt.Send (server_connection_socket, msg.text.ToCharArray (), msg.text.ToCharArray ().Length, out error);
-		Debug.Log ("Send(): " + error);
+
+		Thread sendThread = new Thread(() => { 
+			Debug.Log ("Sending Message: " + msg.text);
+			byte error = 0;
+			zt.Send (server_connection_socket, msg.text.ToCharArray (), msg.text.ToCharArray ().Length, out error);
+			Debug.Log ("Send(): " + error);
+		});
+		sendThread.IsBackground = true;
+		sendThread.Start();
+
 	}
 
 	void Start()
@@ -116,6 +129,9 @@ public class Demo : MonoBehaviour
 		go = GameObject.Find ("inputServerAddress"); 
 		input = go.GetComponents<InputField> () [0];
 		input.text = "172.22.211.245";
+		go = GameObject.Find ("inputServerPort"); 
+		input = go.GetComponents<InputField> () [0];
+		input.text = "8888";
 		go = GameObject.Find ("inputMessage"); 
 		input = go.GetComponents<InputField> () [0];
 		input.text = "Welcome to the machine";
@@ -131,20 +147,30 @@ public class Demo : MonoBehaviour
 
 	// Terminate the ZeroTier service when the application quits
 	void OnApplicationQuit() { 
+		Debug.Log ("OnApplicationQuit()");
 		zt.Terminate ();
 	} 
 
 	// Update is called once per frame
 	void Update () {
 
+		/*
+		GameObject go = GameObject.Find ("_txtStatusIndicator"); 
+		Text text = go.GetComponents<Text> () [0];
+		text.text = zt.IsRunning () ? "ZeroTier Service: ONLINE" : "ZeroTier Service: OFFLINE";
+		*/
+
 		// Rotate ZTCube when ZT is running
 		/*
 		if (zt.IsRunning ()) {
-			GameObject go = GameObject.Find ("ZTCube"); 
+
+
+			go = GameObject.Find ("ZTCube"); 
 			Vector3 rotvec = new Vector3 (10f, 10f, 10f);
 			go.transform.Rotate (rotvec, speed * Time.deltaTime);
 		}
 		*/
+
 		/*
 		GameObject go = GameObject.Find("ZTCube"); 
 		Text text = go.GetComponents<Text> ()[0];

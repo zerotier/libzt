@@ -112,9 +112,9 @@ public class ZeroTierNetworkInterface {
 
 	// RX / TX
 	[DllImport (DLL_PATH)]
-	unsafe private static extern int zt_recv(int sockfd, System.IntPtr buf, int len);
+	unsafe private static extern int zt_recv(int sockfd, string buf, int len);
 	[DllImport (DLL_PATH)]
-	unsafe private static extern int zt_send(int sockfd, System.IntPtr buf, int len);
+	unsafe private static extern int zt_send(int sockfd, string buf, int len);
 
 	// ZT Thread controls
 	[DllImport (DLL_PATH)]
@@ -242,6 +242,7 @@ public class ZeroTierNetworkInterface {
 
 	// Sends data out over the network
 
+	/*
 	public int Send(int fd, char[] buf, int len, out byte error)
 	{
 		int bytes_written = 0;
@@ -249,14 +250,12 @@ public class ZeroTierNetworkInterface {
 
 		GCHandle buf_handle = GCHandle.Alloc (buf, GCHandleType.Pinned);
 		IntPtr pBufPtr = buf_handle.AddrOfPinnedObject ();
-
-		//int len = Marshal.SizeOf (pBufPtr);
 		if((bytes_written = zt_send (fd, pBufPtr, len)) < 0) {
 			error = (byte)bytes_written;
 		}
 		return bytes_written;
 	}
-
+	*/
 
 	// Structure used to house arrays meant to be sent to unmanaged memory and passed to the 
 	// ZeroTier service
@@ -265,11 +264,26 @@ public class ZeroTierNetworkInterface {
 		public IntPtr array;
 	}
 
-	/*
-	// Sends data out over the network
+	// Write data to a ZeroTier socket
 	public int Send(int fd, char[] buf, int len, out byte error)
 	{
-		//char[] buffer = new char[1024];
+		GCHandle buf_handle = GCHandle.Alloc (buf, GCHandleType.Pinned);
+		IntPtr pBufPtr = buf_handle.AddrOfPinnedObject ();
+
+		error = 0;
+		int bytes_written;
+		string str = new string (buf);
+		if((bytes_written = zt_send (fd, str, len)) < 0) {
+			error = (byte)bytes_written;
+		}
+		return bytes_written;
+	}
+
+	// Sends data out over the network
+	/*
+	public int Send(int fd, char[] bufx, int len, out byte error)
+	{
+		char[] buf = "this is another test".ToCharArray();
 		UnityArrayInput data = new UnityArrayInput ();
 		data.array = Marshal.AllocHGlobal (Marshal.SizeOf (typeof(char))*buf.Length);
 		//data.len = buf.Length;
@@ -278,7 +292,7 @@ public class ZeroTierNetworkInterface {
 
 		try
 		{
-			Marshal.Copy(buf, 0, data.array, buf.Length);
+			//Marshal.Copy(buf, 0, data.array, buf.Length);
 		
 			Debug.Log(buf.Length);
 			// ZT API call

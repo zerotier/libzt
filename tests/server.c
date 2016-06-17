@@ -8,79 +8,49 @@
  
 int main(int argc , char *argv[])
 {
+    if(argc < 2) {
+	printf("usage: server <port>\n");
+	return 1;
+    }
+   
+    int port = atoi(argv[1]);
     int socket_desc , client_sock , c , read_size;
     struct sockaddr_in server , client;
     char client_message[2000];
      
-    //Create socket
     socket_desc = socket(AF_INET , SOCK_STREAM , 0);
-    if (socket_desc == -1)
-    {
+    if (socket_desc == -1) {
         printf("Could not create socket");
     }
-    puts("Socket created");
      
-    //Prepare the sockaddr_in structure
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = INADDR_ANY;
-    server.sin_port = htons( 8888 );
+    server.sin_port = htons(port);
      
-    //Bind
-    if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0)
-    {
-        //print the error message
+    printf("binding on port %d\n", port);
+    if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0) {
         perror("bind failed. Error");
         return 1;
     }
-    puts("bind done");
-     
-    //Listen
-    listen(socket_desc , 3);
-     
-    //Accept and incoming connection
-    puts("Waiting for incoming connections...");
+    printf("listening\n");
+    listen(socket_desc , 3); 
+    puts("waiting to accept\n");
     c = sizeof(struct sockaddr_in);
-     
-    //accept connection from an incoming client
+    
     client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
     if (client_sock < 0)
     {
         perror("accept failed");
         return 1;
     }
-    puts("Connection accepted");
+    puts("connection accepted\n reading...\n");
      
-    //Receive a message from client
-	sleep(5);
-        int bytes_read = recv(client_sock , client_message , 2000 , 0);
-
-//        printf("read (%d) bytes from client: %s\n", bytes_read, client_message);
-
-printf("Read (%d) bytes\n", bytes_read);
-for(int i=0; i<bytes_read; i++)
-{
+    // RX
+    int bytes_read = recv(client_sock , client_message , 2000 , 0);
+    printf("Read (%d) bytes\n", bytes_read);
+    for(int i=0; i<bytes_read; i++)
+    {
         printf("%c", client_message[i]);
-}
-
-/*
-    while( (read_size = recv(client_sock , client_message , 2000 , 0)) > 0 )
-    {
-        //Send the message back to client
-        //write(client_sock , client_message , strlen(client_message));
-	printf("from client: %s\n", client_message);    
-}
-  */
-
-/*   
-    if(read_size == 0)
-    {
-        puts("Client disconnected");
-        fflush(stdout);
     }
-    else if(read_size == -1)
-    {
-        perror("recv failed");
-    }
-  */   
     return 0;
 }

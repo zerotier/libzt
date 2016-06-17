@@ -1,7 +1,7 @@
 ZeroTier Unity LLAPI
 ====
 
-We've tried to replicate the behavior of the Unity3D LLAPI to make using ZeroTier as easy as possible. Everything is handled via a `ZeroTierNetworkInterface` object. You can use it as follows:
+We've tried to replicate the behavior of the Unity3D LLAPI to make using ZeroTier as easy as possible. All you need to do is add the `ZeroTierSDK_Unity3D_YOUR-PLATFORM` library in the `assets/plugins` folder of your project and start using the `ZeroTierNetworkInterface`:
 
 ## Creating a host and receiving data
 
@@ -35,6 +35,7 @@ public class MyObject
 
 ## Connecting to a server and sending a message
 
+```
 public class MyObject
 {
 	private ZeroTierNetworkInterface zt;

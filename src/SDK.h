@@ -38,9 +38,8 @@ extern "C" {
 #define INTERCEPT_ENABLED  111
 #define INTERCEPT_DISABLED 222
 
-void zt_init_rpc(const char *nwid);
+void zt_init_rpc(char *nwid);
 const char *get_netpath();
-void zt_init_rpc(const char *nwid);
 bool check_intercept_enabled_for_thread();
 
 #if defined(__linux__)
@@ -73,20 +72,8 @@ ssize_t zt_recvmsg(RECVMSG_SIG);
 
     
 #if defined(__UNITY_3D__)
-    
-    struct UnityArrayInput
-    {
-        void *array;
-        int len;
-    };
-    
     ssize_t zt_recv(int fd, void *buf, int len);
-
     ssize_t zt_send(int fd, void *buf, int len);
-
-    
-    //ssize_t zt_send(int fd, struct UnityArrayInput *buf, int len);
-    //ssize_t zt_recv(int fd, struct UnityArrayInput *buf, int len);
 #endif
     
     

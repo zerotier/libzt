@@ -92,17 +92,20 @@ const char *get_netpath() {
     // ---------------------------------- zt_init_rpc -------------------------------
     // ------------------------------------------------------------------------------
     
-    void zt_init_rpc(const char *nwid)
+    void zt_init_rpc(char *nwid)
     {
     #if defined(__UNITY_3D__)
-        char *nw = "565799d8f6e1c11a";
-        char *path = "/Users/Joseph/utest2/nc_";
-        char *fullpath = malloc(strlen(path)+strlen(nw)+1);
-        if(fullpath) {
-            strcpy(fullpath, path);
-            strcat(fullpath, nw);
-            api_netpath = fullpath;
-        }
+        //char *nw = "565799d8f6e1c11a";
+        //char *path = "/Users/Joseph/utest2/nc_";
+        //char *fullpath = malloc(strlen(path)+strlen(nw)+1);
+        //if(fullpath) {
+        //    strcpy(fullpath, path);
+        //    strcat(fullpath, nw);
+        //    api_netpath = fullpath;
+        //}
+        //api_netpath = nwid;
+        api_netpath = "/Users/Joseph/utest2/nc_565799d8f6e1c11a";
+        
     #endif
         
     #if defined(__IOS__)

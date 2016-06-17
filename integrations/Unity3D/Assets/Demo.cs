@@ -4,6 +4,7 @@ using System.Threading;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
 using UnityEngine.UI;
+using UnityEngine.Networking;
 
 public class Demo : MonoBehaviour
 {
@@ -131,13 +132,13 @@ public class Demo : MonoBehaviour
 		input.text = "172.22.211.245";
 		go = GameObject.Find ("inputServerPort"); 
 		input = go.GetComponents<InputField> () [0];
-		input.text = "8888";
+		input.text = "8887";
 		go = GameObject.Find ("inputMessage"); 
 		input = go.GetComponents<InputField> () [0];
 		input.text = "Welcome to the machine";
 
 		// Create new instance of ZeroTier in separate thread
-		zt = new ZeroTierNetworkInterface ("/Users/Joseph/utest2");
+		zt = new ZeroTierNetworkInterface ("/Users/Joseph/utest2/nc_565799d8f6e1c11a");
 
 		/* This new instance will communicate via a named pipe, so any 
 		 * API calls (ZeroTier.Connect(), ZeroTier.Send(), etc) will be sent to the service
@@ -153,6 +154,38 @@ public class Demo : MonoBehaviour
 
 	// Update is called once per frame
 	void Update () {
+		/*
+		if (text) {
+			text.text = IsRunning() ? "ZeroTier Status: Online" : "ZeroTier Status: Offline";
+		}
+		*/
+
+		// ---
+
+		int recHostId; 
+		int connectionId; 
+		int channelId; 
+		byte[] recBuffer = new byte[1024]; 
+		int bufferSize = 1024;
+		int dataSize;
+		byte error;
+		NetworkEventType recData = zt.Receive(out recHostId, out connectionId, out channelId, recBuffer, bufferSize, out dataSize, out error);
+		switch (recData)
+		{
+		case NetworkEventType.Nothing:         //1
+			break;
+		case NetworkEventType.ConnectEvent:    //2
+			Debug.Log("NetworkEventType.ConnectEvent");
+			break;
+		case NetworkEventType.DataEvent:       //3
+			Debug.Log("NetworkEventType.DataEvent");
+			break;
+		case NetworkEventType.DisconnectEvent: //4
+			Debug.Log("NetworkEventType.DisconnectEvent");
+			break;
+		}
+
+		// ---
 
 		/*
 		GameObject go = GameObject.Find ("_txtStatusIndicator"); 
@@ -169,14 +202,8 @@ public class Demo : MonoBehaviour
 			Vector3 rotvec = new Vector3 (10f, 10f, 10f);
 			go.transform.Rotate (rotvec, speed * Time.deltaTime);
 		}
-		*/
-
-		/*
 		GameObject go = GameObject.Find("ZTCube"); 
 		Text text = go.GetComponents<Text> ()[0];
-		if (text) {
-			text.text = IsRunning() ? "ZeroTier Status: Online" : "ZeroTier Status: Offline";
-		}
 		*/
 	}
 }

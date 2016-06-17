@@ -74,6 +74,7 @@ ssize_t zt_recvmsg(RECVMSG_SIG);
 #if defined(__UNITY_3D__)
     ssize_t zt_recv(int fd, void *buf, int len);
     ssize_t zt_send(int fd, void *buf, int len);
+    int zt_set_nonblock(int fd);
 #endif
     
     

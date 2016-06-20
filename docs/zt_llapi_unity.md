@@ -9,37 +9,28 @@ To start things off, go check out [ZeroTierSockets_Demo.cs](). Here are some exa
 ## Server example
 ```
 Thread connectThread = new Thread(() => { 
-			// Socket()
-			connection_socket = zt.Socket ((int)AddressFamily.InterNetwork, (int)SocketType.Stream, (int)ProtocolType.Unspecified);
-			Debug.Log ("sockfd = " + connection_socket);
-
+			// Create ZeroTier-administered socket
+			int sock = zt.Socket ((int)AddressFamily.InterNetwork, 
+											(int)SocketType.Stream, 
+											(int)ProtocolType.Unspecified);
 			// Bind()
-			int port_num;
-			int.TryParse(port.text,out port_num);
-			int bind_res = zt.Bind(connection_socket, "0.0.0.0", port_num);
-			Debug.Log ("bind_res = " + bind_res);
+			zt.Bind(sock, "0.0.0.0", 8000);
 
 			// Listen()
-			int listen_res = zt.Listen(connection_socket, 1);
-			Debug.Log ("listen_res = " + listen_res);
+			zt.Listen(sock, 1);
 
 			// Accept() loop
-			Debug.Log("entering accept() loop");
-			int accept_res = -1;
+			int accept_sock = -1;
 			while(accept_res < 0)
 			{
-				//yield return new WaitForSeconds(1);
-				accept_res = zt.Accept(connection_socket);
-				Debug.Log ("accept_res = " + accept_res);
-
+				accept_sock = zt.Accept(sock);
 			}
 
 			char[] msg = new char[1024];
 			int bytes_read = 0;
 			while(bytes_read >= 0)
 			{
-				//Debug.Log("reading from socket");
-				bytes_read = zt.Read(accept_res, ref msg, 80);
+				bytes_read = zt.Read(accept_sock, ref msg, 80);
 
 				string msgstr = new string(msg);
 				Debug.Log("MSG (" + bytes_read + "):" + msgstr);
@@ -53,13 +44,11 @@ Thread connectThread = new Thread(() => {
 ## Client example
 
 ```
-Thread connectThread = new Thread(() => {			
-			int sockfd = zt.Socket ((int)AddressFamily.InterNetwork, (int)SocketType.Stream, (int)ProtocolType.Unspecified);
-			Debug.Log ("sockfd = " + sockfd);
-			int port_num;
-			int.TryParse(port.text,out port_num);
-			zt.Connect (sockfd, addr.text,port_num);
-			Debug.Log ("connection_socket = " + connection_socket);
+Thread connectThread = new Thread(() => {	
+			// Create ZeroTier-administered socket		
+			int sock = zt.Socket ((int)AddressFamily.InterNetwork, (int)SocketType.Stream, (int)ProtocolType.Unspecified);
+			zt.Connect (sock, "0.0.0.0",8000);
+			zt.Write(sock, "Welcome to the machine!", 24);
 		});
 		connectThread.IsBackground = true;
 		connectThread.Start();

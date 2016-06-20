@@ -305,25 +305,15 @@ const char *get_netpath() {
        
         // Just expose some basic calls for configuring and RX/TXing through ZT sockets
         
-        ssize_t zt_send(int fd, void *buf, int len)
-        {
+        ssize_t zt_send(int fd, void *buf, int len) {
             return write(fd, buf, len);
         }
         
-        ssize_t zt_recv(int fd, void *buf, int len)
-        {
-            dwr("zt_recv(%d): \n", fd);
-
-            int bytes_read = read(fd, buf, len);
-            if(bytes_read >= 0)
-            {
-                dwr("zt_recv(): MSG(%d): %s\n", bytes_read, buf);
-            }
-            return bytes_read;
+        ssize_t zt_recv(int fd, void *buf, int len) {
+            return read(fd, buf, len);
         }
         
-        int zt_set_nonblock(int fd)
-        {
+        int zt_set_nonblock(int fd) {
             return 	fcntl(fd, F_SETFL, O_NONBLOCK);
         }
 #endif

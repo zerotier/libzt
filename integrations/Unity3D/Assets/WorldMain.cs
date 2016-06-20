@@ -30,6 +30,8 @@ using System.Collections;
 using UnityEngine.UI;
 using System;
 
+
+// Handles the switching of APIs
 public class WorldMain : MonoBehaviour {
 	void Start() {
 	}
@@ -40,6 +42,4 @@ public class WorldMain : MonoBehaviour {
 		Dropdown dd = go.GetComponents<Dropdown> () [0];
 		Debug.Log("API selected: " + dd.captionText.text);
 	}
-
-
 }

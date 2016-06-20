@@ -100,8 +100,8 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 		Thread connectThread = new Thread(() => { 
 
 			// Socket()
-			int sockfd = zt.Socket ((int)AddressFamily.InterNetwork, (int)SocketType.Stream, (int)ProtocolType.Unspecified);
-			Debug.Log ("sockfd = " + sockfd);
+			connection_socket = zt.Socket ((int)AddressFamily.InterNetwork, (int)SocketType.Stream, (int)ProtocolType.Unspecified);
+			Debug.Log ("sockfd = " + connection_socket);
 
 			// Bind()
 			int port_num;
@@ -122,6 +122,17 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 				accept_res = zt.Accept(connection_socket);
 				Debug.Log ("accept_res = " + accept_res);
 
+			}
+
+			char[] msg = new char[1024];
+			int bytes_read = 0;
+			while(bytes_read >= 0)
+			{
+				//Debug.Log("reading from socket");
+				bytes_read = zt.Read(accept_res, ref msg, 80);
+
+				string msgstr = new string(msg);
+				Debug.Log("MSG (" + bytes_read + "):" + msgstr);
 			}
 		});
 		connectThread.IsBackground = true;
@@ -169,7 +180,7 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 		input.text = "172.22.211.245";
 		go = GameObject.Find ("inputServerPort"); 
 		input = go.GetComponents<InputField> () [0];
-		input.text = "8887";
+		input.text = "5555";
 		go = GameObject.Find ("inputMessage"); 
 		input = go.GetComponents<InputField> () [0];
 		input.text = "Welcome to the machine";

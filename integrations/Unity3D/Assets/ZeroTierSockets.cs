@@ -113,7 +113,7 @@ public class ZeroTierNetworkInterface {
 
 	// RX / TX
 	[DllImport (DLL_PATH)]
-	unsafe protected static extern int zt_recv(int sockfd, IntPtr buf, int len);
+	unsafe protected static extern int zt_recv(int sockfd, [In, Out] IntPtr buf, int len);
 	[DllImport (DLL_PATH)]
 	unsafe protected static extern int zt_send(int sockfd, IntPtr buf, int len);
 	[DllImport (DLL_PATH)]
@@ -243,36 +243,14 @@ public class ZeroTierNetworkInterface {
 		return zt_connect (fd, pSockAddr, addrlen);
 	}
 
-
-	/*
-	unsafe { 
-		byte *ptr = (byte *)buffer.ToPointer();
-
-		int offset = 0;
-		for (int i=0; i<height; i++)
-		{
-			for (int j=0; j<width; j++)
-			{
-
-				float b = (float)ptr[offset+0] / 255.0f;
-				float g = (float)ptr[offset+1] / 255.0f;
-				float r = (float)ptr[offset+2] / 255.0f;
-				float a = (float)ptr[offset+3] / 255.0f;
-				offset += 4;
-
-				UnityEngine.Color color = new UnityEngine.Color(r, g, b, a);
-				texture.SetPixel(j, height-i, color);
-			}
-		}
-	}
-	*/
-
-	public int Read(int fd, char[] buf, int len)
+	public int Read(int fd, ref char[] buf, int len)
 	{
 		GCHandle handle = GCHandle.Alloc(buf, GCHandleType.Pinned);
 		IntPtr ptr = handle.AddrOfPinnedObject();
 		int bytes_read = zt_recv (fd, ptr, len*2);
-		Marshal.Copy (ptr, buf, 0, bytes_read); // FIXME: Copies back into managed memory, should maybe avoid copying
+		string str = Marshal.PtrToStringAuto(ptr);
+		//Marshal.Copy (ptr, buf, 0, bytes_read);
+		buf = Marshal.PtrToStringAnsi(ptr).ToCharArray();
 		return bytes_read;
 	}
 

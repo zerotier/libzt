@@ -83,7 +83,7 @@ int zt_socket(SOCKET_SIG);
 int zt_connect(CONNECT_SIG);
 int zt_bind(BIND_SIG);
 #if defined(__linux__)
-	int zt_accept(ACCEPT_SIG);
+	int zt_accept4(ACCEPT_SIG);
 #endif
 int zt_accept(ACCEPT_SIG);
 int zt_listen(LISTEN_SIG);

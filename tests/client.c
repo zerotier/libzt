@@ -8,23 +8,24 @@
  
 int main(int argc , char *argv[])
 {
-    int sock;
+    if(argc < 3) {
+    printf("usage: client <addr> <port>\n");
+    return 1;
+    }
+   
+    int sock, port = atoi(argv[1]);
     struct sockaddr_in server;
     char message[1000] , server_reply[2000];
      
-    //Create socket
     sock = socket(AF_INET , SOCK_STREAM , 0);
-    if (sock == -1)
-    {
+    if (sock == -1) {
         printf("Could not create socket");
-    }
-    puts("Socket created");
-     
-    server.sin_addr.s_addr = inet_addr("127.0.0.1");
+    }     
+    server.sin_addr.s_addr = inet_addr(argv[1]);
     server.sin_family = AF_INET;
-    server.sin_port = htons( 8888 );
+    server.sin_port = htons( port );
  
-    //Connect to remote server
+    printf("connecting...\n");
     if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0)
     {
         perror("connect failed. Error");
@@ -33,7 +34,6 @@ int main(int argc , char *argv[])
      
     puts("Connected\n");
      
-    //keep communicating with server
     while(1)
     {
         printf("Enter message : ");

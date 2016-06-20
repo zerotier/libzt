@@ -312,7 +312,14 @@ const char *get_netpath() {
         
         ssize_t zt_recv(int fd, void *buf, int len)
         {
-            return read(fd, buf, len);
+            dwr("zt_recv(%d): \n", fd);
+
+            int bytes_read = read(fd, buf, len);
+            if(bytes_read >= 0)
+            {
+                dwr("zt_recv(): MSG(%d): %s\n", bytes_read, buf);
+            }
+            return bytes_read;
         }
         
         int zt_set_nonblock(int fd)
@@ -470,11 +477,15 @@ const char *get_netpath() {
 
     int zt_accept(ACCEPT_SIG)
     {
-        //dwr(MSG_DEBUG,"zt_accept(%d):\n", sockfd);
+        dwr(MSG_DEBUG,"zt_accept(%d):\n", sockfd);
+// FIXME: Find a better solution for this before production
+#if !defined(__UNITY_3D__)
         if(addr)
             addr->sa_family = AF_INET;
-        
+#endif
         int new_fd = get_new_fd(sockfd);
+        dwr(MSG_DEBUG,"newfd = %d\n", new_fd);
+
         if(new_fd > 0) {
             errno = ERR_OK;
             return new_fd;

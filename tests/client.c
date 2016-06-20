@@ -13,7 +13,7 @@ int main(int argc , char *argv[])
     return 1;
     }
    
-    int sock, port = atoi(argv[1]);
+    int sock, port = atoi(argv[2]);
     struct sockaddr_in server;
     char message[1000] , server_reply[2000];
      
@@ -40,11 +40,15 @@ int main(int argc , char *argv[])
         scanf("%s" , message);
          
         //Send some data
-        if(send(sock , message , strlen(message) , 0) < 0)
+        if(send(sock , "welcome to the machine!" ,24 , 0) < 0)
         {
             puts("Send failed");
             return 1;
         }
+	else
+	{
+		printf("len = %d\n", strlen(message));
+	}
          
         //Receive a reply from the server
         if(recv(sock , server_reply , 2000 , 0) < 0)

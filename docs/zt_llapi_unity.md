@@ -6,52 +6,52 @@ We've tried to replicate the behavior of the Unity3D LLAPI to make using ZeroTie
 
 To start things off, go check out [ZeroTierSockets_Demo.cs](). Here are some examples of how to use the `ZeroTierNetworkInterface`:
 
-## Server example
+## Using ZeroTier Sockets API
+### Server example
 ```
 Thread connectThread = new Thread(() => { 
-			// Create ZeroTier-administered socket
-			int sock = zt.Socket ((int)AddressFamily.InterNetwork, 
-											(int)SocketType.Stream, 
-											(int)ProtocolType.Unspecified);
-			// Bind()
-			zt.Bind(sock, "0.0.0.0", 8000);
+	// Create ZeroTier-administered socket
+	int sock = zt.Socket ((int)AddressFamily.InterNetwork, 
+						(int)SocketType.Stream, 
+						(int)ProtocolType.Unspecified);
+	// Bind()
+	zt.Bind(sock, "0.0.0.0", 8000);
 
-			// Listen()
-			zt.Listen(sock, 1);
+	// Listen()
+	zt.Listen(sock, 1);
 
-			// Accept() loop
-			int accept_sock = -1;
-			while(accept_res < 0)
-			{
-				accept_sock = zt.Accept(sock);
-			}
-
-			char[] msg = new char[1024];
-			int bytes_read = 0;
-			while(bytes_read >= 0)
-			{
-				bytes_read = zt.Read(accept_sock, ref msg, 80);
-
-				string msgstr = new string(msg);
-				Debug.Log("MSG (" + bytes_read + "):" + msgstr);
-			}
-		});
-		connectThread.IsBackground = true;
-		connectThread.Start();
+	// Accept() loop
+	int accept_sock = -1;
+	while(accept_res < 0)
+	{
+		accept_sock = zt.Accept(sock);
 	}
+
+	char[] msg = new char[1024];
+	int bytes_read = 0;
+	while(bytes_read >= 0)
+	{
+		bytes_read = zt.Read(accept_sock, ref msg, 80);
+
+		string msgstr = new string(msg);
+		Debug.Log("MSG (" + bytes_read + "):" + msgstr);
+	}
+});
+connectThread.IsBackground = true;
+connectThread.Start();
 ```
 
-## Client example
+### Client example
 
 ```
 Thread connectThread = new Thread(() => {	
-			// Create ZeroTier-administered socket		
-			int sock = zt.Socket ((int)AddressFamily.InterNetwork, (int)SocketType.Stream, (int)ProtocolType.Unspecified);
-			zt.Connect (sock, "0.0.0.0",8000);
-			zt.Write(sock, "Welcome to the machine!", 24);
-		});
-		connectThread.IsBackground = true;
-		connectThread.Start();
+	// Create ZeroTier-administered socket		
+	int sock = zt.Socket ((int)AddressFamily.InterNetwork, (int)SocketType.Stream, (int)ProtocolType.Unspecified);
+	zt.Connect (sock, "0.0.0.0",8000);
+	zt.Write(sock, "Welcome to the machine!", 24);
+});
+connectThread.IsBackground = true;
+connectThread.Start();
 ```
 
 
@@ -59,8 +59,8 @@ Thread connectThread = new Thread(() => {
 
 
 ***
-
-## Creating a host and receiving data
+## Using the ZeroTier Low-level API (LLAPI)
+### Creating a host and receiving data
 
 ```
 public class MyObject
@@ -98,7 +98,7 @@ public class MyObject
 }
 ```
 
-## Connecting to a server and sending a message
+### Connecting to a server and sending a message
 
 ```
 public class MyObject

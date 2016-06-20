@@ -11,9 +11,7 @@ To start things off, go check out [ZeroTierSockets_Demo.cs](). Here are some exa
 ```
 Thread connectThread = new Thread(() => { 
 	// Create ZeroTier-administered socket
-	int sock = zt.Socket ((int)AddressFamily.InterNetwork, 
-						(int)SocketType.Stream, 
-						(int)ProtocolType.Unspecified);
+	int sock = zt.Socket ((int)AddressFamily.InterNetwork, (int)SocketType.Stream, (int)ProtocolType.Unspecified);
 	// Bind()
 	zt.Bind(sock, "0.0.0.0", 8000);
 
@@ -22,17 +20,14 @@ Thread connectThread = new Thread(() => {
 
 	// Accept() loop
 	int accept_sock = -1;
-	while(accept_res < 0)
-	{
+	while(accept_res < 0) {
 		accept_sock = zt.Accept(sock);
 	}
 
 	char[] msg = new char[1024];
 	int bytes_read = 0;
-	while(bytes_read >= 0)
-	{
+	while(bytes_read >= 0) { 
 		bytes_read = zt.Read(accept_sock, ref msg, 80);
-
 		string msgstr = new string(msg);
 		Debug.Log("MSG (" + bytes_read + "):" + msgstr);
 	}
@@ -56,10 +51,8 @@ connectThread.Start();
 
 
 
-
-
 ***
-## Using the ZeroTier Low-level API (LLAPI)
+## ~~Using the ZeroTier Low-level API (LLAPI)~~
 ### Creating a host and receiving data
 
 ```

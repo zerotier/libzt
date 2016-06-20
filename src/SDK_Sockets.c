@@ -470,7 +470,7 @@ const char *get_netpath() {
 
     int zt_accept(ACCEPT_SIG)
     {
-        dwr(MSG_DEBUG,"zt_accept(%d):\n", sockfd);
+        //dwr(MSG_DEBUG,"zt_accept(%d):\n", sockfd);
         if(addr)
             addr->sa_family = AF_INET;
         

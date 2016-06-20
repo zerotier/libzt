@@ -77,7 +77,7 @@ void dwr(int level, const char *fmt, ... )
 #endif
   if(DEBUG_TO_FILE) {
      FILE *file = fopen(DEBUG_LOGFILE_PATH,"a");
-     fprintf(file, "%s [tid=%7d] ", timestring, tid);
+     vfprintf(file, fmt, ap);
   }
   fprintf(stderr, "%s [tid=%7d] ", timestring, tid);
   vfprintf(stderr, fmt, ap);

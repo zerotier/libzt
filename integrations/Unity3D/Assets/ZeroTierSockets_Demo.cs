@@ -46,7 +46,7 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 	private ZeroTierNetworkInterface zt;
 	string nwid = "";
 
-	int connection_socket; // The "connection id"
+	int sock; // The "connection id"
 	int host_socket;
 
 	// Demo button methods
@@ -83,7 +83,7 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 			int port_num;
 			int.TryParse(port.text,out port_num);
 			zt.Connect (sockfd, addr.text,port_num);
-			Debug.Log ("connection_socket = " + connection_socket);
+			Debug.Log ("sock = " + sock);
 		});
 		connectThread.IsBackground = true;
 		connectThread.Start();
@@ -97,42 +97,72 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 		InputField port = port_go.GetComponents<InputField> () [0];
 		Debug.Log ("Binding to: " + addr.text + ":" + port.text);
 
+		// Get protocol type from GUI
+		GameObject go = GameObject.Find ("dropdownProtocol"); 
+		Dropdown dd = go.GetComponents<Dropdown> () [0];
+		Debug.Log("Protocol selected: " + dd.captionText.text);
+		SocketType type = dd.captionText.text == "UDP" ? SocketType.Dgram : SocketType.Stream;
+
 		Thread connectThread = new Thread(() => { 
 
-			// Socket()
-			connection_socket = zt.Socket ((int)AddressFamily.InterNetwork, (int)SocketType.Stream, (int)ProtocolType.Unspecified);
-			Debug.Log ("sockfd = " + connection_socket);
+			// TCP
+			if(type == SocketType.Stream) {
+				// Socket()
+				sock = zt.Socket ((int)AddressFamily.InterNetwork, (int)SocketType.Stream, (int)ProtocolType.Unspecified);
+				Debug.Log ("sock = " + sock);
 
-			// Bind()
-			int port_num;
-			int.TryParse(port.text,out port_num);
-			int bind_res = zt.Bind(connection_socket, "0.0.0.0", port_num);
-			Debug.Log ("bind_res = " + bind_res);
+				// Bind()
+				int port_num;
+				int.TryParse(port.text,out port_num);
+				int bind_res = zt.Bind(sock, "0.0.0.0", port_num);
+				Debug.Log ("bind_res = " + bind_res);
 
-			// Listen()
-			int listen_res = zt.Listen(connection_socket, 1);
-			Debug.Log ("listen_res = " + listen_res);
+				// Listen()
+				int listen_res = zt.Listen(sock, 1);
+				Debug.Log ("listen_res = " + listen_res);
 
-			// Accept() loop
-			Debug.Log("entering accept() loop");
-			int accept_res = -1;
-			while(accept_res < 0)
-			{
-				//yield return new WaitForSeconds(1);
-				accept_res = zt.Accept(connection_socket);
-				Debug.Log ("accept_res = " + accept_res);
+				// Accept() loop
+				Debug.Log("entering accept() loop");
+				int accept_res = -1;
+				while(accept_res < 0)
+				{
+					accept_res = zt.Accept(sock);
+					Debug.Log ("accept_res = " + accept_res);
+				}
 
+				// RX message
+				char[] msg = new char[1024];
+				int bytes_read = 0;
+				while(bytes_read >= 0)
+				{
+					bytes_read = zt.Read(accept_res, ref msg, 80);
+					string msgstr = new string(msg);
+					Debug.Log("MSG (" + bytes_read + "):" + msgstr);
+				}
 			}
 
-			char[] msg = new char[1024];
-			int bytes_read = 0;
-			while(bytes_read >= 0)
+			// UDP
+			else if(type == SocketType.Dgram)
 			{
-				//Debug.Log("reading from socket");
-				bytes_read = zt.Read(accept_res, ref msg, 80);
+				// Socket()
+				sock = zt.Socket ((int)AddressFamily.InterNetwork, (int)SocketType.Dgram, (int)ProtocolType.Unspecified);
+				Debug.Log ("sock = " + sock);
 
-				string msgstr = new string(msg);
-				Debug.Log("MSG (" + bytes_read + "):" + msgstr);
+				// Bind()
+				int port_num;
+				int.TryParse(port.text,out port_num);
+				int bind_res = zt.Bind(sock, "0.0.0.0", port_num);
+				Debug.Log ("bind_res = " + bind_res);
+
+				// RX message
+				int bytes_read = 0, flags = 0, msg_len = 1024;
+				char[] msg = new char[msg_len];
+				while(bytes_read >= 0)
+				{
+					bytes_read = zt.RecvFrom(sock, ref msg, msg_len, flags, "0.0.0.0", port_num);
+					string msgstr = new string(msg);
+					Debug.Log("MSG (" + bytes_read + "):" + msgstr);
+				}
 			}
 		});
 		connectThread.IsBackground = true;
@@ -146,25 +176,44 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 		InputField addr = addr_go.GetComponents<InputField> () [0];
 		InputField port = port_go.GetComponents<InputField> () [0];
 		Debug.Log ("Disconnecting from: " + addr.text + ":" + port.text);
-		Debug.Log ("Disconnect(): " + zt.Close (connection_socket));
+		Debug.Log ("Disconnect(): " + zt.Close (sock));
 	}
 
 	public void SendMessage()
 	{
-		//zt_test_network ();
-		/*
-		GameObject go = GameObject.Find ("inputMessage"); 
-		InputField msg = go.GetComponents<InputField> () [0];
+		// Get info from GUI
+		GameObject go = GameObject.Find ("dropdownProtocol"); 
+		Dropdown dd = go.GetComponents<Dropdown> () [0];
+		Debug.Log("Protocol selected: " + dd.captionText.text);
+		SocketType type = dd.captionText.text == "UDP" ? SocketType.Dgram : SocketType.Stream;
+
+		GameObject input = GameObject.Find ("inputMessage"); 
+		InputField msg = input.GetComponents<InputField> () [0];
+
+		// Get port number from UI
+		GameObject port_go = GameObject.Find ("inputServerPort"); 
+		InputField port = port_go.GetComponents<InputField> () [0];
+		int port_num;
+		int.TryParse(port.text,out port_num);
+
+		int bytes_written = 0;
 
 		Thread sendThread = new Thread(() => { 
-			Debug.Log ("Sending Message: " + msg.text);
-			byte error = 0;
-			zt.Send (server_connection_socket, msg.text.ToCharArray (), msg.text.ToCharArray ().Length, out error);
-			Debug.Log ("Send(): " + error);
+			// TCP
+			if(type == SocketType.Stream) {
+				bytes_written = zt.Write (sock, msg.text.ToCharArray(), msg.text.Length);
+			}
+
+			// UDP
+			else if(type == SocketType.Dgram) {
+				int flags = 0;
+				string addr = "0.0.0.0";
+				bytes_written = zt.SendTo(sock, msg.text.ToCharArray(), msg.text.Length, flags, addr, port_num);
+			}
+			Debug.Log ("bytes_written = " + bytes_written);
 		});
 		sendThread.IsBackground = true;
 		sendThread.Start();
-		*/
 	}
 
 	void Start()

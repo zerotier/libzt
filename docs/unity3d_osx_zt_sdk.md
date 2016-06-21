@@ -19,6 +19,8 @@ Our implementation currently intends to be the bare minimum required to get your
 - `Connect(fd, addr, port)`: Connects to an endpoint associated with the given `fd` 
 - `Write(fd, buf, len)`: Sends data to the endpoint associated with the given `fd`
 - `Read(fd, buf, len)`: Receives data from an endpoint associated with the given `fd`
+- `SendTo(fd, buf, len, flags, addr, port)`: Sends data to a given address
+- `RecvFrom(fd, ref buf, len, flags, addr, port)`: Receives data
 - `CLose(fd)`: Closes a connection to an endpoint
 
 ***

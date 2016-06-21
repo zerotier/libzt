@@ -12,14 +12,16 @@ Our implementation currently intends to be the bare minimum required to get your
 
 - `Join(nwid)`: Joins a ZeroTier virtual network
 - `Leave(nwid)`: Leaves a ZeroTier virtual network
-- `Socket(family, type, protocol)`: Creates a ZeroTier-administered socket
+- `Socket(family, type, protocol)`: Creates a ZeroTier-administered socket (returns an `fd`)
 - `Bind(fd, addr, port)`: Binds to that socket on the address and port given
 - `Listen(fd, backlog)`: Puts a socket into a listening state
 - `Accept(fd)`: Accepts an incoming connection
 - `Connect(fd, addr, port)`: Connects to an endpoint associated with the given `fd` 
 - `Write(fd, buf, len)`: Sends data to the endpoint associated with the given `fd`
 - `Read(fd, buf, len)`: Receives data from an endpoint associated with the given `fd`
-- `CLose(fd)`: Closes a connection with an endpoint
+- `SendTo(fd, buf, len, flags, addr, port)`: Sends data to a given address
+- `RecvFrom(fd, ref buf, len, flags, addr, port)`: Receives data
+- `CLose(fd)`: Closes a connection to an endpoint
 
 ***
 ## Adding ZeroTier to your Unity app

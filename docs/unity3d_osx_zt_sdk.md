@@ -12,14 +12,14 @@ Our implementation currently intends to be the bare minimum required to get your
 
 - `Join(nwid)`: Joins a ZeroTier virtual network
 - `Leave(nwid)`: Leaves a ZeroTier virtual network
-- `Socket(family, type, protocol)`: Creates a ZeroTier-administered socket
+- `Socket(family, type, protocol)`: Creates a ZeroTier-administered socket (returns an `fd`)
 - `Bind(fd, addr, port)`: Binds to that socket on the address and port given
 - `Listen(fd, backlog)`: Puts a socket into a listening state
 - `Accept(fd)`: Accepts an incoming connection
 - `Connect(fd, addr, port)`: Connects to an endpoint associated with the given `fd` 
 - `Write(fd, buf, len)`: Sends data to the endpoint associated with the given `fd`
 - `Read(fd, buf, len)`: Receives data from an endpoint associated with the given `fd`
-- `CLose(fd)`: Closes a connection with an endpoint
+- `CLose(fd)`: Closes a connection to an endpoint
 
 ***
 ## Adding ZeroTier to your Unity app
@@ -46,13 +46,16 @@ public class Example
 
 	public void example_server()
 	{
+		zt = new ZeroTierNetworkInterface (); // Start interface
+		zt.Join("565799d8f6e1c11a"); // Join your network
+
 		Thread connectThread = new Thread(() => { 
 			// Create ZeroTier-administered socket
 			int sock = zt.Socket ((int)AddressFamily.InterNetwork, (int)SocketType.Stream, (int)ProtocolType.Unspecified);
 			zt.Bind(sock, "0.0.0.0", 8000);
 			zt.Listen(sock, 1);
 
-			// Accept() client connection
+			// Accept client connection
 			int accept_sock = -1;
 			while(accept_res < 0) {
 				accept_sock = zt.Accept(sock);
@@ -81,6 +84,9 @@ public class Example
 
 	public void example_client()
 	{
+		zt = new ZeroTierNetworkInterface ();
+		zt.Join("565799d8f6e1c11a");
+
 		Thread connectThread = new Thread(() => {	
 			// Create ZeroTier-administered socket		
 			int sock = zt.Socket ((int)AddressFamily.InterNetwork, (int)SocketType.Stream, (int)ProtocolType.Unspecified);

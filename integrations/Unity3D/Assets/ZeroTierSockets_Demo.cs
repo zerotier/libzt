@@ -186,12 +186,7 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 		input.text = "Welcome to the machine";
 
 		// Create new instance of ZeroTier in separate thread
-		zt = new ZeroTierLLAPI ("/Users/Joseph/utest2/nc_565799d8f6e1c11a");
-
-		/* This new instance will communicate via a named pipe, so any 
-		 * API calls (ZeroTier.Connect(), ZeroTier.Send(), etc) will be sent to the service
-		 * via this pipe.
-		 */
+		zt = new ZeroTierNetworkInterface ();
 	}
 
 	// Terminate the ZeroTier service when the application quits

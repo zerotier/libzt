@@ -4,5 +4,5 @@ APP_CPPFLAGS := -O3 -DUSE_SOCKS_PROXY -DZT_SDK -fPIC -fPIE -fvectorize -Wall -fs
 APP_PLATFORM := android-14
 
 # Architectures
-#APP_ABI := all
-APP_ABI := armeabi-v7a
+APP_ABI := all
+#APP_ABI := armeabi-v7a

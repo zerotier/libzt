@@ -123,4 +123,5 @@ clean:
 	cd integrations/Android/proj; ./gradlew clean
 	rm -rf integrations/Android/proj/.gradle
 	rm -rf integrations/Android/proj/.idea
+	rm -rf integrations/Android/proj/build
 FORCE:

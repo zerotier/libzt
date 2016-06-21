@@ -113,6 +113,11 @@ public class ZeroTierNetworkInterface {
 	[DllImport (DLL_PATH)]
 	unsafe protected static extern int zt_set_nonblock(int sockfd);
 
+	[DllImport (DLL_PATH)]
+	unsafe protected static extern int zt_sendto(int fd, IntPtr buf, int len, int flags, System.IntPtr addr, int addrlen);
+	[DllImport (DLL_PATH)]
+	unsafe protected static extern int zt_recvfrom(int fd, [In, Out] IntPtr buf, int len, int flags, System.IntPtr addr, int addrlen);
+
 	// ZT Thread controls
 	[DllImport (DLL_PATH)]
 	protected static extern bool zt_is_running();
@@ -307,6 +312,42 @@ public class ZeroTierNetworkInterface {
 		return bytes_written;
 	}
 
+	// Sends data to an address
+	public int SendTo(int fd, char[] buf, int len, int flags, string addr, int port)
+	{
+		GCHandle handle = GCHandle.Alloc(buf, GCHandleType.Pinned);
+		IntPtr ptr = handle.AddrOfPinnedObject();
+		int bytes_written;
+
+		// Form address structure
+		GCHandle sockaddr_ptr = ZeroTierUtils.Generate_unmananged_sockaddr(addr + ":" + port);
+		IntPtr pSockAddr = sockaddr_ptr.AddrOfPinnedObject ();
+		int addrlen = Marshal.SizeOf (pSockAddr);
+
+		if((bytes_written = zt_sendto(fd, ptr, len*2, flags, pSockAddr, addrlen)) < 0) {
+			//error = (byte)bytes_written;
+		}
+		return bytes_written;
+	}
+		
+	// Receives data from an address
+	public int RecvFrom(int fd, ref char[] buf, int len, int flags, string addr, int port)
+	{
+		GCHandle handle = GCHandle.Alloc(buf, GCHandleType.Pinned);
+		IntPtr ptr = handle.AddrOfPinnedObject();
+
+		// Form address structure
+		GCHandle sockaddr_ptr = ZeroTierUtils.Generate_unmananged_sockaddr(addr + ":" + port);
+		IntPtr pSockAddr = sockaddr_ptr.AddrOfPinnedObject ();
+		int addrlen = Marshal.SizeOf (pSockAddr);
+
+		int bytes_read = zt_recvfrom(fd, ptr, len*2, flags, pSockAddr, addrlen);
+		string str = Marshal.PtrToStringAuto(ptr);
+		//Marshal.Copy (ptr, buf, 0, bytes_read);
+		buf = Marshal.PtrToStringAnsi(ptr).ToCharArray();
+		return bytes_read;
+	}
+		
 #region Service-Related calls
 	// Returns whether the ZeroTier service is currently running
 	public bool IsRunning()

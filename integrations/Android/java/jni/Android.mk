@@ -2,24 +2,28 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
+ZTSDK := ../../../../src
+ZT := ../../../../zerotierone
+
 LOCAL_MODULE := ZeroTierOneJNI
 LOCAL_C_INCLUDES := $(ZT1)/include
 LOCAL_C_INCLUDES += $(ZT1)/ext/lwip/src/include
 LOCAL_C_INCLUDES += $(ZT1)/ext/lwip/src/include/ipv4
-LOCAL_C_INCLUDES += $(ZT1)/netcon
+LOCAL_C_INCLUDES += $(ZT1)/node
+LOCAL_C_INCLUDES += $(ZT1)/
 LOCAL_C_INCLUDES += $(ZT1)/service
 LOCAL_C_INCLUDES += $(ZT1)/osdep
-LOCAL_C_INCLUDES += $(ZT1)/node
+LOCAL_C_INCLUDES += $(ZTSDK)/src
 
 LOCAL_LDLIBS := -llog
 # LOCAL_CFLAGS := -g
 
 # Netcon files
 LOCAL_SRC_FILES := \
-	$(ZT1)/src/SDK_RPC.c \
-	$(ZT1)/src/SDK_Proxy.cpp \
-	$(ZT1)/src/SDK_ServiceSetup.cpp \
-	$(ZT1)/src/SDK_EthernetTap.cpp
+	$(ZTSDK)/SDK_RPC.c \
+	$(ZTSDK)/SDK_Proxy.cpp \
+	$(ZTSDK)/SDK_ServiceSetup.cpp \
+	$(ZTSDK)/SDK_EthernetTap.cpp
 
 # ZeroTierOne ext files
 LOCAL_SRC_FILES += \
@@ -39,70 +43,70 @@ LOCAL_SRC_FILES += \
 	$(ZT1)/node/IncomingPacket.cpp \
 	$(ZT1)/node/InetAddress.cpp \
 	$(ZT1)/node/Multicaster.cpp \
-	$(ZT1)/node/Network.cpp \
-	$(ZT1)/node/NetworkConfig.cpp \
-	$(ZT1)/node/Node.cpp \
-	$(ZT1)/node/OutboundMulticast.cpp \
-	$(ZT1)/node/Packet.cpp \
-	$(ZT1)/node/Path.cpp \
-	$(ZT1)/node/Peer.cpp \
-	$(ZT1)/node/Poly1305.cpp \
-	$(ZT1)/node/Salsa20.cpp \
-	$(ZT1)/node/SelfAwareness.cpp \
-	$(ZT1)/node/SHA512.cpp \
-	$(ZT1)/node/Switch.cpp \
-	$(ZT1)/node/Topology.cpp \
-	$(ZT1)/node/Utils.cpp \
-	$(ZT1)/osdep/Http.cpp \
-	$(ZT1)/osdep/OSUtils.cpp \
-	$(ZT1)/osdep/BackgroundResolver.cpp
+	$(ZT)/node/Network.cpp \
+	$(ZT)/node/NetworkConfig.cpp \
+	$(ZT)/node/Node.cpp \
+	$(ZT)/node/OutboundMulticast.cpp \
+	$(ZT)/node/Packet.cpp \
+	$(ZT)/node/Path.cpp \
+	$(ZT)/node/Peer.cpp \
+	$(ZT)/node/Poly1305.cpp \
+	$(ZT)/node/Salsa20.cpp \
+	$(ZT)/node/SelfAwareness.cpp \
+	$(ZT)/node/SHA512.cpp \
+	$(ZT)/node/Switch.cpp \
+	$(ZT)/node/Topology.cpp \
+	$(ZT)/node/Utils.cpp \
+	$(ZT)/osdep/Http.cpp \
+	$(ZT)/osdep/OSUtils.cpp \
+	$(ZT)/osdep/BackgroundResolver.cpp
 
 # lwIP api files
 LOCAL_SRC_FILES += \
-	$(ZT1)/ext/lwip/src/api/api_lib.c \
-	$(ZT1)/ext/lwip/src/api/api_msg.c \
-	$(ZT1)/ext/lwip/src/api/err.c \
-	$(ZT1)/ext/lwip/src/api/netbuf.c \
-	$(ZT1)/ext/lwip/src/api/netdb.c \
-	$(ZT1)/ext/lwip/src/api/netifapi.c \
-	$(ZT1)/ext/lwip/src/api/sockets.c \
-	$(ZT1)/ext/lwip/src/api/tcpip.c
+	$(ZT)/ext/lwip/src/api/api_lib.c \
+	$(ZT)/ext/lwip/src/api/api_msg.c \
+	$(ZT)/ext/lwip/src/api/err.c \
+	$(ZT)/ext/lwip/src/api/netbuf.c \
+	$(ZT)/ext/lwip/src/api/netdb.c \
+	$(ZT)/ext/lwip/src/api/netifapi.c \
+	$(ZT)/ext/lwip/src/api/sockets.c \
+	$(ZT)/ext/lwip/src/api/tcpip.c
 
 # lwIP core files
 LOCAL_SRC_FILES += \
-	$(ZT1)/ext/lwip/src/core/def.c \
-	$(ZT1)/ext/lwip/src/core/dhcp.c \
-	$(ZT1)/ext/lwip/src/core/dns.c \
-	$(ZT1)/ext/lwip/src/core/init.c \
-	$(ZT1)/ext/lwip/src/core/mem.c \
-	$(ZT1)/ext/lwip/src/core/memp.c \
-	$(ZT1)/ext/lwip/src/core/netif.c \
-	$(ZT1)/ext/lwip/src/core/pbuf.c \
-	$(ZT1)/ext/lwip/src/core/raw.c \
-	$(ZT1)/ext/lwip/src/core/stats.c \
-	$(ZT1)/ext/lwip/src/core/sys.c \
-	$(ZT1)/ext/lwip/src/core/tcp_in.c \
-	$(ZT1)/ext/lwip/src/core/tcp_out.c \
-	$(ZT1)/ext/lwip/src/core/tcp.c \
-	$(ZT1)/ext/lwip/src/core/timers.c \
-	$(ZT1)/ext/lwip/src/core/udp.c
+	$(ZT)/ext/lwip/src/core/def.c \
+	$(ZT)/ext/lwip/src/core/dhcp.c \
+	$(ZT)/ext/lwip/src/core/dns.c \
+	$(ZT)/ext/lwip/src/core/init.c \
+	$(ZT)/ext/lwip/src/core/mem.c \
+	$(ZT)/ext/lwip/src/core/memp.c \
+	$(ZT)/ext/lwip/src/core/netif.c \
+	$(ZT)/ext/lwip/src/core/pbuf.c \
+	$(ZT)/ext/lwip/src/core/raw.c \
+	$(ZT)/ext/lwip/src/core/stats.c \
+	$(ZT)/ext/lwip/src/core/sys.c \
+	$(ZT)/ext/lwip/src/core/tcp_in.c \
+	$(ZT)/ext/lwip/src/core/tcp_out.c \
+	$(ZT)/ext/lwip/src/core/tcp.c \
+	$(ZT)/ext/lwip/src/core/timers.c \
+	$(ZT)/ext/lwip/src/core/udp.c
 
 # lwIP core/ip4 files
 LOCAL_SRC_FILES += \
-	$(ZT1)/ext/lwip/src/core/ipv4/autoip.c \
-	$(ZT1)/ext/lwip/src/core/ipv4/icmp.c \
-	$(ZT1)/ext/lwip/src/core/ipv4/igmp.c \
-	$(ZT1)/ext/lwip/src/core/ipv4/inet_chksum.c \
-	$(ZT1)/ext/lwip/src/core/ipv4/inet.c \
-	$(ZT1)/ext/lwip/src/core/ipv4/ip_addr.c \
-	$(ZT1)/ext/lwip/src/core/ipv4/ip_frag.c \
-	$(ZT1)/ext/lwip/src/core/ipv4/ip.c \
+	$(ZT)/ext/lwip/src/core/ipv4/autoip.c \
+	$(ZT)/ext/lwip/src/core/ipv4/icmp.c \
+	$(ZT)/ext/lwip/src/core/ipv4/igmp.c \
+	$(ZT)/ext/lwip/src/core/ipv4/inet_chksum.c \
+	$(ZT)/ext/lwip/src/core/ipv4/inet.c \
+	$(ZT)/ext/lwip/src/core/ipv4/ip_addr.c \
+	$(ZT)/ext/lwip/src/core/ipv4/ip_frag.c \
+	$(ZT)/ext/lwip/src/core/ipv4/ip.c \
 
 # lwIP netif files
 LOCAL_SRC_FILES += \
-	$(ZT1)/ext/lwip/src/netif/etharp.c \
-	$(ZT1)/ext/lwip/src/netif/ethernetif.c \
-	$(ZT1)/ext/lwip/src/netif/slipif.c
+	$(ZT)/ext/lwip/src/netif/etharp.c \
+	$(ZT)/ext/lwip/src/netif/ethernetif.c \
+	$(ZT)/ext/lwip/src/netif/slipif.c
 
 # JNI Files
 LOCAL_SRC_FILES += \

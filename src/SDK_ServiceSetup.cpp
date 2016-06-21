@@ -42,7 +42,7 @@
 #include <sys/types.h>
 #include <pthread.h>
 
-#include "OneService.hpp"
+#include "service/OneService.hpp"
 #include "Utils.hpp"
 #include "OSUtils.hpp"
 

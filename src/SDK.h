@@ -40,7 +40,6 @@ extern "C" {
 
 void zt_init_rpc(char *nwid);
 const char *get_netpath();
-bool check_intercept_enabled_for_thread();
 
 #if defined(__linux__)
 	static int (*realaccept4)(ACCEPT4_SIG) = 0;
@@ -50,6 +49,7 @@ bool check_intercept_enabled_for_thread();
 #endif
 
 #if !defined(__ANDROID__)
+    bool check_intercept_enabled_for_thread();
 	static int (*realbind)(BIND_SIG) = 0;
 	static int (*realsendmsg)(SENDMSG_SIG) = 0;
 	static ssize_t (*realsendto)(SENDTO_SIG) = 0;

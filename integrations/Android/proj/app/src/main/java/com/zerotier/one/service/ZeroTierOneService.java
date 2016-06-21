@@ -93,7 +93,7 @@ public class ZeroTierOneService extends VpnService implements Runnable, EventLis
         networkConfigs = new HashMap<>();
         eventBus.register(this);
 
-        Netcon.NetconWrapper wrapper = new Netcon.NetconWrapper();
+        Netcon.ZT_SDK_Wrapper wrapper = new Netcon.ZT_SDK_Wrapper();
 
 
         wrapper.startOneService();

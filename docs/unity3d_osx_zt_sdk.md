@@ -1,4 +1,4 @@
-Unity3D iOS + ZeroTier SDK
+Unity3D OSX + ZeroTier SDK
 ====
 
 Welcome!
@@ -28,7 +28,7 @@ Our implementation currently intends to be the bare minimum required to get your
 
 **Step 2: Add plugin to Unity project**
  - Create folder `Assets/Plugins`
- - Place `ZeroTierSDK_Unity3D_iOS.bundle` in folder
+ - Place `ZeroTierSDK_Unity3D_OSX.bundle` in folder
 
 **Step 3: Include wrapper class source**
  - Drag `ZeroTierNetworkInterface.cs` into your `Assets` folder.
@@ -37,8 +37,12 @@ Our implementation currently intends to be the bare minimum required to get your
  - See examples below for how to use it!
 
 ***
+## Examples
 
-## Server example
+Start by creating a `ZeroTierNetworkInterface` object and calling 
+Calling `ZeroTier.Init()` will start the network service in a separate thread. You can check if the service is running by checking `ZeroTier.IsRunning()`. Then, connecting and sending data to another endpoint would look something like the following:
+## Using ZeroTier Sockets API
+### Server example
 ```
 public class Example
 {
@@ -73,7 +77,7 @@ public class Example
 }
 ```
 
-## Client example
+### Client example
 ```
 public class Example
 {
@@ -92,3 +96,29 @@ public class Example
 	}
 }
 ```
+***
+## Design and structure of the ZeroTier Unity OSX Bundle
+
+XCode:
+New XCode project
+Select Cocoa bundle as target
+Add C linkages to external functions
+Build as 64bit (not universal)
+
+Unity:
+Select x86_64 build target in `Build Settings`
+In new C# script asset:
+
+```
+[DllImport ("ZeroTierUnity")]
+private static extern int unity_start_service ();
+```
+
+Add asset to GameObject
+Start ZT service
+
+***
+## Future Roadmap  
+With the ZeroTier sockets API in place, higher-level functionality such as lobbies, chat, and object synchronization could easily be built on top.
+
+

@@ -37,12 +37,8 @@ Our implementation currently intends to be the bare minimum required to get your
  - See examples below for how to use it!
 
 ***
-## Examples
 
-Start by creating a `ZeroTierNetworkInterface` object and calling 
-Calling `ZeroTier.Init()` will start the network service in a separate thread. You can check if the service is running by checking `ZeroTier.IsRunning()`. Then, connecting and sending data to another endpoint would look something like the following:
-## Using ZeroTier Sockets API
-### Server example
+## Server example
 ```
 public class Example
 {
@@ -77,7 +73,7 @@ public class Example
 }
 ```
 
-### Client example
+## Client example
 ```
 public class Example
 {
@@ -96,29 +92,3 @@ public class Example
 	}
 }
 ```
-***
-## Design and structure of the ZeroTier Unity OSX Bundle
-
-XCode:
-New XCode project
-Select Cocoa bundle as target
-Add C linkages to external functions
-Build as 64bit (not universal)
-
-Unity:
-Select x86_64 build target in `Build Settings`
-In new C# script asset:
-
-```
-[DllImport ("ZeroTierUnity")]
-private static extern int unity_start_service ();
-```
-
-Add asset to GameObject
-Start ZT service
-
-***
-## Future Roadmap  
-With the ZeroTier sockets API in place, higher-level functionality such as lobbies, chat, and object synchronization could easily be built on top.
-
-

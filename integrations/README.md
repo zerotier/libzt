@@ -9,8 +9,9 @@ Also stop by our [community section](https://www.zerotier.com/community/) for mo
 ***
 ## Current Integrations
 
+If you want everything built at once, type `make all` and go play outside for a little while, we'll put all of the built targets into the `build` directory for you along with specific instructions on how to use each binary.
+
 ### Apple
-We've created a single [XCode project](/Apple) which will build every target you need for iOS/OSX/Unity development. You'll want to grab that project, build the target for the type of development you want to do and then use it in one of the platform-specific integration tutorials below:
 ##### iOS
  - [Embedding within an app](../docs/ios_zt_sdk.md)
  - [Unity3D plugin](../docs/unity3d_ios_zt_sdk.md)

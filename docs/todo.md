@@ -11,3 +11,7 @@ Unity
  * check that .IsRunning() doesn't bork the entire system anymore
  * Allow max packet size configuration
  * Handle exceptions from unmanaged code
+
+Documentation
+ * Refactor
+  * Fix broken references

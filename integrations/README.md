@@ -10,12 +10,12 @@ Also stop by our [community section](https://www.zerotier.com/community/) for mo
 ## Current Integrations
 
 ### Apple
-We've created a single XCode project which will build every target you need for iOS/OSX/Unity development. It's located [here](/integrations/Apple)
-#### iOS
+We've created a single [XCode project] which will build every target you need for iOS/OSX/Unity development. You'll want to grab that project, build the target for the type of development you want to do and then use it in one of the platform-specific integration tutorials below:
+##### iOS
  - [Embedding within an app](../docs/ios_zt_sdk.md)
  - [Unity3D plugin](../docs/unity3d_ios_zt_sdk.md)
 
-#### OSX
+##### OSX
  - [Embedding within an app](../docs/osx_zt_sdk.md) 
  - [Dynamic-linking into an app/service at runtime](../docs/osx_zt_sdk.md) 
  - [Unity3D plugin](../docs/unity3d_osx_zt_sdk.md) 

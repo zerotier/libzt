@@ -120,7 +120,6 @@
 		7CC0045E1D1316F5003E68DC /* Http.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D11D121833003E68DC /* Http.cpp */; };
 		7CC0045F1D1316F5003E68DC /* OSUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D31D121833003E68DC /* OSUtils.cpp */; };
 		7CC004601D1316F5003E68DC /* PortMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D61D121833003E68DC /* PortMapper.cpp */; };
-		7CC004611D1316F5003E68DC /* RoutingTable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D81D121833003E68DC /* RoutingTable.cpp */; };
 		7CC004621D131704003E68DC /* etharp.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0039D1D1217F2003E68DC /* etharp.c */; };
 		7CC004631D131704003E68DC /* ethernetif.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0039E1D1217F2003E68DC /* ethernetif.c */; };
 		7CC004641D131704003E68DC /* slipif.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0039F1D1217F2003E68DC /* slipif.c */; };
@@ -1112,7 +1111,6 @@
 				7CC0045E1D1316F5003E68DC /* Http.cpp in Sources */,
 				7CC0045F1D1316F5003E68DC /* OSUtils.cpp in Sources */,
 				7CC004601D1316F5003E68DC /* PortMapper.cpp in Sources */,
-				7CC004611D1316F5003E68DC /* RoutingTable.cpp in Sources */,
 				7CC0043C1D1316BF003E68DC /* SDK_Debug.c in Sources */,
 				7CC0043D1D1316BF003E68DC /* SDK_EthernetTap.cpp in Sources */,
 				7CC0043E1D1316BF003E68DC /* SDK_Intercept.c in Sources */,

@@ -109,6 +109,7 @@ const char *get_netpath() {
     #endif
         
     #if defined(__IOS__)
+        /*
         api_netpath = "ZeroTier/One/nc_" + nwid;
         
         void *spec = pthread_getspecific(thr_id_key);
@@ -122,6 +123,8 @@ const char *get_netpath() {
             return 1;
         }
         return 0;
+        */
+        api_netpath = "ZeroTier/One/nc_e5cd7a9e1c3511dd";
         
     #elif defined(__ANDROID__)
         api_netpath = "ZeroTier/One/nc_" + nwid;

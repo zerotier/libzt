@@ -55,37 +55,30 @@ all:
 # TODO: CHECK if XCODE TOOLS are installed
 # Build frameworks for application development
 osx_app_framework: 
-	cd integrations/Apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_OSX build SYMROOT="../../../build/OSX_app_framework"
+	cd integrations/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_OSX build SYMROOT="../../../build/osx_app_framework"
 ios_app_framework: 
-	cd integrations/Apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_iOS build SYMROOT="../../../build/iOS_app_framework"
-
+	cd integrations/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_iOS build SYMROOT="../../../build/ios_app_framework"
 # Build bundles for Unity integrations
 osx_unity3d_bundle:
-	cd integrations/Apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_Unity3D_OSX build SYMROOT="../../../build/OSX_unity3d_bundle"
+	cd integrations/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_Unity3D_OSX build SYMROOT="../../../build/osx_unity3d_bundle"
 ios_unity3d_bundle:
-	cd integrations/Apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_Unity3D_iOS build SYMROOT="../../../build/iOS_unity3d_bundle"
-
+	cd integrations/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_Unity3D_iOS build SYMROOT="../../../build/ios_unity3d_bundle"
 # TODO: CHECK if ANDROID/GRADLE TOOLS are installed
-
+# Build library for Android Unity integrations
 # Build JNI library for Android app integration
 android_jni_library:
-	cd integrations/Android/proj; ./gradlew assembleDebug
-
-# Build library for Android Unity integrations
+	cd integrations/android/proj; ./gradlew assembleDebug
 
 osx_shared_lib: $(OBJS)
 	rm -f *.o
 	# Need to selectively rebuild one.cpp and OneService.cpp with ZT_SERVICE_NETCON and ZT_ONE_NO_ROOT_CHECK defined, and also NetconEthernetTap
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -DZT_SDK -DZT_ONE_NO_ROOT_CHECK -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -Izerotierone/osdep -Izerotierone/node -Isrc -o build/zerotier-sdk-service $(OBJS) zerotierone/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp zerotierone/one.cpp -x c src/SDK_RPC.c $(LDLIBS) -ldl
-	# Build netcon/liblwip.so which must be placed in ZT home for zerotier-netcon-service to work
+	# Build liblwip.so which must be placed in ZT home for zerotier-sdk-service to work
 	make -f make-liblwip.mk
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
-	#cd netcon ; gcc $(DEFS) -O2 -Wall -std=c99 -fPIC -fno-common -dynamiclib -flat_namespace -DVERBOSE -D_GNU_SOURCE -DNETCON_INTERCEPT -I. -nostdlib -shared -o libztapi.so zt_api.c common.c RPC.c -ldl
 	cd src ; gcc $(DEFS) -O2 -Wall -std=c99 -fPIC -fno-common -dynamiclib -flat_namespace -DVERBOSE -D_GNU_SOURCE -DNETCON_INTERCEPT -I. -I../zerotierone/node -nostdlib -shared -o libztintercept.so SDK_Sockets.c SDK_Intercept.c SDK_Debug.c SDK_RPC.c -ldl
-	#cd netcon ; gcc $(DEFS) -O2 -Wall -std=c99 -fPIC -fno-common -dynamiclib -flat_namespace -DVERBOSE -D_GNU_SOURCE -DNETCON_INTERCEPT -I. -nostdlib -shared -o libztkq.so zt_api.c kq.c Intercept.c common.c RPC.c -ldl
 	mkdir -p build/osx_shared_lib
 	cp src/libztintercept.so build/osx_shared_lib/libztintercept.so
-
 	ln -sf zerotier-sdk-service zerotier-cli
 	ln -sf zerotier-sdk-service zerotier-idtool
 

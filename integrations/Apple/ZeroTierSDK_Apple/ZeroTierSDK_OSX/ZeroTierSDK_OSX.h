@@ -15,5 +15,5 @@ FOUNDATION_EXPORT double ZeroTierSDK_OSXVersionNumber;
 FOUNDATION_EXPORT const unsigned char ZeroTierSDK_OSXVersionString[];
 
 // In this header, you should import all the public headers of your framework using statements like #import <ZeroTierSDK_OSX/PublicHeader.h>
-
+#import <ZeroTierSDK_OSX/SDK.h>
 

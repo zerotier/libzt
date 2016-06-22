@@ -16,22 +16,22 @@ For more support on these integrations, or if you'd like help creating a new int
 
 ### Apple
 ##### iOS
- - [Embedding within an app](../docs/ios_zt_sdk.md)
- - [Unity3D plugin](../docs/unity3d_ios_zt_sdk.md)
+ - [Embedding within an app](../docs/ios_zt_sdk.md) `make ios_app_framework`
+ - [Unity3D plugin](../docs/unity3d_ios_zt_sdk.md) `make ios_unity3d_bundle`
 
 ##### OSX
- - [Embedding within an app](../docs/osx_zt_sdk.md) 
- - [Dynamic-linking into an app/service at runtime](../docs/osx_zt_sdk.md) 
- - [Unity3D plugin](../docs/unity3d_osx_zt_sdk.md) 
+ - [Embedding within an app](../docs/osx_zt_sdk.md) `make osx_app_framework`
+ - [Dynamic-linking into an app/service at runtime](../docs/osx_zt_sdk.md) `make `
+ - [Unity3D plugin](../docs/unity3d_osx_zt_sdk.md) `make osx_unity3d_bundle`
 
 ***
 ### Linux
- - [Dynamic-linking into an app/service at runtime](../docs/linux_zt_sdk.md) 
- - [Using the SDK with Docker](../docs/docker_linux_zt_sdk.md)
+ - [Dynamic-linking into an app/service at runtime](../docs/linux_zt_sdk.md) `make linux_shared_lib`
+ - [Using the SDK with Docker](../docs/docker_linux_zt_sdk.md) `make linux_shared_lib`
 
 ### Android
- - [Embedding within an app](../docs/android_zt_sdk.md) 
- - [Unity 3D plugin](../docs/unity3d_android_zt_sdk.md) 
+ - [Embedding within an app](../docs/android_zt_sdk.md) `make android_jni_lib`
+ - [Unity 3D plugin](../docs/unity3d_android_zt_sdk.md) `make android_unity3d_plugin`
 
 ***
 ### Windows

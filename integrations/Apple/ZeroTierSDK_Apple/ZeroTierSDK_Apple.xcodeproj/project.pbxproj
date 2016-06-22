@@ -56,8 +56,6 @@
 		7CC003DC1D121833003E68DC /* BackgroundResolver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003CE1D121833003E68DC /* BackgroundResolver.cpp */; };
 		7CC003DD1D121833003E68DC /* Http.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D11D121833003E68DC /* Http.cpp */; };
 		7CC003DE1D121833003E68DC /* OSUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D31D121833003E68DC /* OSUtils.cpp */; };
-		7CC003DF1D121833003E68DC /* PortMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D61D121833003E68DC /* PortMapper.cpp */; };
-		7CC003E01D121833003E68DC /* RoutingTable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D81D121833003E68DC /* RoutingTable.cpp */; };
 		7CC0041F1D121840003E68DC /* C25519.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003E61D121840003E68DC /* C25519.cpp */; };
 		7CC004201D121840003E68DC /* CertificateOfMembership.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003E81D121840003E68DC /* CertificateOfMembership.cpp */; };
 		7CC004211D121840003E68DC /* Cluster.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003EA1D121840003E68DC /* Cluster.cpp */; };
@@ -119,7 +117,6 @@
 		7CC0045D1D1316F5003E68DC /* BackgroundResolver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003CE1D121833003E68DC /* BackgroundResolver.cpp */; };
 		7CC0045E1D1316F5003E68DC /* Http.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D11D121833003E68DC /* Http.cpp */; };
 		7CC0045F1D1316F5003E68DC /* OSUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D31D121833003E68DC /* OSUtils.cpp */; };
-		7CC004601D1316F5003E68DC /* PortMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D61D121833003E68DC /* PortMapper.cpp */; };
 		7CC004621D131704003E68DC /* etharp.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0039D1D1217F2003E68DC /* etharp.c */; };
 		7CC004631D131704003E68DC /* ethernetif.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0039E1D1217F2003E68DC /* ethernetif.c */; };
 		7CC004641D131704003E68DC /* slipif.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0039F1D1217F2003E68DC /* slipif.c */; };
@@ -193,8 +190,6 @@
 		7CC004A81D131E21003E68DC /* BackgroundResolver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003CE1D121833003E68DC /* BackgroundResolver.cpp */; };
 		7CC004A91D131E21003E68DC /* Http.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D11D121833003E68DC /* Http.cpp */; };
 		7CC004AA1D131E21003E68DC /* OSUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D31D121833003E68DC /* OSUtils.cpp */; };
-		7CC004AB1D131E21003E68DC /* PortMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D61D121833003E68DC /* PortMapper.cpp */; };
-		7CC004AC1D131E21003E68DC /* RoutingTable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D81D121833003E68DC /* RoutingTable.cpp */; };
 		7CC004AD1D131E2D003E68DC /* etharp.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0039D1D1217F2003E68DC /* etharp.c */; };
 		7CC004AE1D131E2D003E68DC /* ethernetif.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0039E1D1217F2003E68DC /* ethernetif.c */; };
 		7CC004AF1D131E2D003E68DC /* slipif.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0039F1D1217F2003E68DC /* slipif.c */; };
@@ -268,8 +263,6 @@
 		7CC004F81D1324A2003E68DC /* BackgroundResolver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003CE1D121833003E68DC /* BackgroundResolver.cpp */; };
 		7CC004F91D1324A2003E68DC /* Http.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D11D121833003E68DC /* Http.cpp */; };
 		7CC004FA1D1324A2003E68DC /* OSUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D31D121833003E68DC /* OSUtils.cpp */; };
-		7CC004FB1D1324A2003E68DC /* PortMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D61D121833003E68DC /* PortMapper.cpp */; };
-		7CC004FC1D1324A2003E68DC /* RoutingTable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003D81D121833003E68DC /* RoutingTable.cpp */; };
 		7CC004FD1D1324AB003E68DC /* etharp.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0039D1D1217F2003E68DC /* etharp.c */; };
 		7CC004FE1D1324AB003E68DC /* ethernetif.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0039E1D1217F2003E68DC /* ethernetif.c */; };
 		7CC004FF1D1324AB003E68DC /* slipif.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0039F1D1217F2003E68DC /* slipif.c */; };
@@ -994,7 +987,6 @@
 				7CC003681D1217C3003E68DC /* netbuf.c in Sources */,
 				7CC0036B1D1217C3003E68DC /* sockets.c in Sources */,
 				7CC0038B1D1217D1003E68DC /* timers.c in Sources */,
-				7CC003DF1D121833003E68DC /* PortMapper.cpp in Sources */,
 				7CC0039C1D1217DD003E68DC /* ip.c in Sources */,
 				7CC004251D121840003E68DC /* IncomingPacket.cpp in Sources */,
 				7CC003DC1D121833003E68DC /* BackgroundResolver.cpp in Sources */,
@@ -1036,7 +1028,6 @@
 				7CC004271D121840003E68DC /* Multicaster.cpp in Sources */,
 				7CC003521D12178D003E68DC /* SDK_Intercept.c in Sources */,
 				7CC004281D121840003E68DC /* Network.cpp in Sources */,
-				7CC003E01D121833003E68DC /* RoutingTable.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1110,7 +1101,6 @@
 				7CC0045D1D1316F5003E68DC /* BackgroundResolver.cpp in Sources */,
 				7CC0045E1D1316F5003E68DC /* Http.cpp in Sources */,
 				7CC0045F1D1316F5003E68DC /* OSUtils.cpp in Sources */,
-				7CC004601D1316F5003E68DC /* PortMapper.cpp in Sources */,
 				7CC0043C1D1316BF003E68DC /* SDK_Debug.c in Sources */,
 				7CC0043D1D1316BF003E68DC /* SDK_EthernetTap.cpp in Sources */,
 				7CC0043E1D1316BF003E68DC /* SDK_Intercept.c in Sources */,
@@ -1198,8 +1188,6 @@
 				7CC004A81D131E21003E68DC /* BackgroundResolver.cpp in Sources */,
 				7CC004A91D131E21003E68DC /* Http.cpp in Sources */,
 				7CC004AA1D131E21003E68DC /* OSUtils.cpp in Sources */,
-				7CC004AB1D131E21003E68DC /* PortMapper.cpp in Sources */,
-				7CC004AC1D131E21003E68DC /* RoutingTable.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1273,8 +1261,6 @@
 				7CC004F81D1324A2003E68DC /* BackgroundResolver.cpp in Sources */,
 				7CC004F91D1324A2003E68DC /* Http.cpp in Sources */,
 				7CC004FA1D1324A2003E68DC /* OSUtils.cpp in Sources */,
-				7CC004FB1D1324A2003E68DC /* PortMapper.cpp in Sources */,
-				7CC004FC1D1324A2003E68DC /* RoutingTable.cpp in Sources */,
 				7CC004D71D13247A003E68DC /* SDK_Debug.c in Sources */,
 				7CC004D81D13247A003E68DC /* SDK_EthernetTap.cpp in Sources */,
 				7CC004D91D13247A003E68DC /* SDK_Intercept.c in Sources */,
@@ -1380,6 +1366,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_BITCODE = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/../../../zerotierone",
 					"$(SRCROOT)/../../../ext/lwip/src/include/",
@@ -1404,6 +1391,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_BITCODE = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/../../../zerotierone",
 					"$(SRCROOT)/../../../ext/lwip/src/include/",

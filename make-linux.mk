@@ -38,11 +38,6 @@ LDLIBS?=
 
 include objects.mk
 
-ifeq ($(ZT_OFFICIAL_RELEASE),1)
-	DEFS+=-DZT_OFFICIAL_RELEASE
-	ZT_USE_MINIUPNPC=1
-endif
-
 ifeq ($(ZT_DEBUG),1)
 	DEFS+=-DZT_TRACE
 	CFLAGS+=-Wall -g -pthread $(INCLUDES) $(DEFS)

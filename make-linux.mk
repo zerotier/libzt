@@ -61,7 +61,7 @@ ifeq ($(ZT_TRACE),1)
 	DEFS+=-DZT_TRACE
 endif
 
-# Debug output for Network Containers 
+# Debug output for Network Containers
 # Specific levels can be controlled in netcon/common.inc.c
 ifeq ($(SDK_DEBUG),1)
 	DEFS+=-DSDK_DEBUG

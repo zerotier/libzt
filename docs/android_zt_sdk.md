@@ -25,7 +25,7 @@ In this example we aim to set up a minimal [Android Studio](https://developer.an
 package ZeroTierSDK;
 public class ZeroTierSDK_Wrapper {
     public native void startOneService();
-    static { System.loadLibrary("ZeroTierOneJNI”); } // Loads JNI code
+    static { System.loadLibrary("ZeroTierOneJNI"); } // Loads JNI code
 }
 ```
 

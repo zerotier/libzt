@@ -83,19 +83,25 @@ Run application
 
 ## XCode Desktop App Integration
 
-*NOTE a sample OSX desktop application with ZeroTier integrated can be found [here](../integrations/Apple/Example_OSX_App)*
+*NOTE: a sample OSX desktop application with ZeroTier integrated can be found [here](../integrations/Apple/Example_OSX_App)*
 
 **Step 1: Build `ZeroTierSDK_OSX.framework`**
  - From the main repo directory, `make osx_app_framework`. This will use the XCode commandline tools to build and copy the framework into `build`.
 
 **Step 2: Add `ZeroTierSDK_OSX.framework` to your project**
 
-**Step 4: Add its path to your *Build Settings -> Framework Search Paths***:
+**Step 3: Add its path to your *Build Settings -> Framework Search Paths***:
  - For example: `$(PROJECT_DIR)/../../../build/OSX_app_framework/Release`
 
-**Step 3: Pick and use an API:**
+**Step 4: Pick [API](## API)**
 
-**NSStream and SOCKS Proxy:**
+*** 
+
+## API
+
+
+
+#### NSStream and SOCKS Proxy
 
 As an example, here's how one would configure a NSStream object to redirect all network activity to the ZeroTier SOCKS proxy server:
 

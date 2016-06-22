@@ -60,7 +60,7 @@
 #include "SDK_Debug.c"
 #include "SDK_ServiceSetup.hpp"
 
-#if !defined(__IOS__) && !defined(__ANDROID__) && !defined(__UNITY_3D__) //&& !defined(__APPLE__)
+#if !defined(__IOS__) && !defined(__ANDROID__) && !defined(__UNITY_3D__) && !defined(__XCODE__)
     const ip_addr_t ip_addr_any = { IPADDR_ANY };
 #endif
 

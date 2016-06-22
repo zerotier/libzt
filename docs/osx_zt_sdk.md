@@ -90,6 +90,9 @@ Run application
 
 **Step 2: Add `ZeroTierSDK_OSX.framework` to your project**
 
+**Step 4: Add its path to your *Build Settings -> Framework Search Paths***:
+ - For example: `$(PROJECT_DIR)/../../../build/OSX_app_framework/Release`
+
 **Step 3: Pick and use an API:**
 
 **NSStream and SOCKS Proxy:**

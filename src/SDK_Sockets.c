@@ -70,7 +70,7 @@
 #include "SDK_Signatures.h"
 #include "SDK_Debug.h"
 #include "SDK_RPC.h"
-#include "node/Constants.hpp" // For Tap's MTU
+#include "Constants.hpp" // For Tap's MTU
     
 void print_addr(struct sockaddr *addr);
 void dwr(int level, const char *fmt, ... );

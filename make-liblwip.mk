@@ -101,7 +101,8 @@ depend dep: .depend
 include .depend
 
 $(LWIPLIB): $(LWIPOBJS)
-	$(CC) -g -nostartfiles -shared -o $@ $^
+	mkdir -p build/lwip
+	$(CC) -g -nostartfiles -shared -o build/lwip/$@ $^
 
 .depend: $(LWIPFILES)
 	$(CCDEP) $(CFLAGS) -MM $^ > .depend || rm -f .depend

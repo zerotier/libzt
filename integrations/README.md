@@ -21,7 +21,7 @@ For more support on these integrations, or if you'd like help creating a new int
 
 ##### OSX
  - [Embedding within an app](../docs/osx_zt_sdk.md) `make osx_app_framework`
- - [Dynamic-linking into an app/service at runtime](../docs/osx_zt_sdk.md) `make `
+ - [Dynamic-linking into an app/service at runtime](../docs/osx_zt_sdk.md) `make osx_shared_lib`
  - [Unity3D plugin](../docs/unity3d_osx_zt_sdk.md) `make osx_unity3d_bundle`
 
 ***

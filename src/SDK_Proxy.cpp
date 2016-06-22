@@ -27,8 +27,8 @@
 
 #include "SDK_Debug.h"
 #include "SDK_EthernetTap.hpp"
-#include "osdep/Phy.hpp"
-#include "node/Utils.hpp"
+#include "Phy.hpp"
+#include "Utils.hpp"
 
 #include <string.h>
 #include <arpa/inet.h>

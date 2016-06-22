@@ -37,12 +37,12 @@
 #include <stdexcept>
 #include <stdint.h>
 
-#include "node/Constants.hpp"
-#include "node/MulticastGroup.hpp"
-#include "node/Mutex.hpp"
-#include "node/InetAddress.hpp"
-#include "osdep/Thread.hpp"
-#include "osdep/Phy.hpp"
+#include "Constants.hpp"
+#include "MulticastGroup.hpp"
+#include "Mutex.hpp"
+#include "InetAddress.hpp"
+#include "Thread.hpp"
+#include "Phy.hpp"
 
 #include "netif/etharp.h"
 

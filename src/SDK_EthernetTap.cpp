@@ -37,9 +37,9 @@
 
 #include "SDK_EthernetTap.hpp"
 
-#include "node/Utils.hpp"
-#include "osdep/OSUtils.hpp"
-#include "osdep/Phy.hpp"
+#include "Utils.hpp"
+#include "OSUtils.hpp"
+#include "Phy.hpp"
 
 #include "SDK_LWIPStack.hpp"
 
@@ -60,7 +60,7 @@
 #include "SDK_Debug.c"
 #include "SDK_ServiceSetup.hpp"
 
-#if !defined(__IOS__) && !defined(__ANDROID__) && !defined(__UNITY_3D__) && !defined(__APPLE__)
+#if !defined(__IOS__) && !defined(__ANDROID__) && !defined(__UNITY_3D__) //&& !defined(__APPLE__)
     const ip_addr_t ip_addr_any = { IPADDR_ANY };
 #endif
 

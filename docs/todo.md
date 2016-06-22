@@ -3,6 +3,7 @@ Apple
 
 General
  * Trim down makefiles
+ * Add release targets to each xcode/android studio project
 
 Unity
  * check for mem leaks surrounding managed/unmanaged barrier

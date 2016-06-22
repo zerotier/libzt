@@ -61,6 +61,37 @@ If functional interposition isn't available for the API or library you've chosen
 Simply call `zt_join_network("XXXXXXXXXXXXXXXX")`
 
 ***
+
+
+
+## Linking into an application on Mac OSX 
+
+Example:
+
+    gcc myapp.c -o myapp libztintercept.so
+    export ZT_NC_NETWORK=/tmp/netcon-test-home/nc_8056c2e21c000001
+
+Start service
+
+    ./zerotier-netcon-service -d -p8000 /tmp/netcon-test-home
+
+Run application
+
+    ./myapp
+
+
+
+## XCode Desktop App Integration
+
+*NOTE a sample OSX desktop application with ZeroTier integrated can be found [here](../integrations/Example_OSX_App)*
+
+**Step 1: Build `ZeroTierSDK_OSX.framework`**
+ - From the main repo directory, `make osx_app_framework`. This will use the XCode commandline tools to build and copy the framework into `build`.
+
+**Step 2: Add `ZeroTierSDK_OSX.framework` to your project**
+
+**Step 3: Pick and use an API:**
+
 **NSStream and SOCKS Proxy:**
 
 As an example, here's how one would configure a NSStream object to redirect all network activity to the ZeroTier SOCKS proxy server:
@@ -80,22 +111,4 @@ outputStream!.setProperty(myDict, forKey: NSStreamSOCKSProxyConfigurationKey)
 
 
 
-
-
-
-
-## Linking into an application on Mac OSX
-
-Example:
-
-    gcc myapp.c -o myapp libztintercept.so
-    export ZT_NC_NETWORK=/tmp/netcon-test-home/nc_8056c2e21c000001
-
-Start service
-
-    ./zerotier-netcon-service -d -p8000 /tmp/netcon-test-home
-
-Run application
-
-    ./myapp
 

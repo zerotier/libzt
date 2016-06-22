@@ -16,7 +16,7 @@ In this example we aim to set up a minimal [Android Studio](https://developer.an
 
 **Step 2: Build Shared Library**
  - `make android_jni_lib`
- - The resultant `build/android_jni_lib_*/libZeroTierOneJNI.so` will be what you want to import for your own project to provide the API to your app. Select your architecture and copy the shared library into `YourProject/src/main/jniLibs/YOUR_ARCH/`
+ - The resultant `build/android_jni_lib_YOUR_ARCH/libZeroTierOneJNI.so` is what you want to import into your own project to provide the API to your app. Select your architecture and copy the shared library into `YourProject/src/main/jniLibs/YOUR_ARCH/`. Selecting only the architectures you need will *significantly* reduce overall build time.
 
 **Step 3: App Code Modifications**
  - Create new package called `ZeroTierSDK` in your project and add a new file called `ZeroTierSDK.java` containing:
@@ -38,10 +38,9 @@ new Thread(new Runnable() {
       }
 }).start();
 ```
-**Step 4: Pick an API for your app**
-If functional interposition isn't available for the API or library you've chosen to use, ZeroTier offers a SOCKS5 proxy server which can allow connectivity to your virtual network as long as your client API supports the SOCKS5 protocol. This proxy service will run alongside the tap service and can be turned on by compiling with the `-DUSE_SOCKS_PROXY` flag. By default, the proxy service is available at `0.0.0.0:1337`.
 
-**Step 5: Add necessary app permissions**
+**Step 4: App permissions**
+
 In order for your application to write the auth keys to the internal storage you'll need to set a few permissions in your `AndroidManifest.xml` file:
 
 ```
@@ -49,11 +48,10 @@ In order for your application to write the auth keys to the internal storage you
 <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 ```
 
+**Step 5: Pick an API**
+
+If functional interposition isn't available for the API or library you've chosen to use, ZeroTier offers a SOCKS5 proxy server which can allow connectivity to your virtual network as long as your client API supports the SOCKS5 protocol. This proxy service will run alongside the tap service and can be turned on by compiling with the `-DUSE_SOCKS_PROXY` flag. By default, the proxy service is available at `0.0.0.0:1337`.
+
 **Step 6: Join a network!**
 
 Simply call `zt_join_network("XXXXXXXXXXXXXXXX")`
-
-***
-**Additional notes**
-
-If you change the method/class/package name for the Netcon glue code in `NetconWrapper.java` (Not recommended!), you must also change the name of the JNI implementation in the Netcon source to match the new java name. For example, if the glue code is contained in a package `Java.com.example.joseph.NetconProxyTest`, a JNI implementation name of `Java_com_example_joseph_netconproxytest_NetconWrapper_startOneService` would be required in the appropriate C/C++ source/header files.

@@ -29,7 +29,7 @@ public class ZeroTierSDK_Wrapper {
 }
 ```
 
-And now, start the service:
+ - And now, start the service:
 ```
 new Thread(new Runnable() {
       public void run() {
@@ -41,7 +41,7 @@ new Thread(new Runnable() {
 
 **Step 4: App permissions**
 
-In order for your application to write the auth keys to the internal storage you'll need to set a few permissions in your `AndroidManifest.xml` file:
+ - In order for your application to write the auth keys to the internal storage you'll need to set a few permissions in your `AndroidManifest.xml` file:
 
 ```
 <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -50,8 +50,8 @@ In order for your application to write the auth keys to the internal storage you
 
 **Step 5: Pick an API**
 
-If functional interposition isn't available for the API or library you've chosen to use, ZeroTier offers a SOCKS5 proxy server which can allow connectivity to your virtual network as long as your client API supports the SOCKS5 protocol. This proxy service will run alongside the tap service and can be turned on by compiling with the `-DUSE_SOCKS_PROXY` flag. By default, the proxy service is available at `0.0.0.0:1337`.
+ - If functional interposition isn't available for the API or library you've chosen to use, ZeroTier offers a SOCKS5 proxy server which can allow connectivity to your virtual network as long as your client API supports the SOCKS5 protocol. This proxy service will run alongside the tap service and can be turned on by compiling with the `-DUSE_SOCKS_PROXY` flag. By default, the proxy service is available at `0.0.0.0:1337`.
 
 **Step 6: Join a network!**
 
-Simply call `zt_join_network("XXXXXXXXXXXXXXXX")`
+ - Simply call `zt_join_network("XXXXXXXXXXXXXXXX")`

@@ -42,7 +42,7 @@ else
 	STRIP=strip
 endif
 
-# Debug output for SDK 
+# Debug output for SDK
 # Specific levels can be controlled in src/debug.h
 ifeq ($(SDK_DEBUG),1)
 	DEFS+=-DSDK_DEBUG
@@ -50,24 +50,31 @@ endif
 
 CXXFLAGS=$(CFLAGS) -fno-rtti
 
-all:
+all: osx_app_framework ios_app_framework osx_unity3d_bundle ios_unity3d_bundle android_jni_lib osx_shared_lib
 
 # TODO: CHECK if XCODE TOOLS are installed
 # Build frameworks for application development
-osx_app_framework: 
+osx_app_framework:
 	cd integrations/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_OSX build SYMROOT="../../../build/osx_app_framework"
-ios_app_framework: 
+	cp docs/osx_zt_sdk.md build/osx_app_framework/README.md
+ios_app_framework:
 	cd integrations/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_iOS build SYMROOT="../../../build/ios_app_framework"
+	cp docs/ios_zt_sdk.md build/ios_app_framework/README.md
 # Build bundles for Unity integrations
 osx_unity3d_bundle:
 	cd integrations/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_Unity3D_OSX build SYMROOT="../../../build/osx_unity3d_bundle"
+	cp docs/osx_unity3d_zt_sdk.md build/osx_unity3d_bundle/README.md
 ios_unity3d_bundle:
 	cd integrations/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_Unity3D_iOS build SYMROOT="../../../build/ios_unity3d_bundle"
+	cp docs/ios_unity3d_zt_sdk.md build/ios_unity3d_bundle/README.md
 # TODO: CHECK if ANDROID/GRADLE TOOLS are installed
 # Build library for Android Unity integrations
 # Build JNI library for Android app integration
-android_jni_library:
+android_jni_lib:
 	cd integrations/android/proj; ./gradlew assembleDebug
+#	cd integrations/android/java/libs/; for f in *; do mv "$f" "android_jni_lib_$f"; done
+	mv integrations/android/java/libs/* build
+	cp docs/android_zt_sdk.md build/README.md
 
 osx_shared_lib: $(OBJS)
 	rm -f *.o
@@ -81,6 +88,7 @@ osx_shared_lib: $(OBJS)
 	cp src/libztintercept.so build/osx_shared_lib/libztintercept.so
 	ln -sf zerotier-sdk-service zerotier-cli
 	ln -sf zerotier-sdk-service zerotier-idtool
+	cp docs/osx_zt_sdk.md build/osx_shared_lib/README.md
 
 clean:
 	rm -rf zerotier-cli zerotier-idtool

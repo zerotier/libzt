@@ -5,9 +5,9 @@ If you want everything built at once, type `make all` and go play outside for a 
 
 *NOTE for Apple platforms: In order to build iOS/OSX Frameworks and Bundles you will need XCode command line tools `xcode-select --install`*
 
-*NOTE for Android: for Android JNI libraries to build you'll need to install [Android Studio](https://developer.android.com/studio/index.html) and the [Android NDK](https://developer.android.com/ndk/index.html), and you'll need to tell our project where you put it by putting the path in [this file](Android/proj/local.properties), if you don't have these things installed and configured we will detect that and just skip those builds automatically. Additionally, you can specify the target architectures you want to build in [Application.mk](Android/java/jni/Application.mk). By default it will build `arm64-v8a`, `armeabi`, `armeabi-v7a`, `mips`, `mips64`, `x86`, and `x86_64`*
+*NOTE: For Android JNI libraries to build you'll need to install [Android Studio](https://developer.android.com/studio/index.html) and the [Android NDK](https://developer.android.com/ndk/index.html), and you'll need to tell our project where you put it by putting the path in [this file](Android/proj/local.properties), if you don't have these things installed and configured we will detect that and just skip those builds automatically. Additionally, you can specify the target architectures you want to build in [Application.mk](android/java/jni/Application.mk). By default it will build `arm64-v8a`, `armeabi`, `armeabi-v7a`, `mips`, `mips64`, `x86`, and `x86_64`*
 
-Below are the specific instructions for each integration requiring *little to no modification to your code*. Remember, with a full build we'll put a copy of the appropriate integration instructions in the resultant binary's folder for you anyway. 
+Below are the specific instructions for each integration requiring *little to no modification to your code*. Remember, with a full build we'll put a copy of the appropriate integration instructions in the resultant binary's folder for you anyway.
 
 For more support on these integrations, or if you'd like help creating a new integration, stop by our [community section](https://www.zerotier.com/community/)!
 

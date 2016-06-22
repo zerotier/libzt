@@ -83,7 +83,7 @@ Run application
 
 ## XCode Desktop App Integration
 
-*NOTE a sample OSX desktop application with ZeroTier integrated can be found [here](../integrations/Example_OSX_App)*
+*NOTE a sample OSX desktop application with ZeroTier integrated can be found [here](../integrations/Apple/Example_OSX_App)*
 
 **Step 1: Build `ZeroTierSDK_OSX.framework`**
  - From the main repo directory, `make osx_app_framework`. This will use the XCode commandline tools to build and copy the framework into `build`.

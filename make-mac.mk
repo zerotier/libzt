@@ -79,21 +79,21 @@ all:
 
 # TODO: CHECK if XCODE TOOLS are installed
 # Build frameworks for application development
-OSX_app_framework: 
+osx_app_framework: 
 	cd integrations/Apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_OSX build SYMROOT="../../../build/OSX_app_framework"
-iOS_app_framework: 
+ios_app_framework: 
 	cd integrations/Apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_iOS build SYMROOT="../../../build/iOS_app_framework"
 
 # Build bundles for Unity integrations
-OSX_unity3d_bundle:
+osx_unity3d_bundle:
 	cd integrations/Apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_Unity3D_OSX build SYMROOT="../../../build/OSX_unity3d_bundle"
-iOS_unity3d_bundle:
+ios_unity3d_bundle:
 	cd integrations/Apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_Unity3D_iOS build SYMROOT="../../../build/iOS_unity3d_bundle"
 
 # TODO: CHECK if ANDROID/GRADLE TOOLS are installed
 
 # Build JNI library for Android app integration
-Android_JNI_library:
+android_jni_library:
 	cd integrations/Android/proj; ./gradlew assembleDebug
 
 # Build library for Android Unity integrations

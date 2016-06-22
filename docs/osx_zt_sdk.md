@@ -46,24 +46,12 @@ dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
 });
 ```
 
-**Step 5: Pick a shim for your app**
-
-This integration allows for the following shim combinations:
-- `Hook of BSD-like sockets`: Use BSD-like sockets as you normally would.
-- `Proxy of NSStream`: Create NSStream. Configure stream for SOCKS5 Proxy. Use stream.
-- `Changeling of BSD-like sockets`: Call `start_changeling()` and then use BSD-like sockets as you normally would.
-- `Direct Call`: Consult [SDK-iOS-Bridging-Header.h](netcon/iOS/Netcon-iOS/Netcon-iOS-Bridging-Header.h).
-
-If functional interposition isn't available for the API or library you've chosen to use, ZeroTier offers a SOCKS5 proxy server which can allow connectivity to your virtual network as long as your client API supports the SOCKS5 protocol. This proxy service will run alongside the tap service and can be turned on by compiling with the `-DUSE_SOCKS_PROXY` flag in *Build Settings->Other C Flags*. By default, the proxy service is available at `0.0.0.0:1337`.
+**Step 5: Pick an [API](# API) to use**
 
 **Step 6: Join a network!**
-
-Simply call `zt_join_network("XXXXXXXXXXXXXXXX")`
+ - Simply call `zt_join_network("XXXXXXXXXXXXXXXX")`
 
 ***
-
-
-
 ## Linking into an application on Mac OSX 
 
 Example:
@@ -93,12 +81,21 @@ Run application
 **Step 3: Add its path to your *Build Settings -> Framework Search Paths***:
  - For example: `$(PROJECT_DIR)/../../../build/OSX_app_framework/Release`
 
-**Step 4: Pick [API](## API)**
+**Step 4: Pick an [API](# API) to use**
+
+**Step 5: Join a network!**
+ - Simply call `zt_join_network("XXXXXXXXXXXXXXXX")`
 
 *** 
-
 ## API
 
+This integration allows for the following shim combinations:
+- `Hook of BSD-like sockets`: Use BSD-like sockets as you normally would.
+- `Proxy of NSStream`: Create NSStream. Configure stream for SOCKS5 Proxy. Use stream.
+- `Changeling of BSD-like sockets`: Call `start_changeling()` and then use BSD-like sockets as you normally would.
+- `Direct Call`: Consult [SDK-iOS-Bridging-Header.h](netcon/iOS/Netcon-iOS/Netcon-iOS-Bridging-Header.h).
+
+If functional interposition isn't available for the API or library you've chosen to use, ZeroTier offers a SOCKS5 proxy server which can allow connectivity to your virtual network as long as your client API supports the SOCKS5 protocol. This proxy service will run alongside the tap service and can be turned on by compiling with the `-DUSE_SOCKS_PROXY` flag in *Build Settings->Other C Flags*. By default, the proxy service is available at `0.0.0.0:1337`.
 
 
 #### NSStream and SOCKS Proxy

@@ -32,6 +32,7 @@
 
 /* Begin PBXFileReference section */
 		7CA571031D1B0D9500720883 /* ZeroTierSDK_OSX.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ZeroTierSDK_OSX.framework; path = ../../../build/OSX_app_framework/Debug/ZeroTierSDK_OSX.framework; sourceTree = "<group>"; };
+		7CA571081D1B1DCB00720883 /* ZeroTierSDK_OSX.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ZeroTierSDK_OSX.h; path = ../../ZeroTierSDK_Apple/ZeroTierSDK_OSX/ZeroTierSDK_OSX.h; sourceTree = "<group>"; };
 		7CFCB42D1D1AFEE800D3E66C /* Example_OSX_App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Example_OSX_App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CFCB4301D1AFEE800D3E66C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7CFCB4321D1AFEE800D3E66C /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -73,6 +74,7 @@
 		7CFCB42F1D1AFEE800D3E66C /* Example_OSX_App */ = {
 			isa = PBXGroup;
 			children = (
+				7CA571081D1B1DCB00720883 /* ZeroTierSDK_OSX.h */,
 				7CFCB4301D1AFEE800D3E66C /* AppDelegate.swift */,
 				7CFCB4321D1AFEE800D3E66C /* ViewController.swift */,
 				7CFCB4341D1AFEE800D3E66C /* Assets.xcassets */,

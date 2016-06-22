@@ -3,7 +3,9 @@ ZeroTier Integrations
 
 If you want everything built at once, type `make all` and go play outside for a little while, we'll copy all of the targets into the `build` directory for you along with specific instructions on how to use each binary.
 
-*NOTE: For iOS/OSX Frameworks and Bundles to build, you will need XCode command line tools `xcode-select --install`, for Android JNI libraries to build you'll need to install [Android Studio](https://developer.android.com/studio/index.html) and the [Android NDK](https://developer.android.com/ndk/index.html), and you'll need to tell our project where you put it by putting the path in [this file](Android/proj/local.properties), if you don't have these things installed and configured we will detect that and just skip those builds automatically.*
+*NOTE for Apple platforms: For iOS/OSX Frameworks and Bundles to build, you will need XCode command line tools `xcode-select --install`*
+
+*NOTE for Android: for Android JNI libraries to build you'll need to install [Android Studio](https://developer.android.com/studio/index.html) and the [Android NDK](https://developer.android.com/ndk/index.html), and you'll need to tell our project where you put it by putting the path in [this file](Android/proj/local.properties), if you don't have these things installed and configured we will detect that and just skip those builds automatically. Additionally, you can specify the target architectures you want to build in [Application.mk](Android/java/jni/Application.mk). By default it will build `arm64-v8a`, `armeabi`, `armeabi-v7a`, `mips`, `mips64`, `x86`, and `x86_64`*
 
 Below are the specific instructions for each integration requiring little to no modification to your code. Remember, with a full build we'll put a copy of the appropriate integration instructions in the resultant binary's folder for you anyway. 
 

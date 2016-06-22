@@ -3,7 +3,7 @@ OSX + ZeroTier SDK
 
 Welcome!
 
-Imagine a flat, encrypted, no-configuration LAN for all of the instances of your OSX app. 
+Imagine a flat, encrypted, no-configuration LAN for all of the instances of your OSX app.
 
 This short tutorial will show you how to enable ZeroTier functionality for your iOS app with little to no code modification. Check out our [ZeroTier SDK](https://www.zerotier.com/blog) page for more info on how the integration works and [Shim Techniques](https://www.zerotier.com/blog) for a discussion of shims available for your app/technology.
 
@@ -37,7 +37,7 @@ func ztnc_start_service() {
 }
 ```
 
-...and then start it. If you enabled the proxy service via `-DUSE_SOCKS_PROXY` it will start automatically and be reachable at `0.0.0.0:1337`: 
+...and then start it. If you enabled the proxy service via `-DUSE_SOCKS_PROXY` it will start automatically and be reachable at `0.0.0.0:1337`:
 
 ```
 dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
@@ -46,13 +46,13 @@ dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
 });
 ```
 
-**Step 5: Pick an [API](# API) to use**
+**Step 5: Pick an API**
 
 **Step 6: Join a network!**
  - Simply call `zt_join_network("XXXXXXXXXXXXXXXX")`
 
 ***
-## Linking into an application on Mac OSX 
+## Linking into an application on Mac OSX
 
 Example:
 
@@ -86,7 +86,7 @@ Run application
 **Step 5: Join a network!**
  - Simply call `zt_join_network("XXXXXXXXXXXXXXXX")`
 
-*** 
+***
 ## API
 
 This integration allows for the following shim combinations:
@@ -112,9 +112,3 @@ inputStream!.setProperty(myDict, forKey: NSStreamSOCKSProxyConfigurationKey)
 outputStream!.setProperty(myDict, forKey: NSStreamSOCKSProxyConfigurationKey)
 // END proxy configuration
 ```
-
-
-
-
-
-

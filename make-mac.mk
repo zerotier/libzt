@@ -50,7 +50,7 @@ endif
 
 CXXFLAGS=$(CFLAGS) -fno-rtti
 
-all: osx_app_framework ios_app_framework osx_unity3d_bundle ios_unity3d_bundle android_jni_lib osx_shared_lib
+all: osx_app_framework ios_app_framework osx_unity3d_bundle ios_unity3d_bundle android_jni_lib osx_shared_lib check
 
 # TODO: CHECK if XCODE TOOLS are installed
 # Build frameworks for application development

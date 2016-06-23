@@ -1,7 +1,7 @@
 #!/bin/bash
 FILE="$1"
  
-if [ -f "$FILE" ]  || [ -d "$FILE" ];
+if ([ -f "$FILE" ] && [ -s "$FILE" ]) || ([ -d "$FILE" ] && [ "$(ls -A "$FILE")" ]);
 then
    echo "[OK  ] $FILE"
 else

@@ -40,7 +40,7 @@ extern "C" {
 #define INTERCEPT_DISABLED  222
     
 #if defined(__ANDROID__)	
-	JNIEXPORT void JNICALL Java_SDK_SDK_Wrapper_startOneService(JNIEnv *env, jobject thisObj);
+	JNIEXPORT void JNICALL Java_ZeroTierSDK_startOneService(JNIEnv *env, jobject thisObj);
 #else
 	void *startOneService(void *thread_id);
 	void init_service(int key, const char * path);

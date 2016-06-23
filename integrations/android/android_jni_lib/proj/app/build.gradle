@@ -31,7 +31,7 @@ android {
         if (Os.isFamily(Os.FAMILY_WINDOWS)) {
             commandLine "${android.getNdkDirectory().getAbsolutePath()}/ndk-build.cmd", '-j8', '-C', file('../../java').absolutePath, "ZT1=${System.getProperty('user.dir')}/../../../../zerotierone"
         } else {
-            commandLine "${android.getNdkDirectory().getAbsolutePath()}/ndk-build", '-j8', '-C', file('../../java').absolutePath, "ZT1=${System.getProperty('user.dir')}/../../../zerotierone"
+            commandLine "${android.getNdkDirectory().getAbsolutePath()}/ndk-build", '-j8', '-C', file('../../java').absolutePath, "ZT1=${System.getProperty('user.dir')}/../../../../zerotierone"
         }
     }
     tasks.withType(JavaCompile) {

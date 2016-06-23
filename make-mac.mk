@@ -90,6 +90,29 @@ osx_shared_lib: $(OBJS)
 	ln -sf zerotier-sdk-service zerotier-idtool
 	cp docs/osx_zt_sdk.md build/osx_shared_lib/README.md
 
+check:
+	./check.sh build/lwip/liblwip.so
+
+	./check.sh build/osx_shared_lib/libztintercept.so
+	./check.sh build/osx_unity3d_bundle/Debug/ZeroTierSDK_Unity3D_OSX.bundle
+	./check.sh build/osx_app_framework/Debug/ZeroTierSDK_OSX.framework
+
+	./check.sh build/ios_app_framework/Debug-iphoneos/ZeroTierSDK_iOS.framework
+	./check.sh build/ios_unity3d_bundle/Debug-iphoneos/ZeroTierSDK_Unity3D_iOS.bundle
+
+	./check.sh build/
+	./check.sh build/android_jni_lib/
+	./check.sh build/android_jni_lib/
+	./check.sh build/android_jni_lib/
+	./check.sh build/android_jni_lib/
+	./check.sh build/android_jni_lib/
+	./check.sh build/android_jni_lib/
+	./check.sh build/android_jni_lib/
+	./check.sh build/android_jni_lib/
+
+	./check.sh build/
+	./check.sh build/
+	
 clean:
 	rm -rf zerotier-cli zerotier-idtool
 

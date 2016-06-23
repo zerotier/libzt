@@ -2,8 +2,8 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
-ZTSDK := ../../../../src
-ZT := ../../../../zerotierone
+ZTSDK := ../../../../../src
+ZT := ../../../../../zerotierone
 
 LOCAL_MODULE := ZeroTierOneJNI
 LOCAL_C_INCLUDES := $(ZT1)/include

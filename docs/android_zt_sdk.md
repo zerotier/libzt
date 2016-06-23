@@ -16,7 +16,7 @@ In this example we aim to set up a minimal [Android Studio](https://developer.an
 
 **Step 2: Build Shared Library**
  - `make android_jni_lib`
- - The resultant `build/android_jni_lib_YOUR_ARCH/libZeroTierOneJNI.so` is what you want to import into your own project to provide the API to your app. Select your architecture and copy the shared library into `YourProject/src/main/jniLibs/YOUR_ARCH/`. Selecting only the architectures you need will *significantly* reduce overall build time.
+ - The resultant `build/android_jni_lib_YOUR_ARCH/libZeroTierOneJNI.so` is what you want to import into your own project to provide the API to your app. Select your architecture and copy the shared library into your project's JNI directory, possibly `/src/main/jniLibs/YOUR_ARCH/`. Selecting only the architectures you need will *significantly* reduce overall build time.
 
 **Step 3: App Code Modifications**
  - Create new package called `ZeroTierSDK` in your project and add a new file called `ZeroTierSDK.java` containing:

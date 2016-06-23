@@ -129,7 +129,7 @@ extern "C" {
  * Starts a new service instance
  */
 #if defined(__ANDROID__)
-    JNIEXPORT void JNICALL Java_SDK_SDK_Wrapper_startOneService(JNIEnv *env, jobject thisObj)
+    JNIEXPORT void JNICALL Java_ZeroTierSDK_startOneService(JNIEnv *env, jobject thisObj)
     //JNIEXPORT void JNICALL Java_Netcon_NetconWrapper_startOneService(JNIEnv *env, jobject thisObj)
     {
 #else

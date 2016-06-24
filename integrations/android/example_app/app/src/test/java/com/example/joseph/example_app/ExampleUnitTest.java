@@ -1,4 +1,4 @@
-package com.example.joseph.example_android_app;
+package com.example.joseph.example_app;
 
 import org.junit.Test;
 

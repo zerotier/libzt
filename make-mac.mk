@@ -72,9 +72,11 @@ ios_unity3d_bundle:
 # Build JNI library for Android app integration
 android_jni_lib:
 	cd integrations/android/android_jni_lib/proj; ./gradlew assembleDebug
-#	cd integrations/android/android_jni_lib/java/libs/; for f in *; do mv "$f" "android_jni_lib_$f"; done
+	# copy binary into example android project dir
+	cp integrations/android/android_jni_lib/java/libs/* build
 	mv integrations/android/android_jni_lib/java/libs/* build
-	cp docs/android_zt_sdk.md build/README.md
+	cd build; for res_f in *; do mv "$res_f" "android_jni_lib_$res_f"; done
+	#cp docs/android_zt_sdk.md build/README.md
 
 osx_shared_lib: $(OBJS)
 	rm -f *.o
@@ -89,6 +91,10 @@ osx_shared_lib: $(OBJS)
 	ln -sf zerotier-sdk-service zerotier-cli
 	ln -sf zerotier-sdk-service zerotier-idtool
 	cp docs/osx_zt_sdk.md build/osx_shared_lib/README.md
+
+
+prep:
+	cp integrations/android/android_jni_lib/java/libs/* build
 
 check:
 	./check.sh build/lwip/liblwip.so
@@ -113,6 +119,9 @@ check:
 	./check.sh build/
 	./check.sh build/
 	
+selftest:
+	
+
 clean:
 	rm -rf zerotier-cli zerotier-idtool
 

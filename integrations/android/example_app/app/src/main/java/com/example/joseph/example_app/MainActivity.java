@@ -1,7 +1,9 @@
-package com.example.joseph.example_android_app;
+package com.example.joseph.example_app;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+
+import SDK.SDK;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -12,10 +14,9 @@ public class MainActivity extends AppCompatActivity {
 
         new Thread(new Runnable() {
             public void run() {
-                ZeroTierSDK wrapper = new ZeroTierSDK();
+                SDK wrapper = new SDK();
                 wrapper.startOneService(); // Calls to JNI code
             }
         }).start();
-
     }
 }

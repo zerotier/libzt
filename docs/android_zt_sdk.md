@@ -23,13 +23,14 @@ In this example we aim to set up a minimal [Android Studio](https://developer.an
 
 ```
 package ZeroTierSDK;
-public class ZeroTierSDK_Wrapper {
+public class ZeroTierSDK {
     public native void startOneService();
     static { System.loadLibrary("ZeroTierOneJNI"); } // Loads JNI code
 }
 ```
 
  - And now, start the service:
+
 ```
 new Thread(new Runnable() {
       public void run() {
@@ -55,3 +56,11 @@ new Thread(new Runnable() {
 **Step 6: Join a network!**
 
  - Simply call `zt_join_network("XXXXXXXXXXXXXXXX")`
+
+
+
+***
+
+*Note for the curious on JNI naming conventions: In order to reference a symbol in the JNI library you need to structure the package and class in your Android Studio project in a very particular way. For example, in the ZeroTierSDK we define a function called `Java_ZeroTier_SDK_startOneService`, the name can be broken down as follows: `Java_PACKAGENAME_CLASSNAME_startOneService`, so as we've defined it, you must create a package called `ZeroTier` and add a class called `SDK`.* 
+
+

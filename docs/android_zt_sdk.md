@@ -42,7 +42,7 @@ new Thread(new Runnable() {
 
 **Step 4: App permissions**
 
- - In order for your application to write the auth keys to the internal storage you'll need to set a few permissions in your `AndroidManifest.xml` file:
+ - In order for your application to write the auth keys and network files to the internal storage you'll need to set a few permissions in your `AndroidManifest.xml` file at the same scope level as `<application>`:
 
 ```
 <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />

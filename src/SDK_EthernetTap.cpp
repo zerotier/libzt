@@ -136,7 +136,7 @@ NetconEthernetTap::NetconEthernetTap(
     
 	// Start SOCKS5 Proxy server
 	// For use when traditional syscall hooking isn't available (ex. some APIs on iOS and Android)
-	#if defined(USE_SOCKS_PROXY)
+	#if defined(USE_SOCKS_PROXY) || defined(__ANDROID__)
 		StartProxy(sockPath);
 	#endif
 

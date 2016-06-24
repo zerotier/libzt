@@ -40,6 +40,9 @@ extern "C" {
 #define INTERCEPT_DISABLED  222
     
 #if defined(__ANDROID__)	
+    // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
+    /* If you define anything else in this file it *must* follow that convention
+     and any corresponding Java package/classes in your Android project must match this as well */
 	JNIEXPORT void JNICALL Java_ZeroTier_SDK_startOneService(JNIEnv *env, jobject thisObj);
 #else
 	void *startOneService(void *thread_id);

@@ -3,7 +3,7 @@ package com.example.joseph.example_app;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
-import SDK.SDK;
+import ZeroTier.SDK;
 
 public class MainActivity extends AppCompatActivity {
 

@@ -129,20 +129,26 @@ extern "C" {
  * Starts a new service instance
  */
 #if defined(__ANDROID__)
-    JNIEXPORT void JNICALL Java_ZeroTierSDK_startOneService(JNIEnv *env, jobject thisObj)
-    //JNIEXPORT void JNICALL Java_Netcon_NetconWrapper_startOneService(JNIEnv *env, jobject thisObj)
+    // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
+    /* If you define anything else in this file it *must* follow that convention
+     and any corresponding Java package/classes in your Android project must match this as well */
+    JNIEXPORT void JNICALL Java_ZeroTier_SDK_startOneService(JNIEnv *env, jobject thisObj)
     {
 #else
     void *startOneService(void *thread_id)
     {
         set_intercept_status(INTERCEPT_DISABLED);
 #endif
+        
+        
+#if defined(__UNITY_3D__)
         int MAX_DIR_SZ = 256;
         char current_dir[MAX_DIR_SZ];
         getcwd(current_dir, MAX_DIR_SZ);
         chdir(service_path.c_str());
         zt1Service = (ZeroTier::OneService *)0;
-
+#endif
+        
 #if defined(__ANDROID__)
     homeDir = "/sdcard/zerotier";
 #endif
@@ -171,6 +177,8 @@ extern "C" {
                 return NULL;
             #endif
         } else {
+            LOGV("constructing path...\n");
+
             std::vector<std::string> hpsp(ZeroTier::Utils::split(homeDir.c_str(),ZT_PATH_SEPARATOR_S,"",""));
             std::string ptmp;
             if (homeDir[0] == ZT_PATH_SEPARATOR)
@@ -189,7 +197,7 @@ extern "C" {
             }
         }
 
-        chdir(current_dir); // Return to previous current working directory (at the request of Unity3D)
+        //chdir(current_dir); // Return to previous current working directory (at the request of Unity3D)
         
         LOGV("homeDir = %s", homeDir.c_str());
         //Debug(homeDir.c_str());
@@ -199,8 +207,13 @@ extern "C" {
         ZeroTier::Utils::getSecureRandom(&randp,sizeof(randp));
         int servicePort = 9000 + (randp % 1000);
         
+        LOGV("generated port\n");
+        
+        
         for(;;) {
             zt1Service = ZeroTier::OneService::newInstance(homeDir.c_str(),servicePort);
+            LOGV("created new instance\n");
+
             switch(zt1Service->run()) {
                 case ZeroTier::OneService::ONE_STILL_RUNNING: // shouldn't happen, run() won't return until done
                 case ZeroTier::OneService::ONE_NORMAL_TERMINATION:

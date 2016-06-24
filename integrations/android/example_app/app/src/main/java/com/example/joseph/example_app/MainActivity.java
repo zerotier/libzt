@@ -5,6 +5,9 @@ import android.os.Bundle;
 
 import ZeroTier.SDK;
 
+import java.net.InetSocketAddress;
+import java.net.*;
+
 public class MainActivity extends AppCompatActivity {
 
     @Override
@@ -18,5 +21,10 @@ public class MainActivity extends AppCompatActivity {
                 wrapper.startOneService(); // Calls to JNI code
             }
         }).start();
+
+        Socket s = new Socket();
+        SocketAddress proxyAddr = new InetSocketAddress("0.0.0.0", 1337);
+        Proxy proxy = new Proxy(Proxy.Type.SOCKS, proxyAddr);
+
     }
 }

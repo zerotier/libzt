@@ -11,22 +11,38 @@ This short tutorial will show you how to inject ZeroTier functionality into your
 
 See [doc/docker_linux_zt_sdk.md](doc/docker_linux_zt_sdk.md)
 
-## Dynamic Linking 
+## Short and sweet example
 
-**Step 1: Build the libraries and intercept:**
+**Step 1: Make library and copy key files**
+`make linux_shared_lib`
+`mkdir /tmp/sdk-test-home`
+`cp -f build/liblwip.so /tmp/sdk-test-home`
+
+**Step 2: Start service and join network**
+`./zerotier-sdk-service -d -p8000 /tmp/sdk-test-home`
+`./zerotier-cli -D/tmp/sdk-test-home join 8056c2e21c000001`
+
+**Step 3: Set environment variables**
+`export LD_PRELOAD=`pwd`/build/libztintercept.so`
+`export ZT_NC_NETWORK=/tmp/sdk-test-home/nc_8056c2e21c000001`
+
+**Step 4: Start application**
+`node tests/httpserver.js`
+
+*For a more in-depth explanation of what's happening here, see the section below:*
+
+## Dynamic Linking 
 
 `make linux_shared_lib`
 
 This will build a binary called `zerotier-sdk-service` and a library called `libztintercept.so`. It will also build the IP stack as `build/liblwip.so`. 
 
-*The `zerotier-sdk-service` binary is almost the same as a regular ZeroTier One build except instead of creating virtual network ports using Linux's `/dev/net/tun` interface, it creates instances of a user-space TCP/IP stack for each virtual network and provides RPC access to this stack via a Unix domain socket. The latter is a library that can be loaded with the Linux `LD_PRELOAD` environment variable or by placement into `/etc/ld.so.preload` on a Linux system or container. Additional magic involving nameless Unix domain socket pairs and interprocess socket handoff is used to emulate TCP sockets with extremely low overhead and in a way that's compatible with select, poll, epoll, and other I/O event mechanisms.*
+The `zerotier-sdk-service` binary is almost the same as a regular ZeroTier One build except instead of creating virtual network ports using Linux's `/dev/net/tun` interface, it creates instances of a user-space TCP/IP stack for each virtual network and provides RPC access to this stack via a Unix domain socket. The latter is a library that can be loaded with the Linux `LD_PRELOAD` environment variable or by placement into `/etc/ld.so.preload` on a Linux system or container. Additional magic involving nameless Unix domain socket pairs and interprocess socket handoff is used to emulate TCP sockets with extremely low overhead and in a way that's compatible with select, poll, epoll, and other I/O event mechanisms.
 
-*The intercept library does nothing unless the `ZT_NC_NETWORK` environment variable is set. If on program launch (or fork) it detects the presence of this environment variable, it will attempt to connect to a running `zerotier-sdk-service` at the specified Unix domain socket path.*
+The intercept library does nothing unless the `ZT_NC_NETWORK` environment variable is set. If on program launch (or fork) it detects the presence of this environment variable, it will attempt to connect to a running `zerotier-sdk-service` at the specified Unix domain socket path.
 
-*Unlike `zerotier-one`, `zerotier-sdk-service` does not need to be run with root privileges and will not modify the host's network configuration in any way. It can be run alongside `zerotier-one` on the same host with no ill effect, though this can be confusing since you'll have to remember the difference between "real" host interfaces (tun/tap) and network containerized endpoints. The latter are completely unknown to the kernel and will not show up in `ifconfig`.*
+Unlike `zerotier-one`, `zerotier-sdk-service` does not need to be run with root privileges and will not modify the host's network configuration in any way. It can be run alongside `zerotier-one` on the same host with no ill effect, though this can be confusing since you'll have to remember the difference between "real" host interfaces (tun/tap) and network containerized endpoints. The latter are completely unknown to the kernel and will not show up in `ifconfig`.
 
-
-**Step 2: **
 
 #### Starting the SDK Service
 

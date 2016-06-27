@@ -73,13 +73,7 @@ endif
 #LDFLAGS=
 #STRIP=echo
 
-all: one
-
-one: $(OBJS) service/OneService.o one.o osdep/LinuxEthernetTap.o
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o zerotier-one $(OBJS) service/OneService.o one.o osdep/LinuxEthernetTap.o $(LDLIBS)
-	$(STRIP) zerotier-one
-	ln -sf zerotier-one zerotier-idtool
-	ln -sf zerotier-one zerotier-cli
+all: shared_lib check
 
 shared_lib: $(OBJS)
 	rm -f *.o
@@ -93,13 +87,15 @@ shared_lib: $(OBJS)
 	ln -sf zerotier-sdk-service zerotier-cli
 	ln -sf zerotier-sdk-service zerotier-idtool
 
-clean:
-	rm -rf ${GENERATED_FILES} *.so *.o netcon/*.a node/*.o controller/*.o osdep/*.o service/*.o ext/http-parser/*.o ext/lz4/*.o ext/json-parser/*.o ext/miniupnpc/*.o ext/libnatpmp/*.o $(OBJS) zerotier-one zerotier-idtool zerotier-cli zerotier-selftest zerotier-netcon-service build-* ZeroTierOneInstaller-* *.deb *.rpm .depend netcon/.depend
-	find netcon -type f \( -name '*.o' -o -name '*.so' -o -name '*.1.0' -o -name 'zerotier-one' -o -name 'zerotier-cli' -o -name 'zerotier-netcon-service' \) -delete
-	find netcon/tests/docker -name "zerotier-intercept" -type f -delete
+check:
+		./check.sh build/lwip/liblwip.so
+		./check.sh build/linux_shared_lib/libztintercept.so
 
+clean:
+	rm -rf ${GENERATED_FILES}
 	rm -rf zerotier-cli zerotier-idtool
 	rm -rf build/*
+	find . -type f -name '*.a' -delete
 	find . -type f -name '*.o' -delete
 	find . -type f -name '*.so' -delete
 	find . -type f -name '*.o.d' -delete

@@ -91,6 +91,22 @@ int zt_getsockopt(GETSOCKOPT_SIG);
 int zt_getsockname(GETSOCKNAME_SIG);
 int zt_close(CLOSE_SIG);
 
+
+#if defined(SDK_INTERCEPT)
+	int socket(SOCKET_SIG);
+	int connect(CONNECT_SIG);
+	int bind(BIND_SIG);
+	#if defined(__linux__)
+		int accept4(ACCEPT4_SIG);
+	#endif
+	int accept(ACCEPT_SIG);
+	int listen(LISTEN_SIG);
+	int setsockopt(SETSOCKOPT_SIG);
+	int getsockopt(GETSOCKOPT_SIG);
+	int getsockname(GETSOCKNAME_SIG);
+	int close(CLOSE_SIG);
+#endif
+	
 #ifdef __cplusplus
 }
 #endif

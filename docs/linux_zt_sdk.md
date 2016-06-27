@@ -14,27 +14,47 @@ See [doc/docker_linux_zt_sdk.md](doc/docker_linux_zt_sdk.md)
 ## Short and sweet example
 
 **Step 1: Make library and copy key files**
-`make linux_shared_lib`
-`mkdir /tmp/sdk-test-home`
-`cp -f build/liblwip.so /tmp/sdk-test-home`
+
+```
+make linux_shared_lib
+mkdir /tmp/sdk-test-home
+cp -f build/liblwip.so /tmp/sdk-test-home
+```
 
 **Step 2: Start service and join network**
-`./zerotier-sdk-service -d -p8000 /tmp/sdk-test-home`
-`./zerotier-cli -D/tmp/sdk-test-home join 8056c2e21c000001`
 
-**Step 3: Set environment variables**
-`export LD_PRELOAD=`pwd`/build/libztintercept.so`
-`export ZT_NC_NETWORK=/tmp/sdk-test-home/nc_8056c2e21c000001`
+```
+./zerotier-sdk-service -d -p8000 /tmp/sdk-test-home
+./zerotier-cli -D/tmp/sdk-test-home join 8056c2e21c000001
+```
 
-**Step 4: Start application**
-`node tests/httpserver.js`
+**Step 3: Get new IP address assigned to app**
+
+```
+./zerotier-cli -D/tmp/sdk-test-home listnetworks
+```
+
+**Step 4: Set environment variables**
+
+```
+export LD_PRELOAD=`pwd`/build/libztintercept.so
+export ZT_NC_NETWORK=/tmp/sdk-test-home/nc_8056c2e21c000001
+```
+
+**Step 5: Start application**
+
+```
+node tests/httpserver.js
+```
+**Step 6: Test it!**
+From another system on the same virtual network `curl http://IP.ADD.RE.SS/`
 
 *For a more in-depth explanation of what's happening here, see the section below:*
 
 ## Dynamic Linking 
 
 `make linux_shared_lib`
-
+s
 This will build a binary called `zerotier-sdk-service` and a library called `libztintercept.so`. It will also build the IP stack as `build/liblwip.so`. 
 
 The `zerotier-sdk-service` binary is almost the same as a regular ZeroTier One build except instead of creating virtual network ports using Linux's `/dev/net/tun` interface, it creates instances of a user-space TCP/IP stack for each virtual network and provides RPC access to this stack via a Unix domain socket. The latter is a library that can be loaded with the Linux `LD_PRELOAD` environment variable or by placement into `/etc/ld.so.preload` on a Linux system or container. Additional magic involving nameless Unix domain socket pairs and interprocess socket handoff is used to emulate TCP sockets with extremely low overhead and in a way that's compatible with select, poll, epoll, and other I/O event mechanisms.

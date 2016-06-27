@@ -22,9 +22,15 @@ public class MainActivity extends AppCompatActivity {
             }
         }).start();
 
+
+        // Set up example proxy connection to SDK proxy server
+        Log.d("ZTSDK-InJavaland", "Setting up connection to SDK proxy server");
         Socket s = new Socket();
         SocketAddress proxyAddr = new InetSocketAddress("0.0.0.0", 1337);
         Proxy proxy = new Proxy(Proxy.Type.SOCKS, proxyAddr);
+
+       // proxy.
+
 
     }
 }

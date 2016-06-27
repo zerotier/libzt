@@ -9,13 +9,13 @@
 
 int main(int argc, char * argv[])
 {
+    int port = atoi(argv[1]);
+
     printf("cpp_udp_socket_client_test():\n");
     ssize_t n_sent;
     int sock = -1;
     struct sockaddr_in server;
     char buf[64];    
-
-
 
     if(sock == -1) {
         sock = socket(AF_INET , SOCK_DGRAM , 0);
@@ -23,41 +23,38 @@ int main(int argc, char * argv[])
             return 1;
         }
     }
-    server.sin_addr.s_addr = inet_addr("10.242.142.99");
+    server.sin_addr.s_addr = inet_addr("10.5.5.2");
     server.sin_family = AF_INET;
-    server.sin_port = htons(9997);
+    server.sin_port = htons(port);
     
-    //char *buf = "Welcome to the Machine\n";
     memcpy(buf, "Welcome to the Machine", sizeof("Welcome to the Machine")); 
-
-   printf("sizeof(buf) = %d\n", sizeof(buf));    
+    printf("sizeof(buf) = %d\n", sizeof(buf));    
+    
     if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0) {
         printf("api_test: error while connecting.\n");
         return 1;    
 	}
 
-
-char data[1024];
-memset(data, 0, sizeof(data));
-int count =0;
-while(1)
-{
-count++;
-    usleep(1000);
-    n_sent = send(sock,data,sizeof(data),0);
-
-    if (n_sent<0) {
-        perror("Problem sending data");
-        return 1;
-    }
-    if (n_sent!=sizeof(buf))
-        printf("Sendto sent %d bytes\n",(int)n_sent);
+    // Send multiple UDP datagrams to server
+    char data[1024];
+    memset(data, 0, sizeof(data));
+    int count = 0;
     
-    printf("n_sent = %d, count = %d\n", n_sent,count);
-} 
-   return 1;
+    while(1) {
+        count++;
+        usleep(1000);
+        n_sent = send(sock,data,sizeof(data),0);
 
-
+        if (n_sent<0) {
+            perror("Problem sending data");
+            return 1;
+        }
+        if (n_sent!=sizeof(buf))
+            printf("Sendto sent %d bytes\n",(int)n_sent);
+        printf("n_sent = %d, count = %d\n", n_sent,count);
+    } 
+    
+    /*
     socklen_t recv_addr_len;
     // Clear address info for RX test
     server.sin_addr.s_addr = inet_addr("");
@@ -73,6 +70,7 @@ count++;
             printf("RXed: %s\n", buf);
         }
     }
+    */
     return 1;
 }
 

@@ -132,7 +132,7 @@ NetconEthernetTap::NetconEthernetTap(
     char sockPath[4096],lwipPath[4096];
     rpcCounter = -1;
     Utils::snprintf(sockPath,sizeof(sockPath),"%s%snc_%.16llx",homePath,ZT_PATH_SEPARATOR_S,_nwid,ZT_PATH_SEPARATOR_S,(unsigned long long)nwid);
-    _dev = sockPath; // in netcon mode, set device to be just the network ID
+    _dev = sockPath; // in SDK mode, set device to be just the network ID
     
 	// Start SOCKS5 Proxy server
 	// For use when traditional syscall hooking isn't available (ex. some APIs on iOS and Android)

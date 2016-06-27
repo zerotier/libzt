@@ -103,7 +103,7 @@ int get_retval(int rpc_sock)
 
 int load_symbols_rpc()
 {
-#if defined(NETCON_INTERCEPT) || defined(__IOS__) || defined(__UNITY_3D__)
+#if defined(SDK_INTERCEPT) || defined(__IOS__) || defined(__UNITY_3D__)
   realsocket = dlsym(RTLD_NEXT, "socket");
   realconnect = dlsym(RTLD_NEXT, "connect");
   if(!realconnect || !realsocket)

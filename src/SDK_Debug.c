@@ -50,14 +50,14 @@
 #define MSG_DEBUG       4 // Information which is only useful to someone debugging
 #define MSG_DEBUG_EXTRA 5 // If nothing in your world makes sense
 
-#define DEBUG_TO_FILE 1
 #define DEBUG_LOGFILE_PATH "/Users/Joseph/code/ztnc_logfile.txt"
 
 void dwr(int level, const char *fmt, ... );
 
 void dwr(int level, const char *fmt, ... )
 {
-#if defined(ZT_SDK_DEBUG)
+  fprintf(stderr, "Hello from debug!\n");
+#if defined(SDK_DEBUG)
   if(level > DEBUG_LEVEL)
       return;
   int saveerr;
@@ -75,10 +75,10 @@ void dwr(int level, const char *fmt, ... )
 #elif defined(__APPLE__)
   pid_t tid = pthread_mach_thread_np(pthread_self());
 #endif
-  if(DEBUG_TO_FILE) {
+  #if defined(SDK_DEBUG_WRITE_LOGFILE)
      FILE *file = fopen(DEBUG_LOGFILE_PATH,"a");
      vfprintf(file, fmt, ap);
-  }
+  #endif
   fprintf(stderr, "%s [tid=%7d] ", timestring, tid);
   vfprintf(stderr, fmt, ap);
   fflush(stderr);

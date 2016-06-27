@@ -1376,8 +1376,8 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
 				OTHER_CFLAGS = (
 					"-D__UNITY_3D__",
-					"-DZT_SDK",
-					"-DZT_SDK_DEBUG",
+					"-DSDK",
+					"-DSDK_DEBUG",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-Unity3D-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1401,8 +1401,8 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
 				OTHER_CFLAGS = (
 					"-D__UNITY_3D__",
-					"-DZT_SDK",
-					"-DZT_SDK_DEBUG",
+					"-DSDK",
+					"-DSDK_DEBUG",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-Unity3D-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1430,8 +1430,8 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				OTHER_CFLAGS = (
-					"-DZT_SDK_DEBUG",
-					"-DZT_SDK",
+					"-DSDK_DEBUG",
+					"-DSDK",
 					"-D__IOS__",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-iOS";
@@ -1460,8 +1460,8 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				OTHER_CFLAGS = (
-					"-DZT_SDK_DEBUG",
-					"-DZT_SDK",
+					"-DSDK_DEBUG",
+					"-DSDK",
 					"-D__IOS__",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-iOS";
@@ -1491,8 +1491,8 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				OTHER_CFLAGS = (
-					"-DZT_SDK",
-					"-DZT_SDK_DEBUG",
+					"-DSDK",
+					"-DSDK_DEBUG",
 					"-D__XCODE__",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-OSX";
@@ -1519,8 +1519,8 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				OTHER_CFLAGS = (
-					"-DZT_SDK",
-					"-DZT_SDK_DEBUG",
+					"-DSDK",
+					"-DSDK_DEBUG",
 					"-D__XCODE__",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-OSX";
@@ -1541,8 +1541,8 @@
 				INFOPLIST_FILE = ZeroTierSDK_Unity3D_OSX/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
 				OTHER_CFLAGS = (
-					"-DZT_SDK_DEBUG",
-					"-DZT_SDK",
+					"-DSDK_DEBUG",
+					"-DSDK",
 					"-D__UNITY_3D__",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-Unity3D-OSX";
@@ -1564,8 +1564,8 @@
 				INFOPLIST_FILE = ZeroTierSDK_Unity3D_OSX/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
 				OTHER_CFLAGS = (
-					"-DZT_SDK_DEBUG",
-					"-DZT_SDK",
+					"-DSDK_DEBUG",
+					"-DSDK",
 					"-D__UNITY_3D__",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-Unity3D-OSX";

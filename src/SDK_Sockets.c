@@ -94,6 +94,7 @@ const char *get_netpath() {
     
     void zt_init_rpc(char *nwid)
     {
+        dwr(MSG_DEBUG, "zt_init_rpc\n");
     #if defined(__UNITY_3D__)
         //char *nw = "565799d8f6e1c11a";
         //char *path = "/Users/Joseph/utest2/nc_";
@@ -133,6 +134,8 @@ const char *get_netpath() {
         if (!api_netpath) {
             api_netpath = getenv("ZT_NC_NETWORK");
             set_netpath(api_netpath);
+
+            dwr(MSG_DEBUG, "netpath = %s\n", api_netpath);
             if(!api_netpath) {
                 // return 0;
             }

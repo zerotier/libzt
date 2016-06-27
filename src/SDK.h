@@ -29,6 +29,7 @@
 #define _ZT_SDK_H	1
 
 #include <sys/socket.h>
+#include <stdbool.h>
 #include "SDK_Signatures.h"
 
 #ifdef __cplusplus
@@ -75,15 +76,13 @@ ssize_t zt_recvmsg(RECVMSG_SIG);
     ssize_t zt_recv(int fd, void *buf, int len);
     ssize_t zt_send(int fd, void *buf, int len);
     int zt_set_nonblock(int fd);
-#endif
-    
-    
+#endif    
     
 int zt_socket(SOCKET_SIG);
 int zt_connect(CONNECT_SIG);
 int zt_bind(BIND_SIG);
 #if defined(__linux__)
-	int zt_accept4(ACCEPT_SIG);
+	int zt_accept4(ACCEPT4_SIG);
 #endif
 int zt_accept(ACCEPT_SIG);
 int zt_listen(LISTEN_SIG);

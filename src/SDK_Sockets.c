@@ -449,7 +449,7 @@ const char *get_netpath() {
     // ------------------------------------------------------------------------------
     // int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags
 
-#if defined(__linux)
+#if defined(__linux__)
         int zt_accept4(ACCEPT4_SIG)
         {
             dwr(MSG_DEBUG,"zt_accept4(%d):\n", sockfd);

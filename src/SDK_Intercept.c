@@ -25,7 +25,7 @@
  * LLC. Start here: http://www.zerotier.com/
  */
 
-#if defined(ZT_SDK_INTERCEPT)
+#if defined(SDK_INTERCEPT)
 
 #include <unistd.h>
 #include <stdio.h>

@@ -5,7 +5,7 @@ Welcome!
 
 Imagine a flat, encrypted, no-configuration LAN for all of your Linux applications.
 
-This short tutorial will show you how to enable ZeroTier functionality for Linux applications using static-linking and dynamic linking methods.
+This short tutorial will show you how to inject ZeroTier functionality into your application by dynamic linking via `LD_PRELOAD`.
 
 ## Use with Docker
 
@@ -26,14 +26,7 @@ The intercept library does nothing unless the `ZT_NC_NETWORK` environment variab
 Unlike `zerotier-one`, `zerotier-sdk-service` does not need to be run with root privileges and will not modify the host's network configuration in any way. It can be run alongside `zerotier-one` on the same host with no ill effect, though this can be confusing since you'll have to remember the difference between "real" host interfaces (tun/tap) and network containerized endpoints. The latter are completely unknown to the kernel and will not show up in `ifconfig`.
 
 
-## Static Linking
-
-
-
-
-
-
-## Starting the SDK Service
+#### Starting the SDK Service
 
 A simple test can be performed in user space (no root) in your own home directory.
 
@@ -74,7 +67,7 @@ Now you can run an application .
     export ZT_NC_NETWORK=/tmp/sdk-test-home/nc_8056c2e21c000001
     node tests/httpserver.js
 
-Also note that the "pwd" in LD_PRELOAD assumes you are in the ZeroTier source root and have built the SDK there. If not, substitute the full path to *libztintercept.so*. If you want to remove those environment variables later, use "unset LD_PRELOAD" and "unset ZT_NC_NETWORK".
+Also note that the "pwd" in LD_PRELOAD assumes you are in the ZeroTier source root and have built the SDK there. If not, substitute the full path to `libztintercept.so`. If you want to remove those environment variables later, use `unset LD_PRELOAD` and `unset ZT_NC_NETWORK`.
 
 If you don't have node.js installed, an alternative test using python would be:
 
@@ -86,9 +79,10 @@ If all went well a small static HTTP server is now serving up the current direct
 
     curl http://SDKSERVICE.INSTANCE.IP/
 
-Replace *SDKSERVICE.INSTANCE.IP* with the IP address that *zerotier-sdk-service* was assigned on the virtual network. (This is the same IP you pinged in your first test.) If everything works, you should get back a copy of ZeroTier One's main README.md file.
+Replace `SDKSERVICE.INSTANCE.IP` with the IP address that `zerotier-sdk-service` was assigned on the virtual network. (This is the same IP you pinged in your first test.) If everything works, you should get back a copy of ZeroTier One's main README.md file.
 
 
+***
 #### Dynamic linking compatibility test results
 
 The following applications have been tested and confirmed to work for the beta release:

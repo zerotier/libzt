@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 
 int main(int argc, char * argv[])
 {
@@ -35,6 +36,8 @@ int main(int argc, char * argv[])
         return 1;    
 	}
 
+    return 1;
+
     // Send multiple UDP datagrams to server
     char data[1024];
     memset(data, 0, sizeof(data));
@@ -42,7 +45,7 @@ int main(int argc, char * argv[])
     
     while(1) {
         count++;
-        usleep(1000);
+        usleep(1000000);
         n_sent = send(sock,data,sizeof(data),0);
 
         if (n_sent<0) {

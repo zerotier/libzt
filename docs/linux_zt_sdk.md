@@ -13,24 +13,26 @@ See [doc/docker_linux_zt_sdk.md](doc/docker_linux_zt_sdk.md)
 
 ## Dynamic Linking 
 
-To build the service host, IP stack, and intercept library, from the base of the ZeroTier One tree run:
+**Step 1: Build the libraries and intercept:**
 
-    make shared_lib
+`make linux_shared_lib`
 
 This will build a binary called `zerotier-sdk-service` and a library called `libztintercept.so`. It will also build the IP stack as `build/liblwip.so`. 
 
-The `zerotier-sdk-service` binary is almost the same as a regular ZeroTier One build except instead of creating virtual network ports using Linux's `/dev/net/tun` interface, it creates instances of a user-space TCP/IP stack for each virtual network and provides RPC access to this stack via a Unix domain socket. The latter is a library that can be loaded with the Linux `LD_PRELOAD` environment variable or by placement into `/etc/ld.so.preload` on a Linux system or container. Additional magic involving nameless Unix domain socket pairs and interprocess socket handoff is used to emulate TCP sockets with extremely low overhead and in a way that's compatible with select, poll, epoll, and other I/O event mechanisms.
+*The `zerotier-sdk-service` binary is almost the same as a regular ZeroTier One build except instead of creating virtual network ports using Linux's `/dev/net/tun` interface, it creates instances of a user-space TCP/IP stack for each virtual network and provides RPC access to this stack via a Unix domain socket. The latter is a library that can be loaded with the Linux `LD_PRELOAD` environment variable or by placement into `/etc/ld.so.preload` on a Linux system or container. Additional magic involving nameless Unix domain socket pairs and interprocess socket handoff is used to emulate TCP sockets with extremely low overhead and in a way that's compatible with select, poll, epoll, and other I/O event mechanisms.*
 
-The intercept library does nothing unless the `ZT_NC_NETWORK` environment variable is set. If on program launch (or fork) it detects the presence of this environment variable, it will attempt to connect to a running `zerotier-sdk-service` at the specified Unix domain socket path.
+*The intercept library does nothing unless the `ZT_NC_NETWORK` environment variable is set. If on program launch (or fork) it detects the presence of this environment variable, it will attempt to connect to a running `zerotier-sdk-service` at the specified Unix domain socket path.*
 
-Unlike `zerotier-one`, `zerotier-sdk-service` does not need to be run with root privileges and will not modify the host's network configuration in any way. It can be run alongside `zerotier-one` on the same host with no ill effect, though this can be confusing since you'll have to remember the difference between "real" host interfaces (tun/tap) and network containerized endpoints. The latter are completely unknown to the kernel and will not show up in `ifconfig`.
+*Unlike `zerotier-one`, `zerotier-sdk-service` does not need to be run with root privileges and will not modify the host's network configuration in any way. It can be run alongside `zerotier-one` on the same host with no ill effect, though this can be confusing since you'll have to remember the difference between "real" host interfaces (tun/tap) and network containerized endpoints. The latter are completely unknown to the kernel and will not show up in `ifconfig`.*
 
+
+**Step 2: **
 
 #### Starting the SDK Service
 
 A simple test can be performed in user space (no root) in your own home directory.
 
-First, build the SDK service and intercept library as described above. Then create a directory to act as a temporary ZeroTier home for your test SDK service instance. You'll need to move the `liblwip.so` binary that was built with `make shared_lib` into there, since the service must be able to find it there and load it.
+First, build the SDK service and intercept library as described above. Then create a directory to act as a temporary ZeroTier home for your test SDK service instance. You'll need to move the `liblwip.so` binary that was built with `make linux_shared_lib` into there, since the service must be able to find it there and load it.
 
     mkdir /tmp/sdk-test-home
     cp -f build/liblwip.so /tmp/sdk-test-home

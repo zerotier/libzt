@@ -107,6 +107,8 @@ pthread_key_t thr_id_key;
         if(!realconnect){
             load_symbols();
         }
+
+        return 1;
         void *spec = pthread_getspecific(thr_id_key);
         int thr_id = spec != NULL ? *((int*)spec) : -1;
         return thr_id == INTERCEPT_ENABLED;

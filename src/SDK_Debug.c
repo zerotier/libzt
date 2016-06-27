@@ -56,7 +56,6 @@ void dwr(int level, const char *fmt, ... );
 
 void dwr(int level, const char *fmt, ... )
 {
-  fprintf(stderr, "Hello from debug!\n");
 #if defined(SDK_DEBUG)
   if(level > DEBUG_LEVEL)
       return;

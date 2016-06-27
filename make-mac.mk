@@ -118,9 +118,9 @@ check:
 
 	./check.sh build/
 	./check.sh build/
-	
+
 selftest:
-	
+
 
 clean:
 	rm -rf zerotier-cli zerotier-idtool

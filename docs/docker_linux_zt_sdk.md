@@ -7,9 +7,10 @@ Imagine a flat, encrypted, no-configuration LAN for all of your Docker container
 
 This short tutorial will show you how to enable ZeroTier functionality for your Docker software container with little to no configuration. In this example we aim to build a Docker container with ZeroTier’s Network Container service bundled right in so that it’s effortless to hook any number of your services in the container up to your virtual network.
 
-**Step 1: Build the ZeroTier service binaries**
 
-From the ZeroTier source directory,  `make netcon` Optionally, if you'd like to see some debug output during execution, use `make netcon NETCON_DEBUG=1`
+**Step 1: Build ZeroTier shared library**
+
+`make shared_lib`, to see debug output, use `make shared_lib SDK_DEBUG=1`
 
 **Step 2: Build your Docker image**
 
@@ -49,11 +50,11 @@ RUN chmod -v +x /netcon_entrypoint.sh
 CMD ["./netcon_entrypoint.sh"]
 ```
 
-**Step 3: Start your container**
+**Step 3: Start container**
 
 `docker run -d -it redis_test /bin/bash`
 
-**Step 4: From your container, set up environment variables**
+**Step 4: From container, set up environment variables**
 
 Set our application pre-load with `export LD_PRELOAD=./libztintercept.so`. This dynamically loads our intercept library into your application which allows us to re-direct its network calls to our virtual network.
 
@@ -69,6 +70,9 @@ At this point, simply run your application as you normally would. It will be aut
 **Additional info**
 If you'd like to know the IP address your service can be reached at on this particular virtual network, use the following:
 `zerotier-cli -D/var/lib/zerotier-one/nc_XXXXXXXXXXXXXXXX listnetworks`
+
+
+
 
 
 

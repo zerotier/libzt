@@ -48,7 +48,7 @@ node tests/httpserver.js
 ```
 **Step 6: Test it!**
 
-From another system on the same virtual network `curl http://IP.ADD.RE.SS/`
+From another system on the same virtual network `curl http://APP.SPECIFIC.IP.ADDR/`
 
 *For a more in-depth explanation of what's happening here, see the section below:*
 
@@ -109,7 +109,7 @@ Now you can run an application .
     export ZT_NC_NETWORK=/tmp/sdk-test-home/nc_8056c2e21c000001
     node tests/httpserver.js
 
-Also note that the "pwd" in LD_PRELOAD assumes you are in the ZeroTier source root and have built the SDK there. If not, substitute the full path to `libztintercept.so`. If you want to remove those environment variables later, use `unset LD_PRELOAD` and `unset ZT_NC_NETWORK`.
+Also note that the "pwd" in `LD_PRELOAD` assumes you are in the ZeroTier source root and have built the SDK there. If not, substitute the full path to `libztintercept.so`. If you want to remove those environment variables later, use `unset LD_PRELOAD` and `unset ZT_NC_NETWORK`.
 
 If you don't have node.js installed, an alternative test using python would be:
 
@@ -119,9 +119,9 @@ If you are running Python 3, use `-m http.server`.
 
 If all went well a small static HTTP server is now serving up the current directory, but only inside the network container. Going to port 80 on your machine won't work. To reach it, go to the other system where you joined the same network with a conventional ZeroTier instance and try:
 
-    curl http://SDKSERVICE.INSTANCE.IP/
+    curl http://APP.SPECIFIC.IP.ADDR/
 
-Replace `SDKSERVICE.INSTANCE.IP` with the IP address that `zerotier-sdk-service` was assigned on the virtual network. (This is the same IP you pinged in your first test.) If everything works, you should get back a copy of ZeroTier One's main README.md file.
+Replace `APP.SPECIFIC.IP.ADDR` with the IP address that `zerotier-sdk-service` was assigned on the virtual network. (This is the same IP you pinged in your first test.) If everything works, you should get back a copy of ZeroTier One's main README.md file.
 
 
 ***

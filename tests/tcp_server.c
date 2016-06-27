@@ -1,4 +1,4 @@
-// C Server For ZT tests
+// TCP Server test program
 
 #include <stdio.h>
 #include <string.h>
@@ -9,7 +9,7 @@
 int main(int argc , char *argv[])
 {
     if(argc < 2) {
-	printf("usage: server <port>\n");
+	printf("usage: tcp_server <port>\n");
 	return 1;
     }
    

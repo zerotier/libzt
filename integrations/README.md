@@ -1,7 +1,7 @@
 ZeroTier Integrations
 ====
 
-If you want everything built at once, type `make all` and go play outside for a little while, we'll copy all of the targets into the `build` directory for you along with specific instructions on how to use each binary.
+If you want everything built at once, type `make all` and go play outside for a few minutes, we'll copy all of the targets into the `build` directory for you along with specific instructions on how to use each binary.
 
 *NOTE for Apple platforms: In order to build iOS/OSX Frameworks and Bundles you will need XCode command line tools `xcode-select --install`*
 

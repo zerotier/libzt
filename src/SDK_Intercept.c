@@ -131,7 +131,7 @@ pthread_key_t thr_id_key;
         getpeername(sockfd, (struct sockaddr*)&addr, &len);
         if (addr.ss_family == AF_LOCAL || addr.ss_family == AF_LOCAL) {
             addr_un = (struct sockaddr_un*)&addr;
-            return strcmp(addr_un->sun_path, netpath) == 0;
+            return strcmp(addr_un->sun_path, api_netpath) == 0;
         }
         dwr(MSG_DEBUG,"connected_to_service(): Not connected to service\n");
         return 0;

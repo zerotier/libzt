@@ -96,6 +96,7 @@ osx_shared_lib: $(OBJS)
 prep:
 	cp integrations/android/android_jni_lib/java/libs/* build
 
+# Check for the presence of built frameworks/bundles/libaries
 check:
 	./check.sh build/lwip/liblwip.so
 
@@ -107,37 +108,39 @@ check:
 	./check.sh build/ios_unity3d_bundle/Debug-iphoneos/ZeroTierSDK_Unity3D_iOS.bundle
 
 	./check.sh build/
-	./check.sh build/android_jni_lib/
-	./check.sh build/android_jni_lib/
-	./check.sh build/android_jni_lib/
-	./check.sh build/android_jni_lib/
-	./check.sh build/android_jni_lib/
-	./check.sh build/android_jni_lib/
-	./check.sh build/android_jni_lib/
-	./check.sh build/android_jni_lib/
+	./check.sh build/android_jni_lib/arm64-v8a/libZeroTierJNI.so
+	./check.sh build/android_jni_lib/armeabi/libZeroTierJNI.so
+	./check.sh build/android_jni_lib/armeabi-v7a/libZeroTierJNI.so
+	./check.sh build/android_jni_lib/mips/libZeroTierJNI.so
+	./check.sh build/android_jni_lib/mips64/libZeroTierJNI.so
+	./check.sh build/android_jni_lib/x86/libZeroTierJNI.so
+	./check.sh build/android_jni_lib/x86_64/libZeroTierJNI.so
 
-	./check.sh build/
-	./check.sh build/
 
-selftest:
+# Tests
+TEST_OBJDIR := build/tests
+TEST_SOURCES := $(wildcard tests/*.c)
+TEST_TARGETS := $(addprefix build/tests/,$(notdir $(TEST_SOURCES:.c=.out)))
 
+build/tests/%.out: tests/%.c
+	-$(CC) $(CC_FLAGS) -c -o $@ $<
+
+$(TEST_OBJDIR):
+	mkdir -p $(TEST_OBJDIR)
+
+tests: $(TEST_OBJDIR) $(TEST_TARGETS)
+	mkdir -p build/tests; 
 
 clean:
 	rm -rf zerotier-cli zerotier-idtool
-
 	rm -rf build/*
-	find . -type f -name '*.o' -delete
-	find . -type f -name '*.so' -delete
-	find . -type f -name '*.o.d' -delete
-
+	find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' \) -delete
 	# android JNI lib project
 	cd integrations/android/android_jni_lib/proj; ./gradlew clean
 	rm -rf integrations/android/android_jni_lib/proj/.gradle
 	rm -rf integrations/android/android_jni_lib/proj/.idea
 	rm -rf integrations/android/android_jni_lib/proj/build
-
 	# example android app project
 	cd integrations/android/example_app; ./gradlew clean
 	rm -rf integrations/android/example_app/.idea
 	rm -rf integrations/android/example_app/.gradle
-FORCE:

@@ -107,11 +107,17 @@ pthread_key_t thr_id_key;
         if(!realconnect){
             load_symbols();
         }
-
-        return 1;
+    #if defined(SDK_BUNDLED)
+        /* The reasoning for this check is that if you've built the SDK with SDK_BUNDLE=1, then 
+        you've included a full ZeroTier service in the same binary as your intercept, and we 
+        don't want to run ZeroTier network API calls through the intercept, so we must specify
+        which threads should be intercepted manually */
         void *spec = pthread_getspecific(thr_id_key);
         int thr_id = spec != NULL ? *((int*)spec) : -1;
         return thr_id == INTERCEPT_ENABLED;
+    #else
+        return 1
+    #endif
     }
 
     // ------------------------------------------------------------------------------

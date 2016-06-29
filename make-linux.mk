@@ -75,8 +75,10 @@ endif
 
 all: shared_lib check
 
-linux_shared_lib: $(OBJS)
-	rm -f *.o
+remove_only_intermediates:
+	-find . -type f -name '*.o' -delete
+
+linux_shared_lib: remove_only_intermediates $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DEFS) -DZT_SDK -DZT_ONE_NO_ROOT_CHECK -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -Izerotierone/osdep -Izerotierone/node -Isrc -o build/zerotier-sdk-service $(OBJS) zerotierone/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp zerotierone/one.cpp -x c src/SDK_RPC.c $(LDLIBS) -ldl
 	# Build liblwip.so which must be placed in ZT home for zerotier-netcon-service to work
 	make -f make-liblwip.mk
@@ -91,7 +93,7 @@ linux_shared_lib: $(OBJS)
 check:
 	./check.sh build/lwip/liblwip.so
 	./check.sh build/linux_shared_lib/libztintercept.so
-		
+
 	./check.sh build/
 	./check.sh build/android_jni_lib/arm64-v8a/libZeroTierJNI.so
 	./check.sh build/android_jni_lib/armeabi/libZeroTierJNI.so
@@ -101,14 +103,13 @@ check:
 	./check.sh build/android_jni_lib/x86/libZeroTierJNI.so
 	./check.sh build/android_jni_lib/x86_64/libZeroTierJNI.so
 
-
 # Tests
 TEST_OBJDIR := build/tests
 TEST_SOURCES := $(wildcard tests/*.c)
-TEST_TARGETS := $(addprefix build/tests/,$(notdir $(TEST_SOURCES:.c=.out)))
+TEST_TARGETS := $(addprefix build/tests/$(OSTYPE).,$(notdir $(TEST_SOURCES:.c=.out)))
 
-build/tests/%.out: tests/%.c
-	-$(CC) $(CC_FLAGS) -c -o $@ $<
+build/tests/$(OSTYPE).%.out: tests/%.c
+	-$(CC) $(CC_FLAGS) -o $@ $<
 
 $(TEST_OBJDIR):
 	mkdir -p $(TEST_OBJDIR)

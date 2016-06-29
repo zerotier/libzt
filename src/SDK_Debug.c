@@ -50,7 +50,6 @@
 #define MSG_DEBUG_EXTRA 5 // If nothing in your world makes sense
 
 char *debug_logfile = (char*)0;
-
 void dwr(int level, const char *fmt, ... );
 
 void dwr(int level, const char *fmt, ... )

@@ -15,16 +15,18 @@ For more support on these integrations, or if you'd like help creating a new int
 ## Build flags
 
 `SDK_DEBUG` - Turns on SDK activity/warning/error output. Levels of verbosity can be adjusted in `src/SDK_Debug.h`
-`SDK_DEBUG_LOGFILE` - Used in conjunction with `SDK_DEBUG`, this will write all SDK debug chatter to a log file. 
-`SDK_LWIP_DEBUG`
-`SDK_BUNDLED`
-`SDK_SERVICE`
-`SDK_SOCKS_PROXY`
-`SDK_UNITY_3D`
-``
-``
-``
 
+`SDK_DEBUG_LOGFILE` - Used in conjunction with `SDK_DEBUG`, this will write all SDK debug chatter to a log file. To use this, set `make SDK_DEBUG_LOGFILE=1` then `export ZT_SDK_LOGFILE=debug.log`. 
+
+`SDK_LWIP_DEBUG` - Turns on debug output for the lwIP library.
+
+`SDK_BUNDLED` - Builds the SDK as a single target including an API shim, the lwIP library, and the ZeroTier service.
+
+`SDK_SERVICE`
+
+`SDK_SOCKS_PROXY` - Enables the SOCK5 Proxy. 
+
+`SDK_UNITY_3D` - For use when building a target for a native plugin for Unity3D.
 
 
 ***
@@ -51,4 +53,4 @@ For more support on these integrations, or if you'd like help creating a new int
 
 ***
 ### Windows
- - Anyone want to volunteer?
+ - Not yet.

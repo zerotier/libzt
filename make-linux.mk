@@ -1,22 +1,11 @@
 #
-# Makefile for ZeroTier One on Linux
-#
-# This is confirmed to work on distributions newer than CentOS 6 (the
-# one used for reference builds) and on 32 and 64 bit x86 and ARM
-# machines. It should also work on other 'normal' machines and recent
-# distributions. Editing might be required for tiny devices or weird
-# distros.
+# Makefile for ZeroTier SDK on Linux
 #
 # Targets
-#   one: zerotier-one and symlinks (cli and idtool)
-#   doc: builds manpages, requires rst2man somewhere in PATH
-#   all: builds 'one'
-#   selftest: zerotier-selftest
-#   debug: builds 'one' and 'selftest' with tracing and debug flags
-#   installer: builds installers and packages (RPM/DEB/etc.) if possible
-#   official: cleans and then builds 'one', 'installer', and 'doc'
+#   all: build every target possible on host system, plus tests
+#   check: reports OK/FAIL of built targets
+#   tests: build only test applications for host system
 #   clean: removes all built files, objects, other trash
-#
 
 GENERATED_FILES :=
 DOC_DIR = doc
@@ -57,21 +46,16 @@ else
 	STRIP+=--strip-all
 endif
 
+# Debug output for ZeroTier service
 ifeq ($(ZT_TRACE),1)
 	DEFS+=-DZT_TRACE
 endif
 
-# Debug output for Network Containers
-# Specific levels can be controlled in netcon/common.inc.c
+# Debug output for the SDK
+# Specific levels can be controlled in src/SDK_Debug.h
 ifeq ($(SDK_DEBUG),1)
 	DEFS+=-DSDK_DEBUG -g
 endif
-
-# Uncomment for gprof profile build
-#CFLAGS=-Wall -g -pg -pthread $(INCLUDES) $(DEFS)
-#CXXFLAGS=-Wall -g -pg -pthread $(INCLUDES) $(DEFS)
-#LDFLAGS=
-#STRIP=echo
 
 all: shared_lib check
 

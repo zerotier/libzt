@@ -41,7 +41,7 @@ int main(int argc, char * argv[])
         return 1;    
 	}
 
-    return 1;
+    //return 1;
 
     // Send multiple UDP datagrams to server
     char data[1024];

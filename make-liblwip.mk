@@ -39,8 +39,12 @@ LWIPDIR=ext/lwip/src
 
 CCDEP=gcc
 CC=gcc
-CFLAGS=-O3 -g -Wall -DIPv4 -fPIC 
-#-DLWIP_DEBUG
+CFLAGS=-O3 -g -Wall -DIPv4 -fPIC
+
+# Debug output for lwIP
+ifeq ($(SDK_LWIP_DEBUG),1)
+	CFLAGS+=-DLWIP_DEBUG
+endif
 
 CFLAGS:=$(CFLAGS) \
 	-I$(LWIPDIR)/include -I$(LWIPARCH)/include -I$(LWIPDIR)/include/ipv4 \
@@ -78,7 +82,6 @@ NETIFFILES+=$(LWIPDIR)/netif/ppp/auth.c $(LWIPDIR)/netif/ppp/chap.c \
 
 # ARCHFILES: Architecture specific files.
 ARCHFILES=$(wildcard $(LWIPARCH)/*.c $(LWIPARCH)tapif.c $(LWIPARCH)/netif/list.c $(LWIPARCH)/netif/tcpdump.c)
-
 
 # LWIPFILES: All the above.
 LWIPFILES=$(COREFILES) $(CORE4FILES) $(SNMPFILES) $(APIFILES) $(NETIFFILES) $(ARCHFILES)

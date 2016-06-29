@@ -39,8 +39,8 @@ extern "C" {
 #define INTERCEPT_ENABLED  111
 #define INTERCEPT_DISABLED 222
 
-void zt_init_rpc(char *nwid);
-const char *get_netpath();
+void zt_init_rpc(char *path, char *nwid);
+extern char *api_netpath;
 
 #if defined(__linux__)
 	static int (*realaccept4)(ACCEPT4_SIG) = 0;

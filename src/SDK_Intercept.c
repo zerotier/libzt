@@ -59,12 +59,9 @@
 #include "SDK_Debug.h"
 #include "SDK_RPC.h"
 
-int set_netpath(char * path);
-char *netpath = (char *)0;
 void dwr(int level, const char *fmt, ... );
-const char *get_netpath();
-
 pthread_key_t thr_id_key;
+char *api_netpath;
 
     // ------------------------------------------------------------------------------
     // --------------------- Get Original socket API pointers -----------------------
@@ -108,6 +105,7 @@ pthread_key_t thr_id_key;
             load_symbols();
         }
     #if defined(SDK_BUNDLED)
+
         /* The reasoning for this check is that if you've built the SDK with SDK_BUNDLE=1, then 
         you've included a full ZeroTier service in the same binary as your intercept, and we 
         don't want to run ZeroTier network API calls through the intercept, so we must specify
@@ -116,7 +114,7 @@ pthread_key_t thr_id_key;
         int thr_id = spec != NULL ? *((int*)spec) : -1;
         return thr_id == INTERCEPT_ENABLED;
     #else
-        return 1
+        return 1;
     #endif
     }
 
@@ -130,9 +128,8 @@ pthread_key_t thr_id_key;
 
     int connected_to_service(int sockfd)
     {
-        socklen_t len;
         struct sockaddr_storage addr;
-        len = sizeof addr;
+        socklen_t len = sizeof addr;
         struct sockaddr_un * addr_un;
         getpeername(sockfd, (struct sockaddr*)&addr, &len);
         if (addr.ss_family == AF_LOCAL || addr.ss_family == AF_LOCAL) {

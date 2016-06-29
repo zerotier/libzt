@@ -78,15 +78,17 @@ android_jni_lib:
 	cd build; for res_f in *; do mv "$res_f" "android_jni_lib_$res_f"; done
 	#cp docs/android_zt_sdk.md build/README.md
 
-osx_shared_lib: $(OBJS)
-	-find . -type f -name '*.o' -delete
+remove_only_intermediates:
+	-find . -type f \( -name '*.o' -o -name '*.so' \) -delete
+
+osx_shared_lib: remove_only_intermediates $(OBJS)
+	mkdir -p build/osx_shared_lib
 	# Need to selectively rebuild one.cpp and OneService.cpp with ZT_SERVICE_NETCON and ZT_ONE_NO_ROOT_CHECK defined, and also NetconEthernetTap
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -DZT_SDK -DZT_ONE_NO_ROOT_CHECK -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -Izerotierone/osdep -Izerotierone/node -Isrc -o build/zerotier-sdk-service $(OBJS) zerotierone/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp zerotierone/one.cpp -x c src/SDK_RPC.c $(LDLIBS) -ldl
 	# Build liblwip.so which must be placed in ZT home for zerotier-sdk-service to work
 	make -f make-liblwip.mk
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
 	cd src ; gcc $(DEFS) -O2 -Wall -std=c99 -fPIC -fno-common -dynamiclib -flat_namespace -DVERBOSE -D_GNU_SOURCE -DNETCON_INTERCEPT -I. -I../zerotierone/node -nostdlib -shared -o libztintercept.so SDK_Sockets.c SDK_Intercept.c SDK_Debug.c SDK_RPC.c -ldl
-	mkdir -p build/osx_shared_lib
 	cp src/libztintercept.so build/osx_shared_lib/libztintercept.so
 	ln -sf zerotier-sdk-service zerotier-cli
 	ln -sf zerotier-sdk-service zerotier-idtool

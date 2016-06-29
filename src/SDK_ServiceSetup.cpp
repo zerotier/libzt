@@ -55,9 +55,9 @@ pthread_t intercept_thread;
 int * intercept_thread_id;
 pthread_key_t thr_id_key;
 static ZeroTier::OneService *volatile zt1Service;
-static std::string homeDir;
+std::string homeDir;
 std::string netDir;
-
+char *api_netpath;
 
 #ifdef __cplusplus
 extern "C" {
@@ -88,6 +88,7 @@ extern "C" {
             LOGV("unable to write network conf file: %s\n", nwid);
         }
         zt1Service->join(nwid);
+        zt_init_rpc(homeDir.c_str(), nwid); // This provides the shim API with the RPC information
     }
     
     void leave_network(const char *nwid) { zt1Service->leave(nwid); }

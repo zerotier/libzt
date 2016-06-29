@@ -10,6 +10,11 @@
 
 int main(int argc, char * argv[])
 {
+    if(argc < 2) {
+        printf("usage: udp_client <port>\n");
+        return 0;
+    }
+
     int port = atoi(argv[1]);
 
     printf("cpp_udp_socket_client_test():\n");

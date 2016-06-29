@@ -45,7 +45,7 @@ endif
 # Debug output for SDK
 # Specific levels can be controlled in src/debug.h
 ifeq ($(SDK_DEBUG),1)
-	DEFS+=-DSDK_DEBUG
+	DEFS+=-DSDK_DEBUG -g
 endif
 
 CXXFLAGS=$(CFLAGS) -fno-rtti

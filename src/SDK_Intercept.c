@@ -63,6 +63,30 @@ void dwr(int level, const char *fmt, ... );
 pthread_key_t thr_id_key;
 char *api_netpath;
 
+// externs common between SDK_Intercept and SDK_Socket from SDK.h
+#if defined(__linux__)
+    int (*realaccept4)(ACCEPT4_SIG) = 0;
+    #if !defined(__ANDROID__)
+        int (*realsyscall)(SYSCALL_SIG) = 0;
+    #endif
+#endif
+
+#if !defined(__ANDROID__)
+     int (*realbind)(BIND_SIG) = 0;
+     int (*realsendmsg)(SENDMSG_SIG) = 0;
+     ssize_t (*realsendto)(SENDTO_SIG) = 0;
+     int (*realrecvmsg)(RECVMSG_SIG) = 0;
+     int (*realrecvfrom)(RECVFROM_SIG) = 0;
+#endif
+     int (*realconnect)(CONNECT_SIG) = 0;
+     int (*realaccept)(ACCEPT_SIG) = 0;
+     int (*reallisten)(LISTEN_SIG) = 0;
+     int (*realsocket)(SOCKET_SIG) = 0;
+     int (*realsetsockopt)(SETSOCKOPT_SIG) = 0;
+     int (*realgetsockopt)(GETSOCKOPT_SIG) = 0;
+     int (*realclose)(CLOSE_SIG);
+     int (*realgetsockname)(GETSOCKNAME_SIG) = 0;
+
     // ------------------------------------------------------------------------------
     // --------------------- Get Original socket API pointers -----------------------
     // ------------------------------------------------------------------------------
@@ -503,8 +527,10 @@ char *api_netpath;
 
     int close(CLOSE_SIG) {
         dwr(MSG_DEBUG, " close(%d)\n", fd);
-        check_intercept_enabled_for_thread();
-        return realclose(fd);
+        if(!check_intercept_enabled_for_thread()) { 
+            return realclose(fd);
+        }
+        zt_close(fd);
     }
 
     // ------------------------------------------------------------------------------

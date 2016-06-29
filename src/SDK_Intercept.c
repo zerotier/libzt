@@ -127,7 +127,6 @@ char *api_netpath;
             load_symbols();
         }
     #if defined(SDK_BUNDLED)
-
         /* The reasoning for this check is that if you've built the SDK with SDK_BUNDLE=1, then 
         you've included a full ZeroTier service in the same binary as your intercept, and we 
         don't want to run ZeroTier network API calls through the intercept, so we must specify

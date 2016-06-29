@@ -12,6 +12,22 @@ Below are the specific instructions for each integration requiring *little to no
 For more support on these integrations, or if you'd like help creating a new integration, stop by our [community section](https://www.zerotier.com/community/)!
 
 ***
+## Build flags
+
+`SDK_DEBUG` - Turns on SDK activity/warning/error output. Levels of verbosity can be adjusted in `src/SDK_Debug.h`
+`SDK_DEBUG_LOGFILE` - Used in conjunction with `SDK_DEBUG`, this will write all SDK debug chatter to a log file. 
+`SDK_LWIP_DEBUG`
+`SDK_BUNDLED`
+`SDK_SERVICE`
+`SDK_SOCKS_PROXY`
+`SDK_UNITY_3D`
+``
+``
+``
+
+
+
+***
 ## Current Integrations
 
 ### Apple

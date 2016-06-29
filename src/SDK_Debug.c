@@ -42,15 +42,14 @@
 #include <fcntl.h>
 #include <sys/syscall.h>
 
-#define DEBUG_LEVEL     5 // Set this to adjust what you'd like to see in the debug traces
- 
+#define DEBUG_LEVEL     4 // Set this to adjust what you'd like to see in the debug traces 
 #define MSG_TRANSFER    1 // RX/TX specific statements
 #define MSG_ERROR       2 // Errors
 #define MSG_INFO        3 // Information which is generally useful to any user
 #define MSG_DEBUG       4 // Information which is only useful to someone debugging
 #define MSG_DEBUG_EXTRA 5 // If nothing in your world makes sense
 
-#define DEBUG_LOGFILE_PATH "/Users/Joseph/code/ztnc_logfile.txt"
+char *debug_logfile = (char*)0;
 
 void dwr(int level, const char *fmt, ... );
 
@@ -74,10 +73,18 @@ void dwr(int level, const char *fmt, ... )
 #elif defined(__APPLE__)
   pid_t tid = pthread_mach_thread_np(pthread_self());
 #endif
-  #if defined(SDK_DEBUG_WRITE_LOGFILE)
-     FILE *file = fopen(DEBUG_LOGFILE_PATH,"a");
-     vfprintf(file, fmt, ap);
+  #if defined(SDK_DEBUG_LOG_TO_FILE)
+    if(!debug_logfile) { // Try to get logfile from env
+      debug_logfile = getenv("ZT_SDK_LOGFILE");
+    }
+    if(debug_logfile) {
+      FILE *file = fopen(debug_logfile,"a");
+      vfprintf(file, fmt, ap);
+      fclose(file);
+      va_end(ap);
+    }
   #endif
+  va_start(ap, fmt);
   fprintf(stderr, "%s [tid=%7d] ", timestring, tid);
   vfprintf(stderr, fmt, ap);
   fflush(stderr);

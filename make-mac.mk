@@ -1,3 +1,12 @@
+#
+# Makefile for ZeroTier SDK on OSX
+#
+# Targets
+#   all: build every target possible on host system, plus tests
+#   check: reports OK/FAIL of built targets
+#   tests: build only test applications for host system
+#   clean: removes all built files, objects, other trash
+
 ifeq ($(origin CC),default)
 	CC=$(shell if [ -e /usr/bin/clang ]; then echo clang; else echo gcc; fi)
 endif
@@ -18,17 +27,7 @@ PRODUCTSIGN=echo
 CODESIGN_APP_CERT=
 CODESIGN_INSTALLER_CERT=
 
-# For internal use only -- signs everything with ZeroTier's developer cert
-ifeq ($(ZT_OFFICIAL_RELEASE),1)
-	DEFS+=-DZT_OFFICIAL_RELEASE -DZT_AUTO_UPDATE
-	ZT_USE_MINIUPNPC=1
-	CODESIGN=codesign
-	PRODUCTSIGN=productsign
-	CODESIGN_APP_CERT="Developer ID Application: ZeroTier Networks LLC (8ZD9JUCZ4V)"
-	CODESIGN_INSTALLER_CERT="Developer ID Installer: ZeroTier Networks LLC (8ZD9JUCZ4V)"
-endif
-
-# Debug mode -- dump trace output, build binary with -g
+# Debug output for ZeroTier service
 ifeq ($(ZT_DEBUG),1)
 	DEFS+=-DZT_TRACE
 	CFLAGS+=-Wall -g -pthread $(INCLUDES) $(DEFS)
@@ -42,8 +41,8 @@ else
 	STRIP=strip
 endif
 
-# Debug output for SDK
-# Specific levels can be controlled in src/debug.h
+# Debug output for the SDK
+# Specific levels can be controlled in src/SDK_Debug.h
 ifeq ($(SDK_DEBUG),1)
 	DEFS+=-DSDK_DEBUG -g
 endif

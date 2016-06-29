@@ -79,7 +79,7 @@ android_jni_lib:
 	#cp docs/android_zt_sdk.md build/README.md
 
 osx_shared_lib: $(OBJS)
-	rm -f *.o
+	-find . -type f -name '*.o' -delete
 	# Need to selectively rebuild one.cpp and OneService.cpp with ZT_SERVICE_NETCON and ZT_ONE_NO_ROOT_CHECK defined, and also NetconEthernetTap
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -DZT_SDK -DZT_ONE_NO_ROOT_CHECK -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -Izerotierone/osdep -Izerotierone/node -Isrc -o build/zerotier-sdk-service $(OBJS) zerotierone/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp zerotierone/one.cpp -x c src/SDK_RPC.c $(LDLIBS) -ldl
 	# Build liblwip.so which must be placed in ZT home for zerotier-sdk-service to work
@@ -120,10 +120,10 @@ check:
 # Tests
 TEST_OBJDIR := build/tests
 TEST_SOURCES := $(wildcard tests/*.c)
-TEST_TARGETS := $(addprefix build/tests/,$(notdir $(TEST_SOURCES:.c=.out)))
+TEST_TARGETS := $(addprefix build/tests/$(OSTYPE).,$(notdir $(TEST_SOURCES:.c=.out)))
 
-build/tests/%.out: tests/%.c
-	-$(CC) $(CC_FLAGS) -c -o $@ $<
+build/tests/$(OSTYPE).%.out: tests/%.c
+	-$(CC) $(CC_FLAGS) -o $@ $<
 
 $(TEST_OBJDIR):
 	mkdir -p $(TEST_OBJDIR)

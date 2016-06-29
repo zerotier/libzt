@@ -130,45 +130,58 @@ extern "C" {
  */
 #if defined(__ANDROID__)
     // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
-    /* If you define anything else in this file it *must* follow that convention
-     and any corresponding Java package/classes in your Android project must match this as well */
-    JNIEXPORT void JNICALL Java_ZeroTier_SDK_startOneService(JNIEnv *env, jobject thisObj)
-    {
+    JNIEXPORT void JNICALL Java_ZeroTier_SDK_startOneService(JNIEnv *env, jobject thisObj, jstring path) {
+        //char * path;
+        homeDir = (*env)->GetStringUTFChars(env, path, NULL);
+
 #else
-    void *startOneService(void *thread_id)
-    {
+    void *startOneService(void *thread_id, string path) {
+        homeDir = path;
+#endif
+
+    #if defined(SDK_BUNDLED)
+        // Don't intercept network calls originating from ZeroTier service
         set_intercept_status(INTERCEPT_DISABLED);
-#endif
-        
-        
-#if defined(__UNITY_3D__)
-        int MAX_DIR_SZ = 256;
-        char current_dir[MAX_DIR_SZ];
-        getcwd(current_dir, MAX_DIR_SZ);
-        chdir(service_path.c_str());
-        zt1Service = (ZeroTier::OneService *)0;
-#endif
-        
-#if defined(__ANDROID__)
-    homeDir = "/sdcard/zerotier";
-#endif
-
-#if defined(__APPLE__)
-    #include "TargetConditionals.h"
-    #if TARGET_IPHONE_SIMULATOR
-            // homeDir = "dont/run/this/in/the/simulator";
-    #elif TARGET_OS_IPHONE
-            homeDir = "ZeroTier/One";
     #endif
-#endif
         
-#if defined(__UNITY_3D__)
-        homeDir = "/Users/Joseph/utest2/";
-#endif
+        // If no homeDir is provided, attempt a best guess of an appropriate ZeroTier 
+        // homeDir according to platform and build type
+        if(!homeDir.length())
+        {
+            #if defined(__UNITY_3D__)
+                int MAX_DIR_SZ = 256;
+                char current_dir[MAX_DIR_SZ];
+                getcwd(current_dir, MAX_DIR_SZ);
+                chdir(service_path.c_str());
+            #endif
+        
+            #if defined(__UNITY_3D__) && !defined(__ANDROID__) && !defined(__IOS__)
+                // Unity3D on a non-mobile platform
+                homeDir = "" + current_dir; // homeDir shall be current dir 
+                // homeDir = "/Users/Joseph/utest2/";
+            #endif
 
+            #if defined(__ANDROID__)
+                homeDir = "/sdcard/zerotier";
+            #endif
+
+            #if defined(__APPLE__)
+                #include "TargetConditionals.h"
+                #if TARGET_IPHONE_SIMULATOR
+                        // homeDir = "dont/run/this/in/the/simulator";
+                #elif TARGET_OS_IPHONE
+                        homeDir = "ZeroTier/One";
+                #endif
+            #endif
+        }
+
+        LOGV("homeDir = %s", homeDir.c_str());
+        
+        // Where network .conf files will be stored
         netDir = homeDir + "/networks.d";
+
+        zt1Service = (ZeroTier::OneService *)0;
         LOGV("Starting ZT service...\n");
-        //Debug("Starting ZT service...");
         
         if (!homeDir.length()) {
             #if defined(__ANDROID__)
@@ -190,7 +203,6 @@ extern "C" {
                 if ((*pi != ".")&&(*pi != "..")) {
                     if (!ZeroTier::OSUtils::mkdir(ptmp)) {
                         std::string homePathErrStr = "home path does not exist, and could not create";
-                        //Debug(homePathErrStr.c_str());
                         throw std::runtime_error(homePathErrStr);
                     }
                 }
@@ -199,7 +211,6 @@ extern "C" {
 
         //chdir(current_dir); // Return to previous current working directory (at the request of Unity3D)
         
-        LOGV("homeDir = %s", homeDir.c_str());
         //Debug(homeDir.c_str());
         
         // Generate random port for new service instance
@@ -208,7 +219,6 @@ extern "C" {
         int servicePort = 9000 + (randp % 1000);
         
         LOGV("generated port\n");
-        
         
         for(;;) {
             zt1Service = ZeroTier::OneService::newInstance(homeDir.c_str(),servicePort);

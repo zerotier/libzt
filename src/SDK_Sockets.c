@@ -75,73 +75,35 @@
 void print_addr(struct sockaddr *addr);
 void dwr(int level, const char *fmt, ... );
 
-static char *api_netpath = (char *)0;
-
-// TODO: Remove before production
-void set_netpath(char * path) {
-    dwr(MSG_DEBUG,"set_netpath(%s)", path);
-    api_netpath = path;
-    rpc_mutex_init(); // TODO: double-check this
-}
-
-const char *get_netpath() {
-    return api_netpath;
-}
-        
+char *api_netpath = (char *)0;
+    
     // ------------------------------------------------------------------------------
     // ---------------------------------- zt_init_rpc -------------------------------
     // ------------------------------------------------------------------------------
     
-    void zt_init_rpc(char *nwid)
+    void zt_init_rpc(char *path, char *nwid)
     {
         dwr(MSG_DEBUG, "zt_init_rpc\n");
-    #if defined(__UNITY_3D__)
-        //char *nw = "565799d8f6e1c11a";
-        //char *path = "/Users/Joseph/utest2/nc_";
-        //char *fullpath = malloc(strlen(path)+strlen(nw)+1);
-        //if(fullpath) {
-        //    strcpy(fullpath, path);
-        //    strcat(fullpath, nw);
-        //    api_netpath = fullpath;
-        //}
-        //api_netpath = nwid;
-        api_netpath = "/Users/Joseph/utest2/nc_565799d8f6e1c11a";
-        
-    #endif
-        
-    #if defined(__IOS__)
-        /*
-        api_netpath = "ZeroTier/One/nc_" + nwid;
-        
-        void *spec = pthread_getspecific(thr_id_key);
-        int thr_id = spec != NULL ? *((int*)spec) : -1;
-        // dwr(MSG_DEBUG_EXTRA, "set_up_intercept(thr_id=%d)\n", thr_id);
-        if(thr_id == INTERCEPT_ENABLED) {
-            if (!api_netpath) {
-                api_netpath = "ZeroTier/One/nc_e5cd7a9e1c3511dd"; // Path allowed on iOS devices
-                
-            }
-            return 1;
+        if(!api_netpath) {
+            #if defined(SDK_BUNDLED)
+                // Get the path/nwid from the user application
+                char *fullpath = malloc(strlen(path)+strlen(nwid)+1);
+                if(fullpath) {
+                    strcpy(fullpath, path);
+                    strcat(fullpath, nwid);
+                    api_netpath = fullpath;
+                }
+            #else
+                // Get path/nwid from environment variables
+                if (!api_netpath) {
+                    api_netpath = getenv("ZT_NC_NETWORK");
+                    dwr(MSG_DEBUG, "$ZT_NC_NETWORK = %s\n", api_netpath);
+                }
+            #endif
         }
-        return 0;
-        */
-        api_netpath = "ZeroTier/One/nc_e5cd7a9e1c3511dd";
-        
-    #elif defined(__ANDROID__)
-        api_netpath = "ZeroTier/One/nc_" + nwid;
-        return 1;
-    #else
-        if (!api_netpath) {
-            api_netpath = getenv("ZT_NC_NETWORK");
-            set_netpath(api_netpath);
-
-            dwr(MSG_DEBUG, "netpath = %s\n", api_netpath);
-            if(!api_netpath) {
-                // return 0;
-            }
-        }
-    #endif
     }
+
+    void get_api_netpath() { zt_init_rpc("",""); }
         
     // ------------------------------------------------------------------------------
     // ------------------------------------ sendto() --------------------------------
@@ -308,9 +270,7 @@ const char *get_netpath() {
     // ------------------------------------------------------------------------------
         
 #if defined(__UNITY_3D__)
-       
         // Just expose some basic calls for configuring and RX/TXing through ZT sockets
-        
         ssize_t zt_send(int fd, void *buf, int len) {
             return write(fd, buf, len);
         }
@@ -359,7 +319,7 @@ const char *get_netpath() {
     // int socket_family, int socket_type, int protocol
 
     int zt_socket(SOCKET_SIG) {
-        zt_init_rpc("");
+        get_api_netpath();
         dwr(MSG_DEBUG, "zt_socket()\n");
         /* Check that type makes sense */
 #if defined(__linux__)
@@ -408,6 +368,7 @@ const char *get_netpath() {
 
     int zt_connect(CONNECT_SIG)
     {
+        get_api_netpath();
         dwr(MSG_DEBUG,"zt_connect(%d)\n", __fd);
         struct connect_st rpc_st;
 #if defined(__linux__)
@@ -431,6 +392,7 @@ const char *get_netpath() {
 #if !defined(__ANDROID__)
         int zt_bind(BIND_SIG)
         {
+            get_api_netpath();
             dwr(MSG_DEBUG,"zt_bind(%d)\n", sockfd);
             struct bind_st rpc_st;
             rpc_st.sockfd = sockfd;
@@ -455,6 +417,7 @@ const char *get_netpath() {
 #if defined(__linux__)
         int zt_accept4(ACCEPT4_SIG)
         {
+            get_api_netpath();
             dwr(MSG_DEBUG,"zt_accept4(%d):\n", sockfd);
         #if !defined(__ANDROID__)
             if ((flags & SOCK_CLOEXEC))
@@ -473,12 +436,13 @@ const char *get_netpath() {
 
     int zt_accept(ACCEPT_SIG)
     {
+        get_api_netpath();
         dwr(MSG_DEBUG,"zt_accept(%d):\n", sockfd);
-// FIXME: Find a better solution for this before production
-#if !defined(__UNITY_3D__)
+    // FIXME: Find a better solution for this before production
+    #if !defined(__UNITY_3D__)
         if(addr)
             addr->sa_family = AF_INET;
-#endif
+    #endif
         int new_fd = get_new_fd(sockfd);
         dwr(MSG_DEBUG,"newfd = %d\n", new_fd);
 
@@ -497,6 +461,7 @@ const char *get_netpath() {
 
     int zt_listen(LISTEN_SIG)
     {
+        get_api_netpath();
         dwr(MSG_DEBUG,"zt_listen(%d):\n", sockfd);
         struct listen_st rpc_st;
         rpc_st.sockfd = sockfd;
@@ -528,6 +493,7 @@ const char *get_netpath() {
     
     int zt_getsockname(GETSOCKNAME_SIG)
     {
+        get_api_netpath();
         dwr(MSG_DEBUG,"zt_getsockname(%d):\n", sockfd);
         /* TODO: This is kind of a hack as it stands -- assumes sockaddr is sockaddr_in
          * and is an IPv4 address. */

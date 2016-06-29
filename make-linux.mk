@@ -76,15 +76,15 @@ endif
 all: shared_lib check
 
 remove_only_intermediates:
-	-find . -type f -name '*.o' -delete
+	-find . -type f \( -name '*.o' -o -name '*.so' \) -delete
 
 linux_shared_lib: remove_only_intermediates $(OBJS)
+	mkdir -p build/linux_shared_lib
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DEFS) -DZT_SDK -DZT_ONE_NO_ROOT_CHECK -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -Izerotierone/osdep -Izerotierone/node -Isrc -o build/zerotier-sdk-service $(OBJS) zerotierone/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp zerotierone/one.cpp -x c src/SDK_RPC.c $(LDLIBS) -ldl
 	# Build liblwip.so which must be placed in ZT home for zerotier-netcon-service to work
 	make -f make-liblwip.mk
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
 	cd src ; gcc $(DEFS) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -I. -I../zerotierone/node -nostdlib -shared -o libztintercept.so SDK_Sockets.c SDK_Intercept.c SDK_Debug.c SDK_RPC.c -ldl
-	mkdir -p build/linux_shared_lib
 	cp src/libztintercept.so build/linux_shared_lib/libztintercept.so
 	ln -sf zerotier-sdk-service zerotier-cli
 	ln -sf zerotier-sdk-service zerotier-idtool

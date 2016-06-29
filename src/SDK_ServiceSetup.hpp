@@ -38,6 +38,8 @@ extern "C" {
     
 #define INTERCEPT_ENABLED   111
 #define INTERCEPT_DISABLED  222
+
+extern std::string homeDir;
     
 #if defined(__ANDROID__)	
     // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME

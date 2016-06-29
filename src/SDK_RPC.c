@@ -275,32 +275,21 @@ ssize_t sock_fd_write(int sock, int fd)
  * Read a file descriptor 
  */
 ssize_t sock_fd_read(int sock, void *buf, ssize_t bufsize, int *fd)
-{
-    FILE *file = fopen("/Users/Joseph/code/__log","a");
-
-    
+{    
   ssize_t size;
   if (fd) {
-      
-      fprintf(file, "A");
-
     struct msghdr msg;
     struct iovec iov;
     union {
       struct cmsghdr cmsghdr;
       char control[CMSG_SPACE(sizeof (int))];
     } cmsgu;
-      
-      fprintf(file, "B");
-      
+        
     struct cmsghdr *cmsg;
     iov.iov_base = buf;
     iov.iov_len = bufsize;
     msg.msg_name = NULL;
     msg.msg_namelen = 0;
-      
-      fprintf(file, "C");
-
       
     msg.msg_iov = &iov;
     msg.msg_iovlen = 1;
@@ -308,33 +297,22 @@ ssize_t sock_fd_read(int sock, void *buf, ssize_t bufsize, int *fd)
     msg.msg_controllen = sizeof(cmsgu.control);
     size = recvmsg (sock, &msg, 0);
       
-      fprintf(file, "D");
-
     if (size < 0)
       return -1;
     cmsg = CMSG_FIRSTHDR(&msg);
     if (cmsg && cmsg->cmsg_len == CMSG_LEN(sizeof(int))) {
-        fprintf(file, "E");
-
       if (cmsg->cmsg_level != SOL_SOCKET) {
-          fprintf(file, "F");
-
         fprintf (stderr, "invalid cmsg_level %d\n",cmsg->cmsg_level);
         return -1;
       }
       if (cmsg->cmsg_type != SCM_RIGHTS) {
-          fprintf(file, "G");
-
           fprintf (stderr, "invalid cmsg_type %d\n",cmsg->cmsg_type);
           return -1;
       }
       *fd = *((int *) CMSG_DATA(cmsg));
     } else {
-        fprintf(file, "H");
 *fd = -1;}
   } else {
-      fprintf(file, "I");
-
     size = read (sock, buf, bufsize);
     if (size < 0) {
       fprintf(stderr, "sock_fd_read(): read: Error\n");

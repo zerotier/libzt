@@ -47,6 +47,10 @@
 #include "SDK.h"
 #include "SDK_RPC.h"
 
+// externs common between SDK_Intercept and SDK_Socket from SDK.h
+int (*realsocket)(SOCKET_SIG);
+int (*realconnect)(CONNECT_SIG);
+
 #ifdef __cplusplus
 extern "C" {
 #endif

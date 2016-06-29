@@ -64,7 +64,7 @@ endif
 # Debug output for Network Containers
 # Specific levels can be controlled in netcon/common.inc.c
 ifeq ($(SDK_DEBUG),1)
-	DEFS+=-DSDK_DEBUG
+	DEFS+=-DSDK_DEBUG -g
 endif
 
 # Uncomment for gprof profile build
@@ -84,7 +84,7 @@ linux_shared_lib: remove_only_intermediates $(OBJS)
 	# Build liblwip.so which must be placed in ZT home for zerotier-netcon-service to work
 	make -f make-liblwip.mk
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
-	cd src ; gcc $(DEFS) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -I. -I../zerotierone/node -nostdlib -shared -o libztintercept.so SDK_Sockets.c SDK_Intercept.c SDK_Debug.c SDK_RPC.c -ldl
+	cd src ; gcc $(DEFS) -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -I. -I../zerotierone/node -nostdlib -shared -o libztintercept.so SDK_Sockets.c SDK_Intercept.c SDK_Debug.c SDK_RPC.c -ldl
 	cp src/libztintercept.so build/linux_shared_lib/libztintercept.so
 	ln -sf zerotier-sdk-service zerotier-cli
 	ln -sf zerotier-sdk-service zerotier-idtool

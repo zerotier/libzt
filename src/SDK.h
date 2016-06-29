@@ -43,28 +43,28 @@ void zt_init_rpc(char *path, char *nwid);
 extern char *api_netpath;
 
 #if defined(__linux__)
-	static int (*realaccept4)(ACCEPT4_SIG) = 0;
+	extern int (*realaccept4)(ACCEPT4_SIG);
 	#if !defined(__ANDROID__)
-		static int (*realsyscall)(SYSCALL_SIG) = 0;
+		extern int (*realsyscall)(SYSCALL_SIG);
 	#endif
 #endif
 
 #if !defined(__ANDROID__)
     bool check_intercept_enabled_for_thread();
-	static int (*realbind)(BIND_SIG) = 0;
-	static int (*realsendmsg)(SENDMSG_SIG) = 0;
-	static ssize_t (*realsendto)(SENDTO_SIG) = 0;
-	static int (*realrecvmsg)(RECVMSG_SIG) = 0;
-	static int (*realrecvfrom)(RECVFROM_SIG) = 0;
+	extern int (*realbind)(BIND_SIG);
+	extern int (*realsendmsg)(SENDMSG_SIG);
+	extern ssize_t (*realsendto)(SENDTO_SIG);
+	extern int (*realrecvmsg)(RECVMSG_SIG);
+	extern int (*realrecvfrom)(RECVFROM_SIG);
 #endif
-	static int (*realconnect)(CONNECT_SIG) = 0;
-	static int (*realaccept)(ACCEPT_SIG) = 0;
-	static int (*reallisten)(LISTEN_SIG) = 0;
-	static int (*realsocket)(SOCKET_SIG) = 0;
-	static int (*realsetsockopt)(SETSOCKOPT_SIG) = 0;
-	static int (*realgetsockopt)(GETSOCKOPT_SIG) = 0;
-	static int (*realclose)(CLOSE_SIG) = 0;
-	static int (*realgetsockname)(GETSOCKNAME_SIG) = 0;
+	extern int (*realconnect)(CONNECT_SIG);
+	extern int (*realaccept)(ACCEPT_SIG);
+	extern int (*reallisten)(LISTEN_SIG);
+	extern int (*realsocket)(SOCKET_SIG);
+	extern int (*realsetsockopt)(SETSOCKOPT_SIG);
+	extern int (*realgetsockopt)(GETSOCKOPT_SIG);
+	extern int (*realclose)(CLOSE_SIG);
+	extern int (*realgetsockname)(GETSOCKNAME_SIG);
 
 ssize_t zt_sendto(SENDTO_SIG);
 ssize_t zt_sendmsg(SENDMSG_SIG);

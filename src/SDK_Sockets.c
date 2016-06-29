@@ -74,16 +74,21 @@
     
 void print_addr(struct sockaddr *addr);
 void dwr(int level, const char *fmt, ... );
-
 char *api_netpath = (char *)0;
-    
+
     // ------------------------------------------------------------------------------
     // ---------------------------------- zt_init_rpc -------------------------------
     // ------------------------------------------------------------------------------
     
+    // Assembles (and/or) sets the RPC path for communication with the ZeroTier service
     void zt_init_rpc(char *path, char *nwid)
     {
         dwr(MSG_DEBUG, "zt_init_rpc\n");
+        // Just double check we have 
+        if(!realconnect) {
+            load_symbols();
+        }
+
         if(!api_netpath) {
             #if defined(SDK_BUNDLED)
                 // Get the path/nwid from the user application
@@ -373,9 +378,9 @@ char *api_netpath = (char *)0;
         struct connect_st rpc_st;
 #if defined(__linux__)
     #if !defined(__ANDROID__)
-        rpc_st.__tid = syscall(SYS_gettid);
+        //rpc_st.__tid = syscall(SYS_gettid);
     #else
-        rpc_st.__tid = gettid(); // dummy value
+        //rpc_st.__tid = gettid(); // dummy value
     #endif
 #endif
         rpc_st.__fd = __fd;
@@ -482,8 +487,9 @@ char *api_netpath = (char *)0;
     // int fd
 
     int zt_close(CLOSE_SIG) {
-        dwr(MSG_DEBUG, "zt_close(%d)", fd);
-        return close(fd);
+        get_api_netpath();
+        dwr(MSG_DEBUG, "zt_close(%d)\n", fd);
+        return realclose(fd);
     }
     
     // ------------------------------------------------------------------------------

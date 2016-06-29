@@ -135,7 +135,7 @@ tests: $(TEST_OBJDIR) $(TEST_TARGETS)
 clean:
 	rm -rf zerotier-cli zerotier-idtool
 	rm -rf build/*
-	find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' \) -delete
+	find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' \) -delete
 	# android JNI lib project
 	cd integrations/android/android_jni_lib/proj; ./gradlew clean
 	rm -rf integrations/android/android_jni_lib/proj/.gradle

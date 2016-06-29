@@ -93,8 +93,7 @@ char *api_netpath;
 
     void load_symbols()
     {
-        dwr(MSG_DEBUG,"load_symbols\n");
-
+        dwr(MSG_DEBUG_EXTRA,"load_symbols\n");
 #if defined(__linux__)
         realaccept4 = dlsym(RTLD_NEXT, "accept4");
     #if !defined(__ANDROID__)
@@ -115,7 +114,6 @@ char *api_netpath;
         realrecvfrom = (int(*)(RECVFROM_SIG))dlsym(RTLD_NEXT, "recvfrom");
         realrecvmsg = (int(*)(RECVMSG_SIG))dlsym(RTLD_NEXT, "recvmsg");
     #endif
-        dwr(MSG_DEBUG,"complete\n");
     }
         
     // ------------------------------------------------------------------------------

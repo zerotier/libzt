@@ -34,6 +34,8 @@
 #define MSG_DEBUG       4 // Information which is only useful to someone debugging
 #define MSG_DEBUG_EXTRA 5 // If nothing in your world makes sense
 
+extern char *debug_logfile;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -1,17 +1,13 @@
 // UDP Server test program
 
-#include <stdio.h>      /* standard C i/o facilities */
-#include <stdlib.h>     /* needed for atoi() */
-#include <unistd.h>     /* defines STDIN_FILENO, system calls,etc */
-#include <sys/types.h>  /* system data type definitions */
-#include <sys/socket.h> /* socket specific definitions */
-#include <netinet/in.h> /* INET constants and stuff */
-#include <arpa/inet.h>  /* IP address conversion stuff */
-#include <netdb.h>      /* gethostbyname */
-
-
-
-/* this routine echos any messages (UDP datagrams) received */
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h> 
+#include <arpa/inet.h>
+#include <netdb.h>
 
 #define MAXBUF 1024*1024
 
@@ -19,10 +15,6 @@ void echo( int sd ) {
   int len,n;
   char bufin[MAXBUF];
   struct sockaddr_in remote;
-
-  /* need to know how big address struct is, len must be set before the
-     call to recvfrom!!! */
-
   len = sizeof(remote);
   long count = 0;
 

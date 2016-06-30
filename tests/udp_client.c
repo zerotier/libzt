@@ -14,10 +14,7 @@ int main(int argc, char * argv[])
         printf("usage: udp_client <port>\n");
         return 0;
     }
-
     int port = atoi(argv[1]);
-
-    printf("cpp_udp_socket_client_test():\n");
     ssize_t n_sent;
     int sock = -1;
     struct sockaddr_in server;
@@ -29,7 +26,7 @@ int main(int argc, char * argv[])
             return 1;
         }
     }
-    server.sin_addr.s_addr = inet_addr("10.5.5.2");
+    server.sin_addr.s_addr = inet_addr("10.5.5.47");
     server.sin_family = AF_INET;
     server.sin_port = htons(port);
     
@@ -41,9 +38,7 @@ int main(int argc, char * argv[])
         return 1;    
 	}
 
-    //return 1;
-
-    // Send multiple UDP datagrams to server
+    // TX
     char data[1024];
     memset(data, 0, sizeof(data));
     int count = 0;

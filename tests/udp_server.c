@@ -84,8 +84,8 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  int port = skaddr2.sin_port;
-  int ip = ntohs(skaddr2.sin_addr.s_addr);
+  int port = ntohs(skaddr2.sin_port);
+  int ip = skaddr2.sin_addr.s_addr;
   unsigned char d[4];
   d[0] = ip & 0xFF;
   d[1] = (ip >>  8) & 0xFF;
@@ -94,6 +94,6 @@ int main(int argc, char *argv[]) {
   printf(" handleBind(): %d.%d.%d.%d : %d -> Assigned: %d\n", d[0],d[1],d[2],d[3], port);
           
   /* echo every datagram */
-  //echo(ld);
+  echo(ld);
   return(0);
 }

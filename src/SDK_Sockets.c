@@ -201,30 +201,18 @@ char *api_netpath = (char *)0;
     ssize_t zt_recvfrom(RECVFROM_SIG)
     {
         dwr(MSG_DEBUG,"zt_recvfrom(%d)\n", socket);
-        // TODO: Remove for production
-        
         ssize_t err;
-        //int sock_type;
-        //socklen_t type_len;
-        //realgetsockopt(socket, SOL_SOCKET, SO_TYPE, (void *) &sock_type, &type_len);
         unsigned int addr;
         unsigned short port;
         char addr_buf[sizeof(addr) + sizeof(port)];
         // Since this can be called for connection-oriented sockets,
         // we need to check the type before we try to read the address info
-        //if(sock_type == SOCK_DGRAM && address != NULL && address_len != NULL) {
-        err = read(socket, &addr_buf, sizeof(addr_buf)); // Read prepended address info
-        memcpy(&addr, addr_buf, sizeof(addr));
-        memcpy(&port, addr_buf+sizeof(addr), sizeof(port));
-        *address_len=sizeof(addr_buf);
-        //}
-        err = read(socket, buffer, length); // Read what was placed on buffer from service
+        if(sock_type == SOCK_DGRAM && address != NULL && address_len != NULL) {
+            zt_getsockname(socket, address, address_len);
+        }
+        err = read(socket, buffer, length);
         if(err < 0)
             perror("read:\n");
-        
-        port = htons(port);
-        memcpy(address->sa_data, &port, sizeof(port));
-        memcpy(address->sa_data+2, &addr, sizeof(addr));
         return err;
     }
 #endif

@@ -202,7 +202,7 @@ char *api_netpath;
     ssize_t recvfrom(RECVFROM_SIG)
     {
         dwr(MSG_DEBUG, "recvfrom(%d)\n", socket);
-        //if(!check_intercept_enabled_for_thread())
+        if(!check_intercept_enabled_for_thread())
             return realrecvfrom(socket, buffer, length, flags, address, address_len);
         return zt_recvfrom(socket, buffer, length, flags, address, address_len);
     }

@@ -527,7 +527,7 @@ char *api_netpath;
         if(!check_intercept_enabled_for_thread()) { 
             return realclose(fd);
         }
-        zt_close(fd);
+        return zt_close(fd);
     }
 
     // ------------------------------------------------------------------------------
@@ -549,7 +549,6 @@ char *api_netpath;
         }
         return zt_getsockname(sockfd, addr, addrlen);
     }
-
 
     // ------------------------------------------------------------------------------
     // ------------------------------------ syscall() -------------------------------

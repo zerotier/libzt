@@ -605,26 +605,30 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock,void **uptr,void *data,uns
         rpcSock = sockdata.first;
         buf = (unsigned char*)sockdata.second;
 		unloadRPC(buf, pid, tid, rpcCount, timestamp, CANARY, cmd, payload);
-		dwr(MSG_DEBUG," <sock=%p> RPC: (pid=%d, tid=%d, rpcCount=%d, timestamp=%s, cmd=%d)\n", 
+		dwr(MSG_DEBUG_EXTRA," <sock=%p> RPC: (pid=%d, tid=%d, rpcCount=%d, timestamp=%s, cmd=%d)\n", 
 			(void*)&sock, pid, tid, rpcCount, timestamp, cmd);
 
 		switch(cmd) {
 			case RPC_BIND:
+				dwr(MSG_DEBUG,"  <sock=%p> RPC_BIND\n", (void*)&sock);
 			    struct bind_st bind_rpc;
 			    memcpy(&bind_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct bind_st));
 			    handleBind(sock, rpcSock, uptr, &bind_rpc);
 				break;
 		  	case RPC_LISTEN:
+		  		dwr(MSG_DEBUG,"  <sock=%p> RPC_LISTEN\n", (void*)&sock);
 			    struct listen_st listen_rpc;
 			    memcpy(&listen_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct listen_st));
 			    handleListen(sock, rpcSock, uptr, &listen_rpc);
 				break;
 		  	case RPC_GETSOCKNAME:
+		  		dwr(MSG_DEBUG,"  <sock=%p> RPC_GETSOCKNAME\n", (void*)&sock);
 		  		struct getsockname_st getsockname_rpc;
 		    	memcpy(&getsockname_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct getsockname_st));
 		  		handleGetsockname(sock, rpcSock, uptr, &getsockname_rpc);
 		  		break;
 			case RPC_CONNECT:
+				dwr(MSG_DEBUG,"  <sock=%p> RPC_CONNECT\n", (void*)&sock);
 			    struct connect_st connect_rpc;
 			    memcpy(&connect_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct connect_st));
 			    handleConnect(sock, rpcSock, conn, &connect_rpc);
@@ -927,11 +931,7 @@ void NetconEthernetTap::handleGetsockname(PhySocket *sock, PhySocket *rpcSock, v
 {
 	Mutex::Lock _l(_tcpconns_m);
 	Connection *conn = getConnection(sock);
-	char retmsg[sizeof(struct sockaddr_storage)];
-	memset(&retmsg, 0, sizeof(retmsg));
-	if ((conn)&&(conn->addr))
-    	memcpy(&retmsg, conn->addr, sizeof(struct sockaddr_storage));
-	write(_phy.getDescriptor(rpcSock), &retmsg, sizeof(struct sockaddr_storage));
+	write(_phy.getDescriptor(rpcSock), &conn->addr, sizeof(struct sockaddr_storage));
 }
 
 void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct bind_st *bind_rpc)
@@ -942,6 +942,7 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 	ip_addr_t connAddr;
 	connAddr.addr = *((u32_t *)_ips[0].rawIpData());
 	Connection *conn = getConnection(sock);
+
     dwr(MSG_DEBUG," handleBind(sock=%p,fd=%d,port=%d)\n", (void*)&sock, bind_rpc->sockfd, port);
     if(conn) {
         if(conn->type == SOCK_DGRAM) {
@@ -954,14 +955,12 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
             if(err == ERR_USE) // port in use
                 sendReturnValue(rpcSock, -1, EADDRINUSE);
             else {
-                lwipstack->__udp_recv(conn->UDP_pcb, nc_udp_recved, new Larg(this, conn));
-                conn->port = conn->UDP_pcb->local_port;
-  				// Update port to assigned port
-                struct sockaddr_in addr_in;
+            	lwipstack->__udp_recv(conn->UDP_pcb, nc_udp_recved, new Larg(this, conn));
+            	struct sockaddr_in addr_in;
                 memcpy(&addr_in, &bind_rpc->addr, sizeof(addr_in));
-                addr_in.sin_port = Utils::ntoh(conn->UDP_pcb->local_port);
+                addr_in.sin_port = Utils::ntoh(conn->UDP_pcb->local_port); // Newly assigned port
                 memcpy(&conn->addr, &addr_in, sizeof(addr_in));
-                sendReturnValue(rpcSock, ERR_OK, ERR_OK); // Success
+  				sendReturnValue(rpcSock, ERR_OK, ERR_OK); // Success
             }
             return;
         }

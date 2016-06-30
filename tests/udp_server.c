@@ -53,6 +53,9 @@ int main(int argc, char *argv[]) {
 
   int ld;
   struct sockaddr_in skaddr;
+
+    struct sockaddr_in skaddr2;
+
   int length;
 
   // create socket
@@ -63,7 +66,8 @@ int main(int argc, char *argv[]) {
 
   // create address
   skaddr.sin_family = AF_INET;
-  skaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  //skaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  skaddr.sin_addr.s_addr = inet_addr("10.5.5.2");
   skaddr.sin_port = htons(0);
 
   // bind to address
@@ -74,14 +78,22 @@ int main(int argc, char *argv[]) {
 
   /* find out what port we were assigned and print it out */
 
-  length = sizeof( skaddr );
-  if (getsockname(ld, (struct sockaddr *) &skaddr, &length)<0) {
+  length = sizeof( skaddr2 );
+  if (getsockname(ld, (struct sockaddr *) &skaddr2, &length)<0) {
     printf("error getsockname\n");
     exit(1);
   }
-  printf("server UDP port = %d\n",ntohs(skaddr.sin_port));
 
+  int port = skaddr2.sin_port;
+  int ip = ntohs(skaddr2.sin_addr.s_addr);
+  unsigned char d[4];
+  d[0] = ip & 0xFF;
+  d[1] = (ip >>  8) & 0xFF;
+  d[2] = (ip >> 16) & 0xFF;
+  d[3] = (ip >> 24) & 0xFF;
+  printf(" handleBind(): %d.%d.%d.%d : %d -> Assigned: %d\n", d[0],d[1],d[2],d[3], port);
+          
   /* echo every datagram */
-  echo(ld);
+  //echo(ld);
   return(0);
 }

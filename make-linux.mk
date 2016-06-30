@@ -7,9 +7,6 @@
 #   tests: build only test applications for host system
 #   clean: removes all built files, objects, other trash
 
-GENERATED_FILES :=
-DOC_DIR = doc
-
 # Automagically pick clang or gcc, with preference for clang
 # This is only done if we have not overridden these with an environment or CLI variable
 ifeq ($(origin CC),default)
@@ -39,7 +36,7 @@ ext/lz4/lz4.o node/Salsa20.o node/SHA512.o node/C25519.o node/Poly1305.o: CFLAGS
 else
 	CFLAGS?=-O3 -fstack-protector
 	CFLAGS+=-Wall -fPIE -fvisibility=hidden -pthread $(INCLUDES) -DNDEBUG $(DEFS)
-	CXXFLAGS?=-O3 -fstack-protector
+	CXXFLAGS?= -fstack-protector
 	CXXFLAGS+=-Wall -Wreorder -fPIE -fvisibility=hidden -fno-rtti -pthread $(INCLUDES) -DNDEBUG $(DEFS)
 	LDFLAGS=-ldl -pie -Wl,-z,relro,-z,now
 	STRIP?=strip

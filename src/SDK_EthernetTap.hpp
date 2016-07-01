@@ -414,7 +414,7 @@ namespace ZeroTier {
 	 	* Unpacks the buffer from an RPC command
 	 	*/
 		void unloadRPC(void *data, pid_t &pid, pid_t &tid, 
-	        int &rpc_count, char (timestamp[RPC_TIMESTAMP_SZ]), char (magic[sizeof(uint64_t)]), char &cmd, void* &payload);
+	        char (timestamp[RPC_TIMESTAMP_SZ]), char (magic[sizeof(uint64_t)]), char &cmd, void* &payload);
 
 		// Unused -- no UDP or TCP from this thread/Phy<>
 		void phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address, const struct sockaddr *from,void *data,unsigned long len);

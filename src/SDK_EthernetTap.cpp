@@ -130,7 +130,6 @@ NetconEthernetTap::NetconEthernetTap(
 	_run(true)
 {
     char sockPath[4096],lwipPath[4096];
-    rpcCounter = -1;
     Utils::snprintf(sockPath,sizeof(sockPath),"%s%snc_%.16llx",homePath,ZT_PATH_SEPARATOR_S,_nwid,ZT_PATH_SEPARATOR_S,(unsigned long long)nwid);
     _dev = sockPath; // in SDK mode, set device to be just the network ID
     
@@ -492,7 +491,7 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock,void **uptr,void *data,uns
     dwr(MSG_DEBUG, "phyOnUnixData(%p), len = %d\n", (void*)&sock, len);
 	uint64_t CANARY_num;
 	pid_t pid, tid;
-	int rpcCount, wlen = len;
+	int wlen = len;
 	char cmd, timestamp[20], CANARY[CANARY_SZ], padding[] = {PADDING};
 	void *payload;
 	unsigned char *buf = (unsigned char*)data;
@@ -509,10 +508,10 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock,void **uptr,void *data,uns
 			detected_rpc = true;
 	}
 	if(detected_rpc) {
-		unloadRPC(data, pid, tid, rpcCount, timestamp, CANARY, cmd, payload);
+		unloadRPC(data, pid, tid, timestamp, CANARY, cmd, payload);
 		memcpy(&CANARY_num, CANARY, CANARY_SZ);
-		dwr(MSG_DEBUG," <sock=%p> RPC: (pid=%d, tid=%d, rpcCount=%d, timestamp=%s, cmd=%d)\n", 
-			(void*)&sock, pid, tid, rpcCount, timestamp, cmd);
+		dwr(MSG_DEBUG," <sock=%p> RPC: (pid=%d, tid=%d, timestamp=%s, cmd=%d)\n", 
+			(void*)&sock, pid, tid, timestamp, cmd);
 
 		if(cmd == RPC_SOCKET) {				
 			dwr(MSG_DEBUG,"  <sock=%p> RPC_SOCKET\n", (void*)&sock);
@@ -604,9 +603,9 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock,void **uptr,void *data,uns
     if(foundJob) {
         rpcSock = sockdata.first;
         buf = (unsigned char*)sockdata.second;
-		unloadRPC(buf, pid, tid, rpcCount, timestamp, CANARY, cmd, payload);
-		dwr(MSG_DEBUG_EXTRA," <sock=%p> RPC: (pid=%d, tid=%d, rpcCount=%d, timestamp=%s, cmd=%d)\n", 
-			(void*)&sock, pid, tid, rpcCount, timestamp, cmd);
+		unloadRPC(buf, pid, tid, timestamp, CANARY, cmd, payload);
+		dwr(MSG_DEBUG_EXTRA," <sock=%p> RPC: (pid=%d, tid=%d, timestamp=%s, cmd=%d)\n", 
+			(void*)&sock, pid, tid, timestamp, cmd);
 
 		switch(cmd) {
 			case RPC_BIND:
@@ -665,12 +664,11 @@ int NetconEthernetTap::sendReturnValue(int fd, int retval, int _errno = 0)
 }
 
 void NetconEthernetTap::unloadRPC(void *data, pid_t &pid, pid_t &tid, 
-	int &rpcCount, char (timestamp[RPC_TIMESTAMP_SZ]), char (CANARY[sizeof(uint64_t)]), char &cmd, void* &payload)
+	char (timestamp[RPC_TIMESTAMP_SZ]), char (CANARY[sizeof(uint64_t)]), char &cmd, void* &payload)
 {
 	unsigned char *buf = (unsigned char*)data;
 	memcpy(&pid, &buf[IDX_PID], sizeof(pid_t));
 	memcpy(&tid, &buf[IDX_TID], sizeof(pid_t));
-	memcpy(&rpcCount, &buf[IDX_COUNT], sizeof(int));
 	memcpy(timestamp, &buf[IDX_TIME], RPC_TIMESTAMP_SZ);
 	memcpy(&cmd, &buf[IDX_PAYLOAD], sizeof(char));
 	memcpy(CANARY, &buf[IDX_PAYLOAD+1], CANARY_SZ);

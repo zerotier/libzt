@@ -31,12 +31,12 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/un.h>
 #include <pthread.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <dlfcn.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <strings.h>
  
 #define CANARY_SZ               sizeof(uint64_t)
@@ -50,8 +50,7 @@
 #define IDX_SIGNAL_PHRASE       0
 #define IDX_PID                 IDX_SIGNAL_PHRASE + RPC_PHRASE_SZ
 #define IDX_TID                 sizeof(pid_t) + IDX_PID
-#define IDX_COUNT               IDX_TID + sizeof(pid_t)
-#define IDX_TIME                IDX_COUNT + sizeof(int)
+#define IDX_TIME                IDX_TID + sizeof(int)
 #define IDX_PAYLOAD             IDX_TIME + RPC_TIMESTAMP_SZ
 // 2nd RPC section (payload and canary)
 #define CMD_ID_IDX              0

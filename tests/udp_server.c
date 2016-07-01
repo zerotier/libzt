@@ -41,7 +41,9 @@ void echo( int sd ) {
 /* server main routine */
 
 int main(int argc, char *argv[]) {
-  
+  printf("DGRAM = %d\n", SOCK_DGRAM);
+    printf("STREAM = %d\n", SOCK_STREAM);
+
   /*
   if(argc < 2) {
     printf("usage: udp_server <port>\n");

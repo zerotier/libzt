@@ -202,14 +202,16 @@ char *api_netpath = (char *)0;
     {
         dwr(MSG_DEBUG,"zt_recvfrom(%d)\n", socket);
         ssize_t err;
-        unsigned int addr;
-        unsigned short port;
-        char addr_buf[sizeof(addr) + sizeof(port)];
         // Since this can be called for connection-oriented sockets,
         // we need to check the type before we try to read the address info
-        if(sock_type == SOCK_DGRAM && address != NULL && address_len != NULL) {
+        /*
+        int sock_type;
+        socklen_t type_len;
+        realgetsockopt(socket, SOL_SOCKET, SO_TYPE, (void *) &sock_type, &type_len);
+        */
+        //if(sock_type == SOCK_DGRAM && address != NULL && address_len != NULL) {
             zt_getsockname(socket, address, address_len);
-        }
+        //}
         err = read(socket, buffer, length);
         if(err < 0)
             perror("read:\n");

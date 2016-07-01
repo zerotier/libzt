@@ -189,7 +189,6 @@ int rpc_send_command(char *path, int cmd, int forfd, void *data, int len)
   memcpy(&metabuf[IDX_PID],     &pid,         sizeof(pid_t)      ); /* pid       */
   memcpy(&metabuf[IDX_TID],     &tid,         sizeof(pid_t)      ); /* tid       */
 #endif
-  memcpy(&metabuf[IDX_COUNT],   &rpc_count,   sizeof(rpc_count)  ); /* rpc_count */
   memcpy(&metabuf[IDX_TIME],    &timestring,   20                ); /* timestamp */
 
   /* Combine command flag+payload with RPC metadata */

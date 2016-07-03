@@ -39,6 +39,7 @@ extern "C" {
 #define INTERCEPT_ENABLED  111
 #define INTERCEPT_DISABLED 222
 
+extern void load_symbols();
 void zt_init_rpc(char *path, char *nwid);
 extern char *api_netpath;
 
@@ -50,7 +51,7 @@ extern char *api_netpath;
 #endif
 
 #if !defined(__ANDROID__)
-    bool check_intercept_enabled_for_thread();
+    bool check_intercept_enabled();
 	extern int (*realbind)(BIND_SIG);
 	extern int (*realsendmsg)(SENDMSG_SIG);
 	extern ssize_t (*realsendto)(SENDTO_SIG);

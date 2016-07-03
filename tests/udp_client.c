@@ -10,13 +10,12 @@
 
 int main(int argc, char * argv[])
 {
-    if(argc < 2) {
-        printf("usage: udp_client <port>\n");
+    if(argc < 3) {
+        printf("usage: udp_client <addr> <port>\n");
         return 0;
     }
-    int port = atoi(argv[1]);
+    int sock = -1, int port = atoi(argv[1]);
     ssize_t n_sent;
-    int sock = -1;
     struct sockaddr_in server;
     char buf[64];    
 
@@ -26,37 +25,35 @@ int main(int argc, char * argv[])
             return 1;
         }
     }
-    server.sin_addr.s_addr = inet_addr("10.5.5.47");
+    // Construct address
+    server.sin_addr.s_addr = inet_addr(argv[1]);
     server.sin_family = AF_INET;
     server.sin_port = htons(port);
-    
-    memcpy(buf, "Welcome to the Machine", sizeof("Welcome to the Machine")); 
-    printf("sizeof(buf) = %d\n", sizeof(buf));    
-    
+    // Connect to server
     if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0) {
         printf("api_test: error while connecting.\n");
         return 1;    
 	}
 
     // TX
-    char data[1024];
-    memset(data, 0, sizeof(data));
+    char *msg = "Welcome to the Machine"
     int count = 0;
     
     while(1) {
         count++;
         usleep(1000000);
-        n_sent = send(sock,data,sizeof(data),0);
+        n_sent = send(sock,msg,sizeof(msg),0);
 
         if (n_sent<0) {
             perror("Problem sending data");
             return 1;
         }
-        if (n_sent!=sizeof(buf))
+        if (n_sent!=sizeof(msg))
             printf("Sendto sent %d bytes\n",(int)n_sent);
         printf("n_sent = %d, count = %d\n", n_sent,count);
     } 
     
+    // RX from server
     /*
     socklen_t recv_addr_len;
     // Clear address info for RX test

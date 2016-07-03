@@ -42,7 +42,9 @@
 #include <fcntl.h>
 #include <sys/syscall.h>
 
-#define DEBUG_LEVEL     4 // Set this to adjust what you'd like to see in the debug traces 
+// Set during make (e.g. make SDK_DEBUG=2)
+#define DEBUG_LEVEL     5
+
 #define MSG_TRANSFER    1 // RX/TX specific statements
 #define MSG_ERROR       2 // Errors
 #define MSG_INFO        3 // Information which is generally useful to any user

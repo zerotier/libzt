@@ -226,7 +226,7 @@ std::vector<InetAddress> NetconEthernetTap::ips() const
 
 void NetconEthernetTap::put(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
 {
-    //dwr(MSG_DEBUG_EXTRA, "RX packet: len = %d\n", len);
+    dwr(MSG_DEBUG_EXTRA, "RX packet: len = %d\n", len);
 	struct pbuf *p,*q;
 	if (!_enabled)
 		return;
@@ -897,7 +897,7 @@ void NetconEthernetTap::nc_err(void *arg, err_t err)
 			l->tap->sendReturnValue(fd, -1, ECONNREFUSED);
 			break;
 
-			// FIXME: Below are errors which don't have a standard errno correlate
+			// TODO: Below are errors which don't have a standard errno correlate
 
 		case ERR_RST:
 			l->tap->sendReturnValue(fd, -1, -1);
@@ -944,7 +944,6 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
     dwr(MSG_DEBUG," handleBind(sock=%p,fd=%d,port=%d)\n", (void*)&sock, bind_rpc->sockfd, port);
     if(conn) {
         if(conn->type == SOCK_DGRAM) {
-        	// FIXME: Review why compliation through JNI+NDK toolchain comaplains about this
        		#if defined(__ANDROID__)
             	err = lwipstack->__udp_bind(conn->UDP_pcb, NULL, port);
             #else
@@ -1167,7 +1166,7 @@ int NetconEthernetTap::handleConnectProxy(PhySocket *sock, struct sockaddr_in *r
 				3) Cannot allocate new TCP segment
 
 				*/
-				errno = EAGAIN; // FIXME: Doesn't describe the problem well, but closest match
+				errno = EAGAIN; // TODO: Doesn't describe the problem well, but closest match
 				return -1;
 			}
 			// We should only return a value if failure happens immediately
@@ -1259,7 +1258,7 @@ void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Conne
 				3) Cannot allocate new TCP segment
 
 				*/
-				sendReturnValue(rpcSock, -1, EAGAIN); // FIXME: Doesn't describe the problem well, but closest match
+				sendReturnValue(rpcSock, -1, EAGAIN); // TODO: Doesn't describe the problem well, but closest match
 				return;
 			}
 

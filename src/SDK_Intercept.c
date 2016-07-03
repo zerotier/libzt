@@ -91,7 +91,7 @@ char *api_netpath;
     // --------------------- Get Original socket API pointers -----------------------
     // ------------------------------------------------------------------------------
 
-    void load_symbols()
+    extern void load_symbols()
     {
         dwr(MSG_DEBUG_EXTRA,"load_symbols\n");
 #if defined(__linux__)
@@ -121,8 +121,8 @@ char *api_netpath;
     // ------------------------------------------------------------------------------
     // Return whether 'intercept' shim is enabled for this thread
 
-    bool check_intercept_enabled_for_thread() {
-        dwr(MSG_DEBUG_EXTRA, "check_intercept_enabled_for_thread()\n");
+    bool check_intercept_enabled() {
+        dwr(MSG_DEBUG_EXTRA, "check_intercept_enabled()\n");
         if(!realconnect){
             load_symbols();
         }
@@ -171,7 +171,7 @@ char *api_netpath;
     ssize_t sendto(SENDTO_SIG)
     {
         dwr(MSG_DEBUG, "sendto(%d, %d)\n", sockfd, len);
-        //if (!check_intercept_enabled_for_thread())
+        //if (!check_intercept_enabled())
             return realsendto(sockfd, buf, len, flags, addr, addr_len);
         return zt_sendto(sockfd, buf, len, flags, addr, addr_len);
     }
@@ -186,7 +186,7 @@ char *api_netpath;
     ssize_t sendmsg(SENDMSG_SIG)
     {
         dwr(MSG_DEBUG, "sendmsg()\n");
-        //if(!check_intercept_enabled_for_thread())
+        //if(!check_intercept_enabled())
             return realsendmsg(socket, message, flags);
         zt_sendmsg(socket, message, flags);
     }
@@ -202,7 +202,7 @@ char *api_netpath;
     ssize_t recvfrom(RECVFROM_SIG)
     {
         dwr(MSG_DEBUG, "recvfrom(%d)\n", socket);
-        if(!check_intercept_enabled_for_thread())
+        if(!check_intercept_enabled())
             return realrecvfrom(socket, buffer, length, flags, address, address_len);
         return zt_recvfrom(socket, buffer, length, flags, address, address_len);
     }
@@ -217,7 +217,7 @@ char *api_netpath;
     ssize_t recvmsg(RECVMSG_SIG)
     {
         dwr(MSG_DEBUG, "recvmsg(%d)\n", socket);
-        //if(!check_intercept_enabled_for_thread())
+        //if(!check_intercept_enabled())
             return realrecvmsg(socket, message, flags);
         return zt_recvmsg(socket, message, flags);
     }
@@ -232,7 +232,7 @@ char *api_netpath;
     int setsockopt(SETSOCKOPT_SIG)
     {
         dwr(MSG_DEBUG, "setsockopt(%d)\n", socket);
-        if (!check_intercept_enabled_for_thread())
+        if (!check_intercept_enabled())
             return realsetsockopt(socket, level, option_name, option_value, option_len);
     #if defined(__linux__)
         if(level == SOL_IPV6 && option_name == IPV6_V6ONLY)
@@ -256,7 +256,7 @@ char *api_netpath;
     int getsockopt(GETSOCKOPT_SIG)
     {
         dwr(MSG_DEBUG, "getsockopt(%d)\n", sockfd);
-        if (!check_intercept_enabled_for_thread() || !connected_to_service(sockfd))
+        if (!check_intercept_enabled() || !connected_to_service(sockfd))
             return realgetsockopt(sockfd, level, optname, optval, optlen);
         return zt_getsockopt(sockfd, level, optname, optval, optlen);
     }
@@ -269,7 +269,7 @@ char *api_netpath;
     int socket(SOCKET_SIG)
     {
         dwr(MSG_DEBUG, "socket()\n");
-        if (!check_intercept_enabled_for_thread() && socket_type) {
+        if (!check_intercept_enabled() && socket_type) {
             int err = realsocket(socket_family, socket_type, protocol);
             if(err < 0) {
                 perror("socket:\n");
@@ -318,7 +318,7 @@ char *api_netpath;
         d[3] = (ip >> 24) & 0xFF;
         dwr(MSG_DEBUG,"connect(): %d.%d.%d.%d: %d\n", d[0],d[1],d[2],d[3], ntohs(port));
         
-        if(!check_intercept_enabled_for_thread())
+        if(!check_intercept_enabled())
             return realconnect(__fd, __addr, __len);
 
         /* Check that this is a valid fd */
@@ -395,7 +395,7 @@ char *api_netpath;
         }
 
         // Otherwise, perform usual intercept logic
-        if (!check_intercept_enabled_for_thread())
+        if (!check_intercept_enabled())
             return realbind(sockfd, addr, addrlen);
 
         // Check that this is a valid fd
@@ -432,7 +432,7 @@ char *api_netpath;
 
     int accept(ACCEPT_SIG) {
         dwr(MSG_DEBUG,"accept(%d):\n", sockfd);
-        if (!check_intercept_enabled_for_thread())
+        if (!check_intercept_enabled())
             return realaccept(sockfd, addr, addrlen);
 
         /* Check that this is a valid fd */
@@ -487,7 +487,7 @@ char *api_netpath;
     int listen(LISTEN_SIG)
     {
         dwr(MSG_DEBUG,"listen(%d):\n", sockfd);
-        if (!check_intercept_enabled_for_thread())
+        if (!check_intercept_enabled())
             return reallisten(sockfd, backlog);
         
         int sock_type;
@@ -524,7 +524,7 @@ char *api_netpath;
 
     int close(CLOSE_SIG) {
         dwr(MSG_DEBUG, " close(%d)\n", fd);
-        if(!check_intercept_enabled_for_thread()) { 
+        if(!check_intercept_enabled()) { 
             return realclose(fd);
         }
         return zt_close(fd);
@@ -539,7 +539,7 @@ char *api_netpath;
     {
         dwr(MSG_DEBUG,"getsockname(%d):\n", sockfd);
     #if !defined(__IOS__)
-        if (!check_intercept_enabled_for_thread())
+        if (!check_intercept_enabled())
             return realgetsockname(sockfd, addr, addrlen);
     #endif
         dwr(MSG_DEBUG,"getsockname(%d)\n", sockfd);
@@ -569,7 +569,7 @@ char *api_netpath;
         f=va_arg(ap, uintptr_t);
         va_end(ap);
         
-        if (!check_intercept_enabled_for_thread())
+        if (!check_intercept_enabled())
             return realsyscall(number,a,b,c,d,e,f);
         dwr(MSG_DEBUG,"syscall(%u, ...)\n", number);
         

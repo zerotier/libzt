@@ -72,9 +72,11 @@
 #include "SDK_RPC.h"
 #include "Constants.hpp" // For Tap's MTU
     
-void print_addr(struct sockaddr *addr);
+// Prototypes
 void dwr(int level, const char *fmt, ... );
 char *api_netpath = (char *)0;
+void load_symbols();
+int (*realclose)(CLOSE_SIG);
 
     // ------------------------------------------------------------------------------
     // ---------------------------------- zt_init_rpc -------------------------------
@@ -86,7 +88,7 @@ char *api_netpath = (char *)0;
         dwr(MSG_DEBUG, "zt_init_rpc\n");
         // Just double check we have 
         if(!realconnect) {
-            load_symbols();
+            //load_symbols();
         }
 
         if(!api_netpath) {

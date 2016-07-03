@@ -117,7 +117,6 @@ check:
 	./check.sh build/android_jni_lib/x86/libZeroTierJNI.so
 	./check.sh build/android_jni_lib/x86_64/libZeroTierJNI.so
 
-
 # Tests
 TEST_OBJDIR := build/tests
 TEST_SOURCES := $(wildcard tests/*.c)

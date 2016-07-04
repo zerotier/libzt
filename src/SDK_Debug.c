@@ -42,6 +42,9 @@
 #include <fcntl.h>
 #include <sys/syscall.h>
 
+#ifndef SDK_DEBUG_H
+#define SDK_DEBUG_H
+
 // Set during make (e.g. make SDK_DEBUG=2)
 #define DEBUG_LEVEL     5
 
@@ -51,7 +54,7 @@
 #define MSG_DEBUG       4 // Information which is only useful to someone debugging
 #define MSG_DEBUG_EXTRA 5 // If nothing in your world makes sense
 
-char *debug_logfile = (char*)0;
+//char *debug_logfile = (char*)0;
 void dwr(int level, const char *fmt, ... );
 
 void dwr(int level, const char *fmt, ... )
@@ -78,6 +81,7 @@ void dwr(int level, const char *fmt, ... )
     if(!debug_logfile) { // Try to get logfile from env
       debug_logfile = getenv("ZT_SDK_LOGFILE");
     }
+    /*
     if(debug_logfile) {
       FILE *file = fopen(debug_logfile,"a");
       fprintf(file, "%s [tid=%7d] ", timestring, tid);
@@ -85,6 +89,7 @@ void dwr(int level, const char *fmt, ... )
       fclose(file);
       va_end(ap);
     }
+    */
   #endif
   va_start(ap, fmt);
   fprintf(stderr, "%s [tid=%7d] ", timestring, tid);
@@ -114,6 +119,8 @@ extern "C" {
   #endif
 #ifdef __cplusplus
 } // extern "C"
+#endif
+
 #endif
 
 #endif

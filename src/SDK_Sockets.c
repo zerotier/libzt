@@ -83,7 +83,7 @@ int (*realclose)(CLOSE_SIG);
     // ------------------------------------------------------------------------------
     
     // Assembles (and/or) sets the RPC path for communication with the ZeroTier service
-    void zt_init_rpc(char *path, char *nwid)
+    void zt_init_rpc(const char *path, const char *nwid)
     {
         dwr(MSG_DEBUG, "zt_init_rpc\n");
         // Just double check we have 

@@ -1492,6 +1492,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				OTHER_CFLAGS = (
 					"-DSDK",
+					"-DSDK_SERVICE",
+					"-DSDK_BUNDLED",
 					"-DSDK_DEBUG",
 					"-D__XCODE__",
 				);
@@ -1520,6 +1522,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				OTHER_CFLAGS = (
 					"-DSDK",
+					"-DSDK_SERVICE",
+					"-DSDK_BUNDLED",
 					"-DSDK_DEBUG",
 					"-D__XCODE__",
 				);

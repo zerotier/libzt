@@ -47,6 +47,8 @@
 #include "OSUtils.hpp"
 
 #include "SDK.h"
+void zt_init_rpc(const char * path, const char * nwid);
+
 #include "SDK_Debug.h"
 #include "SDK_ServiceSetup.hpp"
 
@@ -57,7 +59,6 @@ pthread_key_t thr_id_key;
 static ZeroTier::OneService *volatile zt1Service;
 std::string homeDir;
 std::string netDir;
-char *api_netpath;
 
 #ifdef __cplusplus
 extern "C" {
@@ -134,10 +135,8 @@ extern "C" {
     JNIEXPORT void JNICALL Java_ZeroTier_SDK_startOneService(JNIEnv *env, jobject thisObj, jstring path) {
         //char * path;
         homeDir = (*env)->GetStringUTFChars(env, path, NULL);
-
 #else
-    void *startOneService(void *thread_id, string path) {
-        homeDir = path;
+        void *startOneService(void *thread_id) {
 #endif
 
     #if defined(SDK_BUNDLED)
@@ -159,7 +158,6 @@ extern "C" {
             #if defined(__UNITY_3D__) && !defined(__ANDROID__) && !defined(__IOS__)
                 // Unity3D on a non-mobile platform
                 homeDir = "" + current_dir; // homeDir shall be current dir 
-                // homeDir = "/Users/Joseph/utest2/";
             #endif
 
             #if defined(__ANDROID__)
@@ -177,7 +175,6 @@ extern "C" {
         }
 
         LOGV("homeDir = %s", homeDir.c_str());
-        
         // Where network .conf files will be stored
         netDir = homeDir + "/networks.d";
 

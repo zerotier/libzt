@@ -40,8 +40,9 @@ extern "C" {
 #define INTERCEPT_DISABLED 222
 
 extern void load_symbols();
-void zt_init_rpc(char *path, char *nwid);
+extern void zt_init_rpc(const char *path, const char *nwid);
 extern char *api_netpath;
+extern char *debug_logfile;
 
 #if defined(__linux__)
 	extern int (*realaccept4)(ACCEPT4_SIG);

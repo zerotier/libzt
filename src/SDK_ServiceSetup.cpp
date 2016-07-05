@@ -104,7 +104,7 @@ extern "C" {
      */
     void init_service(int key, const char * path)
     {
-        service_path = path;
+        homeDir = path;
         pthread_key_create(&thr_id_key, NULL);
         intercept_thread_id = (int*)malloc(sizeof(int));
         *intercept_thread_id = key;

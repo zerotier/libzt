@@ -16,7 +16,8 @@ class ViewController: NSViewController {
         let path = NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory.DocumentDirectory, NSSearchPathDomainMask.UserDomainMask, true)
         print("start_service()\n")
         // e5cd7a9e1c3511dd
-        start_service(path[0])
+        start_service("/Users/Joseph/utest3")
+        //start_service(path[0])
     }
     
     
@@ -30,7 +31,6 @@ class ViewController: NSViewController {
         });
         // Do any additional setup after loading the view.
     }
-
 
     override var representedObject: AnyObject? {
         didSet {

@@ -16,25 +16,23 @@
 
 #include "SDK_ServiceSetup.hpp"
 
-// Starts a service at the specified path
-extern "C" int start_service(const char * path) {
+// Starts a ZeroTier service at the specified path
+extern "C" void start_service(const char * path) {
     init_service(INTERCEPT_DISABLED, path);
-    return 1;
 }
 
-// Joins a network
+// Joins a ZeroTier virtual network
 extern "C" void zt_join_network(const char * nwid){
-    join_network(nwid); // Instruct ZeroTier service to join network
-    // zt_init_rpc(nwid); // Tells the RPC code where to contact the ZeroTier service
+    join_network(nwid);
 }
 
-// Leaves a network
+// Leaves a ZeroTier virtual network
 extern "C" void zt_leave_network(const char * nwid){
     leave_network(nwid);
 }
 
 // Explicit ZT API wrappers
-extern "C" int zts_socket(SOCKET_SIG) {
+extern "C" int zt_socket(SOCKET_SIG) {
     return zt_socket(socket_family, socket_type, protocol);
 }
 extern "C" int zts_connect(CONNECT_SIG) {

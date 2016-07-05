@@ -180,12 +180,12 @@ namespace ZeroTier {
         #define __STATIC_LWIP__
         // iOS Simulator or iOS device
         // Do nothing, symbols are statically-linked
-    #elif TARGET_OS_MAC
+    #elif TARGET_OS_MAC && !defined(SDK_BUNDLED)
         #define __DYNAMIC_LWIP__
         // Dynamically load liblwip.so
         _libref = dlopen(path, RTLD_NOW);
     #else
-        error "Unknown Apple platform"
+        #define __STATIC_LWIP__    
     #endif
 #endif
             

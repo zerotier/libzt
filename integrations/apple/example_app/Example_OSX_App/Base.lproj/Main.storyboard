@@ -685,6 +685,9 @@
                                             <buttonCell key="cell" type="push" title="Leave Network" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="nq1-lz-v2i">
                                                 <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="system"/>
+                                                <connections>
+                                                    <action selector="UI_LeaveNetwork:" target="XfG-lQ-9wD" id="P2I-Ge-IBF"/>
+                                                </connections>
                                             </buttonCell>
                                         </button>
                                         <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="uMn-O6-Lab">
@@ -692,6 +695,9 @@
                                             <buttonCell key="cell" type="push" title="Join Network" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="OKB-ZQ-zkv">
                                                 <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="system"/>
+                                                <connections>
+                                                    <action selector="UI_JoinNetwork:" target="XfG-lQ-9wD" id="fW8-yA-4bf"/>
+                                                </connections>
                                             </buttonCell>
                                         </button>
                                         <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="7LM-Q0-D7l">
@@ -729,6 +735,9 @@
                                                     <segment label="TCP"/>
                                                     <segment label="UDP" selected="YES" tag="1"/>
                                                 </segments>
+                                                <connections>
+                                                    <action selector="UI_SelectProtocol:" target="XfG-lQ-9wD" id="skN-Qs-8V3"/>
+                                                </connections>
                                             </segmentedCell>
                                         </segmentedControl>
                                         <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="4eY-GQ-b8o">
@@ -736,6 +745,9 @@
                                             <buttonCell key="cell" type="push" title="Connect" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="vZ1-6O-PCi">
                                                 <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="system"/>
+                                                <connections>
+                                                    <action selector="UI_Connect:" target="XfG-lQ-9wD" id="EK6-0x-jUw"/>
+                                                </connections>
                                             </buttonCell>
                                         </button>
                                         <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="l8L-xo-sGi">
@@ -743,6 +755,9 @@
                                             <buttonCell key="cell" type="push" title="Bind" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="iHn-D2-BL1">
                                                 <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="system"/>
+                                                <connections>
+                                                    <action selector="UI_Bind:" target="XfG-lQ-9wD" id="oxy-rd-MaC"/>
+                                                </connections>
                                             </buttonCell>
                                         </button>
                                         <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="anE-Lb-OeR">
@@ -786,6 +801,9 @@
                                                     <segment label="SOCKS5 Proxy of NSStream" selected="YES" tag="1"/>
                                                     <segment label="Changeling"/>
                                                 </segments>
+                                                <connections>
+                                                    <action selector="UI_SelectAPI:" target="XfG-lQ-9wD" id="TFz-Eh-tzM"/>
+                                                </connections>
                                             </segmentedCell>
                                         </segmentedControl>
                                     </subviews>
@@ -841,6 +859,9 @@
                                                 <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
+                                            <connections>
+                                                <action selector="UI_SendData:" target="XfG-lQ-9wD" id="5u7-do-lmf"/>
+                                            </connections>
                                         </button>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="T6r-uI-PyR">
                                             <rect key="frame" x="11" y="192" width="21" height="17"/>
@@ -917,6 +938,23 @@
                             </textField>
                         </subviews>
                     </view>
+                    <connections>
+                        <outlet property="UI_SelectProtocol" destination="TgD-cF-oG9" id="kIv-d1-Rbq"/>
+                        <outlet property="btnBind" destination="l8L-xo-sGi" id="bdP-Kz-8Si"/>
+                        <outlet property="btnConnect" destination="4eY-GQ-b8o" id="JOV-ky-esd"/>
+                        <outlet property="btnJoinNetwork" destination="uMn-O6-Lab" id="kuE-Lk-ipe"/>
+                        <outlet property="btnLeaveNetwork" destination="mGU-Lt-Mi0" id="t18-og-FtK"/>
+                        <outlet property="btnSend" destination="kBj-wv-ccA" id="Bg5-qM-tLw"/>
+                        <outlet property="segmentAPISelector" destination="zJe-Qg-KiM" id="B1u-ja-2o3"/>
+                        <outlet property="segmentProtocolSelector" destination="TgD-cF-oG9" id="Lbo-Pn-lgi"/>
+                        <outlet property="txtAddr" destination="imQ-Xu-9iD" id="FQu-fG-Pg2"/>
+                        <outlet property="txtNWID" destination="7LM-Q0-D7l" id="3QF-tw-Hws"/>
+                        <outlet property="txtPort" destination="imQ-Xu-9iD" id="UrQ-84-slh"/>
+                        <outlet property="txtR" destination="f93-eE-nJ9" id="Sbh-vb-Ycb"/>
+                        <outlet property="txtRX" destination="f93-eE-nJ9" id="aTL-JM-evI"/>
+                        <outlet property="txtRx" destination="f93-eE-nJ9" id="yPZ-sv-Ctq"/>
+                        <outlet property="txtTX" destination="qu5-Bf-5GJ" id="AZG-jC-vS5"/>
+                    </connections>
                 </viewController>
                 <customObject id="rPt-NT-nkU" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>

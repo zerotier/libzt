@@ -6,8 +6,8 @@
 #define Example_OSX_Bridging_Header_h
 
 int start_intercept();
-int start_service(const char * path);
-int join_network(const char * nwid);
+void start_service(const char * path);
+void join_network(const char * nwid);
 void disable_intercept();
 void enable_intercept();
 

@@ -767,6 +767,9 @@
                                                 <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
+                                            <connections>
+                                                <action selector="txtAddrChanged:" target="XfG-lQ-9wD" id="vpp-Wo-rj8"/>
+                                            </connections>
                                         </textField>
                                         <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="imQ-Xu-9iD">
                                             <rect key="frame" x="175" y="44" width="50" height="22"/>
@@ -775,6 +778,9 @@
                                                 <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
+                                            <connections>
+                                                <action selector="txtPortChanged:" target="XfG-lQ-9wD" id="3zi-Z0-7cx"/>
+                                            </connections>
                                         </textField>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ORq-6n-fZV">
                                             <rect key="frame" x="9" y="24" width="104" height="17"/>
@@ -950,6 +956,7 @@
                         <outlet property="txtAddr" destination="imQ-Xu-9iD" id="FQu-fG-Pg2"/>
                         <outlet property="txtNWID" destination="7LM-Q0-D7l" id="3QF-tw-Hws"/>
                         <outlet property="txtPort" destination="imQ-Xu-9iD" id="UrQ-84-slh"/>
+                        <outlet property="txtPortChanged" destination="imQ-Xu-9iD" id="NqB-2s-Og3"/>
                         <outlet property="txtR" destination="f93-eE-nJ9" id="Sbh-vb-Ycb"/>
                         <outlet property="txtRX" destination="f93-eE-nJ9" id="aTL-JM-evI"/>
                         <outlet property="txtRx" destination="f93-eE-nJ9" id="yPZ-sv-Ctq"/>

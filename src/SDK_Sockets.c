@@ -88,7 +88,7 @@ int (*realclose)(CLOSE_SIG);
         dwr(MSG_DEBUG, "zt_init_rpc\n");
         // Just double check we have 
         if(!realconnect) {
-            //load_symbols();
+            load_symbols_rpc();
         }
 
         if(!api_netpath) {
@@ -353,6 +353,7 @@ int (*realclose)(CLOSE_SIG);
     #endif
 #endif
         /* -1 is passed since we we're generating the new socket in this call */
+        printf("path = %s\n", api_netpath);
         int err = rpc_send_command(api_netpath, RPC_SOCKET, -1, &rpc_st, sizeof(struct socket_st));
         dwr(MSG_DEBUG," socket() = %d\n", err);
         return err;

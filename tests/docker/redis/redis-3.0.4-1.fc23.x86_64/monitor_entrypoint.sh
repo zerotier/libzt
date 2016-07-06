@@ -19,7 +19,7 @@ address_file="$file_path$test_name"_addr"$tmp_ext" # file shared between host an
 
 
 # --- Network Config ---
-echo '*** ZeroTier Network Containers Test Monitor'
+echo '*** ZeroTier SDK Test Monitor'
 chown -R daemon /var/lib/zerotier-one
 chgrp -R daemon /var/lib/zerotier-one
 su daemon -s /bin/bash -c '/zerotier-one -d -U -p9993 >>/tmp/zerotier-one.out 2>&1'

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Builds Zerotier-One and libraries required for Network Containers, then
+# Builds Zerotier-One and libraries required for SDK, then
 # copies the binaries into the test directory.
 
 cd ../../

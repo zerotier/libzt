@@ -5,7 +5,7 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="http://bootswatch.com/cosmo/bootstrap.min.css">
-	<title>ZeroTier Network Containers Preview</title>
+	<title>ZeroTier SDK Preview</title>
 </head>
 <body>
 
@@ -15,7 +15,7 @@
 	<div class="row">
 		<div class="col-xs-1 col-xs-offset-1"><img src="ZeroTierIcon.png" style="width: 100%; height: 100%;"></div>
 		<div class="col-xs-9">
-			<h1>ZeroTier Network Containers Preview</h1>
+			<h1>ZeroTier SDK Preview</h1>
 			(a.k.a. super bleeding edge pre-alphe pre-release demo)
 		</div>
 	</div>
@@ -46,19 +46,19 @@ It's a bit like how networking would work on a microkernel: modular, composable,
 </p>
 
 <p>
-Network Containers allows a Docker (or LXC, CoreOS/rkt, runc, OpenVZ, SmartOS/Triton, <a target="_blank" href="https://github.com/p8952/bocker">bocker</a>, or even just bare metal Linux) system to connect to virtual networks without requiring <u>any</u> special permissions or special configuration on the host node. Processes inside the container don't even need to run with root permissions. It's 100% user-space, making it ideal for multi-tenant deployments or any other situation where modifying the configuration of the host node is impossible or just inconvenient.
+SDK allows a Docker (or LXC, CoreOS/rkt, runc, OpenVZ, SmartOS/Triton, <a target="_blank" href="https://github.com/p8952/bocker">bocker</a>, or even just bare metal Linux) system to connect to virtual networks without requiring <u>any</u> special permissions or special configuration on the host node. Processes inside the container don't even need to run with root permissions. It's 100% user-space, making it ideal for multi-tenant deployments or any other situation where modifying the configuration of the host node is impossible or just inconvenient.
 </p>
 
 <p>
-Once properly tuned and optimized, Network Containers also has the potential to be much faster than tun/tap or pcap based network overlays. It imposes only a single context switch from application/service to virtual network microservice as opposed to at least four for tun/tap and pcap-based solutions, since the latter require two trips through the kernel network stack. We believe it may be possible to approach or even equal the performance of VXLAN/IPSec or other fully kernel-mode configurations, but with the ease and total independence of a fully container-based solution.
+Once properly tuned and optimized, SDK also has the potential to be much faster than tun/tap or pcap based network overlays. It imposes only a single context switch from application/service to virtual network microservice as opposed to at least four for tun/tap and pcap-based solutions, since the latter require two trips through the kernel network stack. We believe it may be possible to approach or even equal the performance of VXLAN/IPSec or other fully kernel-mode configurations, but with the ease and total independence of a fully container-based solution.
 </p>
 
 <p>
-We created this container image to show you a preview of one of the projects we've been working on at ZeroTier. We still have a good deal of packaging, testing, and performance optimization work to do before Network Containers will be ready for a real public beta release. Follow the <a href="https://www.zerotier.com/blog">blog</a> or <a href="https://twitter.com/zerotier">@zerotier</a> for updates and announcements.
+We created this container image to show you a preview of one of the projects we've been working on at ZeroTier. We still have a good deal of packaging, testing, and performance optimization work to do before SDK will be ready for a real public beta release. Follow the <a href="https://www.zerotier.com/blog">blog</a> or <a href="https://twitter.com/zerotier">@zerotier</a> for updates and announcements.
 </p>
 
 <p>
-P.S. If you want to use ZeroTier in Docker today, you can do it with the same ZeroTier One endpoint service you're using to access this network. The only catch is that you have to launch your containers with "--device=/dev/net/tun --cap-add=NET_ADMIN". Network Containers eliminates the need for these special options.
+P.S. If you want to use ZeroTier in Docker today, you can do it with the same ZeroTier One endpoint service you're using to access this network. The only catch is that you have to launch your containers with "--device=/dev/net/tun --cap-add=NET_ADMIN". SDK eliminates the need for these special options.
 </p>
 
 </div></div></div>

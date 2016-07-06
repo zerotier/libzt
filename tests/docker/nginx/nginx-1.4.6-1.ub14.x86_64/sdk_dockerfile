@@ -1,4 +1,4 @@
-# ZT Network Containers Test
+# ZT SDK Test
 FROM ubuntu:14.04
 MAINTAINER https://www.zerotier.com/
 

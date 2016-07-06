@@ -18,7 +18,7 @@ tx_md5sumfile="$file_path"tx_"$bigfile_name"_md5sum"$tmp_ext"
 
 
 # --- Network Config ---
-echo '*** ZeroTier Network Containers Test: ' "$test_name"
+echo '*** ZeroTier SDK Test: ' "$test_name"
 chown -R daemon /var/lib/zerotier-one
 chgrp -R daemon /var/lib/zerotier-one
 ./zerotier-one -d -U -p9993

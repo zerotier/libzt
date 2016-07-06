@@ -20,9 +20,9 @@ ADD *.name /
 ADD liblwip.so /var/lib/zerotier-one/liblwip.so
 
 # Install syscall intercept library
-ADD libzerotierintercept.so /
-RUN cp libzerotierintercept.so lib/libzerotierintercept.so
-RUN ln -sf /lib/libzerotierintercept.so /lib/libzerotierintercept
+ADD libztintercept.so /
+RUN cp libztintercept.so lib/libztintercept.so
+RUN ln -sf /lib/libztintercept.so /lib/libzerotierintercept
 
 ADD zerotier-cli /
 ADD zerotier-sdk-service /

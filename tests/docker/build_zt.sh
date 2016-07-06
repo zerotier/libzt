@@ -11,7 +11,7 @@ cd sdk/docker-test
 
 cp ../../zerotier-cli zerotier-cli
 cp ../../zerotier-sdk-service zerotier-sdk-service
-cp ../../libzerotierintercept.so libzerotierintercept.so
+cp ../../libztintercept.so libztintercept.so
 
 cp ../liblwip.so liblwip.so
 cp ../zerotier-intercept zerotier-intercept

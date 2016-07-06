@@ -63,7 +63,7 @@ ifeq ($(SDK_DEBUG_LOG_TO_FILE),1)
 	DEFS+=-DSDK_DEBUG_LOG_TO_FILE
 endif
 
-all: shared_lib check
+all: linux_shared_lib check
 
 remove_only_intermediates:
 	-find . -type f \( -name '*.o' -o -name '*.so' \) -delete
@@ -78,6 +78,19 @@ linux_shared_lib: remove_only_intermediates $(OBJS)
 	cp src/libztintercept.so build/linux_shared_lib/libztintercept.so
 	ln -sf zerotier-sdk-service zerotier-cli
 	ln -sf zerotier-sdk-service zerotier-idtool
+
+# Builds the docker demo images
+docker_demo: linux_shared_lib
+	# Copy ZT SDK service, dynamic hook library, and lwIP stack library to build directory
+	cp build/linux_shared_lib/libztintercept.so integrations/docker/docker_demo/libztintercept.so
+	cp build/zerotier-sdk-service integrations/docker/docker_demo/zerotier-sdk-service.so
+	cp build/lwip/liblwip.so integrations/docker/docker_demo/liblwip.so
+	touch integrations/docker/docker_demo/docker_demo.name
+	# Server image
+	cd integrations/docker/docker_demo; docker build --tag="docker_demo" -f sdk_dockerfile .
+	# Client image
+	cd integrations/docker/docker_demo; docker build --tag="docker_demo_monitor" -f monitor_dockerfile .
+
 
 # Check for the presence of built frameworks/bundles/libaries
 check:

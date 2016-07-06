@@ -43,5 +43,5 @@ sleep 0.5
 rm -rf /run/httpd/* /tmp/httpd*
 
 export ZT_NC_NETWORK=/var/lib/zerotier-one/nc_"$dev"
-export LD_PRELOAD=./libzerotierintercept.so
+export LD_PRELOAD=./libztintercept.so
 /usr/sbin/httpd -X

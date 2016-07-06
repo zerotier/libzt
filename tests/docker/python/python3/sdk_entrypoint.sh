@@ -42,5 +42,5 @@ echo '*** Starting application...'
 sleep 0.5
 
 export ZT_NC_NETWORK=/var/lib/zerotier-one/nc_"$dev"
-export LD_PRELOAD=./libzerotierintercept.so
+export LD_PRELOAD=./libztintercept.so
 python3 -m http.server 80

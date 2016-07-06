@@ -10,7 +10,7 @@ cp ../../zerotier-one zerotier-one
 cp ../../zerotier-cli zerotier-cli
 cp ../../zerotier-cli zerotier-sdk-service
 cp ../../zerotier-intercept zerotier-intercept
-cp ../../libzerotierintercept.so libzerotierintercept.so
+cp ../../libztintercept.so libztintercept.so
 cp ../../liblwip.so liblwip.so
 cp ../../sdk_identity.public sdk_identity.public
 cp ../../sdk_identity.secret sdk_identity.secret

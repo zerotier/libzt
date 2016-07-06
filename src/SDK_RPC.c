@@ -107,7 +107,7 @@ int get_retval(int rpc_sock)
 
 int load_symbols_rpc()
 {
-#if defined(SDK_INTERCEPT) || defined(__IOS__) || defined(__UNITY_3D__)
+#if defined(SDK_BUNDLED) || defined(__IOS__) || defined(__UNITY_3D__)
   realsocket = dlsym(RTLD_NEXT, "socket");
   realconnect = dlsym(RTLD_NEXT, "connect");
   if(!realconnect || !realsocket)
@@ -157,7 +157,9 @@ int rpc_send_command(char *path, int cmd, int forfd, void *data, int len)
   memcpy(CANARY+CANARY_SZ, padding, sizeof(padding));
   uint64_t canary_num;
   // ephemeral RPC socket used only for this command
+  printf("calling rpc_join");
   int rpc_sock = rpc_join(path);
+  printf("fin\n");
   // Generate token
   int fdrand = open("/dev/urandom", O_RDONLY);
   if(read(fdrand, &CANARY, CANARY_SZ) < 0) {

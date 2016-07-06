@@ -32,30 +32,33 @@ extern "C" void zt_leave_network(const char * nwid){
 }
 
 // Explicit ZT API wrappers
-extern "C" int zt_socket(SOCKET_SIG) {
+extern "C" void zts_init_rpc(const char *path, const char *nwid) {
+    zt_init_rpc(path, nwid);
+}
+extern "C" int zts_socket(SOCKET_SIG) {
     return zt_socket(socket_family, socket_type, protocol);
 }
 extern "C" int zts_connect(CONNECT_SIG) {
     return zt_connect(__fd, __addr, __len);
 }
-extern "C" int zt_bind(BIND_SIG){
+extern "C" int zts_bind(BIND_SIG){
     return zt_bind(sockfd, addr, addrlen);
 }
-extern "C" int zt_accept(ACCEPT_SIG) {
+extern "C" int zts_accept(ACCEPT_SIG) {
     return zt_accept(sockfd, addr, addrlen);
 }
-extern "C" int zt_listen(LISTEN_SIG) {
+extern "C" int zts_listen(LISTEN_SIG) {
     return zt_listen(sockfd, backlog);
 }
-extern "C" int zt_setsockopt(SETSOCKOPT_SIG) {
+extern "C" int zts_setsockopt(SETSOCKOPT_SIG) {
     return zt_setsockopt(socket, level, option_name, option_value, option_len);
 }
-extern "C" int zt_getsockopt(GETSOCKOPT_SIG) {
+extern "C" int zts_getsockopt(GETSOCKOPT_SIG) {
     return zt_getsockopt(sockfd, level, optname, optval, optlen);
 }
-extern "C" int zt_close(CLOSE_SIG) {
+extern "C" int zts_close(CLOSE_SIG) {
     return zt_close(fd);
 }
-extern "C" int zt_getsockname(GETSOCKNAME_SIG) {
+extern "C" int zts_getsockname(GETSOCKNAME_SIG) {
     return zt_getsockname(sockfd, addr, addrlen);
 }

@@ -10,7 +10,7 @@ make netcon
 cd netcon/docker-test
 
 cp ../../zerotier-cli zerotier-cli
-cp ../../zerotier-netcon-service zerotier-netcon-service
+cp ../../zerotier-sdk-service zerotier-sdk-service
 cp ../../libzerotierintercept.so libzerotierintercept.so
 
 cp ../liblwip.so liblwip.so

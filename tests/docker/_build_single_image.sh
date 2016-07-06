@@ -8,7 +8,7 @@ touch "$test_name".name
 cp ../../*.conf .
 cp ../../zerotier-one zerotier-one
 cp ../../zerotier-cli zerotier-cli
-cp ../../zerotier-cli zerotier-netcon-service
+cp ../../zerotier-cli zerotier-sdk-service
 cp ../../zerotier-intercept zerotier-intercept
 cp ../../libzerotierintercept.so libzerotierintercept.so
 cp ../../liblwip.so liblwip.so
@@ -21,7 +21,7 @@ docker build --tag="$test_name" -f netcon_dockerfile .
 docker build --tag="$test_name"_monitor -f monitor_dockerfile .
 
 rm -f zerotier-cli
-rm -f zerotier-netcon-service
+rm -f zerotier-sdk-service
 rm -f zerotier-intercept
 rm -f *.so
 rm -f *.public

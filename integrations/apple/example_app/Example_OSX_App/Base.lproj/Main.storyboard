@@ -760,7 +760,7 @@
                                                 </connections>
                                             </buttonCell>
                                         </button>
-                                        <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="anE-Lb-OeR">
+                                        <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="anE-Lb-OeR" userLabel="txtAddr">
                                             <rect key="frame" x="11" y="44" width="160" height="22"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="Owi-AX-slB">
                                                 <font key="font" metaFont="system"/>
@@ -771,7 +771,7 @@
                                                 <action selector="txtAddrChanged:" target="XfG-lQ-9wD" id="vpp-Wo-rj8"/>
                                             </connections>
                                         </textField>
-                                        <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="imQ-Xu-9iD">
+                                        <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="imQ-Xu-9iD" userLabel="txtPort">
                                             <rect key="frame" x="175" y="44" width="50" height="22"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="idL-Hj-Jfk">
                                                 <font key="font" metaFont="system"/>
@@ -877,7 +877,7 @@
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <scrollView fixedFrame="YES" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="f93-eE-nJ9">
+                                        <scrollView fixedFrame="YES" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="f93-eE-nJ9" userLabel="TxtRX">
                                             <rect key="frame" x="271" y="49" width="240" height="135"/>
                                             <clipView key="contentView" ambiguous="YES" id="yrD-Hg-n1d">
                                                 <rect key="frame" x="1" y="1" width="223" height="133"/>
@@ -953,14 +953,14 @@
                         <outlet property="btnSend" destination="kBj-wv-ccA" id="Bg5-qM-tLw"/>
                         <outlet property="segmentAPISelector" destination="zJe-Qg-KiM" id="B1u-ja-2o3"/>
                         <outlet property="segmentProtocolSelector" destination="TgD-cF-oG9" id="Lbo-Pn-lgi"/>
-                        <outlet property="txtAddr" destination="imQ-Xu-9iD" id="FQu-fG-Pg2"/>
+                        <outlet property="txtAddr" destination="anE-Lb-OeR" id="9cH-6T-dE3"/>
                         <outlet property="txtNWID" destination="7LM-Q0-D7l" id="3QF-tw-Hws"/>
-                        <outlet property="txtPort" destination="imQ-Xu-9iD" id="UrQ-84-slh"/>
+                        <outlet property="txtPort" destination="imQ-Xu-9iD" id="gxQ-sZ-nio"/>
                         <outlet property="txtPortChanged" destination="imQ-Xu-9iD" id="NqB-2s-Og3"/>
                         <outlet property="txtR" destination="f93-eE-nJ9" id="Sbh-vb-Ycb"/>
-                        <outlet property="txtRX" destination="f93-eE-nJ9" id="aTL-JM-evI"/>
+                        <outlet property="txtRX" destination="f93-eE-nJ9" id="Gyx-ss-gDU"/>
                         <outlet property="txtRx" destination="f93-eE-nJ9" id="yPZ-sv-Ctq"/>
-                        <outlet property="txtTX" destination="qu5-Bf-5GJ" id="AZG-jC-vS5"/>
+                        <outlet property="txtTX" destination="qu5-Bf-5GJ" id="a8Y-u3-u1A"/>
                     </connections>
                 </viewController>
                 <customObject id="rPt-NT-nkU" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>

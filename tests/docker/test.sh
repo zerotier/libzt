@@ -8,7 +8,7 @@ echo "*** Running unit tests..."
 rm _results/*.txt 
 
 # How long we shall wait for each test to conclude
-export netcon_test_wait_time=60s
+export sdk_test_wait_time=60s
 
 # Test structure, in later releases more complex multi-party scripts will be included
 export test_script=_two_party_test.sh

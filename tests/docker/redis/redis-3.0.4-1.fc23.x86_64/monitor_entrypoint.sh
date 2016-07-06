@@ -8,7 +8,7 @@ test_namefile=$(ls *.name)
 test_name="${test_namefile%.*}" # test network id
 nwconf=$(ls *.conf) # blank test network config file
 nwid="${nwconf%.*}" # test network id
-netcon_wait_time=25 # wait for test container to come online
+sdk_wait_time=25 # wait for test container to come online
 app_timeout_time=15 # app-specific timeout
 file_path=/opt/results/ # test result output file path (fs shared between host and containers)
 file_base="$test_name".txt # test result output file
@@ -30,8 +30,8 @@ while [ -z "$virtip4" ]; do
 done
 echo '*** Starting Test...'
 echo '*** Up and running at' $virtip4 ' on network: ' $nwid
-echo '*** Sleeping for ('  "$netcon_wait_time"  's ) while we wait for the Network Container to come online...'
-sleep "$netcon_wait_time"s
+echo '*** Sleeping for ('  "$sdk_wait_time"  's ) while we wait for the Network Container to come online...'
+sleep "$sdk_wait_time"s
 ncvirtip=$(<$address_file)
 
 

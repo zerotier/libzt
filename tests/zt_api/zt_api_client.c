@@ -6,7 +6,7 @@
 #include <sys/socket.h>    //socket
 #include <arpa/inet.h> //inet_addr
  
-#include "../../netcon.h"
+#include "../../sdk.h"
 
 int main(int argc , char *argv[])
 {

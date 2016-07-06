@@ -26,7 +26,7 @@ RUN cp libzerotierintercept.so lib/libzerotierintercept.so
 RUN ln -sf /lib/libzerotierintercept.so /lib/libzerotierintercept
 
 ADD zerotier-cli /
-Add zerotier-netcon-service /
+Add zerotier-sdk-service /
 
 # Install test scripts
 ADD netcon_entrypoint.sh /netcon_entrypoint.sh

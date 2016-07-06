@@ -1,19 +1,18 @@
 # ZT Network Containers Test
-FROM ubuntu:14.04
+FROM fedora:23
 MAINTAINER https://www.zerotier.com/
 
-RUN \
-  sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list && \
-  apt-get update && \
-  apt-get -y upgrade && \
-  apt-get -y install apache2
+# Install apps
+RUN yum -y update
+RUN yum -y install darkhttpd-1.11
+RUN yum clean all
 
 EXPOSE 9993/udp 80/udp
 
 # Add ZT files
 RUN mkdir -p /var/lib/zerotier-one/networks.d
-ADD netcon_identity.public /var/lib/zerotier-one/identity.public
-ADD netcon_identity.secret /var/lib/zerotier-one/identity.secret
+ADD sdk_identity.public /var/lib/zerotier-one/identity.public
+ADD sdk_identity.secret /var/lib/zerotier-one/identity.secret
 ADD *.conf /var/lib/zerotier-one/networks.d/
 ADD *.conf /
 ADD *.name /
@@ -30,8 +29,8 @@ ADD zerotier-cli /
 ADD zerotier-sdk-service /
 
 # Install test scripts
-ADD netcon_entrypoint.sh /netcon_entrypoint.sh
-RUN chmod -v +x /netcon_entrypoint.sh
+ADD sdk_entrypoint.sh /sdk_entrypoint.sh
+RUN chmod -v +x /sdk_entrypoint.sh
 
 # Start ZeroTier-One
-CMD ["./netcon_entrypoint.sh"]
+CMD ["./sdk_entrypoint.sh"]

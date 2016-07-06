@@ -8,7 +8,7 @@ test_namefile=$(ls *.name)
 test_name="${test_namefile%.*}" # test network id
 nwconf=$(ls *.conf) # blank test network config file
 nwid="${nwconf%.*}" # test network id
-sdk_wait_time=25 # wait for test container to come online
+netcon_wait_time=25 # wait for test container to come online
 app_timeout_time=15 # app-specific timeout
 file_path=/opt/results/ # test result output file path (fs shared between host and containers)
 file_base="$test_name".txt # test result output file
@@ -30,27 +30,26 @@ while [ -z "$virtip4" ]; do
 done
 echo '*** Starting Test...'
 echo '*** Up and running at' $virtip4 ' on network: ' $nwid
-echo '*** Sleeping for ('  "$sdk_wait_time"  's ) while we wait for the Network Container to come online...'
-sleep "$sdk_wait_time"s
+echo '*** Sleeping for ('  "$netcon_wait_time"  's ) while we wait for the Network Container to come online...'
+sleep "$netcon_wait_time"s
 ncvirtip=$(<$address_file)
 
 
 # --- Test section ---
-echo '*** Curling from intercepted server at' $ncvirtip
-response_string=$(curl --connect-timeout "$app_timeout_time" -v http://"$ncvirtip":8080/)
+echo '*** Running lua script against redis host at' $ncvirtip
+redis-cli -h $ncvirtip EVAL "$(cat hello.lua)" 0 > redis_response.txt
+response_string=$(<redis_response.txt)
 
 if [[ $response_string == *"welcome to the machine!"* ]]
 then
-	echo 'NODEJS RESPONSE OK'
+	echo 'REDIS RESPONSE OK'
 	touch "$file_path$ok$test_name.txt"
-	printf 'Test: nodejs-server responded!\n' >> "$file_path$ok$test_name.txt"
+	printf 'Test: redis-server responded!\n' >> "$file_path$ok$test_name.txt"
 else
-	echo 'NODEJS RESPONSE FAIL'
+	echo 'REDIS RESPONSE FAIL'
 	touch "$file_path$fail$test_name.txt"
-	printf 'Test: nodejs server did NOT respond!\n' >> "$file_path$fail$test_name.txt"
+	printf 'Test: redis server did NOT respond!\n' >> "$file_path$fail$test_name.txt"
 fi
-
-
 
 
 

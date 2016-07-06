@@ -6,8 +6,8 @@
 cd ../../
 make clean
 make one
-make netcon
-cd netcon/docker-test
+make sdk
+cd sdk/docker-test
 
 cp ../../zerotier-cli zerotier-cli
 cp ../../zerotier-sdk-service zerotier-sdk-service

@@ -6,7 +6,7 @@
 rm _results/*.txt 
 
 # How long we shall wait for each test to conclude
-export netcon_test_wait_time=60s
+export sdk_test_wait_time=60s
 
 export image_build_script=_build_single_image.sh
 

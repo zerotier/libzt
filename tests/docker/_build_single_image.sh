@@ -12,12 +12,12 @@ cp ../../zerotier-cli zerotier-sdk-service
 cp ../../zerotier-intercept zerotier-intercept
 cp ../../libzerotierintercept.so libzerotierintercept.so
 cp ../../liblwip.so liblwip.so
-cp ../../netcon_identity.public netcon_identity.public
-cp ../../netcon_identity.secret netcon_identity.secret
+cp ../../sdk_identity.public sdk_identity.public
+cp ../../sdk_identity.secret sdk_identity.secret
 cp ../../monitor_identity.public monitor_identity.public
 cp ../../monitor_identity.secret monitor_identity.secret
 
-docker build --tag="$test_name" -f netcon_dockerfile .
+docker build --tag="$test_name" -f sdk_dockerfile .
 docker build --tag="$test_name"_monitor -f monitor_dockerfile .
 
 rm -f zerotier-cli

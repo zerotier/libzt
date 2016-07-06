@@ -4,17 +4,18 @@ MAINTAINER https://www.zerotier.com/
 
 # Install apps
 RUN yum -y update
+RUN yum -y install redis-3.0.4-1.fc23.x86_64
 RUN yum clean all
-
-EXPOSE 9993/udp 80/udp
 
 # Add ZT files
 RUN mkdir -p /var/lib/zerotier-one/networks.d
-ADD netcon_identity.public /var/lib/zerotier-one/identity.public
-ADD netcon_identity.secret /var/lib/zerotier-one/identity.secret
+ADD sdk_identity.public /var/lib/zerotier-one/identity.public
+ADD sdk_identity.secret /var/lib/zerotier-one/identity.secret
 ADD *.conf /var/lib/zerotier-one/networks.d/
 ADD *.conf /
 ADD *.name /
+
+EXPOSE 9993/udp 6379/udp
 
 # Install LWIP library used by service
 ADD liblwip.so /var/lib/zerotier-one/liblwip.so
@@ -25,11 +26,11 @@ RUN cp libzerotierintercept.so lib/libzerotierintercept.so
 RUN ln -sf /lib/libzerotierintercept.so /lib/libzerotierintercept
 
 ADD zerotier-cli /
-ADD zerotier-sdk-service /
+Add zerotier-sdk-service /
 
 # Install test scripts
-ADD netcon_entrypoint.sh /netcon_entrypoint.sh
-RUN chmod -v +x /netcon_entrypoint.sh
+ADD sdk_entrypoint.sh /sdk_entrypoint.sh
+RUN chmod -v +x /sdk_entrypoint.sh
 
 # Start ZeroTier-One
-CMD ["./netcon_entrypoint.sh"]
+CMD ["./sdk_entrypoint.sh"]

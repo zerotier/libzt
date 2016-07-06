@@ -9,7 +9,7 @@ This short tutorial will show you how to enable ZeroTier functionality for your 
 
 **Step 1: Build the ZeroTier service binaries**
 
-From the ZeroTier source directory,  `make netcon` Optionally, if you'd like to see some debug output during execution, use `make sdk SDK_DEBUG=1`
+From the ZeroTier source directory,  `make sdk` Optionally, if you'd like to see some debug output during execution, use `make sdk SDK_DEBUG=1`
 
 **Step 2: Build your Docker image**
 
@@ -28,8 +28,8 @@ RUN yum -y install redis-3.0.4-1.fc23.x86_64
 RUN yum clean all
 # Add ZT files
 RUN mkdir -p /var/lib/zerotier-one/networks.d
-ADD netcon_identity.public /var/lib/zerotier-one/identity.public
-ADD netcon_identity.secret /var/lib/zerotier-one/identity.secret
+ADD sdk_identity.public /var/lib/zerotier-one/identity.public
+ADD sdk_identity.secret /var/lib/zerotier-one/identity.secret
 ADD *.conf /var/lib/zerotier-one/networks.d/
 ADD *.conf /
 ADD *.name /
@@ -41,12 +41,12 @@ ADD libztintercept.so /
 RUN cp libztintercept.so lib/libztintercept.so
 RUN ln -sf /lib/libztintercept.so /lib/libztintercept
 ADD zerotier-cli /
-Add zerotier-netcon-service /
+Add zerotier-sdk-service /
 # Install test scripts
-ADD netcon_entrypoint.sh /netcon_entrypoint.sh
-RUN chmod -v +x /netcon_entrypoint.sh
+ADD sdk_entrypoint.sh /sdk_entrypoint.sh
+RUN chmod -v +x /sdk_entrypoint.sh
 # Start ZeroTier-One
-CMD ["./netcon_entrypoint.sh"]
+CMD ["./sdk_entrypoint.sh"]
 ```
 
 **Step 3: Start your container**
@@ -57,7 +57,7 @@ CMD ["./netcon_entrypoint.sh"]
 
 Set our application pre-load with `export LD_PRELOAD=./libztintercept.so`. This dynamically loads our intercept library into your application which allows us to re-direct its network calls to our virtual network.
 
-Tell the ZeroTier Network Containers service which network to connect to with `export ZT_NC_NETWORK=/var/lib/zerotier-one/nc_XXXXXXXXXXXXXXXX`.
+Tell the ZeroTier SDK service which network to connect to with `export ZT_NC_NETWORK=/var/lib/zerotier-one/nc_XXXXXXXXXXXXXXXX`.
 
 **Step 5: Run your new ZeroTier-enabled service**
 

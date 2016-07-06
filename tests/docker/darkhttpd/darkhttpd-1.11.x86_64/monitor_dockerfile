@@ -1,4 +1,4 @@
-# ZT Network Containers Test Monitor
+# ZT SDK Test Monitor
 FROM fedora:23
 MAINTAINER https://www.zerotier.com/
 

@@ -69,3 +69,8 @@ At this point, simply run your application as you normally would. It will be aut
 **Additional info**
 If you'd like to know the IP address your service can be reached at on this particular virtual network, use the following:
 `zerotier-cli -D/var/lib/zerotier-one/nc_XXXXXXXXXXXXXXXX listnetworks`
+
+
+***
+`docker exec -it 'container id' /bin/bash`
+

@@ -5,7 +5,7 @@ Welcome!
 
 Imagine a flat, encrypted, no-configuration LAN for all of your Docker containers. 
 
-This short tutorial will show you how to enable ZeroTier functionality for your Docker software container with little to no configuration. In this example we aim to build a Docker container with ZeroTier’s Network Container service bundled right in so that it’s effortless to hook any number of your services in the container up to your virtual network.
+This short tutorial will show you how to enable ZeroTier functionality for your Docker software container with little to no configuration. In this example we aim to build a Docker container with ZeroTier’s SDK service bundled right in so that it’s effortless to hook any number of your services in the container up to your virtual network.
 
 **Step 1: Build the ZeroTier service binaries**
 

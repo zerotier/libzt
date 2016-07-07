@@ -76,6 +76,7 @@
 void dwr(int level, const char *fmt, ... );
 char *api_netpath = (char *)0;
 void load_symbols();
+void load_symbols_rpc();
 int (*realclose)(CLOSE_SIG);
 
     // ------------------------------------------------------------------------------

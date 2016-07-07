@@ -75,12 +75,13 @@ linux_shared_lib: $(OBJS)
 	# Build liblwip.so which must be placed in ZT home for zerotier-netcon-service to work
 	make -f make-liblwip.mk $(LWIP_FLAGS)
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
-	cd src ; gcc $(DEFS) -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -I. -I../$(ZT1)/node -nostdlib -shared -o ../$(BUILD)/libztintercept.so SDK_Sockets.c SDK_Intercept.c SDK_Debug.c SDK_RPC.c -ldl
+	cd src ; gcc $(DEFS) -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -I. -I../$(ZT1)/node -nostdlib -shared -o ../$(BUILD)/linux_shared_lib/libztintercept.so SDK_Sockets.c SDK_Intercept.c SDK_Debug.c SDK_RPC.c -ldl
 	ln -sf zerotier-sdk-service $(BUILD)/zerotier-cli
 	ln -sf zerotier-sdk-service $(BUILD)/zerotier-idtool
 
 # Build vanilla ZeroTier One binary
 one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernetTap.o
+	mkdir -p $(BUILD)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $(BUILD)/zerotier-one $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernetTap.o $(LDLIBS)
 	$(STRIP) $(BUILD)/zerotier-one
 	cp $(BUILD)/zerotier-one $(INT)/docker/docker_demo/zerotier-one
@@ -88,6 +89,7 @@ one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernet
 
 # Build the docker demo images
 docker_demo: one linux_shared_lib
+	mkdir -p $(BUILD)
 	# Intercept library
 	cp $(BUILD)/linux_shared_lib/libztintercept.so $(INT)/docker/docker_demo/libztintercept.so
 	# SDK service

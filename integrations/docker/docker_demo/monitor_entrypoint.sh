@@ -2,13 +2,12 @@
 
 export PATH=/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/
 
-
 # --- Test Parameters ---
 test_namefile=$(ls *.name)
 test_name="${test_namefile%.*}" # test network id
 nwconf=$(ls *.conf) # blank test network config file
 nwid="${nwconf%.*}" # test network id
-sdk_wait_time=25 # wait for test container to come online
+sdk_wait_time=60 # wait for test container to come online
 app_timeout_time=15 # app-specific timeout
 file_path=/opt/results/ # test result output file path (fs shared between host and containers)
 file_base="$test_name".txt # test result output file
@@ -16,7 +15,6 @@ fail=FAIL. # appended to result file in event of failure
 ok=OK. # appended to result file in event of success
 tmp_ext=.tmp # temporary filetype used for sharing test data between containers
 address_file="$file_path$test_name"_addr"$tmp_ext" # file shared between host and containers for sharing address (optional)
-
 
 # --- Network Config ---
 echo '*** ZeroTier SDK Test Monitor'
@@ -34,11 +32,11 @@ echo '*** Sleeping for ('  "$sdk_wait_time"  's ) while we wait for the containe
 sleep "$sdk_wait_time"s
 ncvirtip=$(<$address_file)
 
-
 # --- Test section ---
 echo '*** Running lua script against redis host at' $ncvirtip
 redis-cli -h $ncvirtip EVAL "$(cat hello.lua)" 0 > redis_response.txt
 response_string=$(<redis_response.txt)
+
 
 if [[ $response_string == *"welcome to the machine!"* ]]
 then

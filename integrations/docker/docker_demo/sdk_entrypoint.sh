@@ -2,7 +2,6 @@
 
 export PATH=/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/
 
-
 # --- Test Parameters ---
 test_namefile=$(ls *.name)
 test_name="${test_namefile%.*}" # test network id
@@ -12,7 +11,6 @@ file_path=/opt/results/ # test result output file path (fs shared between host a
 file_base="$test_name".txt # test result output file
 tmp_ext=.tmp # temporary filetype used for sharing test data between containers
 address_file="$file_path$test_name"_addr"$tmp_ext" # file shared between host and containers for sharing address (optional)
-
 
 # --- Network Config ---
 echo '*** ZeroTier SDK Test: ' "$test_name"

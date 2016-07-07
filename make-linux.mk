@@ -63,69 +63,84 @@ ifeq ($(SDK_DEBUG_LOG_TO_FILE),1)
 	DEFS+=-DSDK_DEBUG_LOG_TO_FILE
 endif
 
-all: linux_shared_lib check
+all: remove_only_intermediates linux_shared_lib check
 
 remove_only_intermediates:
 	-find . -type f \( -name '*.o' -o -name '*.so' \) -delete
 
-linux_shared_lib: remove_only_intermediates $(OBJS)
-	mkdir -p build/linux_shared_lib
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DEFS) -DSDK -DZT_ONE_NO_ROOT_CHECK -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -Izerotierone/osdep -Izerotierone/node -Isrc -o build/zerotier-sdk-service $(OBJS) zerotierone/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp zerotierone/one.cpp -x c src/SDK_RPC.c $(LDLIBS) -ldl
+# Build a dynamically-loadable library
+linux_shared_lib: $(OBJS)
+	mkdir -p $(BUILD)/linux_shared_lib
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DEFS) -DSDK -DZT_ONE_NO_ROOT_CHECK -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -I$(ZT1)/osdep -I$(ZT1)/node -Isrc -o $(BUILD)/zerotier-sdk-service $(OBJS) $(ZT1)/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp $(ZT1)/one.cpp -x c src/SDK_RPC.c $(LDLIBS) -ldl
 	# Build liblwip.so which must be placed in ZT home for zerotier-netcon-service to work
 	make -f make-liblwip.mk $(LWIP_FLAGS)
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
-	cd src ; gcc $(DEFS) -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -I. -I../zerotierone/node -nostdlib -shared -o libztintercept.so SDK_Sockets.c SDK_Intercept.c SDK_Debug.c SDK_RPC.c -ldl
-	cp src/libztintercept.so build/linux_shared_lib/libztintercept.so
-	ln -sf zerotier-sdk-service zerotier-cli
-	ln -sf zerotier-sdk-service zerotier-idtool
+	cd src ; gcc $(DEFS) -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -I. -I../$(ZT1)/node -nostdlib -shared -o ../$(BUILD)/libztintercept.so SDK_Sockets.c SDK_Intercept.c SDK_Debug.c SDK_RPC.c -ldl
+	ln -sf zerotier-sdk-service $(BUILD)/zerotier-cli
+	ln -sf zerotier-sdk-service $(BUILD)/zerotier-idtool
 
-# Builds the docker demo images
-docker_demo: linux_shared_lib
-	# Copy ZT SDK service, dynamic hook library, and lwIP stack library to build directory
-	cp build/linux_shared_lib/libztintercept.so integrations/docker/docker_demo/libztintercept.so
-	cp build/zerotier-sdk-service integrations/docker/docker_demo/zerotier-sdk-service.so
-	cp build/lwip/liblwip.so integrations/docker/docker_demo/liblwip.so
-	touch integrations/docker/docker_demo/docker_demo.name
+# Build vanilla ZeroTier One binary
+one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernetTap.o
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $(BUILD)/zerotier-one $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernetTap.o $(LDLIBS)
+	$(STRIP) $(BUILD)/zerotier-one
+	cp $(BUILD)/zerotier-one $(INT)/docker/docker_demo/zerotier-one
+
+
+# Build the docker demo images
+docker_demo: one linux_shared_lib
+	# Intercept library
+	cp $(BUILD)/linux_shared_lib/libztintercept.so $(INT)/docker/docker_demo/libztintercept.so
+	# SDK service
+	cp $(BUILD)/zerotier-sdk-service $(INT)/docker/docker_demo/zerotier-sdk-service
+	# lwIP network stack library
+	cp $(BUILD)/lwip/liblwip.so $(INT)/docker/docker_demo/liblwip.so
+	# CLI interface for ZeroTier
+	cp $(BUILD)/zerotier-cli $(INT)/docker/docker_demo/zerotier-cli
+	touch $(INT)/docker/docker_demo/docker_demo.name
 	# Server image
-	cd integrations/docker/docker_demo; docker build --tag="docker_demo" -f sdk_dockerfile .
+	# This image will contain the server application and everything required to 
+	# run the ZeroTier SDK service
+	cd $(INT)/docker/docker_demo; docker build --tag="docker_demo" -f sdk_dockerfile .
 	# Client image
-	cd integrations/docker/docker_demo; docker build --tag="docker_demo_monitor" -f monitor_dockerfile .
+	# This image is merely a test image designed to interact with the server image
+	# in order to verify it's working properly
+	cd $(INT)/docker/docker_demo; docker build --tag="docker_demo_monitor" -f monitor_dockerfile .
 
 
 # Check for the presence of built frameworks/bundles/libaries
 check:
-	./check.sh build/lwip/liblwip.so
-	./check.sh build/linux_shared_lib/libztintercept.so
+	./check.sh $(BUILD)/lwip/liblwip.so
+	./check.sh $(BUILD)/linux_shared_lib/libztintercept.so
 
-	./check.sh build/
-	./check.sh build/android_jni_lib/arm64-v8a/libZeroTierJNI.so
-	./check.sh build/android_jni_lib/armeabi/libZeroTierJNI.so
-	./check.sh build/android_jni_lib/armeabi-v7a/libZeroTierJNI.so
-	./check.sh build/android_jni_lib/mips/libZeroTierJNI.so
-	./check.sh build/android_jni_lib/mips64/libZeroTierJNI.so
-	./check.sh build/android_jni_lib/x86/libZeroTierJNI.so
-	./check.sh build/android_jni_lib/x86_64/libZeroTierJNI.so
+	./check.sh $(BUILD)/
+	./check.sh $(BUILD)/android_jni_lib/arm64-v8a/libZeroTierJNI.so
+	./check.sh $(BUILD)/android_jni_lib/armeabi/libZeroTierJNI.so
+	./check.sh $(BUILD)/android_jni_lib/armeabi-v7a/libZeroTierJNI.so
+	./check.sh $(BUILD)/android_jni_lib/mips/libZeroTierJNI.so
+	./check.sh $(BUILD)/android_jni_lib/mips64/libZeroTierJNI.so
+	./check.sh $(BUILD)/android_jni_lib/x86/libZeroTierJNI.so
+	./check.sh $(BUILD)/android_jni_lib/x86_64/libZeroTierJNI.so
 
 # Tests
-TEST_OBJDIR := build/tests
+TEST_OBJDIR := $(BUILD)/tests
 TEST_SOURCES := $(wildcard tests/*.c)
-TEST_TARGETS := $(addprefix build/tests/$(OSTYPE).,$(notdir $(TEST_SOURCES:.c=.out)))
+TEST_TARGETS := $(addprefix $(BUILD)/tests/$(OSTYPE).,$(notdir $(TEST_SOURCES:.c=.out)))
 
-build/tests/$(OSTYPE).%.out: tests/%.c
+$(BUILD)/tests/$(OSTYPE).%.out: tests/%.c
 	-$(CC) $(CC_FLAGS) -o $@ $<
 
 $(TEST_OBJDIR):
 	mkdir -p $(TEST_OBJDIR)
 
 tests: $(TEST_OBJDIR) $(TEST_TARGETS)
-	mkdir -p build/tests; 
+	mkdir -p $(BUILD)/tests; 
 
 clean:
-	rm -rf zerotier-cli zerotier-idtool
-	rm -rf build/*
-	find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' \) -delete
+	-rm -rf zerotier-one zerotier-cli zerotier-idtool
+	-rm -rf $(BUILD)/*
+	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' \) -delete
 	# Remove junk generated by Android builds
-	cd integrations/Android/proj; ./gradlew clean
-	rm -rf integrations/Android/proj/.gradle
-	rm -rf integrations/Android/proj/.idea
-	rm -rf integrations/Android/proj/build
+	-cd $(INT)/android/android_jni_lib/proj; ./gradlew clean
+	-rm -rf $(INT)/android/android_jni_lib/proj/.gradle
+	-rm -rf $(INT)/android/android_jni_lib/proj/.idea
+	-rm -rf $(INT)/android/android_jni_lib/proj/build

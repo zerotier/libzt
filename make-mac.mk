@@ -49,7 +49,18 @@ endif
 
 CXXFLAGS=$(CFLAGS) -fno-rtti
 
-all: osx_app_framework ios_app_framework osx_unity3d_bundle ios_unity3d_bundle android_jni_lib osx_shared_lib check
+# Build everything
+all: osx ios android check
+
+# Build all iOS targets
+ios: ios_app_framework ios_unity3d_bundle
+
+# Build all OSX targets
+osx: osx_app_framework osx_unity3d_bundle osx_shared_lib
+
+# Build all Android targets 
+# Chip architectures can be specified in integrations/android/android_jni_lib/java/jni/Application.mk
+android: android_jni_lib
 
 # TODO: CHECK if XCODE TOOLS are installed
 # Build frameworks for application development
@@ -87,7 +98,8 @@ osx_shared_lib: remove_only_intermediates $(OBJS)
 	# Build liblwip.so which must be placed in ZT home for zerotier-sdk-service to work
 	make -f make-liblwip.mk
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
-	cd src ; gcc $(DEFS) -O2 -Wall -std=c99 -fPIC -fno-common -dynamiclib -flat_namespace -DVERBOSE -D_GNU_SOURCE -DNETCON_INTERCEPT -I. -I../zerotierone/node -nostdlib -shared -o $(BUILD)/libztintercept.so SDK_Sockets.c SDK_Intercept.c SDK_Debug.c SDK_RPC.c -ldl
+	cd src ; gcc $(DEFS) -O2 -Wall -std=c99 -fPIC -fno-common -dynamiclib -flat_namespace -DVERBOSE -D_GNU_SOURCE -DNETCON_INTERCEPT -I. -I../zerotierone/node -nostdlib -shared -o libztintercept.so SDK_Sockets.c SDK_Intercept.c SDK_Debug.c SDK_RPC.c -ldl
+	mv src/libztintercept.so $(BUILD)/osx_shared_lib/libztintercept.so
 	ln -sf zerotier-sdk-service zerotier-cli
 	ln -sf zerotier-sdk-service zerotier-idtool
 	cp docs/osx_zt_sdk.md $(BUILD)/osx_shared_lib/README.md

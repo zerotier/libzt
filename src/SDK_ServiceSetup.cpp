@@ -74,7 +74,7 @@ extern "C" {
     // Starts a service at the specified path
     void unity_start_service(char * path, int len) {
         Debug(path);
-        zt_init_rpc(path);
+        zt_init_rpc(path,"");
         init_service(INTERCEPT_DISABLED, path);
     }
 #endif
@@ -157,7 +157,7 @@ extern "C" {
         
             #if defined(__UNITY_3D__) && !defined(__ANDROID__) && !defined(__IOS__)
                 // Unity3D on a non-mobile platform
-                homeDir = "" + current_dir; // homeDir shall be current dir 
+                homeDir = current_dir; // homeDir shall be current dir
             #endif
 
             #if defined(__ANDROID__)

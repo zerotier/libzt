@@ -51,6 +51,9 @@ extern std::string homeDir;
      Java application you *must* follow that convention and any corresponding Java package/classes 
      in your Android project must match this as well */
 	JNIEXPORT void JNICALL Java_ZeroTier_SDK_startOneService(JNIEnv *env, jobject thisObj, jstring path);
+	JNIEXPORT void JNICALL Java_ZeroTier_SDK_joinNetwork(JNIEnv *env, jobject thisObj, jstring nwid);
+    JNIEXPORT void JNICALL Java_ZeroTier_SDK_leaveNetwork(JNIEnv *env, jobject thisObj, jstring nwid);
+    JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_isRunning(JNIEnv *env, jobject thisObj);
 #else
 	void *startOneService(void *thread_id);
 	void init_service(int key, const char * path);

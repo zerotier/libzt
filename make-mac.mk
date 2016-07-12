@@ -83,10 +83,10 @@ ios_unity3d_bundle:
 android_jni_lib:
 	cd $(INT)/android/android_jni_lib/proj; ./gradlew assembleDebug
 	# copy binary into example android project dir
-	cp $(INT)/android/android_jni_lib/java/libs/* build
-	mv $(INT)/android/android_jni_lib/java/libs/* build
-	cd build; for res_f in *; do mv "$res_f" "android_jni_lib_$res_f"; done
-	#cp docs/android_zt_sdk.md $(BUILD)/README.md
+	# mv $(INT)/android/android_jni_lib/java/libs/* build
+	mv $(INT)/android/android_jni_lib/java/libs/* $(INT)/android/example_app/app/src/main/jniLibs
+	# cd build; for res_f in *; do mv "$res_f" "android_jni_lib_$res_f"; done
+	# cp docs/android_zt_sdk.md $(BUILD)/README.md
 
 remove_only_intermediates:
 	-find . -type f \( -name '*.o' -o -name '*.so' \) -delete

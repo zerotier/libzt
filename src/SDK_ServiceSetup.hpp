@@ -50,7 +50,7 @@ extern std::string homeDir;
     /* If you define anything else in this file it that you wish to expose to your Android 
      Java application you *must* follow that convention and any corresponding Java package/classes 
      in your Android project must match this as well */
-	JNIEXPORT void JNICALL Java_ZeroTier_SDK_startOneService(JNIEnv *env, jobject thisObj);
+	JNIEXPORT void JNICALL Java_ZeroTier_SDK_startOneService(JNIEnv *env, jobject thisObj, jstring path);
 #else
 	void *startOneService(void *thread_id);
 	void init_service(int key, const char * path);

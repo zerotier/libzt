@@ -20,15 +20,14 @@ class ViewController: NSViewController {
     @IBOutlet weak var btnConnect: NSButton!
     @IBOutlet weak var btnBind: NSButton!
 
-    @IBOutlet weak var txtTX: NSScrollView!
-    @IBOutlet weak var txtRX: NSScrollView!
-    
-    @IBOutlet weak var btnSend: NSButton!
+    @IBOutlet weak var txtTX: NSTextField!
+    @IBOutlet weak var txtRX: NSTextField!
     
     var serverPort:Int32 = 8080
     var serverAddr:String = "10.147.18.5"
     
     var sock:Int32 = -1
+    var accepted_sock:Int32 = -1
     
     @IBAction func txtAddrChanged(sender: AnyObject) {
         if(sender.stringValue != nil) {
@@ -119,6 +118,7 @@ class ViewController: NSViewController {
             inet_pton(AF_INET, serverAddr, &(addr.sin_addr));
             
             let bind_err = zts_bind(sock, UnsafePointer<sockaddr>([addr]), UInt32(addr.sin_len))
+            
             print("bind_err = \(bind_err),\(errno)")
             
             if bind_err < 0 {
@@ -126,6 +126,17 @@ class ViewController: NSViewController {
                 print("Error binding IPv4 socket \(err)")
                 return
             }
+            
+            // Put socket into listening state
+            zts_listen(sock, 1);
+            
+            // Accept connection
+            var len:socklen_t = 0;
+            var legIntPtr = withUnsafeMutablePointer(&len, { $0 })
+            while(accepted_sock < 0) {
+                accepted_sock = zts_accept(sock, UnsafeMutablePointer<sockaddr>([addr]), legIntPtr)
+            }
+            print("accepted connection")
         }
         
         // UDP
@@ -135,23 +146,85 @@ class ViewController: NSViewController {
         }
     }
     
-    // Send data to a remote host
+    // TX
+    @IBOutlet weak var btnSend: NSButton!
     @IBAction func UI_SendData(sender: AnyObject) {
         // Use ordinary read/write calls on ZeroTier socket
         
         // TCP
         if(selectedProtocol == SOCK_STREAM)
         {
-            write(sock, "test", 4);
+            write(sock, txtTX.description, 4);
         }
         // UDP
         if(selectedProtocol == SOCK_DGRAM)
         {
-            
+            // sendto
         }
     }
     
+    // RX
+    @IBOutlet weak var btnReadData: NSButton!
+    @IBAction func UI_ReadData(sender: AnyObject) {
+        // Use ordinary read/write calls on ZeroTier socket
+        
+        // TCP
+        if(selectedProtocol == SOCK_STREAM)
+        {
+            var buffer = [UInt8](count: 100, repeatedValue: 0)
+            let str = "GET / HTTP/1.0\r\n\r\n"
+            //let str = "Welcome to the machine"
+            print("strlen = %d\n", str.characters.count)
+            let encodedDataArray = [UInt8](str.utf8)
+            
+//            read(accepted_sock, UnsafeMutablePointer<Void>([txtTX.stringValue]), 128);
+            read(accepted_sock, &buffer, 100);
+            print(buffer)
+
+        }
+        // UDP
+        if(selectedProtocol == SOCK_DGRAM)
+        {
+            // recvfrom
+        }
+    }
     
+    func test_client_proxy_nsstream()
+    {
+        // For HTTP request
+        var buffer = [UInt8](count: 100, repeatedValue: 0)
+        let str = "GET / HTTP/1.0\r\n\r\n"
+        //let str = "Welcome to the machine"
+        print("strlen = %d\n", str.characters.count)
+        let encodedDataArray = [UInt8](str.utf8)
+        
+        var inputStream:NSInputStream?
+        var outputStream:NSOutputStream?
+        
+        // As usual, get our streams to our desired "local" address
+        NSStream.getStreamsToHostWithName(serverAddr, port: Int(serverPort), inputStream: &inputStream, outputStream: &outputStream)
+        
+        // SOCKS Proxy config dictionary
+        let myDict:NSDictionary = [NSStreamSOCKSProxyHostKey : "0.0.0.0",
+                                   NSStreamSOCKSProxyPortKey : 1337,
+                                   NSStreamSOCKSProxyVersionKey : NSStreamSOCKSProxyVersion5]
+        
+        // Give configuration to NSStreams
+        inputStream!.setProperty(myDict, forKey: NSStreamSOCKSProxyConfigurationKey)
+        outputStream!.setProperty(myDict, forKey: NSStreamSOCKSProxyConfigurationKey)
+        
+        inputStream!.open()
+        outputStream!.open()
+     
+        // TX
+        outputStream?.write(encodedDataArray, maxLength: encodedDataArray.count)
+     
+        // RX
+        //sleep(5)
+        //inputStream?.read(&buffer, maxLength: 100)
+        //print("buffer = \(buffer)\n")
+    }
+ 
     var service_thread : NSThread!
     func ztnc_start_service() {
         let path = NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory.DocumentDirectory, NSSearchPathDomainMask.UserDomainMask, true)

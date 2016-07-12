@@ -47,7 +47,6 @@
 #include "OSUtils.hpp"
 
 #include "SDK.h"
-void zt_init_rpc(const char * path, const char * nwid);
 
 #include "SDK_Debug.h"
 #include "SDK_ServiceSetup.hpp"
@@ -63,6 +62,8 @@ std::string netDir;
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+void zt_init_rpc(const char * path, const char * nwid);
 
 #if defined(__UNITY_3D__)
     // .NET Interop-friendly debug mechanism
@@ -134,7 +135,7 @@ extern "C" {
     // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
     JNIEXPORT void JNICALL Java_ZeroTier_SDK_startOneService(JNIEnv *env, jobject thisObj, jstring path) {
         //char * path;
-        homeDir = (*env)->GetStringUTFChars(env, path, NULL);
+        homeDir = env->GetStringUTFChars(path, NULL);
 #else
         void *startOneService(void *thread_id) {
 #endif

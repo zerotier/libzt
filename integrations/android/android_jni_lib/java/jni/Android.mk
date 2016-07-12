@@ -22,6 +22,8 @@ LOCAL_LDLIBS := -llog
 LOCAL_SRC_FILES := \
 	$(ZTSDK)/SDK_RPC.c \
 	$(ZTSDK)/SDK_Proxy.cpp \
+	$(ZTSDK)/SDK_Sockets.c \
+	$(ZTSDK)/SDK_Debug.c \
 	$(ZTSDK)/SDK_ServiceSetup.cpp \
 	$(ZTSDK)/SDK_EthernetTap.cpp
 

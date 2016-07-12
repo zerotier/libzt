@@ -29,8 +29,5 @@ public class MainActivity extends AppCompatActivity {
         SocketAddress proxyAddr = new InetSocketAddress("0.0.0.0", 1337);
         Proxy proxy = new Proxy(Proxy.Type.SOCKS, proxyAddr);
 
-       // proxy.
-
-
     }
 }

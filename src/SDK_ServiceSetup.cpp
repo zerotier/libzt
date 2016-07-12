@@ -82,22 +82,53 @@ void zt_init_rpc(const char * path, const char * nwid);
     
     void join_network(const char * nwid)
     {
-        std::string confFile = netDir + "/" + nwid + ".conf";
+        std::string confFile = zt1Service->givenHomePath() + "/networks.d/" + nwid + ".conf";
+        LOGV("writing conf file = %s\n", confFile.c_str());
         if(!ZeroTier::OSUtils::mkdir(netDir)) {
             LOGV("unable to create %s\n", netDir.c_str());
         }
         if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), "")) {
-            LOGV("unable to write network conf file: %s\n", nwid);
+            LOGV("unable to write network conf file: %s\n", confFile.c_str());
         }
         zt1Service->join(nwid);
         zt_init_rpc(homeDir.c_str(), nwid); // This provides the shim API with the RPC information
     }
     
     void leave_network(const char *nwid) { zt1Service->leave(nwid); }
-    void zt_join_network(char * nwid) { join_network(nwid); }
-    void zt_leave_network(char * nwid) { leave_network(nwid); }
+
+    void zt_join_network(const char * nwid) { join_network(nwid); }
+    void zt_leave_network(const char * nwid) { leave_network(nwid); }
     bool zt_is_running() { return zt1Service->isRunning(); }
     void zt_terminate() { zt1Service->terminate(); }
+
+
+#if defined(__ANDROID__)
+    // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
+    JNIEXPORT void JNICALL Java_ZeroTier_SDK_joinNetwork(JNIEnv *env, jobject thisObj, jstring nwid) {
+        const char *nwidstr;
+        if(nwid) {
+            nwidstr = env->GetStringUTFChars(nwid, NULL);
+            zt_join_network(nwidstr);
+        }
+    }
+    // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
+    JNIEXPORT void JNICALL Java_ZeroTier_SDK_leaveNetwork(JNIEnv *env, jobject thisObj, jstring nwid) {
+        const char *nwidstr;
+        if(nwid) {
+            nwidstr = env->GetStringUTFChars(nwid, NULL);
+            zt_leave_network(nwidstr);
+        }
+    }
+    // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
+    JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_isRunning(JNIEnv *env, jobject thisObj) {
+        if(zt1Service)
+            return  zt1Service->isRunning();
+        return false;
+    }
+#endif
+
+
+
     
 #if !defined(__ANDROID__)
     /*
@@ -134,8 +165,9 @@ void zt_init_rpc(const char * path, const char * nwid);
 #if defined(__ANDROID__)
     // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
     JNIEXPORT void JNICALL Java_ZeroTier_SDK_startOneService(JNIEnv *env, jobject thisObj, jstring path) {
-        //char * path;
-        homeDir = env->GetStringUTFChars(path, NULL);
+        if(path) {
+            homeDir = env->GetStringUTFChars(path, NULL);
+        }
 #else
         void *startOneService(void *thread_id) {
 #endif

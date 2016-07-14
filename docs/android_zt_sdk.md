@@ -7,7 +7,7 @@ Imagine a flat, encrypted, no-configuration LAN for all of the instances of your
 
 This short tutorial will show you how to enable ZeroTier functionality for your Android app with little to no code modification. Check out our [ZeroTier SDK](https://www.zerotier.com/blog) page for more info on how the integration works and [Shim Techniques](https://www.zerotier.com/blog) for a discussion of shims available for your app/technology.
 
-In this example we aim to set up a minimal [Android Studio](https://developer.android.com/studio/index.html) project which contains all of the components necessary to enable ZeroTier for your app. If you'd rather skip all of these steps and grab the code, look in the [sdk/android](https://github.com/zerotier/ZeroTierOne/tree/dev/netcon/Android) folder in the source tree. Otherwise, let's get started!
+In this example we aim to set up a minimal [Android Studio](https://developer.android.com/studio/index.html) project which contains all of the components necessary to enable ZeroTier for your app. If you'd rather skip all of these steps and grab the code, look in the [sdk/android](https://github.com/zerotier/ZeroTierOne/tree/dev/sdk/integrations/android/example_app) folder in the source tree. Otherwise, let's get started!
 
 *NOTE: For Android JNI libraries to build you'll need to install [Android Studio](https://developer.android.com/studio/index.html) and the [Android NDK](https://developer.android.com/ndk/index.html), and you'll need to tell our project where you put it by putting the path in [this file](Android/proj/local.properties), if you don't have these things installed and configured we will detect that and just skip those builds automatically.*
 
@@ -22,19 +22,22 @@ In this example we aim to set up a minimal [Android Studio](https://developer.an
  - Create new package called `ZeroTierSDK` in your project and add a new file called `ZeroTierSDK.java` containing:
 
 ```
-package ZeroTierSDK;
+package ZeroTier;
 public class ZeroTierSDK {
-    public native void startOneService();
+    public native void startOneService(String homeDir);
+    public native void joinNetwork(String nwid);
+    public native void leaveNetwork(String nwid);
+    public native boolean isRunning();
     static { System.loadLibrary("ZeroTierOneJNI"); } // Loads JNI code
 }
 ```
 
- - And now, start the service:
+ - And now, start the service in your app with:
 
 ```
 new Thread(new Runnable() {
       public void run() {
-        ZeroTierSDK_Wrapper wrapper = new ZeroTierSDK_Wrapper();
+        ZeroTierSDK wrapper = new ZeroTierSDK();
         wrapper.startOneService(); // Calls to JNI code
       }
 }).start();
@@ -55,7 +58,7 @@ new Thread(new Runnable() {
 
 **Step 6: Join a network!**
 
- - Simply call `zt_join_network("XXXXXXXXXXXXXXXX")`
+ - Simply call `wrapper.joinNetwork("XXXXXXXXXXXXXXXX")`
 
 
 

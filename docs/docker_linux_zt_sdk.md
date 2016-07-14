@@ -29,8 +29,8 @@ RUN yum -y install redis-3.0.4-1.fc23.x86_64
 RUN yum clean all
 # Add ZT files
 RUN mkdir -p /var/lib/zerotier-one/networks.d
-ADD netcon_identity.public /var/lib/zerotier-one/identity.public
-ADD netcon_identity.secret /var/lib/zerotier-one/identity.secret
+ADD sdk_identity.public /var/lib/zerotier-one/identity.public
+ADD sdk_identity.secret /var/lib/zerotier-one/identity.secret
 ADD *.conf /var/lib/zerotier-one/networks.d/
 ADD *.conf /
 ADD *.name /
@@ -42,12 +42,12 @@ ADD libztintercept.so /
 RUN cp libztintercept.so lib/libztintercept.so
 RUN ln -sf /lib/libztintercept.so /lib/libztintercept
 ADD zerotier-cli /
-Add zerotier-netcon-service /
+Add zerotier-sdk-service /
 # Install test scripts
-ADD netcon_entrypoint.sh /netcon_entrypoint.sh
-RUN chmod -v +x /netcon_entrypoint.sh
+ADD sdk_entrypoint.sh /sdk_entrypoint.sh
+RUN chmod -v +x /sdk_entrypoint.sh
 # Start ZeroTier-One
-CMD ["./netcon_entrypoint.sh"]
+CMD ["./sdk_entrypoint.sh"]
 ```
 
 **Step 3: Start container**
@@ -72,30 +72,9 @@ If you'd like to know the IP address your service can be reached at on this part
 `zerotier-cli -D/var/lib/zerotier-one/nc_XXXXXXXXXXXXXXXX listnetworks`
 
 
-
-
-
-
-
-
-
-
-
 ## Tests
 
 For info on testing the SDK, take a look at [docs/docker_linux_testing.md](docs/docker_linux_testing.md)
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 ## Installing in a Docker container (or any other container engine)
@@ -109,11 +88,11 @@ The only bit of complexity is configuring which virtual network to join. ZeroTie
 
 Replace 8056c2e21c000001 with the network ID of the network you want your container to automatically join. It's also a good idea in your container's entry point script to add a small loop to wait until the container's instance of ZeroTier generates an identity and comes online. This could be something like:
 
-    /var/lib/zerotier-one/zerotier-netcon-service -d
+    /var/lib/zerotier-one/zerotier-sdk-service -d
     while [ ! -f /var/lib/zerotier-one/identity.secret ]; do
       sleep 0.1
     done
-    # zerotier-netcon-service is now running and has generated an identity
+    # zerotier-sdk-service is now running and has generated an identity
 
 (Be sure you don't bundle the identity into the container, otherwise every container will try to be the same device and they will "fight" over the device's address.)
 

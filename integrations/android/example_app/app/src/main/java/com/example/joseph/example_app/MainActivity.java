@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
             Log.d("SDK-Javaland", "Waiting...\n");
         }
         Log.d("SDK-Javaland","Joining network...\n");
-        wrapper.joinNetwork("e5cd7a9e1c3511dd");
+        wrapper.joinNetwork("565799d8f65063e5");
 
         // Set up example proxy connection to SDK proxy server
         Log.d("ZTSDK-InJavaland", "Setting up connection to SDK proxy server");

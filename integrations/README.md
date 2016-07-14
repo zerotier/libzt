@@ -1,7 +1,7 @@
 ZeroTier Integrations
 ====
 
-If you want everything built at once, type `make all` and go play outside for a few minutes, we'll copy all of the targets into the `build` directory for you along with specific instructions on how to use each binary. You can then use `make -s check` to check the build status of each binary target.
+If you want everything built at once, type `make all` and go play outside for a few minutes, we'll copy all of the targets into the `build` directory for you along with specific instructions contained in a `README.md` on how to use each binary. You can then use `make -s check` to check the build status of each binary target.
 
 *NOTE for Apple platforms: In order to build iOS/OSX Frameworks and Bundles you will need XCode command line tools `xcode-select --install`*
 
@@ -32,7 +32,7 @@ For more support on these integrations, or if you'd like help creating a new int
 ***
 ## Current Integrations
 
-### Apple
+### Apple `make apple`
 ##### iOS
  - [Embedding within an app](../docs/ios_zt_sdk.md) `make ios_app_framework`
  - [Unity3D plugin](../docs/unity3d_ios_zt_sdk.md) `make ios_unity3d_bundle`
@@ -45,9 +45,9 @@ For more support on these integrations, or if you'd like help creating a new int
 ***
 ### Linux
  - [Dynamic-linking into an app/service at runtime](../docs/linux_zt_sdk.md) `make linux_shared_lib`
- - [Using the SDK with Docker](../docs/docker_linux_zt_sdk.md) `make linux_shared_lib`
+ - [Using the SDK with Doc;ker](../docs/docker_linux_zt_sdk.md) `make linux_shared_lib`
 
-### Android
+### Android `make android`
  - [Embedding within an app](../docs/android_zt_sdk.md) `make android_jni_lib`
  - [Unity 3D plugin](../docs/unity3d_android_zt_sdk.md) `make android_unity3d_plugin`
 

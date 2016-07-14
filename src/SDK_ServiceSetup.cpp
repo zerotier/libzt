@@ -128,6 +128,13 @@ void zt_init_rpc(const char * path, const char * nwid);
             return  zt1Service->isRunning();
         return false;
     }
+
+    // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
+    JNIEXPORT void JNICALL Java_ZeroTier_SDK_terminate(JNIEnv *env, jobject thisObj) {
+        if(zt1Service)
+            zt1Service->terminate();
+    }
+
 #endif
 
 

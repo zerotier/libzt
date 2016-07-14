@@ -1,6 +1,6 @@
 # ZeroTier SDK Primer
 
-True P2P injected right into your app with no code changes! A ZeroTier-enabled app. 
+True P2P injected right into your app with little to no code changes! A ZeroTier-enabled app. 
 (formerly known as Network Containers)
 
 The SDK couples the ZeroTier core Ethernet virtualization engine with a user-space TCP/IP stack and a carefully-crafted "shim" which intercepts and re-directs network API calls to our service. This allows servers and applications to be used without modification or recompilation. It can be used to run services on virtual networks without elevated privileges, special configuration of the physical host, kernel support, or any other application specific configuration. It's ideal for [containerized applications](docs/docker_linux_zt_sdk.md), [games](docs/unity3d.md), and [desktop/mobile apps]().
@@ -9,8 +9,8 @@ Your only responsibility is to pick a shim appropriate for your app's design. Ac
 
 The general idea is this:
 	1) Your application starts.
-	2) The shim initializes inside a separate thread of your app.
-	3) Your app can now reach anything on your virtual network. 
+	2) The shim and ZeroTier service initializes inside a separate thread of your app.
+	3) Your app can now reach anything on your virtual network via normal network calls.
 
 It's as simple as that!
 

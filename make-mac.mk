@@ -52,6 +52,9 @@ CXXFLAGS=$(CFLAGS) -fno-rtti
 # Build everything
 all: osx ios android check
 
+# Build all Apple targets
+apple: osx ios
+
 # Build all iOS targets
 ios: ios_app_framework ios_unity3d_bundle
 
@@ -111,15 +114,11 @@ prep:
 # Check for the presence of built frameworks/bundles/libaries
 check:
 	./check.sh $(BUILD)/lwip/liblwip.so
-
 	./check.sh $(BUILD)/osx_shared_lib/libztintercept.so
 	./check.sh $(BUILD)/osx_unity3d_bundle/Debug/ZeroTierSDK_Unity3D_OSX.bundle
 	./check.sh $(BUILD)/osx_app_framework/Debug/ZeroTierSDK_OSX.framework
-
 	./check.sh $(BUILD)/ios_app_framework/Debug-iphoneos/ZeroTierSDK_iOS.framework
 	./check.sh $(BUILD)/ios_unity3d_bundle/Debug-iphoneos/ZeroTierSDK_Unity3D_iOS.bundle
-
-	./check.sh $(BUILD)/
 	./check.sh $(BUILD)/android_jni_lib/arm64-v8a/libZeroTierJNI.so
 	./check.sh $(BUILD)/android_jni_lib/armeabi/libZeroTierJNI.so
 	./check.sh $(BUILD)/android_jni_lib/armeabi-v7a/libZeroTierJNI.so
@@ -143,8 +142,9 @@ tests: $(TEST_OBJDIR) $(TEST_TARGETS)
 	mkdir -p $(BUILD)/tests; 
 
 clean:
-	-rm -rf zerotier-cli zerotier-idtool
 	-rm -rf $(BUILD)/*
+	-rm -rf zerotier-cli zerotier-idtool
+	-find . -type f \( -name 'zerotier-one' -o -name 'zerotier-sdk-service' \) -delete
 	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' \) -delete
 	# android JNI lib project
 	-cd $(INT)/android/android_jni_lib/proj; ./gradlew clean

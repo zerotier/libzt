@@ -90,8 +90,11 @@ void zt_init_rpc(const char * path, const char * nwid);
         if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), "")) {
             LOGV("unable to write network conf file: %s\n", confFile.c_str());
         }
-        zt1Service->join(nwid);
-        zt_init_rpc(homeDir.c_str(), nwid); // This provides the shim API with the RPC information
+        LOGV("zt1Service = %x\n", (void*)zt1Service);
+
+        //zt1Service->join(nwid);
+        LOGV("started up\n");
+        //zt_init_rpc(homeDir.c_str(), nwid); // This provides the shim API with the RPC information
     }
     
     void leave_network(const char *nwid) { zt1Service->leave(nwid); }
@@ -195,6 +198,7 @@ void zt_init_rpc(const char * path, const char * nwid);
 
             #if defined(__ANDROID__)
                 homeDir = "/sdcard/zerotier";
+                join_network("565799d8f65063e5");
             #endif
 
             #if defined(__APPLE__)

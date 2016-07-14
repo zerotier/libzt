@@ -1402,7 +1402,6 @@
 				OTHER_CFLAGS = (
 					"-D__UNITY_3D__",
 					"-DSDK",
-					"-DSDK_DEBUG",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-Unity3D-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1433,6 +1432,7 @@
 					"-DSDK_DEBUG",
 					"-DSDK",
 					"-D__IOS__",
+					"-DLWIP_DEBUG",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1459,8 +1459,8 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
-					"-DSDK_DEBUG",
 					"-DSDK",
 					"-D__IOS__",
 				);
@@ -1496,6 +1496,7 @@
 					"-DSDK_BUNDLED",
 					"-DSDK_DEBUG",
 					"-D__XCODE__",
+					"-DLWIP_DEBUG",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-OSX";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1520,11 +1521,11 @@
 				INFOPLIST_FILE = ZeroTierSDK_OSX/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
 					"-DSDK",
 					"-DSDK_SERVICE",
 					"-DSDK_BUNDLED",
-					"-DSDK_DEBUG",
 					"-D__XCODE__",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-OSX";
@@ -1567,8 +1568,8 @@
 				);
 				INFOPLIST_FILE = ZeroTierSDK_Unity3D_OSX/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
-					"-DSDK_DEBUG",
 					"-DSDK",
 					"-D__UNITY_3D__",
 				);

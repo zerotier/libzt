@@ -45,7 +45,7 @@ For more support on these integrations, or if you'd like help creating a new int
 ***
 ### Linux
  - [Dynamic-linking into an app/service at runtime](../docs/linux_zt_sdk.md) `make linux_shared_lib`
- - [Using the SDK with Doc;ker](../docs/docker_linux_zt_sdk.md) `make linux_shared_lib`
+ - [Using the SDK with Docker](../docs/docker_linux_zt_sdk.md) `make linux_shared_lib`
 
 ### Android `make android`
  - [Embedding within an app](../docs/android_zt_sdk.md) `make android_jni_lib`

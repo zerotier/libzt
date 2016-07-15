@@ -29,6 +29,11 @@
     #define _GNU_SOURCE
 #endif
 
+// For defining the Android direct-call API
+#if defined(__ANDROID__)
+    #include <jni.h>
+#endif
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -95,11 +100,13 @@ int (*realclose)(CLOSE_SIG);
         if(!api_netpath) {
             #if defined(SDK_BUNDLED)
                 // Get the path/nwid from the user application
+                // netpath = [path + "/nc_" + nwid] 
                 char *fullpath = malloc(strlen(path)+strlen(nwid)+1);
                 if(fullpath) {
                     strcpy(fullpath, path);
                     strcat(fullpath, nwid);
-                    api_netpath = fullpath;
+                    //api_netpath = fullpath;
+                    api_netpath = "/data/data/com.example.joseph.example_app/files/zerotier/nc_565799d8f65063e5";
                 }
             #else
                 // Get path/nwid from environment variables
@@ -316,6 +323,12 @@ int (*realclose)(CLOSE_SIG);
     // ------------------------------------------------------------------------------
     // int socket_family, int socket_type, int protocol
 
+#if defined(__ANDROID__)
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniSocket(JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol) {
+        return zt_socket(family, type, protocol);
+    }
+#endif
+
     int zt_socket(SOCKET_SIG) {
         get_api_netpath();
         dwr(MSG_DEBUG, "zt_socket()\n");
@@ -355,7 +368,9 @@ int (*realclose)(CLOSE_SIG);
 #endif
         /* -1 is passed since we we're generating the new socket in this call */
         printf("path = %s\n", api_netpath);
+        LOGV("path = %s\n", api_netpath);
         int err = rpc_send_command(api_netpath, RPC_SOCKET, -1, &rpc_st, sizeof(struct socket_st));
+        LOGV("socket() = %s\n", err);
         dwr(MSG_DEBUG," socket() = %d\n", err);
         return err;
     }
@@ -364,6 +379,19 @@ int (*realclose)(CLOSE_SIG);
     // ---------------------------------- connect() ---------------------------------
     // ------------------------------------------------------------------------------
     // int __fd, const struct sockaddr * __addr, socklen_t __len
+
+#if defined(__ANDROID__)
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniConnect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
+        struct sockaddr_in addr;
+        char *str;
+        // = env->GetStringUTFChars(addrstr, NULL);
+        (*env)->ReleaseStringUTFChars(env, addrstr, str);
+        addr.sin_addr.s_addr = inet_addr(str);
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons( port );
+        return zt_connect(fd, (struct sockaddr *)&addr, sizeof(addr));
+    }
+#endif
 
     int zt_connect(CONNECT_SIG)
     {
@@ -387,6 +415,20 @@ int (*realclose)(CLOSE_SIG);
     // ------------------------------------ bind() ----------------------------------
     // ------------------------------------------------------------------------------
     // int sockfd, const struct sockaddr *addr, socklen_t addrlen
+
+#if defined(__ANDROID__)
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniBind(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
+        struct sockaddr_in addr;
+        char *str;
+        // = env->GetStringUTFChars(addrstr, NULL);
+        (*env)->ReleaseStringUTFChars(env, addrstr, str);
+        addr.sin_addr.s_addr = inet_addr(str);
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons( port );
+        //return zt_bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+        return 0;
+    }
+#endif
 
 #if !defined(__ANDROID__)
         int zt_bind(BIND_SIG)
@@ -413,6 +455,19 @@ int (*realclose)(CLOSE_SIG);
     // ------------------------------------------------------------------------------
     // int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags
 
+#if defined(__ANDROID__)
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniAccept4(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port, jint flags) {
+        struct sockaddr_in addr;
+        char *str;
+        // = env->GetStringUTFChars(addrstr, NULL);
+        (*env)->ReleaseStringUTFChars(env, addrstr, str);
+        addr.sin_addr.s_addr = inet_addr(str);
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons( port );
+        return zt_accept4(fd, (struct sockaddr *)&addr, sizeof(addr), flags);
+    }
+#endif
+
 #if defined(__linux__)
         int zt_accept4(ACCEPT4_SIG)
         {
@@ -432,6 +487,19 @@ int (*realclose)(CLOSE_SIG);
     // ----------------------------------- accept() ---------------------------------
     // ------------------------------------------------------------------------------
     // int sockfd struct sockaddr *addr, socklen_t *addrlen
+
+#if defined(__ANDROID__)
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniAccept(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
+        struct sockaddr_in addr;
+        char *str;
+        // = env->GetStringUTFChars(addrstr, NULL);
+        (*env)->ReleaseStringUTFChars(env, addrstr, str);
+        addr.sin_addr.s_addr = inet_addr(str);
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons( port );
+        return zt_accept(fd, (struct sockaddr *)&addr, sizeof(addr));    
+    }
+#endif
 
     int zt_accept(ACCEPT_SIG)
     {
@@ -458,6 +526,12 @@ int (*realclose)(CLOSE_SIG);
     // ------------------------------------------------------------------------------
     // int sockfd, int backlog
 
+#if defined(__ANDROID__)
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniListen(JNIEnv *env, jobject thisObj, jint fd, int backlog) {
+        return zt_listen(fd, backlog);
+    }
+#endif
+
     int zt_listen(LISTEN_SIG)
     {
         get_api_netpath();
@@ -479,6 +553,12 @@ int (*realclose)(CLOSE_SIG);
     // ------------------------------------- close() --------------------------------
     // ------------------------------------------------------------------------------
     // int fd
+
+#if defined(__ANDROID__)
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniClose(JNIEnv *env, jobject thisObj, jint fd) {
+        return zt_close(fd);
+    }
+#endif
 
     int zt_close(CLOSE_SIG) {
         get_api_netpath();

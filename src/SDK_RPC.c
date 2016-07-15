@@ -33,6 +33,11 @@
 #include <sys/syscall.h>
 #endif
 
+// For defining the Android direct-call API
+#if defined(__ANDROID__)
+    #include <jni.h>
+#endif
+
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/un.h>
@@ -42,10 +47,13 @@
 #include <dlfcn.h>
 #include <stdint.h>
 #include <sys/socket.h>
+//#include <sys/un.h>
 #include <strings.h>
 
 #include "SDK.h"
 #include "SDK_RPC.h"
+#include "SDK_Debug.h"
+
 
 // externs common between SDK_Intercept and SDK_Socket from SDK.h
 int (*realsocket)(SOCKET_SIG);
@@ -109,7 +117,7 @@ int load_symbols_rpc()
 {
 #if defined(SDK_BUNDLED) || defined(__IOS__) || defined(__UNITY_3D__)
   realsocket = dlsym(RTLD_NEXT, "socket");
-  realconnect = dlsym(RTLD_NEXT, "connect");
+  realconnect = dlsym(RTLD_NOW, "connect");
   if(!realconnect || !realsocket)
     return -1;
 #endif
@@ -118,6 +126,7 @@ int load_symbols_rpc()
 
 int rpc_join(char * sockname)
 {
+  LOGV("RPC = %s\n", sockname);
   if(sockname == NULL) {
     printf("Warning, rpc netpath is NULL\n");
   }
@@ -129,13 +138,22 @@ int rpc_join(char * sockname)
   addr.sun_family = AF_UNIX;
   strncpy(addr.sun_path, sockname, sizeof(addr.sun_path)-1);
   int sock;
+
+#if defined(__ANDROID__)
+  if((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0){
+#else
   if((sock = realsocket(AF_UNIX, SOCK_STREAM, 0)) < 0){
-    fprintf(stderr, "Error while creating RPC socket\n");
+#endif
+    LOGV(stderr, "Error while creating RPC socket\n");
     return -1;
   }
   while((conn_err != 0) && (attempts < SERVICE_CONNECT_ATTEMPTS)){
-    if((conn_err = realconnect(sock, (struct sockaddr*)&addr, sizeof(addr))) != 0) {
-      fprintf(stderr, "Error while connecting to RPC socket. Re-attempting...\n");
+    #if defined(__ANDROID__)
+      if((conn_err = connect(sock, (struct sockaddr*)&addr, sizeof(addr))) != 0) {
+    #else
+      if((conn_err = realconnect(sock, (struct sockaddr*)&addr, sizeof(addr))) != 0) {
+    #endif
+      LOGV("Error while connecting to RPC socket. Re-attempting...\n");
       sleep(1);
     }
     else
@@ -157,9 +175,7 @@ int rpc_send_command(char *path, int cmd, int forfd, void *data, int len)
   memcpy(CANARY+CANARY_SZ, padding, sizeof(padding));
   uint64_t canary_num;
   // ephemeral RPC socket used only for this command
-  printf("calling rpc_join");
   int rpc_sock = rpc_join(path);
-  printf("fin\n");
   // Generate token
   int fdrand = open("/dev/urandom", O_RDONLY);
   if(read(fdrand, &CANARY, CANARY_SZ) < 0) {

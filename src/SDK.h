@@ -32,6 +32,11 @@
 #include <stdbool.h>
 #include "SDK_Signatures.h"
 
+// For defining the Android direct-call API
+#if defined(__ANDROID__)
+    #include <jni.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -80,6 +85,20 @@ ssize_t zt_recvmsg(RECVMSG_SIG);
     int zt_set_nonblock(int fd);
 #endif    
     
+// Android JNI Direct-call API
+#if defined(__ANDROID__)
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniSocket(JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol);
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniConnect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);	
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniBind(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniAccept(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniAccept4(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port, jint flags);
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniListen(JNIEnv *env, jobject thisObj, jint fd, int backlog);
+	//JNIEXPORT void JNICALL Java_ZeroTier_SDK_ztjniSetsockopt(JNIEnv *env, jobject thisObj);
+	//JNIEXPORT void JNICALL Java_ZeroTier_SDK_ztjniGetsockopt(JNIEnv *env, jobject thisObj);
+	//JNIEXPORT void JNICALL Java_ZeroTier_SDK_ztjniGetsockname(JNIEnv *env, jobject thisObj);
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniClose(JNIEnv *env, jobject thisObj, jint fd);
+#endif
+
 int zt_socket(SOCKET_SIG);
 int zt_connect(CONNECT_SIG);
 int zt_bind(BIND_SIG);

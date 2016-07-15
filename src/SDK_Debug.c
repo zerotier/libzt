@@ -54,6 +54,27 @@
 #define MSG_DEBUG       4 // Information which is only useful to someone debugging
 #define MSG_DEBUG_EXTRA 5 // If nothing in your world makes sense
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+  #if __ANDROID__
+    #include <jni.h>
+    #include <android/log.h>
+    #define LOG_TAG "ZTSDK"
+    #define LOGV(...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__))
+    #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__))
+    #define LOGD(...) ((void)__android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__))
+    #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__))
+  #else
+    #define LOGV(...) fprintf(stdout, __VA_ARGS__)
+    #define LOGI(...) fprintf(stdout, __VA_ARGS__)
+    #define LOGD(...) fprintf(stdout, __VA_ARGS__)
+    #define LOGE(...) fprintf(stdout, __VA_ARGS__)
+  #endif
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
 //char *debug_logfile = (char*)0;
 void dwr(int level, const char *fmt, ... );
 
@@ -94,33 +115,17 @@ void dwr(int level, const char *fmt, ... )
   va_start(ap, fmt);
   fprintf(stderr, "%s [tid=%7d] ", timestring, tid);
   vfprintf(stderr, fmt, ap);
+
+// Outputs to Android debug console
+#if defined(__ANDROID__)
+  LOGV(fmt, ap);
+#endif
+
   fflush(stderr);
   errno = saveerr;
   va_end(ap);
 #endif // _SDK_DEBUG
 }
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-  #if __ANDROID__
-    #include <jni.h>
-    #include <android/log.h>
-    #define LOG_TAG "ZTSDK"
-    #define LOGV(...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__))
-    #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__))
-    #define LOGD(...) ((void)__android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__))
-    #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__))
-  #else
-    #define LOGV(...) fprintf(stdout, __VA_ARGS__)
-    #define LOGI(...) fprintf(stdout, __VA_ARGS__)
-    #define LOGD(...) fprintf(stdout, __VA_ARGS__)
-    #define LOGE(...) fprintf(stdout, __VA_ARGS__)
-  #endif
-#ifdef __cplusplus
-} // extern "C"
-#endif
-
-#endif
-
-#endif
+#endif //
+#endif //

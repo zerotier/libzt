@@ -7,10 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		7CA571051D1B0DA100720883 /* ZeroTierSDK_OSX.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7CA571031D1B0D9500720883 /* ZeroTierSDK_OSX.framework */; };
-		7CF8E36C1D2C3E0A001A8401 /* ZeroTierSDK_OSX.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7CF8E36B1D2C3E0A001A8401 /* ZeroTierSDK_OSX.framework */; };
-		7CF8E3701D2C40F6001A8401 /* SDK_XcodeWrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CF8E36E1D2C40F6001A8401 /* SDK_XcodeWrapper.cpp */; };
-		7CF8E3711D2C4338001A8401 /* ZeroTierSDK_OSX.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 7CF8E36B1D2C3E0A001A8401 /* ZeroTierSDK_OSX.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		7C74DACF1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C74DACD1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.cpp */; };
+		7C74DAD21D3C47D300A6C0B9 /* ZeroTierSDK_OSX.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */; };
+		7C74DAD31D3C485800A6C0B9 /* ZeroTierSDK_OSX.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */; };
+		7C74DAD41D3C485800A6C0B9 /* ZeroTierSDK_OSX.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7CFCB4311D1AFEE800D3E66C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CFCB4301D1AFEE800D3E66C /* AppDelegate.swift */; };
 		7CFCB4331D1AFEE800D3E66C /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CFCB4321D1AFEE800D3E66C /* ViewController.swift */; };
 		7CFCB4351D1AFEE800D3E66C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7CFCB4341D1AFEE800D3E66C /* Assets.xcassets */; };
@@ -24,7 +24,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				7CF8E3711D2C4338001A8401 /* ZeroTierSDK_OSX.framework in Embed Frameworks */,
+				7C74DAD41D3C485800A6C0B9 /* ZeroTierSDK_OSX.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -32,12 +32,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		7CA571031D1B0D9500720883 /* ZeroTierSDK_OSX.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ZeroTierSDK_OSX.framework; path = /Users/Joseph/code/zerotiersdk/build/OSX_app_framework/Debug/ZeroTierSDK_OSX.framework; sourceTree = "<absolute>"; };
-		7CA571081D1B1DCB00720883 /* ZeroTierSDK_OSX.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ZeroTierSDK_OSX.h; path = ../../ZeroTierSDK_Apple/ZeroTierSDK_OSX/ZeroTierSDK_OSX.h; sourceTree = "<group>"; };
-		7CF8E36B1D2C3E0A001A8401 /* ZeroTierSDK_OSX.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ZeroTierSDK_OSX.framework; path = ../../../build/osx_app_framework/Debug/ZeroTierSDK_OSX.framework; sourceTree = "<group>"; };
+		7C74DACD1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SDK_XcodeWrapper.cpp; path = ../../../../../src/SDK_XcodeWrapper.cpp; sourceTree = "<group>"; };
+		7C74DACE1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SDK_XcodeWrapper.hpp; path = ../../../../../src/SDK_XcodeWrapper.hpp; sourceTree = "<group>"; };
+		7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ZeroTierSDK_OSX.framework; path = ../../../../build/osx_app_framework/Debug/ZeroTierSDK_OSX.framework; sourceTree = "<group>"; };
 		7CF8E36D1D2C40F6001A8401 /* Example_OSX_App-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Example_OSX_App-Bridging-Header.h"; sourceTree = "<group>"; };
-		7CF8E36E1D2C40F6001A8401 /* SDK_XcodeWrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SDK_XcodeWrapper.cpp; path = ../../../../src/SDK_XcodeWrapper.cpp; sourceTree = "<group>"; };
-		7CF8E36F1D2C40F6001A8401 /* SDK_XcodeWrapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SDK_XcodeWrapper.hpp; path = ../../../../src/SDK_XcodeWrapper.hpp; sourceTree = "<group>"; };
 		7CFCB42D1D1AFEE800D3E66C /* Example_OSX_App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Example_OSX_App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CFCB4301D1AFEE800D3E66C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7CFCB4321D1AFEE800D3E66C /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -51,8 +49,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7CF8E36C1D2C3E0A001A8401 /* ZeroTierSDK_OSX.framework in Frameworks */,
-				7CA571051D1B0DA100720883 /* ZeroTierSDK_OSX.framework in Frameworks */,
+				7C74DAD31D3C485800A6C0B9 /* ZeroTierSDK_OSX.framework in Frameworks */,
+				7C74DAD21D3C47D300A6C0B9 /* ZeroTierSDK_OSX.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -62,7 +60,7 @@
 		7CFCB4241D1AFEE800D3E66C = {
 			isa = PBXGroup;
 			children = (
-				7CF8E36B1D2C3E0A001A8401 /* ZeroTierSDK_OSX.framework */,
+				7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */,
 				7CFCB42F1D1AFEE800D3E66C /* Example_OSX_App */,
 				7CFCB42E1D1AFEE800D3E66C /* Products */,
 			);
@@ -79,9 +77,8 @@
 		7CFCB42F1D1AFEE800D3E66C /* Example_OSX_App */ = {
 			isa = PBXGroup;
 			children = (
-				7CF8E36E1D2C40F6001A8401 /* SDK_XcodeWrapper.cpp */,
-				7CF8E36F1D2C40F6001A8401 /* SDK_XcodeWrapper.hpp */,
-				7CA571081D1B1DCB00720883 /* ZeroTierSDK_OSX.h */,
+				7C74DACD1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.cpp */,
+				7C74DACE1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.hpp */,
 				7CFCB4301D1AFEE800D3E66C /* AppDelegate.swift */,
 				7CFCB4321D1AFEE800D3E66C /* ViewController.swift */,
 				7CFCB4341D1AFEE800D3E66C /* Assets.xcassets */,
@@ -164,7 +161,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7CFCB4331D1AFEE800D3E66C /* ViewController.swift in Sources */,
-				7CF8E3701D2C40F6001A8401 /* SDK_XcodeWrapper.cpp in Sources */,
+				7C74DACF1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.cpp in Sources */,
 				7CFCB4311D1AFEE800D3E66C /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -273,7 +270,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				COMBINE_HIDPI_IMAGES = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../../src";
+				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/../../../../build/OSX_app_framework/Debug";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../../../src";
 				INFOPLIST_FILE = Example_OSX_App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.Example-OSX-App";
@@ -290,7 +288,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				COMBINE_HIDPI_IMAGES = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../../src";
+				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/../../../../build/OSX_app_framework/Debug";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../../../src";
 				INFOPLIST_FILE = Example_OSX_App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.Example-OSX-App";

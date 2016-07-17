@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     printf("usage: udp_server <port>\n");
     exit(0);
   }
-  int ld, length, int port = atoi(argv[1]);
+  int ld, length, port = atoi(argv[1]);
   struct sockaddr_in skaddr;
   struct sockaddr_in skaddr2;
 
@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
   // Display address:port to verify it was sent over RPC correctly
-  int port = ntohs(skaddr2.sin_port);
+  port = ntohs(skaddr2.sin_port);
   int ip = skaddr2.sin_addr.s_addr;
   unsigned char d[4];
   d[0] = ip & 0xFF;

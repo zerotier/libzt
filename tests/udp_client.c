@@ -14,7 +14,7 @@ int main(int argc, char * argv[])
         printf("usage: udp_client <addr> <port>\n");
         return 0;
     }
-    int sock = -1, int port = atoi(argv[1]);
+    int sock = -1, port = atoi(argv[1]);
     ssize_t n_sent;
     struct sockaddr_in server;
     char buf[64];    
@@ -36,7 +36,7 @@ int main(int argc, char * argv[])
 	}
 
     // TX
-    char *msg = "Welcome to the Machine"
+    char *msg = "Welcome to the Machine";
     int count = 0;
     
     while(1) {

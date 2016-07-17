@@ -73,6 +73,7 @@ osx_app_framework:
 ios_app_framework:
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_iOS build SYMROOT="../../../$(BUILD)/ios_app_framework"
 	cp docs/ios_zt_sdk.md $(BUILD)/ios_app_framework/README.md
+
 # Build bundles for Unity integrations
 osx_unity3d_bundle:
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_Unity3D_OSX build SYMROOT="../../../$(BUILD)/osx_unity3d_bundle"
@@ -80,16 +81,16 @@ osx_unity3d_bundle:
 ios_unity3d_bundle:
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_Unity3D_iOS build SYMROOT="../../../$(BUILD)/ios_unity3d_bundle"
 	cp docs/ios_unity3d_zt_sdk.md $(BUILD)/ios_unity3d_bundle/README.md
+
 # TODO: CHECK if ANDROID/GRADLE TOOLS are installed
 # Build library for Android Unity integrations
 # Build JNI library for Android app integration
 android_jni_lib:
 	cd $(INT)/android/android_jni_lib/proj; ./gradlew assembleDebug
-	# copy binary into example android project dir
-	# mv $(INT)/android/android_jni_lib/java/libs/* build
-	mv -f $(INT)/android/android_jni_lib/java/libs/* $(INT)/android/example_app/app/src/main/jniLibs
-	# cd build; for res_f in *; do mv "$res_f" "android_jni_lib_$res_f"; done
-	# cp docs/android_zt_sdk.md $(BUILD)/README.md
+	mkdir -p $(BUILD)/android_jni_lib
+	cp docs/android_zt_sdk.md $(BUILD)/android_jni_lib/README.md
+	mv -f $(INT)/android/android_jni_lib/java/libs/* $(BUILD)/android_jni_lib
+	cp -R $(BUILD)/android_jni_lib/* $(INT)/android/example_app/app/src/main/jniLibs
 
 remove_only_intermediates:
 	-find . -type f \( -name '*.o' -o -name '*.so' \) -delete
@@ -141,12 +142,19 @@ $(TEST_OBJDIR):
 tests: $(TEST_OBJDIR) $(TEST_TARGETS)
 	mkdir -p $(BUILD)/tests; 
 
+JAVAC := $(shell which javac)
+
+
 clean:
 	-rm -rf $(BUILD)/*
 	-rm -rf zerotier-cli zerotier-idtool
 	-find . -type f \( -name 'zerotier-one' -o -name 'zerotier-sdk-service' \) -delete
 	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' \) -delete
+	
 	# android JNI lib project
+	
+	test -s /usr/bin/javac || { echo "Javac not found"; exit 1; }
+
 	-cd $(INT)/android/android_jni_lib/proj; ./gradlew clean
 	-rm -rf $(INT)/android/android_jni_lib/proj/.gradle
 	-rm -rf $(INT)/android/android_jni_lib/proj/.idea

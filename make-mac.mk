@@ -156,11 +156,7 @@ clean:
 	test -s /usr/bin/javac || { echo "Javac not found"; exit 1; }
 
 	-cd $(INT)/android/android_jni_lib/proj; ./gradlew clean
-	-rm -rf $(INT)/android/android_jni_lib/proj/.gradle
-	-rm -rf $(INT)/android/android_jni_lib/proj/.idea
 	-rm -rf $(INT)/android/android_jni_lib/proj/build
 
 	# example android app project
 	-cd $(INT)/android/example_app; ./gradlew clean
-	-rm -rf $(INT)/android/example_app/.idea
-	-rm -rf $(INT)/android/example_app/.gradle

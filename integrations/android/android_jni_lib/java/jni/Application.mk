@@ -5,10 +5,10 @@ APP_CFLAGS := -g -DSDK_BUNDLED
 APP_PLATFORM := android-14
 
 # Architectures
-APP_ABI := all
+# APP_ABI := all
 
 #APP_ABI += arm64-v8a
-#APP_ABI += armeabi
+APP_ABI += armeabi
 #APP_ABI += armeabi-v7a
 #APP_ABI += mips
 #APP_ABI += mips64

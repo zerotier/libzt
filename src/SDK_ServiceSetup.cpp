@@ -61,6 +61,9 @@ std::string givenHomeDir; // What the user/application provides as a suggestion
 std::string homeDir; // The resultant platform-specific dir we *must* use internally
 std::string netDir;
 
+bool rpcEnabled;
+std::string rpcNWID;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -92,10 +95,6 @@ void zt_init_rpc(const char * path, const char * nwid);
         if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), "")) {
             LOGV("unable to write network conf file: %s\n", confFile.c_str());
         }
-        LOGV("zt1Service = %x\n", (void*)zt1Service);
-
-        //zt1Service->join(nwid);
-        LOGV("started up\n");
         // This provides the shim API with the RPC information
         zt_init_rpc(homeDir.c_str(), nwid); 
     }
@@ -155,10 +154,10 @@ void zt_init_rpc(const char * path, const char * nwid);
         pthread_create(&intercept_thread, NULL, startOneService, (void *)(intercept_thread_id));
     }
 
-    void init_service_and_rpc(int key, const char * path, const char * nwid)
-    {
+    void init_service_and_rpc(int key, const char * path, const char * nwid) {
+        rpcEnabled = true;
+        rpcNWID = nwid;
         init_service(key, path);
-        zt_init_rpc(path, nwid);
     }
 
     /*
@@ -233,6 +232,7 @@ void zt_init_rpc(const char * path, const char * nwid);
 
         #if defined(__APPLE__) && !defined(__IOS__)
             homeDir = givenHomeDir;
+            localHomeDir = givenHomeDir; // Used for RPC and *can* differ from homeDir on some platforms
         #endif
 
         LOGV("homeDir = %s", givenHomeDir.c_str());
@@ -265,8 +265,6 @@ void zt_init_rpc(const char * path, const char * nwid);
             }
         }
 
-
-
         #if defined(__IOS__)
             // Go to the app's data directory so we can shorten the sun_path we bind to
             int MAX_DIR_SZ = 256;
@@ -280,6 +278,11 @@ void zt_init_rpc(const char * path, const char * nwid);
         //chdir(current_dir); // Return to previous current working directory (at the request of Unity3D)
         //Debug(homeDir.c_str());
         
+        // Initialize RPC 
+        if(rpcEnabled) {
+            zt_init_rpc(localHomeDir.c_str(), rpcNWID.c_str());
+        }
+
         // Generate random port for new service instance
         unsigned int randp = 0;
         ZeroTier::Utils::getSecureRandom(&randp,sizeof(randp));

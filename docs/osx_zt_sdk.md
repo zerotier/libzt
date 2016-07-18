@@ -46,7 +46,7 @@ Run application
 - Add `build/osx_app_framework/Release-iphoneos/` to *Build Settings -> Framework Search Paths*
 - Add `ZeroTierSDK.frameworkiOS` to *General->Embedded Binaries*
 - Add `src/SDK_XcodeWrapper.cpp` and `src/SDK_XcodeWrapper.hpp` to your project:
-- Add contents of `src/SDK_Apple-Bridging-Header.h` to your project’s bridging header.
+- Set `src/SDK_Apple-Bridging-Header.h` as your bridging-header in `Build Settings -> Objective-C Bridging-header`
 
 **Step 3: Start the ZeroTier service**
 

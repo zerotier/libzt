@@ -1436,6 +1436,7 @@
 					"-D__IOS__",
 					"-DLWIP_DEBUG",
 					"-DSDK_BUNDLED",
+					"-DUSE_SOCKS_PROXY",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1469,6 +1470,7 @@
 					"-DSDK",
 					"-D__IOS__",
 					"-DSDK_BUNDLED",
+					"-DUSE_SOCKS_PROXY",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1504,6 +1506,7 @@
 					"-DSDK_DEBUG",
 					"-D__XCODE__",
 					"-DLWIP_DEBUG",
+					"-DUSE_SOCKS_PROXY",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-OSX";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1534,6 +1537,7 @@
 					"-DSDK_SERVICE",
 					"-DSDK_BUNDLED",
 					"-D__XCODE__",
+					"-DUSE_SOCKS_PROXY",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-OSX";
 				PRODUCT_NAME = "$(TARGET_NAME)";

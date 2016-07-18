@@ -29,10 +29,13 @@
 #include "SDK_EthernetTap.hpp"
 #include "Phy.hpp"
 #include "Utils.hpp"
+#include "OSUtils.hpp"
 
 #include <string.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sstream>
+
 
 #define SOCKS_OPEN          0
 #define SOCKS_CONNECT_INIT  1
@@ -59,7 +62,7 @@
 
 namespace ZeroTier
 {
-	void NetconEthernetTap::StartProxy(const char *nwid)
+	void NetconEthernetTap::StartProxy(const char *sockpath, const char *homepath, uint64_t nwid)
 	{	
 #if defined (__ANDROID__)
 		LOGV("StartProxy()\n");
@@ -67,9 +70,31 @@ namespace ZeroTier
 		printf("StartProxy()\n");
 #endif
       
-        unsigned int randp = 0;
-        Utils::getSecureRandom(&randp,sizeof(randp));
-        proxyListenPort = 1000 + (randp % 1000);
+	  	// Look for a port file for this network's proxy server instance
+		char portFile[4096];
+    	Utils::snprintf(portFile,sizeof(portFile),"%s/networks.d/%.16llx.port",homepath,nwid);
+		std::string portStr;
+		printf("Proxy(): Reading port from: %s\n", portFile);
+		if(ZeroTier::OSUtils::fileExists(portFile,true))
+		{
+			if(ZeroTier::OSUtils::readFile(portFile, portStr)) {
+				proxyListenPort = atoi(portStr.c_str());
+			}
+		}
+		else
+		{
+			unsigned int randp = 0;
+        	Utils::getSecureRandom(&randp,sizeof(randp));
+        	proxyListenPort = 1000 + (randp % 1000);
+			printf("Proxy(): No port specified in networks.d/%.16llx.port, randomly picking port\n", nwid);
+			std::stringstream ss;
+			ss << proxyListenPort;
+			portStr = ss.str();
+			if(!ZeroTier::OSUtils::writeFile(portFile, portStr)) {
+				LOGV("unable to write proxy port file: %s\n", portFile);
+			}  
+		}
+
         struct sockaddr_in in4;
 		memset(&in4,0,sizeof(in4));
 		in4.sin_family = AF_INET;
@@ -77,7 +102,7 @@ namespace ZeroTier
 		in4.sin_port = Utils::hton((uint16_t)proxyListenPort);
 		proxyListenPhySocket = _phy.tcpListen((const struct sockaddr*)&in4,(void *)this);
 		sockstate = SOCKS_OPEN;
-		printf("SOCKS5 proxy server address for <%s> is: <0.0.0.0:%d> (sock=%p)\n", nwid, proxyListenPort, (void*)&proxyListenPhySocket);
+		printf("SOCKS5 proxy server address for <%.16llx> is: <0.0.0.0:%d> (sock=%p)\n", nwid, proxyListenPort, (void*)&proxyListenPhySocket);
 	}
     
     void ExtractAddress(int addr_type, unsigned char *buf, struct sockaddr_in * addr)
@@ -384,28 +409,5 @@ namespace ZeroTier
 	void NetconEthernetTap::phyOnFileDescriptorActivity(PhySocket *sock,void **uptr,bool readable,bool writable)
 	{
 		printf("phyOnFileDescriptorActivity(): sock=%p\n", (void*&)sock);
-		/*
-		if(readable)
-		{
-			//ProxyConn *conn = (ProxyConn*)*uptr;
-			//if(!conn){
-			//	printf("\t!conn");
-			//	return;
-			//}
-			//char buf[50];
-			//memset(buf, 0, sizeof(buf));
-			//printf("Activity(R)->socket() = %d\n", _phy.getDescriptor(sock));
-			//printf("Activity(W)->socket() = %d\n", conn->fd);
-			//int n_read = read(_phy.getDescriptor(sock), buf, sizeof(buf));
-			//printf("  read = %d\n", n_read);
-			//int n_sent = write(conn->fd, buf, n_read);
-			//printf("buf = %s\n", buf);
-			//printf("  sent = %d\n", n_sent);
-		}
-		if(writable)
-		{
-			printf(" writable\n");
-		}
-		*/
 	}
 }

@@ -119,6 +119,7 @@ int (*realclose)(CLOSE_SIG);
                 }
             #endif
         }
+        dwr(MSG_DEBUG, "zt_init_rpc(): api_netpath = %s\n", api_netpath);
     }
 
     void get_api_netpath() { zt_init_rpc("",""); }

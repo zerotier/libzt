@@ -77,7 +77,6 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 		Debug.Log ("Connecting to: " + addr.text + ":" + port.text);
 
 		Thread connectThread = new Thread(() => {
-			
 			int sockfd = zt.Socket ((int)AddressFamily.InterNetwork, (int)SocketType.Stream, (int)ProtocolType.Unspecified);
 			Debug.Log ("sockfd = " + sockfd);
 			int port_num;
@@ -223,19 +222,19 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 		GameObject go;
 		go = GameObject.Find ("inputNetworkID"); 
 		input = go.GetComponents<InputField> () [0];
-		input.text = "565799d8f6e1c11a";
+		input.text = "565799d8f65063e5";
 		go = GameObject.Find ("inputServerAddress"); 
 		input = go.GetComponents<InputField> () [0];
-		input.text = "172.22.211.245";
+		input.text = "10.9.9.203";
 		go = GameObject.Find ("inputServerPort"); 
 		input = go.GetComponents<InputField> () [0];
-		input.text = "5555";
+		input.text = "8080";
 		go = GameObject.Find ("inputMessage"); 
 		input = go.GetComponents<InputField> () [0];
 		input.text = "Welcome to the machine";
 
 		// Create new instance of ZeroTier in separate thread
-		zt = new ZeroTierNetworkInterface ();
+		zt = new ZeroTierNetworkInterface ("/Users/Joseph/utest3", "565799d8f65063e5");
 	}
 
 	// Terminate the ZeroTier service when the application quits

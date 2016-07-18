@@ -59,6 +59,7 @@ public class ZeroTierNetworkInterface {
 	// Only allow one network at a time for BETA
 	protected bool joined_to_network = false;
 	protected string nwid = "";
+	protected string path = "";
 
 	// Platform-specific paths and bundle/libary names
 	#if UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
@@ -88,6 +89,8 @@ public class ZeroTierNetworkInterface {
 	public static extern void SetDebugFunction( IntPtr fp );
 	[DllImport (DLL_PATH)]
 	private static extern int unity_start_service(string path);
+	[DllImport (DLL_PATH)]
+	private static extern int unity_start_service_and_rpc(string path, string nwid);
 
 	// Connection calls
 	[DllImport (DLL_PATH)]
@@ -153,8 +156,8 @@ public class ZeroTierNetworkInterface {
 	// Returns a path for RPC communications to the service
 	private string rpcCommPath()
 	{
-		if(rpc_path != "" && nwid != "") {
-			return rpc_path + "nc_" + nwid;
+		if(path != "" && nwid != "") {
+			return path + "nc_" + nwid;
 		}
 		return "";
 	}
@@ -166,13 +169,18 @@ public class ZeroTierNetworkInterface {
 		MyDelegate callback_delegate = new MyDelegate( CallBackFunction );
 		IntPtr intptr_delegate = Marshal.GetFunctionPointerForDelegate(callback_delegate);
 		SetDebugFunction( intptr_delegate );
-		Debug.Log ("RPC = " + rpcCommPath());
+
 		// Start service
-		unity_start_service(rpcCommPath());
 		/* This new instance will communicate via a named pipe, so any 
 		 * API calls (ZeroTier.Connect(), ZeroTier.Send(), etc) will be sent to the service
 		 * via this pipe.
 		 */
+		if(nwid.Length > 0) {
+			unity_start_service_and_rpc (path, nwid);
+		}
+		else {
+			unity_start_service(rpcCommPath());		
+		}
 	}
 
 	// Returns the nwid of the network you're currently connected to
@@ -200,9 +208,16 @@ public class ZeroTierNetworkInterface {
 	}
 
 	// Initialize the ZeroTier service with a given path
-	public ZeroTierNetworkInterface(string nwid)
+	public ZeroTierNetworkInterface(string path, string nwid)
 	{
+		this.path = path;
 		this.nwid = nwid;
+		Init();
+	}
+
+	public ZeroTierNetworkInterface (string path)
+	{
+		this.path = path;
 		Init();
 	}
 

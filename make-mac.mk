@@ -147,7 +147,6 @@ tests: $(TEST_OBJDIR) $(TEST_TARGETS)
 
 JAVAC := $(shell which javac)
 
-
 clean:
 	-rm -rf $(BUILD)/*
 	-rm -rf $(INT)/Unity3D/Assets/Plugins/*
@@ -163,3 +162,14 @@ clean:
 
 	# example android app project
 	-cd $(INT)/android/example_app; ./gradlew clean
+
+
+# For authors
+# Copies documentation to all of the relevant directories to make viewing in the repo a little easier
+update_docs:
+	cp docs/android_zt_sdk.md integrations/android/README.md
+	cp docs/ios_zt_sdk.md integrations/apple/example_app/iOS/README.md
+	cp docs/osx_zt_sdk.md integrations/apple/example_app/OSX/README.md
+	cp docs/integrations.md integrations/README.md
+	cp docs/zt_sdk_intro.md ../README.md
+	cp docs/docker_linux_zt_sdk.md integrations/docker/README.md

@@ -1379,6 +1379,7 @@
 					"-D__UNITY_3D__",
 					"-DSDK",
 					"-DSDK_DEBUG",
+					"-DUSE_SOCKS_PROXY",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-Unity3D-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1403,6 +1404,7 @@
 				OTHER_CFLAGS = (
 					"-D__UNITY_3D__",
 					"-DSDK",
+					"-DUSE_SOCKS_PROXY",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-Unity3D-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1560,6 +1562,8 @@
 					"-DSDK_DEBUG",
 					"-DSDK",
 					"-D__UNITY_3D__",
+					"-DUSE_SOCKS_PROXY",
+					"-DSDK_BUNDLED",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-Unity3D-OSX";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1582,7 +1586,9 @@
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
 					"-DSDK",
+					"-DUSE_SOCKS_PROXY",
 					"-D__UNITY_3D__",
+					"-DSDK_BUNDLED",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-Unity3D-OSX";
 				PRODUCT_NAME = "$(TARGET_NAME)";

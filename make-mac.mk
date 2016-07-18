@@ -78,6 +78,9 @@ ios_app_framework:
 osx_unity3d_bundle:
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_Unity3D_OSX build SYMROOT="../../../$(BUILD)/osx_unity3d_bundle"
 	cp docs/osx_unity3d_zt_sdk.md $(BUILD)/osx_unity3d_bundle/README.md
+	chmod 755 $(BUILD)/osx_unity3d_bundle/Debug/ZeroTierSDK_Unity3D_OSX.bundle
+	cp -p -R $(BUILD)/osx_unity3d_bundle/Debug/ZeroTierSDK_Unity3D_OSX.bundle $(INT)/Unity3D/Assets/Plugins
+
 ios_unity3d_bundle:
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_Unity3D_iOS build SYMROOT="../../../$(BUILD)/ios_unity3d_bundle"
 	cp docs/ios_unity3d_zt_sdk.md $(BUILD)/ios_unity3d_bundle/README.md
@@ -147,6 +150,7 @@ JAVAC := $(shell which javac)
 
 clean:
 	-rm -rf $(BUILD)/*
+	-rm -rf $(INT)/Unity3D/Assets/Plugins/*
 	-rm -rf zerotier-cli zerotier-idtool
 	-find . -type f \( -name 'zerotier-one' -o -name 'zerotier-sdk-service' \) -delete
 	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' \) -delete

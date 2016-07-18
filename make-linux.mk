@@ -148,6 +148,7 @@ tests: $(TEST_OBJDIR) $(TEST_TARGETS)
 
 clean:
 	-rm -rf $(BUILD)/*
+	-rm -rf $(INT)/Unity3D/Assets/Plugins/*
 	-rm -rf zerotier-cli zerotier-idtool
 	-find . -type f \( -name 'zerotier-one' -o -name 'zerotier-sdk-service' \) -delete
 	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' \) -delete

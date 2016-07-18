@@ -74,14 +74,21 @@ void zt_init_rpc(const char * path, const char * nwid);
     // .NET Interop-friendly debug mechanism
     typedef void (*FuncPtr)( const char * );
     FuncPtr Debug;
-    
     void SetDebugFunction( FuncPtr fp ) { Debug = fp; }
     
-    // Starts a service at the specified path
+    // Starts a ZeroTier service at the given path
     void unity_start_service(char * path, int len) {
-        Debug(path);
-        zt_init_rpc(path,"");
+        std::string dstr = std::string(path);
+        dstr = "unity_start_service(): path = " + dstr; 
+        Debug(dstr.c_str());
         init_service(INTERCEPT_DISABLED, path);
+    }
+    // Starts a ZeroTier service and RPC
+    void unity_start_service_and_rpc(char * path, char *nwid, int len) {
+        std::string dstr = std::string(path);
+        dstr = "unity_start_service_and_rpc(): path = " + dstr; 
+        Debug(dstr.c_str());
+        init_service_and_rpc(INTERCEPT_DISABLED, path, nwid);
     }
 #endif
     
@@ -100,13 +107,13 @@ void zt_init_rpc(const char * path, const char * nwid);
     }
     
     void leave_network(const char *nwid) { zt1Service->leave(nwid); }
-
     void zt_join_network(const char * nwid) { join_network(nwid); }
     void zt_leave_network(const char * nwid) { leave_network(nwid); }
     bool zt_is_running() { return zt1Service->isRunning(); }
     void zt_terminate() { zt1Service->terminate(); }
 
 
+// Android JNI wrapper
 #if defined(__ANDROID__)
     // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
     JNIEXPORT void JNICALL Java_ZeroTier_SDK_joinNetwork(JNIEnv *env, jobject thisObj, jstring nwid) {
@@ -136,12 +143,10 @@ void zt_init_rpc(const char * path, const char * nwid);
         if(zt1Service)
             zt1Service->terminate();
     }
-
 #endif
 
-
-
     
+// Typically used on iOS/OSX 
 #if !defined(__ANDROID__)
     /*
      * Starts a service thread and performs basic setup tasks
@@ -153,13 +158,11 @@ void zt_init_rpc(const char * path, const char * nwid);
         *intercept_thread_id = key;
         pthread_create(&intercept_thread, NULL, startOneService, (void *)(intercept_thread_id));
     }
-
     void init_service_and_rpc(int key, const char * path, const char * nwid) {
         rpcEnabled = true;
         rpcNWID = nwid;
         init_service(key, path);
     }
-
     /*
      * Enables or disables intercept for current thread using key in thread-local storage
      */
@@ -172,9 +175,6 @@ void zt_init_rpc(const char * path, const char * nwid);
     }
 #endif
 
-
-    
-    
 /*
  * Starts a new service instance
  */
@@ -192,22 +192,13 @@ void zt_init_rpc(const char * path, const char * nwid);
         // Don't intercept network calls originating from ZeroTier service
         set_intercept_status(INTERCEPT_DISABLED);
     #endif
-        
-        // If no homeDir is provided, attempt a best guess of an appropriate ZeroTier 
-        // homeDir according to platform and build type
-        if(!homeDir.length())
-        {
-            #if defined(__UNITY_3D__) && !defined(__ANDROID__) && !defined(__IOS__)
-                // Unity3D on a non-mobile platform
-                homeDir = current_dir; // homeDir shall be current dir
-            #endif
-        }
 
         #if defined(__UNITY_3D__)
             int MAX_DIR_SZ = 256;
             char current_dir[MAX_DIR_SZ];
             getcwd(current_dir, MAX_DIR_SZ);
             chdir(service_path.c_str());
+            homeDir = current_dir; // homeDir shall be current dir
         #endif
 
         #if defined(__APPLE__)
@@ -276,7 +267,7 @@ void zt_init_rpc(const char * path, const char * nwid);
         #endif
 
         //chdir(current_dir); // Return to previous current working directory (at the request of Unity3D)
-        //Debug(homeDir.c_str());
+        Debug("Starting service...\n");
         
         // Initialize RPC 
         if(rpcEnabled) {

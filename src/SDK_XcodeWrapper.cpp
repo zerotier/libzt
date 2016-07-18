@@ -17,8 +17,15 @@
 #include "SDK_ServiceSetup.hpp"
 
 // Starts a ZeroTier service at the specified path
+// This will only support SOCKS5 Proxy
 extern "C" void start_service(const char * path) {
     init_service(INTERCEPT_DISABLED, path);
+}
+
+// Starts a ZeroTier service at the specified path and initializes the RPC mechanism
+// This will allow direct API calls
+extern "C" void start_service_and_rpc(const char * path, const char * nwid) {
+    init_service_and_rpc(INTERCEPT_DISABLED, path, nwid);
 }
 
 // Joins a ZeroTier virtual network
@@ -32,9 +39,13 @@ extern "C" void zt_leave_network(const char * nwid){
 }
 
 // Explicit ZT API wrappers
-extern "C" void zts_init_rpc(const char *path, const char *nwid) {
-    zt_init_rpc(path, nwid);
-}
+#if !defined(__IOS__)
+    // This isn't available for iOS since function interposition isn't as reliable
+    extern "C" void zts_init_rpc(const char *path, const char *nwid) {
+        zt_init_rpc(path, nwid);
+    }
+#endif
+
 extern "C" int zts_socket(SOCKET_SIG) {
     return zt_socket(socket_family, socket_type, protocol);
 }

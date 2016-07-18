@@ -92,24 +92,28 @@ int (*realclose)(CLOSE_SIG);
     void zt_init_rpc(const char *path, const char *nwid)
     {
         dwr(MSG_DEBUG, "zt_init_rpc\n");
-        // Just double check we have 
-        if(!realconnect) {
-            load_symbols_rpc();
-        }
-
+        #if !defined(__IOS__)
+            // Since we don't use function interposition in iOS 
+            if(!realconnect) {
+                load_symbols_rpc();
+            }
+        #endif
+        // If no path, construct one or get it fron system env vars
         if(!api_netpath) {
             #if defined(SDK_BUNDLED)
                 // Get the path/nwid from the user application
                 // netpath = [path + "/nc_" + nwid] 
-                char *fullpath = malloc(strlen(path)+strlen(nwid)+1);
+                char *fullpath = malloc(strlen(path)+strlen(nwid)+1+4);
                 if(fullpath) {
                     strcpy(fullpath, path);
+                    strcat(fullpath, "/nc_");
                     strcat(fullpath, nwid);
-                    //api_netpath = fullpath;
-                    api_netpath = "/data/data/com.example.joseph.example_app/files/zerotier/nc_565799d8f65063e5";
+                    api_netpath = fullpath;
+                    //api_netpath = "/data/data/com.example.joseph.example_app/files/zerotier/nc_565799d8f65063e5";
                 }
             #else
                 // Get path/nwid from environment variables
+                // This is used when you're dynamically-linking our library into your application at runtime
                 if (!api_netpath) {
                     api_netpath = getenv("ZT_NC_NETWORK");
                     dwr(MSG_DEBUG, "$ZT_NC_NETWORK = %s\n", api_netpath);
@@ -370,7 +374,7 @@ int (*realclose)(CLOSE_SIG);
         printf("path = %s\n", api_netpath);
         LOGV("path = %s\n", api_netpath);
         int err = rpc_send_command(api_netpath, RPC_SOCKET, -1, &rpc_st, sizeof(struct socket_st));
-        LOGV("socket() = %s\n", err);
+        //LOGV("socket() = %d\n", err);
         dwr(MSG_DEBUG," socket() = %d\n", err);
         return err;
     }

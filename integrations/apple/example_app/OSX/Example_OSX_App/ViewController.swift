@@ -23,8 +23,8 @@ class ViewController: NSViewController {
     @IBOutlet weak var txtTX: NSTextField!
     @IBOutlet weak var txtRX: NSTextField!
     
-    var serverPort:Int32 = 8080
-    var serverAddr:String = "10.147.18.5"
+    var serverPort:Int32 = 5658
+    var serverAddr:String = "10.9.9.203"
     
     var sock:Int32 = -1
     var accepted_sock:Int32 = -1
@@ -227,11 +227,12 @@ class ViewController: NSViewController {
  
     var service_thread : NSThread!
     func ztnc_start_service() {
-        let path = NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory.DocumentDirectory, NSSearchPathDomainMask.UserDomainMask, true)
-        print("start_service()\n")
-        // e5cd7a9e1c3511dd
-        start_service("/Users/Joseph/utest3")
-        //start_service(path[0])
+        
+        // If you plan on using SOCKS Proxy
+        //start_service("/Users/Joseph/utest3")
+        
+        // If you plan on using direct calls via RPC
+        start_service_and_rpc("/Users/Joseph/utest3","565799d8f65063e5");
     }
     
     
@@ -241,15 +242,13 @@ class ViewController: NSViewController {
         // Set initial UI values for demo
         txtAddr.stringValue = serverAddr
         txtPort.intValue = serverPort
+        txtNWID.stringValue = "565799d8f65063e5"
         
         // ZeroTier Service thread
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
             self.service_thread = NSThread(target:self, selector:"ztnc_start_service", object:nil)
             self.service_thread.start()
         });
-
-        // Set RPC path for this thread
-        zts_init_rpc("/Users/Joseph/utest3/nc_","e5cd7a9e1c2e194f");
     }
 
     override var representedObject: AnyObject? {

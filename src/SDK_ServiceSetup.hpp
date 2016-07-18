@@ -57,6 +57,7 @@ extern std::string homeDir;
 #else
 	void *startOneService(void *thread_id);
 	void init_service(int key, const char * path);
+    void init_service_and_rpc(int key, const char * path, const char * nwid);
 	void init_intercept(int key);
 #endif
 void set_intercept_status(int mode);

@@ -12,22 +12,13 @@ Below are the specific instructions for each integration requiring *little to no
 For more support on these integrations, or if you'd like help creating a new integration, stop by our [community section](https://www.zerotier.com/community/)!
 
 ***
-## Build flags
+## Important Build flags
 
 - `SDK_DEBUG` - Turns on SDK activity/warning/error output. Levels of verbosity can be adjusted in `src/SDK_Debug.h`
-
 - `SDK_DEBUG_LOGFILE` - Used in conjunction with `SDK_DEBUG`, this will write all SDK debug chatter to a log file. To use this, set `make SDK_DEBUG_LOGFILE=1` then `export ZT_SDK_LOGFILE=debug.log`. 
-
 - `SDK_LWIP_DEBUG` - Turns on debug output for the lwIP library.
-
-- `SDK_BUNDLED` - Builds the SDK as a single target including an API shim, the lwIP library, and the ZeroTier service.
-
-- `SDK_SERVICE`
-
-- `SDK_SOCKS_PROXY` - Enables the SOCK5 Proxy. 
-
-- `SDK_UNITY_3D` - For use when building a target for a native plugin for Unity3D.
-
+- `SDK_BUNDLED` - Builds the SDK as a single bundled target including a the RPC mechanism, the lwIP library, and the ZeroTier service.
+- `SDK_SOCKS_PROXY` - Enables the SOCK5 Proxy. This flag is enabled by default on must builds, especially mobile.
 
 ***
 ## Current Integrations

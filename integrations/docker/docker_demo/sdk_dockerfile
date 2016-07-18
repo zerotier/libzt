@@ -1,0 +1,36 @@
+# ZT SDK Test
+FROM fedora:23
+MAINTAINER https://www.zerotier.com/
+
+# Install apps
+RUN yum -y update
+RUN yum -y install redis-3.0.4-1.fc23.x86_64
+RUN yum clean all
+
+# Add ZT files
+RUN mkdir -p /var/lib/zerotier-one/networks.d
+ADD sdk_identity.public /var/lib/zerotier-one/identity.public
+ADD sdk_identity.secret /var/lib/zerotier-one/identity.secret
+ADD *.conf /var/lib/zerotier-one/networks.d/
+ADD *.conf /
+ADD *.name /
+
+EXPOSE 9993/udp 6379/udp
+
+# Install LWIP library used by service
+ADD liblwip.so /var/lib/zerotier-one/liblwip.so
+
+# Install syscall intercept library
+ADD libztintercept.so /
+RUN cp libztintercept.so lib/libztintercept.so
+RUN ln -sf /lib/libztintercept.so /lib/libzerotierintercept
+
+ADD zerotier-cli /
+Add zerotier-sdk-service /
+
+# Install test scripts
+ADD sdk_entrypoint.sh /sdk_entrypoint.sh
+RUN chmod -v +x /sdk_entrypoint.sh
+
+# Start ZeroTier-One
+CMD ["./sdk_entrypoint.sh"]

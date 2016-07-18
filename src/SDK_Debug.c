@@ -98,20 +98,20 @@ void dwr(int level, const char *fmt, ... )
 #elif defined(__APPLE__)
   pid_t tid = pthread_mach_thread_np(pthread_self());
 #endif
-  //#if defined(SDK_DEBUG_LOG_TO_FILE)
-    //if(!debug_logfile) { // Try to get logfile from env
-    //  debug_logfile = getenv("ZT_SDK_LOGFILE");
-    //}
+  #if defined(SDK_DEBUG_LOG_TO_FILE)
+    if(!debug_logfile) { // Try to get logfile from env
+      debug_logfile = getenv("ZT_SDK_LOGFILE");
+    }
     
-    //if(debug_logfile) {
-      FILE *file = fopen("/Users/Joseph/code/unity.log","a");
+    if(debug_logfile) {
+      FILE *file = fopen(debug_logfile,"a");
       fprintf(file, "%s [tid=%7d] ", timestring, tid);
       vfprintf(file, fmt, ap);
       fclose(file);
       va_end(ap);
-    //}
+    }
     
-  //#endif
+  #endif
   va_start(ap, fmt);
   fprintf(stderr, "%s [tid=%7d] ", timestring, tid);
   vfprintf(stderr, fmt, ap);

@@ -18,12 +18,11 @@ class ViewController: UIViewController {
     
     @IBOutlet weak var txtAddr: UITextField!
     @IBOutlet weak var txtPort: UITextField!
-    
     @IBOutlet weak var txtTX: UITextField!
     @IBOutlet weak var txtRX: UITextField!
-    
     @IBOutlet weak var btnTX: UIButton!
-  
+    @IBOutlet weak var btnConnect: UIButton!
+    @IBOutlet weak var btnBind: UIButton!
     
     @IBOutlet weak var btnRX: UIButton!
     @IBAction func UI_RX(sender: AnyObject) {
@@ -33,12 +32,6 @@ class ViewController: UIViewController {
         if(selectedProtocol == SOCK_STREAM)
         {
             var buffer = [UInt8](count: 100, repeatedValue: 0)
-            let str = "GET / HTTP/1.0\r\n\r\n"
-            //let str = "Welcome to the machine"
-            print("strlen = %d\n", str.characters.count)
-            let encodedDataArray = [UInt8](str.utf8)
-            
-            //            read(accepted_sock, UnsafeMutablePointer<Void>([txtTX.stringValue]), 128);
             read(accepted_sock, &buffer, 100);
             print(buffer)
             
@@ -49,7 +42,6 @@ class ViewController: UIViewController {
             // recvfrom
         }
     }
-    
     
     
     @IBAction func UI_TX(sender: AnyObject) {
@@ -93,9 +85,12 @@ class ViewController: UIViewController {
             break;
         }
     }
-
-    @IBOutlet weak var btnConnect: UIButton!
-    @IBAction func UI_Connect(sender: AnyObject) {
+    
+    
+    // CONNECT
+    var connect_thread : NSThread!
+    func attempt_connect()
+    {
         // TCP
         if(selectedProtocol == SOCK_STREAM)
         {
@@ -125,9 +120,18 @@ class ViewController: UIViewController {
         }
     }
     
+    // Connect to remote host on ZeroTier virtual network
+    @IBAction func UI_Connect(sender: AnyObject) {
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
+            self.connect_thread = NSThread(target:self, selector:"attempt_connect", object:nil)
+            self.connect_thread.start()
+        });
+    }
     
-    @IBOutlet weak var btnBind: UIButton!
-    @IBAction func UI_Bind(sender: AnyObject) {
+    // BIND
+    var bind_thread : NSThread!
+    func attempt_bind()
+    {
         // TCP
         if(selectedProtocol == SOCK_STREAM)
         {
@@ -161,8 +165,52 @@ class ViewController: UIViewController {
             }
             print("accepted connection")
         }
+        
+        // UDP
+        if(selectedProtocol == SOCK_DGRAM)
+        {
+            
+        }
+    }
+    
+    // Bind a ZeroTier socket
+    @IBAction func UI_Bind(sender: AnyObject) {
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
+            self.bind_thread = NSThread(target:self, selector:"attempt_bind", object:nil)
+            self.bind_thread.start()
+        });
     }
 
+    // Watch for incoming data
+    var rx_thread : NSThread!
+    func update_rx() {
+        while(true)
+        {
+            sleep(1)
+            // TCP
+            if(selectedProtocol == SOCK_STREAM)
+            {
+                var len = 32
+                var buffer = [UInt8](count: len, repeatedValue: 0)
+                let n = read(accepted_sock, &buffer, len);
+                if(n > 0)
+                {
+                    if let str = String(data: NSData(bytes: &buffer, length: len), encoding: NSUTF8StringEncoding) {
+                        dispatch_async(dispatch_get_main_queue()) {
+                            self.txtRX.text = str
+                        }
+                    } else {
+                        print("not a valid UTF-8 sequence")
+                    }
+                }
+            }
+            // UDP
+            if(selectedProtocol == SOCK_DGRAM)
+            {
+                // recvfrom
+            }
+        }
+    }
     
     // ZeroTier service thread
     var service_thread : NSThread!
@@ -176,8 +224,11 @@ class ViewController: UIViewController {
         
         txtNWID.text = "565799d8f65063e5"
         txtTX.text = "welcome to the machine"
-        txtAddr.text = "10.9.9.203"
+        txtAddr.text = "0.0.0.0"
+        serverAddr = "0.0.0.0"
         txtPort.text = "8080"
+        serverPort = 8080
+        
         selectedProtocol = SOCK_STREAM
         
         // ZeroTier Service thread
@@ -185,7 +236,13 @@ class ViewController: UIViewController {
             self.service_thread = NSThread(target:self, selector:"ztnc_start_service", object:nil)
             self.service_thread.start()
         });
-                
+        
+        // UI RX update
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
+            self.rx_thread = NSThread(target:self, selector:"update_rx", object:nil)
+            self.rx_thread.start()
+        });
+        
         // Do any additional setup after loading the view, typically from a nib.
     }
 

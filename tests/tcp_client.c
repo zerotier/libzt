@@ -34,13 +34,12 @@ int main(int argc , char *argv[])
     }
     printf("connected\n");
 
-    char *msg = "welcome to the machine!";
     while(1) {
         printf("enter message : ");
         scanf("%s" , message);
 
         // TX         
-        if(send(sock, msg, sizeof(msg), 0) < 0) {
+        if(send(sock, message, strlen(message), 0) < 0) {
             printf("send failed");
             return 1;
         }

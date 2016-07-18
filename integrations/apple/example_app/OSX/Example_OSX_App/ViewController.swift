@@ -23,8 +23,8 @@ class ViewController: NSViewController {
     @IBOutlet weak var txtTX: NSTextField!
     @IBOutlet weak var txtRX: NSTextField!
     
-    var serverPort:Int32 = 8081
-    var serverAddr:String = "10.9.9.203"
+    var serverPort:Int32 = 8080
+    var serverAddr:String = "0.0.0.0"
     
     var sock:Int32 = -1
     var accepted_sock:Int32 = -1
@@ -166,7 +166,6 @@ class ViewController: NSViewController {
     @IBOutlet weak var btnReadData: NSButton!
     @IBAction func UI_ReadData(sender: AnyObject) {
         // Use ordinary read/write calls on ZeroTier socket
-        
         // TCP
         if(selectedProtocol == SOCK_STREAM)
         {
@@ -175,9 +174,7 @@ class ViewController: NSViewController {
             //let str = "Welcome to the machine"
             print("strlen = %d\n", str.characters.count)
             let encodedDataArray = [UInt8](str.utf8)
-            
-//            read(accepted_sock, UnsafeMutablePointer<Void>([txtTX.stringValue]), 128);
-            read(accepted_sock, &buffer, 100);
+            read(accepted_sock, &buffer, 4);
             print(buffer)
 
         }
@@ -226,7 +223,6 @@ class ViewController: NSViewController {
  
     var service_thread : NSThread!
     func ztnc_start_service() {
-        
         // If you plan on using SOCKS Proxy, you don't need to initialize the RPC
         //start_service("/Users/Joseph/utest3")
         

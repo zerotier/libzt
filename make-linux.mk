@@ -109,8 +109,8 @@ docker_demo: one linux_shared_lib
 	cd $(INT)/docker/docker_demo; docker build --tag="docker_demo_monitor" -f monitor_dockerfile .
 
 # Builds all docker test images
-docker_images:
-	./tests/docker/build.sh
+docker_images: one linux_shared_lib
+	./tests/docker/build_images.sh
 
 # Runs docker container tests
 docker_test:

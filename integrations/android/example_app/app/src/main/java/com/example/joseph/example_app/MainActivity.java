@@ -44,14 +44,7 @@ public class MainActivity extends AppCompatActivity {
         }, 10000);
 */
 
-        try
-        {
-            Thread.sleep(1000);
-        }
-        catch(java.lang.InterruptedException e)
-        {
 
-        }
 
 
         // Create ZeroTier socket
@@ -65,10 +58,19 @@ public class MainActivity extends AppCompatActivity {
         //int port = 8080;
         //SocketAddress sockaddr = new InetSocketAddress(addr, port);
 
+        try
+        {
+            Thread.sleep(15000);
+        }
+        catch(java.lang.InterruptedException e)
+        {
+
+        }
+
         // Connect to remote host
-        //Log.d("","ztjniConnect()\n");
-        //int err = zt.ztjniConnect(sock, "10.144.211.245", 8080);
-        //Log.d("", "ztjniConnect() = " + err + "\n");
+        Log.d("","ztjniConnect()\n");
+        int err = zt.ztjniConnect(sock, "10.9.9.203", 8080);
+        Log.d("", "ztjniConnect() = " + err + "\n");
 
         // Set up example proxy connection to SDK proxy server
         /*

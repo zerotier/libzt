@@ -109,7 +109,6 @@ int (*realclose)(CLOSE_SIG);
                     strcat(fullpath, "/nc_");
                     strcat(fullpath, nwid);
                     api_netpath = fullpath;
-                    //api_netpath = "/data/data/com.example.joseph.example_app/files/zerotier/nc_565799d8f65063e5";
                 }
             #else
                 // Get path/nwid from environment variables
@@ -371,8 +370,7 @@ int (*realclose)(CLOSE_SIG);
     #endif
 #endif
         /* -1 is passed since we we're generating the new socket in this call */
-        printf("path = %s\n", api_netpath);
-        LOGV("path = %s\n", api_netpath);
+        printf("api_netpath = %s\n", api_netpath);
         int err = rpc_send_command(api_netpath, RPC_SOCKET, -1, &rpc_st, sizeof(struct socket_st));
         //LOGV("socket() = %d\n", err);
         dwr(MSG_DEBUG," socket() = %d\n", err);
@@ -388,7 +386,6 @@ int (*realclose)(CLOSE_SIG);
     JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniConnect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
         struct sockaddr_in addr;
         char *str;
-        // = env->GetStringUTFChars(addrstr, NULL);
         (*env)->ReleaseStringUTFChars(env, addrstr, str);
         addr.sin_addr.s_addr = inet_addr(str);
         addr.sin_family = AF_INET;

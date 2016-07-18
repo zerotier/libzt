@@ -135,8 +135,8 @@ NetconEthernetTap::NetconEthernetTap(
     
 	// Start SOCKS5 Proxy server
 	// For use when traditional syscall hooking isn't available (ex. some APIs on iOS and Android)
-	#if defined(USE_SOCKS_PROXY) || defined(__ANDROID__)
-		StartProxy(sockPath);
+	#if defined(USE_SOCKS_PROXY)
+		StartProxy(sockPath, _homePath.c_str(), _nwid);
 	#endif
 
 	Utils::snprintf(lwipPath,sizeof(lwipPath),"%s%sliblwip.so",homePath,ZT_PATH_SEPARATOR_S);
@@ -1222,6 +1222,7 @@ void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Conne
 		d[1] = (ip >>  8) & 0xFF;
 		d[2] = (ip >> 16) & 0xFF;
 		d[3] = (ip >> 24) & 0xFF;
+		
 		dwr(MSG_DEBUG," handleConnect(): %d.%d.%d.%d: %d\n", d[0],d[1],d[2],d[3], port);	
 		dwr(MSG_DEBUG," handleConnect(): pcb->state = %x\n", conn->TCP_pcb->state);
 		if(conn->TCP_pcb->state != CLOSED) {

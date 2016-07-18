@@ -23,7 +23,7 @@ class ViewController: NSViewController {
     @IBOutlet weak var txtTX: NSTextField!
     @IBOutlet weak var txtRX: NSTextField!
     
-    var serverPort:Int32 = 5658
+    var serverPort:Int32 = 8081
     var serverAddr:String = "10.9.9.203"
     
     var sock:Int32 = -1
@@ -150,11 +150,10 @@ class ViewController: NSViewController {
     @IBOutlet weak var btnSend: NSButton!
     @IBAction func UI_SendData(sender: AnyObject) {
         // Use ordinary read/write calls on ZeroTier socket
-        
         // TCP
         if(selectedProtocol == SOCK_STREAM)
         {
-            write(sock, txtTX.description, 4);
+            write(sock, txtTX.description, txtTX.description.characters.count);
         }
         // UDP
         if(selectedProtocol == SOCK_DGRAM)
@@ -228,7 +227,7 @@ class ViewController: NSViewController {
     var service_thread : NSThread!
     func ztnc_start_service() {
         
-        // If you plan on using SOCKS Proxy
+        // If you plan on using SOCKS Proxy, you don't need to initialize the RPC
         //start_service("/Users/Joseph/utest3")
         
         // If you plan on using direct calls via RPC

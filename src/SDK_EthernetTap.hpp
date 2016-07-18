@@ -461,7 +461,7 @@ namespace ZeroTier {
 		int proxyListenSocket;
 		PhySocket *proxyListenPhySocket;
 
-		void StartProxy(const char *nwid);
+		void StartProxy(const char *sockpath, const char *homepath, uint64_t nwid);
 
 		void phyOnFileDescriptorActivity(PhySocket *sock,void **uptr,bool readable,bool writable);
 

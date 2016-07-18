@@ -5,11 +5,12 @@ Welcome!
 
 Imagine a flat, encrypted, no-configuration LAN for all of your Docker containers. 
 
-This short tutorial will show you how to enable ZeroTier functionality for your Docker software container with little to no configuration. In this example we aim to build a Docker container with ZeroTier’s SDK service bundled right in so that it’s effortless to hook any number of your services in the container up to your virtual network.
+This short tutorial will show you how to enable ZeroTier functionality for your Docker software container with little to no configuration. In this example we aim to build a Docker container with ZeroTier’s Network Container service bundled right in so that it’s effortless to hook any number of your services in the container up to your virtual network. Alternatively, you can check out a docker project directory [here](sdk/integrations/docker/docker_demo).
 
-**Step 1: Build the ZeroTier service binaries**
 
-From the ZeroTier source directory,  `make sdk` Optionally, if you'd like to see some debug output during execution, use `make sdk SDK_DEBUG=1`
+**Step 1: Build ZeroTier shared library**
+
+`make shared_lib`, to see debug output, use `make shared_lib SDK_DEBUG=1`
 
 **Step 2: Build your Docker image**
 
@@ -49,15 +50,15 @@ RUN chmod -v +x /sdk_entrypoint.sh
 CMD ["./sdk_entrypoint.sh"]
 ```
 
-**Step 3: Start your container**
+**Step 3: Start container**
 
 `docker run -d -it redis_test /bin/bash`
 
-**Step 4: From your container, set up environment variables**
+**Step 4: From container, set up environment variables**
 
 Set our application pre-load with `export LD_PRELOAD=./libztintercept.so`. This dynamically loads our intercept library into your application which allows us to re-direct its network calls to our virtual network.
 
-Tell the ZeroTier SDK service which network to connect to with `export ZT_NC_NETWORK=/var/lib/zerotier-one/nc_XXXXXXXXXXXXXXXX`.
+Tell the ZeroTier Network Containers service which network to connect to with `export ZT_NC_NETWORK=/var/lib/zerotier-one/nc_XXXXXXXXXXXXXXXX`.
 
 **Step 5: Run your new ZeroTier-enabled service**
 
@@ -71,6 +72,28 @@ If you'd like to know the IP address your service can be reached at on this part
 `zerotier-cli -D/var/lib/zerotier-one/nc_XXXXXXXXXXXXXXXX listnetworks`
 
 
-***
-`docker exec -it 'container id' /bin/bash`
+## Tests
 
+For info on testing the SDK, take a look at [docs/docker_linux_testing.md](docs/docker_linux_testing.md)
+
+
+## Installing in a Docker container (or any other container engine)
+
+If it's not immediately obvious, installation into a Docker container is easy. Just install `zerotier-sdk-service`, `libztintercept.so`, and `liblwip.so` into the container at an appropriate locations. We suggest putting it all in `/var/lib/zerotier-one` since this is the default ZeroTier home and will eliminate the need to supply a path to any of ZeroTier's services or utilities. Then, in your Docker container entry point script launch the service with *-d* to run it in the background, set the appropriate environment variables as described above, and launch your container's main application.
+
+The only bit of complexity is configuring which virtual network to join. ZeroTier's service automatically joins networks that have `.conf` files in `ZTHOME/networks.d` even if the `.conf` file is empty. So one way of doing this very easily is to add the following commands to your Dockerfile or container entry point script:
+
+    mkdir -p /var/lib/zerotier-one/networks.d
+    touch /var/lib/zerotier-one/networks.d/8056c2e21c000001.conf
+
+Replace 8056c2e21c000001 with the network ID of the network you want your container to automatically join. It's also a good idea in your container's entry point script to add a small loop to wait until the container's instance of ZeroTier generates an identity and comes online. This could be something like:
+
+    /var/lib/zerotier-one/zerotier-sdk-service -d
+    while [ ! -f /var/lib/zerotier-one/identity.secret ]; do
+      sleep 0.1
+    done
+    # zerotier-sdk-service is now running and has generated an identity
+
+(Be sure you don't bundle the identity into the container, otherwise every container will try to be the same device and they will "fight" over the device's address.)
+
+Now each new instance of your container will automatically join the specified network on startup. Authorizing the container on a private network still requires a manual authorization step either via the ZeroTier Central web UI or the API. We're working on some ideas to automate this via bearer token auth or similar since doing this manually or with scripts for large deployments is tedious.

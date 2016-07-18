@@ -35,7 +35,6 @@
 		7C74DACD1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SDK_XcodeWrapper.cpp; path = ../../../../../src/SDK_XcodeWrapper.cpp; sourceTree = "<group>"; };
 		7C74DACE1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SDK_XcodeWrapper.hpp; path = ../../../../../src/SDK_XcodeWrapper.hpp; sourceTree = "<group>"; };
 		7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ZeroTierSDK_OSX.framework; path = ../../../../build/osx_app_framework/Debug/ZeroTierSDK_OSX.framework; sourceTree = "<group>"; };
-		7CF8E36D1D2C40F6001A8401 /* Example_OSX_App-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Example_OSX_App-Bridging-Header.h"; sourceTree = "<group>"; };
 		7CFCB42D1D1AFEE800D3E66C /* Example_OSX_App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Example_OSX_App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CFCB4301D1AFEE800D3E66C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7CFCB4321D1AFEE800D3E66C /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -84,7 +83,6 @@
 				7CFCB4341D1AFEE800D3E66C /* Assets.xcassets */,
 				7CFCB4361D1AFEE800D3E66C /* Main.storyboard */,
 				7CFCB4391D1AFEE800D3E66C /* Info.plist */,
-				7CF8E36D1D2C40F6001A8401 /* Example_OSX_App-Bridging-Header.h */,
 			);
 			path = Example_OSX_App;
 			sourceTree = "<group>";
@@ -276,8 +274,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.Example-OSX-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "Example_OSX_App/Example_OSX_App-Bridging-Header.h";
-				"SWIFT_OBJC_BRIDGING_HEADER[arch=*]" = "Example_OSX_App/Example_OSX_App-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/../../../../src/SDK_Apple-Bridging-Header.h";
+				"SWIFT_OBJC_BRIDGING_HEADER[arch=*]" = "$(PROJECT_DIR)/../../../../src/SDK_Apple-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -294,7 +292,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.Example-OSX-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "Example_OSX_App/Example_OSX_App-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/../../../../src/SDK_Apple-Bridging-Header.h";
 			};
 			name = Release;
 		};

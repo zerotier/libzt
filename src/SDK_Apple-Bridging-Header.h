@@ -1,5 +1,5 @@
 //
-//  Use this file to import your target's public headers that you would like to expose to Swift.
+//  Implementations located in src/SDK_XcodeWrapper.cpp
 //
 
 #ifndef Example_OSX_Bridging_Header_h
@@ -7,6 +7,7 @@
 
 int start_intercept();
 void start_service(const char * path);
+void start_service_and_rpc(const char * path, const char * nwid);
 void join_network(const char * nwid);
 void disable_intercept();
 void enable_intercept();
@@ -29,7 +30,6 @@ int zts_setsockopt(SETSOCKOPT_SIG);
 int zts_getsockopt(GETSOCKOPT_SIG);
 int zts_close(CLOSE_SIG);
 int zts_getsockname(GETSOCKNAME_SIG);
-
 
 #endif /* Example_OSX_Bridging_Header_h */
 

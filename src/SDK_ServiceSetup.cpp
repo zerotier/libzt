@@ -42,12 +42,11 @@
 #include <sys/types.h>
 #include <pthread.h>
 
-#include "service/OneService.hpp"
+#include "OneService.hpp"
 #include "Utils.hpp"
 #include "OSUtils.hpp"
 
 #include "SDK.h"
-
 #include "SDK_Debug.h"
 #include "SDK_ServiceSetup.hpp"
 
@@ -56,7 +55,10 @@ pthread_t intercept_thread;
 int * intercept_thread_id;
 pthread_key_t thr_id_key;
 static ZeroTier::OneService *volatile zt1Service;
-std::string homeDir;
+
+std::string localHomeDir; // Local shortened path
+std::string givenHomeDir; // What the user/application provides as a suggestion
+std::string homeDir; // The resultant platform-specific dir we *must* use internally
 std::string netDir;
 
 #ifdef __cplusplus
@@ -145,20 +147,24 @@ void zt_init_rpc(const char * path, const char * nwid);
     /*
      * Starts a service thread and performs basic setup tasks
      */
-    void init_service(int key, const char * path)
-    {
-        homeDir = path;
+    void init_service(int key, const char * path) {
+        givenHomeDir = path;
         pthread_key_create(&thr_id_key, NULL);
         intercept_thread_id = (int*)malloc(sizeof(int));
         *intercept_thread_id = key;
         pthread_create(&intercept_thread, NULL, startOneService, (void *)(intercept_thread_id));
     }
 
+    void init_service_and_rpc(int key, const char * path, const char * nwid)
+    {
+        init_service(key, path);
+        zt_init_rpc(path, nwid);
+    }
+
     /*
      * Enables or disables intercept for current thread using key in thread-local storage
      */
-    void set_intercept_status(int mode)
-    {
+    void set_intercept_status(int mode) {
         fprintf(stderr, "set_intercept_status(mode=%d): tid = %d\n", mode, pthread_mach_thread_np(pthread_self()));
         pthread_key_create(&thr_id_key, NULL);
         intercept_thread_id = (int*)malloc(sizeof(int));
@@ -192,27 +198,29 @@ void zt_init_rpc(const char * path, const char * nwid);
         // homeDir according to platform and build type
         if(!homeDir.length())
         {
-            #if defined(__UNITY_3D__)
-                int MAX_DIR_SZ = 256;
-                char current_dir[MAX_DIR_SZ];
-                getcwd(current_dir, MAX_DIR_SZ);
-                chdir(service_path.c_str());
-            #endif
-        
             #if defined(__UNITY_3D__) && !defined(__ANDROID__) && !defined(__IOS__)
                 // Unity3D on a non-mobile platform
                 homeDir = current_dir; // homeDir shall be current dir
             #endif
-
-            #if defined(__APPLE__)
-                #include "TargetConditionals.h"
-                #if TARGET_IPHONE_SIMULATOR
-                        // homeDir = "dont/run/this/in/the/simulator";
-                #elif TARGET_OS_IPHONE
-                        homeDir = "ZeroTier/One";
-                #endif
-            #endif
         }
+
+        #if defined(__UNITY_3D__)
+            int MAX_DIR_SZ = 256;
+            char current_dir[MAX_DIR_SZ];
+            getcwd(current_dir, MAX_DIR_SZ);
+            chdir(service_path.c_str());
+        #endif
+
+        #if defined(__APPLE__)
+            #include "TargetConditionals.h"
+            #if TARGET_IPHONE_SIMULATOR
+                // homeDir = "dont/run/this/in/the/simulator/it/wont/work";
+            #elif TARGET_OS_IPHONE
+                localHomeDir = "ZeroTier/One";
+                std::string del = givenHomeDir.length() && givenHomeDir[givenHomeDir.length()-1]!='/' ? "/" : "";
+                homeDir = givenHomeDir + del + localHomeDir;
+            #endif
+        #endif
 
         #if defined(__ANDROID__)
             /* NOTE: Since on Android devices the sdcard is formatted as fat32, we can't use this 
@@ -223,13 +231,16 @@ void zt_init_rpc(const char * path, const char * nwid);
             //join_network("565799d8f65063e5");
         #endif
 
-        LOGV("homeDir = %s", homeDir.c_str());
+        #if defined(__APPLE__) && !defined(__IOS__)
+            homeDir = givenHomeDir;
+        #endif
+
+        LOGV("homeDir = %s", givenHomeDir.c_str());
         // Where network .conf files will be stored
         netDir = homeDir + "/networks.d";
-
         zt1Service = (ZeroTier::OneService *)0;
-        LOGV("Starting ZT service...\n");
         
+        // Construct path for network config and supporting service files
         if (!homeDir.length()) {
             #if defined(__ANDROID__)
                 return;
@@ -253,6 +264,18 @@ void zt_init_rpc(const char * path, const char * nwid);
                 }
             }
         }
+
+
+
+        #if defined(__IOS__)
+            // Go to the app's data directory so we can shorten the sun_path we bind to
+            int MAX_DIR_SZ = 256;
+            char current_dir[MAX_DIR_SZ];
+            getcwd(current_dir, MAX_DIR_SZ);
+            std::string targetDir = homeDir + "/../../";
+            chdir(targetDir.c_str());
+            homeDir = localHomeDir;
+        #endif
 
         //chdir(current_dir); // Return to previous current working directory (at the request of Unity3D)
         //Debug(homeDir.c_str());

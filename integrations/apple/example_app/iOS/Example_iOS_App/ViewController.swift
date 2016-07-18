@@ -10,13 +10,22 @@ import UIKit
 
 class ViewController: UIViewController {
 
+    @IBOutlet weak var txtNWID: UITextField!
+    
+    @IBOutlet weak var btnJoinNetwork: UIButton!
+    @IBAction func UI_JoinNetwork(sender: AnyObject) {
+        zt_join_network("565799d8f65063e5")
+    }
+    
+    @IBOutlet weak var btnLeaveNetwork: UIButton!
+    @IBAction func UI_LeaveNetwork(sender: AnyObject) {
+        zt_leave_network("565799d8f65063e5")
+    }
+    
     var service_thread : NSThread!
     func ztnc_start_service() {
         let path = NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory.DocumentDirectory, NSSearchPathDomainMask.UserDomainMask, true)
-        print("start_service()\n")
-        // e5cd7a9e1c3511dd
-        start_service("/Users/Joseph/utest3")
-        //start_service(path[0])
+        start_service(path[0])
     }
 
     override func viewDidLoad() {
@@ -27,10 +36,7 @@ class ViewController: UIViewController {
             self.service_thread = NSThread(target:self, selector:"ztnc_start_service", object:nil)
             self.service_thread.start()
         });
-        
-        // Set RPC path for this thread
-        zts_init_rpc("/Users/Joseph/utest3/nc_","e5cd7a9e1c2e194f");
-        
+                
         // Do any additional setup after loading the view, typically from a nib.
     }
 
@@ -38,7 +44,5 @@ class ViewController: UIViewController {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
-
-
 }
 

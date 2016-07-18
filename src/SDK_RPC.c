@@ -139,19 +139,19 @@ int rpc_join(char * sockname)
   strncpy(addr.sun_path, sockname, sizeof(addr.sun_path)-1);
   int sock;
 
-#if defined(__ANDROID__)
-  if((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0){
-#else
+#if defined(SDK_INTERCEPT)
   if((sock = realsocket(AF_UNIX, SOCK_STREAM, 0)) < 0){
+#else
+  if((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0){
 #endif
     LOGV(stderr, "Error while creating RPC socket\n");
     return -1;
   }
   while((conn_err != 0) && (attempts < SERVICE_CONNECT_ATTEMPTS)){
-    #if defined(__ANDROID__)
-      if((conn_err = connect(sock, (struct sockaddr*)&addr, sizeof(addr))) != 0) {
-    #else
+    #if defined(SDK_INTERCEPT)
       if((conn_err = realconnect(sock, (struct sockaddr*)&addr, sizeof(addr))) != 0) {
+    #else
+      if((conn_err = connect(sock, (struct sockaddr*)&addr, sizeof(addr))) != 0) {
     #endif
       LOGV("Error while connecting to RPC socket. Re-attempting...\n");
       sleep(1);

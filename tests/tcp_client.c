@@ -5,6 +5,9 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
  
+int atoi(const char *str);
+int close(int filedes);
+
 int main(int argc , char *argv[])
 {
     if(argc < 3) {
@@ -18,7 +21,7 @@ int main(int argc , char *argv[])
      
     sock = socket(AF_INET , SOCK_STREAM , 0);
     if (sock == -1) {
-        printf("Could not create socket");
+        printf("could not create socket");
     }     
     server.sin_addr.s_addr = inet_addr(argv[1]);
     server.sin_family = AF_INET;
@@ -29,29 +32,28 @@ int main(int argc , char *argv[])
         perror("connect failed. Error");
         return 1;
     }
-    puts("Connected\n");
-     
+    printf("connected\n");
 
     char *msg = "welcome to the machine!";
     while(1) {
-        printf("Enter message : ");
+        printf("enter message : ");
         scanf("%s" , message);
 
         // TX         
         if(send(sock, msg, sizeof(msg), 0) < 0) {
-            puts("Send failed");
+            printf("send failed");
             return 1;
         }
     	else {
-    		printf("len = %d\n", strlen(message));
+    		printf("len = %ld\n", strlen(message));
     	}
 
         // RX
         if(recv(sock , server_reply , 2000 , 0) < 0) {
-            puts("recv failed");
+            printf("recv failed");
             break;
         }
-        puts("Server reply :");
+        printf("server reply :");
         puts(server_reply);
     }
     close(sock);

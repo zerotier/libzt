@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <string.h>
 
+int atoi(const char *str);
+
 int main(int argc, char * argv[])
 {
     if(argc < 3) {
@@ -49,8 +51,8 @@ int main(int argc, char * argv[])
             return 1;
         }
         if (n_sent!=sizeof(msg))
-            printf("Sendto sent %d bytes\n",(int)n_sent);
-        printf("n_sent = %d, count = %d\n", n_sent,count);
+            printf("sendto sent %d bytes\n",(int)n_sent);
+        printf("n_sent = %ld, count = %d\n", n_sent,count);
     } 
     
     // RX from server

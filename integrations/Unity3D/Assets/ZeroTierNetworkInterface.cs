@@ -208,34 +208,21 @@ public class ZeroTierNetworkInterface {
 	}
 
 	// Initialize the ZeroTier service with a given path
-	public ZeroTierNetworkInterface(string path, string nwid)
-	{
+	public ZeroTierNetworkInterface(string path, string nwid) {
 		this.path = path;
 		this.nwid = nwid;
 		Init();
 	}
 
-	public ZeroTierNetworkInterface (string path)
-	{
+	public ZeroTierNetworkInterface (string path) {
 		this.path = path;
 		Init();
 	}
 
 	// Initialize the ZeroTier service
-	public ZeroTierNetworkInterface()
-	{
+	public ZeroTierNetworkInterface() {
 		Init();
 	}
-
-	// Initialize the ZeroTier service
-	// Use the GlobalConfig to set things like the max packet size
-	/*
-	public ZeroTierNetworkInterface(GlobalConfig gConfig)
-	{
-		MaxPacketSize = gConfig.MaxPacketSize; // TODO: Do something with this!
-		Init();
-	}
-	*/
 
 #region Network Handling
 	// Joins a ZeroTier virtual network

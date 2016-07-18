@@ -156,7 +156,6 @@ clean:
 	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' \) -delete
 	
 	# android JNI lib project
-	
 	test -s /usr/bin/javac || { echo "Javac not found"; exit 1; }
 
 	-cd $(INT)/android/android_jni_lib/proj; ./gradlew clean

@@ -12,10 +12,10 @@
 #define MAXBUF 1024*1024
 
 void echo( int sd ) {
-  int len,n;
   char bufin[MAXBUF];
   struct sockaddr_in remote;
-  len = sizeof(remote);
+  int n;
+  socklen_t len = sizeof(remote);
   long count = 0;
 
   while (1) {
@@ -29,7 +29,7 @@ void echo( int sd ) {
     if (n<0) {
       perror("Error receiving data");
     } else {
-      printf("GOT %d BYTES (count = %d)\n",n, count);
+      printf("GOT %d BYTES (count = %ld)\n", n, count);
       // Got something, just send it back
       // sendto(sd,bufin,n,0,(struct sockaddr *)&remote,len);
     }
@@ -40,16 +40,17 @@ int main(int argc, char *argv[]) {
 
   if(argc < 2) {
     printf("usage: udp_server <port>\n");
-    exit(0);
+    return 0;
   }
-  int ld, length, port = atoi(argv[1]);
+  int ld, port = atoi(argv[1]);
+  socklen_t len;
   struct sockaddr_in skaddr;
   struct sockaddr_in skaddr2;
 
   // Create socket
   if ((ld = socket( PF_INET, SOCK_DGRAM, 0)) < 0) {
     printf("error creating socket\n");
-    exit(1);
+    return 0;
   }
   // Create address
   skaddr.sin_family = AF_INET;
@@ -58,13 +59,13 @@ int main(int argc, char *argv[]) {
   // Bind to address
   if (bind(ld, (struct sockaddr *) &skaddr, sizeof(skaddr))<0) {
     printf("error binding\n");
-    exit(0);
+    return 0;
   }
   // find out what port we were assigned
-  length = sizeof( skaddr2 );
-  if (getsockname(ld, (struct sockaddr *) &skaddr2, &length)<0) {
+  len = sizeof( skaddr2 );
+  if (getsockname(ld, (struct sockaddr *) &skaddr2, &len)<0) {
     printf("error getsockname\n");
-    exit(1);
+    return 0;
   }
   // Display address:port to verify it was sent over RPC correctly
   port = ntohs(skaddr2.sin_port);
@@ -74,7 +75,7 @@ int main(int argc, char *argv[]) {
   d[1] = (ip >>  8) & 0xFF;
   d[2] = (ip >> 16) & 0xFF;
   d[3] = (ip >> 24) & 0xFF;
-  printf("Bound to address: %d.%d.%d.%d : %d\n", d[0],d[1],d[2],d[3], port);
+  printf("bound to address: %d.%d.%d.%d : %d\n", d[0],d[1],d[2],d[3], port);
           
   // RX
   echo(ld);

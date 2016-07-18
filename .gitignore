@@ -1,2 +1,16 @@
+# Xcode/OSX
 *.xcuserstate
 *.DS_Store
+
+# Android Studio 
+*.idea
+*.gradle
+
+# Unity
+*.meta
+integrations/Unity3D/Library
+integrations/Unity3D/Temp
+integrations/Unity3D/obj
+
+# Docker test
+*.tmp

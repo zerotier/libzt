@@ -267,8 +267,10 @@ void zt_init_rpc(const char * path, const char * nwid);
         #endif
 
         //chdir(current_dir); // Return to previous current working directory (at the request of Unity3D)
-        Debug("Starting service...\n");
-        
+        #if defined(__UNITY_3D__)
+            Debug("Starting service...\n");
+        #endif
+
         // Initialize RPC 
         if(rpcEnabled) {
             zt_init_rpc(localHomeDir.c_str(), rpcNWID.c_str());

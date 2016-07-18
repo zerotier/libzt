@@ -174,7 +174,7 @@ class ViewController: NSViewController {
             //let str = "Welcome to the machine"
             print("strlen = %d\n", str.characters.count)
             let encodedDataArray = [UInt8](str.utf8)
-            read(accepted_sock, &buffer, 4);
+            read(accepted_sock, &buffer, 1024);
             print(buffer)
 
         }

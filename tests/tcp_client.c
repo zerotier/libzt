@@ -34,26 +34,15 @@ int main(int argc , char *argv[])
     }
     printf("connected\n");
 
-    while(1) {
-        printf("enter message : ");
-        scanf("%s" , message);
-
-        // TX         
-        if(send(sock, message, strlen(message), 0) < 0) {
-            printf("send failed");
-            return 1;
-        }
-    	else {
-    		printf("len = %ld\n", strlen(message));
-    	}
-
-        // RX
-        if(recv(sock , server_reply , 2000 , 0) < 0) {
-            printf("recv failed");
-            break;
-        }
-        printf("server reply :");
-        puts(server_reply);
+    char *msg = "welcome to the machine!";
+    // TX         
+    if(send(sock, msg, strlen(msg), 0) < 0) {
+        printf("send failed");
+        return 1;
+    }
+    else {
+        printf("sent message: %s\n", msg);
+        printf("len = %ld\n", strlen(msg));
     }
     close(sock);
     return 0;

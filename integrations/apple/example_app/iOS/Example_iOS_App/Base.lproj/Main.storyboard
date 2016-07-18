@@ -32,8 +32,7 @@
                                 <rect key="frame" x="183" y="352" width="31" height="30"/>
                                 <state key="normal" title="Bind"/>
                                 <connections>
-                                    <action selector="UI_Bind:" destination="BYZ-38-t0r" eventType="touchUpInside" id="03t-PZ-jaE"/>
-                                    <action selector="btnBind:" destination="BYZ-38-t0r" eventType="touchUpInside" id="L5k-Rt-Lwm"/>
+                                    <action selector="UI_Bind:" destination="BYZ-38-t0r" eventType="touchUpInside" id="DJq-47-7gO"/>
                                 </connections>
                             </button>
                             <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" text="ip address" borderStyle="roundedRect" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="6id-4C-E8W">

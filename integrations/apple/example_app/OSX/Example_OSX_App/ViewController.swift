@@ -71,9 +71,10 @@ class ViewController: NSViewController {
         }
     }
     
-    // Connect to remote host on ZeroTier virtual network
-    @IBAction func UI_Connect(sender: AnyObject) {
-
+    // CONNECT
+    var connect_thread : NSThread!
+    func attempt_connect()
+    {
         // TCP
         if(selectedProtocol == SOCK_STREAM)
         {
@@ -103,8 +104,18 @@ class ViewController: NSViewController {
         }
     }
     
-    // Bind a ZeroTier socket
-    @IBAction func UI_Bind(sender: AnyObject) {
+    // Connect to remote host on ZeroTier virtual network
+    @IBAction func UI_Connect(sender: AnyObject) {
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
+            self.connect_thread = NSThread(target:self, selector:"attempt_connect", object:nil)
+            self.connect_thread.start()
+        });
+    }
+    
+    // BIND
+    var bind_thread : NSThread!
+    func attempt_bind()
+    {
         // TCP
         if(selectedProtocol == SOCK_STREAM)
         {
@@ -146,6 +157,14 @@ class ViewController: NSViewController {
         }
     }
     
+    // Bind a ZeroTier socket
+    @IBAction func UI_Bind(sender: AnyObject) {
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
+            self.bind_thread = NSThread(target:self, selector:"attempt_bind", object:nil)
+            self.bind_thread.start()
+        });
+    }
+    
     // TX
     @IBOutlet weak var btnSend: NSButton!
     @IBAction func UI_SendData(sender: AnyObject) {
@@ -170,10 +189,6 @@ class ViewController: NSViewController {
         if(selectedProtocol == SOCK_STREAM)
         {
             var buffer = [UInt8](count: 100, repeatedValue: 0)
-            let str = "GET / HTTP/1.0\r\n\r\n"
-            //let str = "Welcome to the machine"
-            print("strlen = %d\n", str.characters.count)
-            let encodedDataArray = [UInt8](str.utf8)
             read(accepted_sock, &buffer, 1024);
             print(buffer)
 
@@ -185,6 +200,39 @@ class ViewController: NSViewController {
         }
     }
     
+    // Watch for incoming data
+    var rx_thread : NSThread!
+    func update_rx() {
+        while(true)
+        {
+            sleep(1)
+            // TCP
+            if(selectedProtocol == SOCK_STREAM)
+            {
+                var len = 32
+                var buffer = [UInt8](count: len, repeatedValue: 0)
+                let n = read(accepted_sock, &buffer, len);
+                if(n > 0)
+                {
+                    if let str = String(data: NSData(bytes: &buffer, length: len), encoding: NSUTF8StringEncoding) {
+                        dispatch_async(dispatch_get_main_queue()) {
+                            self.txtRX.stringValue = str
+                        }
+                    } else {
+                        print("not a valid UTF-8 sequence")
+                    }
+                }
+            }
+            // UDP
+            if(selectedProtocol == SOCK_DGRAM)
+            {
+                // recvfrom
+            }
+        }
+    }
+
+    
+    // Built-in SOCKS5 Proxy Server Test
     func test_client_proxy_nsstream()
     {
         // For HTTP request
@@ -216,16 +264,15 @@ class ViewController: NSViewController {
         outputStream?.write(encodedDataArray, maxLength: encodedDataArray.count)
      
         // RX
-        //sleep(5)
-        //inputStream?.read(&buffer, maxLength: 100)
-        //print("buffer = \(buffer)\n")
+        sleep(5)
+        inputStream?.read(&buffer, maxLength: 100)
+        print("buffer = \(buffer)\n")
     }
  
     var service_thread : NSThread!
     func ztnc_start_service() {
         // If you plan on using SOCKS Proxy, you don't need to initialize the RPC
         //start_service("/Users/Joseph/utest3")
-        
         // If you plan on using direct calls via RPC
         start_service_and_rpc("/Users/Joseph/utest3","565799d8f65063e5");
     }
@@ -243,6 +290,12 @@ class ViewController: NSViewController {
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
             self.service_thread = NSThread(target:self, selector:"ztnc_start_service", object:nil)
             self.service_thread.start()
+        });
+        
+        // Update UI on RX of data
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
+            self.rx_thread = NSThread(target:self, selector:"update_rx", object:nil)
+            self.rx_thread.start()
         });
     }
 

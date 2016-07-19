@@ -5,9 +5,7 @@ Welcome!
 
 Imagine a flat, encrypted, no-configuration LAN for all of the instances of your iOS app. 
 
-This short tutorial will show you how to enable ZeroTier functionality for your iOS app with little to no code modification. Check out our [ZeroTier SDK](https://www.zerotier.com/blog) page for more info on how the integration works and [Shim Techniques](shims_zt_sdk.md) for a discussion of shims available for your app/technology.
-
-In this example we aim to set up a minimal XCode project which contains all of the components necessary to enable ZeroTier for your app. If you'd rather skip all of these steps and grab the project code, look in the [sdk/iOS](https://github.com/zerotier/ZeroTierSDK/tree/dev/sdk/integrations/apple) folder of the source tree. Otherwise, let's get started!
+This short tutorial will show you how to enable ZeroTier functionality for your iOS app with little to no code modification. Check out our [ZeroTier SDK](https://www.zerotier.com/blog) page for more info on how the integration works.
 
 ***
 **Step 1: Build iOS framework**

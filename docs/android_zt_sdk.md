@@ -18,7 +18,16 @@ In this example we aim to set up a minimal [Android Studio](https://developer.an
  - `make android_jni_lib`
  - The resultant `build/android_jni_lib_YOUR_ARCH/libZeroTierOneJNI.so` is what you want to import into your own project to provide the API to your app. Select your architecture and copy the shared library into your project's JNI directory, possibly `/src/main/jniLibs/YOUR_ARCH/`. Selecting only the architectures you need will *significantly* reduce overall build time.
 
-**Step 3: App Code Modifications**
+**Step 3: App permissions**
+
+ - In order for your application to write the auth keys and network files to the internal storage you'll need to set a few permissions in your `AndroidManifest.xml` file at the same scope level as `<application>`:
+
+```
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+```
+
+**Step 4: App Code Modifications**
  - Create new package called `ZeroTierSDK` in your project and add a new file called `ZeroTierSDK.java` containing:
 
 ```
@@ -46,8 +55,8 @@ new Thread(new Runnable() {
 }).start();
 ```
 
- - Perform network call
- 
+ - Join network and perform network call
+
 ```
 while(!zt.isRunning()) { }
 zt.joinNetwork("XXXXXXXXXXXXXXXX");
@@ -56,28 +65,8 @@ zt.joinNetwork("XXXXXXXXXXXXXXXX");
 int sock = zt.ztjniSocket(zt.AF_INET, zt.SOCK_STREAM, 0);
 
 // Connect to remote host
-Log.d("","ztjniConnect()\n");
 int err = zt.ztjniConnect(sock, "10.9.9.203", 8080);
 ```
-
-**Step 4: App permissions**
-
- - In order for your application to write the auth keys and network files to the internal storage you'll need to set a few permissions in your `AndroidManifest.xml` file at the same scope level as `<application>`:
-
-```
-<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-```
-
-**Step 5: Pick an API**
-
- - If functional interposition isn't available for the API or library you've chosen to use, ZeroTier offers a SOCKS5 proxy server which can allow connectivity to your virtual network as long as your client API supports the SOCKS5 protocol. This proxy service will run alongside the tap service and can be turned on by compiling with the `-DUSE_SOCKS_PROXY` flag. By default, the proxy service is available at `0.0.0.0:1337`.
-
-**Step 6: Join a network!**
-
- - Simply call `zt.joinNetwork("XXXXXXXXXXXXXXXX")`
-
-
 
 ***
 

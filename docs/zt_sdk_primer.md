@@ -3,7 +3,7 @@
 True P2P injected right into your app with little to no code changes! A ZeroTier-enabled app. 
 (formerly known as Network Containers)
 
-The SDK couples the ZeroTier core Ethernet virtualization engine with a user-space TCP/IP stack and a carefully-crafted "shim" which intercepts and re-directs network API calls to our service. This allows servers and applications to be used without modification or recompilation. It can be used to run services on virtual networks without elevated privileges, special configuration of the physical host, kernel support, or any other application specific configuration. It's ideal for [containerized applications](../integrations/docker/), [games](docs/unity3d.md), and [desktop/mobile apps]().
+The SDK couples the ZeroTier core Ethernet virtualization engine with a user-space TCP/IP stack and a carefully-crafted "shim" which intercepts and re-directs network API calls to our service. This allows servers and applications to be used without modification or recompilation. It can be used to run services on virtual networks without elevated privileges, special configuration of the physical host, kernel support, or any other application specific configuration. It's ideal for [containerized applications](../integrations/docker), [games](../integrations/Unity3D), and [desktop/mobile apps](../integrations).
 
 Your only responsibility is to pick a shim appropriate for your app's design. Accessing resources (potentially other instances of your app) on the virtual network will work exactly as it would on a real LAN. The service supports both TCP and UDP. The ZeroTier SDK now works on both *x64* and *ARM* architectures. We've tested a beta version for *iOS*, *Android*, *Linux*, and *Mac OS*
 
@@ -66,4 +66,4 @@ We think this solution is well suited for low-latency multiplayer games where re
 
 The ZeroTier protocol is inherently P2P and only falls back to a relay in the event that your direct link is interrupted. It's in our best interest to automatically find the quickest route for your data and to *not* handle your data. This has the obvious benefits of reduced latency for your game, but also provides you better security and control of your data and reduces our costs. It seems non-sensical to do it any other way. ZeroTier is not a "cloud" that you send all of your data to.
 
-We've just begun work on a native [Unity 3D](https://unity3d.com/) plugin to enable your Unity app to communicate over ZeroTier networks. You can check out our BETA [here](osx_unity3d_zt_sdk.md)
+We've just begun work on a native [Unity 3D](https://unity3d.com/) plugin to enable your Unity app to communicate over ZeroTier networks. You can check out our BETA [here](../integrations/Unity3D)

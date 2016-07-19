@@ -24,8 +24,6 @@ Check out our [Integrations](integrations/) to learn how to integrate this into 
 ## How does it work?
 
 We've built a special background service that pairs the ZeroTier protocol with a user-space [Lightweight IP (lwIP) stack](http://savannah.nongnu.org/projects/lwip/) to create a new way for you to bring your applications onto your virtual network. For a more in-depth explanation of our technology take a look at our [SDK Primer](docs/zt_sdk.md)
-APIs
-====
 
 ## APIs
 

@@ -25,21 +25,21 @@ For more support on these integrations, or if you'd like help creating a new int
 
 ### Apple `make apple`
 ##### iOS
- - [Embedding within an app](../docs/ios_zt_sdk.md) `make ios_app_framework`
- - [Unity3D plugin](../docs/unity3d_ios_zt_sdk.md) `make ios_unity3d_bundle`
+ - [Embedding within an app](apple/example_app/iOS) `make ios_app_framework`
+ - [Unity3D plugin](apple/ZeroTierSDK_Apple) `make ios_unity3d_bundle`
 
 ##### OSX
- - [Embedding within an app](../docs/osx_zt_sdk.md) `make osx_app_framework`
+ - [Embedding within an app](apple/example_app/OSX) `make osx_app_framework`
  - [Dynamic-linking into an app/service at runtime](../docs/osx_zt_sdk.md) `make osx_shared_lib`
- - [Unity3D plugin](../docs/unity3d_osx_zt_sdk.md) `make osx_unity3d_bundle`
+ - [Unity3D plugin](apple/ZeroTierSDK_Apple) `make osx_unity3d_bundle`
 
 ***
 ### Linux
  - [Dynamic-linking into an app/service at runtime](../docs/linux_zt_sdk.md) `make linux_shared_lib`
- - [Using the SDK with Docker](../docs/docker_linux_zt_sdk.md) `make linux_shared_lib`
+ - [Using the SDK with Docker](docker)
 
 ### Android `make android`
- - [Embedding within an app](../docs/android_zt_sdk.md) `make android_jni_lib`
+ - [Embedding within an app](android) `make android_jni_lib`
  - [Unity 3D plugin](../docs/unity3d_android_zt_sdk.md) `make android_unity3d_plugin`
 
 ***

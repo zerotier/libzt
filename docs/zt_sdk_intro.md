@@ -35,6 +35,3 @@ We've built a special background service that pairs the ZeroTier protocol with a
 
 **Direct Call**
 - Directly call the `zt_/zts_` API specified in [SDK.h](src/SDK.h). For this to work, just use one of the provided headers that specify the interface for your system/architecture and then either dynamically-load our library into your app or compile it right in. 
-
-**Changeling**
-- This method is still experimental but the idea is to link `libztkq.so` into your app. You call `start_changeling()`. This will set up a separate thread to monitor all files for the process using kqueue. When an event is detected which indicates something is attempting to connect out or something is accepting a connection, we'll perform a sort of "hot-swap" of that socket for a socket that has been administered by ZeroTier.

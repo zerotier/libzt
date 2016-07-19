@@ -3,7 +3,7 @@
 True P2P injected right into your app with little to no code changes! A ZeroTier-enabled app. 
 (formerly known as Network Containers)
 
-The SDK couples the ZeroTier core Ethernet virtualization engine with a user-space TCP/IP stack and a carefully-crafted "shim" which intercepts and re-directs network API calls to our service. This allows servers and applications to be used without modification or recompilation. It can be used to run services on virtual networks without elevated privileges, special configuration of the physical host, kernel support, or any other application specific configuration. It's ideal for [containerized applications](docs/docker_linux_zt_sdk.md), [games](docs/unity3d.md), and [desktop/mobile apps]().
+The SDK couples the ZeroTier core Ethernet virtualization engine with a user-space TCP/IP stack and a carefully-crafted "shim" which intercepts and re-directs network API calls to our service. This allows servers and applications to be used without modification or recompilation. It can be used to run services on virtual networks without elevated privileges, special configuration of the physical host, kernel support, or any other application specific configuration. It's ideal for [containerized applications](../integrations/docker/), [games](docs/unity3d.md), and [desktop/mobile apps]().
 
 Your only responsibility is to pick a shim appropriate for your app's design. Accessing resources (potentially other instances of your app) on the virtual network will work exactly as it would on a real LAN. The service supports both TCP and UDP. The ZeroTier SDK now works on both *x64* and *ARM* architectures. We've tested a beta version for *iOS*, *Android*, *Linux*, and *Mac OS*
 
@@ -44,8 +44,6 @@ For instance, after you've added one of our shims to your app, when your applcat
 - If the user-space network stack grants the tap service the new `tcp_pcb`, the tap service then repurposes the socket used for the RPC message and returns its file descriptor to your application for it to use as the new socket.
 
 From your application's perspective nothing out of the ordinary has happened. It called `socket()`, and got a file descriptor back.
-
-As you can see, the general idea here is to slip in some special code that communicates with our ZeroTier service. Now, depending on your system's OS or architecture we might need to use different methods for getting that "secret sauce" into your application. We discuss that [here](shims_zt_sdk.md).
 
 #### You might be wondering some of the following:
 - **What would happen if you attempted to create a socket of the `AF_LOCAL` variety?**

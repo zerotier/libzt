@@ -23,9 +23,6 @@ Run application
 
     ./myapp
 
-## Via Dynamic-linking at runtime with DYLD
-
-
 ## Via App Framework
 
 ***

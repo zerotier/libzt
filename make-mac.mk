@@ -173,3 +173,4 @@ update_docs:
 	cp docs/integrations.md integrations/README.md
 	cp docs/zt_sdk_intro.md README.md
 	cp docs/docker_linux_zt_sdk.md integrations/docker/README.md
+	cp docs/osx_unity3d_zt_sdk.md integrations/Unity3D/README.md

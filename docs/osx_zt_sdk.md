@@ -65,7 +65,7 @@ dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
 
 **Step 4: Pick an API**
 
-This integration allows for the following shim combinations:
+The following APIs are available for this integration:
 - `Hook of BSD-like sockets`: Use BSD-like sockets as you normally would.
 - `Proxy of NSStream`: Create NSStream. Configure stream for SOCKS5 Proxy. Use stream.
 - `Direct Call`: Consult [src/SDK_Apple-Bridging-Header.h](../../../../src/SDK_Apple-Bridging-Header.h).

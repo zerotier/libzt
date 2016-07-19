@@ -119,7 +119,7 @@ char *api_netpath;
     // ------------------------------------------------------------------------------
     // ------------------------------- Intercept Setup ------------------------------
     // ------------------------------------------------------------------------------
-    // Return whether 'intercept' shim is enabled for this thread
+    // Return whether 'intercept' API is enabled for this thread
 
     bool check_intercept_enabled() {
         dwr(MSG_DEBUG_EXTRA, "check_intercept_enabled()\n");

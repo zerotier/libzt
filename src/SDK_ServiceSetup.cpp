@@ -102,7 +102,7 @@ void zt_init_rpc(const char * path, const char * nwid);
         if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), "")) {
             LOGV("unable to write network conf file: %s\n", confFile.c_str());
         }
-        // This provides the shim API with the RPC information
+        // This provides the API with the RPC information
         zt_init_rpc(homeDir.c_str(), nwid); 
     }
     

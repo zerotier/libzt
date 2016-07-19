@@ -218,7 +218,6 @@ void zt_init_rpc(const char * path, const char * nwid);
             specific data directory given by getApplicationContext().getFilesDir() */
             //rpcDir = homeDir; // Take given homeDir as rpcDir
             //homeDir = "/sdcard/zerotier"; // Use fat32-formatted sdcard for writing network conf & supporting files
-            //join_network("565799d8f65063e5");
         #endif
 
         #if defined(__APPLE__) && !defined(__IOS__)

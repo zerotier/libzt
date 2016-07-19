@@ -272,9 +272,9 @@ class ViewController: NSViewController {
     var service_thread : NSThread!
     func ztnc_start_service() {
         // If you plan on using SOCKS Proxy, you don't need to initialize the RPC
-        //start_service("/Users/Joseph/utest3")
+        //start_service("/Users/ztest")
         // If you plan on using direct calls via RPC
-        start_service_and_rpc("/Users/Joseph/utest3","565799d8f65063e5");
+        start_service_and_rpc("/Users/ztest","XXXXXXXXXXXXXXXX");
     }
     
     
@@ -284,7 +284,7 @@ class ViewController: NSViewController {
         // Set initial UI values for demo
         txtAddr.stringValue = serverAddr
         txtPort.intValue = serverPort
-        txtNWID.stringValue = "565799d8f65063e5"
+        txtNWID.stringValue = "XXXXXXXXXXXXXXXX"
         
         // ZeroTier Service thread
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {

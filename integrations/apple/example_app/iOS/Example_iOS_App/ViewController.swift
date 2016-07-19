@@ -216,13 +216,13 @@ class ViewController: UIViewController {
     var service_thread : NSThread!
     func ztnc_start_service() {
         let path = NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory.DocumentDirectory, NSSearchPathDomainMask.UserDomainMask, true)
-        start_service_and_rpc(path[0],"565799d8f65063e5")
+        start_service_and_rpc(path[0],"XXXXXXXXXXXXXXXX")
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        txtNWID.text = "565799d8f65063e5"
+        txtNWID.text = "XXXXXXXXXXXXXXXX"
         txtTX.text = "welcome to the machine"
         txtAddr.text = "0.0.0.0"
         serverAddr = "0.0.0.0"

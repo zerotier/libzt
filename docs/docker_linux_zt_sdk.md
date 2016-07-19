@@ -71,12 +71,6 @@ At this point, simply run your application as you normally would. It will be aut
 If you'd like to know the IP address your service can be reached at on this particular virtual network, use the following:
 `zerotier-cli -D/var/lib/zerotier-one/nc_XXXXXXXXXXXXXXXX listnetworks`
 
-
-## Tests
-
-For info on testing the SDK, take a look at [docs/docker_linux_testing.md](docs/docker_linux_testing.md)
-
-
 ## Installing in a Docker container (or any other container engine)
 
 If it's not immediately obvious, installation into a Docker container is easy. Just install `zerotier-sdk-service`, `libztintercept.so`, and `liblwip.so` into the container at an appropriate locations. We suggest putting it all in `/var/lib/zerotier-one` since this is the default ZeroTier home and will eliminate the need to supply a path to any of ZeroTier's services or utilities. Then, in your Docker container entry point script launch the service with *-d* to run it in the background, set the appropriate environment variables as described above, and launch your container's main application.

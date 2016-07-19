@@ -171,5 +171,5 @@ update_docs:
 	cp docs/ios_zt_sdk.md integrations/apple/example_app/iOS/README.md
 	cp docs/osx_zt_sdk.md integrations/apple/example_app/OSX/README.md
 	cp docs/integrations.md integrations/README.md
-	cp docs/zt_sdk_intro.md ../README.md
+	cp docs/zt_sdk_intro.md README.md
 	cp docs/docker_linux_zt_sdk.md integrations/docker/README.md

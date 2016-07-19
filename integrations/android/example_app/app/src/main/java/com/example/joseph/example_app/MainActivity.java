@@ -32,45 +32,21 @@ public class MainActivity extends AppCompatActivity {
         Log.d("SDK", "Starting service...\n");
         while(!zt.isRunning()) { }
         Log.d("SDK","Joining network...\n");
-        zt.joinNetwork("565799d8f65063e5");
-
-/*
-        final Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                //Do something after 100ms
-            }
-        }, 10000);
-*/
-
-
-
+        zt.joinNetwork("XXXXXXXXXXXXXXXX");
 
         // Create ZeroTier socket
         Log.d("","ztjniSocket()\n");
         int sock = zt.ztjniSocket(zt.AF_INET, zt.SOCK_STREAM, 0);
         Log.d("", "ztjniSocket() = " + sock + "\n");
 
-
-        // Construct remote host address
-        //InetAddress addr = InetAddress.getByName("10.144.211.245");
-        //int port = 8080;
-        //SocketAddress sockaddr = new InetSocketAddress(addr, port);
-
-        try
-        {
-            Thread.sleep(15000);
+        try {
+            Thread.sleep(10000);
         }
-        catch(java.lang.InterruptedException e)
-        {
-
-        }
+        catch(java.lang.InterruptedException e) { }
 
         // Connect to remote host
         Log.d("","ztjniConnect()\n");
         int err = zt.ztjniConnect(sock, "10.9.9.203", 8080);
-        Log.d("", "ztjniConnect() = " + err + "\n");
 
         // Set up example proxy connection to SDK proxy server
         /*

@@ -222,7 +222,7 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 		GameObject go;
 		go = GameObject.Find ("inputNetworkID"); 
 		input = go.GetComponents<InputField> () [0];
-		input.text = "565799d8f65063e5";
+		input.text = "XXXXXXXXXXXXXXXX";
 		go = GameObject.Find ("inputServerAddress"); 
 		input = go.GetComponents<InputField> () [0];
 		input.text = "10.9.9.203";
@@ -234,7 +234,7 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 		input.text = "Welcome to the machine";
 
 		// Create new instance of ZeroTier in separate thread
-		zt = new ZeroTierNetworkInterface ("/Users/Joseph/utest3", "565799d8f65063e5");
+		zt = new ZeroTierNetworkInterface ("/Users/ztest", "XXXXXXXXXXXXXXXX");
 	}
 
 	// Terminate the ZeroTier service when the application quits

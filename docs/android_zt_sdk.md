@@ -32,15 +32,32 @@ public class ZeroTierSDK {
 }
 ```
 
- - And now, start the service in your app with:
+ - Start the service
 
 ```
+final SDK zt = new SDK();
+final String homeDir = getApplicationContext().getFilesDir() + "/zerotier";
+
 new Thread(new Runnable() {
-      public void run() {
-        ZeroTierSDK wrapper = new ZeroTierSDK();
-        wrapper.startOneService(); // Calls to JNI code
-      }
+    public void run() {
+        // Calls to JNI code
+        zt.startOneService(homeDir);
+    }
 }).start();
+```
+
+ - Perform network call
+ 
+```
+while(!zt.isRunning()) { }
+zt.joinNetwork("XXXXXXXXXXXXXXXX");
+
+// Create ZeroTier socket
+int sock = zt.ztjniSocket(zt.AF_INET, zt.SOCK_STREAM, 0);
+
+// Connect to remote host
+Log.d("","ztjniConnect()\n");
+int err = zt.ztjniConnect(sock, "10.9.9.203", 8080);
 ```
 
 **Step 4: App permissions**
@@ -58,7 +75,7 @@ new Thread(new Runnable() {
 
 **Step 6: Join a network!**
 
- - Simply call `wrapper.joinNetwork("XXXXXXXXXXXXXXXX")`
+ - Simply call `zt.joinNetwork("XXXXXXXXXXXXXXXX")`
 
 
 

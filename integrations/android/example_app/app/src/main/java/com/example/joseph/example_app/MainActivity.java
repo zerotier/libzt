@@ -29,15 +29,11 @@ public class MainActivity extends AppCompatActivity {
             }
         }).start();
 
-        Log.d("SDK", "Starting service...\n");
         while(!zt.isRunning()) { }
-        Log.d("SDK","Joining network...\n");
         zt.joinNetwork("XXXXXXXXXXXXXXXX");
 
         // Create ZeroTier socket
-        Log.d("","ztjniSocket()\n");
         int sock = zt.ztjniSocket(zt.AF_INET, zt.SOCK_STREAM, 0);
-        Log.d("", "ztjniSocket() = " + sock + "\n");
 
         try {
             Thread.sleep(10000);

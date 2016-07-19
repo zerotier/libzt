@@ -26,7 +26,7 @@ For more support on these integrations, or if you'd like help creating a new int
 ### Apple `make apple`
 ##### iOS
  - [Embedding within an app](apple/example_app/iOS) `make ios_app_framework`
- - [Unity3D plugin](apple/ZeroTierSDK_Apple) `make ios_unity3d_bundle`
+ - Unity3D plugin `make ios_unity3d_bundle`
 
 ##### OSX
  - [Embedding within an app](apple/example_app/OSX) `make osx_app_framework`
@@ -40,7 +40,7 @@ For more support on these integrations, or if you'd like help creating a new int
 
 ### Android `make android`
  - [Embedding within an app](android) `make android_jni_lib`
- - [Unity 3D plugin](../docs/unity3d_android_zt_sdk.md) `make android_unity3d_plugin`
+ - [Unity 3D plugin](../docs/android_unity3d_zt_sdk.md) `make android_unity3d_plugin`
 
 ***
 ### Windows

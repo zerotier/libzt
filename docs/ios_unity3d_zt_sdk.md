@@ -7,6 +7,8 @@ We want your Unity apps to talk *directly* over a flat, secure, no-config virtua
 
 Our implementation currently intends to be the bare minimum required to get your Unity application to talk over ZeroTier virtual networks. As a result, we've created an API that is very similar to the classic BSD-style sockets API. With this basic API it is possible to construct more abstracted network layers much like Unity's LLAPI and HLAPI.
 
+*NOTE: Although the API and Unity project structure is identical for iOS/OSX, if you're targeting iOS you'll need to generate an iOS unity project and integrate it with your Xcode project, instructions can be found [here](https://unity3d.com/learn/tutorials/topics/mobile-touch/building-your-unity-game-ios-device-testing).*
+
 ***
 ## API  
 
@@ -21,7 +23,7 @@ Our implementation currently intends to be the bare minimum required to get your
 - `Read(fd, buf, len)`: Receives data from an endpoint associated with the given `fd`
 - `SendTo(fd, buf, len, flags, addr, port)`: Sends data to a given address
 - `RecvFrom(fd, ref buf, len, flags, addr, port)`: Receives data
-- `CLose(fd)`: Closes a connection to an endpoint
+- `Close(fd)`: Closes a connection to an endpoint
 
 ***
 ## Adding ZeroTier to your Unity app
@@ -40,7 +42,7 @@ Our implementation currently intends to be the bare minimum required to get your
 
 ***
 
-## Server example
+## Listening for a connection
 ```
 public class Example
 {
@@ -75,7 +77,7 @@ public class Example
 }
 ```
 
-## Client example
+## Establishing a connection
 ```
 public class Example
 {

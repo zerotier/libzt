@@ -21,7 +21,7 @@ Our implementation currently intends to be the bare minimum required to get your
 - `Read(fd, buf, len)`: Receives data from an endpoint associated with the given `fd`
 - `SendTo(fd, buf, len, flags, addr, port)`: Sends data to a given address
 - `RecvFrom(fd, ref buf, len, flags, addr, port)`: Receives data
-- `CLose(fd)`: Closes a connection to an endpoint
+- `Close(fd)`: Closes a connection to an endpoint
 
 ***
 ## Adding ZeroTier to your Unity app
@@ -40,7 +40,7 @@ Our implementation currently intends to be the bare minimum required to get your
 
 ***
 
-## Server example
+## Listening for a connection
 ```
 public class Example
 {
@@ -78,7 +78,7 @@ public class Example
 }
 ```
 
-## Client example
+## Establishing a connection
 ```
 public class Example
 {

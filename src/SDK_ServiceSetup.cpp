@@ -60,9 +60,9 @@ std::string localHomeDir; // Local shortened path
 std::string givenHomeDir; // What the user/application provides as a suggestion
 std::string homeDir; // The resultant platform-specific dir we *must* use internally
 std::string netDir;
+std::string rpcNWID;
 
 bool rpcEnabled;
-std::string rpcNWID;
 
 #ifdef __cplusplus
 extern "C" {
@@ -92,56 +92,50 @@ void zt_init_rpc(const char * path, const char * nwid);
     }
 #endif
     
-    void join_network(const char * nwid)
-    {
-        std::string confFile = zt1Service->givenHomePath() + "/networks.d/" + nwid + ".conf";
-        LOGV("writing conf file = %s\n", confFile.c_str());
-        if(!ZeroTier::OSUtils::mkdir(netDir)) {
-            LOGV("unable to create %s\n", netDir.c_str());
-        }
-        if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), "")) {
-            LOGV("unable to write network conf file: %s\n", confFile.c_str());
-        }
-        // This provides the API with the RPC information
-        zt_init_rpc(homeDir.c_str(), nwid); 
+
+// Basic ZT service controls
+void zts_join_network(const char * nwid) { 
+    std::string confFile = zt1Service->givenHomePath() + "/networks.d/" + nwid + ".conf";
+    LOGV("writing conf file = %s\n", confFile.c_str());
+    if(!ZeroTier::OSUtils::mkdir(netDir)) {
+        LOGV("unable to create %s\n", netDir.c_str());
     }
-    
-    void leave_network(const char *nwid) { zt1Service->leave(nwid); }
-    void zt_join_network(const char * nwid) { join_network(nwid); }
-    void zt_leave_network(const char * nwid) { leave_network(nwid); }
-    bool zt_is_running() { return zt1Service->isRunning(); }
-    void zt_terminate() { zt1Service->terminate(); }
+    if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), "")) {
+        LOGV("unable to write network conf file: %s\n", confFile.c_str());
+    }
+    // Provide the API with the RPC information
+    zt_init_rpc(homeDir.c_str(), nwid); 
+}
+void zts_leave_network(const char * nwid) { zt1Service->leave(nwid); }
+bool zts_is_running() { return zt1Service->isRunning(); }
+void zts_terminate() { zt1Service->terminate(); }
 
 
 // Android JNI wrapper
+// JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
 #if defined(__ANDROID__)
-    // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
-    JNIEXPORT void JNICALL Java_ZeroTier_SDK_joinNetwork(JNIEnv *env, jobject thisObj, jstring nwid) {
+    JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1join_1network(JNIEnv *env, jobject thisObj, jstring nwid) {
         const char *nwidstr;
         if(nwid) {
             nwidstr = env->GetStringUTFChars(nwid, NULL);
-            zt_join_network(nwidstr);
+            zts_join_network(nwidstr);
         }
     }
-    // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
-    JNIEXPORT void JNICALL Java_ZeroTier_SDK_leaveNetwork(JNIEnv *env, jobject thisObj, jstring nwid) {
+    JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1leave_1network(JNIEnv *env, jobject thisObj, jstring nwid) {
         const char *nwidstr;
         if(nwid) {
             nwidstr = env->GetStringUTFChars(nwid, NULL);
-            zt_leave_network(nwidstr);
+            zts_leave_network(nwidstr);
         }
     }
-    // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
-    JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_isRunning(JNIEnv *env, jobject thisObj) {
+    JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1running(JNIEnv *env, jobject thisObj) {
         if(zt1Service)
-            return  zt1Service->isRunning();
+            return  zts_is_running();
         return false;
     }
-
-    // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
-    JNIEXPORT void JNICALL Java_ZeroTier_SDK_terminate(JNIEnv *env, jobject thisObj) {
+    JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1terminate(JNIEnv *env, jobject thisObj) {
         if(zt1Service)
-            zt1Service->terminate();
+            zts_terminate();
     }
 #endif
 
@@ -156,7 +150,7 @@ void zt_init_rpc(const char * path, const char * nwid);
         pthread_key_create(&thr_id_key, NULL);
         intercept_thread_id = (int*)malloc(sizeof(int));
         *intercept_thread_id = key;
-        pthread_create(&intercept_thread, NULL, startOneService, (void *)(intercept_thread_id));
+        pthread_create(&intercept_thread, NULL, zt_start_service, (void *)(intercept_thread_id));
     }
     void init_service_and_rpc(int key, const char * path, const char * nwid) {
         rpcEnabled = true;
@@ -179,18 +173,15 @@ void zt_init_rpc(const char * path, const char * nwid);
  * Starts a new service instance
  */
 #if defined(__ANDROID__)
-    // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
-    JNIEXPORT void JNICALL Java_ZeroTier_SDK_startOneService(JNIEnv *env, jobject thisObj, jstring path) {
-        if(path) {
+    JNIEXPORT int JNICALL Java_ZeroTier_SDK_zt_1start_1service(JNIEnv *env, jobject thisObj, jstring path) {
+        if(path)
             homeDir = env->GetStringUTFChars(path, NULL);
-        }
 #else
-        void *startOneService(void *thread_id) {
+        void *zt_start_service(void *thread_id) {
 #endif
 
     #if defined(SDK_BUNDLED) && !defined(__ANDROID__)
-        // Don't intercept network calls originating from ZeroTier service
-        set_intercept_status(INTERCEPT_DISABLED);
+        set_intercept_status(INTERCEPT_DISABLED); // Ignore network calls from ZT service
     #endif
 
         #if defined(__UNITY_3D__)
@@ -198,7 +189,7 @@ void zt_init_rpc(const char * path, const char * nwid);
             char current_dir[MAX_DIR_SZ];
             getcwd(current_dir, MAX_DIR_SZ);
             chdir(service_path.c_str());
-            homeDir = current_dir; // homeDir shall be current dir
+            homeDir = current_dir; // homeDir shall be current_dir
         #endif
 
         #if defined(__APPLE__)
@@ -231,14 +222,8 @@ void zt_init_rpc(const char * path, const char * nwid);
         zt1Service = (ZeroTier::OneService *)0;
         
         // Construct path for network config and supporting service files
-        if (!homeDir.length()) {
-            #if defined(__ANDROID__)
-                return;
-            #else
-                return NULL;
-            #endif
-        } else {
-            LOGV("startOneService(): constructing path...\n");
+        if (homeDir.length()) {
+            LOGV("start_service(): constructing path...\n");
             std::vector<std::string> hpsp(ZeroTier::Utils::split(homeDir.c_str(),ZT_PATH_SEPARATOR_S,"",""));
             std::string ptmp;
             if (homeDir[0] == ZT_PATH_SEPARATOR)
@@ -253,6 +238,10 @@ void zt_init_rpc(const char * path, const char * nwid);
                     }
                 }
             }
+        }
+        else {
+            fprintf(stderr, "start_service(): homeDir is empty, could not construct path\n");
+            return NULL;
         }
 
         #if defined(__IOS__)
@@ -279,7 +268,7 @@ void zt_init_rpc(const char * path, const char * nwid);
         unsigned int randp = 0;
         ZeroTier::Utils::getSecureRandom(&randp,sizeof(randp));
         int servicePort = 9000 + (randp % 1000);
-            
+
         for(;;) {
             zt1Service = ZeroTier::OneService::newInstance(homeDir.c_str(),servicePort);
             switch(zt1Service->run()) {
@@ -287,28 +276,26 @@ void zt_init_rpc(const char * path, const char * nwid);
                 case ZeroTier::OneService::ONE_NORMAL_TERMINATION:
                     break;
                 case ZeroTier::OneService::ONE_UNRECOVERABLE_ERROR:
-                    //fprintf(stderr,"%s: fatal error: %s" ZT_EOL_S,argv[0],zt1Service->fatalErrorMessage().c_str());
-                    //returnValue = 1;
+                    fprintf(stderr,"start_service(): fatal error: %s",zt1Service->fatalErrorMessage().c_str());
                     break;
                 case ZeroTier::OneService::ONE_IDENTITY_COLLISION: {
                     delete zt1Service;
                     zt1Service = (ZeroTier::OneService *)0;
                     std::string oldid;
-                    //OSUtils::readFile((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret").c_str(),oldid);
+                    ZeroTier::OSUtils::readFile((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret").c_str(),oldid);
                     if (oldid.length()) {
-                        //OSUtils::writeFile((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret.saved_after_collision").c_str(),oldid);
-                        //OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret").c_str());
-                        //OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S + "identity.public").c_str());
+                        ZeroTier::OSUtils::writeFile((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret.saved_after_collision").c_str(),oldid);
+                        ZeroTier::OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret").c_str());
+                        ZeroTier::OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S + "identity.public").c_str());
                     }
-                }   continue; // restart!
-            }
-            break; // terminate loop -- normally we don't keep restarting
-        }
-        #if defined(__ANDROID__)
-            return;
-        #else
-            return NULL;
-        #endif
+			    }	
+                continue; // restart!
+		    }
+		    break; // terminate loop -- normally we don't keep restarting
+	    }
+        delete zt1Service;
+        zt1Service = (ZeroTier::OneService *)0;
+        return NULL;
     }
 
 #ifdef __cplusplus

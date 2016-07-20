@@ -40,7 +40,6 @@
 #include <stdlib.h>
 #include <dlfcn.h>
 #include <strings.h>
-#include <pwd.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <netdb.h>
@@ -51,8 +50,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/poll.h>
-#include <sys/un.h>
-#include <sys/resource.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
@@ -131,43 +128,47 @@ int (*realclose)(CLOSE_SIG);
     // const struct sockaddr *addr, socklen_t addr_len
 
 #if !defined(__ANDROID__)
-    ssize_t zt_sendto(SENDTO_SIG)
-    {
-        dwr(MSG_DEBUG, "zt_sendto()\n");
-        if(len > ZT_UDP_DEFAULT_PAYLOAD_MTU) {
-            errno = EMSGSIZE; // Msg is too large
-            return -1;
-        }
-        int socktype = 0;
-        socklen_t socktype_len;
-        getsockopt(sockfd,SOL_SOCKET, SO_TYPE, (void*)&socktype, &socktype_len);
-
-        if((socktype & SOCK_STREAM) || (socktype & SOCK_SEQPACKET)) {
-            if(addr == NULL || flags != 0) {
-                errno = EISCONN;
+    #ifdef DYNAMIC_LIB
+        ssize_t zt_sendto(SENDTO_SIG) // Exposed as API
+    #else
+        ssize_t zts_sendto(SENDTO_SIG) // Used as internal implementation 
+    #endif
+        {
+            dwr(MSG_DEBUG, "zt_sendto()\n");
+            if(len > ZT_UDP_DEFAULT_PAYLOAD_MTU) {
+                errno = EMSGSIZE; // Msg is too large
                 return -1;
             }
-        }
-        
-        // the socket isn't connected
-        //int err = rpc_send_command(api_netpath, RPC_IS_CONNECTED, -1, &fd, sizeof(struct fd));
-        //if(err == -1) {
-        //    errno = ENOTCONN;
-        //    return -1;
-        //}
+            int socktype = 0;
+            socklen_t socktype_len;
+            getsockopt(sockfd,SOL_SOCKET, SO_TYPE, (void*)&socktype, &socktype_len);
 
-        // EMSGSIZE should be returned if the message is too long to be passed atomically through
-        // the underlying protocol, in our case MTU?
-        // TODO: More efficient solution
-        // This connect call is used to get the address info to the stack for sending the packet
-        int err;
-        if((err = connect(sockfd, addr, addr_len)) < 0) {
-            dwr(MSG_DEBUG, "sendto(): unknown problem passing address info to stack\n");
-            errno = EISCONN; // double-check this is correct
-            return -1;
+            if((socktype & SOCK_STREAM) || (socktype & SOCK_SEQPACKET)) {
+                if(addr == NULL || flags != 0) {
+                    errno = EISCONN;
+                    return -1;
+                }
+            }
+            
+            // the socket isn't connected
+            //int err = rpc_send_command(api_netpath, RPC_IS_CONNECTED, -1, &fd, sizeof(struct fd));
+            //if(err == -1) {
+            //    errno = ENOTCONN;
+            //    return -1;
+            //}
+
+            // EMSGSIZE should be returned if the message is too long to be passed atomically through
+            // the underlying protocol, in our case MTU?
+            // TODO: More efficient solution
+            // This connect call is used to get the address info to the stack for sending the packet
+            int err;
+            if((err = connect(sockfd, addr, addr_len)) < 0) {
+                dwr(MSG_DEBUG, "sendto(): unknown problem passing address info to stack\n");
+                errno = EISCONN; // double-check this is correct
+                return -1;
+            }
+            return send(sockfd, buf, len, flags);
         }
-        return send(sockfd, buf, len, flags);
-    }
 #endif
 
     // ------------------------------------------------------------------------------
@@ -176,33 +177,37 @@ int (*realclose)(CLOSE_SIG);
     // int socket, const struct msghdr *message, int flags
 
 #if !defined(__ANDROID__)
-    ssize_t zt_sendmsg(SENDMSG_SIG)
-    {
-        dwr(MSG_DEBUG, "zt_sendmsg()\n");
-        char * p, * buf;
-        size_t tot_len = 0;
-        size_t err;
-        struct iovec * iov = message->msg_iov;
-        for(int i=0; i<message->msg_iovlen; ++i)
-            tot_len += iov[i].iov_len;
-        if(tot_len > ZT_UDP_DEFAULT_PAYLOAD_MTU) {
-            errno = EMSGSIZE; // Message too large to send atomically via underlying protocol, don't send
-            return -1;
+    #ifdef DYNAMIC_LIB
+        ssize_t zt_sendmsg(SENDMSG_SIG)
+    #else
+        ssize_t zts_sendmsg(SENDMSG_SIG)
+    #endif
+        {
+            dwr(MSG_DEBUG, "zt_sendmsg()\n");
+            char * p, * buf;
+            size_t tot_len = 0;
+            size_t err;
+            struct iovec * iov = message->msg_iov;
+            for(int i=0; i<message->msg_iovlen; ++i)
+                tot_len += iov[i].iov_len;
+            if(tot_len > ZT_UDP_DEFAULT_PAYLOAD_MTU) {
+                errno = EMSGSIZE; // Message too large to send atomically via underlying protocol, don't send
+                return -1;
+            }
+            buf = malloc(tot_len);
+            if(tot_len != 0 && buf == NULL) {
+                errno = ENOMEM; // Unable to allocate space for message
+                return -1;
+            }
+            p = buf;
+            for(int i=0; i < message->msg_iovlen; ++i) {
+                memcpy(p, iov[i].iov_base, iov[i].iov_len);
+                p += iov[i].iov_len;
+            }
+            err = sendto(socket, buf, tot_len, flags, message->msg_name, message->msg_namelen);
+            free(buf);
+            return err;
         }
-        buf = malloc(tot_len);
-        if(tot_len != 0 && buf == NULL) {
-            errno = ENOMEM; // Unable to allocate space for message
-            return -1;
-        }
-        p = buf;
-        for(int i=0; i < message->msg_iovlen; ++i) {
-            memcpy(p, iov[i].iov_base, iov[i].iov_len);
-            p += iov[i].iov_len;
-        }
-        err = sendto(socket, buf, tot_len, flags, message->msg_name, message->msg_namelen);
-        free(buf);
-        return err;
-    }
 #endif
     
     // ------------------------------------------------------------------------------
@@ -212,25 +217,29 @@ int (*realclose)(CLOSE_SIG);
     // *restrict address, socklen_t *restrict address_len
 
 #if !defined(__ANDROID__)
-    ssize_t zt_recvfrom(RECVFROM_SIG)
-    {
-        dwr(MSG_DEBUG,"zt_recvfrom(%d)\n", socket);
-        ssize_t err;
-        // Since this can be called for connection-oriented sockets,
-        // we need to check the type before we try to read the address info
-        /*
-        int sock_type;
-        socklen_t type_len;
-        realgetsockopt(socket, SOL_SOCKET, SO_TYPE, (void *) &sock_type, &type_len);
-        */
-        //if(sock_type == SOCK_DGRAM && address != NULL && address_len != NULL) {
-            zt_getsockname(socket, address, address_len);
-        //}
-        err = read(socket, buffer, length);
-        if(err < 0)
-            perror("read:\n");
-        return err;
-    }
+    #ifdef DYNAMIC_LIB
+        ssize_t zt_recvfrom(RECVFROM_SIG)
+    #else
+        ssize_t zts_recvfrom(RECVFROM_SIG)
+    #endif
+        {
+            dwr(MSG_DEBUG,"zt_recvfrom(%d)\n", socket);
+            ssize_t err;
+            // Since this can be called for connection-oriented sockets,
+            // we need to check the type before we try to read the address info
+            /*
+            int sock_type;
+            socklen_t type_len;
+            realgetsockopt(socket, SOL_SOCKET, SO_TYPE, (void *) &sock_type, &type_len);
+            */
+            //if(sock_type == SOCK_DGRAM && address != NULL && address_len != NULL) {
+                zts_getsockname(socket, address, address_len);
+            //}
+            err = read(socket, buffer, length);
+            if(err < 0)
+                perror("read:\n");
+            return err;
+        }
 #endif
 
     // ------------------------------------------------------------------------------
@@ -239,39 +248,43 @@ int (*realclose)(CLOSE_SIG);
     // int socket, struct msghdr *message, int flags
 
 #if !defined(__ANDROID__)
-    ssize_t zt_recvmsg(RECVMSG_SIG)
-    {
-        dwr(MSG_DEBUG, "zt_recvmsg(%d)\n", socket);
-        ssize_t err, n, tot_len = 0;
-        char *buf, *p;
-        struct iovec *iov = message->msg_iov;
-        
-        for(int i = 0; i < message->msg_iovlen; ++i)
-            tot_len += iov[i].iov_len;
-        buf = malloc(tot_len);
-        if(tot_len != 0 && buf == NULL) {
-            errno = ENOMEM;
-            return -1;
+    #ifdef DYNAMIC_LIB
+        ssize_t zt_recvmsg(RECVMSG_SIG)
+    #else
+        ssize_t zts_recvmsg(RECVMSG_SIG)
+    #endif
+        {
+            dwr(MSG_DEBUG, "zt_recvmsg(%d)\n", socket);
+            ssize_t err, n, tot_len = 0;
+            char *buf, *p;
+            struct iovec *iov = message->msg_iov;
+            
+            for(int i = 0; i < message->msg_iovlen; ++i)
+                tot_len += iov[i].iov_len;
+            buf = malloc(tot_len);
+            if(tot_len != 0 && buf == NULL) {
+                errno = ENOMEM;
+                return -1;
+            }
+            n = err = recvfrom(socket, buf, tot_len, flags, message->msg_name, &message->msg_namelen);
+            p = buf;
+            
+            // According to: http://pubs.opengroup.org/onlinepubs/009695399/functions/recvmsg.html
+            if(err > message->msg_controllen && !( message->msg_flags & MSG_PEEK)) {
+                // excess data should be disgarded
+                message->msg_flags |= MSG_TRUNC; // Indicate that the buffer has been truncated
+            }
+            
+            while (n > 0) {
+                ssize_t count = n < iov->iov_len ? n : iov->iov_len;
+                memcpy (iov->iov_base, p, count);
+                p += count;
+                n -= count;
+                ++iov;
+            }
+            free(buf);
+            return err;
         }
-        n = err = recvfrom(socket, buf, tot_len, flags, message->msg_name, &message->msg_namelen);
-        p = buf;
-        
-        // According to: http://pubs.opengroup.org/onlinepubs/009695399/functions/recvmsg.html
-        if(err > message->msg_controllen && !( message->msg_flags & MSG_PEEK)) {
-            // excess data should be disgarded
-            message->msg_flags |= MSG_TRUNC; // Indicate that the buffer has been truncated
-        }
-        
-        while (n > 0) {
-            ssize_t count = n < iov->iov_len ? n : iov->iov_len;
-            memcpy (iov->iov_base, p, count);
-            p += count;
-            n -= count;
-            ++iov;
-        }
-        free(buf);
-        return err;
-    }
 #endif
 
     // ------------------------------------------------------------------------------
@@ -299,7 +312,11 @@ int (*realclose)(CLOSE_SIG);
     // int socket, int level, int option_name, const void *option_value, 
     // socklen_t option_len
 
+    #ifdef DYNAMIC_LIB
     int zt_setsockopt(SETSOCKOPT_SIG)
+    #else
+    int zts_setsockopt(SETSOCKOPT_SIG)
+    #endif
     {
         dwr(MSG_DEBUG, "zt_setsockopt()\n");
         return 0;
@@ -311,7 +328,12 @@ int (*realclose)(CLOSE_SIG);
     // int sockfd, int level, int optname, void *optval, 
     // socklen_t *optlen 
 
+
+#ifdef DYNAMIC_LIB
     int zt_getsockopt(GETSOCKOPT_SIG)
+#else
+    int zts_getsockopt(GETSOCKOPT_SIG)
+#endif
     {
         dwr(MSG_DEBUG,"zt_getsockopt(%d)\n", sockfd);
         if(optname == SO_TYPE) {
@@ -328,12 +350,17 @@ int (*realclose)(CLOSE_SIG);
     // int socket_family, int socket_type, int protocol
 
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniSocket(JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol) {
-        return zt_socket(family, type, protocol);
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1socket(JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol) {
+        return zts_socket(family, type, protocol);
     }
 #endif
 
-    int zt_socket(SOCKET_SIG) {
+#ifdef DYNAMIC_LIB
+    int zts_socket(SOCKET_SIG)
+#else
+    int zts_socket(SOCKET_SIG)
+#endif
+    {
         get_api_netpath();
         dwr(MSG_DEBUG, "zt_socket()\n");
         /* Check that type makes sense */
@@ -384,18 +411,22 @@ int (*realclose)(CLOSE_SIG);
     // int __fd, const struct sockaddr * __addr, socklen_t __len
 
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniConnect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1connect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
         struct sockaddr_in addr;
         char *str;
         (*env)->ReleaseStringUTFChars(env, addrstr, str);
         addr.sin_addr.s_addr = inet_addr(str);
         addr.sin_family = AF_INET;
         addr.sin_port = htons( port );
-        return zt_connect(fd, (struct sockaddr *)&addr, sizeof(addr));
+        return zts_connect(fd, (struct sockaddr *)&addr, sizeof(addr));
     }
 #endif
 
+#ifdef DYNAMIC_LIB
     int zt_connect(CONNECT_SIG)
+#else
+    int zts_connect(CONNECT_SIG)
+#endif
     {
         get_api_netpath();
         dwr(MSG_DEBUG,"zt_connect(%d)\n", __fd);
@@ -419,7 +450,7 @@ int (*realclose)(CLOSE_SIG);
     // int sockfd, const struct sockaddr *addr, socklen_t addrlen
 
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniBind(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1bind(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
         struct sockaddr_in addr;
         char *str;
         // = env->GetStringUTFChars(addrstr, NULL);
@@ -433,7 +464,11 @@ int (*realclose)(CLOSE_SIG);
 #endif
 
 #if !defined(__ANDROID__)
+    #ifdef DYNAMIC_LIB
         int zt_bind(BIND_SIG)
+    #else
+        int zts_bind(BIND_SIG)
+    #endif
         {
             get_api_netpath();
             dwr(MSG_DEBUG,"zt_bind(%d)\n", sockfd);
@@ -458,7 +493,7 @@ int (*realclose)(CLOSE_SIG);
     // int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags
 
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniAccept4(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port, jint flags) {
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1accept4(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port, jint flags) {
         struct sockaddr_in addr;
         char *str;
         // = env->GetStringUTFChars(addrstr, NULL);
@@ -466,12 +501,16 @@ int (*realclose)(CLOSE_SIG);
         addr.sin_addr.s_addr = inet_addr(str);
         addr.sin_family = AF_INET;
         addr.sin_port = htons( port );
-        return zt_accept4(fd, (struct sockaddr *)&addr, sizeof(addr), flags);
+        return zts_accept4(fd, (struct sockaddr *)&addr, sizeof(addr), flags);
     }
 #endif
 
 #if defined(__linux__)
+    #ifdef DYNAMIC_LIB
         int zt_accept4(ACCEPT4_SIG)
+    #else
+        int zts_accept4(ACCEPT4_SIG)
+    #endif
         {
             get_api_netpath();
             dwr(MSG_DEBUG,"zt_accept4(%d):\n", sockfd);
@@ -491,7 +530,7 @@ int (*realclose)(CLOSE_SIG);
     // int sockfd struct sockaddr *addr, socklen_t *addrlen
 
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniAccept(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1accept(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
         struct sockaddr_in addr;
         char *str;
         // = env->GetStringUTFChars(addrstr, NULL);
@@ -499,11 +538,15 @@ int (*realclose)(CLOSE_SIG);
         addr.sin_addr.s_addr = inet_addr(str);
         addr.sin_family = AF_INET;
         addr.sin_port = htons( port );
-        return zt_accept(fd, (struct sockaddr *)&addr, sizeof(addr));    
+        return zts_accept(fd, (struct sockaddr *)&addr, sizeof(addr));    
     }
 #endif
 
+#ifdef DYNAMIC_LIB
     int zt_accept(ACCEPT_SIG)
+#else
+    int zts_accept(ACCEPT_SIG)
+#endif
     {
         get_api_netpath();
         dwr(MSG_DEBUG,"zt_accept(%d):\n", sockfd);
@@ -529,12 +572,16 @@ int (*realclose)(CLOSE_SIG);
     // int sockfd, int backlog
 
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniListen(JNIEnv *env, jobject thisObj, jint fd, int backlog) {
-        return zt_listen(fd, backlog);
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1listen(JNIEnv *env, jobject thisObj, jint fd, int backlog) {
+        return zts_listen(fd, backlog);
     }
 #endif
 
+#ifdef DYNAMIC_LIB
     int zt_listen(LISTEN_SIG)
+#else
+    int zts_listen(LISTEN_SIG)
+#endif
     {
         get_api_netpath();
         dwr(MSG_DEBUG,"zt_listen(%d):\n", sockfd);
@@ -557,12 +604,17 @@ int (*realclose)(CLOSE_SIG);
     // int fd
 
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniClose(JNIEnv *env, jobject thisObj, jint fd) {
-        return zt_close(fd);
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1close(JNIEnv *env, jobject thisObj, jint fd) {
+        return zts_close(fd);
     }
 #endif
 
-    int zt_close(CLOSE_SIG) {
+#ifdef DYNAMIC_LIB
+    int zt_close(CLOSE_SIG) 
+#else
+    int zts_close(CLOSE_SIG) 
+#endif
+    {
         get_api_netpath();
         dwr(MSG_DEBUG, "zt_close(%d)\n", fd);
         return realclose(fd);
@@ -573,7 +625,11 @@ int (*realclose)(CLOSE_SIG);
     // ------------------------------------------------------------------------------
     // int sockfd, struct sockaddr *addr, socklen_t *addrlen
     
+#ifdef DYNAMIC_LIB
     int zt_getsockname(GETSOCKNAME_SIG)
+#else
+    int zts_getsockname(GETSOCKNAME_SIG)
+#endif
     {
         get_api_netpath();
         dwr(MSG_DEBUG,"zt_getsockname(%d):\n", sockfd);

@@ -32,8 +32,8 @@
 #include <stdbool.h>
 #include "SDK_Signatures.h"
 
-// For defining the Android direct-call API
 #if defined(__ANDROID__)
+	// For defining the Android direct-call API
     #include <jni.h>
 #endif
 
@@ -49,6 +49,9 @@ extern void zt_init_rpc(const char *path, const char *nwid);
 extern char *api_netpath;
 extern char *debug_logfile;
 
+// Function pointers to original system calls
+// - These are used when we detect that either the intercept is not 
+//   available or that ZeroTier hasn't administered the given socket
 #if defined(__linux__)
 	extern int (*realaccept4)(ACCEPT4_SIG);
 	#if !defined(__ANDROID__)
@@ -71,48 +74,57 @@ extern char *debug_logfile;
 	extern int (*realsetsockopt)(SETSOCKOPT_SIG);
 	extern int (*realgetsockopt)(GETSOCKOPT_SIG);
 	extern int (*realclose)(CLOSE_SIG);
-	extern int (*realgetsockname)(GETSOCKNAME_SIG);
+	extern int (*realgetsockname)(GETSOCKNAME_SIG);  
+    
+// Direct call
+// - Skips intercept
+// - Uses RPC
+// - Depending on the target, the API will be exposed as zt_* in 
+//   the specific way needed for that platform, but will be implemented 
+//   in terms of zts_*
+int zts_socket(SOCKET_SIG);
+int zts_connect(CONNECT_SIG);
+int zts_bind(BIND_SIG);
+#if defined(__linux__)
+	int zts_accept4(ACCEPT4_SIG);
+#endif
+int zts_accept(ACCEPT_SIG);
+int zts_listen(LISTEN_SIG);
+int zts_setsockopt(SETSOCKOPT_SIG);
+int zts_getsockopt(GETSOCKOPT_SIG);
+int zts_getsockname(GETSOCKNAME_SIG);
+int zts_close(CLOSE_SIG);
 
-ssize_t zt_sendto(SENDTO_SIG);
-ssize_t zt_sendmsg(SENDMSG_SIG);
-ssize_t zt_recvfrom(RECVFROM_SIG);
-ssize_t zt_recvmsg(RECVMSG_SIG);
-
+ssize_t zts_sendto(SENDTO_SIG);
+ssize_t zts_sendmsg(SENDMSG_SIG);
+ssize_t zts_recvfrom(RECVFROM_SIG);
+ssize_t zts_recvmsg(RECVMSG_SIG);
     
 #if defined(__UNITY_3D__)
-    ssize_t zt_recv(int fd, void *buf, int len);
-    ssize_t zt_send(int fd, void *buf, int len);
-    int zt_set_nonblock(int fd);
-#endif    
-    
+    ssize_t zts_recv(int fd, void *buf, int len);
+    ssize_t zts_send(int fd, void *buf, int len);
+    int zts_set_nonblock(int fd);
+#endif  
+
+
 // Android JNI Direct-call API
+// - Implemented in terms of zt_* direct calls
 #if defined(__ANDROID__)
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniSocket(JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol);
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniConnect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);	
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniBind(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniAccept(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniAccept4(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port, jint flags);
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniListen(JNIEnv *env, jobject thisObj, jint fd, int backlog);
-	//JNIEXPORT void JNICALL Java_ZeroTier_SDK_ztjniSetsockopt(JNIEnv *env, jobject thisObj);
-	//JNIEXPORT void JNICALL Java_ZeroTier_SDK_ztjniGetsockopt(JNIEnv *env, jobject thisObj);
-	//JNIEXPORT void JNICALL Java_ZeroTier_SDK_ztjniGetsockname(JNIEnv *env, jobject thisObj);
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_ztjniClose(JNIEnv *env, jobject thisObj, jint fd);
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1socket(JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol);
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1connect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);	
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1bind(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1accept(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1accept4(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port, jint flags);
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1listen(JNIEnv *env, jobject thisObj, jint fd, int backlog);
+	//JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1setsockopt(JNIEnv *env, jobject thisObj);
+	//JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1getsockopt(JNIEnv *env, jobject thisObj);
+	//JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1getsockname(JNIEnv *env, jobject thisObj);
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1close(JNIEnv *env, jobject thisObj, jint fd);
 #endif
 
-int zt_socket(SOCKET_SIG);
-int zt_connect(CONNECT_SIG);
-int zt_bind(BIND_SIG);
-#if defined(__linux__)
-	int zt_accept4(ACCEPT4_SIG);
-#endif
-int zt_accept(ACCEPT_SIG);
-int zt_listen(LISTEN_SIG);
-int zt_setsockopt(SETSOCKOPT_SIG);
-int zt_getsockopt(GETSOCKOPT_SIG);
-int zt_getsockname(GETSOCKNAME_SIG);
-int zt_close(CLOSE_SIG);
 
-
+// Prototypes for redefinition of syscalls
+// - Implemented in SDK_Intercept.c
 #if defined(SDK_INTERCEPT)
 	int socket(SOCKET_SIG);
 	int connect(CONNECT_SIG);

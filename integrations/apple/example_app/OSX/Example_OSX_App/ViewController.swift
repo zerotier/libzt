@@ -78,7 +78,7 @@ class ViewController: NSViewController {
         // TCP
         if(selectedProtocol == SOCK_STREAM)
         {
-            sock = zts_socket(AF_INET, SOCK_STREAM, 0)
+            sock = zt_socket(AF_INET, SOCK_STREAM, 0)
             var addr = sockaddr_in(sin_len: UInt8(sizeof(sockaddr_in)),
                                    sin_family: UInt8(AF_INET),
                                    sin_port: UInt16(serverPort).bigEndian,
@@ -87,7 +87,7 @@ class ViewController: NSViewController {
             
             inet_pton(AF_INET, serverAddr, &(addr.sin_addr));
             
-            let connect_err = zts_connect(sock, UnsafePointer<sockaddr>([addr]), UInt32(addr.sin_len))
+            let connect_err = zt_connect(sock, UnsafePointer<sockaddr>([addr]), UInt32(addr.sin_len))
             print("connect_err = \(connect_err),\(errno)")
             
             if connect_err < 0 {
@@ -119,7 +119,7 @@ class ViewController: NSViewController {
         // TCP
         if(selectedProtocol == SOCK_STREAM)
         {
-            sock = zts_socket(AF_INET, SOCK_STREAM, 0)
+            sock = zt_socket(AF_INET, SOCK_STREAM, 0)
             var addr = sockaddr_in(sin_len: UInt8(sizeof(sockaddr_in)),
                                    sin_family: UInt8(AF_INET),
                                    sin_port: UInt16(serverPort).bigEndian,
@@ -128,7 +128,7 @@ class ViewController: NSViewController {
             
             inet_pton(AF_INET, serverAddr, &(addr.sin_addr));
             
-            let bind_err = zts_bind(sock, UnsafePointer<sockaddr>([addr]), UInt32(addr.sin_len))
+            let bind_err = zt_bind(sock, UnsafePointer<sockaddr>([addr]), UInt32(addr.sin_len))
             
             print("bind_err = \(bind_err),\(errno)")
             
@@ -139,13 +139,13 @@ class ViewController: NSViewController {
             }
             
             // Put socket into listening state
-            zts_listen(sock, 1);
+            zt_listen(sock, 1);
             
             // Accept connection
             var len:socklen_t = 0;
             var legIntPtr = withUnsafeMutablePointer(&len, { $0 })
             while(accepted_sock < 0) {
-                accepted_sock = zts_accept(sock, UnsafeMutablePointer<sockaddr>([addr]), legIntPtr)
+                accepted_sock = zt_accept(sock, UnsafeMutablePointer<sockaddr>([addr]), legIntPtr)
             }
             print("accepted connection")
         }

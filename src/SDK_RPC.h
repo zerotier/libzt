@@ -28,17 +28,8 @@
 #ifndef __RPCLIB_H_
 #define __RPCLIB_H_
 
-#include <stdint.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <pthread.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <dlfcn.h>
 #include <sys/socket.h>
-#include <sys/un.h>
-#include <strings.h>
- 
+
 #define CANARY_SZ               sizeof(uint64_t)
 #define PADDING_SZ              12
 #define PADDING                 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89

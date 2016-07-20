@@ -28,6 +28,4 @@
 #ifndef SDK_XCODE_WRAPPER_HPP
 #define SDK_XCODE_WRAPPER_HPP
 
-#include <stdio.h>
-
 #endif /* SDK_XCODE_WRAPPER_HPP */

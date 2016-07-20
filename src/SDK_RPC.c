@@ -47,7 +47,6 @@
 #include <dlfcn.h>
 #include <stdint.h>
 #include <sys/socket.h>
-//#include <sys/un.h>
 #include <strings.h>
 
 #include "SDK.h"

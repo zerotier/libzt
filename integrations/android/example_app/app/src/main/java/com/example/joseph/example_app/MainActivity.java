@@ -25,15 +25,15 @@ public class MainActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             public void run() {
                 // Calls to JNI code
-                zt.startOneService(homeDir);
+                zt.zt_start_service(homeDir);
             }
         }).start();
 
-        while(!zt.isRunning()) { }
-        zt.joinNetwork("XXXXXXXXXXXXXXXX");
+        while(!zt.zt_running()) { }
+        zt.zt_join_network("XXXXXXXXXXXXXXXX");
 
         // Create ZeroTier socket
-        int sock = zt.ztjniSocket(zt.AF_INET, zt.SOCK_STREAM, 0);
+        int sock = zt.zt_socket(zt.AF_INET, zt.SOCK_STREAM, 0);
 
         try {
             Thread.sleep(10000);
@@ -41,8 +41,8 @@ public class MainActivity extends AppCompatActivity {
         catch(java.lang.InterruptedException e) { }
 
         // Connect to remote host
-        Log.d("","ztjniConnect()\n");
-        int err = zt.ztjniConnect(sock, "10.9.9.203", 8080);
+        Log.d("","zt_connect()\n");
+        int err = zt.zt_connect(sock, "10.9.9.203", 8080);
 
         // Set up example proxy connection to SDK proxy server
         /*

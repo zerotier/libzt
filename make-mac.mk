@@ -163,6 +163,9 @@ clean:
 	# example android app project
 	-cd $(INT)/android/example_app; ./gradlew clean
 
+clean_for_production:
+	-find . -type f \( -name '*.identity'\) -delete
+
 
 # For authors
 # Copies documentation to all of the relevant directories to make viewing in the repo a little easier

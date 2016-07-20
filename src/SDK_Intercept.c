@@ -173,7 +173,7 @@ char *api_netpath;
         dwr(MSG_DEBUG, "sendto(%d, %d)\n", sockfd, len);
         //if (!check_intercept_enabled())
             return realsendto(sockfd, buf, len, flags, addr, addr_len);
-        return zt_sendto(sockfd, buf, len, flags, addr, addr_len);
+        return zts_sendto(sockfd, buf, len, flags, addr, addr_len);
     }
 #endif
 
@@ -188,7 +188,7 @@ char *api_netpath;
         dwr(MSG_DEBUG, "sendmsg()\n");
         //if(!check_intercept_enabled())
             return realsendmsg(socket, message, flags);
-        zt_sendmsg(socket, message, flags);
+        zts_sendmsg(socket, message, flags);
     }
 #endif
     
@@ -204,7 +204,7 @@ char *api_netpath;
         dwr(MSG_DEBUG, "recvfrom(%d)\n", socket);
         if(!check_intercept_enabled())
             return realrecvfrom(socket, buffer, length, flags, address, address_len);
-        return zt_recvfrom(socket, buffer, length, flags, address, address_len);
+        return zts_recvfrom(socket, buffer, length, flags, address, address_len);
     }
 #endif
 
@@ -219,7 +219,7 @@ char *api_netpath;
         dwr(MSG_DEBUG, "recvmsg(%d)\n", socket);
         //if(!check_intercept_enabled())
             return realrecvmsg(socket, message, flags);
-        return zt_recvmsg(socket, message, flags);
+        return zts_recvmsg(socket, message, flags);
     }
 #endif
 
@@ -244,7 +244,7 @@ char *api_netpath;
             return 0;
         if(realsetsockopt(socket, level, option_name, option_value, option_len) < 0)
             perror("setsockopt():\n");
-        return zt_setsockopt(socket, level, option_name, option_value, option_len);
+        return zts_setsockopt(socket, level, option_name, option_value, option_len);
     }
 
     // ------------------------------------------------------------------------------
@@ -258,7 +258,7 @@ char *api_netpath;
         dwr(MSG_DEBUG, "getsockopt(%d)\n", sockfd);
         if (!check_intercept_enabled() || !connected_to_service(sockfd))
             return realgetsockopt(sockfd, level, optname, optval, optlen);
-        return zt_getsockopt(sockfd, level, optname, optval, optlen);
+        return zts_getsockopt(sockfd, level, optname, optval, optlen);
     }
 
     // ------------------------------------------------------------------------------
@@ -289,7 +289,7 @@ char *api_netpath;
             dwr(MSG_DEBUG,"realsocket() = %d\n", err);
             return err;
         }
-        return zt_socket(socket_family, socket_type, protocol);
+        return zts_socket(socket_family, socket_type, protocol);
     }
 
     // ------------------------------------------------------------------------------
@@ -352,7 +352,7 @@ char *api_netpath;
                               || connaddr->sin_family == AF_UNIX)) {
             return realconnect(__fd, __addr, __len);
         }
-        return zt_connect(__fd, __addr, __len);
+        return zts_connect(__fd, __addr, __len);
     }
 
     // ------------------------------------------------------------------------------
@@ -410,7 +410,7 @@ char *api_netpath;
             errno = ENOTSOCK;
             return -1;
         }
-        return zt_bind(sockfd, addr, addrlen);
+        return zts_bind(sockfd, addr, addrlen);
     }
 
     // ------------------------------------------------------------------------------
@@ -421,7 +421,7 @@ char *api_netpath;
 #if defined(__linux__)
     int accept4(ACCEPT4_SIG) {
         dwr(MSG_DEBUG,"accept4(%d):\n", sockfd);
-        return zt_accept4(sockfd, addr, addrlen, flags);
+        return zts_accept4(sockfd, addr, addrlen, flags);
     }
 #endif
 
@@ -476,7 +476,7 @@ char *api_netpath;
             return(realaccept(sockfd, addr, addrlen));
         }
 
-        return zt_accept(sockfd, addr, addrlen);
+        return zts_accept(sockfd, addr, addrlen);
     }
 
     // ------------------------------------------------------------------------------
@@ -514,7 +514,7 @@ char *api_netpath;
         if(!connected_to_service(sockfd)) {
             return reallisten(sockfd, backlog);
         }
-        return zt_listen(sockfd, backlog);
+        return zts_listen(sockfd, backlog);
     }
 
     // ------------------------------------------------------------------------------
@@ -527,7 +527,7 @@ char *api_netpath;
         if(!check_intercept_enabled()) { 
             return realclose(fd);
         }
-        return zt_close(fd);
+        return zts_close(fd);
     }
 
     // ------------------------------------------------------------------------------
@@ -547,7 +547,7 @@ char *api_netpath;
             dwr(MSG_DEBUG,"getsockname(): not used by service\n");
             return realgetsockname(sockfd, addr, addrlen);
         }
-        return zt_getsockname(sockfd, addr, addrlen);
+        return zts_getsockname(sockfd, addr, addrlen);
     }
 
     // ------------------------------------------------------------------------------
@@ -598,5 +598,5 @@ char *api_netpath;
 #endif
 #endif
 
-#endif // ZT_SDK_INTERCEPT
+#endif // zts_SDK_INTERCEPT
 

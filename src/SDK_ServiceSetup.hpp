@@ -27,7 +27,6 @@
 
 #include <string>
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -49,19 +48,27 @@ extern std::string homeDir;
     /* If you define anything else in this file it that you wish to expose to your Android 
      Java application you *must* follow that convention and any corresponding Java package/classes 
      in your Android project must match this as well */
-	JNIEXPORT void JNICALL Java_ZeroTier_SDK_startOneService(JNIEnv *env, jobject thisObj, jstring path);
-	JNIEXPORT void JNICALL Java_ZeroTier_SDK_joinNetwork(JNIEnv *env, jobject thisObj, jstring nwid);
-    JNIEXPORT void JNICALL Java_ZeroTier_SDK_leaveNetwork(JNIEnv *env, jobject thisObj, jstring nwid);
-    JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_isRunning(JNIEnv *env, jobject thisObj);
+	JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1join_1network(JNIEnv *env, jobject thisObj, jstring nwid);
+    JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1leave_1network(JNIEnv *env, jobject thisObj, jstring nwid);
+    JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1running(JNIEnv *env, jobject thisObj);
 #else
-	void *startOneService(void *thread_id);
 	void init_service(int key, const char * path);
     void init_service_and_rpc(int key, const char * path, const char * nwid);
 	void init_intercept(int key);
 #endif
+
+#if defined (__ANDROID__)
+	JNIEXPORT int JNICALL Java_ZeroTier_SDK_zt_1start_1service(JNIEnv *env, jobject thisObj, jstring path);
+#else
+	void * zt_start_service(void *thread_id);
+#endif
+
 void set_intercept_status(int mode);
-void join_network(const char * nwid);
-void leave_network(const char * nwid);
+void zts_join_network(const char * nwid);
+void zts_leave_network(const char * nwid);
+bool zts_is_running();
+void zts_terminate();
+
 
 #endif
 

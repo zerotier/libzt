@@ -20,16 +20,16 @@ void zt_leave_network(const char *nwid);
 
 // Direct Call ZT API
 // These functions will provide direct access to ZT-enabled sockets with no hassle
-int zts_init_rpc(const char *path, const char *nwid);
-int zts_connect(CONNECT_SIG);
-int zts_bind(BIND_SIG);
-int zts_accept(ACCEPT_SIG);
-int zts_listen(LISTEN_SIG);
-int zts_socket(SOCKET_SIG);
-int zts_setsockopt(SETSOCKOPT_SIG);
-int zts_getsockopt(GETSOCKOPT_SIG);
-int zts_close(CLOSE_SIG);
-int zts_getsockname(GETSOCKNAME_SIG);
+int zt_init_rpc(const char *path, const char *nwid);
+int zt_connect(CONNECT_SIG);
+int zt_bind(BIND_SIG);
+int zt_accept(ACCEPT_SIG);
+int zt_listen(LISTEN_SIG);
+int zt_socket(SOCKET_SIG);
+int zt_setsockopt(SETSOCKOPT_SIG);
+int zt_getsockopt(GETSOCKOPT_SIG);
+int zt_close(CLOSE_SIG);
+int zt_getsockname(GETSOCKNAME_SIG);
 
 #endif /* Example_OSX_Bridging_Header_h */
 

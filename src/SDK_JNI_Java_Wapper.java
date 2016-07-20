@@ -24,29 +24,39 @@
  * redistribute it in a modified binary form, please contact ZeroTier Networks
  * LLC. Start here: http://www.zerotier.com/
  */
- 
 package ZeroTier;
+
+import java.net.SocketAddress;
+
 public class SDK {
 
-	// Loads JNI code
+    // Socket families
+    public int AF_UNIX = 1;
+    public int AF_INET = 2;
+
+    // Socket types
+    public int SOCK_STREAM = 1;
+    public int SOCK_DGRAM = 2;
+
+    // Loads JNI code
     static { System.loadLibrary("ZeroTierOneJNI"); }
-	
-	// ZeroTier service controls
-    public native void startOneService(String homeDir);
-    public native void joinNetwork(String nwid);
-    public native void leaveNetwork(String nwid);
-    public native boolean isRunning();
+
+    // ZeroTier service controls
+    public native void zt_start_service(String homeDir);
+    public native void zt_join_network(String nwid);
+    public native void zt_leave_network(String nwid);
+    public native boolean zt_running();
 
     // Direct-call API
-    // --- These calls skip the intercept and interface directly via the RPC mechanism ---
-    public native int ztjniSocket(int family, int type, int protocol);
-    public native int ztjniConnect(int fd, SocketAddress addr, int addrlen);
-    public native int ztjniBind(int fd, SocketAddress addr, int addrlen);
-    public native int ztjniAccept4(int fd, SocketAddress addr, int addrlen);
-    public native int ztjniAccept(int fd, SocketAddress addr, int addrlen, int flags);
-    public native int ztjniListen(int fd, int backlog);
-    //public native int ztjniGetsockopt(int fd, int type, int protocol);
-    //public native int ztjniSetsockopt(int fd, int type, int protocol);
-    //public native int ztjniGetsockname(int fd, int type, int protocol);
-    public native int ztjniClose(int fd);
+    // --- These calls skip the intercept and interface directly via the RPC mechanism
+    public native int zt_socket(int family, int type, int protocol);
+    public native int zt_connect(int fd, String addr, int port);
+    public native int zt_bind(int fd, String addr, int port);
+    public native int zt_accept4(int fd, String addr, int port);
+    public native int zt_accept(int fd, String addr, int port, int flags);
+    public native int zt_listen(int fd, int backlog);
+    //public native int zt_getsockopt(int fd, int type, int protocol);
+    //public native int zt_setsockopt(int fd, int type, int protocol);
+    //public native int zt_getsockname(int fd, int type, int protocol);
+    public native int zt_close(int fd);
 }

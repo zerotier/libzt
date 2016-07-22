@@ -49,7 +49,7 @@ final String homeDir = getApplicationContext().getFilesDir() + "/zerotier";
 new Thread(new Runnable() {
     public void run() {
         // Calls to JNI code
-        zt.startOneService(homeDir);
+        zt.zt_start_service(homeDir);
     }
 }).start();
 ```
@@ -57,18 +57,16 @@ new Thread(new Runnable() {
  - Join network and perform network call
 
 ```
-while(!zt.isRunning()) { }
-zt.joinNetwork("XXXXXXXXXXXXXXXX");
+while(!zt.zt_running()) { }
+zt.zt_join_network("XXXXXXXXXXXXXXXX");
 
 // Create ZeroTier socket
-int sock = zt.ztjniSocket(zt.AF_INET, zt.SOCK_STREAM, 0);
+int sock = zt.zt_socket(zt.AF_INET, zt.SOCK_STREAM, 0);
 
 // Connect to remote host
-int err = zt.ztjniConnect(sock, "10.9.9.203", 8080);
+int err = zt.zt_connect(sock, "10.9.9.203", 8080);
 ```
 
 ***
 
-*Note for the curious on JNI naming conventions: In order to reference a symbol in the JNI library you need to structure the package and class in your Android Studio project in a very particular way. For example, in the ZeroTierSDK we define a function called `Java_ZeroTier_SDK_startOneService`, the name can be broken down as follows: `Java_PACKAGENAME_CLASSNAME_startOneService`, so as we've defined it, you must create a package called `ZeroTier` and add a class called `SDK`.* 
-
-
+*Note for the curious on JNI naming conventions: In order to reference a symbol in the JNI library you need to structure the package and class in your Android Studio project in a very particular way. For example, in the ZeroTierSDK we define a function called `Java_ZeroTier_SDK_zt_1start_1service`, the name can be broken down as follows: `Java_PACKAGENAME_CLASSNAME_zt_1start_1service`, so as we've defined it, you must create a package called `ZeroTier` and add a class called `SDK`.*

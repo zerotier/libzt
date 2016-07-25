@@ -413,11 +413,12 @@ int (*realclose)(CLOSE_SIG);
 #if defined(__ANDROID__)
     JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1connect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
         struct sockaddr_in addr;
-        char *str;
-        (*env)->ReleaseStringUTFChars(env, addrstr, str);
+        const char *str = (*env)->GetStringUTFChars(env, addrstr, 0);
+        LOGV("zt_connect(): fd = %d\naddr = %s\nport=%d", fd, str, port);
         addr.sin_addr.s_addr = inet_addr(str);
         addr.sin_family = AF_INET;
         addr.sin_port = htons( port );
+        (*env)->ReleaseStringUTFChars(env, addrstr, str);
         return zts_connect(fd, (struct sockaddr *)&addr, sizeof(addr));
     }
 #endif
@@ -452,14 +453,13 @@ int (*realclose)(CLOSE_SIG);
 #if defined(__ANDROID__)
     JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1bind(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
         struct sockaddr_in addr;
-        char *str;
-        // = env->GetStringUTFChars(addrstr, NULL);
-        (*env)->ReleaseStringUTFChars(env, addrstr, str);
+        const char *str = (*env)->GetStringUTFChars(env, addrstr, 0);
+        LOGV("zt_bind(): fd = %d\naddr = %s\nport=%d", fd, str, port);
         addr.sin_addr.s_addr = inet_addr(str);
         addr.sin_family = AF_INET;
         addr.sin_port = htons( port );
-        //return zt_bind(fd, (struct sockaddr *)&addr, sizeof(addr));
-        return 0;
+        (*env)->ReleaseStringUTFChars(env, addrstr, str);
+        return zt_bind(fd, (struct sockaddr *)&addr, sizeof(addr));
     }
 #endif
 
@@ -532,10 +532,8 @@ int (*realclose)(CLOSE_SIG);
 #if defined(__ANDROID__)
     JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1accept(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
         struct sockaddr_in addr;
-        char *str;
-        // = env->GetStringUTFChars(addrstr, NULL);
-        (*env)->ReleaseStringUTFChars(env, addrstr, str);
-        addr.sin_addr.s_addr = inet_addr(str);
+        // TODO: Send addr info back to Javaland
+        addr.sin_addr.s_addr = inet_addr("");
         addr.sin_family = AF_INET;
         addr.sin_port = htons( port );
         return zts_accept(fd, (struct sockaddr *)&addr, sizeof(addr));    

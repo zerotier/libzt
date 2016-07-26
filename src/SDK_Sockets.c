@@ -459,33 +459,31 @@ int (*realclose)(CLOSE_SIG);
         addr.sin_family = AF_INET;
         addr.sin_port = htons( port );
         (*env)->ReleaseStringUTFChars(env, addrstr, str);
-        return zt_bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+        return zts_bind(fd, (struct sockaddr *)&addr, sizeof(addr));
     }
 #endif
 
-#if !defined(__ANDROID__)
-    #ifdef DYNAMIC_LIB
-        int zt_bind(BIND_SIG)
-    #else
-        int zts_bind(BIND_SIG)
-    #endif
-        {
-            get_api_netpath();
-            dwr(MSG_DEBUG,"zt_bind(%d)\n", sockfd);
-            struct bind_st rpc_st;
-            rpc_st.sockfd = sockfd;
-    #if defined(__linux__)
-        #if !defined(__ANDROID__)
-            rpc_st.__tid = 5;//syscall(SYS_gettid);
-        #else
-            rpc_st.__tid = gettid(); // dummy value
-        #endif
-    #endif
-            memcpy(&rpc_st.addr, addr, sizeof(struct sockaddr_storage));
-            memcpy(&rpc_st.addrlen, &addrlen, sizeof(socklen_t));
-            return rpc_send_command(api_netpath, RPC_BIND, sockfd, &rpc_st, sizeof(struct bind_st));
-        }
+#ifdef DYNAMIC_LIB
+    int zt_bind(BIND_SIG)
+#else
+    int zts_bind(BIND_SIG)
 #endif
+    {
+        get_api_netpath();
+        dwr(MSG_DEBUG,"zt_bind(%d)\n", sockfd);
+        struct bind_st rpc_st;
+        rpc_st.sockfd = sockfd;
+#if defined(__linux__)
+    #if !defined(__ANDROID__)
+        rpc_st.__tid = 5;//syscall(SYS_gettid);
+    #else
+        rpc_st.__tid = gettid(); // dummy value
+    #endif
+#endif
+        memcpy(&rpc_st.addr, addr, sizeof(struct sockaddr_storage));
+        memcpy(&rpc_st.addrlen, &addrlen, sizeof(socklen_t));
+        return rpc_send_command(api_netpath, RPC_BIND, sockfd, &rpc_st, sizeof(struct bind_st));
+    }
 
     // ------------------------------------------------------------------------------
     // ----------------------------------- accept4() --------------------------------

@@ -2,10 +2,11 @@
 *.xcuserstate
 *.DS_Store
 
-# Android Studio 
+# Android Studio / Example project configs
 *.idea
 *.gradle
 integrations/android/android_jni_lib/proj/local.properties
+integrations/android/example_app/local.properties
 
 # Unity
 *.meta

@@ -5,6 +5,7 @@
 # Android Studio 
 *.idea
 *.gradle
+integrations/android/android_jni_lib/proj/local.properties
 
 # Unity
 *.meta

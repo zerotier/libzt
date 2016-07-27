@@ -80,7 +80,9 @@ class SqliteNetworkController;
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#if !defined(__ANDROID__)
 #include <ifaddrs.h>
+#endif
 #endif
 
 // Include the right tap device driver for this platform -- add new platforms here

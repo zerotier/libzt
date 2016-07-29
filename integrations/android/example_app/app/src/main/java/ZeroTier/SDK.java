@@ -26,17 +26,22 @@
  */
 package ZeroTier;
 
-import java.net.SocketAddress;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+
+import android.os.ParcelFileDescriptor;
+import android.util.Pair;
 
 public class SDK {
 
     // Socket families
-    public int AF_UNIX = 1;
-    public int AF_INET = 2;
+    public static int AF_UNIX = 1;
+    public static int AF_INET = 2;
 
     // Socket types
-    public int SOCK_STREAM = 1;
-    public int SOCK_DGRAM = 2;
+    public static int SOCK_STREAM = 1;
+    public static int SOCK_DGRAM = 2;
 
     // Loads JNI code
     static { System.loadLibrary("ZeroTierOneJNI"); }
@@ -53,10 +58,59 @@ public class SDK {
     public native int zt_connect(int fd, String addr, int port);
     public native int zt_bind(int fd, String addr, int port);
     public native int zt_accept4(int fd, String addr, int port);
-    public native int zt_accept(int fd, String addr, int port, int flags);
+    public native int zt_accept(int fd, ZeroTier.ZTAddress addr);
     public native int zt_listen(int fd, int backlog);
-    //public native int zt_getsockopt(int fd, int type, int protocol);
-    //public native int zt_setsockopt(int fd, int type, int protocol);
-    //public native int zt_getsockname(int fd, int type, int protocol);
+    //public static native int zt_getsockopt(int fd, int type, int protocol);
+    //public static native int zt_setsockopt(int fd, int type, int protocol);
+    //public static native int zt_getsockname(int fd, int type, int protocol);
     public native int zt_close(int fd);
+    public native int zt_read(int fd, byte[] buf, int len);
+    public native int zt_write(int fd, byte[] buf, int len);
+
+    // --- Below is experimental
+
+    // Converts a numerical fd to a FileDescriptor
+    public static native FileDescriptor zt_getFileDescriptor(int fd);
+
+    // Returns a pair of I/O streams for the given fd
+    public static Pair<FileInputStream, FileOutputStream> zt_getFileStreams(int fd)
+    {
+        FileDescriptor fileDesc = zt_getFileDescriptor(fd);
+        FileOutputStream fos = new FileOutputStream(fileDesc);
+        FileInputStream fis = new FileInputStream(fileDesc);
+        return new Pair<FileInputStream, FileOutputStream>(fis, fos);
+    }
+
+    // Example Usage:
+    // Get corresponding new I/O streams
+    /*
+    Pair<FileInputStream, FileOutputStream> streamPair;
+    streamPair = SDK.zt_getFileStreams(sock);
+    FileInputStream fis = streamPair.first;
+    FileOutputStream fos = streamPair.second;
+    */
+
+    /*
+    // Wrapper for TX
+    public static void zt_write(FileOutputStream fos, byte[] buf, int len)
+    {
+        try {
+            fos.write(buf, 0, len);
+        }
+        catch (java.io.IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Wrapper for RX
+    public static void zt_read(FileInputStream fis, byte[] buf, int len)
+    {
+        try {
+            fis.read(buf, 0, len);
+        }
+        catch (java.io.IOException e) {
+            e.printStackTrace();
+        }
+    }
+    */
 }

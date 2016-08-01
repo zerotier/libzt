@@ -18,26 +18,26 @@ See [doc/docker_linux_zt_sdk.md](doc/docker_linux_zt_sdk.md)
 ```
 make linux_shared_lib
 mkdir /tmp/sdk-test-home
-cp -f build/liblwip.so /tmp/sdk-test-home
+cp -f build/lwip/liblwip.so /tmp/sdk-test-home
 ```
 
 **Step 2: Start service and join network**
 
 ```
-./zerotier-sdk-service -d -p8000 /tmp/sdk-test-home
-./zerotier-cli -D/tmp/sdk-test-home join 8056c2e21c000001
+./build/zerotier-sdk-service -d -p8000 /tmp/sdk-test-home
+./build/zerotier-cli -D/tmp/sdk-test-home join 8056c2e21c000001
 ```
 
 **Step 3: Get new IP address assigned to app**
 
 ```
-./zerotier-cli -D/tmp/sdk-test-home listnetworks
+./build/zerotier-cli -D/tmp/sdk-test-home listnetworks
 ```
 
 **Step 4: Set environment variables**
 
 ```
-export LD_PRELOAD=`pwd`/build/libztintercept.so
+export LD_PRELOAD=`pwd`/build/linux_shared_lib/libztintercept.so
 export ZT_NC_NETWORK=/tmp/sdk-test-home/nc_8056c2e21c000001
 ```
 
@@ -59,7 +59,7 @@ Build the library:
 
 `make linux_shared_lib`
 
-This will build a binary called `zerotier-sdk-service` and a library called `libztintercept.so`. It will also build the IP stack as `build/liblwip.so`. 
+This will build a binary called `zerotier-sdk-service` and a library called `libztintercept.so`. It will also build the IP stack as `build/lwip/liblwip.so`. 
 
 The `zerotier-sdk-service` binary is almost the same as a regular ZeroTier One build except instead of creating virtual network ports using Linux's `/dev/net/tun` interface, it creates instances of a user-space TCP/IP stack for each virtual network and provides RPC access to this stack via a Unix domain socket. The latter is a library that can be loaded with the Linux `LD_PRELOAD` environment variable or by placement into `/etc/ld.so.preload` on a Linux system or container. Additional magic involving nameless Unix domain socket pairs and interprocess socket handoff is used to emulate TCP sockets with extremely low overhead and in a way that's compatible with select, poll, epoll, and other I/O event mechanisms.
 
@@ -75,21 +75,21 @@ A simple test can be performed in user space (no root) in your own home director
 First, build the SDK service and intercept library as described above. Then create a directory to act as a temporary ZeroTier home for your test SDK service instance. You'll need to move the `liblwip.so` binary that was built with `make linux_shared_lib` into there, since the service must be able to find it there and load it.
 
     mkdir /tmp/sdk-test-home
-    cp -f build/liblwip.so /tmp/sdk-test-home
+    cp -f build/lwip/liblwip.so /tmp/sdk-test-home
 
 Now you can run the service (no sudo needed, and `-d` tells it to run in the background):
 
-    ./zerotier-sdk-service -d -p8000 /tmp/sdk-test-home
+    ./build/zerotier-sdk-service -d -p8000 /tmp/sdk-test-home
 
 As with ZeroTier One in its normal incarnation, you'll need to join a network for anything interesting to happen:
 
-    ./zerotier-cli -D/tmp/sdk-test-home join 8056c2e21c000001
+    ./build/zerotier-cli -D/tmp/sdk-test-home join 8056c2e21c000001
 
 If you don't want to use [Earth](https://www.zerotier.com/public.shtml) for this test, replace 8056c2e21c000001 with a different network ID. The `-D` option tells `zerotier-cli` not to look in `/var/lib/zerotier-one` for information about a running instance of the ZeroTier system service but instead to look in `/tmp/sdk-test-home`.
 
 Now type:
 
-    ./zerotier-cli -D/tmp/sdk-test-home listnetworks
+    ./build/zerotier-cli -D/tmp/sdk-test-home listnetworks
 
 Try it a few times until you see that you've successfully joined the network and have an IP address. Instead of a *zt#* device, a path to a Unix domain socket will be listed for the network's port.
 
@@ -105,7 +105,7 @@ The `zerotier-sdk-service` binary has joined a *virtual* network and is running 
 
 Now you can run an application .
 
-    export LD_PRELOAD=`pwd`/build/libztintercept.so
+    export LD_PRELOAD=`pwd`/build/linux_shared_lib/libztintercept.so
     export ZT_NC_NETWORK=/tmp/sdk-test-home/nc_8056c2e21c000001
     node tests/httpserver.js
 

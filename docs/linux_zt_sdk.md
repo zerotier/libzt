@@ -24,14 +24,14 @@ cp -f build/lwip/liblwip.so /tmp/sdk-test-home
 **Step 2: Start service and join network**
 
 ```
-./zerotier-sdk-service -d -p8000 /tmp/sdk-test-home
-./zerotier-cli -D/tmp/sdk-test-home join 8056c2e21c000001
+./build/zerotier-sdk-service -d -p8000 /tmp/sdk-test-home
+./build/zerotier-cli -D/tmp/sdk-test-home join 8056c2e21c000001
 ```
 
 **Step 3: Get new IP address assigned to app**
 
 ```
-./zerotier-cli -D/tmp/sdk-test-home listnetworks
+./build/zerotier-cli -D/tmp/sdk-test-home listnetworks
 ```
 
 **Step 4: Set environment variables**
@@ -79,17 +79,17 @@ First, build the SDK service and intercept library as described above. Then crea
 
 Now you can run the service (no sudo needed, and `-d` tells it to run in the background):
 
-    ./zerotier-sdk-service -d -p8000 /tmp/sdk-test-home
+    ./build/zerotier-sdk-service -d -p8000 /tmp/sdk-test-home
 
 As with ZeroTier One in its normal incarnation, you'll need to join a network for anything interesting to happen:
 
-    ./zerotier-cli -D/tmp/sdk-test-home join 8056c2e21c000001
+    ./build/zerotier-cli -D/tmp/sdk-test-home join 8056c2e21c000001
 
 If you don't want to use [Earth](https://www.zerotier.com/public.shtml) for this test, replace 8056c2e21c000001 with a different network ID. The `-D` option tells `zerotier-cli` not to look in `/var/lib/zerotier-one` for information about a running instance of the ZeroTier system service but instead to look in `/tmp/sdk-test-home`.
 
 Now type:
 
-    ./zerotier-cli -D/tmp/sdk-test-home listnetworks
+    ./build/zerotier-cli -D/tmp/sdk-test-home listnetworks
 
 Try it a few times until you see that you've successfully joined the network and have an IP address. Instead of a *zt#* device, a path to a Unix domain socket will be listed for the network's port.
 

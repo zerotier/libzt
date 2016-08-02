@@ -125,7 +125,6 @@ int load_symbols_rpc()
 
 int rpc_join(char * sockname)
 {
-  LOGV("RPC = %s\n", sockname);
   if(sockname == NULL) {
     printf("Warning, rpc netpath is NULL\n");
   }

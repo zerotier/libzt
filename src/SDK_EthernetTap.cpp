@@ -382,7 +382,7 @@ Connection *NetconEthernetTap::getConnection(PhySocket *sock)
 
 void NetconEthernetTap::closeConnection(PhySocket *sock)
 {
-    dwr(MSG_DEBUG, "closeConnection(%x):\n", sock);
+    dwr(MSG_DEBUG, "closeConnection(sock=%x):\n", sock);
 	Mutex::Lock _l(_close_m);
 	// Here we assume _tcpconns_m is already locked by caller
 	if(!sock) {
@@ -394,7 +394,6 @@ void NetconEthernetTap::closeConnection(PhySocket *sock)
 		return;
     if(conn->type==SOCK_DGRAM) {
         lwipstack->__udp_remove(conn->UDP_pcb);
-        return;
     }
 	if(conn->TCP_pcb && conn->TCP_pcb->state != CLOSED) {
 		dwr(MSG_DEBUG,"closeConnection(conn=%p,sock=%p): PCB->state = %d\n", 
@@ -417,7 +416,6 @@ void NetconEthernetTap::closeConnection(PhySocket *sock)
 			dwr(MSG_ERROR,"closeConnection(sock=%p): error while calling tcp_close()\n", (void*)&sock);
 		}
 	}
-	dwr(MSG_DEBUG, "Removing from _Connections\n");
 	for(size_t i=0;i<_Connections.size();++i) {
 		if(_Connections[i] == conn){
 			_Connections.erase(_Connections.begin() + i);
@@ -427,7 +425,6 @@ void NetconEthernetTap::closeConnection(PhySocket *sock)
 	}
 	if(!sock)
 		return;
-	dwr(MSG_DEBUG, "closing underlying socket\n");
 	close(_phy.getDescriptor(sock));
 	_phy.close(sock, false);
 }

@@ -794,11 +794,11 @@ err_t NetconEthernetTap::nc_recved(void *arg, struct tcp_pcb *PCB, struct pbuf *
 		tot += len;
 	}
 	if(tot) {
-		#if defined(USE_SOCKS_PROXY)
-			l->tap->phyOnTcpWritable(l->conn->sock, NULL, true);
-		#else
+		//#if defined(USE_SOCKS_PROXY)
+		//	l->tap->phyOnTcpWritable(l->conn->sock, NULL, true);
+		//#else
 			l->tap->phyOnUnixWritable(l->conn->sock, NULL, true);
-		#endif
+		//#endif
 	}
 	l->tap->lwipstack->__pbuf_free(q);
 	return ERR_OK;

@@ -52,5 +52,9 @@ int main(int argc , char *argv[])
     for(int i=0; i<bytes_read; i++) {
         printf("%c", client_message[i]);
     }
+
+    // TX
+    int bytes_written = write(client_sock, "Server here!", 12); 
+    printf("bytes_written = %d\n", bytes_written);
     return 0;
 }

@@ -305,6 +305,27 @@ int (*realclose)(CLOSE_SIG);
             return 	fcntl(fd, F_SETFL, O_NONBLOCK);
         }
 #endif
+
+    // ------------------------------------------------------------------------------
+    // ----------------------- Exposed RX/TX API for Java JNI -----------------------
+    // ------------------------------------------------------------------------------
+
+    // TX
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1write(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len)
+    {
+        jbyte *body = (*env)->GetByteArrayElements(env, buf, 0);
+        int written_bytes = write(fd, body, len);
+        (*env)->ReleaseByteArrayElements(env, buf, body, 0);
+        return written_bytes;
+    }
+    // RX
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1read(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len)
+    {
+        jbyte *body = (*env)->GetByteArrayElements(env, buf, 0);
+        int read_bytes = read(fd, body, len);
+        (*env)->ReleaseByteArrayElements(env, buf, body, 0);
+        return read_bytes;
+    }
         
     // ------------------------------------------------------------------------------
     // --------------------------------- setsockopt() -------------------------------

@@ -29,22 +29,37 @@ public class MainActivity extends AppCompatActivity {
         // Create ZeroTier socket
         int sock = zt.zt_socket(SDK.AF_INET, SDK.SOCK_STREAM, 0);
 
+        /*
         try {
-            Thread.sleep(5000);
+            Thread.sleep(25000);
         }
         catch(java.lang.InterruptedException e) { }
+        */
 
         int mode = 0; // client/server mode toggle
 
         // Establish outgoing connection
         if(mode==0)
         {
-            int err = zt.zt_connect(sock, "10.9.9.203", 7000);
-            Log.d("TEST", "err = " + err + "\n");
-            SDK.zt_write(sock, "Welcome to the machine".getBytes(), 16);
-            byte[] buffer = null;
-            SDK.zt_read(sock, buffer, 16);
-            Log.d("TEST", "buffer = " + buffer);
+            int err = -1;
+            while(err < 0) {
+
+                try {
+                    Thread.sleep(1000);
+                }
+                catch(java.lang.InterruptedException e) { }
+                err = zt.zt_connect(sock, "10.9.9.100", 7003);
+                Log.d("TEST", "err = " + err + "\n");
+            }
+
+            // TX
+            zt.zt_write(sock, "Welcome to the machine".getBytes(), 16);
+
+            // RX
+            byte[] buffer = new byte[12];
+            zt.zt_read(sock, buffer, 12);
+            String bufStr = new String(buffer);
+            Log.d("TEST", "response = " + bufStr);
         }
 
         // Listen to incoming connections

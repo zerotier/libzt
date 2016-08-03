@@ -310,6 +310,7 @@ int (*realclose)(CLOSE_SIG);
     // ----------------------- Exposed RX/TX API for Java JNI -----------------------
     // ------------------------------------------------------------------------------
 
+#if defined(__ANDROID__)
     // TX
 	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1write(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len)
     {
@@ -326,6 +327,7 @@ int (*realclose)(CLOSE_SIG);
         (*env)->ReleaseByteArrayElements(env, buf, body, 0);
         return read_bytes;
     }
+#endif
         
     // ------------------------------------------------------------------------------
     // --------------------------------- setsockopt() -------------------------------

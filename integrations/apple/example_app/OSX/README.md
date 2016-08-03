@@ -8,7 +8,16 @@ Imagine a flat, encrypted, no-configuration LAN for all of the instances of your
 This short tutorial will show you how to enable ZeroTier functionality for your OSX app with little to no code modification. Check out our [ZeroTier SDK](https://www.zerotier.com/blog) page for more info on how the integration works.
 
 ***
-## Via Static-linking
+
+## Via Traditional Linking (Everything bundled)
+
+```
+make osx_shared_lib`
+g++ myapp.cpp -o myapp libztosx.so
+./myapp
+```
+
+## Via Traditional Linking (Service+Intercept model)
 
 Example:
 
@@ -23,7 +32,7 @@ Run application
 
     ./myapp
 
-## Via App Framework
+## Via App Framework in XCode
 
 ***
 **Step 1: Build iOS framework**

@@ -14,24 +14,25 @@ For more support on these integrations, or if you'd like help creating a new int
 ***
 ## Important Build flags
 
-- `SDK_DEBUG` - Turns on SDK activity/warning/error output. Levels of verbosity can be adjusted in `src/SDK_Debug.h`
-- `SDK_DEBUG_LOGFILE` - Used in conjunction with `SDK_DEBUG`, this will write all SDK debug chatter to a log file. To use this, set `make SDK_DEBUG_LOGFILE=1` then `export ZT_SDK_LOGFILE=debug.log`. 
-- `SDK_LWIP_DEBUG` - Turns on debug output for the lwIP library.
-- `SDK_BUNDLED` - Builds the SDK as a single bundled target including a the RPC mechanism, the lwIP library, and the ZeroTier service.
-- `SDK_SOCKS_PROXY` - Enables the SOCK5 Proxy. This flag is enabled by default on must builds, especially mobile.
+- `SDK_DEBUG=1` - Turns on SDK activity/warning/error output. Levels of verbosity can be adjusted in `src/SDK_Debug.h`
+- `SDK_DEBUG_LOGFILE=1` - Used in conjunction with `SDK_DEBUG`, this will write all SDK debug chatter to a log file. To use this, set `make SDK_DEBUG_LOGFILE=1` then `export ZT_SDK_LOGFILE=debug.log`. 
+- `SDK_LWIP_DEBUG=1` - Turns on debug output for the lwIP library.
+- `SDK_BUNDLED=1` - Builds the SDK as a single bundled target including a the RPC mechanism, the lwIP library, and the ZeroTier service.
+- `SDK_SOCKS_PROXY=1` - Enables the SOCK5 Proxy. This flag is enabled by default on must builds, especially mobile.
 
 ***
 ## Current Integrations
 
 ### Apple `make apple`
 ##### iOS
- - [Embedding within an app](apple/example_app/iOS) `make ios_app_framework`
- - Unity3D plugin `make ios_unity3d_bundle`
+ - [Embedding within an app](apple/example_app/iOS) `make ios_app_framework` -> `build/ios_app_framework/*`
+ - Unity3D plugin `make ios_unity3d_bundle` -> `build/ios_unity3d_bundle/*`
 
 ##### OSX
- - [Embedding within an app](apple/example_app/OSX) `make osx_app_framework`
- - [Dynamic-linking into an app/service at runtime](../docs/osx_zt_sdk.md) `make osx_shared_lib`
- - [Unity3D plugin](apple/ZeroTierSDK_Apple) `make osx_unity3d_bundle`
+ - [Linking into an app at compiletime](../docs/osx_zt_sdk.md) `make osx_shared_lib` -> `build/libztosx.so`
+ - [Embedding within an app with Xcode](apple/example_app/OSX) `make osx_app_framework` -> `build/osx_app_framework/*`
+ - [Dynamic-linking into an app/service at runtime](../docs/osx_zt_sdk.md) `make osx_service_and_intercept` -> `build/zerotier-sdk-service` + `build/libztintercept.so`
+ - [Unity3D plugin](apple/ZeroTierSDK_Apple) `make osx_unity3d_bundle` -> 
 
 ***
 ### Linux
@@ -39,8 +40,8 @@ For more support on these integrations, or if you'd like help creating a new int
  - [Using the SDK with Docker](docker)
 
 ### Android `make android`
- - [Embedding within an app](android) `make android_jni_lib`
- - [Unity 3D plugin](../docs/android_unity3d_zt_sdk.md) `make android_unity3d_plugin`
+ - [Embedding within an app](android) `make android_jni_lib` -> `build/android_jni_lib/YOUR_ARCH/libZeroTierOneJNI.so`
+ - [Unity 3D plugin](../docs/android_unity3d_zt_sdk.md) `make android_unity3d_plugin` -> `build/android_unity3d_plugin/*`
 
 ***
 ### Windows

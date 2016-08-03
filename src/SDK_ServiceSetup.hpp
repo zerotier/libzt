@@ -25,8 +25,6 @@
  * LLC. Start here: http://www.zerotier.com/
  */
 
-#include <string>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -40,9 +38,7 @@ extern "C" {
     
 #define INTERCEPT_ENABLED   111
 #define INTERCEPT_DISABLED  222
-  
-extern std::string homeDir;
-    
+      
 #if defined(__ANDROID__)	
     // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
     /* If you define anything else in this file it that you wish to expose to your Android 

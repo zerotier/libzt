@@ -124,13 +124,13 @@ check:
 	./check.sh $(BUILD)/osx_app_framework/Debug/ZeroTierSDK_OSX.framework
 	./check.sh $(BUILD)/ios_app_framework/Debug-iphoneos/ZeroTierSDK_iOS.framework
 	./check.sh $(BUILD)/ios_unity3d_bundle/Debug-iphoneos/ZeroTierSDK_Unity3D_iOS.bundle
-	./check.sh $(BUILD)/android_jni_lib/arm64-v8a/libZeroTierJNI.so
-	./check.sh $(BUILD)/android_jni_lib/armeabi/libZeroTierJNI.so
-	./check.sh $(BUILD)/android_jni_lib/armeabi-v7a/libZeroTierJNI.so
-	./check.sh $(BUILD)/android_jni_lib/mips/libZeroTierJNI.so
-	./check.sh $(BUILD)/android_jni_lib/mips64/libZeroTierJNI.so
-	./check.sh $(BUILD)/android_jni_lib/x86/libZeroTierJNI.so
-	./check.sh $(BUILD)/android_jni_lib/x86_64/libZeroTierJNI.so
+	./check.sh $(BUILD)/android_jni_lib/arm64-v8a/libZeroTierOneJNI.so
+	./check.sh $(BUILD)/android_jni_lib/armeabi/libZeroTierOneJNI.so
+	./check.sh $(BUILD)/android_jni_lib/armeabi-v7a/libZeroTierOneJNI.so
+	./check.sh $(BUILD)/android_jni_lib/mips/libZeroTierOneJNI.so
+	./check.sh $(BUILD)/android_jni_lib/mips64/libZeroTierOneJNI.so
+	./check.sh $(BUILD)/android_jni_lib/x86/libZeroTierOneJNI.so
+	./check.sh $(BUILD)/android_jni_lib/x86_64/libZeroTierOneJNI.so
 
 # Tests
 TEST_OBJDIR := $(BUILD)/tests

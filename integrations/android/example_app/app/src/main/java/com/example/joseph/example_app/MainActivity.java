@@ -29,46 +29,63 @@ public class MainActivity extends AppCompatActivity {
         // Create ZeroTier socket
         int sock = zt.zt_socket(SDK.AF_INET, SDK.SOCK_STREAM, 0);
 
-        /*
-        try {
-            Thread.sleep(25000);
-        }
-        catch(java.lang.InterruptedException e) { }
-        */
-
-        int mode = 0; // client/server mode toggle
+        // client/server mode toggle
+        int mode = 1, err = -1;
 
         // Establish outgoing connection
         if(mode==0)
         {
-            int err = -1;
             while(err < 0) {
 
                 try {
                     Thread.sleep(1000);
                 }
                 catch(java.lang.InterruptedException e) { }
-                err = zt.zt_connect(sock, "10.9.9.100", 7003);
+                err = zt.zt_connect(sock, "10.9.9.100", 7004);
                 Log.d("TEST", "err = " + err + "\n");
             }
 
             // TX
             zt.zt_write(sock, "Welcome to the machine".getBytes(), 16);
 
-            // RX
-            byte[] buffer = new byte[12];
-            zt.zt_read(sock, buffer, 12);
-            String bufStr = new String(buffer);
-            Log.d("TEST", "response = " + bufStr);
+            // Test section
+            for(int i=0; i<1000; i++)
+            {
+                try {
+                    Thread.sleep(20);
+                }
+                catch(java.lang.InterruptedException e) { }
+
+                String msg = "Welcome to the machine!";
+                int written = zt.zt_write(sock, msg.getBytes(), msg.length());
+                Log.d("TEST", "TX[" + i + "] = " + written);
+
+                // RX
+                byte[] buffer = new byte[1024];
+                zt.zt_read(sock, buffer, buffer.length);
+                String bufStr = new String(buffer);
+                Log.d("TEST", "RX[" + i + "] = " + bufStr);
+            }
+
         }
 
         // Listen to incoming connections
         if(mode==1)
         {
-            int err;
-            zt.zt_bind(sock, "0.0.0.0", 8081);
-            zt.zt_listen(sock,1);
-            err = zt.zt_accept(sock,null); // Pass a ZTAddress to get remote host's address (if you want)
+            while(err < 0) {
+                try {
+                    Thread.sleep(1000);
+                }
+                catch(java.lang.InterruptedException e) { }
+                err = zt.zt_bind(sock, "0.0.0.0", 8080);
+                Log.d("TEST", "err = " + err + "\n");
+            }
+
+
+            //zt.zt_listen(sock,1);
+            //err = zt.zt_accept(sock,null); // Pass a ZTAddress to get remote host's address (if you want)
+
+            //Log.d("TEST", "accept_err = " + err);
 
             // Example ZTAddress usage
             /*

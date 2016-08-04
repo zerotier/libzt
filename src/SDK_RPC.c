@@ -58,6 +58,8 @@
 int (*realsocket)(SOCKET_SIG);
 int (*realconnect)(CONNECT_SIG);
 
+void dwr(int level, const char *fmt, ... );
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -126,7 +128,7 @@ int load_symbols_rpc()
 int rpc_join(char * sockname)
 {
   if(sockname == NULL) {
-    printf("Warning, rpc netpath is NULL\n");
+    dwr(MSG_ERROR, "Warning, rpc netpath is NULL\n");
   }
   if(!load_symbols_rpc())
     return -1;
@@ -142,7 +144,7 @@ int rpc_join(char * sockname)
 #else
   if((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0){
 #endif
-    LOGV(stderr, "Error while creating RPC socket\n");
+    dwr(MSG_ERROR, "Error while creating RPC socket\n");
     return -1;
   }
   while((conn_err != 0) && (attempts < SERVICE_CONNECT_ATTEMPTS)){
@@ -151,7 +153,7 @@ int rpc_join(char * sockname)
     #else
       if((conn_err = connect(sock, (struct sockaddr*)&addr, sizeof(addr))) != 0) {
     #endif
-      LOGV("Error while connecting to RPC socket. Re-attempting...\n");
+      dwr(MSG_ERROR, "Error while connecting to RPC socket. Re-attempting...\n");
       sleep(1);
     }
     else
@@ -177,7 +179,7 @@ int rpc_send_command(char *path, int cmd, int forfd, void *data, int len)
   // Generate token
   int fdrand = open("/dev/urandom", O_RDONLY);
   if(read(fdrand, &CANARY, CANARY_SZ) < 0) {
-     fprintf(stderr,"unable to read from /dev/urandom for RPC canary data\n");
+     dwr(MSG_ERROR, "unable to read from /dev/urandom for RPC canary data\n");
      return -1;  
   }
   memcpy(&canary_num, CANARY, CANARY_SZ);  
@@ -213,18 +215,18 @@ int rpc_send_command(char *path, int cmd, int forfd, void *data, int len)
   // Write RPC
   long n_write = write(rpc_sock, &metabuf, BUF_SZ);
   if(n_write < 0) {
-    fprintf(stderr, "Error writing command to service (CMD = %d)\n", cmdbuf[CMD_ID_IDX]);
+    dwr(MSG_ERROR, "Error writing command to service (CMD = %d)\n", cmdbuf[CMD_ID_IDX]);
     errno = 0;
   }
   // Write token to corresponding data stream
   if(read(rpc_sock, &c, 1) < 0) {
-    fprintf(stderr, "unable to read RPC ACK byte from service.\n");
+    dwr(MSG_ERROR, "unable to read RPC ACK byte from service.\n");
     return -1;
   }
   if(c == 'z' && n_write > 0 && forfd > -1){
     if(send(forfd, &CANARY, CANARY_SZ+PADDING_SZ, 0) < 0) {
         perror("send: \n");
-      fprintf(stderr,"unable to write canary to stream (fd=%d)\n", forfd);
+      dwr(MSG_ERROR, "unable to write canary to stream (fd=%d)\n", forfd);
       return -1;
     }
   }
@@ -321,11 +323,11 @@ ssize_t sock_fd_read(int sock, void *buf, ssize_t bufsize, int *fd)
     cmsg = CMSG_FIRSTHDR(&msg);
     if (cmsg && cmsg->cmsg_len == CMSG_LEN(sizeof(int))) {
       if (cmsg->cmsg_level != SOL_SOCKET) {
-        fprintf (stderr, "invalid cmsg_level %d\n",cmsg->cmsg_level);
+        dwr(MSG_ERROR, "invalid cmsg_level %d\n",cmsg->cmsg_level);
         return -1;
       }
       if (cmsg->cmsg_type != SCM_RIGHTS) {
-          fprintf (stderr, "invalid cmsg_type %d\n",cmsg->cmsg_type);
+          dwr(MSG_ERROR, "invalid cmsg_type %d\n",cmsg->cmsg_type);
           return -1;
       }
       *fd = *((int *) CMSG_DATA(cmsg));
@@ -334,7 +336,7 @@ ssize_t sock_fd_read(int sock, void *buf, ssize_t bufsize, int *fd)
   } else {
     size = read (sock, buf, bufsize);
     if (size < 0) {
-      fprintf(stderr, "sock_fd_read(): read: Error\n");
+      dwr(MSG_ERROR, "sock_fd_read(): read: Error\n");
       return -1;
     }
   }

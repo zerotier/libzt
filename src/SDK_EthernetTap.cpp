@@ -148,9 +148,8 @@ NetconEthernetTap::NetconEthernetTap(
     
 	_unixListenSocket = _phy.unixListen(sockPath,(void *)this);
 	dwr(MSG_DEBUG, " NetconEthernetTap initialized on: %s\n", sockPath);
-	LOGV(" NetconEthernetTap initialized on: %s\n", sockPath);
 	if (!_unixListenSocket)
-		LOGV("unable to bind to: %s\n", sockPath);
+		dwr(MSG_ERROR, "unable to bind to: %s\n", sockPath);
      _thread = Thread::start(this);
 }
 
@@ -176,6 +175,7 @@ bool NetconEthernetTap::enabled() const
 
 bool NetconEthernetTap::addIp(const InetAddress &ip)
 {
+	dwr(MSG_DEBUG, "addIp(): ZT address = %s", ip.toString().c_str());
 	Mutex::Lock _l(_ips_m);
 	if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
 		_ips.push_back(ip);
@@ -331,7 +331,7 @@ void NetconEthernetTap::threadMain()
 				fcntl(fd, F_SETFL, O_NONBLOCK);
 				unsigned char tmpbuf[BUF_SZ];
 				
-				int n = read(fd,&tmpbuf,BUF_SZ);
+				ssize_t n = read(fd,&tmpbuf,BUF_SZ);
 				if(_Connections[i]->TCP_pcb->state == SYN_SENT) {
 					dwr(MSG_DEBUG_EXTRA,"  tap_thread(): (sock=%p) state = SYN_SENT, should finish or be removed soon\n", 
 						(void*)&(_Connections[i]->sock));
@@ -484,12 +484,12 @@ void NetconEthernetTap::phyOnUnixWritable(PhySocket *sock,void **uptr,bool lwip_
 	processReceivedData(sock,uptr,lwip_invoked);
 }
 
-void NetconEthernetTap::phyOnUnixData(PhySocket *sock,void **uptr,void *data,unsigned long len)
+void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
 {
     dwr(MSG_DEBUG, "phyOnUnixData(%p), len = %d\n", (void*)&sock, len);
 	uint64_t CANARY_num;
 	pid_t pid, tid;
-	int wlen = len;
+	ssize_t wlen = len;
 	char cmd, timestamp[20], CANARY[CANARY_SZ], padding[] = {PADDING};
 	void *payload;
 	unsigned char *buf = (unsigned char*)data;
@@ -936,9 +936,14 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 	struct sockaddr_in *rawAddr = (struct sockaddr_in *) &bind_rpc->addr;
 	int err, port = lwipstack->__lwip_ntohs(rawAddr->sin_port);
 	ip_addr_t connAddr;
+	if(!_ips.size()) {
+		// We haven't been given an address yet. Binding at this stage is premature
+		dwr(MSG_ERROR, " handleBind(): ZT address hasn't been provided. Cannot bind yet.");
+		sendReturnValue(rpcSock, -1, ENOMEM);
+		return;
+	}
 	connAddr.addr = *((u32_t *)_ips[0].rawIpData());
 	Connection *conn = getConnection(sock);
-
     dwr(MSG_DEBUG," handleBind(sock=%p,fd=%d,port=%d)\n", (void*)&sock, bind_rpc->sockfd, port);
     if(conn) {
         if(conn->type == SOCK_DGRAM) {

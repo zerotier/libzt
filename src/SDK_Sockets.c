@@ -423,7 +423,6 @@ int (*realclose)(CLOSE_SIG);
         /* -1 is passed since we we're generating the new socket in this call */
         printf("api_netpath = %s\n", api_netpath);
         int err = rpc_send_command(api_netpath, RPC_SOCKET, -1, &rpc_st, sizeof(struct socket_st));
-        //LOGV("socket() = %d\n", err);
         dwr(MSG_DEBUG," socket() = %d\n", err);
         return err;
     }
@@ -437,7 +436,7 @@ int (*realclose)(CLOSE_SIG);
     JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1connect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
         struct sockaddr_in addr;
         const char *str = (*env)->GetStringUTFChars(env, addrstr, 0);
-        LOGV("zt_connect(): fd = %d\naddr = %s\nport=%d", fd, str, port);
+        dwr(MSG_DEBUG, "zt_connect(): fd = %d\naddr = %s\nport=%d", fd, str, port);
         addr.sin_addr.s_addr = inet_addr(str);
         addr.sin_family = AF_INET;
         addr.sin_port = htons( port );
@@ -477,7 +476,7 @@ int (*realclose)(CLOSE_SIG);
     JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1bind(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
         struct sockaddr_in addr;
         const char *str = (*env)->GetStringUTFChars(env, addrstr, 0);
-        LOGV("zt_bind(): fd = %d\naddr = %s\nport=%d", fd, str, port);
+        dwr(MSG_DEBUG, "zt_bind(): fd = %d\naddr = %s\nport=%d", fd, str, port);
         addr.sin_addr.s_addr = inet_addr(str);
         addr.sin_family = AF_INET;
         addr.sin_port = htons( port );
@@ -541,7 +540,8 @@ int (*realclose)(CLOSE_SIG);
             if ((flags & SOCK_NONBLOCK))
                fcntl(sockfd, F_SETFL, O_NONBLOCK);
         #endif
-            return accept(sockfd, addr, addrlen);
+            int len = !addr ? 0 : addrlen;
+            return accept(sockfd, addr, len);
         }
 #endif
     

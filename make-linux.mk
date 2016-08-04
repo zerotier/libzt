@@ -68,6 +68,16 @@ all: remove_only_intermediates linux_shared_lib check
 remove_only_intermediates:
 	-find . -type f \( -name '*.o' -o -name '*.so' \) -delete
 
+# TODO: CHECK if ANDROID/GRADLE TOOLS are installed
+# Build library for Android Unity integrations
+# Build JNI library for Android app integration
+android_jni_lib:
+	cd $(INT)/android/android_jni_lib/proj; ./gradlew assembleDebug
+	mkdir -p $(BUILD)/android_jni_lib
+	cp docs/android_zt_sdk.md $(BUILD)/android_jni_lib/README.md
+	mv -f $(INT)/android/android_jni_lib/java/libs/* $(BUILD)/android_jni_lib
+	cp -R $(BUILD)/android_jni_lib/* $(INT)/android/example_app/app/src/main/jniLibs
+	
 # Build a dynamically-loadable library
 linux_shared_lib: $(OBJS)
 	mkdir -p $(BUILD)/linux_shared_lib
@@ -124,13 +134,13 @@ docker_check_test:
 check:
 	./check.sh $(BUILD)/lwip/liblwip.so
 	./check.sh $(BUILD)/linux_shared_lib/libztintercept.so
-	./check.sh $(BUILD)/android_jni_lib/arm64-v8a/libZeroTierJNI.so
-	./check.sh $(BUILD)/android_jni_lib/armeabi/libZeroTierJNI.so
-	./check.sh $(BUILD)/android_jni_lib/armeabi-v7a/libZeroTierJNI.so
-	./check.sh $(BUILD)/android_jni_lib/mips/libZeroTierJNI.so
-	./check.sh $(BUILD)/android_jni_lib/mips64/libZeroTierJNI.so
-	./check.sh $(BUILD)/android_jni_lib/x86/libZeroTierJNI.so
-	./check.sh $(BUILD)/android_jni_lib/x86_64/libZeroTierJNI.so
+	./check.sh $(BUILD)/android_jni_lib/arm64-v8a/libZeroTierOneJNI.so
+	./check.sh $(BUILD)/android_jni_lib/armeabi/libZeroTierOneJNI.so
+	./check.sh $(BUILD)/android_jni_lib/armeabi-v7a/libZeroTierOneJNI.so
+	./check.sh $(BUILD)/android_jni_lib/mips/libZeroTierOneJNI.so
+	./check.sh $(BUILD)/android_jni_lib/mips64/libZeroTierOneJNI.so
+	./check.sh $(BUILD)/android_jni_lib/x86/libZeroTierOneJNI.so
+	./check.sh $(BUILD)/android_jni_lib/x86_64/libZeroTierOneJNI.so
 
 # Tests
 TEST_OBJDIR := $(BUILD)/tests

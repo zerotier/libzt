@@ -78,6 +78,7 @@ extern "C" {
 //char *debug_logfile = (char*)0;
 void dwr(int level, const char *fmt, ... );
 
+//#if !defined(__ANDROID__)
 void dwr(int level, const char *fmt, ... )
 {
 #if defined(SDK_DEBUG)
@@ -102,7 +103,6 @@ void dwr(int level, const char *fmt, ... )
     if(!debug_logfile) { // Try to get logfile from env
       debug_logfile = getenv("ZT_SDK_LOGFILE");
     }
-    
     if(debug_logfile) {
       FILE *file = fopen(debug_logfile,"a");
       fprintf(file, "%s [tid=%7d] ", timestring, tid);
@@ -110,7 +110,6 @@ void dwr(int level, const char *fmt, ... )
       fclose(file);
       va_end(ap);
     }
-    
   #endif
   va_start(ap, fmt);
   fprintf(stderr, "%s [tid=%7d] ", timestring, tid);
@@ -118,7 +117,7 @@ void dwr(int level, const char *fmt, ... )
 
 // Outputs to Android debug console
 #if defined(__ANDROID__)
-  LOGV(fmt, ap);
+  __android_log_vprint(ANDROID_LOG_VERBOSE, "ZT-JNI", fmt, ap);
 #endif
 
   fflush(stderr);
@@ -126,6 +125,7 @@ void dwr(int level, const char *fmt, ... )
   va_end(ap);
 #endif // _SDK_DEBUG
 }
+//#endif
 
 #endif //
 #endif //

@@ -47,14 +47,19 @@ int main(int argc , char *argv[])
     printf("connection accepted\n reading...\n");
      
     // RX
-    int bytes_read = recv(client_sock , client_message , 2000 , 0);
-    printf("read (%d) bytes\n", bytes_read);
-    for(int i=0; i<bytes_read; i++) {
-        printf("%c", client_message[i]);
-    }
 
-    // TX
-    int bytes_written = write(client_sock, "Server here!", 12); 
-    printf("bytes_written = %d\n", bytes_written);
+    int msglen = 1024;
+    while(1)
+    {
+       int bytes_read = read(client_sock, client_message, msglen);
+       printf("RX = (%d): ", bytes_read);
+       for(int i=0; i<bytes_read; i++) {
+          printf("%c", client_message[i]);
+       }
+
+       // TX
+       int bytes_written = write(client_sock, "Server here!", msglen); 
+       printf("\nTX = %d\n", bytes_written);
+    }
     return 0;
 }

@@ -434,7 +434,7 @@ namespace ZeroTier {
 	    /* 
 	 	 * Notifies us that there is data to be read from an application's socket
 	 	 */
-		void phyOnUnixData(PhySocket *sock,void **uptr,void *data,unsigned long len);
+		void phyOnUnixData(PhySocket *sock,void **uptr,void *data,ssize_t len);
 		
 		/* 
 	 	 * Notifies us that we can write to an application's socket

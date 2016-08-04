@@ -69,6 +69,7 @@ extern "C" {
 #endif
 
 void zt_init_rpc(const char * path, const char * nwid);
+void dwr(int level, const char *fmt, ... );
 
 #if defined(__UNITY_3D__)
     // .NET Interop-friendly debug mechanism
@@ -96,12 +97,12 @@ void zt_init_rpc(const char * path, const char * nwid);
 // Basic ZT service controls
 void zts_join_network(const char * nwid) { 
     std::string confFile = zt1Service->givenHomePath() + "/networks.d/" + nwid + ".conf";
-    LOGV("writing conf file = %s\n", confFile.c_str());
+    dwr(MSG_ERROR, "writing conf file = %s\n", confFile.c_str());
     if(!ZeroTier::OSUtils::mkdir(netDir)) {
-        LOGV("unable to create %s\n", netDir.c_str());
+        dwr(MSG_ERROR, "unable to create %s\n", netDir.c_str());
     }
     if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), "")) {
-        LOGV("unable to write network conf file: %s\n", confFile.c_str());
+        dwr(MSG_ERROR, "unable to write network conf file: %s\n", confFile.c_str());
     }
     // Provide the API with the RPC information
     zt_init_rpc(homeDir.c_str(), nwid); 
@@ -216,14 +217,14 @@ void zts_terminate() { zt1Service->terminate(); }
             localHomeDir = givenHomeDir; // Used for RPC and *can* differ from homeDir on some platforms
         #endif
 
-        LOGV("homeDir = %s", givenHomeDir.c_str());
+        dwr(MSG_DEBUG, "homeDir = %s", givenHomeDir.c_str());
         // Where network .conf files will be stored
         netDir = homeDir + "/networks.d";
         zt1Service = (ZeroTier::OneService *)0;
         
         // Construct path for network config and supporting service files
         if (homeDir.length()) {
-            LOGV("start_service(): constructing path...\n");
+            dwr(MSG_DEBUG, "start_service(): constructing path...\n");
             std::vector<std::string> hpsp(ZeroTier::Utils::split(homeDir.c_str(),ZT_PATH_SEPARATOR_S,"",""));
             std::string ptmp;
             if (homeDir[0] == ZT_PATH_SEPARATOR)
@@ -234,7 +235,7 @@ void zts_terminate() { zt1Service->terminate(); }
                 ptmp.append(*pi);
                 if ((*pi != ".")&&(*pi != "..")) {
                     if (!ZeroTier::OSUtils::mkdir(ptmp)) {
-                        LOGV("startOneService(): home path does not exist, and could not create\n");
+                        dwr(MSG_ERROR, "startOneService(): home path does not exist, and could not create\n");
                     }
                 }
             }

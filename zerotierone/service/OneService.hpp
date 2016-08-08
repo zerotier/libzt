@@ -20,6 +20,14 @@
 #define ZT_ONESERVICE_HPP
 
 #include <string>
+#include <map>
+
+// Include the right tap device driver for this platform -- add new platforms here
+#ifdef SDK
+	// In network containers builds, use the virtual netcon endpoint instead of a tun/tap port driver
+	#include "../src/SDK_EthernetTap.hpp"
+	namespace ZeroTier { typedef NetconEthernetTap EthernetTap; }
+#endif // not ZT_SDK so pick a tap driver
 
 namespace ZeroTier {
 
@@ -145,6 +153,11 @@ public:
      * - Used for SDK mode
      */
     virtual std::string givenHomePath() = 0;
+
+	/*
+	 *
+	 */
+	virtual std::map< uint64_t,EthernetTap * > getTaps() = 0;
 
 	/**
 	 * @return True if service is still running

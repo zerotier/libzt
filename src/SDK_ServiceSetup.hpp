@@ -33,12 +33,14 @@ extern "C" {
 	#include <jni.h>
 #endif
 
+#include <vector>
+
 #ifndef ONE_SERVICE_SETUP_HPP
 #define ONE_SERVICE_SETUP_HPP
     
 #define INTERCEPT_ENABLED   111
 #define INTERCEPT_DISABLED  222
-      
+
 #if defined(__ANDROID__)	
     // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
     /* If you define anything else in this file it that you wish to expose to your Android 
@@ -47,6 +49,7 @@ extern "C" {
 	JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1join_1network(JNIEnv *env, jobject thisObj, jstring nwid);
     JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1leave_1network(JNIEnv *env, jobject thisObj, jstring nwid);
     JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1running(JNIEnv *env, jobject thisObj);
+    JNIEXPORT jobject JNICALL Java_ZeroTier_SDK_zt_1get_1addresses(JNIEnv *env, jobject thisObj, jstring nwid);
 #else
 	void init_service(int key, const char * path);
     void init_service_and_rpc(int key, const char * path, const char * nwid);
@@ -64,7 +67,7 @@ void zts_join_network(const char * nwid);
 void zts_leave_network(const char * nwid);
 bool zts_is_running();
 void zts_terminate();
-
+std::vector<std::string> zt_get_addresses(std::string nwid);
 
 #endif
 

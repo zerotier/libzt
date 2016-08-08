@@ -139,6 +139,8 @@ namespace ZeroTier {
 		bool addIp(const InetAddress &ip);
 		bool removeIp(const InetAddress &ip);
 		std::vector<InetAddress> ips() const;
+		std::vector<InetAddress> _ips;
+
 		void put(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
 		std::string deviceName() const;
 		void setFriendlyName(const char *friendlyName);
@@ -497,7 +499,6 @@ namespace ZeroTier {
 		std::vector<MulticastGroup> _multicastGroups;
 		Mutex _multicastGroups_m;
 
-		std::vector<InetAddress> _ips;
 		Mutex _ips_m, _tcpconns_m, _rx_buf_m, _close_m;
 
 		unsigned int _mtu;

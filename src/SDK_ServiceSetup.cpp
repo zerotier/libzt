@@ -46,6 +46,7 @@
 #include "Utils.hpp"
 #include "OSUtils.hpp"
 
+#include "SDK_EthernetTap.hpp"
 #include "SDK.h"
 #include "SDK_Debug.h"
 #include "SDK_ServiceSetup.hpp"
@@ -111,6 +112,20 @@ void zts_leave_network(const char * nwid) { zt1Service->leave(nwid); }
 bool zts_is_running() { return zt1Service->isRunning(); }
 void zts_terminate() { zt1Service->terminate(); }
 
+std::vector<std::string> zt_get_addresses(std::string nwid)
+{
+    uint64_t nwid_int = strtoull(nwid.c_str(), NULL, 16);
+    ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
+    std::vector<std::string> ip_strings;
+    if(tap) {
+        for(int i=0; i<tap->_ips.size(); i++) {
+            ip_strings.push_back(tap->_ips[i].toString());
+        }
+        return ip_strings;
+    }
+    return ip_strings;
+}
+
 
 // Android JNI wrapper
 // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
@@ -138,9 +153,27 @@ void zts_terminate() { zt1Service->terminate(); }
         if(zt1Service)
             zts_terminate();
     }
+    JNIEXPORT jobject JNICALL Java_ZeroTier_SDK_zt_1get_1addresses(JNIEnv *env, jobject thisObj, jstring nwid) {
+        const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
+        std::vector<std::string> address_strings = zt_get_addresses(nwid_str);
+        jclass clazz = (*env).FindClass("java/util/ArrayList");
+        jobject addresses = (*env).NewObject(clazz, (*env).GetMethodID(clazz, "<init>", "()V"));
+
+        if(address_strings.size()) {
+            for (int n=0;n<address_strings.size();n++) {
+                jstring _str = (*env).NewStringUTF(address_strings[n].c_str());
+                env->CallBooleanMethod(addresses, env->GetMethodID(clazz, "add", "(Ljava/lang/Object;)Z"), _str);
+            }
+        }
+        else { // Add dummy value 
+            jstring _str = (*env).NewStringUTF("-1.-1.-1.-1/-1");
+            env->CallBooleanMethod(addresses, env->GetMethodID(clazz, "add", "(Ljava/lang/Object;)Z"), _str);
+        }
+        return addresses; 
+	}
 #endif
 
-    
+
 // Typically used on iOS/OSX 
 #if !defined(__ANDROID__)
     /*

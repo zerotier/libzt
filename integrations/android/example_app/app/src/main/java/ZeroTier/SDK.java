@@ -29,6 +29,7 @@ package ZeroTier;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
 
 import android.os.ParcelFileDescriptor;
 import android.util.Pair;
@@ -50,6 +51,7 @@ public class SDK {
     public native void zt_start_service(String homeDir);
     public native void zt_join_network(String nwid);
     public native void zt_leave_network(String nwid);
+    public native ArrayList<String> zt_get_addresses(String nwid);
     public native boolean zt_running();
 
     // Direct-call API

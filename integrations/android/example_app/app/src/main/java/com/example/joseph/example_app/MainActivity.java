@@ -4,6 +4,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import java.net.InetSocketAddress;
 import android.util.*;
+import java.util.ArrayList;
 
 import ZeroTier.SDK;
 
@@ -72,28 +73,28 @@ public class MainActivity extends AppCompatActivity {
         // Listen to incoming connections
         if(mode==1)
         {
+            ArrayList<String> addresses = new ArrayList<String>();
             while(err < 0) {
                 try {
                     Thread.sleep(1000);
                 }
                 catch(java.lang.InterruptedException e) { }
+                addresses = zt.zt_get_addresses("XXXXXXXXXXXXXXXX");
+
+                if(addresses.size() > 0) {
+                    for(int i=0; i<addresses.size(); i++) {
+                        Log.d("TEST", "Address = " + addresses.get(i));
+                    }
+                }
                 err = zt.zt_bind(sock, "0.0.0.0", 8080);
-                Log.d("TEST", "err = " + err + "\n");
+                Log.d("TEST", "bind_err = " + err + "\n");
             }
 
+            err = zt.zt_listen(sock,1);
+            Log.d("TEST", "listen_err = " + err);
 
-            //zt.zt_listen(sock,1);
-            //err = zt.zt_accept(sock,null); // Pass a ZTAddress to get remote host's address (if you want)
-
-            //Log.d("TEST", "accept_err = " + err);
-
-            // Example ZTAddress usage
-            /*
-            ZeroTier.ZTAddress za = new ZeroTier.ZTAddress();
-            za.addr = "0.0.0.0";
-            za.port = -1;
-            InetSocketAddress addr = za.ToInetSocketAddress();
-            */
+            err = zt.zt_accept(sock,null); // Pass a ZTAddress to get remote host's address (if you want)
+            Log.d("TEST", "accept_err = " + err);
         }
 
 

@@ -951,6 +951,8 @@ public:
 		_phy.whack();
 	}
 
+	// For ZT SDK API
+
 	virtual void join(const char *hp)
 	{
 		_node->join(Utils::hexStrToU64(hp),NULL);
@@ -964,6 +966,11 @@ public:
     virtual std::string givenHomePath()
     {
     	return _homePath;
+    }
+
+	virtual std::map< uint64_t,EthernetTap * > getTaps()
+	{
+    	return _taps;
     }
 
 	// Begin private implementation methods

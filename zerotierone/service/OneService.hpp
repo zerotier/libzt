@@ -22,6 +22,8 @@
 #include <string>
 #include <map>
 
+#include "../node/Node.hpp"
+
 // Include the right tap device driver for this platform -- add new platforms here
 #ifdef SDK
 	// In network containers builds, use the virtual netcon endpoint instead of a tun/tap port driver
@@ -138,6 +140,7 @@ public:
 	 */
 	virtual void terminate() = 0;
 
+#ifdef SDK
 	/**
 	 * Joins a network
 	 */
@@ -159,10 +162,16 @@ public:
 	 */
 	virtual std::map< uint64_t,EthernetTap * > getTaps() = 0;
 
+	/*
+	 *
+	 */
+	virtual Node * getNode() = 0;
+
 	/**
 	 * @return True if service is still running
 	 */
 	inline bool isRunning() const { return (this->reasonForTermination() == ONE_STILL_RUNNING); }
+#endif
 
 protected:
 	OneService() {}

@@ -973,6 +973,11 @@ public:
     	return _taps;
     }
 
+	virtual Node * getNode()
+	{
+		return _node;
+	}
+
 	// Begin private implementation methods
 
 	inline void phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *localAddr,const struct sockaddr *from,void *data,unsigned long len)

@@ -49,17 +49,19 @@ int main(int argc , char *argv[])
     // RX
 
     int msglen = 1024;
+    unsigned long count = 0;
     while(1)
     {
+        count++;
        int bytes_read = read(client_sock, client_message, msglen);
-       printf("RX = (%d): ", bytes_read);
+       printf("[%lu] RX = (%d): ", count, bytes_read);
        for(int i=0; i<bytes_read; i++) {
           printf("%c", client_message[i]);
        }
 
        // TX
-       int bytes_written = write(client_sock, "Server here!", msglen); 
-       printf("\nTX = %d\n", bytes_written);
+       int bytes_written = write(client_sock, "Server here!", 12); 
+       printf("\t\nTX = %d\n", bytes_written);
     }
     return 0;
 }

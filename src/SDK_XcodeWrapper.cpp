@@ -47,13 +47,18 @@ extern "C" void start_service_and_rpc(const char * path, const char * nwid) {
 }
 
 // Joins a ZeroTier virtual network
-extern "C" void zt_join_network(const char * nwid){
+extern "C" void zt_join_network(const char * nwid) {
     zts_join_network(nwid);
 }
 
 // Leaves a ZeroTier virtual network
-extern "C" void zt_leave_network(const char * nwid){
+extern "C" void zt_leave_network(const char * nwid) {
     zts_leave_network(nwid);
+}
+
+// Returns a list of addresses associated with this device on the given network
+extern "C" void zt_get_addresses(const char * nwid, char * addrstr) {
+    zts_get_addresses(nwid, addrstr);
 }
 
 // Explicit ZT API wrappers

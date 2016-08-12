@@ -17,6 +17,7 @@ void enable_intercept();
 
 void zt_join_network(const char *nwid);
 void zt_leave_network(const char *nwid);
+void zt_get_addresses(const char *nwid, char * addrstr);
 
 // Direct Call ZT API
 // These functions will provide direct access to ZT-enabled sockets with no hassle

@@ -105,7 +105,7 @@ namespace ZeroTier
     void ExtractAddress(int addr_type, unsigned char *buf, struct sockaddr_in * addr)
     {
     	// TODO: Generalize extraction logic
-        if(addr_type == 3)
+        if(addr_type == 144)
         {
             // Extract address from buffer
             int domain_len = buf[IDX_DST_ADDR]; // (L):D
@@ -216,8 +216,10 @@ namespace ZeroTier
 
 				// CONNECT request
 				if(cmd == 1) {
+					dwr(MSG_DEBUG, "CONNECT request\n");
 					// Ipv4
-					if(addr_type == 1)
+					/*
+					if(addr_type == 144)
 					{
 						//printf("IPv4\n");
 						int raw_addr;
@@ -235,20 +237,22 @@ namespace ZeroTier
 						struct sockaddr_in addr;
 						addr.sin_addr.s_addr = IPADDR_ANY;
 						addr.sin_family = AF_INET;
-						addr.sin_port = Utils::hton(proxyListenPort);
+						addr.sin_port = Utils::hton(8080);
 
 						int fd = socket(AF_INET, SOCK_STREAM, 0);
+						dwr(MSG_DEBUG, "fd = %d\n", fd);
 
 						if(fd < 0)
 							perror("socket");
 
 						int err = connect(fd, (struct sockaddr*)&addr, sizeof(addr));
+						dwr(MSG_DEBUG, "connect_err = %d\n", err);
 						if(err < 0)
 							perror("connect");
 					}
-
+					*/
 					// Fully-qualified domain name
-					if(addr_type == 3)
+					if(addr_type == 144)
 					{
                         int domain_len = buf[IDX_DST_ADDR]; // (L):D
                         struct sockaddr_in addr;

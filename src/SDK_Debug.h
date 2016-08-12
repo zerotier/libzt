@@ -26,7 +26,7 @@
  * LLC. Start here: http://www.zerotier.com/
  */
 
-#define DEBUG_LEVEL     5 // Set this to adjust what you'd like to see in the debug traces
+#define DEBUG_LEVEL     4 // Set this to adjust what you'd like to see in the debug traces
 
 #define MSG_TRANSFER    1 // RX/TX specific statements
 #define MSG_ERROR       2 // Errors

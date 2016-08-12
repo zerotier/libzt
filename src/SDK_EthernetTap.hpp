@@ -154,6 +154,8 @@ namespace ZeroTier {
 	  void (*_handler)(void *,uint64_t,const MAC &,const MAC &,unsigned int,unsigned int,const void *,unsigned int);
 	  void *_arg;
 
+		int proxyListenPort;
+
 	private:
 		// LWIP callbacks
 		// NOTE: these are called from within LWIP, meaning that lwipstack->_lock is ALREADY
@@ -454,20 +456,14 @@ namespace ZeroTier {
 	 	 */
 		void closeConnection(PhySocket *sock);
 
-		// --- Proxy stubs
-		int proxyListenPort;
-
-		//std::map<int,PhySocket> proxySockStates;
-
+		// --- Proxy 
 		int sockstate;
 		int proxyListenSocket;
 		PhySocket *proxyListenPhySocket;
-
 		void StartProxy(const char *sockpath, const char *homepath, uint64_t nwid);
-
 		void phyOnFileDescriptorActivity(PhySocket *sock,void **uptr,bool readable,bool writable);
 
-		// --- end Proxy stubs
+		// --- end Proxy 
 
 		ip_addr_t convert_ip(struct sockaddr_in * addr)
 		{

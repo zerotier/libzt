@@ -112,8 +112,20 @@ void zts_leave_network(const char * nwid) { zt1Service->leave(nwid); }
 bool zts_is_running() { return zt1Service->isRunning(); }
 void zts_terminate() { zt1Service->terminate(); }
 
-std::vector<std::string> zt_get_addresses(std::string nwid)
+// FIXME: Re-implemented to make it play nicer with the C-linkage required for Xcode integrations
+// Now only returns first assigned address per network. Shouldn't normally be a problem
+void zts_get_addresses(const char * nwid, char *addrstr)
 {
+    uint64_t nwid_int = strtoull(nwid, NULL, 16);
+    ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
+    if(tap && tap->_ips.size()){ 
+        std::string addr = tap->_ips[0].toString();
+        memcpy(addrstr, addr.c_str(), addr.length());  
+    }
+    else {
+        memcpy(addrstr, "-1.-1.-1.-1/-1", 14);
+    }
+    /*
     uint64_t nwid_int = strtoull(nwid.c_str(), NULL, 16);
     ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
     std::vector<std::string> ip_strings;
@@ -124,6 +136,18 @@ std::vector<std::string> zt_get_addresses(std::string nwid)
         return ip_strings;
     }
     return ip_strings;
+    */
+}
+
+bool zts_is_relayed() {
+    // TODO
+    // zt1Service->getNode()->peers()
+    return false;
+}
+
+int zts_get_proxy_port(const char * nwid) {
+    uint64_t nwid_int = strtoull(nwid, NULL, 16);
+    return zt1Service->getTaps()[nwid_int]->proxyListenPort;
 }
 
 
@@ -153,12 +177,23 @@ std::vector<std::string> zt_get_addresses(std::string nwid)
         if(zt1Service)
             zts_terminate();
     }
+    // FIXME: Re-implemented to make it play nicer with the C-linkage required for Xcode integrations
+    // Now only returns first assigned address per network. Shouldn't normally be a problem
     JNIEXPORT jobject JNICALL Java_ZeroTier_SDK_zt_1get_1addresses(JNIEnv *env, jobject thisObj, jstring nwid) {
         const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
-        std::vector<std::string> address_strings = zt_get_addresses(nwid_str);
+        char address_string[32];
+        memset(address_string, 0, 32);
+        zts_get_addresses(nwid_str, address_string);
+        jclass clazz = (*env).FindClass("java/util/ArrayList");
+        jobject addresses = (*env).NewObject(clazz, (*env).GetMethodID(clazz, "<init>", "()V"));        
+        jstring _str = (*env).NewStringUTF(address_string);
+        env->CallBooleanMethod(addresses, env->GetMethodID(clazz, "add", "(Ljava/lang/Object;)Z"), _str);
+        return addresses;
+        /*
+        const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
+        std::vector<std::string> address_strings = zts_get_addresses(nwid_str);
         jclass clazz = (*env).FindClass("java/util/ArrayList");
         jobject addresses = (*env).NewObject(clazz, (*env).GetMethodID(clazz, "<init>", "()V"));
-
         if(address_strings.size()) {
             for (int n=0;n<address_strings.size();n++) {
                 jstring _str = (*env).NewStringUTF(address_strings[n].c_str());
@@ -170,7 +205,15 @@ std::vector<std::string> zt_get_addresses(std::string nwid)
             env->CallBooleanMethod(addresses, env->GetMethodID(clazz, "add", "(Ljava/lang/Object;)Z"), _str);
         }
         return addresses; 
+        */
 	}
+    JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1is_1relayed() {
+        return zts_is_relayed();
+    }
+    JNIEXPORT int JNICALL Java_ZeroTier_SDK_zt_1get_1proxy_1port(JNIEnv *env, jobject thisObj, jstring nwid) {
+        const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
+        return zts_get_proxy_port(nwid_str);
+    }
 #endif
 
 

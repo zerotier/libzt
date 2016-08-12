@@ -30,8 +30,10 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.zip.ZipError;
 
 import android.os.ParcelFileDescriptor;
+import android.util.Log;
 import android.util.Pair;
 
 public class SDK {
@@ -49,70 +51,178 @@ public class SDK {
 
     // ZeroTier service controls
     public native void zt_start_service(String homeDir);
-    public native void zt_join_network(String nwid);
-    public native void zt_leave_network(String nwid);
-    public native ArrayList<String> zt_get_addresses(String nwid);
-    public native boolean zt_running();
+    public void start_service(String homeDir) {
+        zt_start_service(homeDir);
+    }
 
-    // Direct-call API
-    // --- These calls skip the intercept and interface directly via the RPC mechanism
+    public native void zt_join_network(String nwid);
+    public void join_network(String nwid) {
+        zt_join_network(nwid);
+    }
+
+    public native void zt_leave_network(String nwid);
+    public void leave_network(String nwid) {
+        zt_leave_network(nwid);
+    }
+
+    public native ArrayList<String> zt_get_addresses(String nwid);
+    public ArrayList<String> get_addresses(String nwid) {
+        return zt_get_addresses(nwid);
+    }
+
+    public native int zt_get_proxy_port(String nwid);
+    public int get_proxy_port(String nwid) {
+        return zt_get_proxy_port(nwid);
+    }
+
+    public native boolean zt_running();
+    public boolean running() {
+        return zt_running();
+    }
+
+
+    // ------------------------------------------------------------------------------
+    // ----------------------------------- socket() ---------------------------------
+    // ------------------------------------------------------------------------------
+
     public native int zt_socket(int family, int type, int protocol);
+    public int socket(int family, int type, int protocol) {
+        return zt_socket(family, type, protocol);
+    }
+
+
+    // ------------------------------------------------------------------------------
+    // ----------------------------------- connect() --------------------------------
+    // ------------------------------------------------------------------------------
+
     public native int zt_connect(int fd, String addr, int port);
+
+    public int connect(int sock, ZTAddress zaddr, String nwid) {
+        return connect(sock, zaddr.Address(), zaddr.Port(), nwid);
+    }
+
+    public int connect(int sock, String addr, int port, String nwid)
+    {
+        int err = -1;
+        ArrayList<String> addresses = new ArrayList<String>();
+        while (err < 0) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+            }
+            addresses = zt_get_addresses(nwid);
+            if (addresses.size() > 0) {
+                if(!addresses.get(0).startsWith("-1.-1.-1.-1/-1")) {
+                    err = zt_connect(sock, addr, port);
+                }
+            }
+        }
+        return err;
+    }
+
+    // ------------------------------------------------------------------------------
+    // ------------------------------------ bind() ----------------------------------
+    // ------------------------------------------------------------------------------
+
     public native int zt_bind(int fd, String addr, int port);
+
+    public int bind(int sock, ZTAddress zaddr, String nwid) {
+        return bind(sock, zaddr.Address(), zaddr.Port(), nwid);
+    }
+    public int bind(int sock, String addr, int port, String nwid) {
+        int err = -1;
+        ArrayList<String> addresses = new ArrayList<String>();
+        while (err < 0) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+            }
+            addresses = zt_get_addresses(nwid);
+            if (addresses.size() > 0) {
+                if(!addresses.get(0).startsWith("-1.-1.-1.-1/-1")) {
+                    err = zt_bind(sock, addr, port);
+                }
+            }
+        }
+        return err;
+    }
+
+
+    // ------------------------------------------------------------------------------
+    // ---------------------------------- accept4() ---------------------------------
+    // ------------------------------------------------------------------------------
+
     public native int zt_accept4(int fd, String addr, int port);
+    public int accept4(int fd, String addr, int port) {
+        return zt_accept4(fd,addr,port);
+    }
+
+
+    // ------------------------------------------------------------------------------
+    // ---------------------------------- accept() ----------------------------------
+    // ------------------------------------------------------------------------------
+
     public native int zt_accept(int fd, ZeroTier.ZTAddress addr);
+    public int accept(int fd, ZeroTier.ZTAddress addr) {
+        return zt_accept(fd, addr);
+    }
+
+    // ------------------------------------------------------------------------------
+    // ----------------------------------- listen() ---------------------------------
+    // ------------------------------------------------------------------------------
+
     public native int zt_listen(int fd, int backlog);
+    public int listen(int fd, int backlog) {
+        return zt_listen(fd,backlog);
+    }
+
+    // ------------------------------------------------------------------------------
+    // ----------------------------------- close() ----------------------------------
+    // ------------------------------------------------------------------------------
+
+    public native int zt_close(int fd);
+    public int close(int fd) {
+        return close(fd);
+    }
+
+
+    // ------------------------------------------------------------------------------
+    // ------------------------------------ read() ----------------------------------
+    // ------------------------------------------------------------------------------
+
+    public native int zt_read(int fd, byte[] buf, int len);
+    public int read(int fd, byte[] buf, int len) {
+        return zt_read(fd, buf, len);
+    }
+
+    // ------------------------------------------------------------------------------
+    // ----------------------------------- write() ----------------------------------
+    // ------------------------------------------------------------------------------
+
+    public native int zt_write(int fd, byte[] buf, int len);
+    public int write(int fd, byte[] buf, int len) {
+        return zt_write(fd, buf, len);
+    }
+
+    // ------------------------------------------------------------------------------
+    // ----------------------------------- sendto() ---------------------------------
+    // ------------------------------------------------------------------------------
+
+    public native int zt_sendto(int fd, byte[] buf, int len, int flags, ZeroTier.ZTAddress addr);
+    public int sendto(int fd, byte[] buf, int len, int flags, ZeroTier.ZTAddress addr){
+        return zt_sendto(fd,buf,len,flags,addr);
+    }
+
+    // ------------------------------------------------------------------------------
+    // ---------------------------------- recvfrom() --------------------------------
+    // ------------------------------------------------------------------------------
+
+    public native int zt_recvfrom(int fd, byte[] buf, int len, int flags, ZeroTier.ZTAddress addr);
+    public int recvfrom(int fd, byte[] buf, int len, int flags, ZeroTier.ZTAddress addr){
+        return zt_recvfrom(fd,buf,len,flags,addr);
+    }
+
     //public static native int zt_getsockopt(int fd, int type, int protocol);
     //public static native int zt_setsockopt(int fd, int type, int protocol);
     //public static native int zt_getsockname(int fd, int type, int protocol);
-    public native int zt_close(int fd);
-    public native int zt_read(int fd, byte[] buf, int len);
-    public native int zt_write(int fd, byte[] buf, int len);
-
-    // --- Below is experimental
-
-    // Converts a numerical fd to a FileDescriptor
-    public static native FileDescriptor zt_getFileDescriptor(int fd);
-
-    // Returns a pair of I/O streams for the given fd
-    public static Pair<FileInputStream, FileOutputStream> zt_getFileStreams(int fd)
-    {
-        FileDescriptor fileDesc = zt_getFileDescriptor(fd);
-        FileOutputStream fos = new FileOutputStream(fileDesc);
-        FileInputStream fis = new FileInputStream(fileDesc);
-        return new Pair<FileInputStream, FileOutputStream>(fis, fos);
-    }
-
-    // Example Usage:
-    // Get corresponding new I/O streams
-    /*
-    Pair<FileInputStream, FileOutputStream> streamPair;
-    streamPair = SDK.zt_getFileStreams(sock);
-    FileInputStream fis = streamPair.first;
-    FileOutputStream fos = streamPair.second;
-    */
-
-    /*
-    // Wrapper for TX
-    public static void zt_write(FileOutputStream fos, byte[] buf, int len)
-    {
-        try {
-            fos.write(buf, 0, len);
-        }
-        catch (java.io.IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    // Wrapper for RX
-    public static void zt_read(FileInputStream fis, byte[] buf, int len)
-    {
-        try {
-            fis.read(buf, 0, len);
-        }
-        catch (java.io.IOException e) {
-            e.printStackTrace();
-        }
-    }
-    */
 }

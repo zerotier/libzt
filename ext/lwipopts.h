@@ -44,6 +44,9 @@
  */
 #include "lwip/debug.h"
 
+//#define LWIP_DEBUG 1
+//#define LWIP_DBG_TYPES_ON LWIP_DBG_TRACE
+
 #define LWIP_CHKSUM_ALGORITHM 2
 
 #undef TCP_MSS

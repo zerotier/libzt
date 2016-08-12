@@ -715,36 +715,18 @@ int (*realclose)(CLOSE_SIG);
         struct getsockname_st rpc_st;
         rpc_st.sockfd = sockfd;
         memcpy(&rpc_st.addrlen, &addrlen, sizeof(socklen_t));
-        LOGV("A\n");
         int rpcfd = rpc_send_command(api_netpath, RPC_GETSOCKNAME, sockfd, &rpc_st, sizeof(struct getsockname_st));
-                LOGV("b\n");
-
         /* read address info from service */
         char addrbuf[sizeof(struct sockaddr_storage)];
-                LOGV("c\n");
-
         memset(&addrbuf, 0, sizeof(struct sockaddr_storage));
-                LOGV("d\n");
-
-        
         if(rpcfd > -1)
             if(read(rpcfd, &addrbuf, sizeof(struct sockaddr_storage)) > 0)
                 close(rpcfd);
-                LOGV("e\n");
-
-        
         struct sockaddr_storage sock_storage;
         memcpy(&sock_storage, addrbuf, sizeof(struct sockaddr_storage));
-                LOGV("Afn");
-
         *addrlen = sizeof(struct sockaddr_in);
-        
         memcpy(addr, &sock_storage, (*addrlen > sizeof(sock_storage)) ? sizeof(sock_storage) : *addrlen);
-                LOGV("g\n");
-
         addr->sa_family = AF_INET;
-                LOGV("h-\n");
-
         return 0;
     }
         

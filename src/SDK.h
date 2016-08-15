@@ -93,6 +93,7 @@ int zts_listen(LISTEN_SIG);
 int zts_setsockopt(SETSOCKOPT_SIG);
 int zts_getsockopt(GETSOCKOPT_SIG);
 int zts_getsockname(GETSOCKNAME_SIG);
+int zts_getpeername(GETPEERNAME_SIG);
 int zts_close(CLOSE_SIG);
 
 ssize_t zts_sendto(SENDTO_SIG);
@@ -123,9 +124,15 @@ ssize_t zts_recvmsg(RECVMSG_SIG);
 	// TCP
 	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1write(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len);
 	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1read(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len);
+
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1send(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, int flags);
+
 	// UDP
 	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1sendto(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, jint flags, jobject ztaddr);
 	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1recvfrom(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, jint flags, jobject ztaddr);
+	
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1fcntl(JNIEnv *env, jobject thisObj, jint socket, jint cmd, jint flags);
+
 	// Takes a given numerical file descriptor and manufactures a java FileDescriptor object for use in javaland
 	JNIEXPORT jobject JNICALL Java_ZeroTier_SDK_zt_1getFileDescriptor(JNIEnv *env, jobject thisObj, jint fd);
 #endif

@@ -175,36 +175,42 @@ public class MainActivity extends AppCompatActivity {
             int sock = zt.socket(SDK.AF_INET, SDK.SOCK_DGRAM, 0);
 
             Log.d("TEST", "binding...");
-            err = zt.bind(sock, bindAddr, nwid);
-            if (err < 0)
+            if((err = zt.bind(sock, bindAddr, nwid)) < 0)
                 Log.d("TEST", "bind_err = " + err + "\n");
-
-            err = zt.listen(sock, 0);
-            if(err < 0)
+            if((err = zt.listen(sock, 0)) < 0)
                 Log.d("TEST", "listen_err = " + err);
+            ArrayList<String> addresses = zt.get_addresses(nwid);
+            if(addresses.size() < 0) {
+                Log.d("TEST", "unable to obtain ZT address");
+                return;
+            }
+            else {
+                Log.d("TEST", "IPV4 = " + addresses.get(0));
+            }
 
-            while(err >= 0) {
+            String bufStr = "";
+            byte[] buffer = new byte[1024];
+
+            zt.fcntl(sock, zt.F_SETFL, zt.O_NONBLOCK);
+
+            // ECHO
+            while(true) {
+                bufStr = "";
+
                 // RX
-                byte[] buffer = new byte[32];
-                String addr_string = "-1.-1.-1.-1";
-                int port_no = -1;
+                if((err = zt.recvfrom(sock, buffer, 32, 0, remoteServer)) > 0) {
+                    bufStr = new String(buffer).substring(0, err);
+                    Log.d("TEST", "read (" + err + ") bytes from " + remoteServer.Address() + " : " + remoteServer.Port() + ", msg = " + bufStr);
 
-                err = zt.recvfrom(sock, buffer, 32, 0, remoteServer);
-                String bufStr = new String(buffer).substring(0, err);
-                Log.d("TEST", "read (" + err + ") bytes from " + remoteServer.Address() + " : " + remoteServer.Port() + ", msg = " + bufStr);
-
-                // TX
-
-                if(err > 0) {
-                    String msg = "Welcome response from android";
+                    // TX
+                    String msg = "Welcome response from android\n";
                     err = zt.sendto(sock, msg.getBytes(), msg.length(), 0, remoteServer);
                     if (err < 0)
                         Log.d("TEST", "sendto_err = " + err);
                 }
-
             }
-            Log.d("TEST", "leaving network");
-            zt.leave_network(nwid);
+            //Log.d("TEST", "leaving network");
+            //zt.leave_network(nwid);
         }
     }
 }

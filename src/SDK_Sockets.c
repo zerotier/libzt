@@ -88,7 +88,7 @@ int (*realclose)(CLOSE_SIG);
     // Assembles (and/or) sets the RPC path for communication with the ZeroTier service
     void zt_init_rpc(const char *path, const char *nwid)
     {
-        dwr(MSG_DEBUG, "zt_init_rpc\n");
+        // dwr(MSG_DEBUG_EXTRA, "zt_init_rpc\n");
         #if !defined(__IOS__)
             // Since we don't use function interposition in iOS 
             if(!realconnect) {
@@ -97,6 +97,7 @@ int (*realclose)(CLOSE_SIG);
         #endif
         // If no path, construct one or get it fron system env vars
         if(!api_netpath) {
+            rpc_mutex_init();
             #if defined(SDK_BUNDLED)
                 // Get the path/nwid from the user application
                 // netpath = [path + "/nc_" + nwid] 
@@ -115,12 +116,29 @@ int (*realclose)(CLOSE_SIG);
                     dwr(MSG_DEBUG, "$ZT_NC_NETWORK = %s\n", api_netpath);
                 }
             #endif
+            dwr(MSG_DEBUG_EXTRA, "zt_init_rpc(): api_netpath = %s\n", api_netpath);
         }
-        dwr(MSG_DEBUG, "zt_init_rpc(): api_netpath = %s\n", api_netpath);
     }
 
     void get_api_netpath() { zt_init_rpc("",""); }
         
+    // ------------------------------------------------------------------------------
+    // ------------------------------------ send() ----------------------------------
+    // ------------------------------------------------------------------------------
+    // int sockfd, const void *buf, size_t len
+
+#if defined(__ANDROID__)
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1send(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, int flags)
+    {
+        jbyte *body = (*env)->GetByteArrayElements(env, buf, 0);
+        char * bufp = (char *)malloc(sizeof(char)*len);
+        memcpy(bufp, body, len);
+        (*env)->ReleaseByteArrayElements(env, buf, body, 0);
+        int written_bytes = write(fd, body, len);
+        return written_bytes;
+    }
+#endif
+
     // ------------------------------------------------------------------------------
     // ------------------------------------ sendto() --------------------------------
     // ------------------------------------------------------------------------------
@@ -140,14 +158,12 @@ int (*realclose)(CLOSE_SIG);
         f = (*env)->GetFieldID(env, cls, "_rawAddr", "J");
         addr.sin_addr.s_addr = (*env)->GetLongField(env, ztaddr, f);
         addr.sin_family = AF_INET;
-        LOGV("zt_sendto(): fd = %d\naddr = %s\nport=%d", fd, inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
-
+        //LOGV("zt_sendto(): fd = %d\naddr = %s\nport=%d", fd, inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
         // TODO: Optimize this
         jbyte *body = (*env)->GetByteArrayElements(env, buf, 0);
         char * bufp = (char *)malloc(sizeof(char)*len);
         memcpy(bufp, body, len);
         (*env)->ReleaseByteArrayElements(env, buf, body, 0);
-
         // "connect" and send buffer contents
         int sent_bytes = zts_sendto(fd, body, len, flags, (struct sockaddr *)&addr, sizeof(addr));
         return sent_bytes;
@@ -161,7 +177,7 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_sendto(SENDTO_SIG) // Used as internal implementation 
     #endif
         {
-            LOGV("zt_sendto()\n");
+            dwr(MSG_DEBUG_EXTRA, "zt_sendto(%d, ...)\n", sockfd);
             if(len > ZT_UDP_DEFAULT_PAYLOAD_MTU) {
                 errno = EMSGSIZE; // Msg is too large
                 return -1;
@@ -176,14 +192,6 @@ int (*realclose)(CLOSE_SIG);
                     return -1;
                 }
             }
-            
-            // the socket isn't connected
-            //int err = rpc_send_command(api_netpath, RPC_IS_CONNECTED, -1, &fd, sizeof(struct fd));
-            //if(err == -1) {
-            //    errno = ENOTCONN;
-            //    return -1;
-            //}
-
             // EMSGSIZE should be returned if the message is too long to be passed atomically through
             // the underlying protocol, in our case MTU?
             // TODO: More efficient solution
@@ -210,7 +218,7 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_sendmsg(SENDMSG_SIG)
     #endif
         {
-            dwr(MSG_DEBUG, "zt_sendmsg()\n");
+            dwr(MSG_DEBUG_EXTRA, "zt_sendmsg()\n");
             char * p, * buf;
             size_t tot_len = 0;
             size_t err;
@@ -249,9 +257,8 @@ int (*realclose)(CLOSE_SIG);
         JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, jint flags, jobject ztaddr)
     {
         struct sockaddr_in addr;
-        dwr(MSG_DEBUG, "zt_recvfrom(): fd = %d\n", fd);
         jbyte *body = (*env)->GetByteArrayElements(env, buf, 0);
-        int recvd_bytes = zts_recvfrom(fd, body, len, flags, &addr, sizeof(addr));
+        int recvd_bytes = zts_recvfrom(fd, body, len, flags, &addr, sizeof(struct sockaddr));
         (*env)->ReleaseByteArrayElements(env, buf, body, 0);
         // Update fields of Java ZTAddress object
         jfieldID fid;
@@ -259,7 +266,7 @@ int (*realclose)(CLOSE_SIG);
         fid = (*env)->GetFieldID(env, cls, "port", "I");
         (*env)->SetIntField(env, ztaddr, fid, addr.sin_port);
         fid = (*env)->GetFieldID(env, cls,"_rawAddr", "J");
-        (*env)->SetLongField(env, ztaddr, fid,addr.sin_addr.s_addr);
+        (*env)->SetLongField(env, ztaddr, fid,addr.sin_addr.s_addr);        
         return recvd_bytes;
     }
 #endif
@@ -271,32 +278,15 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_recvfrom(RECVFROM_SIG)
     #endif
         {
-            dwr(MSG_DEBUG,"zt_recvfrom(%d)\n", socket);
-            ssize_t err;
-            // Since this can be called for connection-oriented sockets,
-            // we need to check the type before we try to read the address info
-            /*
-            int sock_type;
-            socklen_t type_len;
-            realgetsockopt(socket, SOL_SOCKET, SO_TYPE, (void *) &sock_type, &type_len);
-            */
-            //if(sock_type == SOCK_DGRAM && address != NULL && address_len != NULL) {
-                //zts_getsockname(socket, address, address_len);
-            //}
-            // TODO: Explore more efficient means of adjusting buffer
-            unsigned short port;
-            unsigned int addr;
-            err = read(socket, buffer, length);
-            int addr_info_len = sizeof(addr) + sizeof(port);
-            memcpy(&addr, buffer, sizeof(addr));
-            memcpy(&port, buffer + sizeof(addr), sizeof(port));
-            memmove(buffer, (buffer + addr_info_len), err - addr_info_len);
-            address->sin_addr.s_addr = addr;
-            address->sin_port = port;
-            // zts_getsockname(socket, address, address_len);
-            if(err < 0)
+            dwr(MSG_DEBUG_EXTRA,"zt_recvfrom(%d, ...)\n", socket);
+            ssize_t err = read(socket, buffer, length);
+            if(err < 0) {
                 perror("read:\n");
-            return err < 0 ? err : err - addr_info_len; // Adjust reported buffer size to exclude address info
+            }
+            else {
+                zts_getpeername(socket, address, address_len);
+            }
+            return err;
         }
 //#endif
 
@@ -312,7 +302,7 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_recvmsg(RECVMSG_SIG)
     #endif
         {
-            dwr(MSG_DEBUG, "zt_recvmsg(%d)\n", socket);
+            dwr(MSG_DEBUG_EXTRA, "zt_recvmsg(%d)\n", socket);
             ssize_t err, n, tot_len = 0;
             char *buf, *p;
             struct iovec *iov = message->msg_iov;
@@ -373,8 +363,10 @@ int (*realclose)(CLOSE_SIG);
 	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1write(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len)
     {
         jbyte *body = (*env)->GetByteArrayElements(env, buf, 0);
-        int written_bytes = write(fd, body, len);
+        char * bufp = (char *)malloc(sizeof(char)*len);
+        memcpy(bufp, body, len);
         (*env)->ReleaseByteArrayElements(env, buf, body, 0);
+        int written_bytes = write(fd, body, len);
         return written_bytes;
     }
     // TCP RX
@@ -709,27 +701,112 @@ int (*realclose)(CLOSE_SIG);
 #endif
     {
         get_api_netpath();
-        dwr(MSG_DEBUG,"zt_getsockname(%d):\n", sockfd);
-        /* TODO: This is kind of a hack as it stands -- assumes sockaddr is sockaddr_in
-         * and is an IPv4 address. */
+        dwr(MSG_DEBUG_EXTRA,"zt_getsockname(%d):\n", sockfd);
         struct getsockname_st rpc_st;
         rpc_st.sockfd = sockfd;
         memcpy(&rpc_st.addrlen, &addrlen, sizeof(socklen_t));
         int rpcfd = rpc_send_command(api_netpath, RPC_GETSOCKNAME, sockfd, &rpc_st, sizeof(struct getsockname_st));
-        /* read address info from service */
+        // read address info from service
         char addrbuf[sizeof(struct sockaddr_storage)];
         memset(&addrbuf, 0, sizeof(struct sockaddr_storage));
-        if(rpcfd > -1)
-            if(read(rpcfd, &addrbuf, sizeof(struct sockaddr_storage)) > 0)
-                close(rpcfd);
+        if(rpcfd > -1) {
+            int err = read(rpcfd, &addrbuf, sizeof(struct sockaddr));
+            close(rpcfd);
+            if(err > 0) {
+                int sum=0;
+                for(int i=0;i<sizeof(struct sockaddr_storage);i++) {
+                    sum|=addrbuf[i];
+                }
+                if(!sum) { // RXed a zero-ed address buffer, currently the only way to signal a problem
+                    errno = ENOTSOCK; // TODO: general error, needs to be more specific
+                    dwr(MSG_ERROR, "zt_getpeername(): no address info given by service.\n");
+                    return -1;
+                }
+            } 
+            else {
+                errno = ENOTSOCK; // TODO: general error, needs to be more specific
+                dwr(MSG_ERROR, "zt_getpeername(): unable to read address info from service.\n", err);
+                return -1;
+            }
+        }
         struct sockaddr_storage sock_storage;
-        memcpy(&sock_storage, addrbuf, sizeof(struct sockaddr_storage));
-        *addrlen = sizeof(struct sockaddr_in);
-        memcpy(addr, &sock_storage, (*addrlen > sizeof(sock_storage)) ? sizeof(sock_storage) : *addrlen);
+        memcpy(&sock_storage, addrbuf, sizeof(struct sockaddr));
+        addrlen = sizeof(struct sockaddr_in);
+        memcpy(addr, &sock_storage, sizeof(struct sockaddr));
         addr->sa_family = AF_INET;
         return 0;
     }
-        
+
+    // ------------------------------------------------------------------------------
+    // -------------------------------- getpeername() -------------------------------
+    // ------------------------------------------------------------------------------
+    // int sockfd, struct sockaddr *addr, socklen_t *addrlen
+    
+#ifdef DYNAMIC_LIB
+    int zt_getpeername(GETSOCKNAME_SIG)
+#else
+    int zts_getpeername(GETSOCKNAME_SIG)
+#endif
+    {
+        get_api_netpath();
+        dwr(MSG_DEBUG_EXTRA,"zt_getpeername(%d):\n", sockfd);
+        struct getsockname_st rpc_st;
+        rpc_st.sockfd = sockfd;
+        memcpy(&rpc_st.addrlen, &addrlen, sizeof(socklen_t));
+        int rpcfd = rpc_send_command(api_netpath, RPC_GETPEERNAME, sockfd, &rpc_st, sizeof(struct getsockname_st));
+        // read address info from service
+        char addrbuf[sizeof(struct sockaddr_storage)];
+        memset(&addrbuf, 0, sizeof(struct sockaddr_storage));
+
+        if(rpcfd > -1) {
+            int err = read(rpcfd, &addrbuf, sizeof(struct sockaddr));
+            close(rpcfd);
+            if(err > 0) {
+                int sum=0;
+                for(int i=0;i<sizeof(struct sockaddr_storage);i++) {
+                    sum|=addrbuf[i];
+                }
+                if(!sum) { // RXed a zero-ed address buffer, currently the only way to signal a problem
+                    errno = ENOTSOCK; // TODO: general error, needs to be more specific
+                    dwr(MSG_ERROR, "zt_getpeername(): no address info given by service.\n");
+                    return -1;
+                }
+            } 
+            else {
+                errno = ENOTSOCK; // TODO: general error, needs to be more specific
+                dwr(MSG_ERROR, "zt_getpeername(): unable to read address info from service.\n", err);
+                return -1;
+            }
+        }
+        struct sockaddr_storage sock_storage;
+        memcpy(&sock_storage, addrbuf, sizeof(struct sockaddr));
+        addrlen = sizeof(struct sockaddr_in);
+        memcpy(addr, &sock_storage, sizeof(struct sockaddr));
+        addr->sa_family = AF_INET;
+        return 0;
+    }
+
+    // ------------------------------------------------------------------------------
+    // ------------------------------------ fcntl() ---------------------------------
+    // ------------------------------------------------------------------------------
+    // int fd, int cmd, int flags
+
+    #if defined(__ANDROID__)
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1fcntl(JNIEnv *env, jobject thisObj, jint fd, jint cmd, jint flags) {
+        return zts_fcntl(fd,cmd,flags);
+    }
+#endif
+
+#ifdef DYNAMIC_LIB
+    int zt_fcntl(FCNTL_SIG)
+#else
+    int zts_fcntl(FCNTL_SIG)
+#endif
+    {
+        dwr(MSG_DEBUG_EXTRA,"zt_fcntl(%d, %d, %d)\n", fd, cmd, flags);
+        return fcntl(fd,cmd,flags);
+    }
+
 #ifdef __cplusplus
 }
 #endif

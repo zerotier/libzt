@@ -65,8 +65,10 @@
 #define RPC_SOCKET              9
 #define RPC_SHUTDOWN            10
 #define RPC_GETSOCKNAME         11
-#define RPC_RETVAL              12
-#define RPC_IS_CONNECTED		13
+#define RPC_GETPEERNAME         12
+#define RPC_RETVAL              13
+#define RPC_IS_CONNECTED		14
+
 
 #ifdef __cplusplus
 extern "C" {

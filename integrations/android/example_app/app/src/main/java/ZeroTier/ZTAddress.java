@@ -4,20 +4,23 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.regex.Pattern;
 
 public class ZTAddress
 {
+    // int -> byte array
     static public byte[] toIPByteArray(long addr){
         return new byte[]{(byte)addr,(byte)(addr>>>8),(byte)(addr>>>16),(byte)(addr>>>24)};
     }
 
-    int pack(byte[] bytes) {
-        int val = 0;
-        for (int i = 0; i < bytes.length; i++) {
-            val <<= 8;
-            val |= bytes[i] & 0xff;
+    // byte array -> int
+    long toIPInt(String _addr) {
+        long result = 0;
+        for(String part: _addr.split(Pattern.quote("."))) {
+            result = result << 8;
+            result |= Integer.parseInt(part);
         }
-        return val;
+        return result;
     }
 
     public int port;
@@ -42,18 +45,20 @@ public class ZTAddress
 
     public ZTAddress()
     {
-
+        port = -1;
+        _rawAddr = -1;
     }
 
     public ZTAddress(String _addr, int _port)
     {
+        _rawAddr = toIPInt(_addr);
         port = _port;
-        _rawAddr = pack(_addr.getBytes());
     }
 
     public void ZTAddress(InetSocketAddress ins)
     {
-
+        port = ins.getPort();
+        _rawAddr = toIPInt(ins.getAddress().getHostAddress());
     }
 
     public InetSocketAddress ToInetSocketAddress() throws IllegalArgumentException {
@@ -64,5 +69,9 @@ public class ZTAddress
             e.printStackTrace();
         }
         return sock_addr;
+    }
+
+    public boolean isValid() {
+        return port != -1 && !Address().startsWith("-1.-1.-1.-1/-1");
     }
 }

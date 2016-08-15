@@ -94,7 +94,8 @@ namespace ZeroTier {
 	  PhySocket *rpcSock, *sock;
 	  struct tcp_pcb *TCP_pcb;
 	  struct udp_pcb *UDP_pcb;
-	  struct sockaddr_storage *addr;
+	  struct sockaddr_storage *addr; // TODO: Rename
+	  struct sockaddr_storage *peer_addr;
 	  unsigned short port;
 	  unsigned char txbuf[DEFAULT_TCP_TX_BUF_SZ];
 	  unsigned char rxbuf[DEFAULT_TCP_RX_BUF_SZ];
@@ -402,7 +403,12 @@ namespace ZeroTier {
 		 * Return the address that the socket is bound to 
 		 */
 		void handleGetsockname(PhySocket *sock, PhySocket *rpcsock, void **uptr, struct getsockname_st *getsockname_rpc);
-
+		
+		/* 
+		 * Return the address of the peer connected to this socket
+		 */
+		void handleGetpeername(PhySocket *sock, PhySocket *rpcsock, void **uptr, struct getsockname_st *getsockname_rpc);
+		
 		/* 
 	 	 * Writes data from the application's socket to the LWIP connection
 	 	 */

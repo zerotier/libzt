@@ -36,7 +36,7 @@
 #define SENDMSG_SIG int socket, const struct msghdr *message, int flags
 #define SENDTO_SIG int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addr_len
 #define RECV_SIG int socket, void *buffer, size_t length, int flags
-#define RECVFROM_SIG int socket, void * buffer, size_t length, int flags, struct sockaddr_in * __restrict address, socklen_t * __restrict address_len
+#define RECVFROM_SIG int socket, void * buffer, size_t length, int flags, struct sockaddr_in * address, socklen_t * address_len
 #define RECVMSG_SIG int socket, struct msghdr *message,int flags
 
 #define SEND_SIG int socket, const void *buffer, size_t length, int flags
@@ -52,6 +52,8 @@
 #define ACCEPT_SIG int sockfd, struct sockaddr *addr, socklen_t *addrlen
 #define CLOSE_SIG int fd
 #define GETSOCKNAME_SIG int sockfd, struct sockaddr *addr, socklen_t *addrlen
+#define GETPEERNAME_SIG int sockfd, struct sockaddr *addr, socklen_t *addrlen
+#define FCNTL_SIG int fd, int cmd, int flags
 #define SYSCALL_SIG long number, ...
 
 #endif // _SDK_SIGNATURES_H

@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
     {
         count++;
         printf("\nTX(%lu)...\n", count);
-        usleep(100000);
+        usleep(10000);
         //bzero(buf, BUFSIZE);
         //printf("\nPlease enter msg: ");
         //fgets(buf, BUFSIZE, stdin);
@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
         /* send the message to the server */
         serverlen = sizeof(serveraddr);
         printf("A\n");
-        n = sendto(sockfd, msg, strlen(msg), 0, &serveraddr, serverlen);
+        n = sendto(sockfd, msg, strlen(msg), 0, (struct sockaddr *)&serveraddr, serverlen);
         printf("B\n");
         //if (n < 0) 
         //    error("ERROR in sendto");
@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
         printf("C\n");
         memset(buf, 0, sizeof(buf));
         printf("D\n");
-        n = recvfrom(sockfd, buf, BUFSIZE, 0, &serveraddr, &serverlen);
+        n = recvfrom(sockfd, buf, BUFSIZE, 0, (struct sockaddr *)&serveraddr, (socklen_t *)&serverlen);
         printf("E\n");
         //if (n < 0) 
         //    printf("ERROR in recvfrom: %d", n);

@@ -46,6 +46,17 @@ public class SDK {
     public static int SOCK_STREAM = 1;
     public static int SOCK_DGRAM = 2;
 
+    // fcntl flags
+    public static int O_APPEND = 1024;
+    public static int O_NONBLOCK = 2048;
+    public static int O_ASYNC = 8192;
+    public static int O_DIRECT = 65536;
+    public static int O_NOATIME = 262144;
+
+    // fcntl cmds
+    public static int F_GETFL = 3;
+    public static int F_SETFL = 4;
+
     // Loads JNI code
     static { System.loadLibrary("ZeroTierOneJNI"); }
 
@@ -65,9 +76,25 @@ public class SDK {
         zt_leave_network(nwid);
     }
 
+    // ------------------------------------------------------------------------------
+    // ------------------------------- get_addresses() ------------------------------
+    // ------------------------------------------------------------------------------
+
     public native ArrayList<String> zt_get_addresses(String nwid);
     public ArrayList<String> get_addresses(String nwid) {
-        return zt_get_addresses(nwid);
+        int err = -1;
+        ArrayList<String> addresses;
+        while (err < 0) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+            }
+            addresses = zt_get_addresses(nwid);
+            if (addresses.size() > 0) {
+                return addresses;
+            }
+        }
+        return null;
     }
 
     public native int zt_get_proxy_port(String nwid);
@@ -104,7 +131,7 @@ public class SDK {
     public int connect(int sock, String addr, int port, String nwid)
     {
         int err = -1;
-        ArrayList<String> addresses = new ArrayList<String>();
+        ArrayList<String> addresses;
         while (err < 0) {
             try {
                 Thread.sleep(500);
@@ -131,7 +158,7 @@ public class SDK {
     }
     public int bind(int sock, String addr, int port, String nwid) {
         int err = -1;
-        ArrayList<String> addresses = new ArrayList<String>();
+        ArrayList<String> addresses;
         while (err < 0) {
             try {
                 Thread.sleep(500);
@@ -214,6 +241,15 @@ public class SDK {
     }
 
     // ------------------------------------------------------------------------------
+    // ----------------------------------- send() -----------------------------------
+    // ------------------------------------------------------------------------------
+
+    public native int zt_send(int fd, byte[] buf, int len, int flags);
+    public int send(int fd, byte[] buf, int len, int flags) {
+        return zt_send(fd, buf, len, flags);
+    }
+
+    // ------------------------------------------------------------------------------
     // ---------------------------------- recvfrom() --------------------------------
     // ------------------------------------------------------------------------------
 
@@ -221,6 +257,17 @@ public class SDK {
     public int recvfrom(int fd, byte[] buf, int len, int flags, ZeroTier.ZTAddress addr){
         return zt_recvfrom(fd,buf,len,flags,addr);
     }
+
+    // ------------------------------------------------------------------------------
+    // ---------------------------------- recvfrom() --------------------------------
+    // ------------------------------------------------------------------------------
+
+    public native int zt_fcntl(int sock, int cmd, int flag);
+    public int fcntl(int sock, int cmd, int flag) {
+        return  zt_fcntl(sock, F_SETFL, O_NONBLOCK);
+    }
+
+
 
     //public static native int zt_getsockopt(int fd, int type, int protocol);
     //public static native int zt_setsockopt(int fd, int type, int protocol);

@@ -2,6 +2,9 @@
 *.xcuserstate
 *.DS_Store
 
+# VS Code
+.vscode
+
 # Android Studio / Example project configs
 *.idea
 *.gradle
@@ -19,3 +22,6 @@ integrations/Unity3D/obj
 
 # ZeroTierOne source
 zerotierone
+
+# Other
+.depend

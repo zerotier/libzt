@@ -32,8 +32,7 @@
 #define INTERCEPT_ENABLED   111
 #define INTERCEPT_DISABLED  222
 
-#include "SDK_ServiceSetup.hpp"
-
+// ZEROTIER CONTROLS
 // Starts a ZeroTier service at the specified path
 // This will only support SOCKS5 Proxy
 extern "C" void start_service(const char * path) {
@@ -61,6 +60,21 @@ extern "C" void zt_get_addresses(const char * nwid, char * addrstr) {
     zts_get_addresses(nwid, addrstr);
 }
 
+//
+extern "C" void zt_start_proxy_server(const char *nwid, struct sockaddr_storage *addr) {
+    zts_start_proxy_server(nwid, addr);
+}
+
+//
+extern "C" void zt_stop_proxy_server(const char *nwid) {
+    zts_stop_proxy_server(nwid);
+}
+
+//
+extern "C" void zt_get_proxy_server_address(const char *nwid, struct sockaddr_storage *addr) {
+    zts_get_proxy_server_address(nwid, addr);
+}
+
 // Explicit ZT API wrappers
 #if !defined(__IOS__)
     // This isn't available for iOS since function interposition isn't as reliable
@@ -69,6 +83,8 @@ extern "C" void zt_get_addresses(const char * nwid, char * addrstr) {
     }
 #endif
 
+
+// SOCKET API
 extern "C" int zt_socket(SOCKET_SIG) {
     return zts_socket(socket_family, socket_type, protocol);
 }
@@ -85,7 +101,7 @@ extern "C" int zt_listen(LISTEN_SIG) {
     return zts_listen(sockfd, backlog);
 }
 extern "C" int zt_setsockopt(SETSOCKOPT_SIG) {
-    return zts_setsockopt(socket, level, option_name, option_value, option_len);
+    return zts_setsockopt(socket, level, optname, optval, optlen);
 }
 extern "C" int zt_getsockopt(GETSOCKOPT_SIG) {
     return zts_getsockopt(sockfd, level, optname, optval, optlen);
@@ -95,4 +111,10 @@ extern "C" int zt_close(CLOSE_SIG) {
 }
 extern "C" int zt_getsockname(GETSOCKNAME_SIG) {
     return zts_getsockname(sockfd, addr, addrlen);
+}
+extern "C" int zt_getpeername(GETPEERNAME_SIG) {
+    return zts_getpeername(sockfd, addr, addrlen);
+}
+extern "C" int zt_fcntl(FCNTL_SIG) {
+    return zts_fcntl(fd, cmd, flags);
 }

@@ -99,7 +99,7 @@ remove_only_intermediates:
 	-find . -type f \( -name '*.o' -o -name '*.so' \) -delete
 
 osx_shared_lib: remove_only_intermediates $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -DSDK -DZT_ONE_NO_ROOT_CHECK -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -Izerotierone/osdep -Izerotierone/node -Izerotierone/service -Isrc -shared -o $(BUILD)/libztosx.so $(OBJS) zerotierone/service/OneService.cpp src/SDK_ServiceSetup.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp zerotierone/one.cpp -x c src/SDK_Sockets.c src/SDK_Intercept.c src/SDK_Debug.c src/SDK_RPC.c $(LDLIBS) -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -DSDK -DZT_ONE_NO_ROOT_CHECK -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -Izerotierone/osdep -Izerotierone/node -Izerotierone/service -Isrc -shared -o $(BUILD)/libztosx.so $(OBJS) zerotierone/service/OneService.cpp src/SDK_Service.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp zerotierone/one.cpp -x c src/SDK_Sockets.c src/SDK_Intercept.c src/SDK_Debug.c src/SDK_RPC.c $(LDLIBS) -ldl
 
 osx_service_and_intercept: remove_only_intermediates $(OBJS)
 	# Need to selectively rebuild one.cpp and OneService.cpp with ZT_SERVICE_NETCON and ZT_ONE_NO_ROOT_CHECK defined, and also NetconEthernetTap
@@ -153,7 +153,7 @@ clean:
 	-rm -rf $(INT)/Unity3D/Assets/Plugins/*
 	-rm -rf zerotier-cli zerotier-idtool
 	-find . -type f \( -name 'zerotier-one' -o -name 'zerotier-sdk-service' \) -delete
-	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' \) -delete
+	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
 	
 	# android JNI lib project
 	test -s /usr/bin/javac || { echo "Javac not found"; exit 1; }

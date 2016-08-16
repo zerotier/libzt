@@ -24,7 +24,7 @@ LOCAL_SRC_FILES := \
 	$(ZTSDK)/SDK_Proxy.cpp \
 	$(ZTSDK)/SDK_Sockets.c \
 	$(ZTSDK)/SDK_Debug.c \
-	$(ZTSDK)/SDK_ServiceSetup.cpp \
+	$(ZTSDK)/SDK_Service.cpp \
 	$(ZTSDK)/SDK_EthernetTap.cpp
 
 # ZeroTierOne ext files

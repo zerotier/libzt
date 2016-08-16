@@ -86,7 +86,7 @@ public class SDK {
         ArrayList<String> addresses;
         while (err < 0) {
             try {
-                Thread.sleep(500);
+                Thread.sleep(100);
             } catch (InterruptedException e) {
             }
             addresses = zt_get_addresses(nwid);
@@ -134,7 +134,7 @@ public class SDK {
         ArrayList<String> addresses;
         while (err < 0) {
             try {
-                Thread.sleep(500);
+                Thread.sleep(100);
             } catch (InterruptedException e) {
             }
             addresses = zt_get_addresses(nwid);
@@ -161,7 +161,7 @@ public class SDK {
         ArrayList<String> addresses;
         while (err < 0) {
             try {
-                Thread.sleep(500);
+                Thread.sleep(100);
             } catch (InterruptedException e) {
             }
             addresses = zt_get_addresses(nwid);

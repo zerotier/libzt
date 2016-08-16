@@ -378,12 +378,19 @@ int (*realclose)(CLOSE_SIG);
         return read_bytes;
     }    
 #endif
-        
+
     // ------------------------------------------------------------------------------
     // --------------------------------- setsockopt() -------------------------------
     // ------------------------------------------------------------------------------
     // int socket, int level, int option_name, const void *option_value, 
     // socklen_t option_len
+
+#if defined(__ANDROID__)
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1setsockopt(
+        JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen) {
+        return zts_setsockopt(fd, level, optname, optval, optlen);
+    }
+#endif
 
     #ifdef DYNAMIC_LIB
     int zt_setsockopt(SETSOCKOPT_SIG)
@@ -401,6 +408,12 @@ int (*realclose)(CLOSE_SIG);
     // int sockfd, int level, int optname, void *optval, 
     // socklen_t *optlen 
 
+#if defined(__ANDROID__)
+	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1getsockopt(
+        JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen) {
+        return zts_getsockopt(fd, level, optname, optval, optlen);
+    }
+#endif
 
 #ifdef DYNAMIC_LIB
     int zt_getsockopt(GETSOCKOPT_SIG)
@@ -694,6 +707,20 @@ int (*realclose)(CLOSE_SIG);
     // ------------------------------------------------------------------------------
     // int sockfd, struct sockaddr *addr, socklen_t *addrlen
     
+#if defined(__ANDROID__)
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1getsockname(JNIEnv *env, jobject thisObj, jint fd, jobject ztaddr) {
+        struct sockaddr_in addr;
+        int err = zts_getsockname(fd, &addr, sizeof(struct sockaddr));
+        jfieldID fid;
+        jclass cls = (*env)->GetObjectClass(env, ztaddr);
+        fid = (*env)->GetFieldID(env, cls, "port", "I");
+        (*env)->SetIntField(env, ztaddr, fid, addr.sin_port);
+        fid = (*env)->GetFieldID(env, cls,"_rawAddr", "J");
+        (*env)->SetLongField(env, ztaddr, fid,addr.sin_addr.s_addr);        
+        return err;    
+    }
+#endif
+
 #ifdef DYNAMIC_LIB
     int zt_getsockname(GETSOCKNAME_SIG)
 #else
@@ -742,6 +769,20 @@ int (*realclose)(CLOSE_SIG);
     // ------------------------------------------------------------------------------
     // int sockfd, struct sockaddr *addr, socklen_t *addrlen
     
+#if defined(__ANDROID__)
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1getpeername(JNIEnv *env, jobject thisObj, jint fd, jobject ztaddr) {
+        struct sockaddr_in addr;
+        int err = zts_getpeername(fd, &addr, sizeof(struct sockaddr));
+        jfieldID fid;
+        jclass cls = (*env)->GetObjectClass(env, ztaddr);
+        fid = (*env)->GetFieldID(env, cls, "port", "I");
+        (*env)->SetIntField(env, ztaddr, fid, addr.sin_port);
+        fid = (*env)->GetFieldID(env, cls,"_rawAddr", "J");
+        (*env)->SetLongField(env, ztaddr, fid,addr.sin_addr.s_addr);        
+        return err;
+    }
+#endif
+
 #ifdef DYNAMIC_LIB
     int zt_getpeername(GETSOCKNAME_SIG)
 #else

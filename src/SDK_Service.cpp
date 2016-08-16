@@ -49,7 +49,6 @@
 #include "SDK_EthernetTap.hpp"
 #include "SDK.h"
 #include "SDK_Debug.h"
-#include "SDK_ServiceSetup.hpp"
 
 std::string service_path;
 pthread_t intercept_thread;
@@ -138,6 +137,7 @@ void zts_get_addresses(const char * nwid, char *addrstr)
     return ip_strings;
     */
 }
+int zts_get_device_id() { /* TODO */ return 0; }
 
 bool zts_is_relayed() {
     // TODO
@@ -145,15 +145,26 @@ bool zts_is_relayed() {
     return false;
 }
 
-int zts_get_proxy_port(const char * nwid) {
-    uint64_t nwid_int = strtoull(nwid, NULL, 16);
-    return zt1Service->getTaps()[nwid_int]->proxyListenPort;
+int zts_start_proxy_server(const char * nwid, struct sockaddr_storage * addr) {
+    //uint64_t nwid_int = strtoull(nwid, NULL, 16);
+    //return zt1Service->getTaps()[nwid_int]->proxyListenPort;
+    return 0;
 }
-
+int zts_stop_proxy_server(const char * nwid) {
+    //uint64_t nwid_int = strtoull(nwid, NULL, 16);
+    //return zt1Service->getTaps()[nwid_int]->proxyListenPort;
+    return 0;
+}
+int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage * addr) {
+    //uint64_t nwid_int = strtoull(nwid, NULL, 16);
+    //zt1Service->getTaps()[nwid_int]->proxyListenPort;
+    return 0;
+}
 
 // Android JNI wrapper
 // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
 #if defined(__ANDROID__)
+    // Join a network
     JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1join_1network(JNIEnv *env, jobject thisObj, jstring nwid) {
         const char *nwidstr;
         if(nwid) {
@@ -161,6 +172,7 @@ int zts_get_proxy_port(const char * nwid) {
             zts_join_network(nwidstr);
         }
     }
+    // Leave a network
     JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1leave_1network(JNIEnv *env, jobject thisObj, jstring nwid) {
         const char *nwidstr;
         if(nwid) {
@@ -168,14 +180,18 @@ int zts_get_proxy_port(const char * nwid) {
             zts_leave_network(nwidstr);
         }
     }
+    // Returns whether the ZeroTier service is running
     JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1running(JNIEnv *env, jobject thisObj) {
         if(zt1Service)
             return  zts_is_running();
         return false;
     }
-    JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1terminate(JNIEnv *env, jobject thisObj) {
+    // Shuts down ZeroTier service and SOCKS5 Proxy server
+    JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1terminate_1service(JNIEnv *env, jobject thisObj) {
         if(zt1Service)
             zts_terminate();
+        // TODO: Also terminate SOCKS5 Proxy
+        // zts_stop_proxy_server();
     }
     // FIXME: Re-implemented to make it play nicer with the C-linkage required for Xcode integrations
     // Now only returns first assigned address per network. Shouldn't normally be a problem
@@ -207,12 +223,30 @@ int zts_get_proxy_port(const char * nwid) {
         return addresses; 
         */
 	}
+    // Returns the device is in integer form
+    JNIEXPORT jint Java_ZeroTier_SDK_zt_1get_1device_1id() {
+        return zts_get_device_id();
+    }
+    // Returns whether the path to an endpoint is currently relayed by a root server
     JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1is_1relayed() {
         return zts_is_relayed();
     }
-    JNIEXPORT int JNICALL Java_ZeroTier_SDK_zt_1get_1proxy_1port(JNIEnv *env, jobject thisObj, jstring nwid) {
-        const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
-        return zts_get_proxy_port(nwid_str);
+    // Returns the local address of the SOCKS5 Proxy server
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1get_1proxy_1server_1address(JNIEnv *env, jobject thisObj, jstring nwid, jobject ztaddr) {
+        // TODO
+        //const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
+        //return zts_get_proxy_server_address(nwid_str, addr);
+        return 0;
+    }
+    // Starts a SOCKS5 proxy server for a given ZeroTier network
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1start_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid, jobject ztaddr) {
+        // TODO
+        return 0;
+    }
+    // Stops the SOCKS5 proxy server for a given ZeroTier network
+    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1stop_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid) {
+        // TODO
+        return 0;
     }
 #endif
 

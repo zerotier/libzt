@@ -30,7 +30,7 @@
 
 #include <sys/socket.h>
 
-#define SETSOCKOPT_SIG int socket, int level, int option_name, const void *option_value, socklen_t option_len
+#define SETSOCKOPT_SIG int socket, int level, int optname, const void *optval, socklen_t optlen
 #define GETSOCKOPT_SIG int sockfd, int level, int optname, void *optval, socklen_t *optlen
 
 #define SENDMSG_SIG int socket, const struct msghdr *message, int flags

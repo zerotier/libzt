@@ -7,13 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7C0252A51D62945B005D5FD8 /* SDK_Service.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CAA03DE1D628E88003F9B1A /* SDK_Service.cpp */; };
+		7CAA03DF1D628E88003F9B1A /* SDK_Service.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CAA03DE1D628E88003F9B1A /* SDK_Service.cpp */; };
 		7CC003261D1216E3003E68DC /* ZeroTierSDK_iOS.h in Headers */ = {isa = PBXBuildFile; fileRef = 7CC003251D1216E3003E68DC /* ZeroTierSDK_iOS.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		7CC003501D12178D003E68DC /* SDK_Debug.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003421D12178D003E68DC /* SDK_Debug.c */; };
 		7CC003511D12178D003E68DC /* SDK_EthernetTap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003441D12178D003E68DC /* SDK_EthernetTap.cpp */; };
 		7CC003521D12178D003E68DC /* SDK_Intercept.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003461D12178D003E68DC /* SDK_Intercept.c */; };
 		7CC003531D12178D003E68DC /* SDK_Proxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003481D12178D003E68DC /* SDK_Proxy.cpp */; };
 		7CC003541D12178D003E68DC /* SDK_RPC.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003491D12178D003E68DC /* SDK_RPC.c */; };
-		7CC003551D12178D003E68DC /* SDK_ServiceSetup.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0034B1D12178D003E68DC /* SDK_ServiceSetup.cpp */; };
 		7CC003561D12178D003E68DC /* SDK_Sockets.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0034E1D12178D003E68DC /* SDK_Sockets.c */; };
 		7CC003591D1217A1003E68DC /* http_parser.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003571D1217A1003E68DC /* http_parser.c */; };
 		7CC0035C1D1217B2003E68DC /* lz4.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0035A1D1217B2003E68DC /* lz4.c */; };
@@ -86,7 +87,6 @@
 		7CC0043E1D1316BF003E68DC /* SDK_Intercept.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003461D12178D003E68DC /* SDK_Intercept.c */; };
 		7CC0043F1D1316BF003E68DC /* SDK_Proxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003481D12178D003E68DC /* SDK_Proxy.cpp */; };
 		7CC004401D1316BF003E68DC /* SDK_RPC.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003491D12178D003E68DC /* SDK_RPC.c */; };
-		7CC004411D1316BF003E68DC /* SDK_ServiceSetup.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0034B1D12178D003E68DC /* SDK_ServiceSetup.cpp */; };
 		7CC004421D1316BF003E68DC /* SDK_Sockets.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0034E1D12178D003E68DC /* SDK_Sockets.c */; };
 		7CC004431D1316F5003E68DC /* ControlPlane.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC004361D12184F003E68DC /* ControlPlane.cpp */; };
 		7CC004441D1316F5003E68DC /* OneService.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC004381D12184F003E68DC /* OneService.cpp */; };
@@ -159,7 +159,6 @@
 		7CC004891D131E21003E68DC /* SDK_Intercept.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003461D12178D003E68DC /* SDK_Intercept.c */; };
 		7CC0048A1D131E21003E68DC /* SDK_Proxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003481D12178D003E68DC /* SDK_Proxy.cpp */; };
 		7CC0048B1D131E21003E68DC /* SDK_RPC.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003491D12178D003E68DC /* SDK_RPC.c */; };
-		7CC0048C1D131E21003E68DC /* SDK_ServiceSetup.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0034B1D12178D003E68DC /* SDK_ServiceSetup.cpp */; };
 		7CC0048D1D131E21003E68DC /* SDK_Sockets.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0034E1D12178D003E68DC /* SDK_Sockets.c */; };
 		7CC0048E1D131E21003E68DC /* ControlPlane.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC004361D12184F003E68DC /* ControlPlane.cpp */; };
 		7CC0048F1D131E21003E68DC /* OneService.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC004381D12184F003E68DC /* OneService.cpp */; };
@@ -232,7 +231,6 @@
 		7CC004D91D13247A003E68DC /* SDK_Intercept.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003461D12178D003E68DC /* SDK_Intercept.c */; };
 		7CC004DA1D13247A003E68DC /* SDK_Proxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003481D12178D003E68DC /* SDK_Proxy.cpp */; };
 		7CC004DB1D13247A003E68DC /* SDK_RPC.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003491D12178D003E68DC /* SDK_RPC.c */; };
-		7CC004DC1D13247A003E68DC /* SDK_ServiceSetup.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0034B1D12178D003E68DC /* SDK_ServiceSetup.cpp */; };
 		7CC004DD1D13247A003E68DC /* SDK_Sockets.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0034E1D12178D003E68DC /* SDK_Sockets.c */; };
 		7CC004DE1D1324A2003E68DC /* ControlPlane.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC004361D12184F003E68DC /* ControlPlane.cpp */; };
 		7CC004DF1D1324A2003E68DC /* OneService.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CC004381D12184F003E68DC /* OneService.cpp */; };
@@ -303,6 +301,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		7CAA03DE1D628E88003F9B1A /* SDK_Service.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SDK_Service.cpp; path = ../../../src/SDK_Service.cpp; sourceTree = "<group>"; };
 		7CC003181D1216B0003E68DC /* ZeroTierSDK_Unity3D_iOS.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ZeroTierSDK_Unity3D_iOS.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CC0031A1D1216B0003E68DC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7CC003231D1216E3003E68DC /* ZeroTierSDK_iOS.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ZeroTierSDK_iOS.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -322,8 +321,6 @@
 		7CC003481D12178D003E68DC /* SDK_Proxy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SDK_Proxy.cpp; path = ../../../src/SDK_Proxy.cpp; sourceTree = "<group>"; };
 		7CC003491D12178D003E68DC /* SDK_RPC.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = SDK_RPC.c; path = ../../../src/SDK_RPC.c; sourceTree = "<group>"; };
 		7CC0034A1D12178D003E68DC /* SDK_RPC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SDK_RPC.h; path = ../../../src/SDK_RPC.h; sourceTree = "<group>"; };
-		7CC0034B1D12178D003E68DC /* SDK_ServiceSetup.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SDK_ServiceSetup.cpp; path = ../../../src/SDK_ServiceSetup.cpp; sourceTree = "<group>"; };
-		7CC0034C1D12178D003E68DC /* SDK_ServiceSetup.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SDK_ServiceSetup.hpp; path = ../../../src/SDK_ServiceSetup.hpp; sourceTree = "<group>"; };
 		7CC0034D1D12178D003E68DC /* SDK_Signatures.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SDK_Signatures.h; path = ../../../src/SDK_Signatures.h; sourceTree = "<group>"; };
 		7CC0034E1D12178D003E68DC /* SDK_Sockets.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = SDK_Sockets.c; path = ../../../src/SDK_Sockets.c; sourceTree = "<group>"; };
 		7CC0034F1D12178D003E68DC /* SDK.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SDK.h; path = ../../../src/SDK.h; sourceTree = "<group>"; };
@@ -733,6 +730,7 @@
 		7CC003131D12167D003E68DC /* SDK */ = {
 			isa = PBXGroup;
 			children = (
+				7CAA03DE1D628E88003F9B1A /* SDK_Service.cpp */,
 				7CC003421D12178D003E68DC /* SDK_Debug.c */,
 				7CC003431D12178D003E68DC /* SDK_Debug.h */,
 				7CC003441D12178D003E68DC /* SDK_EthernetTap.cpp */,
@@ -742,8 +740,6 @@
 				7CC003481D12178D003E68DC /* SDK_Proxy.cpp */,
 				7CC003491D12178D003E68DC /* SDK_RPC.c */,
 				7CC0034A1D12178D003E68DC /* SDK_RPC.h */,
-				7CC0034B1D12178D003E68DC /* SDK_ServiceSetup.cpp */,
-				7CC0034C1D12178D003E68DC /* SDK_ServiceSetup.hpp */,
 				7CC0034D1D12178D003E68DC /* SDK_Signatures.h */,
 				7CC0034E1D12178D003E68DC /* SDK_Sockets.c */,
 				7CC0034F1D12178D003E68DC /* SDK.h */,
@@ -977,6 +973,7 @@
 				7CC003831D1217D1003E68DC /* netif.c in Sources */,
 				7CC003971D1217DD003E68DC /* igmp.c in Sources */,
 				7CC003A01D1217F2003E68DC /* etharp.c in Sources */,
+				7CAA03DF1D628E88003F9B1A /* SDK_Service.cpp in Sources */,
 				7CC003981D1217DD003E68DC /* inet_chksum.c in Sources */,
 				7CC0043A1D12184F003E68DC /* ControlPlane.cpp in Sources */,
 				7CC003DB1D121833003E68DC /* Arp.cpp in Sources */,
@@ -1005,7 +1002,6 @@
 				7CC003DE1D121833003E68DC /* OSUtils.cpp in Sources */,
 				7CC003951D1217DD003E68DC /* autoip.c in Sources */,
 				7CC004231D121840003E68DC /* Dictionary.cpp in Sources */,
-				7CC003551D12178D003E68DC /* SDK_ServiceSetup.cpp in Sources */,
 				7CC003891D1217D1003E68DC /* tcp_out.c in Sources */,
 				7CC003991D1217DD003E68DC /* inet.c in Sources */,
 				7CC0042B1D121840003E68DC /* OutboundMulticast.cpp in Sources */,
@@ -1036,6 +1032,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7C0252A51D62945B005D5FD8 /* SDK_Service.cpp in Sources */,
 				7CC004851D1318DA003E68DC /* lz4.c in Sources */,
 				7CC004861D1318DA003E68DC /* http_parser.c in Sources */,
 				7CC004621D131704003E68DC /* etharp.c in Sources */,
@@ -1107,7 +1104,6 @@
 				7CC0043E1D1316BF003E68DC /* SDK_Intercept.c in Sources */,
 				7CC0043F1D1316BF003E68DC /* SDK_Proxy.cpp in Sources */,
 				7CC004401D1316BF003E68DC /* SDK_RPC.c in Sources */,
-				7CC004411D1316BF003E68DC /* SDK_ServiceSetup.cpp in Sources */,
 				7CC004421D1316BF003E68DC /* SDK_Sockets.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1158,7 +1154,6 @@
 				7CC004891D131E21003E68DC /* SDK_Intercept.c in Sources */,
 				7CC0048A1D131E21003E68DC /* SDK_Proxy.cpp in Sources */,
 				7CC0048B1D131E21003E68DC /* SDK_RPC.c in Sources */,
-				7CC0048C1D131E21003E68DC /* SDK_ServiceSetup.cpp in Sources */,
 				7CC0048D1D131E21003E68DC /* SDK_Sockets.c in Sources */,
 				7CC0048E1D131E21003E68DC /* ControlPlane.cpp in Sources */,
 				7CC0048F1D131E21003E68DC /* OneService.cpp in Sources */,
@@ -1267,7 +1262,6 @@
 				7CC004D91D13247A003E68DC /* SDK_Intercept.c in Sources */,
 				7CC004DA1D13247A003E68DC /* SDK_Proxy.cpp in Sources */,
 				7CC004DB1D13247A003E68DC /* SDK_RPC.c in Sources */,
-				7CC004DC1D13247A003E68DC /* SDK_ServiceSetup.cpp in Sources */,
 				7CC004DD1D13247A003E68DC /* SDK_Sockets.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

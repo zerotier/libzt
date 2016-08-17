@@ -94,7 +94,7 @@ void zts_leave_network(const char * nwid);
 bool zts_is_running();
 void zts_get_addresses(const char * nwid, char * addrstr);
 int zts_get_device_id();
-void zts_terminate();
+void zts_stop_service();
 bool zts_is_relayed();
 // ZT Intercept/RPC Controls
 void set_intercept_status(int mode); /* TODO: Rethink this */
@@ -134,12 +134,12 @@ ssize_t zts_recvmsg(RECVMSG_SIG);
 #if defined(__ANDROID__)
 	// Exported JNI : ZT SERVICE CONTROLS
 	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1start_1service(JNIEnv *env, jobject thisObj, jstring path);
+	JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1stop_service();
 	JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1join_1network(JNIEnv *env, jobject thisObj, jstring nwid);
     JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1leave_1network(JNIEnv *env, jobject thisObj, jstring nwid);
     JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1running(JNIEnv *env, jobject thisObj);
     JNIEXPORT jobject JNICALL Java_ZeroTier_SDK_zt_1get_1addresses(JNIEnv *env, jobject thisObj, jstring nwid);
     JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1is_1relayed();
-	JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1terminate_service();
 	// Exported JNI : SOCKS5 PROXY SERVER CONTROLS
 	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1start_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid, jobject zaddr);
     JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1stop_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid);

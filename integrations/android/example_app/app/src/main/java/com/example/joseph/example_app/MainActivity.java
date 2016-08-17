@@ -46,36 +46,38 @@ public class MainActivity extends AppCompatActivity {
             int sock = zt.socket(SDK.AF_INET, SDK.SOCK_STREAM, 0);
 
             if((err = zt.bind(sock, "0.0.0.0", 8080, nwid)) < 0)
-                Log.d("TEST", "bind_err = " + err + "\n");
+                Log.d("ZT-TEST", "bind_err = " + err + "\n");
 
             if((err = zt.listen(sock,1)) < 0)
-                Log.d("TEST", "listen_err = " + err);
+                Log.d("ZT-TEST", "listen_err = " + err);
 
             if((err = zt.accept(sock,null)) < 0)
-                Log.d("TEST", "accept_err = " + err);
+                Log.d("ZT-TEST", "accept_err = " + err);
 
-            Log.d("TEST", "Waiting to accept connection...");
+            Log.d("ZT-TEST", "Waiting to accept connection...");
 
             // ...
         }
 
-        // TCP Echo test (CLIENT)
+        // TCP Echo ZT-TEST (CLIENT)
         if(mode==2)
         {
-            Log.d("TEST", "\n\nStarting TCP Echo Test\n\n");
+            Log.d("ZT-TEST", "\n\nStarting TCP Echo ZT-TEST\n\n");
             zt.join_network(nwid);
             int sock = zt.socket(SDK.AF_INET, SDK.SOCK_STREAM, 0);
             String msg = "Welcome to the machine!";
-            err = zt.connect(sock,  "28.206.65.211", 8080, nwid);
+            err = zt.connect(sock,  "28.206.65.211", 8099, nwid);
 
-            Log.d("TEST", "err = " + err + "\n");
+            Log.d("ZT-TEST", "err = " + err + "\n");
+
+            return;
 
             // ECHO
             while(true)
             {
                 // TX
                 if((err = zt.write(sock, msg.getBytes(), msg.length())) > 0) {
-                    Log.d("TEST", "TX: " + msg + " --- " + err + " bytes");
+                    Log.d("ZT-TEST", "TX: " + msg + " --- " + err + " bytes");
                 }
 
                 // RX
@@ -83,12 +85,14 @@ public class MainActivity extends AppCompatActivity {
                 Arrays.fill(buffer, (byte)0);
                 if((err = zt.read(sock, buffer, buffer.length)) > 0) {
                     String bufStr = new String(buffer).substring(0, err);
-                    Log.d("TEST", "RX: " + bufStr + " --- " + err + " bytes");
+                    Log.d("ZT-TEST", "RX: " + bufStr + " --- " + err + " bytes");
                 }
             }
+
+            // zt.stop_service();
         }
 
-        // SOCKS5 Proxy test
+        // SOCKS5 Proxy ZT-TEST
         if(mode==3)
         {
             zt.join_network(nwid);
@@ -98,18 +102,18 @@ public class MainActivity extends AppCompatActivity {
             Log.d("ZTSDK", "Setting up connection to SDK proxy server");
             SocketAddress proxyAddr = new InetSocketAddress("127.0.0.1", proxyPort);
             Proxy proxy = new Proxy(Proxy.Type.SOCKS, proxyAddr);
-            Log.d("TEST", "toString() = " + proxy.toString());
+            Log.d("ZT-TEST", "toString() = " + proxy.toString());
             final Socket s = new Socket(proxy);
             final SocketAddress remoteAddr = new InetSocketAddress("10.9.9.100", 8080);
 
             // Wait for address to be assigned
             ArrayList<String> addresses = zt.get_addresses(nwid);
             for(int i=0; i<addresses.size(); i++) {
-                Log.d("TEST", "Address = " + addresses.get(i));
+                Log.d("ZT-TEST", "Address = " + addresses.get(i));
             }
             while(addresses.size() > 0 && addresses.get(0).equals("-1.-1.-1.-1/-1")) {
                 try {
-                    Log.d("TEST", "waiting for address");
+                    Log.d("ZT-TEST", "waiting for address");
                     Thread.sleep(100);
                 } catch (java.lang.InterruptedException e) {
                 }
@@ -123,36 +127,36 @@ public class MainActivity extends AppCompatActivity {
                         s.connect(remoteAddr, 1000);
                     }
                     catch(java.io.IOException e) {
-                        Log.d("TEST", "Unable to establish connection to SOCKS5 Proxy server\n");
+                        Log.d("ZT-TEST", "Unable to establish connection to SOCKS5 Proxy server\n");
                     }
                 }
             }).start();
         }
 
-        // UDP Echo test
+        // UDP Echo ZT-TEST
         if(mode==4)
         {
             // Remote server address (will be populated by recvfrom()
             ZTAddress remoteServer = new ZTAddress();
             ZTAddress bindAddr = new ZTAddress("0.0.0.0", 8080);
 
-            Log.d("TEST", "\n\nStarting UDP Echo Test\n\n");
+            Log.d("ZT-TEST", "\n\nStarting UDP Echo ZT-TEST\n\n");
             nwid = "8056c2e21c000001";
             zt.join_network(nwid);
             int sock = zt.socket(SDK.AF_INET, SDK.SOCK_DGRAM, 0);
 
-            Log.d("TEST", "binding...");
+            Log.d("ZT-TEST", "binding...");
             if((err = zt.bind(sock, bindAddr, nwid)) < 0)
-                Log.d("TEST", "bind_err = " + err + "\n");
+                Log.d("ZT-TEST", "bind_err = " + err + "\n");
             if((err = zt.listen(sock, 0)) < 0)
-                Log.d("TEST", "listen_err = " + err);
+                Log.d("ZT-TEST", "listen_err = " + err);
             ArrayList<String> addresses = zt.get_addresses(nwid);
             if(addresses.size() < 0) {
-                Log.d("TEST", "unable to obtain ZT address");
+                Log.d("ZT-TEST", "unable to obtain ZT address");
                 return;
             }
             else {
-                Log.d("TEST", "IPV4 = " + addresses.get(0));
+                Log.d("ZT-TEST", "IPV4 = " + addresses.get(0));
             }
 
             String bufStr;
@@ -166,16 +170,16 @@ public class MainActivity extends AppCompatActivity {
                 // RX
                 if((err = zt.recvfrom(sock, buffer, 32, 0, remoteServer)) > 0) {
                     bufStr = new String(buffer).substring(0, err);
-                    Log.d("TEST", "read (" + err + ") bytes from " + remoteServer.Address() + " : " + remoteServer.Port() + ", msg = " + bufStr);
+                    Log.d("ZT-TEST", "read (" + err + ") bytes from " + remoteServer.Address() + " : " + remoteServer.Port() + ", msg = " + bufStr);
 
                     // TX
                     String msg = "Welcome response from android\n";
                     err = zt.sendto(sock, msg.getBytes(), msg.length(), 0, remoteServer);
                     if (err < 0)
-                        Log.d("TEST", "sendto_err = " + err);
+                        Log.d("ZT-TEST", "sendto_err = " + err);
                 }
             }
-            //Log.d("TEST", "leaving network");
+            //Log.d("ZT-TEST", "leaving network");
             //zt.leave_network(nwid);
         }
     }

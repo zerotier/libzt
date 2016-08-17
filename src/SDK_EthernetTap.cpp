@@ -129,16 +129,10 @@ NetconEthernetTap::NetconEthernetTap(
 	_enabled(true),
 	_run(true)
 {
+	sockstate = -1;
     char sockPath[4096],lwipPath[4096];
     Utils::snprintf(sockPath,sizeof(sockPath),"%s%snc_%.16llx",homePath,ZT_PATH_SEPARATOR_S,_nwid,ZT_PATH_SEPARATOR_S,(unsigned long long)nwid);
     _dev = sockPath; // in SDK mode, set device to be just the network ID
-    
-	// Start SOCKS5 Proxy server
-	// For use when traditional syscall hooking isn't available (ex. some APIs on iOS and Android)
-	#if defined(USE_SOCKS_PROXY)
-		StartProxy(sockPath, _homePath.c_str(), _nwid);
-	#endif
-
 	Utils::snprintf(lwipPath,sizeof(lwipPath),"%s%sliblwip.so",homePath,ZT_PATH_SEPARATOR_S);
 	
     lwipstack = new LWIPStack(lwipPath);
@@ -1383,7 +1377,6 @@ void NetconEthernetTap::handleWrite(Connection *conn)
             if(buf_remaining)
                 memmove(&conn->txbuf, (conn->txbuf+udp_trans_len), buf_remaining);
             conn->txsz -= udp_trans_len;
-            int max = conn->type == SOCK_STREAM ? DEFAULT_TCP_TX_BUF_SZ : DEFAULT_UDP_TX_BUF_SZ;
 
 			#if DEBUG_LEVEL >= MSG_TRANSFER
 				struct sockaddr_in * addr_in2 = (struct sockaddr_in *)conn->peer_addr;

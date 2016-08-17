@@ -46,7 +46,7 @@
 #define SDK_DEBUG_H
 
 // Set during make (e.g. make SDK_DEBUG=2)
-#define DEBUG_LEVEL     2
+#define DEBUG_LEVEL     4
 
 #define MSG_ERROR       1 // Errors
 #define MSG_TRANSFER    2 // RX/TX specific statements

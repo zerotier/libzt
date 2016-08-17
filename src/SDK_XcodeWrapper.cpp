@@ -39,6 +39,10 @@ extern "C" void start_service(const char * path) {
     init_service(INTERCEPT_DISABLED, path);
 }
 
+extern "C" void stop_service() {
+    zts_stop_service();
+}
+
 // Starts a ZeroTier service at the specified path and initializes the RPC mechanism
 // This will allow direct API calls
 extern "C" void start_service_and_rpc(const char * path, const char * nwid) {

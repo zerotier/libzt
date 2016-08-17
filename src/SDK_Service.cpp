@@ -109,7 +109,7 @@ void zts_join_network(const char * nwid) {
 }
 void zts_leave_network(const char * nwid) { zt1Service->leave(nwid); }
 bool zts_is_running() { return zt1Service->isRunning(); }
-void zts_terminate() { zt1Service->terminate(); }
+void zts_stop_service() { zt1Service->terminate(); }
 
 // FIXME: Re-implemented to make it play nicer with the C-linkage required for Xcode integrations
 // Now only returns first assigned address per network. Shouldn't normally be a problem
@@ -187,9 +187,9 @@ int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage * ad
         return false;
     }
     // Shuts down ZeroTier service and SOCKS5 Proxy server
-    JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1terminate_1service(JNIEnv *env, jobject thisObj) {
+    JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1stop_1service(JNIEnv *env, jobject thisObj) {
         if(zt1Service)
-            zts_terminate();
+            zts_stop_service();
         // TODO: Also terminate SOCKS5 Proxy
         // zts_stop_proxy_server();
     }

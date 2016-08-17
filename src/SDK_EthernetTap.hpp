@@ -151,11 +151,21 @@ namespace ZeroTier {
 			throw();
 
 		LWIPStack *lwipstack;
-	  uint64_t _nwid;
-	  void (*_handler)(void *,uint64_t,const MAC &,const MAC &,unsigned int,unsigned int,const void *,unsigned int);
-	  void *_arg;
+	  	uint64_t _nwid;
+	  	void (*_handler)(void *,uint64_t,const MAC &,const MAC &,unsigned int,unsigned int,const void *,unsigned int);
+	 	void *_arg;
 
-		int proxyListenPort;
+	  	// --- Proxy
+		struct sockaddr_storage proxyServerAddress; 
+		int sockstate; // Use as flag to determine whether proxy has been started, TODO: Rename
+		int proxyListenSocket;
+		PhySocket *proxyListenPhySocket;
+		int startProxyServer(const char *homepath, uint64_t nwid, struct sockaddr_storage *addr);
+		int stopProxyServer();
+		int getProxyServerAddress(struct sockaddr_storage *addr);
+		int getProxyServerPort();
+		void phyOnFileDescriptorActivity(PhySocket *sock,void **uptr,bool readable,bool writable);
+		// --- end Proxy 
 
 	private:
 		// LWIP callbacks
@@ -461,15 +471,6 @@ namespace ZeroTier {
 	 	 * PhySocket, and underlying file descriptor
 	 	 */
 		void closeConnection(PhySocket *sock);
-
-		// --- Proxy 
-		int sockstate;
-		int proxyListenSocket;
-		PhySocket *proxyListenPhySocket;
-		void StartProxy(const char *sockpath, const char *homepath, uint64_t nwid);
-		void phyOnFileDescriptorActivity(PhySocket *sock,void **uptr,bool readable,bool writable);
-
-		// --- end Proxy 
 
 		ip_addr_t convert_ip(struct sockaddr_in * addr)
 		{

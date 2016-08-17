@@ -64,42 +64,85 @@ void dwr(int level, const char *fmt, ... );
 
 namespace ZeroTier
 {
-	void NetconEthernetTap::StartProxy(const char *sockpath, const char *homepath, uint64_t nwid)
-	{	
-		dwr(MSG_ERROR, "StartProxy()\n");      
-	  	// Look for a port file for this network's proxy server instance
-		char portFile[4096];
-    	Utils::snprintf(portFile,sizeof(portFile),"%s/networks.d/%.16llx.port",homepath,nwid);
-		std::string portStr;
-		printf("Proxy(): Reading port from: %s\n", portFile);
-		if(ZeroTier::OSUtils::fileExists(portFile,true))
-		{
-			if(ZeroTier::OSUtils::readFile(portFile, portStr)) {
-				proxyListenPort = atoi(portStr.c_str());
-			}
+	int NetconEthernetTap::getProxyServerAddress(struct sockaddr_storage *addr) {
+		if(sockstate >= 0) {
+			addr = &proxyServerAddress;
+			return 0;
 		}
-		else
-		{
-			unsigned int randp = 0;
-        	Utils::getSecureRandom(&randp,sizeof(randp));
-        	proxyListenPort = 1000 + (randp % 1000);
-			dwr(MSG_DEBUG, "Proxy(): No port specified in networks.d/%.16llx.port, randomly picking port\n", nwid);
-			std::stringstream ss;
-			ss << proxyListenPort;
-			portStr = ss.str();
-			if(!ZeroTier::OSUtils::writeFile(portFile, portStr)) {
-				dwr(MSG_ERROR, "unable to write proxy port file: %s\n", portFile);
-			}  
-		}
+		return -1;
+	}
 
-        struct sockaddr_in in4;
-		memset(&in4,0,sizeof(in4));
-		in4.sin_family = AF_INET;
-		in4.sin_addr.s_addr = Utils::hton((uint32_t)0x00000000); // right now we just listen for TCP @0.0.0.0
-		in4.sin_port = Utils::hton((uint16_t)proxyListenPort);
-		proxyListenPhySocket = _phy.tcpListen((const struct sockaddr*)&in4,(void *)this);
-		sockstate = SOCKS_OPEN;
-		dwr(MSG_DEBUG, "SOCKS5 proxy server address for <%.16llx> is: <0.0.0.0:%d> (sock=%p)\n", nwid, proxyListenPort, (void*)&proxyListenPhySocket);
+	int NetconEthernetTap::getProxyServerPort() {
+		struct sockaddr_in *in4;
+		in4 = (struct sockaddr_in *)&proxyServerAddress;
+		return in4->sin_port;
+	}
+
+	int NetconEthernetTap::stopProxyServer()
+	{
+		dwr(MSG_DEBUG, "stopProxyServer()");
+		if(proxyListenPhySocket) {
+			_phy.close(proxyListenPhySocket);
+			return 0;
+		}
+		dwr(MSG_ERROR, "stopProxyServer(): Invalid proxyListenPhySocket");
+		return -1;
+	}
+
+	int NetconEthernetTap::startProxyServer(const char *homepath, uint64_t nwid, struct sockaddr_storage *addr)
+	{	
+		// Address of proxy server is determined in the following order:
+		// - Provided address in param: addr
+		// - If no address, assume 127.0.0.1:<networks.d/nwid.port>
+		// - If no port assignment file, 127.0.0.1:RANDOM_PORT
+
+		dwr(MSG_DEBUG, "startProxyServer()\n");      
+		int portno = -1;		
+		if(addr) {
+			dwr(MSG_DEBUG, "startProxyServer(): Using provided address");
+			// This address pointer may come from a different memory space and might be de-allocated, so we keep a copy
+			memcpy(&proxyServerAddress, addr, sizeof(struct sockaddr_storage)); 
+			struct sockaddr_in *in4 = (struct sockaddr_in *)&addr;
+			proxyListenPhySocket = _phy.tcpListen((const struct sockaddr*)&in4,(void *)this);
+			sockstate = SOCKS_OPEN;
+			dwr(MSG_DEBUG, "SOCKS5 proxy server address for <%.16llx> is: <%s> (sock=%p)\n", nwid, inet_ntoa(in4->sin_addr), /*ntohs(in4->sin_port), */(void*)&proxyListenPhySocket);
+			return 0;
+		}
+		else {
+			dwr(MSG_DEBUG, "startProxyServer(): No address provided. Checking port file.");
+			// Look for a port file for this network's proxy server instance
+			char portFile[4096];
+			Utils::snprintf(portFile,sizeof(portFile),"%s/networks.d/%.16llx.port",homepath,nwid);
+			std::string portStr;
+			printf("Proxy(): Reading port from: %s\n", portFile);
+			if(ZeroTier::OSUtils::fileExists(portFile,true))
+			{
+				if(ZeroTier::OSUtils::readFile(portFile, portStr)) {
+					portno = atoi(portStr.c_str());
+				}
+			}
+			else {
+				unsigned int randp = 0;
+				Utils::getSecureRandom(&randp,sizeof(randp));
+				portno = 1000 + (randp % 1000);
+				dwr(MSG_DEBUG, "Proxy(): No port specified in networks.d/%.16llx.port, randomly picking port\n", nwid);
+				std::stringstream ss;
+				ss << portno;
+				portStr = ss.str();
+				if(!ZeroTier::OSUtils::writeFile(portFile, portStr)) {
+					dwr(MSG_ERROR, "unable to write proxy port file: %s\n", portFile);
+				}  
+			}
+			struct sockaddr_in in4;
+			memset(&in4,0,sizeof(in4));
+			in4.sin_family = AF_INET;
+			in4.sin_addr.s_addr = Utils::hton((uint32_t)0x00000000); // right now we just listen for TCP @0.0.0.0
+			in4.sin_port = Utils::hton((uint16_t)portno);
+			proxyListenPhySocket = _phy.tcpListen((const struct sockaddr*)&in4,(void *)this);
+			sockstate = SOCKS_OPEN;
+			//dwr(MSG_DEBUG, "SOCKS5 proxy server address for <%.16llx> is: <%s:%d> (sock=%p)\n", nwid, , portno, (void*)&proxyListenPhySocket);
+		}
+		return 0;
 	}
     
     void ExtractAddress(int addr_type, unsigned char *buf, struct sockaddr_in * addr)

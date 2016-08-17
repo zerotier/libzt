@@ -85,7 +85,7 @@ extern char *debug_logfile;
 
 // NOTE: Each platform specific exposed API will be implemented in terms of zts_*
 // SOCKS5 Proxy Controls
-int zts_start_proxy_server(const char *nwid, struct sockaddr_storage *addr);
+int zts_start_proxy_server(const char *homepath, const char * nwid, struct sockaddr_storage * addr);
 int zts_stop_proxy_server(const char *nwid);
 int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage *addr);
 // ZT Service Controls

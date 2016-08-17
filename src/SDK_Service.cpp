@@ -94,10 +94,49 @@ void dwr(int level, const char *fmt, ... );
 #endif
     
 
+int zts_start_proxy_server(const char *homepath, const char * nwid, struct sockaddr_storage * addr) {
+        LOGV("zts_start_proxy_server\n");
+
+    dwr(MSG_DEBUG, "zts_start_proxy_server()");
+    uint64_t nwid_int = strtoull(nwid, NULL, 16);
+    ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
+    if(tap) {
+        if(tap->startProxyServer(homepath, nwid_int, addr) < 0) {
+            dwr(MSG_ERROR, "zts_start_proxy_server(%s): Problem while starting server.", nwid);
+            return -1;
+        }
+    }
+    dwr(MSG_ERROR, "zts_start_proxy_server(%s): Invalid tap. Possibly incorrect NWID", nwid);
+    return 0;
+}
+int zts_stop_proxy_server(const char *nwid) {
+    dwr(MSG_DEBUG, "zts_stop_proxy_server()");
+    uint64_t nwid_int = strtoull(nwid, NULL, 16);
+    ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
+    if(tap) {
+        if(tap->stopProxyServer() < 0) {
+            dwr(MSG_ERROR, "zts_stop_proxy_server(%s): Problem while stopping server.", nwid);
+            return -1;
+        }
+    }
+    dwr(MSG_ERROR, "zts_stop_proxy_server(%s): Invalid tap. Possibly incorrect NWID", nwid);
+    return 0;
+}
+int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage * addr) {
+    uint64_t nwid_int = strtoull(nwid, NULL, 16);
+    ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
+    if(tap) {
+        tap->getProxyServerAddress(addr);
+        return 0;
+    }
+    return -1;
+}
+
 // Basic ZT service controls
+// Will also spin up a SOCKS5 proxy server if USE_SOCKS_PROXY is set
 void zts_join_network(const char * nwid) { 
+    LOGV("zts_join_network\n");
     std::string confFile = zt1Service->givenHomePath() + "/networks.d/" + nwid + ".conf";
-    dwr(MSG_ERROR, "writing conf file = %s\n", confFile.c_str());
     if(!ZeroTier::OSUtils::mkdir(netDir)) {
         dwr(MSG_ERROR, "unable to create %s\n", netDir.c_str());
     }
@@ -106,6 +145,15 @@ void zts_join_network(const char * nwid) {
     }
     // Provide the API with the RPC information
     zt_init_rpc(homeDir.c_str(), nwid); 
+
+    // SOCKS5 Proxy server
+    // Default is 127.0.0.1:RANDOM_PORT
+    LOGV("-----USE_SOCKS_PROXY ?\n");
+    #if defined(USE_SOCKS_PROXY)
+        LOGV("-----USE_SOCKS_PROXY!\\n");
+
+        zts_start_proxy_server(homeDir.c_str(), nwid, NULL); // NULL addr for default
+    #endif
 }
 void zts_leave_network(const char * nwid) { zt1Service->leave(nwid); }
 bool zts_is_running() { return zt1Service->isRunning(); }
@@ -143,22 +191,6 @@ bool zts_is_relayed() {
     // TODO
     // zt1Service->getNode()->peers()
     return false;
-}
-
-int zts_start_proxy_server(const char * nwid, struct sockaddr_storage * addr) {
-    //uint64_t nwid_int = strtoull(nwid, NULL, 16);
-    //return zt1Service->getTaps()[nwid_int]->proxyListenPort;
-    return 0;
-}
-int zts_stop_proxy_server(const char * nwid) {
-    //uint64_t nwid_int = strtoull(nwid, NULL, 16);
-    //return zt1Service->getTaps()[nwid_int]->proxyListenPort;
-    return 0;
-}
-int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage * addr) {
-    //uint64_t nwid_int = strtoull(nwid, NULL, 16);
-    //zt1Service->getTaps()[nwid_int]->proxyListenPort;
-    return 0;
 }
 
 // Android JNI wrapper
@@ -284,6 +316,9 @@ int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage * ad
  * Starts a new service instance
  */
 #if defined(__ANDROID__)
+    /* NOTE: Since on Android devices the sdcard is formatted as fat32, we can't use just any 
+    location to set up the RPC unix domain socket. Rather we must use the application's specific 
+    data directory given by getApplicationContext().getFilesDir() */
     JNIEXPORT int JNICALL Java_ZeroTier_SDK_zt_1start_1service(JNIEnv *env, jobject thisObj, jstring path) {
         if(path)
             homeDir = env->GetStringUTFChars(path, NULL);
@@ -312,14 +347,6 @@ int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage * ad
                 std::string del = givenHomeDir.length() && givenHomeDir[givenHomeDir.length()-1]!='/' ? "/" : "";
                 homeDir = givenHomeDir + del + localHomeDir;
             #endif
-        #endif
-
-        #if defined(__ANDROID__)
-            /* NOTE: Since on Android devices the sdcard is formatted as fat32, we can't use this 
-            location to set up the RPC unix domain socket. Rather we must use the application's 
-            specific data directory given by getApplicationContext().getFilesDir() */
-            //rpcDir = homeDir; // Take given homeDir as rpcDir
-            //homeDir = "/sdcard/zerotier"; // Use fat32-formatted sdcard for writing network conf & supporting files
         #endif
 
         #if defined(__APPLE__) && !defined(__IOS__)

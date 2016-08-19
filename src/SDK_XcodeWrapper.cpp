@@ -65,8 +65,8 @@ extern "C" void zt_get_addresses(const char * nwid, char * addrstr) {
 }
 
 //
-extern "C" void zt_start_proxy_server(const char *nwid, struct sockaddr_storage *addr) {
-    zts_start_proxy_server(nwid, addr);
+extern "C" void zt_start_proxy_server(const char *homepath, const char *nwid, struct sockaddr_storage *addr) {
+    zts_start_proxy_server(homepath, nwid, addr);
 }
 
 //

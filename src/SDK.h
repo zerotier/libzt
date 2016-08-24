@@ -43,6 +43,7 @@ extern "C" {
 
 #define INTERCEPT_ENABLED  111
 #define INTERCEPT_DISABLED 222
+#define TEMP_MTU 2800
 
 extern void load_symbols();
 extern void zt_init_rpc(const char *path, const char *nwid);
@@ -96,6 +97,7 @@ void zts_get_addresses(const char * nwid, char * addrstr);
 int zts_get_device_id();
 void zts_stop_service();
 bool zts_is_relayed();
+char *zts_get_homepath();
 // ZT Intercept/RPC Controls
 void set_intercept_status(int mode); /* TODO: Rethink this */
 
@@ -140,10 +142,15 @@ ssize_t zts_recvmsg(RECVMSG_SIG);
     JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1running(JNIEnv *env, jobject thisObj);
     JNIEXPORT jobject JNICALL Java_ZeroTier_SDK_zt_1get_1addresses(JNIEnv *env, jobject thisObj, jstring nwid);
     JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1is_1relayed();
+	// Returns the homepath 
+	JNIEXPORT jstring JNICALL Java_ZeroTier_SDK_zt_1get_1homepath(JNIEnv *env, jobject thisObj);
+	
 	// Exported JNI : SOCKS5 PROXY SERVER CONTROLS
+	// Stops the SOCKS5 proxy server for a given ZeroTier network
 	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1start_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid, jobject zaddr);
     JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1stop_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid);
     JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1get_1proxy_1server_1address(JNIEnv *env, jobject thisObj, jstring nwid, jobject zaddr);
+	
 	// Exported JNI : SOCKET API
 	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1socket(JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol);
 	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1connect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);	

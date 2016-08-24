@@ -254,11 +254,14 @@ int (*realclose)(CLOSE_SIG);
 #if defined(__ANDROID__)
     // UDP RX
 	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1recvfrom(
-        JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, jint flags, jobject ztaddr)
+        JNIEnv *env, jobject thisObj, jint fd, jbyteArray buf, jint len, jint flags, jobject ztaddr)
     {
         struct sockaddr_in addr;
         jbyte *body = (*env)->GetByteArrayElements(env, buf, 0);
-        int recvd_bytes = zts_recvfrom(fd, body, len, flags, &addr, sizeof(struct sockaddr));
+        unsigned char buffer[TEMP_MTU];
+        int rxbytes = zts_recvfrom(fd, &buffer, len, flags, &addr, sizeof(struct sockaddr));
+        if(rxbytes > 0)
+            memcpy(body, (jbyte*)buffer + sizeof(int), rxbytes);
         (*env)->ReleaseByteArrayElements(env, buf, body, 0);
         // Update fields of Java ZTAddress object
         jfieldID fid;
@@ -267,7 +270,7 @@ int (*realclose)(CLOSE_SIG);
         (*env)->SetIntField(env, ztaddr, fid, addr.sin_port);
         fid = (*env)->GetFieldID(env, cls,"_rawAddr", "J");
         (*env)->SetLongField(env, ztaddr, fid,addr.sin_addr.s_addr);        
-        return recvd_bytes;
+        return rxbytes;
     }
 #endif
 
@@ -278,15 +281,17 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_recvfrom(RECVFROM_SIG)
     #endif
         {
-            dwr(MSG_DEBUG_EXTRA,"zt_recvfrom(%d, ...)\n", socket);
-            ssize_t err = read(socket, buffer, length);
+            // dwr(MSG_DEBUG_EXTRA,"zt_recvfrom(%d, ...)\n", socket);
+            ssize_t err = read(socket, buffer, TEMP_MTU);
+            int tmpsz;
+            memcpy(&tmpsz, buffer, sizeof(tmpsz));
             if(err < 0) {
                 perror("read:\n");
             }
             else {
                 zts_getpeername(socket, address, address_len);
             }
-            return err;
+            return tmpsz;
         }
 //#endif
 

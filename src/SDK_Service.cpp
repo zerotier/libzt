@@ -148,10 +148,7 @@ void zts_join_network(const char * nwid) {
 
     // SOCKS5 Proxy server
     // Default is 127.0.0.1:RANDOM_PORT
-    LOGV("-----USE_SOCKS_PROXY ?\n");
     #if defined(USE_SOCKS_PROXY)
-        LOGV("-----USE_SOCKS_PROXY!\\n");
-
         zts_start_proxy_server(homeDir.c_str(), nwid, NULL); // NULL addr for default
     #endif
 }
@@ -191,6 +188,10 @@ bool zts_is_relayed() {
     // TODO
     // zt1Service->getNode()->peers()
     return false;
+}
+
+char *zts_get_homepath() {
+    return (char*)givenHomeDir.c_str();
 }
 
 // Android JNI wrapper
@@ -265,20 +266,35 @@ bool zts_is_relayed() {
     }
     // Returns the local address of the SOCKS5 Proxy server
     JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1get_1proxy_1server_1address(JNIEnv *env, jobject thisObj, jstring nwid, jobject ztaddr) {
-        // TODO
-        //const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
-        //return zts_get_proxy_server_address(nwid_str, addr);
-        return 0;
+        struct sockaddr_in addr;
+        int err = zts_get_proxy_server_address(env->GetStringUTFChars(nwid, NULL), (struct sockaddr_storage*)&addr);
+        // SET ZTAddress fields
+        jfieldID fid;
+        jclass cls = env->GetObjectClass(ztaddr);
+        fid = env->GetFieldID(cls, "port", "I");
+        env->SetIntField(ztaddr, fid, addr.sin_port);
+        fid = env->GetFieldID(cls,"_rawAddr", "J");
+        env->SetLongField(ztaddr, fid,addr.sin_addr.s_addr);
+        return err;    
     }
     // Starts a SOCKS5 proxy server for a given ZeroTier network
     JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1start_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid, jobject ztaddr) {
-        // TODO
-        return 0;
+        const char *nwidstr = env->GetStringUTFChars(nwid, NULL);
+        struct sockaddr_in addr;
+        // GET ZTAddress fields
+        jclass cls = env->GetObjectClass(ztaddr);
+        jfieldID fid = env->GetFieldID(cls, "port", "I");
+        addr.sin_port = htons(env->GetIntField(ztaddr, fid));
+        fid = env->GetFieldID(cls, "_rawAddr", "J");
+        addr.sin_addr.s_addr = env->GetLongField(ztaddr, fid);
+        return zts_start_proxy_server((char *)zts_get_homepath, nwidstr, (struct sockaddr_storage *)&addr);
     }
-    // Stops the SOCKS5 proxy server for a given ZeroTier network
+    //
     JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1stop_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid) {
-        // TODO
-        return 0;
+        return zts_stop_proxy_server((char*)env->GetStringUTFChars(nwid, NULL));
+    }
+    JNIEXPORT jstring JNICALL Java_ZeroTier_SDK_zt_1get_1homepath(JNIEnv *env, jobject thisObj) {
+        return (*env).NewStringUTF(zts_get_homepath());
     }
 #endif
 

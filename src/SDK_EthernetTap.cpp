@@ -431,19 +431,21 @@ void NetconEthernetTap::phyOnUnixClose(PhySocket *sock,void **uptr) {
 
 void NetconEthernetTap::processReceivedData(PhySocket *sock,void **uptr,bool lwip_invoked)
 {
-	dwr(MSG_DEBUG_EXTRA,"processReceivedData(sock=%p): lwip_invoked = %d\n", 
-		(void*)&sock, lwip_invoked);
+	//dwr(MSG_DEBUG_EXTRA,"processReceivedData(sock=%p): lwip_invoked = %d\n", (void*)&sock, lwip_invoked);
 	if(!lwip_invoked) {
 		_tcpconns_m.lock();
 		_rx_buf_m.lock();
 	}
 	Connection *conn = getConnection(sock);	
 	if(conn && conn->rxsz) {
-		long n = _phy.streamSend(conn->sock, conn->rxbuf, conn->rxsz);
-		if(n > 0) {
-			if(conn->rxsz-n > 0)
-				memcpy(conn->rxbuf, conn->rxbuf+n, conn->rxsz-n);
-		  	conn->rxsz -= n;
+		float max = conn->type == SOCK_STREAM ? (float)DEFAULT_TCP_RX_BUF_SZ : (float)DEFAULT_UDP_RX_BUF_SZ;
+		long n = _phy.streamSend(conn->sock, conn->rxbuf, TEMP_MTU);
+		int payload_sz;
+		memcpy(&payload_sz, conn->rxbuf, sizeof(int)); // OPT:
+		if(n == TEMP_MTU) {
+			if(conn->rxsz-n > 0) // If more remains on buffer
+				memcpy(conn->rxbuf, conn->rxbuf+TEMP_MTU, conn->rxsz - TEMP_MTU);
+		  	conn->rxsz -= TEMP_MTU;
             if(conn->type==SOCK_DGRAM){
                 _phy.setNotifyWritable(conn->sock, false);
 
@@ -457,15 +459,13 @@ void NetconEthernetTap::processReceivedData(PhySocket *sock,void **uptr,bool lwi
 				d[2] = (ip >> 16) & 0xFF;
 				d[3] = (ip >> 24) & 0xFF;
 
-            	dwr(MSG_TRANSFER,"UDP RX <---    :: {TX: ------, RX: ------, sock=%x} :: %d bytes (%d.%d.%d.%d:%d)\n", 
-					conn->sock, n, d[0],d[1],d[2],d[3], port);
+            	dwr(MSG_TRANSFER,"UDP RX <---    :: {TX: %.3f%%, RX: %d, sock=%x} :: payload = %d bytes (%d.%d.%d.%d:%d)\n", 
+					(float)conn->txsz / max, conn->rxsz/* / max*/, conn->sock, payload_sz, d[0],d[1],d[2],d[3], port);
 			#endif
-				conn->unread_udp_packet = false;
             }
             //dwr(MSG_DEBUG, "phyOnUnixWritable(): tid = %d\n", pthread_mach_thread_np(pthread_self()));
             if(conn->type==SOCK_STREAM) { // Only acknolwedge receipt of TCP packets
                 lwipstack->__tcp_recved(conn->TCP_pcb, n);
-            	float max = conn->type == SOCK_STREAM ? (float)DEFAULT_TCP_TX_BUF_SZ : (float)DEFAULT_UDP_TX_BUF_SZ;
             	dwr(MSG_TRANSFER,"TCP RX <---    :: {TX: %.3f%%, RX: %.3f%%, sock=%x} :: %d bytes\n",
                 	(float)conn->txsz / max, (float)conn->rxsz / max, conn->sock, n);
         	}
@@ -487,7 +487,7 @@ void NetconEthernetTap::processReceivedData(PhySocket *sock,void **uptr,bool lwi
 
 void NetconEthernetTap::phyOnUnixWritable(PhySocket *sock,void **uptr,bool lwip_invoked)
 {
-	dwr(MSG_DEBUG_EXTRA," phyOnUnixWritable(sock=%p): lwip_invoked = %d\n", (void*)&sock, lwip_invoked);
+	//dwr(MSG_DEBUG_EXTRA," phyOnUnixWritable(sock=%p): lwip_invoked = %d\n", (void*)&sock, lwip_invoked);
 	processReceivedData(sock,uptr,lwip_invoked);
 }
 
@@ -744,40 +744,44 @@ err_t NetconEthernetTap::nc_accept(void *arg, struct tcp_pcb *newPCB, err_t err)
 void NetconEthernetTap::nc_udp_recved(void * arg, struct udp_pcb * upcb, struct pbuf * p, struct ip_addr * addr, u16_t port)
 {
     Larg *l = (Larg*)arg;
-    dwr(MSG_DEBUG_EXTRA, "nc_udp_recved(conn=%p,pcb=%p,port=%d)\n", (void*)&(l->conn), (void*)&upcb, port);
+    //dwr(MSG_DEBUG_EXTRA, "nc_udp_recved(conn=%p,pcb=%p,port=%d)\n", (void*)&(l->conn), (void*)&upcb, port);
     int tot = 0;
+	unsigned char *nextpos, *sizepos;
     struct pbuf* q = p;
     Mutex::Lock _l2(l->tap->_rx_buf_m);
     // Cycle through pbufs and write them to the RX buffer
     // The RX "buffer" will be emptied via phyOnUnixWritable()
-    if(l->conn->unread_udp_packet) {
-		dwr(MSG_DEBUG, "nc_udp_recved(): dropping packet\n");
-		l->tap->lwipstack->__pbuf_free(q);
-		return;
-	}
 	if(p) {
 		// assign provided address info to "connection"
 		struct sockaddr_in addr_in;
 		addr_in.sin_addr.s_addr = addr->addr;
 		addr_in.sin_port = port;
 		l->conn->peer_addr = (struct sockaddr_storage*)&addr_in;
-		// reset buffer contents
-        l->conn->rxsz = 0;
-        memset(l->conn->rxbuf, 0, DEFAULT_UDP_RX_BUF_SZ);
+
+		if(l->conn->rxsz == DEFAULT_UDP_RX_BUF_SZ) { // if UDP buffer full
+			dwr(MSG_DEBUG, "nc_udp_recved(): UDP RX buffer full. Discarding oldest payload segment\n");
+			memmove(l->conn->rxbuf, l->conn->rxbuf + TEMP_MTU, DEFAULT_UDP_RX_BUF_SZ - TEMP_MTU);
+			sizepos = l->conn->rxbuf + (DEFAULT_UDP_RX_BUF_SZ - TEMP_MTU);
+			l->conn->rxsz -= TEMP_MTU;
+		}
+		else
+			sizepos = l->conn->rxbuf + l->conn->rxsz; // where we'll prepend the size of the payload
+		nextpos = sizepos + sizeof(tot); // next position we can write data to
     }
     while(p != NULL) {
         if(p->len <= 0)
             break;
         int len = p->len;
-        memcpy(l->conn->rxbuf + (l->conn->rxsz), p->payload, len);
-        l->conn->rxsz += len;
+        memcpy(nextpos, p->payload, len);
+		nextpos = nextpos + len;
         p = p->next;
         tot += len;
     }
     if(tot) {
-        dwr(MSG_DEBUG_EXTRA, " nc_udp_recved(): data_len = %d, rxsz = %d, addr_info_len = %d\n", 
-			tot, l->conn->rxsz, sizeof(u32_t) + sizeof(u16_t));
-        l->conn->unread_udp_packet = true;
+		l->conn->rxsz += TEMP_MTU;
+		memcpy(sizepos, &tot, sizeof(tot));
+        //dwr(MSG_DEBUG_EXTRA, " nc_udp_recved(): data_len = %d, rxsz = %d, addr_info_len = %d\n", 
+		//	tot, l->conn->rxsz, sizeof(u32_t) + sizeof(u16_t));
         l->tap->phyOnUnixWritable(l->conn->sock, NULL, true);
         l->tap->_phy.setNotifyWritable(l->conn->sock, true);
     }

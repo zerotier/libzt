@@ -76,8 +76,8 @@ struct accept_st;
 #define DEFAULT_TCP_RX_BUF_SOFTMIN      DEFAULT_TCP_RX_BUF_SZ * 0.20
 
 // UDP Buffer sizes (should be about the size of your MTU)
-#define DEFAULT_UDP_TX_BUF_SZ           1500
-#define DEFAULT_UDP_RX_BUF_SZ           1500
+#define DEFAULT_UDP_TX_BUF_SZ           ZT_MAX_MTU
+#define DEFAULT_UDP_RX_BUF_SZ           ZT_MAX_MTU * 128
 
 namespace ZeroTier {
 
@@ -101,7 +101,6 @@ namespace ZeroTier {
 	  unsigned char rxbuf[DEFAULT_TCP_RX_BUF_SZ];
 	    
 	  // TODO: necessary still?
-	  bool unread_udp_packet;
 	  int proxy_conn_state;
 	};
 
@@ -166,6 +165,8 @@ namespace ZeroTier {
 		int getProxyServerPort();
 		void phyOnFileDescriptorActivity(PhySocket *sock,void **uptr,bool readable,bool writable);
 		// --- end Proxy 
+
+		std::string _homePath;
 
 	private:
 		// LWIP callbacks
@@ -496,7 +497,6 @@ namespace ZeroTier {
 
 		MAC _mac;
 		Thread _thread;
-		std::string _homePath;
 		std::string _dev; // path to Unix domain socket
 
 		std::vector<MulticastGroup> _multicastGroups;

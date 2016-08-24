@@ -258,10 +258,11 @@ int (*realclose)(CLOSE_SIG);
     {
         struct sockaddr_in addr;
         jbyte *body = (*env)->GetByteArrayElements(env, buf, 0);
-        unsigned char buffer[TEMP_MTU];
+        unsigned char buffer[ZT_MAX_MTU];
+        int payload_offset = sizeof(int) + sizeof(struct sockaddr_storage);
         int rxbytes = zts_recvfrom(fd, &buffer, len, flags, &addr, sizeof(struct sockaddr));
         if(rxbytes > 0)
-            memcpy(body, (jbyte*)buffer + sizeof(int), rxbytes);
+            memcpy(body, (jbyte*)buffer + payload_offset, rxbytes);
         (*env)->ReleaseByteArrayElements(env, buf, body, 0);
         // Update fields of Java ZTAddress object
         jfieldID fid;
@@ -281,15 +282,16 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_recvfrom(RECVFROM_SIG)
     #endif
         {
+            int tmpsz; // payload size
             // dwr(MSG_DEBUG_EXTRA,"zt_recvfrom(%d, ...)\n", socket);
-            ssize_t err = read(socket, buffer, TEMP_MTU);
-            int tmpsz;
-            memcpy(&tmpsz, buffer, sizeof(tmpsz));
-            if(err < 0) {
-                perror("read:\n");
+            ssize_t err = read(socket, buffer, ZT_MAX_MTU);
+            if(err > 0) {
+                // TODO: case for address size mismatch?
+                memcpy(address, buffer, address_len);
+                memcpy(&tmpsz, buffer + sizeof(struct sockaddr_storage), sizeof(tmpsz));
             }
             else {
-                zts_getpeername(socket, address, address_len);
+                perror("read:\n");
             }
             return tmpsz;
         }

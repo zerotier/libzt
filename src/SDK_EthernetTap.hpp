@@ -95,7 +95,7 @@ namespace ZeroTier {
 	  struct tcp_pcb *TCP_pcb;
 	  struct udp_pcb *UDP_pcb;
 	  struct sockaddr_storage *addr; // TODO: Rename
-	  struct sockaddr_storage *peer_addr;
+	  struct sockaddr_storage *peer_addr; // Only set by connection procedure
 	  unsigned short port;
 	  unsigned char txbuf[DEFAULT_TCP_TX_BUF_SZ];
 	  unsigned char rxbuf[DEFAULT_TCP_RX_BUF_SZ];

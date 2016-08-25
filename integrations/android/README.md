@@ -14,13 +14,13 @@ If you want to skip the following steps and just take a look at the project, go 
  - Specify the target architectures you want to build in [Application.mk](android/java/jni/Application.mk). By default it will build `arm64-v8a`, `armeabi`, `armeabi-v7a`, `mips`, `mips64`, `x86`, and `x86_64`.
  - Specify your SDK/NDK path in `android_jni_lib/proj/local.properties`. For example:
  ```
- sdk.dir=/Users/Joseph/Library/Android/sdk
- ndk.dir=/Users/Joseph/Library/Android/ndk-r10e
+ sdk.dir=/Users/Name/Library/Android/sdk
+ ndk.dir=/Users/Name/Library/Android/ndk-r10e
  ```
 
 **Step 2: Build Shared Library**
  - `make android_jni_lib`
- - The resultant `build/android_jni_lib_YOUR_ARCH/libZeroTierOneJNI.so` is what you want to import into your own project to provide the API to your app. Select your architecture and copy the shared library into your project's JNI directory, possibly `/src/main/jniLibs/YOUR_ARCH/`. Selecting only the architectures you need will *significantly* reduce overall build time.
+ - The resultant `build/android_jni_lib_YOUR_ARCH/libZeroTierOneJNI.so` is what you want to import into your own project to provide the API to your app. Select your architecture and copy the shared library `libZeroTierOneJNI.so` into your project's JNI directory, possibly `/src/main/jniLibs/YOUR_ARCH/libZeroTierOneJNI.so`. Selecting only the architectures you need will *significantly* reduce overall build time.
 
 **Step 3: App permissions**
 
@@ -32,46 +32,28 @@ If you want to skip the following steps and just take a look at the project, go 
 ```
 
 **Step 4: App Code Modifications**
- - Create new package called `ZeroTierSDK` in your project and add a new file called `ZeroTierSDK.java` containing:
-
-```
-package ZeroTier;
-public class ZeroTierSDK {
-    public native void startOneService(String homeDir);
-    public native void joinNetwork(String nwid);
-    public native void leaveNetwork(String nwid);
-    public native boolean isRunning();
-    static { System.loadLibrary("ZeroTierOneJNI"); } // Loads JNI code
-}
-```
-
+ - In your project, create a new package called `ZeroTier` and class file within called `ZTSDK.java` and copy contents from `src/SDK_JavaWrapper.java`
+ 
  - Start the service
 
 ```
-final SDK zt = new SDK();
+String nwid = "8056c2e21c000001";
+// Set up service
+final ZTSDK zt = new ZTSDK();
 final String homeDir = getApplicationContext().getFilesDir() + "/zerotier";
-
 new Thread(new Runnable() {
     public void run() {
         // Calls to JNI code
-        zt.zt_start_service(homeDir);
+        zt.start_service(homeDir);
     }
 }).start();
+while(!zt.running()) { }
 ```
 
- - Join network and perform network call
+ - Join network and start doing network stuff!
 
 ```
-while(!zt.zt_running()) { }
-zt.zt_join_network("XXXXXXXXXXXXXXXX");
-
-// Create ZeroTier socket
-int sock = zt.zt_socket(zt.AF_INET, zt.SOCK_STREAM, 0);
-
-// Connect to remote host
-int err = zt.zt_connect(sock, "10.9.9.203", 8080);
+zt.join_network("XXXXXXXXXXXXXXXX");
+int sock = zt.socket(zt.AF_INET, zt.SOCK_STREAM, 0);
+int err = zt.connect(sock, "10.9.9.203", 8080);
 ```
-
-***
-
-*Note for the curious on JNI naming conventions: In order to reference a symbol in the JNI library you need to structure the package and class in your Android Studio project in a very particular way. For example, in the ZeroTierSDK we define a function called `Java_ZeroTier_SDK_zt_1start_1service`, the name can be broken down as follows: `Java_PACKAGENAME_CLASSNAME_zt_1start_1service`, so as we've defined it, you must create a package called `ZeroTier` and add a class called `SDK`.*

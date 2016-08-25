@@ -57,7 +57,7 @@ If you want to skip the following steps and just take a look at the project, go 
     ```
 
 **Step 4: Select build targets**
- - Specify the target architectures you want to build in [Application.mk](android/java/jni/Application.mk). By default it will build `arm64-v8a`, `armeabi`, `armeabi-v7a`, `mips`, `mips64`, `x86`, and `x86_64`. For each architecture you wish to support a different shared library will need to be built. This is all taken care of automatically by the build script.
+ - Specify the target architectures you want to build in [Application.mk](android_jni_lib/java/jni/Application.mk). By default it will build `arm64-v8a`, `armeabi`, `armeabi-v7a`, `mips`, `mips64`, `x86`, and `x86_64`. For each architecture you wish to support a different shared library will need to be built. This is all taken care of automatically by the build script.
 
 **Step 4: Build Shared Library**
  - `make android_jni_lib`

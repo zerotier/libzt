@@ -10,28 +10,8 @@ Imagine a flat, encrypted, no-configuration LAN for all of the instances of your
 If you want to skip the following steps and just take a look at the project, go [here](example_app).
 
 ***
-**Step 1: Select build targets and evironment paths**
- - Specify the target architectures you want to build in [Application.mk](android/java/jni/Application.mk). By default it will build `arm64-v8a`, `armeabi`, `armeabi-v7a`, `mips`, `mips64`, `x86`, and `x86_64`.
- - Specify your SDK/NDK path in `android_jni_lib/proj/local.properties`. For example:
- ```
- sdk.dir=/Users/Name/Library/Android/sdk
- ndk.dir=/Users/Name/Library/Android/ndk-r10e
- ```
 
-**Step 2: Build Shared Library**
- - `make android_jni_lib`
- - The resultant `build/android_jni_lib_YOUR_ARCH/libZeroTierOneJNI.so` is what you want to import into your own project to provide the API to your app. Select your architecture and copy the shared library `libZeroTierOneJNI.so` into your project's JNI directory, possibly `/src/main/jniLibs/YOUR_ARCH/libZeroTierOneJNI.so`. Selecting only the architectures you need will *significantly* reduce overall build time.
-
-**Step 3: App permissions**
-
- - In order for your application to write the auth keys and network files to the internal storage you'll need to set a few permissions in your `AndroidManifest.xml` file at the same scope level as `<application>`:
-
-```
-<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-```
-
-**Step 4: App Code Modifications**
+**Step 1: App Code Modifications**
  - In your project, create a new package called `ZeroTier` and class file within called `ZTSDK.java` and copy contents from `src/SDK_JavaWrapper.java`
  
  - Start the service
@@ -53,7 +33,31 @@ while(!zt.running()) { }
  - Join network and start doing network stuff!
 
 ```
-zt.join_network("XXXXXXXXXXXXXXXX");
+zt.join_network(nwid);
 int sock = zt.socket(zt.AF_INET, zt.SOCK_STREAM, 0);
-int err = zt.connect(sock, "10.9.9.203", 8080);
+int err = zt.connect(sock, "10.9.9.203", 8080, nwid);
+// zt.recvfrom(), zt.write(), etc...
 ```
+
+**Step 2: App permissions**
+
+ - In order for your application to write the auth keys and network files to the internal storage you'll need to set a few permissions in your `AndroidManifest.xml` file at the same scope level as `<application>`:
+
+```
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+```
+
+**Step 3: Set NDK/SDK paths**
+ - Specify your SDK/NDK path in `android_jni_lib/proj/local.properties`. For example:
+ ```
+ sdk.dir=/Users/Name/Library/Android/sdk
+ ndk.dir=/Users/Name/Library/Android/ndk-r10e
+ ```
+
+**Step 4: Select build targets**
+ - Specify the target architectures you want to build in [Application.mk](android/java/jni/Application.mk). By default it will build `arm64-v8a`, `armeabi`, `armeabi-v7a`, `mips`, `mips64`, `x86`, and `x86_64`.
+
+**Step 5: Build Shared Library**
+ - `make android_jni_lib`
+ - The resultant `build/android_jni_lib_YOUR_ARCH/libZeroTierOneJNI.so` is what you want to import into your own project to provide the API to your app. Select your architecture and copy the shared library `libZeroTierOneJNI.so` into your project's JNI directory, possibly `/src/main/jniLibs/YOUR_ARCH/libZeroTierOneJNI.so`. Selecting only the architectures you need will *significantly* reduce overall build time.

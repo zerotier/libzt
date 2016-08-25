@@ -10,14 +10,14 @@
 
 // ZT INTERCEPT/RPC CONTROLS
 int zt_init_rpc(const char *path, const char *nwid);
-int start_intercept();
-void disable_intercept();
-void enable_intercept();
+int zt_start_intercept();
+void zt_disable_intercept();
+void zt_enable_intercept();
 
 // ZT SERVICE CONTROLS
-void start_service(const char * path);
-void stop_service();
-void start_service_and_rpc(const char * path, const char * nwid);
+void zt_start_service(const char * path);
+void zt_stop_service();
+void zt_start_service_and_rpc(const char * path, const char * nwid);
 void zt_join_network(const char *nwid);
 void zt_leave_network(const char *nwid);
 void zt_is_running(const char *nwid);
@@ -39,6 +39,8 @@ int zt_getsockopt(GETSOCKOPT_SIG);
 int zt_close(CLOSE_SIG);
 int zt_getsockname(GETSOCKNAME_SIG);
 int zt_getpeername(GETPEERNAME_SIG);
+int zt_recvfrom(RECVFROM_SIG);
+int zt_sendto(SENDTO_SIG);
 
 #endif /* Example_OSX_Bridging_Header_h */
 

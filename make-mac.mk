@@ -149,21 +149,23 @@ tests: $(TEST_OBJDIR) $(TEST_TARGETS)
 
 JAVAC := $(shell which javac)
 
-clean:
+
+clean_android:
+	# android JNI lib project
+	test -s /usr/bin/javac || { echo "Javac not found"; exit 1; }
+	-cd $(INT)/android/android_jni_lib/proj; ./gradlew clean
+	-rm -rf $(INT)/android/android_jni_lib/proj/build
+	# example android app project
+	-cd $(INT)/android/example_app; ./gradlew clean
+
+clean_basic:
 	-rm -rf $(BUILD)/*
 	-rm -rf $(INT)/Unity3D/Assets/Plugins/*
 	-rm -rf zerotier-cli zerotier-idtool
 	-find . -type f \( -name 'zerotier-one' -o -name 'zerotier-sdk-service' \) -delete
 	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
-	
-	# android JNI lib project
-	test -s /usr/bin/javac || { echo "Javac not found"; exit 1; }
 
-	-cd $(INT)/android/android_jni_lib/proj; ./gradlew clean
-	-rm -rf $(INT)/android/android_jni_lib/proj/build
-
-	# example android app project
-	-cd $(INT)/android/example_app; ./gradlew clean
+clean: clean_basic clean_android
 
 clean_for_production:
 	-find . -type f \( -name '*.identity'\) -delete

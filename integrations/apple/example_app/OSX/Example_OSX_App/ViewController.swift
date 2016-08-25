@@ -116,9 +116,6 @@ class ViewController: NSViewController {
     var bind_thread : NSThread!
     func attempt_bind()
     {
-        // TCP
-        if(selectedProtocol == SOCK_STREAM)
-        {
             sock = zt_socket(AF_INET, SOCK_STREAM, 0)
             var addr = sockaddr_in(sin_len: UInt8(sizeof(sockaddr_in)),
                                    sin_family: UInt8(AF_INET),
@@ -144,16 +141,17 @@ class ViewController: NSViewController {
             // Accept connection
             var len:socklen_t = 0;
             var legIntPtr = withUnsafeMutablePointer(&len, { $0 })
+        
+        // TCP
+        if(selectedProtocol == SOCK_STREAM) {
             while(accepted_sock < 0) {
                 accepted_sock = zt_accept(sock, UnsafeMutablePointer<sockaddr>([addr]), legIntPtr)
             }
             print("accepted connection")
         }
-        
         // UDP
-        if(selectedProtocol == SOCK_DGRAM)
-        {
-            
+        if(selectedProtocol == SOCK_DGRAM) {
+            // nothing
         }
     }
     
@@ -177,7 +175,7 @@ class ViewController: NSViewController {
         // UDP
         if(selectedProtocol == SOCK_DGRAM)
         {
-            // sendto
+            // zt_sendto
         }
     }
     
@@ -196,7 +194,7 @@ class ViewController: NSViewController {
         // UDP
         if(selectedProtocol == SOCK_DGRAM)
         {
-            // recvfrom
+            // zt_recvfrom
         }
     }
     
@@ -206,6 +204,11 @@ class ViewController: NSViewController {
         while(true)
         {
             sleep(1)
+            dispatch_async(dispatch_get_main_queue()) {
+                var str_buf = [Int8](count: 16, repeatedValue: 0)
+                zt_get_addresses(self.txtNWID.stringValue, &str_buf);
+                print("IPV4 = ", String.fromCString(str_buf))
+            }
             // TCP
             if(selectedProtocol == SOCK_STREAM)
             {
@@ -226,7 +229,7 @@ class ViewController: NSViewController {
             // UDP
             if(selectedProtocol == SOCK_DGRAM)
             {
-                // recvfrom
+                // zt_recvfrom
             }
         }
     }
@@ -271,10 +274,13 @@ class ViewController: NSViewController {
  
     var service_thread : NSThread!
     func ztnc_start_service() {
-        // If you plan on using SOCKS Proxy, you don't need to initialize the RPC
-        //start_service("/Users/ztest")
-        // If you plan on using direct calls via RPC
-        start_service_and_rpc("/Users/ztest","XXXXXXXXXXXXXXXX");
+        // Specify a path where the app's ZeroTier data files will be stored. 
+        // A path of "." will store them in the same location as the binary
+        
+        //  - If you plan on using SOCKS Proxy, you don't need to initialize the RPC
+        // start_service(".")
+        //  - If you plan on using direct calls via RPC
+        zt_start_service_and_rpc(".","8056c2e21c000001");
     }
     
     
@@ -284,7 +290,7 @@ class ViewController: NSViewController {
         // Set initial UI values for demo
         txtAddr.stringValue = serverAddr
         txtPort.intValue = serverPort
-        txtNWID.stringValue = "XXXXXXXXXXXXXXXX"
+        txtNWID.stringValue = "8056c2e21c000001"
         
         // ZeroTier Service thread
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {

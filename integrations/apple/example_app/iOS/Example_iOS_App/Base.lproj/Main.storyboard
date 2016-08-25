@@ -126,7 +126,6 @@
                                 <state key="normal" title="Join"/>
                                 <connections>
                                     <action selector="UI_JoinNetwork:" destination="BYZ-38-t0r" eventType="touchUpInside" id="kem-tf-1h1"/>
-                                    <action selector="btnJoinNetwork:" destination="BYZ-38-t0r" eventType="touchUpInside" id="LSj-sJ-YEs"/>
                                 </connections>
                             </button>
                             <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" text="nwid" borderStyle="roundedRect" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="TvY-qZ-Zjm">
@@ -139,7 +138,6 @@
                                 <state key="normal" title="Leave"/>
                                 <connections>
                                     <action selector="UI_LeaveNetwork:" destination="BYZ-38-t0r" eventType="touchUpInside" id="7Pg-IK-dMo"/>
-                                    <action selector="btnLeaveNetwork:" destination="BYZ-38-t0r" eventType="touchUpInside" id="hmg-2Y-GCl"/>
                                 </connections>
                             </button>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" usesAttributedText="YES" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Q7W-t2-dqo">

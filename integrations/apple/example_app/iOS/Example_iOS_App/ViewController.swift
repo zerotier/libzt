@@ -212,6 +212,7 @@ class ViewController: UIViewController {
                 var str_buf = [Int8](count: 16, repeatedValue: 0)
                 zt_get_addresses(self.txtNWID.text!, &str_buf);
                 self.lblAddress.text = String.fromCString(str_buf)
+                // print("IPV4 = ", String.fromCString(str_buf))
             }
             
             // TCP
@@ -258,41 +259,9 @@ class ViewController: UIViewController {
                     //recvfrom(<#T##Int32#>, <#T##UnsafeMutablePointer<Void>#>, <#T##Int#>, <#T##Int32#>, <#T##UnsafeMutablePointer<sockaddr>#>, <#T##UnsafeMutablePointer<socklen_t>#>)
                 }
                 
-
-                
-                /*
-                let host = CFHostCreateWithName(kCFAllocatorDefault, "google.com").takeRetainedValue()
-                var resolved = CFHostStartInfoResolution(host, .Addresses, nil)
-                let addresses = CFHostGetAddressing(host, &resolved)?.takeUnretainedValue() as! [NSData]?
-
-                
-                if let data = addresses?.first {*/
-                    //var storage = sockaddr_storage()
-                    //data.getBytes(&storage, length: sizeof(sockaddr_storage))
-                    
-                  //  if Int32(storage.ss_family) == AF_INET {
-                    //    let addr4 = withUnsafePointer(&storage) { UnsafePointer<sockaddr_in>($0).memory }
-                        
-                        // prints 74.125.239.132
-                      //  print(String(CString: inet_ntoa(addr4.sin_addr), encoding: NSASCIIStringEncoding))
-                   // }
-               // }
-                
-                
-                //var s_addr:sockaddr_in = (sockaddr_in)&socketAddress
-                
-                //var s_addr = UnsafeMutablePointer<sockaddr>(storage)
-                
                 if(bytesRead > 0)
                 {
-                    
-                    //try withUnsafeMutablePointer(&socketAddress) {
-                    //    try sendto(sock, buffer, len, 0, UnsafeMutablePointer<sockaddr>($0), socklen_t(socketAddress.sin.sin_len))
-                    //}
-                    
                     print("socketAddressLength = ", socketAddressLength);
-
-                    
                     let bytesWritten = withUnsafePointer(&socketAddress) {
                         print("TXing...\n");
                         sendto(sock, UnsafePointer(buffer), bytesRead, 0, UnsafePointer<sockaddr>($0), socketAddressLength)
@@ -322,7 +291,7 @@ class ViewController: UIViewController {
     var service_thread : NSThread!
     func ztnc_start_service() {
         let path = NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory.DocumentDirectory, NSSearchPathDomainMask.UserDomainMask, true)
-        start_service_and_rpc(path[0],"8056c2e21c000001")
+        zt_start_service_and_rpc(path[0],"8056c2e21c000001")
     }
 
     override func viewDidLoad() {

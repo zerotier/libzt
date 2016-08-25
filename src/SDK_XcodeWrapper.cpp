@@ -35,50 +35,41 @@
 // ZEROTIER CONTROLS
 // Starts a ZeroTier service at the specified path
 // This will only support SOCKS5 Proxy
-extern "C" void start_service(const char * path) {
+extern "C" void zt_start_service(const char * path) {
     init_service(INTERCEPT_DISABLED, path);
 }
-
-extern "C" void stop_service() {
-    zts_stop_service();
-}
-
 // Starts a ZeroTier service at the specified path and initializes the RPC mechanism
 // This will allow direct API calls
-extern "C" void start_service_and_rpc(const char * path, const char * nwid) {
+extern "C" void zt_start_service_and_rpc(const char * path, const char * nwid) {
     init_service_and_rpc(INTERCEPT_DISABLED, path, nwid);
 }
-
+extern "C" void zt_stop_service() {
+    zts_stop_service();
+}
 // Joins a ZeroTier virtual network
 extern "C" void zt_join_network(const char * nwid) {
     zts_join_network(nwid);
 }
-
 // Leaves a ZeroTier virtual network
 extern "C" void zt_leave_network(const char * nwid) {
     zts_leave_network(nwid);
 }
-
 // Returns a list of addresses associated with this device on the given network
 extern "C" void zt_get_addresses(const char * nwid, char * addrstr) {
     zts_get_addresses(nwid, addrstr);
 }
-
 //
 extern "C" void zt_start_proxy_server(const char *homepath, const char *nwid, struct sockaddr_storage *addr) {
     zts_start_proxy_server(homepath, nwid, addr);
 }
-
 //
 extern "C" void zt_stop_proxy_server(const char *nwid) {
     zts_stop_proxy_server(nwid);
 }
-
 //
 extern "C" void zt_get_proxy_server_address(const char *nwid, struct sockaddr_storage *addr) {
     zts_get_proxy_server_address(nwid, addr);
 }
-
 // Explicit ZT API wrappers
 #if !defined(__IOS__)
     // This isn't available for iOS since function interposition isn't as reliable
@@ -121,4 +112,10 @@ extern "C" int zt_getpeername(GETPEERNAME_SIG) {
 }
 extern "C" int zt_fcntl(FCNTL_SIG) {
     return zts_fcntl(fd, cmd, flags);
+}
+extern "C" ssize_t zt_recvfrom(RECVFROM_SIG) {
+    return zts_recvfrom(socket, buffer, length, flags, address, address_len);
+}
+extern "C" ssize_t zt_sendto(SENDTO_SIG) {
+    return zts_sendto(sockfd, buf, len, flags, addr, addr_len);
 }

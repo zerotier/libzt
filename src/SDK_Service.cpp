@@ -167,6 +167,7 @@ void zts_get_addresses(const char * nwid, char *addrstr)
     ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
     if(tap && tap->_ips.size()){ 
         std::string addr = tap->_ips[0].toString();
+        dwr(MSG_DEBUG, "addr.length() = %d, addr = %s\n", addr.length(), addr.c_str());
         memcpy(addrstr, addr.c_str(), addr.length());  
     }
     else {
@@ -185,6 +186,7 @@ void zts_get_addresses(const char * nwid, char *addrstr)
     return ip_strings;
     */
 }
+
 int zts_get_device_id() { /* TODO */ return 0; }
 
 bool zts_is_relayed() {
@@ -344,10 +346,10 @@ char *zts_get_homepath() {
 // Starts a ZeroTier service in the background
 void *zts_start_service(void *thread_id) {
 
-    //#ifdef ZTSDK_BUILD_VERSION
+    #ifdef defined(__ANDROID__)
         dwr(MSG_DEBUG, "ZTSDK_BUILD_VERSION = %d\n", ZTSDK_BUILD_VERSION);
         LOGV("ZTSDK_BUILD_VERSION = %d\n", ZTSDK_BUILD_VERSION);
-    //#endif
+    #endif
 
     #if defined(SDK_BUNDLED) && !defined(__ANDROID__)
         set_intercept_status(INTERCEPT_DISABLED); // Ignore network calls from ZT service
@@ -377,14 +379,13 @@ void *zts_start_service(void *thread_id) {
         localHomeDir = givenHomeDir; // Used for RPC and *can* differ from homeDir on some platforms
     #endif
 
-    dwr(MSG_DEBUG, "homeDir = %s", givenHomeDir.c_str());
+    dwr(MSG_DEBUG, "homeDir = %s\n", givenHomeDir.c_str());
     // Where network .conf files will be stored
     netDir = homeDir + "/networks.d";
     zt1Service = (ZeroTier::OneService *)0;
     
     // Construct path for network config and supporting service files
     if (homeDir.length()) {
-        dwr(MSG_DEBUG, "start_service(): constructing path...\n");
         std::vector<std::string> hpsp(ZeroTier::Utils::split(homeDir.c_str(),ZT_PATH_SEPARATOR_S,"",""));
         std::string ptmp;
         if (homeDir[0] == ZT_PATH_SEPARATOR)

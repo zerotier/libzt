@@ -18,7 +18,6 @@ For more support on these integrations, or if you'd like help creating a new int
 - `SDK_DEBUG_LOGFILE=1` - Used in conjunction with `SDK_DEBUG`, this will write all SDK debug chatter to a log file. To use this, set `make SDK_DEBUG_LOGFILE=1` then `export ZT_SDK_LOGFILE=debug.log`. 
 - `SDK_LWIP_DEBUG=1` - Turns on debug output for the lwIP library.
 - `SDK_BUNDLED=1` - Builds the SDK as a single bundled target including a the RPC mechanism, the lwIP library, and the ZeroTier service.
-- `SDK_SOCKS_PROXY=1` - Enables the SOCK5 Proxy. This flag is enabled by default on must builds, especially mobile.
 
 ***
 ## Current Integrations

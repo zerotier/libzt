@@ -36,7 +36,7 @@ import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.util.Pair;
 
-public class SDK {
+public class ZTSDK {
 
     // Socket families
     public static int AF_UNIX = 1;

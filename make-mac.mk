@@ -89,6 +89,7 @@ ios_unity3d_bundle:
 # Build library for Android Unity integrations
 # Build JNI library for Android app integration
 android_jni_lib:
+	./increment.sh
 	cd $(INT)/android/android_jni_lib/proj; ./gradlew assembleDebug
 	mkdir -p $(BUILD)/android_jni_lib
 	cp docs/android_zt_sdk.md $(BUILD)/android_jni_lib/README.md

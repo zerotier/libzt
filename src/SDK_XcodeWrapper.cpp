@@ -82,8 +82,8 @@ extern "C" void zt_get_proxy_server_address(const char *nwid, struct sockaddr_st
 // Explicit ZT API wrappers
 #if !defined(__IOS__)
     // This isn't available for iOS since function interposition isn't as reliable
-    extern "C" void zts_init_rpc(const char *path, const char *nwid) {
-        zt_init_rpc(path, nwid);
+    extern "C" void zt_init_rpc(const char *path, const char *nwid) {
+        zts_init_rpc(path, nwid);
     }
 #endif
 

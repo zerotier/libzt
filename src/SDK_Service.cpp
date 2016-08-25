@@ -71,7 +71,7 @@ extern "C" {
 
 // Prototypes
 void *zts_start_service(void *thread_id);
-void zt_init_rpc(const char * path, const char * nwid);
+void zts_init_rpc(const char * path, const char * nwid);
 void dwr(int level, const char *fmt, ... );
 
 #if defined(__UNITY_3D__)
@@ -146,9 +146,9 @@ void zts_join_network(const char * nwid) {
     if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), "")) {
         dwr(MSG_ERROR, "unable to write network conf file: %s\n", confFile.c_str());
     }
+    zt1Service->join(nwid);
     // Provide the API with the RPC information
-    zt_init_rpc(homeDir.c_str(), nwid); 
-
+    zts_init_rpc(homeDir.c_str(), nwid); 
     // SOCKS5 Proxy server
     // Default is 127.0.0.1:RANDOM_PORT
     #if defined(USE_SOCKS_PROXY)
@@ -345,8 +345,8 @@ char *zts_get_homepath() {
 void *zts_start_service(void *thread_id) {
 
     //#ifdef ZTSDK_BUILD_VERSION
-        dwr(MSG_DEBUG, "ZTSDK_BUILD_VERSION = %d", ZTSDK_BUILD_VERSION);
-        LOGV("ZTSDK_BUILD_VERSION = %d", ZTSDK_BUILD_VERSION);
+        dwr(MSG_DEBUG, "ZTSDK_BUILD_VERSION = %d\n", ZTSDK_BUILD_VERSION);
+        LOGV("ZTSDK_BUILD_VERSION = %d\n", ZTSDK_BUILD_VERSION);
     //#endif
 
     #if defined(SDK_BUNDLED) && !defined(__ANDROID__)
@@ -422,7 +422,7 @@ void *zts_start_service(void *thread_id) {
 
     // Initialize RPC 
     if(rpcEnabled) {
-        zt_init_rpc(localHomeDir.c_str(), rpcNWID.c_str());
+        zts_init_rpc(localHomeDir.c_str(), rpcNWID.c_str());
     }
 
     // Generate random port for new service instance

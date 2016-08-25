@@ -49,6 +49,7 @@
 #include "SDK_EthernetTap.hpp"
 #include "SDK.h"
 #include "SDK_Debug.h"
+#include "SDK_LocalBuild.h"
 
 std::string service_path;
 pthread_t intercept_thread;
@@ -68,6 +69,8 @@ bool rpcEnabled;
 extern "C" {
 #endif
 
+// Prototypes
+void *zts_start_service(void *thread_id);
 void zt_init_rpc(const char * path, const char * nwid);
 void dwr(int level, const char *fmt, ... );
 
@@ -197,6 +200,28 @@ char *zts_get_homepath() {
 // Android JNI wrapper
 // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
 #if defined(__ANDROID__)
+    // Starts a new service instance
+    /* NOTE: Since on Android devices the sdcard is formatted as fat32, we can't use just any 
+    location to set up the RPC unix domain socket. Rather we must use the application's specific 
+    data directory given by getApplicationContext().getFilesDir() */
+    JNIEXPORT int JNICALL Java_ZeroTier_SDK_zt_1start_1service(JNIEnv *env, jobject thisObj, jstring path) {
+        if(path)
+            homeDir = env->GetStringUTFChars(path, NULL);
+        zts_start_service(NULL);
+    }
+    // Shuts down ZeroTier service and SOCKS5 Proxy server
+    JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1stop_1service(JNIEnv *env, jobject thisObj) {
+        if(zt1Service)
+            zts_stop_service();
+        // TODO: Also terminate SOCKS5 Proxy
+        // zts_stop_proxy_server();
+    }
+    // Returns whether the ZeroTier service is running
+    JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1running(JNIEnv *env, jobject thisObj) {
+        if(zt1Service)
+            return  zts_is_running();
+        return false;
+    }
     // Join a network
     JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1join_1network(JNIEnv *env, jobject thisObj, jstring nwid) {
         const char *nwidstr;
@@ -212,19 +237,6 @@ char *zts_get_homepath() {
             nwidstr = env->GetStringUTFChars(nwid, NULL);
             zts_leave_network(nwidstr);
         }
-    }
-    // Returns whether the ZeroTier service is running
-    JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1running(JNIEnv *env, jobject thisObj) {
-        if(zt1Service)
-            return  zts_is_running();
-        return false;
-    }
-    // Shuts down ZeroTier service and SOCKS5 Proxy server
-    JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1stop_1service(JNIEnv *env, jobject thisObj) {
-        if(zt1Service)
-            zts_stop_service();
-        // TODO: Also terminate SOCKS5 Proxy
-        // zts_stop_proxy_server();
     }
     // FIXME: Re-implemented to make it play nicer with the C-linkage required for Xcode integrations
     // Now only returns first assigned address per network. Shouldn't normally be a problem
@@ -309,7 +321,7 @@ char *zts_get_homepath() {
         pthread_key_create(&thr_id_key, NULL);
         intercept_thread_id = (int*)malloc(sizeof(int));
         *intercept_thread_id = key;
-        pthread_create(&intercept_thread, NULL, zt_start_service, (void *)(intercept_thread_id));
+        pthread_create(&intercept_thread, NULL, zts_start_service, (void *)(intercept_thread_id));
     }
     void init_service_and_rpc(int key, const char * path, const char * nwid) {
         rpcEnabled = true;
@@ -328,129 +340,124 @@ char *zts_get_homepath() {
     }
 #endif
 
-/*
- * Starts a new service instance
- */
-#if defined(__ANDROID__)
-    /* NOTE: Since on Android devices the sdcard is formatted as fat32, we can't use just any 
-    location to set up the RPC unix domain socket. Rather we must use the application's specific 
-    data directory given by getApplicationContext().getFilesDir() */
-    JNIEXPORT int JNICALL Java_ZeroTier_SDK_zt_1start_1service(JNIEnv *env, jobject thisObj, jstring path) {
-        if(path)
-            homeDir = env->GetStringUTFChars(path, NULL);
-#else
-        void *zt_start_service(void *thread_id) {
-#endif
+        
+// Starts a ZeroTier service in the background
+void *zts_start_service(void *thread_id) {
+
+    //#ifdef ZTSDK_BUILD_VERSION
+        dwr(MSG_DEBUG, "ZTSDK_BUILD_VERSION = %d", ZTSDK_BUILD_VERSION);
+        LOGV("ZTSDK_BUILD_VERSION = %d", ZTSDK_BUILD_VERSION);
+    //#endif
 
     #if defined(SDK_BUNDLED) && !defined(__ANDROID__)
         set_intercept_status(INTERCEPT_DISABLED); // Ignore network calls from ZT service
     #endif
 
-        #if defined(__UNITY_3D__)
-            int MAX_DIR_SZ = 256;
-            char current_dir[MAX_DIR_SZ];
-            getcwd(current_dir, MAX_DIR_SZ);
-            chdir(service_path.c_str());
-            homeDir = current_dir; // homeDir shall be current_dir
-        #endif
+    #if defined(__UNITY_3D__)
+        int MAX_DIR_SZ = 256;
+        char current_dir[MAX_DIR_SZ];
+        getcwd(current_dir, MAX_DIR_SZ);
+        chdir(service_path.c_str());
+        homeDir = current_dir; // homeDir shall be current_dir
+    #endif
 
-        #if defined(__APPLE__)
-            #include "TargetConditionals.h"
-            #if TARGET_IPHONE_SIMULATOR
-                // homeDir = "dont/run/this/in/the/simulator/it/wont/work";
-            #elif TARGET_OS_IPHONE
-                localHomeDir = "ZeroTier/One";
-                std::string del = givenHomeDir.length() && givenHomeDir[givenHomeDir.length()-1]!='/' ? "/" : "";
-                homeDir = givenHomeDir + del + localHomeDir;
-            #endif
+    #if defined(__APPLE__)
+        #include "TargetConditionals.h"
+        #if TARGET_IPHONE_SIMULATOR
+            // homeDir = "dont/run/this/in/the/simulator/it/wont/work";
+        #elif TARGET_OS_IPHONE
+            localHomeDir = "ZeroTier/One";
+            std::string del = givenHomeDir.length() && givenHomeDir[givenHomeDir.length()-1]!='/' ? "/" : "";
+            homeDir = givenHomeDir + del + localHomeDir;
         #endif
+    #endif
 
-        #if defined(__APPLE__) && !defined(__IOS__)
-            homeDir = givenHomeDir;
-            localHomeDir = givenHomeDir; // Used for RPC and *can* differ from homeDir on some platforms
-        #endif
+    #if defined(__APPLE__) && !defined(__IOS__)
+        homeDir = givenHomeDir;
+        localHomeDir = givenHomeDir; // Used for RPC and *can* differ from homeDir on some platforms
+    #endif
 
-        dwr(MSG_DEBUG, "homeDir = %s", givenHomeDir.c_str());
-        // Where network .conf files will be stored
-        netDir = homeDir + "/networks.d";
-        zt1Service = (ZeroTier::OneService *)0;
-        
-        // Construct path for network config and supporting service files
-        if (homeDir.length()) {
-            dwr(MSG_DEBUG, "start_service(): constructing path...\n");
-            std::vector<std::string> hpsp(ZeroTier::Utils::split(homeDir.c_str(),ZT_PATH_SEPARATOR_S,"",""));
-            std::string ptmp;
-            if (homeDir[0] == ZT_PATH_SEPARATOR)
+    dwr(MSG_DEBUG, "homeDir = %s", givenHomeDir.c_str());
+    // Where network .conf files will be stored
+    netDir = homeDir + "/networks.d";
+    zt1Service = (ZeroTier::OneService *)0;
+    
+    // Construct path for network config and supporting service files
+    if (homeDir.length()) {
+        dwr(MSG_DEBUG, "start_service(): constructing path...\n");
+        std::vector<std::string> hpsp(ZeroTier::Utils::split(homeDir.c_str(),ZT_PATH_SEPARATOR_S,"",""));
+        std::string ptmp;
+        if (homeDir[0] == ZT_PATH_SEPARATOR)
+            ptmp.push_back(ZT_PATH_SEPARATOR);
+        for(std::vector<std::string>::iterator pi(hpsp.begin());pi!=hpsp.end();++pi) {
+            if (ptmp.length() > 0)
                 ptmp.push_back(ZT_PATH_SEPARATOR);
-            for(std::vector<std::string>::iterator pi(hpsp.begin());pi!=hpsp.end();++pi) {
-                if (ptmp.length() > 0)
-                    ptmp.push_back(ZT_PATH_SEPARATOR);
-                ptmp.append(*pi);
-                if ((*pi != ".")&&(*pi != "..")) {
-                    if (!ZeroTier::OSUtils::mkdir(ptmp)) {
-                        dwr(MSG_ERROR, "startOneService(): home path does not exist, and could not create\n");
-                    }
+            ptmp.append(*pi);
+            if ((*pi != ".")&&(*pi != "..")) {
+                if (!ZeroTier::OSUtils::mkdir(ptmp)) {
+                    dwr(MSG_ERROR, "startOneService(): home path does not exist, and could not create\n");
                 }
             }
         }
-        else {
-            fprintf(stderr, "start_service(): homeDir is empty, could not construct path\n");
-            return NULL;
-        }
-
-        #if defined(__IOS__)
-            // Go to the app's data directory so we can shorten the sun_path we bind to
-            int MAX_DIR_SZ = 256;
-            char current_dir[MAX_DIR_SZ];
-            getcwd(current_dir, MAX_DIR_SZ);
-            std::string targetDir = homeDir + "/../../";
-            chdir(targetDir.c_str());
-            homeDir = localHomeDir;
-        #endif
-
-        //chdir(current_dir); // Return to previous current working directory (at the request of Unity3D)
-        #if defined(__UNITY_3D__)
-            Debug("Starting service...\n");
-        #endif
-
-        // Initialize RPC 
-        if(rpcEnabled) {
-            zt_init_rpc(localHomeDir.c_str(), rpcNWID.c_str());
-        }
-
-        // Generate random port for new service instance
-        unsigned int randp = 0;
-        ZeroTier::Utils::getSecureRandom(&randp,sizeof(randp));
-        int servicePort = 9000 + (randp % 1000);
-
-        for(;;) {
-            zt1Service = ZeroTier::OneService::newInstance(homeDir.c_str(),servicePort);
-            switch(zt1Service->run()) {
-                case ZeroTier::OneService::ONE_STILL_RUNNING: // shouldn't happen, run() won't return until done
-                case ZeroTier::OneService::ONE_NORMAL_TERMINATION:
-                    break;
-                case ZeroTier::OneService::ONE_UNRECOVERABLE_ERROR:
-                    fprintf(stderr,"start_service(): fatal error: %s",zt1Service->fatalErrorMessage().c_str());
-                    break;
-                case ZeroTier::OneService::ONE_IDENTITY_COLLISION: {
-                    delete zt1Service;
-                    zt1Service = (ZeroTier::OneService *)0;
-                    std::string oldid;
-                    ZeroTier::OSUtils::readFile((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret").c_str(),oldid);
-                    if (oldid.length()) {
-                        ZeroTier::OSUtils::writeFile((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret.saved_after_collision").c_str(),oldid);
-                        ZeroTier::OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret").c_str());
-                        ZeroTier::OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S + "identity.public").c_str());
-                    }
-			    }	
-                continue; // restart!
-		    }
-		    break; // terminate loop -- normally we don't keep restarting
-	    }
-        delete zt1Service;
-        zt1Service = (ZeroTier::OneService *)0;
+    }
+    else {
+        fprintf(stderr, "start_service(): homeDir is empty, could not construct path\n");
         return NULL;
     }
+
+    #if defined(__IOS__)
+        // Go to the app's data directory so we can shorten the sun_path we bind to
+        int MAX_DIR_SZ = 256;
+        char current_dir[MAX_DIR_SZ];
+        getcwd(current_dir, MAX_DIR_SZ);
+        std::string targetDir = homeDir + "/../../";
+        chdir(targetDir.c_str());
+        homeDir = localHomeDir;
+    #endif
+
+    //chdir(current_dir); // Return to previous current working directory (at the request of Unity3D)
+    #if defined(__UNITY_3D__)
+        Debug("Starting service...\n");
+    #endif
+
+    // Initialize RPC 
+    if(rpcEnabled) {
+        zt_init_rpc(localHomeDir.c_str(), rpcNWID.c_str());
+    }
+
+    // Generate random port for new service instance
+    unsigned int randp = 0;
+    ZeroTier::Utils::getSecureRandom(&randp,sizeof(randp));
+    int servicePort = 9000 + (randp % 1000);
+
+    for(;;) {
+        zt1Service = ZeroTier::OneService::newInstance(homeDir.c_str(),servicePort);
+        switch(zt1Service->run()) {
+            case ZeroTier::OneService::ONE_STILL_RUNNING: // shouldn't happen, run() won't return until done
+            case ZeroTier::OneService::ONE_NORMAL_TERMINATION:
+                break;
+            case ZeroTier::OneService::ONE_UNRECOVERABLE_ERROR:
+                fprintf(stderr,"start_service(): fatal error: %s",zt1Service->fatalErrorMessage().c_str());
+                break;
+            case ZeroTier::OneService::ONE_IDENTITY_COLLISION: {
+                delete zt1Service;
+                zt1Service = (ZeroTier::OneService *)0;
+                std::string oldid;
+                ZeroTier::OSUtils::readFile((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret").c_str(),oldid);
+                if (oldid.length()) {
+                    ZeroTier::OSUtils::writeFile((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret.saved_after_collision").c_str(),oldid);
+                    ZeroTier::OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret").c_str());
+                    ZeroTier::OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S + "identity.public").c_str());
+                }
+            }	
+            continue; // restart!
+        }
+        break; // terminate loop -- normally we don't keep restarting
+    }
+    delete zt1Service;
+    zt1Service = (ZeroTier::OneService *)0;
+    return NULL;
+}
 
 #ifdef __cplusplus
 }

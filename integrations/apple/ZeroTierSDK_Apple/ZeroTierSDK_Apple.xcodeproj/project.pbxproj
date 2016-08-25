@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		7C0252A51D62945B005D5FD8 /* SDK_Service.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CAA03DE1D628E88003F9B1A /* SDK_Service.cpp */; };
+		7C6F654E1D6F6BA1004F6CDF /* SDK_Service.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CAA03DE1D628E88003F9B1A /* SDK_Service.cpp */; };
 		7CAA03DF1D628E88003F9B1A /* SDK_Service.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CAA03DE1D628E88003F9B1A /* SDK_Service.cpp */; };
 		7CC003261D1216E3003E68DC /* ZeroTierSDK_iOS.h in Headers */ = {isa = PBXBuildFile; fileRef = 7CC003251D1216E3003E68DC /* ZeroTierSDK_iOS.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		7CC003501D12178D003E68DC /* SDK_Debug.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003421D12178D003E68DC /* SDK_Debug.c */; };
@@ -1112,6 +1113,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7C6F654E1D6F6BA1004F6CDF /* SDK_Service.cpp in Sources */,
 				7CC004D21D131F76003E68DC /* ip_addr.c in Sources */,
 				7CC004D01D131E37003E68DC /* lz4.c in Sources */,
 				7CC004D11D131E37003E68DC /* http_parser.c in Sources */,

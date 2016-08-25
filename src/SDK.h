@@ -37,13 +37,14 @@
     #include <jni.h>
 #endif
 
+#include "SDK_LocalBuild.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define INTERCEPT_ENABLED  111
 #define INTERCEPT_DISABLED 222
-#define TEMP_MTU 2800
 
 extern void load_symbols();
 extern void zt_init_rpc(const char *path, const char *nwid);
@@ -90,16 +91,22 @@ int zts_start_proxy_server(const char *homepath, const char * nwid, struct socka
 int zts_stop_proxy_server(const char *nwid);
 int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage *addr);
 // ZT Service Controls
+void *zts_start_service(void *thread_id);
+void zts_stop_service();
+bool zts_is_running();
 void zts_join_network(const char * nwid);
 void zts_leave_network(const char * nwid);
-bool zts_is_running();
 void zts_get_addresses(const char * nwid, char * addrstr);
 int zts_get_device_id();
-void zts_stop_service();
 bool zts_is_relayed();
 char *zts_get_homepath();
+
 // ZT Intercept/RPC Controls
+// TODO: Remove any?
 void set_intercept_status(int mode); /* TODO: Rethink this */
+void init_service(int key, const char * path);
+void init_service_and_rpc(int key, const char * path, const char * nwid);
+void init_intercept(int key);
 
 int zts_socket(SOCKET_SIG);
 int zts_connect(CONNECT_SIG);
@@ -172,11 +179,6 @@ ssize_t zts_recvmsg(RECVMSG_SIG);
 	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1getsockopt(JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen);
 	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1getsockname(JNIEnv *env, jobject thisObj, jint fd, jobject ztaddr);
     JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1getpeername(JNIEnv *env, jobject thisObj, jint fd, jobject ztaddr);
-#else
-	void * zt_start_service(void *thread_id);
-	void init_service(int key, const char * path);
-    void init_service_and_rpc(int key, const char * path, const char * nwid);
-	void init_intercept(int key);
 #endif
 
 

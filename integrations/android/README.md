@@ -50,14 +50,16 @@ int err = zt.connect(sock, "10.9.9.203", 8080, nwid);
 
 **Step 3: Set NDK/SDK paths**
  - Specify your SDK/NDK path in `android_jni_lib/proj/local.properties`. For example:
+
  ```
  sdk.dir=/Users/Name/Library/Android/sdk
  ndk.dir=/Users/Name/Library/Android/ndk-r10e
  ```
 
 **Step 4: Select build targets**
- - Specify the target architectures you want to build in [Application.mk](android/java/jni/Application.mk). By default it will build `arm64-v8a`, `armeabi`, `armeabi-v7a`, `mips`, `mips64`, `x86`, and `x86_64`.
+ - Specify the target architectures you want to build in [Application.mk](android/java/jni/Application.mk). By default it will build `arm64-v8a`, `armeabi`, `armeabi-v7a`, `mips`, `mips64`, `x86`, and `x86_64`. For each architecture you wish to support a different shared library will need to be built. This is all taken care of automatically by the build script.
 
-**Step 5: Build Shared Library**
+**Step 4: Build Shared Library**
  - `make android_jni_lib`
- - The resultant `build/android_jni_lib_YOUR_ARCH/libZeroTierOneJNI.so` is what you want to import into your own project to provide the API to your app. Select your architecture and copy the shared library `libZeroTierOneJNI.so` into your project's JNI directory, possibly `/src/main/jniLibs/YOUR_ARCH/libZeroTierOneJNI.so`. Selecting only the architectures you need will *significantly* reduce overall build time.
+ - The resultant `build/android_jni_lib/ARCH/libZeroTierOneJNI.so` is what you want to import into your own project to provide our API implementation to your app. Select your architecture and copy the shared library `libZeroTierOneJNI.so` into your project's JNI directory, possibly `/src/main/jniLibs/ARCH/libZeroTierOneJNI.so`.
+ - Selecting only the architectures you need will *significantly* reduce overall build time.

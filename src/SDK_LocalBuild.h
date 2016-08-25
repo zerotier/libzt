@@ -1,0 +1,1 @@
+#define ZTSDK_BUILD_VERSION  34

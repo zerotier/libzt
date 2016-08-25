@@ -86,7 +86,7 @@ int (*realclose)(CLOSE_SIG);
     // ------------------------------------------------------------------------------
     
     // Assembles (and/or) sets the RPC path for communication with the ZeroTier service
-    void zt_init_rpc(const char *path, const char *nwid)
+    void zts_init_rpc(const char *path, const char *nwid)
     {
         // dwr(MSG_DEBUG_EXTRA, "zt_init_rpc\n");
         #if !defined(__IOS__)
@@ -120,7 +120,7 @@ int (*realclose)(CLOSE_SIG);
         }
     }
 
-    void get_api_netpath() { zt_init_rpc("",""); }
+    void get_api_netpath() { zts_init_rpc("",""); }
         
     // ------------------------------------------------------------------------------
     // ------------------------------------ send() ----------------------------------

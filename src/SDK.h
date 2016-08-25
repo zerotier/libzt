@@ -47,7 +47,7 @@ extern "C" {
 #define INTERCEPT_DISABLED 222
 
 extern void load_symbols();
-extern void zt_init_rpc(const char *path, const char *nwid);
+extern void zts_init_rpc(const char *path, const char *nwid);
 extern char *api_netpath;
 extern char *debug_logfile;
 

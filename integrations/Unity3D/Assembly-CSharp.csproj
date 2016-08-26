@@ -46,25 +46,9 @@
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Assets\MyZeroTier.cs" />
-     <Compile Include="Assets\OBJ-IO\Examples\Scripts\Example.cs" />
-     <Compile Include="Assets\OBJ-IO\Plugins\Extension\GameObjectExtension.cs" />
-     <Compile Include="Assets\OBJ-IO\Plugins\Extension\MeshExtension.cs" />
-     <Compile Include="Assets\OBJ-IO\Plugins\Extension\StringExtensions.cs" />
-     <Compile Include="Assets\OBJ-IO\Plugins\Extension\Texture2DExtension.cs" />
-     <Compile Include="Assets\OBJ-IO\Plugins\Extension\TransformExtension.cs" />
-     <Compile Include="Assets\OBJ-IO\Plugins\Extension\UnityExtension.cs" />
-     <Compile Include="Assets\OBJ-IO\Plugins\Extension\VectorExtension.cs" />
-     <Compile Include="Assets\OBJ-IO\Plugins\Mesh\OBJ\OBJData.cs" />
-     <Compile Include="Assets\OBJ-IO\Plugins\Mesh\OBJ\OBJFace.cs" />
-     <Compile Include="Assets\OBJ-IO\Plugins\Mesh\OBJ\OBJFaceVertex.cs" />
-     <Compile Include="Assets\OBJ-IO\Plugins\Mesh\OBJ\OBJGroup.cs" />
-     <Compile Include="Assets\OBJ-IO\Plugins\Mesh\OBJ\OBJLoader.cs" />
-     <Compile Include="Assets\OBJ-IO\Plugins\Mesh\OBJ\OBJMaterial.cs" />
-     <Compile Include="Assets\OBJ-IO\Plugins\Utils\Int32Converter.cs" />
      <Compile Include="Assets\WorldMain.cs" />
      <Compile Include="Assets\ZTSDK.cs" />
      <Compile Include="Assets\ZeroTierSockets_Demo.cs" />
-     <None Include="Assets\OBJ-IO\Readme.txt" />
  <Reference Include="UnityEngine.Networking">
  <HintPath>/Applications/Unity/Unity.app/Contents/UnityExtensions/Unity/Networking/UnityEngine.Networking.dll</HintPath>
  </Reference>

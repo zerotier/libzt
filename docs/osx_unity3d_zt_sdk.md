@@ -34,6 +34,7 @@ Our implementation currently intends to be the bare minimum required to get your
 
 **Step 3: Include wrapper class source**
  - Drag `ZeroTierNetworkInterface.cs` into your `Assets` folder.
+ - Add a file `Assets/smcs.rsp` containing the flag `-unsafe`. This is needed to execute the native library.
 
 **Step 4: Create and use a `ZeroTierNetworkInterface` object**
  - See examples below for how to use it!

@@ -22,7 +22,9 @@ For more support on these integrations, or if you'd like help creating a new int
 ***
 ## Current Integrations
 
-### Apple `make apple`
+### Apple 
+ - For everything: `make apple`
+
 ##### iOS
  - [Embedding within an app](apple/example_app/iOS) `make ios_app_framework` -> `build/ios_app_framework/*`
  - Unity3D plugin `make ios_unity3d_bundle` -> `build/ios_unity3d_bundle/*`
@@ -38,7 +40,9 @@ For more support on these integrations, or if you'd like help creating a new int
  - [Dynamic-linking into an app/service at runtime](../docs/linux_zt_sdk.md) `make linux_shared_lib`
  - [Using the SDK with Docker](docker)
 
-### Android `make android`
+### Android 
+ - For everything: `make android`
+ 
  - [Embedding within an app](android) `make android_jni_lib` -> `build/android_jni_lib/YOUR_ARCH/libZeroTierOneJNI.so`
  - [Unity 3D plugin](../docs/android_unity3d_zt_sdk.md) `make android_unity3d_plugin` -> `build/android_unity3d_plugin/*`
 

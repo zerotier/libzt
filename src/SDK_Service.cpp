@@ -74,33 +74,9 @@ void *zts_start_service(void *thread_id);
 void zts_init_rpc(const char * path, const char * nwid);
 void dwr(int level, const char *fmt, ... );
 
-#if defined(__UNITY_3D__)
-    // .NET Interop-friendly debug mechanism
-    typedef void (*FuncPtr)( const char * );
-    FuncPtr Debug;
-    void SetDebugFunction( FuncPtr fp ) { Debug = fp; }
-    
-    // Starts a ZeroTier service at the given path
-    void unity_start_service(char * path, int len) {
-        std::string dstr = std::string(path);
-        dstr = "unity_start_service(): path = " + dstr; 
-        Debug(dstr.c_str());
-        init_service(INTERCEPT_DISABLED, path);
-    }
-    // Starts a ZeroTier service and RPC
-    void unity_start_service_and_rpc(char * path, char *nwid, int len) {
-        std::string dstr = std::string(path);
-        dstr = "unity_start_service_and_rpc(): path = " + dstr; 
-        Debug(dstr.c_str());
-        init_service_and_rpc(INTERCEPT_DISABLED, path, nwid);
-    }
-#endif
-    
-
 int zts_start_proxy_server(const char *homepath, const char * nwid, struct sockaddr_storage * addr) {
-        LOGV("zts_start_proxy_server\n");
-
-    dwr(MSG_DEBUG, "zts_start_proxy_server()");
+    LOGV("zts_start_proxy_server\n");
+    dwr(MSG_DEBUG, "zts_start_proxy_server()\n");
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
     ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
     if(tap) {
@@ -198,6 +174,30 @@ bool zts_is_relayed() {
 char *zts_get_homepath() {
     return (char*)givenHomeDir.c_str();
 }
+
+
+#if defined(__UNITY_3D__)
+    // .NET Interop-friendly debug mechanism
+    typedef void (*FuncPtr)( const char * );
+    FuncPtr Debug;
+    void SetDebugFunction( FuncPtr fp ) { Debug = fp; }
+    
+    // Starts a ZeroTier service at the given path
+    void unity_start_service(char * path, int len) {
+        std::string dstr = std::string(path);
+        dstr = "unity_start_service(): path = " + dstr; 
+        Debug(dstr.c_str());
+        init_service(INTERCEPT_DISABLED, path);
+    }
+    // Starts a ZeroTier service and RPC
+    void unity_start_service_and_rpc(char * path, char *nwid, int len) {
+        std::string dstr = std::string(path);
+        dstr = "unity_start_service_and_rpc(): path = " + dstr; 
+        Debug(dstr.c_str());
+        init_service_and_rpc(INTERCEPT_DISABLED, path, nwid);
+    }
+#endif
+
 
 // Android JNI wrapper
 // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME

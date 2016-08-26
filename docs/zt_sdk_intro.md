@@ -1,4 +1,4 @@
-ZeroTier SDK (alpha)
+ZeroTier SDK (beta)
 ======
 
 ZeroTier-enabled apps. Virtual network access embedded directly into applications and games.

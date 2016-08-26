@@ -43,7 +43,7 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 {
 	public float speed = 300f;
 
-	private ZeroTierNetworkInterface zt;
+	private ZTSDK zt;
 	string nwid = "";
 
 	int sock; // The "connection id"
@@ -222,7 +222,7 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 		GameObject go;
 		go = GameObject.Find ("inputNetworkID"); 
 		input = go.GetComponents<InputField> () [0];
-		input.text = "XXXXXXXXXXXXXXXX";
+		input.text = "8056c2e21c000001";
 		go = GameObject.Find ("inputServerAddress"); 
 		input = go.GetComponents<InputField> () [0];
 		input.text = "10.9.9.203";
@@ -234,7 +234,7 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 		input.text = "Welcome to the machine";
 
 		// Create new instance of ZeroTier in separate thread
-		zt = new ZeroTierNetworkInterface ("/Users/ztest", "XXXXXXXXXXXXXXXX");
+		zt = new ZTSDK (".", "8056c2e21c000001");
 	}
 
 	// Terminate the ZeroTier service when the application quits

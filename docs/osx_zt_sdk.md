@@ -11,53 +11,57 @@ This short tutorial will show you how to enable ZeroTier functionality for your 
 
 ## Via Traditional Linking (Everything bundled)
 
+ - Use this if you'd like everything included in a single easy-to-use library.
+
 ```
 make osx_shared_lib`
-g++ myapp.cpp -o myapp libztosx.so
-./myapp
+g++ app.cpp -o app libztosx.so
+./app
 ```
 
 ## Via Traditional Linking (Service+Intercept model)
 
+ - Use this model if you'd like multiple applications to talk to the same ZeroTierSDK service instance. Often the *intercept-model* is used when you don't have access to the source of an app and you'd like to re-direct its network calls.
+
 Example:
 
-    gcc myapp.c -o myapp libztintercept.so
+    gcc app.c -o app libztintercept.so
     export ZT_NC_NETWORK=/tmp/sdk-test-home/nc_8056c2e21c000001
 
 Start service
 
-    ./zerotier-sdk-service -d -p8000 /tmp/sdk-test-home
+    ./zerotier-sdk-service -d -p8000 /tmp/sdk-test-home &
 
 Run application
 
-    ./myapp
+    ./app
 
 ## Via App Framework in XCode
 
 ***
-**Step 1: Build iOS framework**
+**Step 1: Build OSX framework**
 
-- `make ios_app_framework`
-- This will output to `build/ios_app_framework/Release-iphoneos/ZeroTierSDK_iOS.framework`
+- `make osx_app_framework`
+- This will output to `build/osx_app_framework/Release/ZeroTierSDK_OSX.framework`
 
 **Step 2: Integrate SDK into project**
 
 - Add the resultant framework package to your project
-- Add `zerotiersdk/src` directory to `Build Settings -> Header Search Paths`
-- Add `build/osx_app_framework/Release-iphoneos/` to *Build Settings -> Framework Search Paths*
-- Add `ZeroTierSDK.frameworkiOS` to *General->Embedded Binaries*
+- Add `src` directory to *Build Settings -> Header Search Paths*
+- Add `build/osx_app_framework/Release/` to *Build Settings -> Framework Search Paths*
+- Add `ZeroTierSDK.frameworkOSX` to *General->Embedded Binaries*
 - Add `src/SDK_XcodeWrapper.cpp` and `src/SDK_XcodeWrapper.hpp` to your project:
-- Set `src/SDK_Apple-Bridging-Header.h` as your bridging-header in `Build Settings -> Objective-C Bridging-header`
+- Set `src/SDK_Apple-Bridging-Header.h` as your bridging-header in *Build Settings -> Objective-C Bridging-header*
 
 **Step 3: Start the ZeroTier service**
 
-Now find a place in your code to set up the ZeroTier service thread:
+Set up the ZeroTier service thread:
 
 ```
 var service_thread : NSThread!
 func zt_start_service() {
     let path = NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory.DocumentDirectory, NSSearchPathDomainMask.UserDomainMask, true)
-    start_service(path[0])
+    start_service(".") // "." path will tell ZeroTier to write its config data to the same directory as the binary
 }
 ```
 
@@ -70,16 +74,12 @@ dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
 });
 ```
 
-*NOTE: If you enabled the proxy service via `-DUSE_SOCKS_PROXY` it will start automatically and be reachable at `0.0.0.0:1337`*
-
 **Step 4: Pick an API**
 
 The following APIs are available for this integration:
-- `Hook of BSD-like sockets`: Use BSD-like sockets as you normally would.
-- `Proxy of NSStream`: Create NSStream. Configure stream for SOCKS5 Proxy. Use stream.
 - `Direct Call`: Consult [src/SDK_Apple-Bridging-Header.h](../../../../src/SDK_Apple-Bridging-Header.h).
-
-If functional interposition isn't available for the API or library you've chosen to use, ZeroTier offers a SOCKS5 proxy server which can allow connectivity to your virtual network as long as your client API supports the SOCKS5 protocol. This proxy service will run alongside the tap service and can be turned on by compiling with the `-DUSE_SOCKS_PROXY` flag in *Build Settings->Other C Flags*. By default, the proxy service is available at `0.0.0.0:1337`.
+- `Hook of BSD-like sockets`: Use BSD-like sockets as you normally would.
+- `Proxy of NSStream`: Create NSStream. Configure stream for SOCKS5 Proxy (127.0.0.1:PORT). Start Proxy. Use stream.
 
 **Step 5: Join a network!**
 

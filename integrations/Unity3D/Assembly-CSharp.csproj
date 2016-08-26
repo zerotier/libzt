@@ -62,9 +62,8 @@
      <Compile Include="Assets\OBJ-IO\Plugins\Mesh\OBJ\OBJMaterial.cs" />
      <Compile Include="Assets\OBJ-IO\Plugins\Utils\Int32Converter.cs" />
      <Compile Include="Assets\WorldMain.cs" />
-     <Compile Include="Assets\ZeroTierNetworkInterface.cs" />
+     <Compile Include="Assets\ZTSDK.cs" />
      <Compile Include="Assets\ZeroTierSockets_Demo.cs" />
-     <Compile Include="Assets\ZeroTierUtils.cs" />
      <None Include="Assets\OBJ-IO\Readme.txt" />
  <Reference Include="UnityEngine.Networking">
  <HintPath>/Applications/Unity/Unity.app/Contents/UnityExtensions/Unity/Networking/UnityEngine.Networking.dll</HintPath>

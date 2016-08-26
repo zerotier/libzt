@@ -68,21 +68,25 @@ android: android_jni_lib
 # TODO: CHECK if XCODE TOOLS are installed
 # Build frameworks for application development
 osx_app_framework:
-	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_OSX build SYMROOT="../../../$(BUILD)/osx_app_framework"
+	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Release -scheme ZeroTierSDK_OSX build SYMROOT="../../../$(BUILD)/osx_app_framework"
+	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug -scheme ZeroTierSDK_OSX build SYMROOT="../../../$(BUILD)/osx_app_framework"
 	cp docs/osx_zt_sdk.md $(BUILD)/osx_app_framework/README.md
 ios_app_framework:
-	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_iOS build SYMROOT="../../../$(BUILD)/ios_app_framework"
+	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Release -scheme ZeroTierSDK_iOS build SYMROOT="../../../$(BUILD)/ios_app_framework"
+	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug -scheme ZeroTierSDK_iOS build SYMROOT="../../../$(BUILD)/ios_app_framework"
 	cp docs/ios_zt_sdk.md $(BUILD)/ios_app_framework/README.md
 
 # Build bundles for Unity integrations
 osx_unity3d_bundle:
-	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_Unity3D_OSX build SYMROOT="../../../$(BUILD)/osx_unity3d_bundle"
+	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Release -scheme ZeroTierSDK_Unity3D_OSX build SYMROOT="../../../$(BUILD)/osx_unity3d_bundle"
+	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug -scheme ZeroTierSDK_Unity3D_OSX build SYMROOT="../../../$(BUILD)/osx_unity3d_bundle"
 	cp docs/osx_unity3d_zt_sdk.md $(BUILD)/osx_unity3d_bundle/README.md
 	chmod 755 $(BUILD)/osx_unity3d_bundle/Debug/ZeroTierSDK_Unity3D_OSX.bundle
 	cp -p -R $(BUILD)/osx_unity3d_bundle/Debug/ZeroTierSDK_Unity3D_OSX.bundle $(INT)/Unity3D/Assets/Plugins
 
 ios_unity3d_bundle:
-	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -scheme ZeroTierSDK_Unity3D_iOS build SYMROOT="../../../$(BUILD)/ios_unity3d_bundle"
+	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Release -scheme ZeroTierSDK_Unity3D_iOS build SYMROOT="../../../$(BUILD)/ios_unity3d_bundle"
+	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug -scheme ZeroTierSDK_Unity3D_iOS build SYMROOT="../../../$(BUILD)/ios_unity3d_bundle"
 	cp docs/ios_unity3d_zt_sdk.md $(BUILD)/ios_unity3d_bundle/README.md
 
 # TODO: CHECK if ANDROID/GRADLE TOOLS are installed
@@ -150,6 +154,9 @@ tests: $(TEST_OBJDIR) $(TEST_TARGETS)
 JAVAC := $(shell which javac)
 
 
+clean_unity:
+	
+
 clean_android:
 	# android JNI lib project
 	test -s /usr/bin/javac || { echo "Javac not found"; exit 1; }
@@ -170,6 +177,12 @@ clean: clean_basic clean_android
 clean_for_production:
 	-find . -type f \( -name '*.identity'\) -delete
 
+## --- BELOW ARE DEVELOPMENT AIDS ---
+
+# Copy and rename source files into example projects to follow local ordinances
+update_examples:
+	cp src/SDK_DotNetWrapper.cs integrations/Unity3D/Assets/ZTSDK.cs
+	cp src/SDK_JavaWrapper.java integrations/android/example_app/app/src/main/java/ZeroTier/ZTSDK.java
 
 # For authors
 # Copies documentation to all of the relevant directories to make viewing in the repo a little easier

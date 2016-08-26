@@ -16,11 +16,11 @@ This short tutorial will show you how to enable ZeroTier functionality for your 
 **Step 2: Integrate SDK into project**
 
 - Add the resultant framework package to your project
-- Add `zerotiersdk/src` directory to `Build Settings -> Header Search Paths`
+- Add `src` directory to *Build Settings -> Header Search Paths*
 - Add `build/ios_app_framework/Release-iphoneos/` to *Build Settings -> Framework Search Paths*
 - Add `ZeroTierSDK.frameworkiOS` to *General->Embedded Binaries*
 - Add `src/SDK_XcodeWrapper.cpp` and `src/SDK_XcodeWrapper.hpp` to your project:
-- Set `src/SDK_Apple-Bridging-Header.h` as your bridging-header in `Build Settings -> Objective-C Bridging-header`
+- Set `src/SDK_Apple-Bridging-Header.h` as your bridging-header in *Build Settings -> Objective-C Bridging-header*
 
 **Step 3: Start the ZeroTier service**
 
@@ -43,16 +43,12 @@ dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
 });
 ```
 
-*NOTE: If you enabled the proxy service via `-DUSE_SOCKS_PROXY` it will start automatically and be reachable at `0.0.0.0:1337`*
-
 **Step 4: Pick an API**
 
 The following APIs are available for this integration:
-- `Hook of BSD-like sockets`: Use BSD-like sockets as you normally would.
-- `Proxy of NSStream`: Create NSStream. Configure stream for SOCKS5 Proxy. Use stream.
 - `Direct Call`: Consult [src/SDK_Apple-Bridging-Header.h](../../../../src/SDK_Apple-Bridging-Header.h).
-
-If functional interposition isn't available for the API or library you've chosen to use, ZeroTier offers a SOCKS5 proxy server which can allow connectivity to your virtual network as long as your client API supports the SOCKS5 protocol. This proxy service will run alongside the tap service and can be turned on by compiling with the `-DUSE_SOCKS_PROXY` flag in *Build Settings->Other C Flags*. By default, the proxy service is available at `0.0.0.0:1337`.
+- `Hook of BSD-like sockets`: Use BSD-like sockets as you normally would. This likely won't work for calls used by a third-party library.
+- `Proxy of NSStream`: Create NSStream. Configure stream for SOCKS5 Proxy (127.0.0.1:PORT). Start Proxy. Use stream.
 
 **Step 5: Join a network!**
 

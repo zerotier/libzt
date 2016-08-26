@@ -37,6 +37,7 @@ using System.Net.Sockets;
 using System.Net;
 using System.IO;
 using System.Collections.Generic;
+using System.Globalization;
 
 // TODO:
 /*
@@ -49,7 +50,7 @@ using System.Collections.Generic;
  * */
 
 // Provides a bare-bones interface to ZeroTier-administered sockets
-public class ZeroTierNetworkInterface {
+public class ZTSDK {
 
 	// ZeroTier background thread
 	protected Thread ztThread;
@@ -91,47 +92,45 @@ public class ZeroTierNetworkInterface {
 	private static extern int unity_start_service(string path);
 	[DllImport (DLL_PATH)]
 	private static extern int unity_start_service_and_rpc(string path, string nwid);
+	[DllImport (DLL_PATH)]
+	protected static extern bool zts_is_running();
+	[DllImport (DLL_PATH)]
+	protected static extern void zts_stop_service();
 
 	// Connection calls
 	[DllImport (DLL_PATH)]
-	protected static extern int zt_socket(int family, int type, int protocol);
+	protected static extern int zts_socket(int family, int type, int protocol);
 
 	[DllImport (DLL_PATH)]
-	unsafe protected static extern int zt_bind(int sockfd, System.IntPtr addr, int addrlen);
+	unsafe protected static extern int zts_bind(int sockfd, System.IntPtr addr, int addrlen);
 	[DllImport (DLL_PATH)]
-	unsafe protected static extern int zt_connect(int sockfd, System.IntPtr addr, int addrlen);
+	unsafe protected static extern int zts_connect(int sockfd, System.IntPtr addr, int addrlen);
 
 	[DllImport (DLL_PATH)]
-	protected static extern int zt_accept(int sockfd);
+	protected static extern int zts_accept(int sockfd);
 	[DllImport (DLL_PATH)]
-	protected static extern int zt_listen(int sockfd, int backlog);
+	protected static extern int zts_listen(int sockfd, int backlog);
 	[DllImport (DLL_PATH)]
-	protected static extern int zt_close(int sockfd);
+	protected static extern int zts_close(int sockfd);
 
 	// RX / TX
 	[DllImport (DLL_PATH)]
-	unsafe protected static extern int zt_recv(int sockfd, [In, Out] IntPtr buf, int len);
+	unsafe protected static extern int zts_recv(int sockfd, [In, Out] IntPtr buf, int len);
 	[DllImport (DLL_PATH)]
-	unsafe protected static extern int zt_send(int sockfd, IntPtr buf, int len);
+	unsafe protected static extern int zts_send(int sockfd, IntPtr buf, int len);
 	[DllImport (DLL_PATH)]
-	unsafe protected static extern int zt_set_nonblock(int sockfd);
+	unsafe protected static extern int zts_set_nonblock(int sockfd);
 
 	[DllImport (DLL_PATH)]
-	unsafe protected static extern int zt_sendto(int fd, IntPtr buf, int len, int flags, System.IntPtr addr, int addrlen);
+	unsafe protected static extern int zts_sendto(int fd, IntPtr buf, int len, int flags, System.IntPtr addr, int addrlen);
 	[DllImport (DLL_PATH)]
-	unsafe protected static extern int zt_recvfrom(int fd, [In, Out] IntPtr buf, int len, int flags, System.IntPtr addr, int addrlen);
-
-	// ZT Thread controls
-	[DllImport (DLL_PATH)]
-	protected static extern bool zt_is_running();
-	[DllImport (DLL_PATH)]
-	protected static extern void zt_terminate();
+	unsafe protected static extern int zts_recvfrom(int fd, [In, Out] IntPtr buf, int len, int flags, System.IntPtr addr, int addrlen);
 
 	// ZT Network controls
 	[DllImport (DLL_PATH)]
-	protected static extern bool zt_join_network(string nwid);
+	protected static extern void zts_join_network(string nwid);
 	[DllImport (DLL_PATH)]
-	protected static extern void zt_leave_network(string nwid);
+	protected static extern void zts_leave_network(string nwid);
 #endregion
 
 	// Interop structures
@@ -208,19 +207,21 @@ public class ZeroTierNetworkInterface {
 	}
 
 	// Initialize the ZeroTier service with a given path
-	public ZeroTierNetworkInterface(string path, string nwid) {
+	public ZTSDK(string path, string nwid) {
+		Debug.Log("ZTSDK(): " + nwid);
+
 		this.path = path;
 		this.nwid = nwid;
 		Init();
 	}
 
-	public ZeroTierNetworkInterface (string path) {
+	public ZTSDK (string path) {
 		this.path = path;
 		Init();
 	}
 
 	// Initialize the ZeroTier service
-	public ZeroTierNetworkInterface() {
+	public ZTSDK() {
 		Init();
 	}
 
@@ -229,7 +230,7 @@ public class ZeroTierNetworkInterface {
 	public bool JoinNetwork(string nwid)
 	{
 		if(!joined_to_network) {
-			zt_join_network(nwid);
+			zts_join_network(nwid);
 			return true;
 		}
 		return false;
@@ -242,7 +243,7 @@ public class ZeroTierNetworkInterface {
 			return false;
 		}
 		else {
-			zt_leave_network(nwid);
+			zts_leave_network(nwid);
 			return true;
 		}
 	}
@@ -251,28 +252,28 @@ public class ZeroTierNetworkInterface {
 	// Creates a new ZeroTier-administered socket
 	public int Socket(int family, int type, int protocol)
 	{
-		return zt_socket (family, type, protocol);
+		return zts_socket (family, type, protocol);
 	}
 
 	// Binds to a specific address
 	public int Bind(int fd, string addr, int port)
 	{
-		GCHandle sockaddr_ptr = ZeroTierUtils.Generate_unmananged_sockaddr(addr + ":" + port);
+		GCHandle sockaddr_ptr = Generate_unmananged_sockaddr(addr + ":" + port);
 		IntPtr pSockAddr = sockaddr_ptr.AddrOfPinnedObject ();
 		int addrlen = Marshal.SizeOf (pSockAddr);
-		return zt_bind (fd, pSockAddr, addrlen);
+		return zts_bind (fd, pSockAddr, addrlen);
 	}
 
 	// Listens for an incoming connection request
 	public int Listen(int fd, int backlog)
 	{
-		return zt_listen(fd, backlog);
+		return zts_listen(fd, backlog);
 	}
 
 	// Accepts an incoming connection
 	public int Accept(int fd)
 	{
-		return zt_accept (fd);
+		return zts_accept (fd);
 	}
 
 	// Closes a connection
@@ -284,17 +285,17 @@ public class ZeroTierNetworkInterface {
 	// Connects to a remote host
 	public int Connect(int fd, string addr, int port)
 	{
-		GCHandle sockaddr_ptr = ZeroTierUtils.Generate_unmananged_sockaddr(addr + ":" + port);
+		GCHandle sockaddr_ptr = Generate_unmananged_sockaddr(addr + ":" + port);
 		IntPtr pSockAddr = sockaddr_ptr.AddrOfPinnedObject ();
 		int addrlen = Marshal.SizeOf (pSockAddr);
-		return zt_connect (fd, pSockAddr, addrlen);
+		return zts_connect (fd, pSockAddr, addrlen);
 	}
 
 	public int Read(int fd, ref char[] buf, int len)
 	{
 		GCHandle handle = GCHandle.Alloc(buf, GCHandleType.Pinned);
 		IntPtr ptr = handle.AddrOfPinnedObject();
-		int bytes_read = zt_recv (fd, ptr, len*2);
+		int bytes_read = zts_recv (fd, ptr, len*2);
 		string str = Marshal.PtrToStringAuto(ptr);
 		//Marshal.Copy (ptr, buf, 0, bytes_read);
 		buf = Marshal.PtrToStringAnsi(ptr).ToCharArray();
@@ -308,7 +309,7 @@ public class ZeroTierNetworkInterface {
 		//error = 0;
 		int bytes_written;
 		// FIXME: Sending a length of 2X the buffer size seems to fix the object pinning issue
-		if((bytes_written = zt_send(fd, ptr, len*2)) < 0) {
+		if((bytes_written = zts_send(fd, ptr, len*2)) < 0) {
 			//error = (byte)bytes_written;
 		}
 		return bytes_written;
@@ -322,11 +323,11 @@ public class ZeroTierNetworkInterface {
 		int bytes_written;
 
 		// Form address structure
-		GCHandle sockaddr_ptr = ZeroTierUtils.Generate_unmananged_sockaddr(addr + ":" + port);
+		GCHandle sockaddr_ptr = Generate_unmananged_sockaddr(addr + ":" + port);
 		IntPtr pSockAddr = sockaddr_ptr.AddrOfPinnedObject ();
 		int addrlen = Marshal.SizeOf (pSockAddr);
 
-		if((bytes_written = zt_sendto(fd, ptr, len*2, flags, pSockAddr, addrlen)) < 0) {
+		if((bytes_written = zts_sendto(fd, ptr, len*2, flags, pSockAddr, addrlen)) < 0) {
 			//error = (byte)bytes_written;
 		}
 		return bytes_written;
@@ -339,11 +340,11 @@ public class ZeroTierNetworkInterface {
 		IntPtr ptr = handle.AddrOfPinnedObject();
 
 		// Form address structure
-		GCHandle sockaddr_ptr = ZeroTierUtils.Generate_unmananged_sockaddr(addr + ":" + port);
+		GCHandle sockaddr_ptr = Generate_unmananged_sockaddr(addr + ":" + port);
 		IntPtr pSockAddr = sockaddr_ptr.AddrOfPinnedObject ();
 		int addrlen = Marshal.SizeOf (pSockAddr);
 
-		int bytes_read = zt_recvfrom(fd, ptr, len*2, flags, pSockAddr, addrlen);
+		int bytes_read = zts_recvfrom(fd, ptr, len*2, flags, pSockAddr, addrlen);
 		string str = Marshal.PtrToStringAuto(ptr);
 		//Marshal.Copy (ptr, buf, 0, bytes_read);
 		buf = Marshal.PtrToStringAnsi(ptr).ToCharArray();
@@ -354,13 +355,63 @@ public class ZeroTierNetworkInterface {
 	// Returns whether the ZeroTier service is currently running
 	public bool IsRunning()
 	{
-		return zt_is_running ();
+		return zts_is_running ();
 	}
 
 	// Terminates the ZeroTier service 
 	public void Terminate()
 	{
-		zt_terminate ();
+		zts_stop_service ();
 	}
 #endregion
+
+
+// --- Utilities ---
+
+
+	// Handles IPv4 and IPv6 notation.
+	public static IPEndPoint CreateIPEndPoint(string endPoint)
+	{
+		string[] ep = endPoint.Split(':');
+		if (ep.Length < 2) throw new FormatException("Invalid endpoint format");
+		IPAddress ip;
+		if (ep.Length > 2) {
+			if (!IPAddress.TryParse(string.Join(":", ep, 0, ep.Length - 1), out ip)) {
+				throw new FormatException("Invalid ip-adress");
+			}
+		}
+		else {
+			if (!IPAddress.TryParse(ep[0], out ip)) {
+				throw new FormatException("Invalid ip-adress");
+			}
+		}
+		int port;
+		if (!int.TryParse(ep[ep.Length - 1], NumberStyles.None, NumberFormatInfo.CurrentInfo, out port)) {
+			throw new FormatException("Invalid port");
+		}
+		return new IPEndPoint(ip, port);
+	}
+
+	// Generates an unmanaged sockaddr structure from a string-formatted endpoint
+	public static GCHandle Generate_unmananged_sockaddr(string endpoint_str)
+	{
+		IPEndPoint ipEndPoint;
+		ipEndPoint = CreateIPEndPoint (endpoint_str);
+		SocketAddress socketAddress = ipEndPoint.Serialize ();
+
+		// use an array of bytes instead of the sockaddr structure 
+		byte[] sockAddrStructureBytes = new byte[socketAddress.Size];
+		GCHandle sockAddrHandle = GCHandle.Alloc (sockAddrStructureBytes, GCHandleType.Pinned);
+		for (int i = 0; i < socketAddress.Size; ++i) {
+			sockAddrStructureBytes [i] = socketAddress [i];
+		}
+		return sockAddrHandle;
+	}
+
+	public static GCHandle Generate_unmanaged_buffer(byte[] buf)
+	{
+		// use an array of bytes instead of the sockaddr structure 
+		GCHandle sockAddrHandle = GCHandle.Alloc (buf, GCHandleType.Pinned);
+		return sockAddrHandle;
+	}
 }

@@ -35,9 +35,9 @@ Our implementation currently intends to be the bare minimum required to get your
  - Place `ZeroTierSDK_Unity3D_iOS.bundle` in folder
 
 **Step 3: Include wrapper class source**
- - Drag `ZeroTierNetworkInterface.cs` into your `Assets` folder.
+ - Drag `ZTSDK.cs` into your `Assets` folder.
 
-**Step 4: Create and use a `ZeroTierNetworkInterface` object**
+**Step 4: Create and use a `ZTSDK` object**
  - See examples below for how to use it!
 
 ***
@@ -46,7 +46,7 @@ Our implementation currently intends to be the bare minimum required to get your
 ```
 public class Example
 {
-	public ZeroTierNetworkInterface zt;
+	public ZTSDK zt;
 
 	public void example_server()
 	{
@@ -81,7 +81,7 @@ public class Example
 ```
 public class Example
 {
-	public ZeroTierNetworkInterface zt;
+	public ZTSDK zt;
 
 	public void example_client()
 	{

@@ -7,8 +7,6 @@ We want your Unity apps to talk *directly* over a flat, secure, no-config virtua
 
 Our implementation currently intends to be the bare minimum required to get your Unity application to talk over ZeroTier virtual networks. As a result, we've created an API that is very similar to the classic BSD-style sockets API. With this basic API it is possible to construct more abstracted network layers much like Unity's LLAPI and HLAPI.
 
-Our example project can be found [here]()
-
 ***
 ## API  
 
@@ -51,7 +49,7 @@ public class Example
 	public void example_server()
 	{
 		zt = new ZeroTierNetworkInterface (); // Start interface
-		zt.Join("565799d8f6e1c11a"); // Join your network
+		zt.Join("8056c2e21c000001"); // Join your network
 
 		Thread connectThread = new Thread(() => { 
 			// Create ZeroTier-administered socket

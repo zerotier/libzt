@@ -14,7 +14,7 @@ import java.net.Proxy;
 import java.net.Socket;
 import java.net.SocketAddress;
 
-import ZeroTier.SDK;
+import ZeroTier.ZTSDK;
 import ZeroTier.ZTAddress;
 
 public class MainActivity extends AppCompatActivity {
@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
 
         String nwid = "8056c2e21c000001";
         // Set up service
-        final SDK zt = new SDK();
+        final ZTSDK zt = new ZTSDK();
         final String homeDir = getApplicationContext().getFilesDir() + "/zerotier";
         new Thread(new Runnable() {
             public void run() {
@@ -43,17 +43,13 @@ public class MainActivity extends AppCompatActivity {
         if(mode==1)
         {
             zt.join_network(nwid);
-            int sock = zt.socket(SDK.AF_INET, SDK.SOCK_STREAM, 0);
-
+            int sock = zt.socket(ZTSDK.AF_INET, ZTSDK.SOCK_STREAM, 0);
             if((err = zt.bind(sock, "0.0.0.0", 8080, nwid)) < 0)
                 Log.d("ZTSDK", "bind_err = " + err + "\n");
-
             if((err = zt.listen(sock,1)) < 0)
                 Log.d("ZTSDK", "listen_err = " + err);
-
             if((err = zt.accept(sock,null)) < 0)
                 Log.d("ZTSDK", "accept_err = " + err);
-
             Log.d("ZTSDK", "Waiting to accept connection...");
 
             // ...
@@ -64,13 +60,10 @@ public class MainActivity extends AppCompatActivity {
         {
             Log.d("ZTSDK", "\n\nStarting TCP Echo ZTSDK\n\n");
             zt.join_network(nwid);
-            int sock = zt.socket(SDK.AF_INET, SDK.SOCK_STREAM, 0);
+            int sock = zt.socket(ZTSDK.AF_INET, ZTSDK.SOCK_STREAM, 0);
             String msg = "Welcome to the machine!";
             err = zt.connect(sock,  "28.206.65.211", 8099, nwid);
-
             Log.d("ZTSDK", "err = " + err + "\n");
-
-            //return;
 
             // ECHO
             while(true)
@@ -79,7 +72,6 @@ public class MainActivity extends AppCompatActivity {
                 if((err = zt.write(sock, msg.getBytes(), msg.length())) > 0) {
                     Log.d("ZTSDK", "TX: " + msg + " --- " + err + " bytes");
                 }
-
                 // RX
                 byte[] buffer = new byte[32];
                 Arrays.fill(buffer, (byte)0);
@@ -96,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
         if(mode==3)
         {
             zt.join_network(nwid);
-            int sock = zt.socket(SDK.AF_INET, SDK.SOCK_STREAM, 0);
+            int sock = zt.socket(ZTSDK.AF_INET, ZTSDK.SOCK_STREAM, 0);
 
             int proxyPort = zt.get_proxy_port(nwid);
             Log.d("ZTSDK", "Setting up connection to SDK proxy server");
@@ -143,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
             Log.d("ZTSDK", "\n\nStarting UDP Echo ZTSDK\n\n");
             nwid = "8056c2e21c000001";
             zt.join_network(nwid);
-            int sock = zt.socket(SDK.AF_INET, SDK.SOCK_DGRAM, 0);
+            int sock = zt.socket(ZTSDK.AF_INET, ZTSDK.SOCK_DGRAM, 0);
 
             Log.d("ZTSDK", "binding...");
             if((err = zt.bind(sock, bindAddr, nwid)) < 0)
@@ -162,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
             String bufStr;
             byte[] buffer = new byte[1024];
 
-            zt.fcntl(sock, zt.F_SETFL, zt.O_NONBLOCK);
+            zt.fcntl(sock, ZTSDK.F_SETFL, ZTSDK.O_NONBLOCK);
 
             // ECHO
             while(true) {

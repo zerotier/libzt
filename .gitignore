@@ -16,6 +16,7 @@ integrations/android/example_app/local.properties
 integrations/Unity3D/Library
 integrations/Unity3D/Temp
 integrations/Unity3D/obj
+integrations/Unity3D/Plugins
 
 # Docker test
 *.tmp
@@ -26,3 +27,4 @@ zerotierone
 # Other
 .depend
 .buildnum
+build

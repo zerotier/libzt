@@ -83,7 +83,7 @@ The following APIs are available for this integration:
 
 **Step 5: Join a network!**
 
-Simply call `zt_join_network("XXXXXXXXXXXXXXXX")`
+Simply call `zt_join_network("nwid")`
 
 ***
 **NSStream and SOCKS Proxy:**

@@ -33,10 +33,10 @@ Our implementation currently intends to be the bare minimum required to get your
  - Place `ZeroTierSDK_Unity3D_OSX.bundle` in folder
 
 **Step 3: Include wrapper class source**
- - Drag `ZeroTierNetworkInterface.cs` into your `Assets` folder.
+ - Drag `ZTSDK.cs` into your `Assets` folder.
  - Add a file `Assets/smcs.rsp` containing the flag `-unsafe`. This is needed to execute the native library.
 
-**Step 4: Create and use a `ZeroTierNetworkInterface` object**
+**Step 4: Create and use a `ZTSDK` object**
  - See examples below for how to use it!
 
 ***
@@ -45,11 +45,11 @@ Our implementation currently intends to be the bare minimum required to get your
 ```
 public class Example
 {
-	public ZeroTierNetworkInterface zt;
+	public ZTSDK zt;
 
 	public void example_server()
 	{
-		zt = new ZeroTierNetworkInterface (); // Start interface
+		zt = new ZTSDK (); // Start interface
 		zt.Join("8056c2e21c000001"); // Join your network
 
 		Thread connectThread = new Thread(() => { 
@@ -83,12 +83,12 @@ public class Example
 ```
 public class Example
 {
-	public ZeroTierNetworkInterface zt;
+	public ZTSDK zt;
 
 	public void example_client()
 	{
-		zt = new ZeroTierNetworkInterface ();
-		zt.Join("565799d8f6e1c11a");
+		zt = new ZTSDK ();
+		zt.Join("8056c2e21c000001");
 
 		Thread connectThread = new Thread(() => {	
 			// Create ZeroTier-administered socket		

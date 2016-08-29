@@ -226,25 +226,25 @@ char *api_netpath;
     // ------------------------------------------------------------------------------
     // --------------------------------- setsockopt() -------------------------------
     // ------------------------------------------------------------------------------
-    // int socket, int level, int option_name, const void *option_value, 
-    // socklen_t option_len
+    // int socket, int level, int optname, const void *optval, 
+    // socklen_t optlen
 
     int setsockopt(SETSOCKOPT_SIG)
     {
         dwr(MSG_DEBUG, "setsockopt(%d)\n", socket);
         if (!check_intercept_enabled())
-            return realsetsockopt(socket, level, option_name, option_value, option_len);
+            return realsetsockopt(socket, level, optname, optval, optlen);
     #if defined(__linux__)
-        if(level == SOL_IPV6 && option_name == IPV6_V6ONLY)
+        if(level == SOL_IPV6 && optname == IPV6_V6ONLY)
             return 0;
-        if(level == SOL_IP && (option_name == IP_TTL || option_name == IP_TOS))
+        if(level == SOL_IP && (optname == IP_TTL || optname == IP_TOS))
             return 0;
     #endif
-        if(level == IPPROTO_TCP || (level == SOL_SOCKET && option_name == SO_KEEPALIVE))
+        if(level == IPPROTO_TCP || (level == SOL_SOCKET && optname == SO_KEEPALIVE))
             return 0;
-        if(realsetsockopt(socket, level, option_name, option_value, option_len) < 0)
+        if(realsetsockopt(socket, level, optname, optval, optlen) < 0)
             perror("setsockopt():\n");
-        return zts_setsockopt(socket, level, option_name, option_value, option_len);
+        return zts_setsockopt(socket, level, optname, optval, optlen);
     }
 
     // ------------------------------------------------------------------------------

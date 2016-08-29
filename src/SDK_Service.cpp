@@ -198,6 +198,22 @@ char *zts_get_homepath() {
     }
 #endif
 
+// 
+#if (defined(__APPLE__) || defined(__linux__)) && (!defined(__IOS__) && !defined(__ANDROID__))
+    void zt_start_service(const char * path, const char *nwid) {
+        printf("path = %s\n", path);
+        if(path)
+            homeDir = path;
+        zts_start_service(NULL);
+    }
+    void zt_join_network(const char * nwid) { 
+        zts_join_network(nwid);
+    }
+    void zt_leave_network(const char * nwid) { 
+        zts_leave_network(nwid);
+    }
+#endif
+
 
 // Android JNI wrapper
 // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
@@ -345,7 +361,6 @@ char *zts_get_homepath() {
         
 // Starts a ZeroTier service in the background
 void *zts_start_service(void *thread_id) {
-
     #ifdef defined(__ANDROID__)
         dwr(MSG_DEBUG, "ZTSDK_BUILD_VERSION = %d\n", ZTSDK_BUILD_VERSION);
         LOGV("ZTSDK_BUILD_VERSION = %d\n", ZTSDK_BUILD_VERSION);
@@ -356,7 +371,6 @@ void *zts_start_service(void *thread_id) {
     #endif
 
     #if defined(__UNITY_3D__)
-        int MAX_DIR_SZ = 256;
         char current_dir[MAX_DIR_SZ];
         getcwd(current_dir, MAX_DIR_SZ);
         chdir(service_path.c_str());
@@ -375,11 +389,10 @@ void *zts_start_service(void *thread_id) {
     #endif
 
     #if defined(__APPLE__) && !defined(__IOS__)
-        homeDir = givenHomeDir;
-        localHomeDir = givenHomeDir; // Used for RPC and *can* differ from homeDir on some platforms
+        localHomeDir = homeDir; // Used for RPC and *can* differ from homeDir on some platforms
     #endif
 
-    dwr(MSG_DEBUG, "homeDir = %s\n", givenHomeDir.c_str());
+    dwr(MSG_DEBUG, "homeDir = %s\n", homeDir.c_str());
     // Where network .conf files will be stored
     netDir = homeDir + "/networks.d";
     zt1Service = (ZeroTier::OneService *)0;

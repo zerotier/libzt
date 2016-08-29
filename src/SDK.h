@@ -43,8 +43,9 @@
 extern "C" {
 #endif
 
-#define INTERCEPT_ENABLED  111
-#define INTERCEPT_DISABLED 222
+#define INTERCEPT_ENABLED     111
+#define INTERCEPT_DISABLED    222
+#define MAX_DIR_SZ            256 // Max path length used for home dir
 
 extern void load_symbols();
 extern void zts_init_rpc(const char *path, const char *nwid);
@@ -134,6 +135,11 @@ ssize_t zts_recvmsg(RECVMSG_SIG);
     int zts_set_nonblock(int fd); /* TODO combine with fcntl() */
 #endif  
 
+#if !defined(__IOS__)
+    void zt_start_service(const char * path, const char *nwid);
+	void zt_join_network(const char * nwid);
+    void zt_leave_network(const char * nwid); 
+#endif
 
 // Android JNI Direct-call API
 // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME

@@ -50,7 +50,10 @@ endif
 CXXFLAGS=$(CFLAGS) -fno-rtti
 
 # Build everything
-all: osx ios android check
+all: osx ios android lwip check
+
+lwip:
+	make -f make-liblwip.mk
 
 # Build all Apple targets
 apple: osx ios
@@ -100,6 +103,13 @@ android_jni_lib:
 	mv -f $(INT)/android/android_jni_lib/java/libs/* $(BUILD)/android_jni_lib
 	cp -R $(BUILD)/android_jni_lib/* $(INT)/android/example_app/app/src/main/jniLibs
 
+# 
+simple_app: tests osx_service_and_intercept
+	mkdir -p build/simple_app
+	mkdir -p build/tests/zerotier
+	$(CXX) -Isrc $(BUILD)/libztosx.so integrations/simple_app/app.cpp -o $(BUILD)/simple_app/app
+	cp $(BUILD)/lwip/liblwip.so $(BUILD)/tests/zerotier/liblwip.so
+
 remove_only_intermediates:
 	-find . -type f \( -name '*.o' -o -name '*.so' \) -delete
 
@@ -139,24 +149,28 @@ check:
 
 # Tests
 TEST_OBJDIR := $(BUILD)/tests
-TEST_SOURCES := $(wildcard tests/*.c)
+TEST_SOURCES := $(wildcard tests/api_test/*.c)
 TEST_TARGETS := $(addprefix $(BUILD)/tests/$(OSTYPE).,$(notdir $(TEST_SOURCES:.c=.out)))
 
-$(BUILD)/tests/$(OSTYPE).%.out: tests/%.c
+$(BUILD)/tests/$(OSTYPE).%.out: tests/api_test/%.c
 	-$(CC) $(CC_FLAGS) -o $@ $<
 
 $(TEST_OBJDIR):
 	mkdir -p $(TEST_OBJDIR)
 
-tests: $(TEST_OBJDIR) $(TEST_TARGETS)
+tests: $(TEST_OBJDIR) $(TEST_TARGETS) osx_service_and_intercept
 	mkdir -p $(BUILD)/tests; 
+	mkdir -p build/tests/zerotier
+	cp tests/api_test/test.sh $(BUILD)/tests/test.sh
+	cp tests/api_test/servers.sh $(BUILD)/tests/servers.sh
+	cp tests/api_test/clients.sh $(BUILD)/tests/clients.sh
+	cp tests/cleanup.sh $(BUILD)/tests/cleanup.sh
+	cp $(BUILD)/lwip/liblwip.so $(BUILD)/tests/zerotier/liblwip.so
 
 JAVAC := $(shell which javac)
 
-
 clean_unity:
 	
-
 clean_android:
 	# android JNI lib project
 	test -s /usr/bin/javac || { echo "Javac not found"; exit 1; }

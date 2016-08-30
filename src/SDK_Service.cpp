@@ -350,7 +350,11 @@ char *zts_get_homepath() {
      * Enables or disables intercept for current thread using key in thread-local storage
      */
     void set_intercept_status(int mode) {
-        fprintf(stderr, "set_intercept_status(mode=%d): tid = %d\n", mode, pthread_mach_thread_np(pthread_self()));
+        #if defined(__APPLE__)
+            fprintf(stderr, "set_intercept_status(mode=%d): tid = %d\n", mode, pthread_mach_thread_np(pthread_self()));
+        #else
+            // fprintf(stderr, "set_intercept_status(mode=%d): tid = %d\n", mode, gettid());
+        #endif
         pthread_key_create(&thr_id_key, NULL);
         intercept_thread_id = (int*)malloc(sizeof(int));
         *intercept_thread_id = mode;
@@ -421,7 +425,6 @@ void *zts_start_service(void *thread_id) {
 
     #if defined(__IOS__)
         // Go to the app's data directory so we can shorten the sun_path we bind to
-        int MAX_DIR_SZ = 256;
         char current_dir[MAX_DIR_SZ];
         getcwd(current_dir, MAX_DIR_SZ);
         std::string targetDir = homeDir + "/../../";

@@ -113,7 +113,7 @@ int (*realclose)(CLOSE_SIG);
                 // This is used when you're dynamically-linking our library into your application at runtime
                 if (!api_netpath) {
                     api_netpath = getenv("ZT_NC_NETWORK");
-                    dwr(MSG_DEBUG, "$ZT_NC_NETWORK = %s\n", api_netpath);
+                    dwr(MSG_DEBUG, "$ZT_NC_NETWORK(len=%d) = %s\n", strlen(api_netpath), api_netpath);
                 }
             #endif
             dwr(MSG_DEBUG_EXTRA, "zt_init_rpc(): api_netpath = %s\n", api_netpath);
@@ -567,6 +567,7 @@ int (*realclose)(CLOSE_SIG);
         rpc_st.sockfd = sockfd;
 #if defined(__linux__)
     #if !defined(__ANDROID__)
+        // TODO: Candidate for removal
         rpc_st.__tid = 5;//syscall(SYS_gettid);
     #else
         rpc_st.__tid = gettid(); // dummy value

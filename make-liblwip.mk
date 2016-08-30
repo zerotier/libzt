@@ -104,8 +104,8 @@ depend dep: .depend
 include .depend
 
 $(LWIPLIB): $(LWIPOBJS)
-	mkdir -p build/lwip
-	$(CC) -g -nostartfiles -shared -o build/lwip/$@ $^
+	mkdir -p build
+	$(CC) -g -nostartfiles -shared -o build/$@ $^
 
 .depend: $(LWIPFILES)
 	$(CCDEP) $(CFLAGS) -MM $^ > .depend || rm -f .depend

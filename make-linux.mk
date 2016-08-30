@@ -63,11 +63,73 @@ ifeq ($(SDK_DEBUG_LOG_TO_FILE),1)
 	DEFS+=-DSDK_DEBUG_LOG_TO_FILE
 endif
 
+
+# Target output filenames
+SHARED_LIB_NAME    = libztlinux.so
+INTERCEPT_NAME     = libztintercept.so
+SDK_SERVICE_NAME   = zerotier-sdk-service
+ONE_SERVICE_NAME   = zerotier-one
+ONE_CLI_NAME       = zerotier-cli
+ONE_ID_TOOL_NAME   = zerotier-idtool
+LWIP_LIB_NAME      = liblwip.so
+#
+SHARED_LIB         = $(BUILD)/$(SHARED_LIB_NAME)
+INTERCEPT          = $(BUILD)/$(INTERCEPT_NAME)
+SDK_SERVICE        = $(BUILD)/$(SDK_SERVICE_NAME)
+ONE_SERVICE        = $(BUILD)/$(ONE_SERVICE_NAME)
+ONE_CLI            = $(BUILD)/$(ONE_CLI_NAME)
+ONE_IDTOOL         = $(BUILD)/$(ONE_IDTOOL_NAME)
+LWIP_LIB           = $(BUILD)/$(LWIP_LIB_NAME)
+
 all: remove_only_intermediates linux_shared_lib check
 
 remove_only_intermediates:
 	-find . -type f \( -name '*.o' -o -name '*.so' \) -delete
 
+
+
+
+# --- EXTERNAL LIBRARIES ---
+lwip:
+	make -f make-liblwip.mk $(LWIP_FLAGS)
+
+
+
+
+# --------- LINUX ----------
+# Build everything
+linux: one linux_service_and_intercept linux_shared_lib
+
+# Build vanilla ZeroTier One binary
+one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernetTap.o
+	mkdir -p $(BUILD)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $(BUILD)/zerotier-one $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernetTap.o $(LDLIBS)
+	$(STRIP) $(ONE_SERVICE)
+	cp $(ONE_SERVICE) $(INT)/docker/docker_demo/$(ONE_SERVICE_NAME)
+
+# Build only the intercept library
+linux_intercept:
+	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
+	cd src ; gcc $(DEFS) -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -I. -I../$(ZT1)/node -nostdlib -shared -o ../$(INTERCEPT) SDK_Sockets.c SDK_Intercept.c SDK_Debug.c SDK_RPC.c -ldl
+
+# Build only the SDK service
+linux_sdk_service: lwip $(OBJS)
+	mkdir -p $(BUILD)/linux_intercept
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DEFS) -DSDK -DZT_ONE_NO_ROOT_CHECK -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -I$(ZT1)/osdep -I$(ZT1)/node -Isrc -o $(SDK_SERVICE) $(OBJS) $(ZT1)/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp $(ZT1)/one.cpp -x c src/SDK_RPC.c $(LDLIBS) -ldl
+	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-cli
+	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-idtool
+
+# Build both intercept library and SDK service (separate)
+linux_service_and_intercept: linux_intercept linux_sdk_service
+	
+# Builds a single shared library which contains everything
+linux_shared_lib: $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -DSDK -DZT_ONE_NO_ROOT_CHECK -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -Izerotierone/osdep -Izerotierone/node -Izerotierone/service -Isrc -shared -o $(SHARED_LIB) $(OBJS) zerotierone/service/OneService.cpp src/SDK_Service.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp zerotierone/one.cpp -x c src/SDK_Sockets.c src/SDK_Intercept.c src/SDK_Debug.c src/SDK_RPC.c $(LDLIBS) -ldl
+
+
+
+
+# -------- ANDROID ---------
 # TODO: CHECK if ANDROID/GRADLE TOOLS are installed
 # Build library for Android Unity integrations
 # Build JNI library for Android app integration
@@ -77,44 +139,18 @@ android_jni_lib:
 	cp docs/android_zt_sdk.md $(BUILD)/android_jni_lib/README.md
 	mv -f $(INT)/android/android_jni_lib/java/libs/* $(BUILD)/android_jni_lib
 	cp -R $(BUILD)/android_jni_lib/* $(INT)/android/example_app/app/src/main/jniLibs
-	
-lwip:
-	make -f make-liblwip.mk $(LWIP_FLAGS)
-
-# Builds libztlinux.so (full bundle)
-linux_shared_lib:
-
-linux_intercept:
-	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
-	cd src ; gcc $(DEFS) -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -I. -I../$(ZT1)/node -nostdlib -shared -o ../$(BUILD)/libztintercept.so SDK_Sockets.c SDK_Intercept.c SDK_Debug.c SDK_RPC.c -ldl
-	
-# Build a dynamically-loadable library
-linux_service_and_intercept: lwip linux_intercept $(OBJS)
-	mkdir -p $(BUILD)/linux_intercept
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DEFS) -DSDK -DZT_ONE_NO_ROOT_CHECK -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -I$(ZT1)/osdep -I$(ZT1)/node -Isrc -o $(BUILD)/zerotier-sdk-service $(OBJS) $(ZT1)/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp $(ZT1)/one.cpp -x c src/SDK_RPC.c $(LDLIBS) -ldl
-	# Build liblwip.so which must be placed in ZT home for zerotier-netcon-service to work
-	ln -sf zerotier-sdk-service $(BUILD)/zerotier-cli
-	ln -sf zerotier-sdk-service $(BUILD)/zerotier-idtool
-
-# Build vanilla ZeroTier One binary
-one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernetTap.o
-	mkdir -p $(BUILD)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $(BUILD)/zerotier-one $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernetTap.o $(LDLIBS)
-	$(STRIP) $(BUILD)/zerotier-one
-	cp $(BUILD)/zerotier-one $(INT)/docker/docker_demo/zerotier-one
 
 
+
+
+# -------- TESTING ---------
 # Build the docker demo images
 docker_demo: one linux_shared_lib
 	mkdir -p $(BUILD)
-	# Intercept library
-	cp $(BUILD)/linux_shared_lib/libztintercept.so $(INT)/docker/docker_demo/libztintercept.so
-	# SDK service
-	cp $(BUILD)/zerotier-sdk-service $(INT)/docker/docker_demo/zerotier-sdk-service
-	# lwIP network stack library
-	cp $(BUILD)/lwip/liblwip.so $(INT)/docker/docker_demo/liblwip.so
-	# CLI interface for ZeroTier
-	cp $(BUILD)/zerotier-cli $(INT)/docker/docker_demo/zerotier-cli
+	cp $(INTERCEPT) $(INT)/docker/docker_demo/$(INTERCEPT_NAME)
+	cp $(SERVICE) $(INT)/docker/docker_demo/$(SERVICE_NAME)
+	cp $(LWIP_LIB) $(INT)/docker/docker_demo/$(LWIP_LIB_NAME)
+	cp $(ONE_CLI) $(INT)/docker/docker_demo/$(ONE_CLI_NAME)
 	touch $(INT)/docker/docker_demo/docker_demo.name
 	# Server image
 	# This image will contain the server application and everything required to 
@@ -139,8 +175,11 @@ docker_check_test:
 
 # Check for the presence of built frameworks/bundles/libaries
 check:
-	./check.sh $(BUILD)/lwip/liblwip.so
-	./check.sh $(BUILD)/linux_shared_lib/libztintercept.so
+	./check.sh $(LWIP_LIB)
+	./check.sh $(INTERCEPT)
+	./check.sh $(ONE_SERVICE)
+	./check.sh $(SDK_SERVICE)
+	./check.sh $(SHARED_LIB)
 	./check.sh $(BUILD)/android_jni_lib/arm64-v8a/libZeroTierOneJNI.so
 	./check.sh $(BUILD)/android_jni_lib/armeabi/libZeroTierOneJNI.so
 	./check.sh $(BUILD)/android_jni_lib/armeabi-v7a/libZeroTierOneJNI.so
@@ -160,9 +199,6 @@ $(BUILD)/tests/$(OSTYPE).%.out: tests/api_test/%.c
 $(TEST_OBJDIR):
 	mkdir -p $(TEST_OBJDIR)
 
-tests: $(TEST_OBJDIR) $(TEST_TARGETS)
-	mkdir -p $(BUILD)/tests; 
-
 tests: $(TEST_OBJDIR) $(TEST_TARGETS) linux_service_and_intercept
 	mkdir -p $(BUILD)/tests; 
 	mkdir -p build/tests/zerotier
@@ -170,11 +206,14 @@ tests: $(TEST_OBJDIR) $(TEST_TARGETS) linux_service_and_intercept
 	cp tests/api_test/servers.sh $(BUILD)/tests/servers.sh
 	cp tests/api_test/clients.sh $(BUILD)/tests/clients.sh
 	cp tests/cleanup.sh $(BUILD)/tests/cleanup.sh
-	cp $(BUILD)/lwip/liblwip.so $(BUILD)/tests/zerotier/liblwip.so
+	cp $(LWIP_LIB) $(BUILD)/tests/zerotier/liblwip.so
 
+
+
+# ----- ADMINISTRATIVE -----
 clean_android:
 	# android JNI lib project
-	test -s /usr/bin/javac || { echo "Javac not found"; exit 1; }
+	-test -s /usr/bin/javac || { echo "Javac not found"; exit 1; }
 	-cd $(INT)/android/android_jni_lib/proj; ./gradlew clean
 	-rm -rf $(INT)/android/android_jni_lib/proj/build
 	# example android app project
@@ -184,7 +223,7 @@ clean_basic:
 	-rm -rf $(BUILD)/*
 	-rm -rf $(INT)/Unity3D/Assets/Plugins/*
 	-rm -rf zerotier-cli zerotier-idtool
-	-find . -type f \( -name 'zerotier-one' -o -name 'zerotier-sdk-service' \) -delete
+	-find . -type f \( -name $(ONE_SERVICE_NAME) -o -name $(SDK_SERVICE_NAME) \) -delete
 	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
 
 clean: clean_basic clean_android

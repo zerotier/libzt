@@ -282,10 +282,9 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_recvfrom(RECVFROM_SIG)
     #endif
         {
-            int tmpsz; // payload size
+            int tmpsz = 0; // payload size
             // dwr(MSG_DEBUG_EXTRA,"zt_recvfrom(%d, ...)\n", socket);
-            ssize_t err = read(socket, buffer, ZT_MAX_MTU);
-            if(err > 0) {
+            if(read(socket, buffer, ZT_MAX_MTU) > 0) {
                 // TODO: case for address size mismatch?
                 memcpy(address, buffer, address_len);
                 memcpy(&tmpsz, buffer + sizeof(struct sockaddr_storage), sizeof(tmpsz));

@@ -365,7 +365,7 @@ char *zts_get_homepath() {
         
 // Starts a ZeroTier service in the background
 void *zts_start_service(void *thread_id) {
-    #ifdef defined(__ANDROID__)
+    #if defined(__ANDROID__)
         dwr(MSG_DEBUG, "ZTSDK_BUILD_VERSION = %d\n", ZTSDK_BUILD_VERSION);
         LOGV("ZTSDK_BUILD_VERSION = %d\n", ZTSDK_BUILD_VERSION);
     #endif

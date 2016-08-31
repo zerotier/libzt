@@ -260,7 +260,7 @@ int (*realclose)(CLOSE_SIG);
         jbyte *body = (*env)->GetByteArrayElements(env, buf, 0);
         unsigned char buffer[ZT_MAX_MTU];
         int payload_offset = sizeof(int) + sizeof(struct sockaddr_storage);
-        int rxbytes = zts_recvfrom(fd, &buffer, len, flags, &addr, sizeof(struct sockaddr));
+        int rxbytes = zts_recvfrom(fd, &buffer, len, flags, &addr, sizeof(struct sockaddr_storage));
         if(rxbytes > 0)
             memcpy(body, (jbyte*)buffer + payload_offset, rxbytes);
         (*env)->ReleaseByteArrayElements(env, buf, body, 0);

@@ -119,16 +119,16 @@ NetconEthernetTap::NetconEthernetTap(
 	const char *friendlyName,
 	void (*handler)(void *,uint64_t,const MAC &,const MAC &,unsigned int,unsigned int,const void *,unsigned int),
 	void *arg) :
-  _nwid(nwid),
-	_handler(handler),
-	_arg(arg),
-  _phy(this,false,true),
-  _unixListenSocket((PhySocket *)0),
-	_mac(mac),
-	_homePath(homePath),
-	_mtu(mtu),
-	_enabled(true),
-	_run(true)
+		_homePath(homePath),
+		_mac(mac),
+		_mtu(mtu),
+		_nwid(nwid),
+		_handler(handler),
+		_arg(arg),
+		_phy(this,false,true),
+		_unixListenSocket((PhySocket *)0),
+		_enabled(true),
+		_run(true)
 {
 	sockstate = -1;
     char sockPath[4096],lwipPath[4096];
@@ -763,11 +763,12 @@ void NetconEthernetTap::nc_udp_recved(void * arg, struct udp_pcb * upcb, struct 
     // Cycle through pbufs and write them to the RX buffer
     // The RX "buffer" will be emptied via phyOnUnixWritable()
 	if(p) {
-		// Intra-API "packetization" structure: [addr_len|addr|payload_len|payload]
+		// Intra-API "packetization" scheme: [addr_len|addr|payload_len|payload]
 		if(l->conn->rxsz == DEFAULT_UDP_RX_BUF_SZ) { // if UDP buffer full
 			dwr(MSG_DEBUG, "nc_udp_recved(): UDP RX buffer full. Discarding oldest payload segment\n");
 			memmove(l->conn->rxbuf, l->conn->rxbuf + ZT_MAX_MTU, DEFAULT_UDP_RX_BUF_SZ - ZT_MAX_MTU);
-			sz_pos = l->conn->rxbuf + (DEFAULT_UDP_RX_BUF_SZ - ZT_MAX_MTU) + sizeof(struct sockaddr_storage);
+			addr_pos = l->conn->rxbuf + (DEFAULT_UDP_RX_BUF_SZ - ZT_MAX_MTU); // TODO:
+			sz_pos = addr_pos + sizeof(struct sockaddr_storage);
 			l->conn->rxsz -= ZT_MAX_MTU;
 		}
 		else {

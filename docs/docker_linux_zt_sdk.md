@@ -10,7 +10,8 @@ This short tutorial will show you how to enable ZeroTier functionality for your 
 
 **Step 1: Build ZeroTier shared library**
 
-`make shared_lib`, to see debug output, use `make shared_lib SDK_DEBUG=1`
+`make linux_shared_lib`
+ - For debug output from the SDK, use `make linux_shared_lib SDK_DEBUG=1`, or `make linux_shared_lib ZT_DEBUG=1` to see debug output from the ZeroTier service.
 
 **Step 2: Build your Docker image**
 

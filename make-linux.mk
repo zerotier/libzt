@@ -21,6 +21,7 @@ endif
 INCLUDES?=
 DEFS?=
 LDLIBS?=
+CFLAGS=
 
 include objects.mk
 
@@ -110,7 +111,7 @@ one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernet
 # Build only the intercept library
 linux_intercept:
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
-	cd src ; gcc $(DEFS) -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -I. -I../$(ZT1)/node -nostdlib -shared -o ../$(INTERCEPT) SDK_Sockets.c SDK_Intercept.c SDK_Debug.c SDK_RPC.c -ldl
+	cd src ; gcc $(CFLAGS) $(DEFS) -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -I. -I../$(ZT1)/node -nostdlib -shared -o ../$(INTERCEPT) SDK_Sockets.c SDK_Intercept.c SDK_Debug.c SDK_RPC.c -ldl
 
 # Build only the SDK service
 linux_sdk_service: lwip $(OBJS)

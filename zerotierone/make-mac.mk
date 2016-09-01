@@ -68,7 +68,7 @@ else
 endif
 
 # Debug output for Network Containers 
-# Specific levels can be controlled in netcon/common.inc.c
+# Specific levels can be controlled in src/SDK_Debug.h
 ifeq ($(SDK_DEBUG),1)
 	DEFS+=-DSDK_DEBUG
 endif

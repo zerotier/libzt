@@ -104,7 +104,7 @@ char *zts_get_homepath();
 
 // ZT Intercept/RPC Controls
 // TODO: Remove any?
-void set_intercept_status(int mode); /* TODO: Rethink this */
+void set_intercept_status(int mode); // TODO: Rethink this
 void init_service(int key, const char * path);
 void init_service_and_rpc(int key, const char * path, const char * nwid);
 void init_intercept(int key);
@@ -132,7 +132,7 @@ ssize_t zts_recvmsg(RECVMSG_SIG);
 #if defined(__UNITY_3D__)
     ssize_t zts_recv(int fd, void *buf, int len);
     ssize_t zts_send(int fd, void *buf, int len);
-    int zts_set_nonblock(int fd); /* TODO combine with fcntl() */
+    int zts_set_nonblock(int fd); // TODO combine with fcntl()
 #endif  
 
 #if !defined(__IOS__)
@@ -143,9 +143,6 @@ ssize_t zts_recvmsg(RECVMSG_SIG);
 
 // Android JNI Direct-call API
 // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
-/* If you define anything else in this file it that you wish to expose to your Android 
-	Java application you *must* follow that convention and any corresponding Java package/classes 
-	in your Android project must match this as well */
 #if defined(__ANDROID__)
 	// Exported JNI : ZT SERVICE CONTROLS
 	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1start_1service(JNIEnv *env, jobject thisObj, jstring path);

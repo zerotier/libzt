@@ -175,7 +175,6 @@ int rpc_send_command(char *path, int cmd, int forfd, void *data, int len)
   memcpy(CANARY+CANARY_SZ, padding, sizeof(padding));
   uint64_t canary_num;
   // ephemeral RPC socket used only for this command
-  // TODO: Re-engineer RPC socket model for more efficiency
   int rpc_sock = rpc_join(path);
   // Generate token
   int fdrand = open("/dev/urandom", O_RDONLY);

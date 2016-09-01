@@ -331,9 +331,7 @@ char *zts_get_homepath() {
 
 // Typically used on iOS/OSX 
 #if !defined(__ANDROID__)
-    /*
-     * Starts a service thread and performs basic setup tasks
-     */
+    // Starts a service thread and performs basic setup tasks
     void init_service(int key, const char * path) {
         givenHomeDir = path;
         pthread_key_create(&thr_id_key, NULL);
@@ -346,9 +344,7 @@ char *zts_get_homepath() {
         rpcNWID = nwid;
         init_service(key, path);
     }
-    /*
-     * Enables or disables intercept for current thread using key in thread-local storage
-     */
+    // Enables or disables intercept for current thread using key in thread-local storage
     void set_intercept_status(int mode) {
         #if defined(__APPLE__)
             fprintf(stderr, "set_intercept_status(mode=%d): tid = %d\n", mode, pthread_mach_thread_np(pthread_self()));

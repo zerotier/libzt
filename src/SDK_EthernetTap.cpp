@@ -735,11 +735,8 @@ err_t NetconEthernetTap::nc_accept(void *arg, struct tcp_pcb *newPCB, err_t err)
 	    tap->lwipstack->__tcp_err(newPCB, nc_err);
 	    tap->lwipstack->__tcp_sent(newPCB, nc_sent);
 	    tap->lwipstack->__tcp_poll(newPCB, nc_poll, 1);
-	    if(conn->TCP_pcb->state == LISTEN) {
-			// FIX: This error likely doesn't have user significance and is a candidate for removal
-	    	// dwr(MSG_DEBUG," nc_accept(): can't call tcp_accept() on LISTEN socket (pcb = %x)\n", conn->TCP_pcb);
+	    if(conn->TCP_pcb->state == LISTEN)
 	    	return ERR_OK;
-	    }
 	    tcp_accepted(conn->TCP_pcb); // Let lwIP know that it can queue additional incoming connections
 		return ERR_OK;
   	} else

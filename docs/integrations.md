@@ -32,7 +32,9 @@ For more support on these integrations, or if you'd like help creating a new int
 ##### OSX
  - [Linking into an app at compiletime](../docs/osx_zt_sdk.md) `make osx_shared_lib` -> `build/libztosx.so`
  - [Embedding within an app with Xcode](apple/example_app/OSX) `make osx_app_framework` -> `build/osx_app_framework/*`
- - [Dynamic-linking into an app/service at runtime](../docs/osx_zt_sdk.md) `make osx_service_and_intercept` -> `build/zerotier-sdk-service` + `build/libztintercept.so`
+ - [Dynamic-linking into an app/service at runtime](../docs/osx_zt_sdk.md) `make osx_service_and_intercept` -> { `build/zerotier-sdk-service` + `build/libztintercept.so` }
+ - [Intercept library](../docs/osx_zt_sdk.md) `make osx_sdk_service` -> `build/zerotier-sdk-service`
+ - [SDK Service](../docs/osx_zt_sdk.md) `make osx_intercept` -> `build/libztintercept.so`
  - [Unity3D plugin](apple/ZeroTierSDK_Apple) `make osx_unity3d_bundle` -> 
 
 ***

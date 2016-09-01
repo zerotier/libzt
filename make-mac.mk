@@ -96,7 +96,7 @@ one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/OSXEthernetTa
 ios: ios_app_framework ios_unity3d_bundle
 
 # Build all OSX targets
-osx: osx_app_framework osx_unity3d_bundle osx_shared_lib osx_service_and_intercept
+osx: osx_app_framework osx_unity3d_bundle osx_shared_lib osx_sdk_service osx_intercept
 
 # TODO: CHECK if XCODE TOOLS are installed
 # Build frameworks for application development
@@ -132,7 +132,7 @@ remove_only_intermediates:
 	-find . -type f \( -name '*.o' -o -name '*.so' \) -delete
 
 # Builds a single shared library which contains everything
-osx_shared_lib: remove_only_intermediates $(OBJS)
+osx_shared_lib: $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -DSDK -DZT_ONE_NO_ROOT_CHECK -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -Izerotierone/osdep -Izerotierone/node -Izerotierone/service -Isrc -shared -o $(SHARED_LIB) $(OBJS) zerotierone/service/OneService.cpp src/SDK_Service.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp zerotierone/one.cpp -x c src/SDK_Sockets.c src/SDK_Intercept.c src/SDK_Debug.c src/SDK_RPC.c $(LDLIBS) -ldl
 
 osx_intercept:

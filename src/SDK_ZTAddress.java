@@ -6,12 +6,7 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.regex.Pattern;
 
-/* 
-
-The ZTAddress object is merely a convenience object for moving address information
-across the JNI memory border. 
-
-*/
+// A convenience object for moving address information across the JNI memory border. 
 
 public class ZTAddress
 {

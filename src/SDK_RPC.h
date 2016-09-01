@@ -89,17 +89,17 @@ void rpc_mutex_init();
 /* Structures used for sending commands via RPC mechanism */
 
 struct bind_st {
-	int sockfd;
+	int fd;
 	struct sockaddr_storage addr;
 	socklen_t addrlen;
-	int __tid;
+	int tid;
 };
 
 struct connect_st {
-	int __fd;
-	struct sockaddr_storage __addr;
-	socklen_t __len;
-	int __tid;
+	int fd;
+	struct sockaddr_storage addr;
+	socklen_t addrlen;
+	int tid;
 };
 
 struct close_st {
@@ -107,23 +107,23 @@ struct close_st {
 };
 
 struct listen_st {
-	int sockfd;
+	int fd;
 	int backlog;
-	int __tid;
+	int tid;
 };
 
 struct socket_st {
-  int socket_family;
-  int socket_type;
-  int protocol;
-	int __tid;
+	int socket_family;
+	int socket_type;
+	int protocol;
+	int tid;
 };
 
 struct accept_st {
-	int sockfd;
+	int fd;
 	struct sockaddr_storage addr;
 	socklen_t addrlen;
-	int __tid;
+	int tid;
 };
 
 struct shutdown_st {
@@ -132,7 +132,7 @@ struct shutdown_st {
 };
 
 struct getsockname_st {
-	int sockfd;
+	int fd;
 	struct sockaddr_storage addr;
 	socklen_t addrlen;
 };

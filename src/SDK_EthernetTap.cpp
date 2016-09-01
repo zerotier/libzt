@@ -965,14 +965,14 @@ void NetconEthernetTap::handleGetsockname(PhySocket *sock, PhySocket *rpcSock, v
 {
 	Mutex::Lock _l(_tcpconns_m);
 	Connection *conn = getConnection(sock);
-	if(conn->addr == NULL){
+	if(conn->local_addr == NULL){
 		dwr(MSG_DEBUG_EXTRA," handleGetsockname(): No address info available. Is it bound?");
 		struct sockaddr_storage storage;
 		memset(&storage, 0, sizeof(struct sockaddr_storage));
 		write(_phy.getDescriptor(rpcSock), NULL, sizeof(struct sockaddr_storage));
 		return;
 	}
-	write(_phy.getDescriptor(rpcSock), conn->addr, sizeof(struct sockaddr_storage));
+	write(_phy.getDescriptor(rpcSock), conn->local_addr, sizeof(struct sockaddr_storage));
 }
 
 void NetconEthernetTap::handleGetpeername(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct getsockname_st *getsockname_rpc)
@@ -1012,7 +1012,7 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 
 	connAddr.addr = *((u32_t *)_ips[0].rawIpData());
 	Connection *conn = getConnection(sock);
-    dwr(MSG_DEBUG," handleBind(sock=%p,fd=%d,port=%d)\n", (void*)&sock, bind_rpc->sockfd, port);
+    dwr(MSG_DEBUG," handleBind(sock=%p,fd=%d,port=%d)\n", (void*)&sock, bind_rpc->fd, port);
     if(conn) {
         if(conn->type == SOCK_DGRAM) {
        		#if defined(__ANDROID__)
@@ -1027,7 +1027,7 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
             	struct sockaddr_in addr_in;
                 memcpy(&addr_in, &bind_rpc->addr, sizeof(addr_in));
                 addr_in.sin_port = Utils::ntoh(conn->UDP_pcb->local_port); // Newly assigned port
-                memcpy(&conn->addr, &addr_in, sizeof(addr_in));
+                memcpy(&conn->local_addr, &addr_in, sizeof(addr_in));
   				sendReturnValue(rpcSock, ERR_OK, ERR_OK); // Success
             }
             return;
@@ -1044,7 +1044,7 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
                     if(err == ERR_BUF)
                         sendReturnValue(rpcSock, -1, ENOMEM);
                 } else {
-                    conn->addr = (struct sockaddr_storage *) &bind_rpc->addr;
+                    conn->local_addr = (struct sockaddr_storage *) &bind_rpc->addr;
                     sendReturnValue(rpcSock, ERR_OK, ERR_OK); // Success
                 }
             } else {
@@ -1122,7 +1122,7 @@ Connection * NetconEthernetTap::handleSocketProxy(PhySocket *sock, int socket_ty
     if(new_udp_PCB || new_tcp_PCB) {
         conn->sock = sock;
         conn->type = socket_type;
-		conn->addr = NULL;
+		conn->local_addr = NULL;
 		conn->peer_addr = NULL;
         if(conn->type == SOCK_DGRAM) conn->UDP_pcb = new_udp_PCB;
         if(conn->type == SOCK_STREAM) conn->TCP_pcb = new_tcp_PCB;
@@ -1153,7 +1153,7 @@ Connection * NetconEthernetTap::handleSocket(PhySocket *sock, void **uptr, struc
         *uptr = newConn;
         newConn->type = socket_rpc->socket_type;
         newConn->sock = sock;
-		newConn->addr = NULL;
+		newConn->local_addr = NULL;
 		newConn->peer_addr = NULL;
         if(newConn->type == SOCK_DGRAM) newConn->UDP_pcb = new_udp_PCB;
         if(newConn->type == SOCK_STREAM) newConn->TCP_pcb = new_tcp_PCB;
@@ -1265,7 +1265,7 @@ void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Conne
 {
     dwr(MSG_DEBUG_EXTRA, "handleConnect(%p)\n", (void*)&sock);
     Mutex::Lock _l(_tcpconns_m);
-	struct sockaddr_in *rawAddr = (struct sockaddr_in *) &connect_rpc->__addr;
+	struct sockaddr_in *rawAddr = (struct sockaddr_in *) &connect_rpc->addr;
 	int port = lwipstack->__lwip_ntohs(rawAddr->sin_port);
 	ip_addr_t connAddr = convert_ip(rawAddr);    
 	int err = 0, ip = rawAddr->sin_addr.s_addr;

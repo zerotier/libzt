@@ -127,10 +127,10 @@ char *api_netpath;
             load_symbols();
         }
     #if defined(SDK_BUNDLED)
-        /* The reasoning for this check is that if you've built the SDK with SDK_BUNDLE=1, then 
-        you've included a full ZeroTier service in the same binary as your intercept, and we 
-        don't want to run ZeroTier network API calls through the intercept, so we must specify
-        which threads should be intercepted manually */
+        // The reasoning for this check is that if you've built the SDK with SDK_BUNDLE=1, then 
+        // you've included a full ZeroTier service in the same binary as your intercept, and we 
+        // don't want to run ZeroTier network API calls through the intercept, so we must specify
+        // which threads should be intercepted manually
         void *spec = pthread_getspecific(thr_id_key);
         int thr_id = spec != NULL ? *((int*)spec) : -1;
         return thr_id == INTERCEPT_ENABLED;
@@ -164,76 +164,75 @@ char *api_netpath;
     // ------------------------------------------------------------------------------
     // ------------------------------------ sendto() --------------------------------
     // ------------------------------------------------------------------------------
-    // int sockfd, const void *buf, size_t len, int flags, 
-    // const struct sockaddr *addr, socklen_t addr_len
+    // int fd, const void *buf, size_t len, int flags, 
+    // const struct sockaddr *addr, socklen_t addrlen
 
 #if !defined(__ANDROID__)
     ssize_t sendto(SENDTO_SIG)
     {
-        dwr(MSG_DEBUG, "sendto(%d, %d)\n", sockfd, len);
+        dwr(MSG_DEBUG, "sendto(%d, ..., %d)\n", fd, len);
         //if (!check_intercept_enabled())
-            return realsendto(sockfd, buf, len, flags, addr, addr_len);
-        return zts_sendto(sockfd, buf, len, flags, addr, addr_len);
+            return realsendto(fd, buf, len, flags, addr, addrlen);
+        return zts_sendto(fd, buf, len, flags, addr, addrlen);
     }
 #endif
 
     // ------------------------------------------------------------------------------
     // ----------------------------------- sendmsg() --------------------------------
     // ------------------------------------------------------------------------------
-    // int socket, const struct msghdr *message, int flags
+    // int fd, const struct msghdr *msg, int flags
 
 #if !defined(__ANDROID__)
     ssize_t sendmsg(SENDMSG_SIG)
     {
         dwr(MSG_DEBUG, "sendmsg()\n");
         //if(!check_intercept_enabled())
-            return realsendmsg(socket, message, flags);
-        zts_sendmsg(socket, message, flags);
+            return realsendmsg(fd, msg, flags);
+        zts_sendmsg(fd, msg, flags);
     }
 #endif
     
     // ------------------------------------------------------------------------------
     // ---------------------------------- recvfrom() --------------------------------
     // ------------------------------------------------------------------------------
-    // int socket, void *restrict buffer, size_t length, int flags, struct sockaddr
-    // *restrict address, socklen_t *restrict address_len
+    // int fd, void *restrict buf, size_t len, int flags, struct sockaddr
+    // *restrict addr, socklen_t *restrict addrlen
 
 #if !defined(__ANDROID__)
     ssize_t recvfrom(RECVFROM_SIG)
     {
         dwr(MSG_DEBUG, "recvfrom(%d)\n", socket);
         if(!check_intercept_enabled())
-            return realrecvfrom(socket, buffer, length, flags, address, address_len);
-        return zts_recvfrom(socket, buffer, length, flags, address, address_len);
+            return realrecvfrom(fd, buf, len, flags, addr, addrlen);
+        return zts_recvfrom(fd, buf, len, flags, addr, addrlen);
     }
 #endif
 
     // ------------------------------------------------------------------------------
     // ----------------------------------- recvmsg() --------------------------------
     // ------------------------------------------------------------------------------
-    // int socket, struct msghdr *message, int flags
+    // int fd, struct msghdr *msg, int flags
 
 #if !defined(__ANDROID__)
     ssize_t recvmsg(RECVMSG_SIG)
     {
-        dwr(MSG_DEBUG, "recvmsg(%d)\n", socket);
+        dwr(MSG_DEBUG, "recvmsg(%d)\n", fd);
         //if(!check_intercept_enabled())
-            return realrecvmsg(socket, message, flags);
-        return zts_recvmsg(socket, message, flags);
+            return realrecvmsg(fd, msg, flags);
+        return zts_recvmsg(fd, msg, flags);
     }
 #endif
 
     // ------------------------------------------------------------------------------
     // --------------------------------- setsockopt() -------------------------------
     // ------------------------------------------------------------------------------
-    // int socket, int level, int optname, const void *optval, 
-    // socklen_t optlen
+    // int fd, int level, int optname, const void *optval, socklen_t optlen
 
     int setsockopt(SETSOCKOPT_SIG)
     {
-        dwr(MSG_DEBUG, "setsockopt(%d)\n", socket);
+        dwr(MSG_DEBUG, "setsockopt(%d)\n", fd);
         if (!check_intercept_enabled())
-            return realsetsockopt(socket, level, optname, optval, optlen);
+            return realsetsockopt(fd, level, optname, optval, optlen);
     #if defined(__linux__)
         if(level == SOL_IPV6 && optname == IPV6_V6ONLY)
             return 0;
@@ -242,23 +241,22 @@ char *api_netpath;
     #endif
         if(level == IPPROTO_TCP || (level == SOL_SOCKET && optname == SO_KEEPALIVE))
             return 0;
-        if(realsetsockopt(socket, level, optname, optval, optlen) < 0)
+        if(realsetsockopt(fd, level, optname, optval, optlen) < 0)
             perror("setsockopt():\n");
-        return zts_setsockopt(socket, level, optname, optval, optlen);
+        return zts_setsockopt(fd, level, optname, optval, optlen);
     }
 
     // ------------------------------------------------------------------------------
     // --------------------------------- getsockopt() -------------------------------
     // ------------------------------------------------------------------------------
-    // int sockfd, int level, int optname, void *optval, 
-    // socklen_t *optlen 
+    // int fd, int level, int optname, void *optval, socklen_t *optlen 
 
     int getsockopt(GETSOCKOPT_SIG)
     {
-        dwr(MSG_DEBUG, "getsockopt(%d)\n", sockfd);
-        if (!check_intercept_enabled() || !connected_to_service(sockfd))
-            return realgetsockopt(sockfd, level, optname, optval, optlen);
-        return zts_getsockopt(sockfd, level, optname, optval, optlen);
+        dwr(MSG_DEBUG, "getsockopt(%d)\n", fd);
+        if (!check_intercept_enabled() || !connected_to_service(fd))
+            return realgetsockopt(fd, level, optname, optval, optlen);
+        return zts_getsockopt(fd, level, optname, optval, optlen);
     }
 
     // ------------------------------------------------------------------------------
@@ -295,16 +293,16 @@ char *api_netpath;
     // ------------------------------------------------------------------------------
     // ---------------------------------- connect() ---------------------------------
     // ------------------------------------------------------------------------------
-    // int __fd, const struct sockaddr * __addr, socklen_t __len
+    // int fd, const struct sockaddr *addr, socklen_t addrlen
 
     int connect(CONNECT_SIG)
     {
-        dwr(MSG_DEBUG, "connect(%d)\n", __fd);
+        dwr(MSG_DEBUG, "connect(%d)\n", fd);
         struct sockaddr_in *connaddr;
-        connaddr = (struct sockaddr_in *)__addr;
-        if(__addr->sa_family == AF_LOCAL || __addr->sa_family == AF_UNIX) {
+        connaddr = (struct sockaddr_in *)addr;
+        if(addr->sa_family == AF_LOCAL || addr->sa_family == AF_UNIX) {
             struct sockaddr_storage storage;
-            memcpy(&storage, __addr, __len);
+            memcpy(&storage, addr, addrlen);
             struct sockaddr_un *s_un = (struct sockaddr_un*)&storage;
             dwr(MSG_DEBUG, "connect(): address = %s\n", s_un->sun_path);
         }
@@ -319,53 +317,53 @@ char *api_netpath;
         dwr(MSG_DEBUG,"connect(): %d.%d.%d.%d: %d\n", d[0],d[1],d[2],d[3], ntohs(port));
         
         if(!check_intercept_enabled())
-            return realconnect(__fd, __addr, __len);
+            return realconnect(fd, addr, addrlen);
 
-        /* Check that this is a valid fd */
-        if(fcntl(__fd, F_GETFD) < 0) {
+        // Check that this is a valid fd
+        if(fcntl(fd, F_GETFD) < 0) {
             errno = EBADF;
             return -1;
         }
-        /* Check that it is a socket */
+        // Check that it is a socket 
         int sock_type;
         socklen_t sock_type_len = sizeof(sock_type);
-        if(getsockopt(__fd, SOL_SOCKET, SO_TYPE, (void *) &sock_type, &sock_type_len) < 0) {
+        if(getsockopt(fd, SOL_SOCKET, SO_TYPE, (void *) &sock_type, &sock_type_len) < 0) {
             errno = ENOTSOCK;
             return -1;
         }
     #if defined(__linux__)
-        /* Check family */
+        // Check family
         if (connaddr->sin_family < 0 || connaddr->sin_family >= NPROTO){
             errno = EAFNOSUPPORT;
             return -1;
         }
     #endif
-        /* make sure we don't touch any standard outputs */
-        if(__fd == 0 || __fd == 1 || __fd == 2)
-            return(realconnect(__fd, __addr, __len));
+        // make sure we don't touch any standard outputs
+        if(fd == 0 || fd == 1 || fd == 2)
+            return(realconnect(fd, addr, addrlen));
         
-        if(__addr != NULL && (connaddr->sin_family == AF_LOCAL
+        if(addr != NULL && (connaddr->sin_family == AF_LOCAL
     #if defined(__linux__)
                               || connaddr->sin_family == PF_NETLINK
                               || connaddr->sin_family == AF_NETLINK
     #endif
                               || connaddr->sin_family == AF_UNIX)) {
-            return realconnect(__fd, __addr, __len);
+            return realconnect(fd, addr, addrlen);
         }
-        return zts_connect(__fd, __addr, __len);
+        return zts_connect(fd, addr, addrlen);
     }
 
     // ------------------------------------------------------------------------------
     // ------------------------------------ bind() ----------------------------------
     // ------------------------------------------------------------------------------
-    // int sockfd, const struct sockaddr *addr, socklen_t addrlen
+    // int fd, const struct sockaddr *addr, socklen_t addrlen
 
     int bind(BIND_SIG)
     {
-        dwr(MSG_DEBUG,"bind(%d)\n", sockfd);
+        dwr(MSG_DEBUG,"bind(%d)\n", fd);
         // make sure we don't touch any standard outputs
-        if(sockfd == 0 || sockfd == 1 || sockfd == 2)
-            return(realbind(sockfd, addr, addrlen));
+        if(fd == 0 || fd == 1 || fd == 2)
+            return(realbind(fd, addr, addrlen));
         struct sockaddr_in *connaddr;
         connaddr = (struct sockaddr_in *)addr;
 
@@ -374,7 +372,7 @@ char *api_netpath;
            || connaddr->sin_family == AF_NETLINK
         #endif
            || connaddr->sin_family == AF_UNIX) {
-            int err = realbind(sockfd, addr, addrlen);
+            int err = realbind(fd, addr, addrlen);
             dwr(MSG_DEBUG,"realbind, err = %d\n", err);
             return err;
         }
@@ -389,132 +387,132 @@ char *api_netpath;
 
         int sock_type;
         socklen_t sock_type_len = sizeof(sock_type);
-        if(getsockopt(sockfd, SOL_SOCKET, SO_TYPE, (void *) &sock_type, &sock_type_len) < 0) {
+        if(getsockopt(fd, SOL_SOCKET, SO_TYPE, (void *) &sock_type, &sock_type_len) < 0) {
             errno = ENOTSOCK;
             return -1;
         }
 
         // Otherwise, perform usual intercept logic
         if (!check_intercept_enabled())
-            return realbind(sockfd, addr, addrlen);
+            return realbind(fd, addr, addrlen);
 
         // Check that this is a valid fd
-        if(fcntl(sockfd, F_GETFD) < 0) {
+        if(fcntl(fd, F_GETFD) < 0) {
             errno = EBADF;
             return -1;
         }
         // Check that it is a socket
         int opt = -1;
         socklen_t opt_len;
-        if(getsockopt(sockfd, SOL_SOCKET, SO_TYPE, (void *) &opt, &opt_len) < 0) {
+        if(getsockopt(fd, SOL_SOCKET, SO_TYPE, (void *) &opt, &opt_len) < 0) {
             errno = ENOTSOCK;
             return -1;
         }
-        return zts_bind(sockfd, addr, addrlen);
+        return zts_bind(fd, addr, addrlen);
     }
 
     // ------------------------------------------------------------------------------
     // ----------------------------------- accept4() --------------------------------
     // ------------------------------------------------------------------------------
-    // int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags
+    // int fd, struct sockaddr *addr, socklen_t *addrlen, int flags
 
 #if defined(__linux__)
     int accept4(ACCEPT4_SIG) {
-        dwr(MSG_DEBUG,"accept4(%d):\n", sockfd);
-        return zts_accept4(sockfd, addr, addrlen, flags);
+        dwr(MSG_DEBUG,"accept4(%d):\n", fd);
+        return zts_accept4(fd, addr, addrlen, flags);
     }
 #endif
 
     // ------------------------------------------------------------------------------
     // ----------------------------------- accept() ---------------------------------
     // ------------------------------------------------------------------------------
-    // int sockfd struct sockaddr *addr, socklen_t *addrlen
+    // int fd struct sockaddr *addr, socklen_t *addrlen
 
     int accept(ACCEPT_SIG) {
-        dwr(MSG_DEBUG,"accept(%d):\n", sockfd);
+        dwr(MSG_DEBUG,"accept(%d):\n", fd);
         if (!check_intercept_enabled())
-            return realaccept(sockfd, addr, addrlen);
+            return realaccept(fd, addr, addrlen);
 
-        /* Check that this is a valid fd */
-        if(fcntl(sockfd, F_GETFD) < 0) {
+        // Check that this is a valid fd
+        if(fcntl(fd, F_GETFD) < 0) {
             return -1;
             errno = EBADF;
             dwr(MSG_DEBUG,"EBADF\n");
             return -1;
         }
-        /* Check that it is a socket */
+        // Check that it is a socket
         int opt;
         socklen_t opt_len;
-        if(getsockopt(sockfd, SOL_SOCKET, SO_TYPE, (void *) &opt, &opt_len) < 0) {
+        if(getsockopt(fd, SOL_SOCKET, SO_TYPE, (void *) &opt, &opt_len) < 0) {
             errno = ENOTSOCK;
             dwr(MSG_DEBUG,"ENOTSOCK\n");
             return -1;
         }
-        /* Check that this socket supports accept() */
+        // Check that this socket supports accept()
         if(!(opt && (SOCK_STREAM | SOCK_SEQPACKET))) {
             errno = EOPNOTSUPP;
             dwr(MSG_DEBUG,"EOPNOTSUPP\n");
             return -1;
         }
-        /* Check that we haven't hit the soft-limit file descriptors allowed */
+        // Check that we haven't hit the soft-limit file descriptors allowed
         struct rlimit rl;
         getrlimit(RLIMIT_NOFILE, &rl);
-        if(sockfd >= rl.rlim_cur){
+        if(fd >= rl.rlim_cur){
             errno = EMFILE;
             dwr(MSG_DEBUG,"EMFILE\n");
             return -1;
         }
-        /* Check address length */
+        // Check address length
         if(addrlen < 0) {
             errno = EINVAL;
             dwr(MSG_DEBUG,"EINVAL\n");
             return -1;
         }
-        /* redirect calls for standard I/O descriptors to kernel */
-        if(sockfd == 0 || sockfd == 1 || sockfd == 2){
+        // redirect calls for standard I/O descriptors to kernel
+        if(fd == 0 || fd == 1 || fd == 2){
             dwr(MSG_DEBUG,"realaccept():\n");
-            return(realaccept(sockfd, addr, addrlen));
+            return(realaccept(fd, addr, addrlen));
         }
 
-        return zts_accept(sockfd, addr, addrlen);
+        return zts_accept(fd, addr, addrlen);
     }
 
     // ------------------------------------------------------------------------------
     // ------------------------------------- listen()--------------------------------
     // ------------------------------------------------------------------------------
-    // int sockfd, int backlog
+    // int fd, int backlog
 
     int listen(LISTEN_SIG)
     {
-        dwr(MSG_DEBUG,"listen(%d):\n", sockfd);
+        dwr(MSG_DEBUG,"listen(%d):\n", fd);
         if (!check_intercept_enabled())
-            return reallisten(sockfd, backlog);
+            return reallisten(fd, backlog);
         
         int sock_type;
         socklen_t sock_type_len = sizeof(sock_type);
-        /* Check that this is a valid fd */
-        if(fcntl(sockfd, F_GETFD) < 0) {
+        // Check that this is a valid fd
+        if(fcntl(fd, F_GETFD) < 0) {
             errno = EBADF;
             return -1;
         }
-        /* Check that it is a socket */
-        if(getsockopt(sockfd, SOL_SOCKET, SO_TYPE, (void *) &sock_type, &sock_type_len) < 0) {
+        // Check that it is a socket
+        if(getsockopt(fd, SOL_SOCKET, SO_TYPE, (void *) &sock_type, &sock_type_len) < 0) {
             errno = ENOTSOCK;
             return -1;
         }
-        /* Check that this socket supports accept() */
+        // Check that this socket supports accept()
         if(!(sock_type && (SOCK_STREAM | SOCK_SEQPACKET))) {
             errno = EOPNOTSUPP;
             return -1;
         }
-        /* make sure we don't touch any standard outputs */
-        if(sockfd == 0 || sockfd == 1 || sockfd == 2)
-            return reallisten(sockfd, backlog);
+        // make sure we don't touch any standard outputs
+        if(fd == 0 || fd == 1 || fd == 2)
+            return reallisten(fd, backlog);
         
-        if(!connected_to_service(sockfd)) {
-            return reallisten(sockfd, backlog);
+        if(!connected_to_service(fd)) {
+            return reallisten(fd, backlog);
         }
-        return zts_listen(sockfd, backlog);
+        return zts_listen(fd, backlog);
     }
 
     // ------------------------------------------------------------------------------
@@ -533,26 +531,27 @@ char *api_netpath;
     // ------------------------------------------------------------------------------
     // -------------------------------- getsockname() -------------------------------
     // ------------------------------------------------------------------------------
-    // int sockfd, struct sockaddr *addr, socklen_t *addrlen
+    // int fd, struct sockaddr *addr, socklen_t *addrlen
 
     int getsockname(GETSOCKNAME_SIG)
     {
-        dwr(MSG_DEBUG,"getsockname(%d):\n", sockfd);
+        dwr(MSG_DEBUG,"getsockname(%d):\n", fd);
     #if !defined(__IOS__)
         if (!check_intercept_enabled())
-            return realgetsockname(sockfd, addr, addrlen);
+            return realgetsockname(fd, addr, addrlen);
     #endif
-        dwr(MSG_DEBUG,"getsockname(%d)\n", sockfd);
-        if(!connected_to_service(sockfd)) {
+        dwr(MSG_DEBUG,"getsockname(%d)\n", fd);
+        if(!connected_to_service(fd)) {
             dwr(MSG_DEBUG,"getsockname(): not used by service\n");
-            return realgetsockname(sockfd, addr, addrlen);
+            return realgetsockname(fd, addr, addrlen);
         }
-        return zts_getsockname(sockfd, addr, addrlen);
+        return zts_getsockname(fd, addr, addrlen);
     }
 
     // ------------------------------------------------------------------------------
     // ------------------------------------ syscall() -------------------------------
     // ------------------------------------------------------------------------------
+    // long number, ...
 
 #if !defined(__ANDROID__)
 #if defined(__linux__)

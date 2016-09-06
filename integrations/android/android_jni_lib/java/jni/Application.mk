@@ -1,6 +1,6 @@
 NDK_TOOLCHAIN_VERSION := clang
 APP_STL := c++_static
-APP_CPPFLAGS := -g -O3 -DSDK_BUNDLED -DZT_DEBUG -DSDK_DEBUG -DLWIP_DEBUG -DUSE_SOCKS_PROXY -DSDK -fPIC -fPIE -fvectorize -Wall -fstack-protector -fexceptions -fno-strict-aliasing -Wno-deprecated-register -DZT_NO_TYPE_PUNNING=1
+APP_CPPFLAGS := -g -O3 -DSDK_BUNDLED -DZT_DEBUG -DSDK_DEBUG -DLWIP_DEBUG -DSDK -fPIC -fPIE -fvectorize -Wall -fstack-protector -fexceptions -fno-strict-aliasing -Wno-deprecated-register -DZT_NO_TYPE_PUNNING=1
 APP_CFLAGS := -g -DSDK_BUNDLED
 APP_PLATFORM := android-14
 

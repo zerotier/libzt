@@ -30,12 +30,7 @@
 #endif
 
 #if defined(__linux__)
-#include <sys/syscall.h>
-#endif
-
-// For defining the Android direct-call API
-#if defined(__ANDROID__)
-    #include <jni.h>
+  #include <sys/syscall.h>
 #endif
 
 #include <stdio.h>
@@ -55,8 +50,8 @@
 
 
 // externs common between SDK_Intercept and SDK_Socket from SDK.h
-int (*realsocket)(SOCKET_SIG);
-int (*realconnect)(CONNECT_SIG);
+//int (*realsocket)(SOCKET_SIG);
+//int (*realconnect)(CONNECT_SIG);
 
 void dwr(int level, const char *fmt, ... );
 

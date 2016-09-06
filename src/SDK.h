@@ -86,15 +86,16 @@ extern char *debug_logfile;
 //   the specific way needed for that platform, but will be implemented 
 //   in terms of zts_*
 
-// NOTE: Each platform specific exposed API will be implemented in terms of zts_*
 // SOCKS5 Proxy Controls
 int zts_start_proxy_server(const char *homepath, const char * nwid, struct sockaddr_storage * addr);
 int zts_stop_proxy_server(const char *nwid);
 int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage *addr);
+bool zts_proxy_is_running();
+
 // ZT Service Controls
 void *zts_start_service(void *thread_id);
 void zts_stop_service();
-bool zts_is_running();
+bool zts_service_is_running();
 void zts_join_network(const char * nwid);
 void zts_leave_network(const char * nwid);
 void zts_get_addresses(const char * nwid, char * addrstr);
@@ -144,44 +145,43 @@ ssize_t zts_recvmsg(RECVMSG_SIG);
 // Android JNI Direct-call API
 // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
 #if defined(__ANDROID__)
-	// Exported JNI : ZT SERVICE CONTROLS
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1start_1service(JNIEnv *env, jobject thisObj, jstring path);
-	JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1stop_service();
-	JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1join_1network(JNIEnv *env, jobject thisObj, jstring nwid);
-    JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1leave_1network(JNIEnv *env, jobject thisObj, jstring nwid);
-    JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1running(JNIEnv *env, jobject thisObj);
-    JNIEXPORT jobject JNICALL Java_ZeroTier_SDK_zt_1get_1addresses(JNIEnv *env, jobject thisObj, jstring nwid);
-    JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1is_1relayed();
-	// Returns the homepath 
-	JNIEXPORT jstring JNICALL Java_ZeroTier_SDK_zt_1get_1homepath(JNIEnv *env, jobject thisObj);
+	// ZT SERVICE CONTROLS
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1start_1service(JNIEnv *env, jobject thisObj, jstring path);
+	JNIEXPORT jboolean JNICALL Java_ZeroTier_ZTSDK_zt_1stop_service();
+	JNIEXPORT jboolean JNICALL Java_ZeroTier_ZTSDK_zt_1service_1is_1running(JNIEnv *env, jobject thisObj);
+	JNIEXPORT jstring JNICALL Java_ZeroTier_ZTSDK_zt_1get_1homepath(JNIEnv *env, jobject thisObj);
+	JNIEXPORT void JNICALL Java_ZeroTier_ZTSDK_zt_1join_1network(JNIEnv *env, jobject thisObj, jstring nwid);
+    JNIEXPORT void JNICALL Java_ZeroTier_ZTSDK_zt_1leave_1network(JNIEnv *env, jobject thisObj, jstring nwid);
+    JNIEXPORT jobject JNICALL Java_ZeroTier_ZTSDK_zt_1get_1addresses(JNIEnv *env, jobject thisObj, jstring nwid);
+    JNIEXPORT jboolean JNICALL Java_ZeroTier_ZTSDK_zt_1is_1relayed();
 	
-	// Exported JNI : SOCKS5 PROXY SERVER CONTROLS
-	// Stops the SOCKS5 proxy server for a given ZeroTier network
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1start_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid, jobject zaddr);
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1stop_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid);
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1get_1proxy_1server_1address(JNIEnv *env, jobject thisObj, jstring nwid, jobject zaddr);
-	
-	// Exported JNI : SOCKET API
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1socket(JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol);
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1connect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);	
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1bind(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1accept4(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port, jint flags);
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1accept(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1listen(JNIEnv *env, jobject thisObj, jint fd, int backlog);
+	// SOCKS5 PROXY SERVER CONTROLS
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1start_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid, jobject zaddr);
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1stop_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid);
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1get_1proxy_1server_1address(JNIEnv *env, jobject thisObj, jstring nwid, jobject zaddr);
+	JNIEXPORT jboolean JNICALL Java_ZeroTier_ZTSDK_zt_1proxy_1is_1running(JNIEnv *env, jobject thisObj, jstring nwid);
+
+	// SOCKET API
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1socket(JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol);
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1connect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);	
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1bind(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1accept4(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port, jint flags);
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1accept(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1listen(JNIEnv *env, jobject thisObj, jint fd, int backlog);
 	// TCP
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1write(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len);
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1read(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len);
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1send(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, int flags);
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1write(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len);
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1read(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len);
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1send(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, int flags);
 	// UDP
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1sendto(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, jint flags, jobject ztaddr);
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1recvfrom(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, jint flags, jobject ztaddr);
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1sendto(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, jint flags, jobject ztaddr);
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1recvfrom(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, jint flags, jobject ztaddr);
 	// GENERAL UTILITY
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1close(JNIEnv *env, jobject thisObj, jint fd);
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1fcntl(JNIEnv *env, jobject thisObj, jint socket, jint cmd, jint flags);
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1setsockopt(JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen);
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1getsockopt(JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen);
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1getsockname(JNIEnv *env, jobject thisObj, jint fd, jobject ztaddr);
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1getpeername(JNIEnv *env, jobject thisObj, jint fd, jobject ztaddr);
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1close(JNIEnv *env, jobject thisObj, jint fd);
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1fcntl(JNIEnv *env, jobject thisObj, jint socket, jint cmd, jint flags);
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1setsockopt(JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen);
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1getsockopt(JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen);
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1getsockname(JNIEnv *env, jobject thisObj, jint fd, jobject ztaddr);
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1getpeername(JNIEnv *env, jobject thisObj, jint fd, jobject ztaddr);
 #endif
 
 

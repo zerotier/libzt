@@ -54,7 +54,7 @@
 std::string service_path;
 pthread_t intercept_thread;
 int * intercept_thread_id;
-pthread_key_t thr_id_key;
+extern pthread_key_t thr_id_key;
 static ZeroTier::OneService *volatile zt1Service;
 
 std::string localHomeDir; // Local shortened path
@@ -75,30 +75,29 @@ void zts_init_rpc(const char * path, const char * nwid);
 void dwr(int level, const char *fmt, ... );
 
 int zts_start_proxy_server(const char *homepath, const char * nwid, struct sockaddr_storage * addr) {
-    LOGV("zts_start_proxy_server\n");
-    dwr(MSG_DEBUG, "zts_start_proxy_server()\n");
+    DEBUG_INFO();
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
     ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
     if(tap) {
         if(tap->startProxyServer(homepath, nwid_int, addr) < 0) {
-            dwr(MSG_ERROR, "zts_start_proxy_server(%s): Problem while starting server.", nwid);
+            DEBUG_ERROR("zts_start_proxy_server(%s): Problem while starting server.", nwid);
             return -1;
         }
     }
-    dwr(MSG_ERROR, "zts_start_proxy_server(%s): Invalid tap. Possibly incorrect NWID", nwid);
+    DEBUG_ERROR("zts_start_proxy_server(%s): Invalid tap. Possibly incorrect NWID", nwid);
     return 0;
 }
 int zts_stop_proxy_server(const char *nwid) {
-    dwr(MSG_DEBUG, "zts_stop_proxy_server()");
+    DEBUG_INFO("zts_stop_proxy_server()");
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
     ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
     if(tap) {
         if(tap->stopProxyServer() < 0) {
-            dwr(MSG_ERROR, "zts_stop_proxy_server(%s): Problem while stopping server.", nwid);
+            DEBUG_ERROR("zts_stop_proxy_server(%s): Problem while stopping server.", nwid);
             return -1;
         }
     }
-    dwr(MSG_ERROR, "zts_stop_proxy_server(%s): Invalid tap. Possibly incorrect NWID", nwid);
+    DEBUG_ERROR("zts_stop_proxy_server(%s): Invalid tap. Possibly incorrect NWID", nwid);
     return 0;
 }
 int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage * addr) {
@@ -114,13 +113,13 @@ int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage * ad
 // Basic ZT service controls
 // Will also spin up a SOCKS5 proxy server if USE_SOCKS_PROXY is set
 void zts_join_network(const char * nwid) { 
-    LOGV("zts_join_network\n");
+    DEBUG_INFO();
     std::string confFile = zt1Service->givenHomePath() + "/networks.d/" + nwid + ".conf";
     if(!ZeroTier::OSUtils::mkdir(netDir)) {
-        dwr(MSG_ERROR, "unable to create %s\n", netDir.c_str());
+        DEBUG_INFO("unable to create %s\n", netDir.c_str());
     }
     if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), "")) {
-        dwr(MSG_ERROR, "unable to write network conf file: %s\n", confFile.c_str());
+        DEBUG_INFO("unable to write network conf file: %s\n", confFile.c_str());
     }
     zt1Service->join(nwid);
     // Provide the API with the RPC information
@@ -132,7 +131,7 @@ void zts_join_network(const char * nwid) {
     #endif
 }
 void zts_leave_network(const char * nwid) { zt1Service->leave(nwid); }
-bool zts_is_running() { return zt1Service->isRunning(); }
+bool zts_service_is_running() { return zt1Service->isRunning(); }
 void zts_stop_service() { zt1Service->terminate(); }
 
 // FIXME: Re-implemented to make it play nicer with the C-linkage required for Xcode integrations
@@ -143,7 +142,7 @@ void zts_get_addresses(const char * nwid, char *addrstr)
     ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
     if(tap && tap->_ips.size()){ 
         std::string addr = tap->_ips[0].toString();
-        dwr(MSG_DEBUG, "addr.length() = %d, addr = %s\n", addr.length(), addr.c_str());
+        DEBUG_INFO("addr.length() = %d, addr = %s\n", addr.length(), addr.c_str());
         memcpy(addrstr, addr.c_str(), addr.length());  
     }
     else {
@@ -222,26 +221,30 @@ char *zts_get_homepath() {
     /* NOTE: Since on Android devices the sdcard is formatted as fat32, we can't use just any 
     location to set up the RPC unix domain socket. Rather we must use the application's specific 
     data directory given by getApplicationContext().getFilesDir() */
-    JNIEXPORT int JNICALL Java_ZeroTier_SDK_zt_1start_1service(JNIEnv *env, jobject thisObj, jstring path) {
+    JNIEXPORT int JNICALL Java_ZeroTier_ZTSDK_zt_1start_1service(JNIEnv *env, jobject thisObj, jstring path) {
         if(path)
             homeDir = env->GetStringUTFChars(path, NULL);
         zts_start_service(NULL);
     }
     // Shuts down ZeroTier service and SOCKS5 Proxy server
-    JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1stop_1service(JNIEnv *env, jobject thisObj) {
+    JNIEXPORT void JNICALL Java_ZeroTier_ZTSDK_zt_1stop_1service(JNIEnv *env, jobject thisObj) {
         if(zt1Service)
             zts_stop_service();
         // TODO: Also terminate SOCKS5 Proxy
         // zts_stop_proxy_server();
     }
     // Returns whether the ZeroTier service is running
-    JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1running(JNIEnv *env, jobject thisObj) {
+    JNIEXPORT jboolean JNICALL Java_ZeroTier_ZTSDK_zt_1service_1is_1running(JNIEnv *env, jobject thisObj) {
         if(zt1Service)
-            return  zts_is_running();
+            return  zts_service_is_running();
         return false;
     }
+    // Returns path for ZT config/data files    
+    JNIEXPORT jstring JNICALL Java_ZeroTier_ZTSDK_zt_1get_1homepath(JNIEnv *env, jobject thisObj) {
+        return (*env).NewStringUTF(zts_get_homepath());
+    }
     // Join a network
-    JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1join_1network(JNIEnv *env, jobject thisObj, jstring nwid) {
+    JNIEXPORT void JNICALL Java_ZeroTier_ZTSDK_zt_1join_1network(JNIEnv *env, jobject thisObj, jstring nwid) {
         const char *nwidstr;
         if(nwid) {
             nwidstr = env->GetStringUTFChars(nwid, NULL);
@@ -249,7 +252,7 @@ char *zts_get_homepath() {
         }
     }
     // Leave a network
-    JNIEXPORT void JNICALL Java_ZeroTier_SDK_zt_1leave_1network(JNIEnv *env, jobject thisObj, jstring nwid) {
+    JNIEXPORT void JNICALL Java_ZeroTier_ZTSDK_zt_1leave_1network(JNIEnv *env, jobject thisObj, jstring nwid) {
         const char *nwidstr;
         if(nwid) {
             nwidstr = env->GetStringUTFChars(nwid, NULL);
@@ -258,7 +261,7 @@ char *zts_get_homepath() {
     }
     // FIXME: Re-implemented to make it play nicer with the C-linkage required for Xcode integrations
     // Now only returns first assigned address per network. Shouldn't normally be a problem
-    JNIEXPORT jobject JNICALL Java_ZeroTier_SDK_zt_1get_1addresses(JNIEnv *env, jobject thisObj, jstring nwid) {
+    JNIEXPORT jobject JNICALL Java_ZeroTier_ZTSDK_zt_1get_1addresses(JNIEnv *env, jobject thisObj, jstring nwid) {
         const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
         char address_string[32];
         memset(address_string, 0, 32);
@@ -287,15 +290,15 @@ char *zts_get_homepath() {
         */
 	}
     // Returns the device is in integer form
-    JNIEXPORT jint Java_ZeroTier_SDK_zt_1get_1device_1id() {
+    JNIEXPORT jint Java_ZeroTier_ZTSDK_zt_1get_1device_1id() {
         return zts_get_device_id();
     }
     // Returns whether the path to an endpoint is currently relayed by a root server
-    JNIEXPORT jboolean JNICALL Java_ZeroTier_SDK_zt_1is_1relayed() {
+    JNIEXPORT jboolean JNICALL Java_ZeroTier_ZTSDK_zt_1is_1relayed() {
         return zts_is_relayed();
     }
     // Returns the local address of the SOCKS5 Proxy server
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1get_1proxy_1server_1address(JNIEnv *env, jobject thisObj, jstring nwid, jobject ztaddr) {
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1get_1proxy_1server_1address(JNIEnv *env, jobject thisObj, jstring nwid, jobject ztaddr) {
         struct sockaddr_in addr;
         int err = zts_get_proxy_server_address(env->GetStringUTFChars(nwid, NULL), (struct sockaddr_storage*)&addr);
         // SET ZTAddress fields
@@ -308,7 +311,7 @@ char *zts_get_homepath() {
         return err;    
     }
     // Starts a SOCKS5 proxy server for a given ZeroTier network
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1start_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid, jobject ztaddr) {
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1start_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid, jobject ztaddr) {
         const char *nwidstr = env->GetStringUTFChars(nwid, NULL);
         struct sockaddr_in addr;
         // GET ZTAddress fields
@@ -320,11 +323,12 @@ char *zts_get_homepath() {
         return zts_start_proxy_server((char *)zts_get_homepath, nwidstr, (struct sockaddr_storage *)&addr);
     }
     //
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1stop_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid) {
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1stop_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid) {
         return zts_stop_proxy_server((char*)env->GetStringUTFChars(nwid, NULL));
     }
-    JNIEXPORT jstring JNICALL Java_ZeroTier_SDK_zt_1get_1homepath(JNIEnv *env, jobject thisObj) {
-        return (*env).NewStringUTF(zts_get_homepath());
+    //
+    JNIEXPORT jboolean JNICALL Java_ZeroTier_ZTSDK_zt_1proxy_1is_1running(JNIEnv *env, jobject thisObj, jstring nwid) {
+        // TODO: implement
     }
 #endif
 
@@ -362,8 +366,7 @@ char *zts_get_homepath() {
 // Starts a ZeroTier service in the background
 void *zts_start_service(void *thread_id) {
     #if defined(__ANDROID__)
-        dwr(MSG_DEBUG, "ZTSDK_BUILD_VERSION = %d\n", ZTSDK_BUILD_VERSION);
-        LOGV("ZTSDK_BUILD_VERSION = %d\n", ZTSDK_BUILD_VERSION);
+        DEBUG_INFO("ZTSDK_BUILD_VERSION = %d\n", ZTSDK_BUILD_VERSION);
     #endif
 
     #if defined(SDK_BUNDLED) && !defined(__ANDROID__)
@@ -392,7 +395,7 @@ void *zts_start_service(void *thread_id) {
         localHomeDir = homeDir; // Used for RPC and *can* differ from homeDir on some platforms
     #endif
 
-    dwr(MSG_DEBUG, "homeDir = %s\n", homeDir.c_str());
+    DEBUG_INFO("homeDir = %s\n", homeDir.c_str());
     // Where network .conf files will be stored
     netDir = homeDir + "/networks.d";
     zt1Service = (ZeroTier::OneService *)0;
@@ -409,7 +412,7 @@ void *zts_start_service(void *thread_id) {
             ptmp.append(*pi);
             if ((*pi != ".")&&(*pi != "..")) {
                 if (!ZeroTier::OSUtils::mkdir(ptmp)) {
-                    dwr(MSG_ERROR, "startOneService(): home path does not exist, and could not create\n");
+                    DEBUG_ERROR("startOneService(): home path does not exist, and could not create\n");
                 }
             }
         }

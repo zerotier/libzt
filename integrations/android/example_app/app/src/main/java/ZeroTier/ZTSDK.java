@@ -102,9 +102,9 @@ public class ZTSDK {
         return zt_get_proxy_port(nwid);
     }
 
-    public native boolean zt_running();
-    public boolean running() {
-        return zt_running();
+    public native boolean zt_service_is_running();
+    public boolean service_is_running() {
+        return zt_service_is_running();
     }
 
 
@@ -272,4 +272,11 @@ public class ZTSDK {
     //public static native int zt_getsockopt(int fd, int type, int protocol);
     //public static native int zt_setsockopt(int fd, int type, int protocol);
     //public static native int zt_getsockname(int fd, int type, int protocol);
+
+
+    // PROXY SERVER CONTROLS
+    public native boolean zt_proxy_is_running();
+    public boolean proxy_is_running() {
+        return zt_proxy_is_running();
+    }
 }

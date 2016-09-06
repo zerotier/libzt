@@ -80,12 +80,12 @@ namespace ZeroTier
 
 	int NetconEthernetTap::stopProxyServer()
 	{
-		dwr(MSG_DEBUG, "stopProxyServer()");
+		DEBUG_INFO("stopProxyServer()");
 		if(proxyListenPhySocket) {
 			_phy.close(proxyListenPhySocket);
 			return 0;
 		}
-		dwr(MSG_ERROR, "stopProxyServer(): Invalid proxyListenPhySocket");
+		DEBUG_ERROR("stopProxyServer(): Invalid proxyListenPhySocket");
 		return -1;
 	}
 
@@ -96,25 +96,25 @@ namespace ZeroTier
 		// - If no address, assume 127.0.0.1:<networks.d/nwid.port>
 		// - If no port assignment file, 127.0.0.1:RANDOM_PORT
 
-		dwr(MSG_DEBUG, "startProxyServer()\n");      
+		DEBUG_INFO("startProxyServer()\n");      
 		int portno = -1;		
 		if(addr) {
-			dwr(MSG_DEBUG, "startProxyServer(): Using provided address");
+			DEBUG_INFO("startProxyServer(): Using provided address");
 			// This address pointer may come from a different memory space and might be de-allocated, so we keep a copy
 			memcpy(&proxyServerAddress, addr, sizeof(struct sockaddr_storage)); 
 			struct sockaddr_in *in4 = (struct sockaddr_in *)&addr;
 			proxyListenPhySocket = _phy.tcpListen((const struct sockaddr*)&in4,(void *)this);
 			sockstate = SOCKS_OPEN;
-			dwr(MSG_DEBUG, "SOCKS5 proxy server address for <%.16llx> is: <%s> (sock=%p)\n", nwid, inet_ntoa(in4->sin_addr), /*ntohs(in4->sin_port), */(void*)&proxyListenPhySocket);
+			DEBUG_INFO("SOCKS5 proxy server address for <%.16llx> is: <%s> (sock=%p)\n", nwid, inet_ntoa(in4->sin_addr), /*ntohs(in4->sin_port), */(void*)&proxyListenPhySocket);
 			return 0;
 		}
 		else {
-			dwr(MSG_DEBUG, "startProxyServer(): No address provided. Checking port file.");
+			DEBUG_INFO("startProxyServer(): No address provided. Checking port file.");
 			// Look for a port file for this network's proxy server instance
 			char portFile[4096];
 			Utils::snprintf(portFile,sizeof(portFile),"%s/networks.d/%.16llx.port",homepath,nwid);
 			std::string portStr;
-			printf("Proxy(): Reading port from: %s\n", portFile);
+			DEBUG_INFO("Proxy(): Reading port from: %s\n", portFile);
 			if(ZeroTier::OSUtils::fileExists(portFile,true))
 			{
 				if(ZeroTier::OSUtils::readFile(portFile, portStr)) {
@@ -125,12 +125,12 @@ namespace ZeroTier
 				unsigned int randp = 0;
 				Utils::getSecureRandom(&randp,sizeof(randp));
 				portno = 1000 + (randp % 1000);
-				dwr(MSG_DEBUG, "Proxy(): No port specified in networks.d/%.16llx.port, randomly picking port\n", nwid);
+				DEBUG_INFO("Proxy(): No port specified in networks.d/%.16llx.port, randomly picking port\n", nwid);
 				std::stringstream ss;
 				ss << portno;
 				portStr = ss.str();
 				if(!ZeroTier::OSUtils::writeFile(portFile, portStr)) {
-					dwr(MSG_ERROR, "unable to write proxy port file: %s\n", portFile);
+					DEBUG_ERROR("unable to write proxy port file: %s\n", portFile);
 				}  
 			}
 			struct sockaddr_in in4;
@@ -140,7 +140,7 @@ namespace ZeroTier
 			in4.sin_port = Utils::hton((uint16_t)portno);
 			proxyListenPhySocket = _phy.tcpListen((const struct sockaddr*)&in4,(void *)this);
 			sockstate = SOCKS_OPEN;
-			//dwr(MSG_DEBUG, "SOCKS5 proxy server address for <%.16llx> is: <%s:%d> (sock=%p)\n", nwid, , portno, (void*)&proxyListenPhySocket);
+			//DEBUG_INFO("SOCKS5 proxy server address for <%.16llx> is: <%s:%d> (sock=%p)\n", nwid, , portno, (void*)&proxyListenPhySocket);
 		}
 		return 0;
 	}
@@ -168,14 +168,14 @@ namespace ZeroTier
 
 	void NetconEthernetTap::phyOnTcpData(PhySocket *sock,void **uptr,void *data,unsigned long len)
 	{
-		dwr(MSG_DEBUG, "phyOnTcpData(): sock=%p, len=%lu\n", (void*)&sock, len);
+		DEBUG_INFO("phyOnTcpData(): sock=%p, len=%lu\n", (void*)&sock, len);
 		unsigned char *buf;
 		buf = (unsigned char *)data;
         
 		// Get connection for this PhySocket
 		Connection *conn = getConnection(sock);
 		if(!conn) {
-			dwr(MSG_DEBUG, "phyOnTcpData(): Unable to locate Connection for sock=%p\n", (void*)&sock);
+			DEBUG_INFO("phyOnTcpData(): Unable to locate Connection for sock=%p\n", (void*)&sock);
 			return;
 		}
 
@@ -183,7 +183,7 @@ namespace ZeroTier
         if(conn->proxy_conn_state == SOCKS_COMPLETE)
         {
         	if(len) {
-	            dwr(MSG_DEBUG, "len=%lu\n", len);
+	            DEBUG_INFO("len=%lu\n", len);
 	            memcpy((&conn->txbuf)+(conn->txsz), buf, len);
 	   			conn->txsz += len;
 	   			handleWrite(conn);
@@ -192,7 +192,7 @@ namespace ZeroTier
 
 		if(conn->proxy_conn_state==SOCKS_UDP)
 		{
-			dwr(MSG_DEBUG, "SOCKS_UDP from client\n");
+			DEBUG_INFO("SOCKS_UDP from client\n");
             // +----+------+------+----------+----------+----------+
             // |RSV | FRAG | ATYP | DST.ADDR | DST.PORT |   DATA   |
             // +----+------+------+----------+----------+----------+
@@ -222,7 +222,7 @@ namespace ZeroTier
 				if(firstSupportedMethod == 2) {
 					supportedMethod = firstSupportedMethod;
 				}
-				dwr(MSG_DEBUG, " INFO <ver=%d, meth_len=%d, supp_meth=%d>\n", version, methodsLength, supportedMethod);
+				DEBUG_INFO(" INFO <ver=%d, meth_len=%d, supp_meth=%d>\n", version, methodsLength, supportedMethod);
 
                 // Send METHOD selection msg
                 // +----+--------+
@@ -255,11 +255,11 @@ namespace ZeroTier
 				int cmd = buf[IDX_COMMAND];
 				int addr_type = buf[IDX_ATYP];
 
-				dwr(MSG_DEBUG, "SOCKS REQUEST = <ver=%d, cmd=%d, typ=%d>\n", version, cmd, addr_type);
+				DEBUG_INFO("SOCKS REQUEST = <ver=%d, cmd=%d, typ=%d>\n", version, cmd, addr_type);
 
 				// CONNECT request
 				if(cmd == 1) {
-					dwr(MSG_DEBUG, "CONNECT request\n");
+					DEBUG_INFO("CONNECT request\n");
 					// Ipv4
 					/*
 					if(addr_type == 144)
@@ -269,12 +269,12 @@ namespace ZeroTier
 						memcpy(&raw_addr, &buf[4], 4);
 						char newaddr[16];
 						inet_ntop(AF_INET, &raw_addr, (char*)newaddr, INET_ADDRSTRLEN);
-						dwr(MSG_DEBUG, "new addr = %s\n", newaddr);
+						DEBUG_INFO("new addr = %s\n", newaddr);
 
 						int rawport, port;
 						memcpy(&rawport, &buf[5], 2); 
 						port = Utils::ntoh(rawport);
-						dwr(MSG_DEBUG, "new port = %d\n", port);
+						DEBUG_INFO("new port = %d\n", port);
 
 						// Assemble new address
 						struct sockaddr_in addr;
@@ -283,13 +283,13 @@ namespace ZeroTier
 						addr.sin_port = Utils::hton(8080);
 
 						int fd = socket(AF_INET, SOCK_STREAM, 0);
-						dwr(MSG_DEBUG, "fd = %d\n", fd);
+						DEBUG_INFO("fd = %d\n", fd);
 
 						if(fd < 0)
 							perror("socket");
 
 						int err = connect(fd, (struct sockaddr*)&addr, sizeof(addr));
-						dwr(MSG_DEBUG, "connect_err = %d\n", err);
+						DEBUG_INFO("connect_err = %d\n", err);
 						if(err < 0)
 							perror("connect");
 					}
@@ -302,7 +302,7 @@ namespace ZeroTier
                         ExtractAddress(addr_type,buf,&addr);
 						PhySocket * new_sock = handleSocketProxy(sock, SOCK_STREAM);
                         if(!new_sock)
-							dwr(MSG_ERROR, "Error while creating proxied-socket\n");
+							DEBUG_ERROR("Error while creating proxied-socket\n");
                         handleConnectProxy(sock, &addr);
 
 						// Convert connection err code into SOCKS-err-code
@@ -324,7 +324,7 @@ namespace ZeroTier
                         // | 1  |  1  | X'00' |  1   | Variable |    2     |
                         // +----+-----+-------+------+----------+----------+
 
-                        dwr(MSG_DEBUG, "REPLY = %d\n", addr.sin_port);
+                        DEBUG_INFO("REPLY = %d\n", addr.sin_port);
 						char reply[len]; // TODO: determine proper length
 						int addr_len = domain_len;
 						memset(reply, 0, len); // Create reply buffer at least as big as incoming SOCKS request data
@@ -346,7 +346,7 @@ namespace ZeroTier
 				// BIND Request
 				if(cmd == 2)
 				{
-					dwr(MSG_DEBUG, "BIND request\n");
+					DEBUG_INFO("BIND request\n");
 					//char raw_addr[15];
 					//int bind_port;
 				}
@@ -355,7 +355,7 @@ namespace ZeroTier
 				if(cmd == 3)
 				{
 					// PORT supplied should be port assigned by server in previous msg
-					dwr(MSG_DEBUG, "UDP association request\n");
+					DEBUG_INFO("UDP association request\n");
 
                     // SOCKS_CONNECT (Cont.)
                     // +----+-----+-------+------+----------+----------+
@@ -381,10 +381,10 @@ namespace ZeroTier
                     // Create new lwIP PCB
                     PhySocket * new_sock = handleSocketProxy(sock, SOCK_DGRAM);
                     
-                    dwr(MSG_DEBUG, "new_sock = %p\n", (void*)&sock);
-                    dwr(MSG_DEBUG, "new_sock = %p\n", (void*)&new_sock);
+                    DEBUG_INFO("new_sock = %p\n", (void*)&sock);
+                    DEBUG_INFO("new_sock = %p\n", (void*)&new_sock);
                     if(!new_sock)
-                        dwr(MSG_ERROR, "Error while creating proxied-socket\n");
+                        DEBUG_ERROR("Error while creating proxied-socket\n");
                     
                     // Form address
                     struct sockaddr_in addr;
@@ -407,7 +407,7 @@ namespace ZeroTier
 
 	void NetconEthernetTap::phyOnTcpAccept(PhySocket *sockL,PhySocket *sockN,void **uptrL,void **uptrN,const struct sockaddr *from)
 	{
-		dwr(MSG_DEBUG, "phyOnTcpAccept(): sock=%p\n", (void*)&sockN);
+		DEBUG_INFO("phyOnTcpAccept(): sock=%p\n", (void*)&sockN);
 		Connection *newConn = new Connection();
 		newConn->sock = sockN;
 		_phy.setNotifyWritable(sockN, false);
@@ -416,17 +416,17 @@ namespace ZeroTier
 
 	void NetconEthernetTap::phyOnTcpConnect(PhySocket *sock,void **uptr,bool success)
 	{
-		dwr(MSG_DEBUG, "phyOnTcpConnect(): sock=%p\n", (void*)&sock);
+		DEBUG_INFO("phyOnTcpConnect(): sock=%p\n", (void*)&sock);
 	}
 
 	// Unused -- no UDP or TCP from this thread/Phy<>
 	void NetconEthernetTap::phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address, const struct sockaddr *from,void *data,unsigned long len)
 	{
-		dwr(MSG_DEBUG, "phyOnDatagram(): len = %lu\n", len);
+		DEBUG_INFO("phyOnDatagram(): len = %lu\n", len);
 		if(len) {
             Connection *conn = getConnection(sock);
             if(!conn){
-                dwr(MSG_ERROR, "unable to locate Connection: sock=%p\n", (void*)sock);
+                DEBUG_ERROR("unable to locate Connection: sock=%p\n", (void*)sock);
                 return;
             }
             unsigned char *buf = (unsigned char*)data;
@@ -438,20 +438,20 @@ namespace ZeroTier
 
 	void NetconEthernetTap::phyOnTcpClose(PhySocket *sock,void **uptr) 
 	{
-		dwr(MSG_DEBUG, "phyOnTcpClose(): sock=%p\n", (void*)&sock);
+		DEBUG_INFO("phyOnTcpClose(): sock=%p\n", (void*)&sock);
 		Mutex::Lock _l(_tcpconns_m);
 		closeConnection(sock);
 	}
 
 	void NetconEthernetTap::phyOnTcpWritable(PhySocket *sock,void **uptr, bool lwip_invoked) 
 	{
-		dwr(MSG_DEBUG, " phyOnTcpWritable(): sock=%p\n", (void*)&sock);
+		DEBUG_INFO(" phyOnTcpWritable(): sock=%p\n", (void*)&sock);
 		processReceivedData(sock,uptr,lwip_invoked);
 	}
 
 	// RX data on stream socks and send back over client sock's underlying fd
 	void NetconEthernetTap::phyOnFileDescriptorActivity(PhySocket *sock,void **uptr,bool readable,bool writable)
 	{
-		dwr(MSG_DEBUG, "phyOnFileDescriptorActivity(): sock=%p\n", (void*&)sock);
+		DEBUG_INFO("phyOnFileDescriptorActivity(): sock=%p\n", (void*&)sock);
 	}
 }

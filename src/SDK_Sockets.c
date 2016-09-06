@@ -75,11 +75,10 @@
 #include "Constants.hpp" // For Tap's MTU
     
 // Prototypes
-void dwr(int level, const char *fmt, ... );
 char *api_netpath = (char *)0;
 void load_symbols();
 void load_symbols_rpc();
-int (*realclose)(CLOSE_SIG);
+//int (*realclose)(CLOSE_SIG);
 
     // ------------------------------------------------------------------------------
     // ---------------------------------- zt_init_rpc -------------------------------
@@ -88,7 +87,7 @@ int (*realclose)(CLOSE_SIG);
     // Assembles (and/or) sets the RPC path for communication with the ZeroTier service
     void zts_init_rpc(const char *path, const char *nwid)
     {
-        // dwr(MSG_DEBUG_EXTRA, "zt_init_rpc\n");
+        DEBUG_EXTRA("zt_init_rpc\n");
         #if !defined(__IOS__)
             // Since we don't use function interposition in iOS 
             if(!realconnect) {
@@ -113,10 +112,10 @@ int (*realclose)(CLOSE_SIG);
                 // This is used when you're dynamically-linking our library into your application at runtime
                 if (!api_netpath) {
                     api_netpath = getenv("ZT_NC_NETWORK");
-                    dwr(MSG_DEBUG, "$ZT_NC_NETWORK(len=%d) = %s\n", strlen(api_netpath), api_netpath);
+                    DEBUG_INFO("$ZT_NC_NETWORK(len=%d) = %s\n", strlen(api_netpath), api_netpath);
                 }
             #endif
-            dwr(MSG_DEBUG_EXTRA, "zt_init_rpc(): api_netpath = %s\n", api_netpath);
+            DEBUG_EXTRA("zt_init_rpc(): api_netpath = %s\n", api_netpath);
         }
     }
 
@@ -128,7 +127,7 @@ int (*realclose)(CLOSE_SIG);
     // int fd, const void *buf, size_t len
 
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1send(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, int flags)
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1send(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, int flags)
     {
         jbyte *body = (*env)->GetByteArrayElements(env, buf, 0);
         char * bufp = (char *)malloc(sizeof(char)*len);
@@ -148,7 +147,7 @@ int (*realclose)(CLOSE_SIG);
 #if defined(__ANDROID__)
     // TODO: Check result of each JNI call
     // UDP TX
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1sendto(
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1sendto(
         JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, jint flags, jobject ztaddr)
     {
         struct sockaddr_in addr;
@@ -177,7 +176,7 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_sendto(SENDTO_SIG) // Used as internal implementation 
     #endif
         {
-            dwr(MSG_DEBUG_EXTRA, "zt_sendto(%d, ...)\n", fd);
+            DEBUG_EXTRA("zt_sendto(%d, ...)\n", fd);
             if(len > ZT_UDP_DEFAULT_PAYLOAD_MTU) {
                 errno = EMSGSIZE; // Msg is too large
                 return -1;
@@ -198,7 +197,7 @@ int (*realclose)(CLOSE_SIG);
             // This connect call is used to get the address info to the stack for sending the packet
             int err;
             if((err = zts_connect(fd, addr, addrlen)) < 0) {
-                LOGV("sendto(): unknown problem passing address info to stack\n");
+                DEBUG_ERROR("unknown problem passing address info to stack");
                 errno = EISCONN; // double-check this is correct
                 return -1;
             }
@@ -218,7 +217,7 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_sendmsg(SENDMSG_SIG)
     #endif
         {
-            dwr(MSG_DEBUG_EXTRA, "zt_sendmsg(%d)\n", fd);
+            DEBUG_EXTRA("fd=%d",fd);
             char * p, * buf;
             size_t tot_len = 0;
             size_t err;
@@ -253,7 +252,7 @@ int (*realclose)(CLOSE_SIG);
 
 #if defined(__ANDROID__)
     // UDP RX
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1recvfrom(
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1recvfrom(
         JNIEnv *env, jobject thisObj, jint fd, jbyteArray buf, jint len, jint flags, jobject ztaddr)
     {
         struct sockaddr_in addr;
@@ -283,7 +282,7 @@ int (*realclose)(CLOSE_SIG);
     #endif
         {
             int tmpsz = 0; // payload size
-            // dwr(MSG_DEBUG_EXTRA,"zt_recvfrom(%d, ...)\n", fd);
+            // DEBUG_EXTRA("zt_recvfrom(%d, ...)\n", fd);
             if(read(fd, buf, ZT_MAX_MTU) > 0) {
                 // TODO: case for address size mismatch?
                 memcpy(addr, buf, addrlen);
@@ -308,7 +307,7 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_recvmsg(RECVMSG_SIG)
     #endif
         {
-            dwr(MSG_DEBUG_EXTRA, "zt_recvmsg(%d)\n", fd);
+            DEBUG_EXTRA("zt_recvmsg(%d)\n", fd);
             ssize_t err, n, tot_len = 0;
             char *buf, *p;
             struct iovec *iov = msg->msg_iov;
@@ -366,7 +365,7 @@ int (*realclose)(CLOSE_SIG);
 
 #if defined(__ANDROID__)
     // TCP TX
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1write(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len)
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1write(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len)
     {
         jbyte *body = (*env)->GetByteArrayElements(env, buf, 0);
         char * bufp = (char *)malloc(sizeof(char)*len);
@@ -376,7 +375,7 @@ int (*realclose)(CLOSE_SIG);
         return written_bytes;
     }
     // TCP RX
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1read(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len)
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1read(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len)
     {
         jbyte *body = (*env)->GetByteArrayElements(env, buf, 0);
         int read_bytes = read(fd, body, len);
@@ -391,7 +390,7 @@ int (*realclose)(CLOSE_SIG);
     // int fd, int level, int optname, const void *optval, socklen_t optlen
 
 #if defined(__ANDROID__)
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1setsockopt(
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1setsockopt(
         JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen) {
         return zts_setsockopt(fd, level, optname, optval, optlen);
     }
@@ -403,7 +402,7 @@ int (*realclose)(CLOSE_SIG);
     int zts_setsockopt(SETSOCKOPT_SIG)
     #endif
     {
-        dwr(MSG_DEBUG, "zt_setsockopt(%d)\n", fd);
+        DEBUG_INFO("zt_setsockopt(%d)\n", fd);
         return 0;
     }
     
@@ -413,7 +412,7 @@ int (*realclose)(CLOSE_SIG);
     // int fd, int level, int optname, void *optval, socklen_t *optlen 
 
 #if defined(__ANDROID__)
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1getsockopt(
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1getsockopt(
         JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen) {
         return zts_getsockopt(fd, level, optname, optval, optlen);
     }
@@ -425,7 +424,7 @@ int (*realclose)(CLOSE_SIG);
     int zts_getsockopt(GETSOCKOPT_SIG)
 #endif
     {
-        dwr(MSG_DEBUG,"zt_getsockopt(%d)\n", fd);
+        DEBUG_INFO("zt_getsockopt(%d)\n", fd);
         if(optname == SO_TYPE) {
             int* val = (int*)optval;
             *val = 2;
@@ -440,7 +439,7 @@ int (*realclose)(CLOSE_SIG);
     // int socket_family, int socket_type, int protocol
 
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1socket(JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol) {
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1socket(JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol) {
         return zts_socket(family, type, protocol);
     }
 #endif
@@ -452,7 +451,7 @@ int (*realclose)(CLOSE_SIG);
 #endif
     {
         get_api_netpath();
-        dwr(MSG_DEBUG, "zt_socket()\n");
+        DEBUG_INFO("");
         // Check that type makes sense
 #if defined(__linux__)
         int flags = socket_type & ~SOCK_TYPE_MASK;
@@ -488,9 +487,9 @@ int (*realclose)(CLOSE_SIG);
     #endif
 #endif
         // -1 is passed since we we're generating the new socket in this call
-        printf("api_netpath = %s\n", api_netpath);
+        DEBUG_INFO("api_netpath=%s\n", api_netpath);
         int err = rpc_send_command(api_netpath, RPC_SOCKET, -1, &rpc_st, sizeof(struct socket_st));
-        dwr(MSG_DEBUG," socket() = %d\n", err);
+        DEBUG_INFO("err=%d\n", err);
         return err;
     }
 
@@ -500,10 +499,10 @@ int (*realclose)(CLOSE_SIG);
     // int fd, const struct sockaddr *addr, socklen_t addrlen
 
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1connect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1connect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
         struct sockaddr_in addr;
         const char *str = (*env)->GetStringUTFChars(env, addrstr, 0);
-        dwr(MSG_DEBUG, "zt_connect(): fd = %d\naddr = %s\nport=%d", fd, str, port);
+        DEBUG_INFO("zt_connect(): fd = %d\naddr = %s\nport=%d", fd, str, port);
         addr.sin_addr.s_addr = inet_addr(str);
         addr.sin_family = AF_INET;
         addr.sin_port = htons( port );
@@ -519,7 +518,7 @@ int (*realclose)(CLOSE_SIG);
 #endif
     {
         get_api_netpath();
-        dwr(MSG_DEBUG,"zt_connect(%d)\n", fd);
+        DEBUG_INFO("zt_connect(%d)\n", fd);
         struct connect_st rpc_st;
 #if defined(__linux__)
     #if !defined(__ANDROID__)
@@ -540,10 +539,10 @@ int (*realclose)(CLOSE_SIG);
     // int fd, const struct sockaddr *addr, socklen_t addrlen
 
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1bind(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1bind(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
         struct sockaddr_in addr;
         const char *str = (*env)->GetStringUTFChars(env, addrstr, 0);
-        dwr(MSG_DEBUG, "zt_bind(): fd = %d\naddr = %s\nport=%d", fd, str, port);
+        DEBUG_INFO("zt_bind(): fd = %d\naddr = %s\nport=%d", fd, str, port);
         addr.sin_addr.s_addr = inet_addr(str);
         addr.sin_family = AF_INET;
         addr.sin_port = htons( port );
@@ -559,7 +558,7 @@ int (*realclose)(CLOSE_SIG);
 #endif
     {
         get_api_netpath();
-        dwr(MSG_DEBUG,"zt_bind(%d)\n", fd);
+        DEBUG_INFO("fd=%d", fd);
         struct bind_st rpc_st;
         rpc_st.fd = fd;
 #if defined(__linux__)
@@ -581,7 +580,7 @@ int (*realclose)(CLOSE_SIG);
     // int fd, struct sockaddr *addr, socklen_t *addrlen, int flags
 
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1accept4(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port, jint flags) {
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1accept4(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port, jint flags) {
         struct sockaddr_in addr;
         char *str;
         // = env->GetStringUTFChars(addrstr, NULL);
@@ -601,7 +600,7 @@ int (*realclose)(CLOSE_SIG);
     #endif
         {
             get_api_netpath();
-            dwr(MSG_DEBUG,"zt_accept4(%d):\n", fd);
+            DEBUG_INFO("zt_accept4(%d):\n", fd);
         #if !defined(__ANDROID__)
             if ((flags & SOCK_CLOEXEC))
                 fcntl(fd, F_SETFL, FD_CLOEXEC);
@@ -619,7 +618,7 @@ int (*realclose)(CLOSE_SIG);
     // int fd struct sockaddr *addr, socklen_t *addrlen
 
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1accept(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1accept(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
         struct sockaddr_in addr;
         // TODO: Send addr info back to Javaland
         addr.sin_addr.s_addr = inet_addr("");
@@ -636,14 +635,14 @@ int (*realclose)(CLOSE_SIG);
 #endif
     {
         get_api_netpath();
-        dwr(MSG_DEBUG,"zt_accept(%d):\n", fd);
+        DEBUG_INFO("fd=%d", fd);
     // FIXME: Find a better solution for this before production
     #if !defined(__UNITY_3D__)
         if(addr)
             addr->sa_family = AF_INET;
     #endif
         int new_fd = get_new_fd(fd);
-        dwr(MSG_DEBUG,"newfd = %d\n", new_fd);
+        DEBUG_INFO("newfd=%d", new_fd);
 
         if(new_fd > 0) {
             errno = ERR_OK;
@@ -659,7 +658,7 @@ int (*realclose)(CLOSE_SIG);
     // int fd, int backlog
 
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1listen(JNIEnv *env, jobject thisObj, jint fd, int backlog) {
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1listen(JNIEnv *env, jobject thisObj, jint fd, int backlog) {
         return zts_listen(fd, backlog);
     }
 #endif
@@ -671,7 +670,7 @@ int (*realclose)(CLOSE_SIG);
 #endif
     {
         get_api_netpath();
-        dwr(MSG_DEBUG,"zt_listen(%d):\n", fd);
+        DEBUG_INFO("fd=%d", fd);
         struct listen_st rpc_st;
         rpc_st.fd = fd;
         rpc_st.backlog = backlog;
@@ -691,7 +690,7 @@ int (*realclose)(CLOSE_SIG);
     // int fd
 
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1close(JNIEnv *env, jobject thisObj, jint fd) {
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1close(JNIEnv *env, jobject thisObj, jint fd) {
         return zts_close(fd);
     }
 #endif
@@ -703,7 +702,7 @@ int (*realclose)(CLOSE_SIG);
 #endif
     {
         get_api_netpath();
-        dwr(MSG_DEBUG, "zt_close(%d)\n", fd);
+        DEBUG_INFO("fd=%d", fd);
         return realclose(fd);
     }
     
@@ -713,7 +712,7 @@ int (*realclose)(CLOSE_SIG);
     // int fd, struct sockaddr *addr, socklen_t *addrlen
     
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1getsockname(JNIEnv *env, jobject thisObj, jint fd, jobject ztaddr) {
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1getsockname(JNIEnv *env, jobject thisObj, jint fd, jobject ztaddr) {
         struct sockaddr_in addr;
         int err = zts_getsockname(fd, &addr, sizeof(struct sockaddr));
         jfieldID fid;
@@ -733,7 +732,7 @@ int (*realclose)(CLOSE_SIG);
 #endif
     {
         get_api_netpath();
-        dwr(MSG_DEBUG_EXTRA,"zt_getsockname(%d):\n", fd);
+        DEBUG_EXTRA("fd=%d", fd);
         struct getsockname_st rpc_st;
         rpc_st.fd = fd;
         memcpy(&rpc_st.addrlen, &addrlen, sizeof(socklen_t));
@@ -751,13 +750,13 @@ int (*realclose)(CLOSE_SIG);
                 }
                 if(!sum) { // RXed a zero-ed address buffer, currently the only way to signal a problem
                     errno = ENOTSOCK; // TODO: general error, needs to be more specific
-                    dwr(MSG_ERROR, "zt_getpeername(): no address info given by service.\n");
+                    DEBUG_ERROR("no address info given by service.");
                     return -1;
                 }
             } 
             else {
                 errno = ENOTSOCK; // TODO: general error, needs to be more specific
-                dwr(MSG_ERROR, "zt_getpeername(): unable to read address info from service.\n", err);
+                DEBUG_ERROR("unable to read address info from service. err=%d", err);
                 return -1;
             }
         }
@@ -775,7 +774,7 @@ int (*realclose)(CLOSE_SIG);
     // int fd, struct sockaddr *addr, socklen_t *addrlen
     
 #if defined(__ANDROID__)
-    JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1getpeername(JNIEnv *env, jobject thisObj, jint fd, jobject ztaddr) {
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1getpeername(JNIEnv *env, jobject thisObj, jint fd, jobject ztaddr) {
         struct sockaddr_in addr;
         int err = zts_getpeername(fd, &addr, sizeof(struct sockaddr));
         jfieldID fid;
@@ -795,7 +794,7 @@ int (*realclose)(CLOSE_SIG);
 #endif
     {
         get_api_netpath();
-        dwr(MSG_DEBUG_EXTRA,"zt_getpeername(%d):\n", fd);
+        DEBUG_EXTRA("fd=%d", fd);
         struct getsockname_st rpc_st;
         rpc_st.fd = fd;
         memcpy(&rpc_st.addrlen, &addrlen, sizeof(socklen_t));
@@ -814,13 +813,13 @@ int (*realclose)(CLOSE_SIG);
                 }
                 if(!sum) { // RXed a zero-ed address buffer, currently the only way to signal a problem
                     errno = ENOTSOCK; // TODO: general error, needs to be more specific
-                    dwr(MSG_ERROR, "zt_getpeername(): no address info given by service.\n");
+                    DEBUG_ERROR("no address info given by service.");
                     return -1;
                 }
             } 
             else {
                 errno = ENOTSOCK; // TODO: general error, needs to be more specific
-                dwr(MSG_ERROR, "zt_getpeername(): unable to read address info from service.\n", err);
+                DEBUG_ERROR("unable to read address info from service. err=%d", err);
                 return -1;
             }
         }
@@ -838,7 +837,7 @@ int (*realclose)(CLOSE_SIG);
     // int fd, int cmd, int flags
 
     #if defined(__ANDROID__)
-	JNIEXPORT jint JNICALL Java_ZeroTier_SDK_zt_1fcntl(JNIEnv *env, jobject thisObj, jint fd, jint cmd, jint flags) {
+	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1fcntl(JNIEnv *env, jobject thisObj, jint fd, jint cmd, jint flags) {
         return zts_fcntl(fd,cmd,flags);
     }
 #endif
@@ -849,7 +848,7 @@ int (*realclose)(CLOSE_SIG);
     int zts_fcntl(FCNTL_SIG)
 #endif
     {
-        dwr(MSG_DEBUG_EXTRA,"zt_fcntl(%d, %d, %d)\n", fd, cmd, flags);
+        DEBUG_EXTRA("fd=%d, cmd=%d, flags=%d", fd, cmd, flags);
         return fcntl(fd,cmd,flags);
     }
 

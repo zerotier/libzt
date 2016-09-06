@@ -34,7 +34,14 @@ public class MainActivity extends AppCompatActivity {
                 zt.start_service(homeDir);
             }
         }).start();
-        while(!zt.running()) { }
+        while(!zt.service_is_running()) { }
+
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
 
         // client/server mode toggle
         int mode = 4, err;

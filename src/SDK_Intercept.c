@@ -25,7 +25,7 @@
  * LLC. Start here: http://www.zerotier.com/
  */
 
-#if defined(SDK_INTERCEPT)
+#if defined(_SDK_INTERCEPT_)
 
 #include <unistd.h>
 #include <stdio.h>
@@ -42,7 +42,7 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/socket.h>
+//#include <sys/socket.h>
 #include <sys/poll.h>
 #include <sys/un.h>
 #include <sys/resource.h>
@@ -59,9 +59,8 @@
 #include "SDK_Debug.h"
 #include "SDK_RPC.h"
 
-void dwr(int level, const char *fmt, ... );
 pthread_key_t thr_id_key;
-char *api_netpath;
+//char *api_netpath;
 
 // externs common between SDK_Intercept and SDK_Socket from SDK.h
 #if defined(__linux__)
@@ -93,7 +92,7 @@ char *api_netpath;
 
     extern void load_symbols()
     {
-        dwr(MSG_DEBUG_EXTRA,"load_symbols\n");
+        DEBUG_EXTRA("");
 #if defined(__linux__)
         realaccept4 = dlsym(RTLD_NEXT, "accept4");
     #if !defined(__ANDROID__)
@@ -122,7 +121,7 @@ char *api_netpath;
     // Return whether 'intercept' API is enabled for this thread
 
     bool check_intercept_enabled() {
-        dwr(MSG_DEBUG_EXTRA, "check_intercept_enabled()\n");
+        DEBUG_EXTRA("");
         if(!realconnect){
             load_symbols();
         }
@@ -157,7 +156,7 @@ char *api_netpath;
             addr_un = (struct sockaddr_un*)&addr;
             return strcmp(addr_un->sun_path, api_netpath) == 0;
         }
-        dwr(MSG_DEBUG,"connected_to_service(): Not connected to service\n");
+        DEBUG_INFO("connected_to_service(): Not connected to service\n");
         return 0;
     }
     
@@ -170,7 +169,7 @@ char *api_netpath;
 #if !defined(__ANDROID__)
     ssize_t sendto(SENDTO_SIG)
     {
-        dwr(MSG_DEBUG, "sendto(%d, ..., %d)\n", fd, len);
+        DEBUG_INFO("fd=%d, len=%d\n", fd, (int)len);
         //if (!check_intercept_enabled())
             return realsendto(fd, buf, len, flags, addr, addrlen);
         return zts_sendto(fd, buf, len, flags, addr, addrlen);
@@ -185,7 +184,7 @@ char *api_netpath;
 #if !defined(__ANDROID__)
     ssize_t sendmsg(SENDMSG_SIG)
     {
-        dwr(MSG_DEBUG, "sendmsg()\n");
+        DEBUG_INFO("");
         //if(!check_intercept_enabled())
             return realsendmsg(fd, msg, flags);
         zts_sendmsg(fd, msg, flags);
@@ -201,7 +200,7 @@ char *api_netpath;
 #if !defined(__ANDROID__)
     ssize_t recvfrom(RECVFROM_SIG)
     {
-        dwr(MSG_DEBUG, "recvfrom(%d)\n", socket);
+        DEBUG_INFO("fd=%d", fd);
         if(!check_intercept_enabled())
             return realrecvfrom(fd, buf, len, flags, addr, addrlen);
         return zts_recvfrom(fd, buf, len, flags, addr, addrlen);
@@ -216,7 +215,7 @@ char *api_netpath;
 #if !defined(__ANDROID__)
     ssize_t recvmsg(RECVMSG_SIG)
     {
-        dwr(MSG_DEBUG, "recvmsg(%d)\n", fd);
+        DEBUG_INFO("fd=%d", fd);
         //if(!check_intercept_enabled())
             return realrecvmsg(fd, msg, flags);
         return zts_recvmsg(fd, msg, flags);
@@ -230,7 +229,7 @@ char *api_netpath;
 
     int setsockopt(SETSOCKOPT_SIG)
     {
-        dwr(MSG_DEBUG, "setsockopt(%d)\n", fd);
+        DEBUG_INFO("fd=%d", fd);
         if (!check_intercept_enabled())
             return realsetsockopt(fd, level, optname, optval, optlen);
     #if defined(__linux__)
@@ -253,7 +252,7 @@ char *api_netpath;
 
     int getsockopt(GETSOCKOPT_SIG)
     {
-        dwr(MSG_DEBUG, "getsockopt(%d)\n", fd);
+        DEBUG_INFO("fd=%d", fd);
         if (!check_intercept_enabled() || !connected_to_service(fd))
             return realgetsockopt(fd, level, optname, optval, optlen);
         return zts_getsockopt(fd, level, optname, optval, optlen);
@@ -265,15 +264,15 @@ char *api_netpath;
     // int socket_family, int socket_type, int protocol
 
     int socket(SOCKET_SIG)
-    {
-        dwr(MSG_DEBUG, "socket()\n");
+    {   
+        DEBUG_INFO();
         if (!check_intercept_enabled() && socket_type) {
             int err = realsocket(socket_family, socket_type, protocol);
             if(err < 0) {
                 perror("socket:\n");
             }
             else {
-                dwr(MSG_DEBUG, " socket() = %d\n", err);
+                DEBUG_INFO("err=%d", err);
                 return err;
             }
         }
@@ -284,7 +283,7 @@ char *api_netpath;
     #endif
            || socket_family == AF_UNIX) {
             int err = realsocket(socket_family, socket_type, protocol);
-            dwr(MSG_DEBUG,"realsocket() = %d\n", err);
+            DEBUG_BLANK("realsocket(): err=%d\n", err);
             return err;
         }
         return zts_socket(socket_family, socket_type, protocol);
@@ -297,14 +296,14 @@ char *api_netpath;
 
     int connect(CONNECT_SIG)
     {
-        dwr(MSG_DEBUG, "connect(%d)\n", fd);
+        DEBUG_INFO("fd=%d", fd);
         struct sockaddr_in *connaddr;
         connaddr = (struct sockaddr_in *)addr;
         if(addr->sa_family == AF_LOCAL || addr->sa_family == AF_UNIX) {
             struct sockaddr_storage storage;
             memcpy(&storage, addr, addrlen);
             struct sockaddr_un *s_un = (struct sockaddr_un*)&storage;
-            dwr(MSG_DEBUG, "connect(): address = %s\n", s_un->sun_path);
+            DEBUG_INFO("addr=%s\n", s_un->sun_path);
         }
         
         int port = connaddr->sin_port;
@@ -314,7 +313,7 @@ char *api_netpath;
         d[1] = (ip >>  8) & 0xFF;
         d[2] = (ip >> 16) & 0xFF;
         d[3] = (ip >> 24) & 0xFF;
-        dwr(MSG_DEBUG,"connect(): %d.%d.%d.%d: %d\n", d[0],d[1],d[2],d[3], ntohs(port));
+        DEBUG_INFO("addr=%d.%d.%d.%d:%d\n", d[0],d[1],d[2],d[3], ntohs(port));
         
         if(!check_intercept_enabled())
             return realconnect(fd, addr, addrlen);
@@ -360,7 +359,7 @@ char *api_netpath;
 
     int bind(BIND_SIG)
     {
-        dwr(MSG_DEBUG,"bind(%d)\n", fd);
+        DEBUG_INFO("fd=%d", fd);
         // make sure we don't touch any standard outputs
         if(fd == 0 || fd == 1 || fd == 2)
             return(realbind(fd, addr, addrlen));
@@ -373,7 +372,7 @@ char *api_netpath;
         #endif
            || connaddr->sin_family == AF_UNIX) {
             int err = realbind(fd, addr, addrlen);
-            dwr(MSG_DEBUG,"realbind, err = %d\n", err);
+            DEBUG_BLANK("realbind(): err=%d", err);
             return err;
         }
         int port = connaddr->sin_port;
@@ -383,7 +382,7 @@ char *api_netpath;
         d[1] = (ip >>  8) & 0xFF;
         d[2] = (ip >> 16) & 0xFF;
         d[3] = (ip >> 24) & 0xFF;
-        dwr(MSG_DEBUG,"bind(): %d.%d.%d.%d: %d\n", d[0],d[1],d[2],d[3], ntohs(port));
+        DEBUG_INFO("addr=%d.%d.%d.%d:%d\n", d[0],d[1],d[2],d[3], ntohs(port));
 
         int sock_type;
         socklen_t sock_type_len = sizeof(sock_type);
@@ -418,7 +417,7 @@ char *api_netpath;
 
 #if defined(__linux__)
     int accept4(ACCEPT4_SIG) {
-        dwr(MSG_DEBUG,"accept4(%d):\n", fd);
+        DEBUG_INFO("fd=%d", fd);
         return zts_accept4(fd, addr, addrlen, flags);
     }
 #endif
@@ -429,7 +428,7 @@ char *api_netpath;
     // int fd struct sockaddr *addr, socklen_t *addrlen
 
     int accept(ACCEPT_SIG) {
-        dwr(MSG_DEBUG,"accept(%d):\n", fd);
+        DEBUG_INFO("fd=%d", fd);
         if (!check_intercept_enabled())
             return realaccept(fd, addr, addrlen);
 
@@ -437,7 +436,7 @@ char *api_netpath;
         if(fcntl(fd, F_GETFD) < 0) {
             return -1;
             errno = EBADF;
-            dwr(MSG_DEBUG,"EBADF\n");
+            DEBUG_INFO("EBADF\n");
             return -1;
         }
         // Check that it is a socket
@@ -445,13 +444,13 @@ char *api_netpath;
         socklen_t opt_len;
         if(getsockopt(fd, SOL_SOCKET, SO_TYPE, (void *) &opt, &opt_len) < 0) {
             errno = ENOTSOCK;
-            dwr(MSG_DEBUG,"ENOTSOCK\n");
+            DEBUG_INFO("ENOTSOCK\n");
             return -1;
         }
         // Check that this socket supports accept()
         if(!(opt && (SOCK_STREAM | SOCK_SEQPACKET))) {
             errno = EOPNOTSUPP;
-            dwr(MSG_DEBUG,"EOPNOTSUPP\n");
+            DEBUG_INFO("EOPNOTSUPP\n");
             return -1;
         }
         // Check that we haven't hit the soft-limit file descriptors allowed
@@ -459,18 +458,18 @@ char *api_netpath;
         getrlimit(RLIMIT_NOFILE, &rl);
         if(fd >= rl.rlim_cur){
             errno = EMFILE;
-            dwr(MSG_DEBUG,"EMFILE\n");
+            DEBUG_INFO("EMFILE\n");
             return -1;
         }
         // Check address length
         if(addrlen < 0) {
             errno = EINVAL;
-            dwr(MSG_DEBUG,"EINVAL\n");
+            DEBUG_INFO("EINVAL\n");
             return -1;
         }
         // redirect calls for standard I/O descriptors to kernel
         if(fd == 0 || fd == 1 || fd == 2){
-            dwr(MSG_DEBUG,"realaccept():\n");
+            DEBUG_BLANK("realaccept(): ");
             return(realaccept(fd, addr, addrlen));
         }
 
@@ -484,7 +483,7 @@ char *api_netpath;
 
     int listen(LISTEN_SIG)
     {
-        dwr(MSG_DEBUG,"listen(%d):\n", fd);
+        DEBUG_INFO("listen(%d):\n", fd);
         if (!check_intercept_enabled())
             return reallisten(fd, backlog);
         
@@ -521,7 +520,7 @@ char *api_netpath;
     // int fd
 
     int close(CLOSE_SIG) {
-        dwr(MSG_DEBUG, " close(%d)\n", fd);
+        DEBUG_INFO(" close(%d)\n", fd);
         if(!check_intercept_enabled()) { 
             return realclose(fd);
         }
@@ -535,14 +534,14 @@ char *api_netpath;
 
     int getsockname(GETSOCKNAME_SIG)
     {
-        dwr(MSG_DEBUG,"getsockname(%d):\n", fd);
+        DEBUG_INFO("getsockname(%d):\n", fd);
     #if !defined(__IOS__)
         if (!check_intercept_enabled())
             return realgetsockname(fd, addr, addrlen);
     #endif
-        dwr(MSG_DEBUG,"getsockname(%d)\n", fd);
+        DEBUG_INFO("getsockname(%d)\n", fd);
         if(!connected_to_service(fd)) {
-            dwr(MSG_DEBUG,"getsockname(): not used by service\n");
+            DEBUG_INFO("getsockname(): not used by service\n");
             return realgetsockname(fd, addr, addrlen);
         }
         return zts_getsockname(fd, addr, addrlen);
@@ -570,7 +569,7 @@ char *api_netpath;
         
         if (!check_intercept_enabled())
             return realsyscall(number,a,b,c,d,e,f);
-        dwr(MSG_DEBUG,"syscall(%u, ...)\n", number);
+        DEBUG_INFO("syscall(%u, ...)\n", number);
         
 #if defined(__i386__)
         // TODO: Implement for 32-bit systems: syscall(__NR_socketcall, 18, args);
@@ -597,5 +596,5 @@ char *api_netpath;
 #endif
 #endif
 
-#endif // zts_SDK_INTERCEPT
+#endif // _SDK_INTERCEPT_
 

@@ -67,6 +67,10 @@ extern "C" void zt_stop_proxy_server(const char *nwid) {
     zts_stop_proxy_server(nwid);
 }
 //
+extern "C" void zt_proxy_running(const char *homepath, const char *nwid, struct sockaddr_storage *addr) {
+    zts_start_proxy_server(homepath, nwid, addr);
+}
+//
 extern "C" void zt_get_proxy_server_address(const char *nwid, struct sockaddr_storage *addr) {
     zts_get_proxy_server_address(nwid, addr);
 }
@@ -84,38 +88,38 @@ extern "C" int zt_socket(SOCKET_SIG) {
     return zts_socket(socket_family, socket_type, protocol);
 }
 extern "C" int zt_connect(CONNECT_SIG) {
-    return zts_connect(__fd, __addr, __len);
+    return zts_connect(fd, addr, addrlen);
 }
 extern "C" int zt_bind(BIND_SIG){
-    return zts_bind(sockfd, addr, addrlen);
+    return zts_bind(fd, addr, addrlen);
 }
 extern "C" int zt_accept(ACCEPT_SIG) {
-    return zts_accept(sockfd, addr, addrlen);
+    return zts_accept(fd, addr, addrlen);
 }
 extern "C" int zt_listen(LISTEN_SIG) {
-    return zts_listen(sockfd, backlog);
+    return zts_listen(fd, backlog);
 }
 extern "C" int zt_setsockopt(SETSOCKOPT_SIG) {
-    return zts_setsockopt(socket, level, optname, optval, optlen);
+    return zts_setsockopt(fd, level, optname, optval, optlen);
 }
 extern "C" int zt_getsockopt(GETSOCKOPT_SIG) {
-    return zts_getsockopt(sockfd, level, optname, optval, optlen);
+    return zts_getsockopt(fd, level, optname, optval, optlen);
 }
 extern "C" int zt_close(CLOSE_SIG) {
     return zts_close(fd);
 }
 extern "C" int zt_getsockname(GETSOCKNAME_SIG) {
-    return zts_getsockname(sockfd, addr, addrlen);
+    return zts_getsockname(fd, addr, addrlen);
 }
 extern "C" int zt_getpeername(GETPEERNAME_SIG) {
-    return zts_getpeername(sockfd, addr, addrlen);
+    return zts_getpeername(fd, addr, addrlen);
 }
 extern "C" int zt_fcntl(FCNTL_SIG) {
     return zts_fcntl(fd, cmd, flags);
 }
 extern "C" ssize_t zt_recvfrom(RECVFROM_SIG) {
-    return zts_recvfrom(socket, buffer, length, flags, address, address_len);
+    return zts_recvfrom(fd, buf, len, flags, addr, addrlen);
 }
 extern "C" ssize_t zt_sendto(SENDTO_SIG) {
-    return zts_sendto(sockfd, buf, len, flags, addr, addr_len);
+    return zts_sendto(fd, buf, len, flags, addr, addrlen);
 }

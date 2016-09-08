@@ -130,8 +130,8 @@ class ZTSDK : NSObject
     */
     
     // SOCKET API
-    func socket(socket_family: Int32,  _ socket_type: Int32, _ socket_protocol: Int32) -> Int16 {
-        return Int16(zt_socket(socket_family, socket_type, socket_protocol));
+    func socket(socket_family: Int32,  _ socket_type: Int32, _ socket_protocol: Int32) -> Int32 {
+        return zt_socket(socket_family, socket_type, socket_protocol);
     }
     
     func connect(fd: Int32, _ addr: ZTAddress) -> Int32 {

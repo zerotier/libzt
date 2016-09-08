@@ -92,9 +92,9 @@ class ViewController: UIViewController {
         // TCP
         if(selectedProtocol == SOCK_STREAM)
         {
-            sock = zt.socket(AF_INET, socket_type: SOCK_STREAM, socket_protocol: 0)
+            sock = zt.socket(AF_INET, SOCK_STREAM, 0)
             let ztaddr: ZTAddress = ZTAddress(family: AF_INET, addr: serverAddr, port: serverPort)
-            let connect_err = zt.connect(sock, addr: ztaddr)
+            let connect_err = zt.connect(sock, ztaddr)
             
             print("connect_err = \(connect_err),\(errno)")
             
@@ -129,9 +129,9 @@ class ViewController: UIViewController {
         // TCP
         if(selectedProtocol == SOCK_STREAM)
         {
-            sock = Int16(zt_socket(AF_INET, SOCK_STREAM, 0))
+            sock = zt_socket(AF_INET, SOCK_STREAM, 0)
             let ztaddr: ZTAddress = ZTAddress(family: AF_INET, addr: serverAddr, port: serverPort)
-            let bind_err = zt.bind(sock, addr: ztaddr)
+            let bind_err = zt.bind(sock, ztaddr)
             
             print("bind_err = \(bind_err),\(errno)")
             
@@ -148,7 +148,7 @@ class ViewController: UIViewController {
             var len:socklen_t = 0;
             var legIntPtr = withUnsafeMutablePointer(&len, { $0 })
             while(accepted_sock < 0) {
-                accepted_sock = zt.accept(sock, addr: ztaddr)
+                accepted_sock = zt.accept(sock, ztaddr)
             }
             print("accepted connection")
         }
@@ -158,11 +158,11 @@ class ViewController: UIViewController {
         {
             let ztaddr: ZTAddress = ZTAddress(family: AF_INET, addr: serverAddr, port: serverPort)
 
-            sock = Int16(zt_socket(AF_INET, SOCK_DGRAM, 0))
-            err = zt.bind(sock, addr: ztaddr)
+            sock = zt_socket(AF_INET, SOCK_DGRAM, 0)
+            err = zt.bind(sock, ztaddr)
             print("bind_err = ", err)
             
-            err = zt.listen(sock, backlog: 0)
+            err = zt.listen(sock, 0)
             print("listen_err = ", err)
         }
     }
@@ -278,6 +278,7 @@ class ViewController: UIViewController {
         
         selectedProtocol = SOCK_STREAM
         
+        sleep(3)
         print("Starting ZeroTier...\n");
         zt.start_service(nil);
         

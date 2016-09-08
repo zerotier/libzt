@@ -35,29 +35,38 @@
 // ZEROTIER CONTROLS
 // Starts a ZeroTier service at the specified path
 // This will only support SOCKS5 Proxy
-extern "C" void zt_start_service(const char * path) {
+extern "C" void zt_start_service(const char *path, const char *nwid) {
+    //zts_start_service(path);
     init_service(INTERCEPT_DISABLED, path);
 }
 // Starts a ZeroTier service at the specified path and initializes the RPC mechanism
 // This will allow direct API calls
-extern "C" void zt_start_service_and_rpc(const char * path, const char * nwid) {
+extern "C" void zt_start_service_and_rpc(const char *path, const char *nwid) {
     init_service_and_rpc(INTERCEPT_DISABLED, path, nwid);
 }
+//
 extern "C" void zt_stop_service() {
     zts_stop_service();
 }
+//
+extern "C" bool zt_service_is_running() {
+    return zts_service_is_running();
+}
 // Joins a ZeroTier virtual network
-extern "C" void zt_join_network(const char * nwid) {
+extern "C" void zt_join_network(const char *nwid) {
     zts_join_network(nwid);
 }
 // Leaves a ZeroTier virtual network
-extern "C" void zt_leave_network(const char * nwid) {
+extern "C" void zt_leave_network(const char *nwid) {
     zts_leave_network(nwid);
 }
 // Returns a list of addresses associated with this device on the given network
-extern "C" void zt_get_addresses(const char * nwid, char * addrstr) {
+extern "C" void zt_get_addresses(const char *nwid, char *addrstr) {
     zts_get_addresses(nwid, addrstr);
 }
+
+
+// PROXY SERVER CONTROLS
 //
 extern "C" void zt_start_proxy_server(const char *homepath, const char *nwid, struct sockaddr_storage *addr) {
     zts_start_proxy_server(homepath, nwid, addr);
@@ -76,10 +85,10 @@ extern "C" void zt_get_proxy_server_address(const char *nwid, struct sockaddr_st
 }
 // Explicit ZT API wrappers
 #if !defined(__IOS__)
-    // This isn't available for iOS since function interposition isn't as reliable
-    extern "C" void zt_init_rpc(const char *path, const char *nwid) {
-        zts_init_rpc(path, nwid);
-    }
+// This isn't available for iOS since function interposition isn't as reliable
+extern "C" void zt_init_rpc(const char *path, const char *nwid) {
+    zts_init_rpc(path, nwid);
+}
 #endif
 
 

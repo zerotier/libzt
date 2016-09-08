@@ -54,7 +54,7 @@
 std::string service_path;
 pthread_t intercept_thread;
 int * intercept_thread_id;
-extern pthread_key_t thr_id_key;
+pthread_key_t thr_id_key;
 static ZeroTier::OneService *volatile zt1Service;
 
 std::string localHomeDir; // Local shortened path
@@ -69,11 +69,15 @@ bool rpcEnabled;
 extern "C" {
 #endif
 
-// Prototypes
-void *zts_start_service(void *thread_id);
-void zts_init_rpc(const char * path, const char * nwid);
-void dwr(int level, const char *fmt, ... );
+    // ------------------------------------------------------------------------------
+    // --------------------------------- Base zts_* API -----------------------------
+    // ------------------------------------------------------------------------------
 
+// Prototypes
+void *zts_start_core_service(void *thread_id);
+void zts_init_rpc(const char * path, const char * nwid);
+
+//
 int zts_start_proxy_server(const char *homepath, const char * nwid, struct sockaddr_storage * addr) {
     DEBUG_INFO();
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
@@ -87,8 +91,9 @@ int zts_start_proxy_server(const char *homepath, const char * nwid, struct socka
     DEBUG_ERROR("zts_start_proxy_server(%s): Invalid tap. Possibly incorrect NWID", nwid);
     return 0;
 }
+//
 int zts_stop_proxy_server(const char *nwid) {
-    DEBUG_INFO("zts_stop_proxy_server()");
+    DEBUG_INFO();
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
     ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
     if(tap) {
@@ -100,6 +105,7 @@ int zts_stop_proxy_server(const char *nwid) {
     DEBUG_ERROR("zts_stop_proxy_server(%s): Invalid tap. Possibly incorrect NWID", nwid);
     return 0;
 }
+//
 int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage * addr) {
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
     ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
@@ -116,10 +122,10 @@ void zts_join_network(const char * nwid) {
     DEBUG_INFO();
     std::string confFile = zt1Service->givenHomePath() + "/networks.d/" + nwid + ".conf";
     if(!ZeroTier::OSUtils::mkdir(netDir)) {
-        DEBUG_INFO("unable to create %s\n", netDir.c_str());
+        DEBUG_ERROR("unable to create: %s", netDir.c_str());
     }
     if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), "")) {
-        DEBUG_INFO("unable to write network conf file: %s\n", confFile.c_str());
+        DEBUG_ERROR("unable to write network conf file: %s", confFile.c_str());
     }
     zt1Service->join(nwid);
     // Provide the API with the RPC information
@@ -130,9 +136,20 @@ void zts_join_network(const char * nwid) {
         zts_start_proxy_server(homeDir.c_str(), nwid, NULL); // NULL addr for default
     #endif
 }
-void zts_leave_network(const char * nwid) { zt1Service->leave(nwid); }
-bool zts_service_is_running() { return zt1Service->isRunning(); }
-void zts_stop_service() { zt1Service->terminate(); }
+//
+void zts_leave_network(const char * nwid) { 
+    if(zt1Service)
+        zt1Service->leave(nwid); 
+}
+//
+bool zts_service_is_running() { 
+    return !zt1Service ? false : zt1Service->isRunning(); 
+}
+//
+void zts_stop_service() {
+    if(zt1Service) 
+        zt1Service->terminate(); 
+}
 
 // FIXME: Re-implemented to make it play nicer with the C-linkage required for Xcode integrations
 // Now only returns first assigned address per network. Shouldn't normally be a problem
@@ -161,18 +178,23 @@ void zts_get_addresses(const char * nwid, char *addrstr)
     return ip_strings;
     */
 }
-
+//
 int zts_get_device_id() { /* TODO */ return 0; }
-
+//
 bool zts_is_relayed() {
     // TODO
     // zt1Service->getNode()->peers()
     return false;
 }
-
+//
 char *zts_get_homepath() {
     return (char*)givenHomeDir.c_str();
 }
+
+
+    // ------------------------------------------------------------------------------
+    // ----------------------------- .NET Interop functions -------------------------
+    // ------------------------------------------------------------------------------
 
 
 #if defined(__UNITY_3D__)
@@ -197,13 +219,60 @@ char *zts_get_homepath() {
     }
 #endif
 
-// 
+
+    // ------------------------------------------------------------------------------
+    // ------------------------------  --------------------------
+    // ------------------------------------------------------------------------------
+    // For use when symbols are used in Swift
+
+// If we're using a bridging header for an Xcode project...
+// This matters because the header/wrapper needs to define symbols
+// for usage in Swift, but in order to maintain API naming consistency
+// between build environments whilst also preventing duplicate symbols
+// we need to check for this case
+
+/*
+#if defined(USING_BRIDGING_HEADER)
+    void zts_start_service(const char *path)
+    {
+
+    }
+
+    void zts_start_service(const char *path, const char *nwid)
+    {
+
+    }
+#endif
+*/
+
+void zts_start_service(const char *path)
+{
+    DEBUG_INFO("path=%s", path);
+    if(path)
+        homeDir = path;
+    zts_start_core_service(NULL);
+}
+
+#if !defined(USING_BRIDGING_HEADER)
+void zt_start_service(const char * path, const char *nwid) {
+        DEBUG_INFO("path=%s", path);
+        if(path)
+            homeDir = path;
+        zts_start_core_service(NULL);
+    }
+
+void zt_join_network()
+{
+
+}
+#endif 
+/*
 #if (defined(__APPLE__) || defined(__linux__)) && (!defined(__IOS__) && !defined(__ANDROID__))
     void zt_start_service(const char * path, const char *nwid) {
         printf("path = %s\n", path);
         if(path)
             homeDir = path;
-        zts_start_service(NULL);
+        zts_start_core_service(NULL);
     }
     void zt_join_network(const char * nwid) { 
         zts_join_network(nwid);
@@ -212,10 +281,46 @@ char *zts_get_homepath() {
         zts_leave_network(nwid);
     }
 #endif
+*/
 
 
-// Android JNI wrapper
-// JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
+
+// Typically used on iOS/OSX 
+#if !defined(__ANDROID__)
+    // Starts a service thread and performs basic setup tasks
+    void init_service(int key, const char * path) {
+        givenHomeDir = path;
+        pthread_key_create(&thr_id_key, NULL);
+        intercept_thread_id = (int*)malloc(sizeof(int));
+        *intercept_thread_id = key;
+        pthread_create(&intercept_thread, NULL, zts_start_core_service, (void *)(intercept_thread_id));
+    }
+    void init_service_and_rpc(int key, const char * path, const char * nwid) {
+        rpcEnabled = true;
+        rpcNWID = nwid;
+        init_service(key, path);
+    }
+    // Enables or disables intercept for current thread using key in thread-local storage
+    void set_intercept_status(int mode) {
+        #if defined(__APPLE__)
+            DEBUG_INFO("mode=%d, tid=%d", mode, pthread_mach_thread_np(pthread_self()));
+        #else
+            // fprintf(stderr, "set_intercept_status(mode=%d): tid = %d\n", mode, gettid());
+        #endif
+        pthread_key_create(&thr_id_key, NULL);
+        intercept_thread_id = (int*)malloc(sizeof(int));
+        *intercept_thread_id = mode;
+        pthread_setspecific(thr_id_key, intercept_thread_id);
+    }
+#endif
+
+
+    // ------------------------------------------------------------------------------
+    // ------------------------------ EXPORTED JNI METHODS --------------------------
+    // ------------------------------------------------------------------------------
+    // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
+
+
 #if defined(__ANDROID__)
     // Starts a new service instance
     /* NOTE: Since on Android devices the sdcard is formatted as fat32, we can't use just any 
@@ -224,7 +329,7 @@ char *zts_get_homepath() {
     JNIEXPORT int JNICALL Java_ZeroTier_ZTSDK_zt_1start_1service(JNIEnv *env, jobject thisObj, jstring path) {
         if(path)
             homeDir = env->GetStringUTFChars(path, NULL);
-        zts_start_service(NULL);
+        zts_start_core_service(NULL);
     }
     // Shuts down ZeroTier service and SOCKS5 Proxy server
     JNIEXPORT void JNICALL Java_ZeroTier_ZTSDK_zt_1stop_1service(JNIEnv *env, jobject thisObj) {
@@ -333,40 +438,14 @@ char *zts_get_homepath() {
 #endif
 
 
-// Typically used on iOS/OSX 
-#if !defined(__ANDROID__)
-    // Starts a service thread and performs basic setup tasks
-    void init_service(int key, const char * path) {
-        givenHomeDir = path;
-        pthread_key_create(&thr_id_key, NULL);
-        intercept_thread_id = (int*)malloc(sizeof(int));
-        *intercept_thread_id = key;
-        pthread_create(&intercept_thread, NULL, zts_start_service, (void *)(intercept_thread_id));
-    }
-    void init_service_and_rpc(int key, const char * path, const char * nwid) {
-        rpcEnabled = true;
-        rpcNWID = nwid;
-        init_service(key, path);
-    }
-    // Enables or disables intercept for current thread using key in thread-local storage
-    void set_intercept_status(int mode) {
-        #if defined(__APPLE__)
-            fprintf(stderr, "set_intercept_status(mode=%d): tid = %d\n", mode, pthread_mach_thread_np(pthread_self()));
-        #else
-            // fprintf(stderr, "set_intercept_status(mode=%d): tid = %d\n", mode, gettid());
-        #endif
-        pthread_key_create(&thr_id_key, NULL);
-        intercept_thread_id = (int*)malloc(sizeof(int));
-        *intercept_thread_id = mode;
-        pthread_setspecific(thr_id_key, intercept_thread_id);
-    }
-#endif
+    // ------------------------------------------------------------------------------
+    // ------------------------------- zts_start_service ----------------------------
+    // ------------------------------------------------------------------------------
 
-        
 // Starts a ZeroTier service in the background
-void *zts_start_service(void *thread_id) {
+void *zts_start_core_service(void *thread_id) {
     #if defined(__ANDROID__)
-        DEBUG_INFO("ZTSDK_BUILD_VERSION = %d\n", ZTSDK_BUILD_VERSION);
+        DEBUG_INFO("ZTSDK_BUILD_VERSION = %d", ZTSDK_BUILD_VERSION);
     #endif
 
     #if defined(SDK_BUNDLED) && !defined(__ANDROID__)
@@ -395,7 +474,7 @@ void *zts_start_service(void *thread_id) {
         localHomeDir = homeDir; // Used for RPC and *can* differ from homeDir on some platforms
     #endif
 
-    DEBUG_INFO("homeDir = %s\n", homeDir.c_str());
+    DEBUG_INFO("homeDir=%s", homeDir.c_str());
     // Where network .conf files will be stored
     netDir = homeDir + "/networks.d";
     zt1Service = (ZeroTier::OneService *)0;
@@ -412,13 +491,13 @@ void *zts_start_service(void *thread_id) {
             ptmp.append(*pi);
             if ((*pi != ".")&&(*pi != "..")) {
                 if (!ZeroTier::OSUtils::mkdir(ptmp)) {
-                    DEBUG_ERROR("startOneService(): home path does not exist, and could not create\n");
+                    DEBUG_ERROR("home path does not exist, and could not create");
                 }
             }
         }
     }
     else {
-        fprintf(stderr, "start_service(): homeDir is empty, could not construct path\n");
+        fprintf(stderr, "homeDir is empty, could not construct path");
         return NULL;
     }
 
@@ -433,7 +512,7 @@ void *zts_start_service(void *thread_id) {
 
     //chdir(current_dir); // Return to previous current working directory (at the request of Unity3D)
     #if defined(__UNITY_3D__)
-        Debug("Starting service...\n");
+        DEBUG_INFO("starting service...");
     #endif
 
     // Initialize RPC 
@@ -453,7 +532,7 @@ void *zts_start_service(void *thread_id) {
             case ZeroTier::OneService::ONE_NORMAL_TERMINATION:
                 break;
             case ZeroTier::OneService::ONE_UNRECOVERABLE_ERROR:
-                fprintf(stderr,"start_service(): fatal error: %s",zt1Service->fatalErrorMessage().c_str());
+                DEBUG_ERROR("fatal error: %s",zt1Service->fatalErrorMessage().c_str());
                 break;
             case ZeroTier::OneService::ONE_IDENTITY_COLLISION: {
                 delete zt1Service;

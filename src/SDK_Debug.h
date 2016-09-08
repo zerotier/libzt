@@ -69,6 +69,7 @@ extern "C" {
  #if DEBUG_LEVEL >= MSG_INFO
   #if defined(__ANDROID__)
     #define DEBUG_INFO(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, "ZT_INFO : %s:%d:%s(): " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args))
+    #define DEBUG_BLANK(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, "ZT_INFO : %s:%d:" fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args))
   #else
     #define DEBUG_INFO(fmt, args...) fprintf(stderr, "ZT_INFO : %s:%d:%s(): " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args)
     #define DEBUG_BLANK(fmt, args...) fprintf(stderr, "ZT_INFO : %s:%d:" fmt "\n", __FILENAME__, __LINE__, ##args)

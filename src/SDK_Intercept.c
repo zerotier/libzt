@@ -156,7 +156,7 @@ pthread_key_t thr_id_key;
             addr_un = (struct sockaddr_un*)&addr;
             return strcmp(addr_un->sun_path, api_netpath) == 0;
         }
-        DEBUG_INFO("connected_to_service(): Not connected to service\n");
+        DEBUG_ERROR("not connected to service");
         return 0;
     }
     
@@ -169,7 +169,7 @@ pthread_key_t thr_id_key;
 #if !defined(__ANDROID__)
     ssize_t sendto(SENDTO_SIG)
     {
-        DEBUG_INFO("fd=%d, len=%d\n", fd, (int)len);
+        DEBUG_INFO("fd=%d, len=%d", fd, (int)len);
         //if (!check_intercept_enabled())
             return realsendto(fd, buf, len, flags, addr, addrlen);
         return zts_sendto(fd, buf, len, flags, addr, addrlen);
@@ -184,7 +184,7 @@ pthread_key_t thr_id_key;
 #if !defined(__ANDROID__)
     ssize_t sendmsg(SENDMSG_SIG)
     {
-        DEBUG_INFO("");
+        DEBUG_INFO("fd=%d", fd);
         //if(!check_intercept_enabled())
             return realsendmsg(fd, msg, flags);
         zts_sendmsg(fd, msg, flags);
@@ -283,7 +283,7 @@ pthread_key_t thr_id_key;
     #endif
            || socket_family == AF_UNIX) {
             int err = realsocket(socket_family, socket_type, protocol);
-            DEBUG_BLANK("realsocket(): err=%d\n", err);
+            DEBUG_BLANK("realsocket(): err=%d", err);
             return err;
         }
         return zts_socket(socket_family, socket_type, protocol);
@@ -303,7 +303,7 @@ pthread_key_t thr_id_key;
             struct sockaddr_storage storage;
             memcpy(&storage, addr, addrlen);
             struct sockaddr_un *s_un = (struct sockaddr_un*)&storage;
-            DEBUG_INFO("addr=%s\n", s_un->sun_path);
+            DEBUG_INFO("addr=%s", s_un->sun_path);
         }
         
         int port = connaddr->sin_port;
@@ -313,7 +313,7 @@ pthread_key_t thr_id_key;
         d[1] = (ip >>  8) & 0xFF;
         d[2] = (ip >> 16) & 0xFF;
         d[3] = (ip >> 24) & 0xFF;
-        DEBUG_INFO("addr=%d.%d.%d.%d:%d\n", d[0],d[1],d[2],d[3], ntohs(port));
+        DEBUG_INFO("addr=%d.%d.%d.%d:%d", d[0],d[1],d[2],d[3], ntohs(port));
         
         if(!check_intercept_enabled())
             return realconnect(fd, addr, addrlen);
@@ -382,7 +382,7 @@ pthread_key_t thr_id_key;
         d[1] = (ip >>  8) & 0xFF;
         d[2] = (ip >> 16) & 0xFF;
         d[3] = (ip >> 24) & 0xFF;
-        DEBUG_INFO("addr=%d.%d.%d.%d:%d\n", d[0],d[1],d[2],d[3], ntohs(port));
+        DEBUG_INFO("addr=%d.%d.%d.%d:%d", d[0],d[1],d[2],d[3], ntohs(port));
 
         int sock_type;
         socklen_t sock_type_len = sizeof(sock_type);
@@ -436,7 +436,7 @@ pthread_key_t thr_id_key;
         if(fcntl(fd, F_GETFD) < 0) {
             return -1;
             errno = EBADF;
-            DEBUG_INFO("EBADF\n");
+            DEBUG_ERROR("EBADF");
             return -1;
         }
         // Check that it is a socket
@@ -444,13 +444,13 @@ pthread_key_t thr_id_key;
         socklen_t opt_len;
         if(getsockopt(fd, SOL_SOCKET, SO_TYPE, (void *) &opt, &opt_len) < 0) {
             errno = ENOTSOCK;
-            DEBUG_INFO("ENOTSOCK\n");
+            DEBUG_ERROR("ENOTSOCK");
             return -1;
         }
         // Check that this socket supports accept()
         if(!(opt && (SOCK_STREAM | SOCK_SEQPACKET))) {
             errno = EOPNOTSUPP;
-            DEBUG_INFO("EOPNOTSUPP\n");
+            DEBUG_ERROR("EOPNOTSUPP");
             return -1;
         }
         // Check that we haven't hit the soft-limit file descriptors allowed
@@ -458,13 +458,13 @@ pthread_key_t thr_id_key;
         getrlimit(RLIMIT_NOFILE, &rl);
         if(fd >= rl.rlim_cur){
             errno = EMFILE;
-            DEBUG_INFO("EMFILE\n");
+            DEBUG_ERROR("EMFILE");
             return -1;
         }
         // Check address length
         if(addrlen < 0) {
             errno = EINVAL;
-            DEBUG_INFO("EINVAL\n");
+            DEBUG_ERROR("EINVAL");
             return -1;
         }
         // redirect calls for standard I/O descriptors to kernel
@@ -483,7 +483,7 @@ pthread_key_t thr_id_key;
 
     int listen(LISTEN_SIG)
     {
-        DEBUG_INFO("listen(%d):\n", fd);
+        DEBUG_INFO("fd=%d", fd);
         if (!check_intercept_enabled())
             return reallisten(fd, backlog);
         
@@ -520,7 +520,7 @@ pthread_key_t thr_id_key;
     // int fd
 
     int close(CLOSE_SIG) {
-        DEBUG_INFO(" close(%d)\n", fd);
+        DEBUG_INFO("fd=%d", fd);
         if(!check_intercept_enabled()) { 
             return realclose(fd);
         }
@@ -534,14 +534,14 @@ pthread_key_t thr_id_key;
 
     int getsockname(GETSOCKNAME_SIG)
     {
-        DEBUG_INFO("getsockname(%d):\n", fd);
+        DEBUG_INFO("fd=%d", fd);
     #if !defined(__IOS__)
         if (!check_intercept_enabled())
             return realgetsockname(fd, addr, addrlen);
     #endif
-        DEBUG_INFO("getsockname(%d)\n", fd);
+        DEBUG_INFO("fd=%d", fd);
         if(!connected_to_service(fd)) {
-            DEBUG_INFO("getsockname(): not used by service\n");
+            DEBUG_ERROR("fd=%d not used by service");
             return realgetsockname(fd, addr, addrlen);
         }
         return zts_getsockname(fd, addr, addrlen);
@@ -569,7 +569,7 @@ pthread_key_t thr_id_key;
         
         if (!check_intercept_enabled())
             return realsyscall(number,a,b,c,d,e,f);
-        DEBUG_INFO("syscall(%u, ...)\n", number);
+        DEBUG_INFO("number=%u", number);
         
 #if defined(__i386__)
         // TODO: Implement for 32-bit systems: syscall(__NR_socketcall, 18, args);

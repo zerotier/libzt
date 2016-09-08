@@ -93,7 +93,8 @@ int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage *add
 bool zts_proxy_is_running();
 
 // ZT Service Controls
-void *zts_start_service(void *thread_id);
+void zts_start_service(const char *path);
+void *zts_start_core_service(void *thread_id);
 void zts_stop_service();
 bool zts_service_is_running();
 void zts_join_network(const char * nwid);

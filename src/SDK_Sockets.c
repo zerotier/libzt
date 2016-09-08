@@ -78,7 +78,7 @@
 char *api_netpath = (char *)0;
 void load_symbols();
 void load_symbols_rpc();
-//int (*realclose)(CLOSE_SIG);
+int (*realclose)(CLOSE_SIG);
 
     // ------------------------------------------------------------------------------
     // ---------------------------------- zt_init_rpc -------------------------------
@@ -87,7 +87,7 @@ void load_symbols_rpc();
     // Assembles (and/or) sets the RPC path for communication with the ZeroTier service
     void zts_init_rpc(const char *path, const char *nwid)
     {
-        DEBUG_EXTRA("zt_init_rpc\n");
+        DEBUG_EXTRA();
         #if !defined(__IOS__)
             // Since we don't use function interposition in iOS 
             if(!realconnect) {
@@ -112,10 +112,10 @@ void load_symbols_rpc();
                 // This is used when you're dynamically-linking our library into your application at runtime
                 if (!api_netpath) {
                     api_netpath = getenv("ZT_NC_NETWORK");
-                    DEBUG_INFO("$ZT_NC_NETWORK(len=%d) = %s\n", strlen(api_netpath), api_netpath);
+                    DEBUG_INFO("$ZT_NC_NETWORK(len=%d)=%s", strlen(api_netpath), api_netpath);
                 }
             #endif
-            DEBUG_EXTRA("zt_init_rpc(): api_netpath = %s\n", api_netpath);
+            DEBUG_EXTRA("api_netpath=%s", api_netpath);
         }
     }
 
@@ -176,7 +176,7 @@ void load_symbols_rpc();
         ssize_t zts_sendto(SENDTO_SIG) // Used as internal implementation 
     #endif
         {
-            DEBUG_EXTRA("zt_sendto(%d, ...)\n", fd);
+            DEBUG_EXTRA("fd=%d", fd);
             if(len > ZT_UDP_DEFAULT_PAYLOAD_MTU) {
                 errno = EMSGSIZE; // Msg is too large
                 return -1;
@@ -307,7 +307,7 @@ void load_symbols_rpc();
         ssize_t zts_recvmsg(RECVMSG_SIG)
     #endif
         {
-            DEBUG_EXTRA("zt_recvmsg(%d)\n", fd);
+            DEBUG_EXTRA("fd=%d", fd);
             ssize_t err, n, tot_len = 0;
             char *buf, *p;
             struct iovec *iov = msg->msg_iov;
@@ -402,7 +402,7 @@ void load_symbols_rpc();
     int zts_setsockopt(SETSOCKOPT_SIG)
     #endif
     {
-        DEBUG_INFO("zt_setsockopt(%d)\n", fd);
+        DEBUG_INFO("fd=%d", fd);
         return 0;
     }
     
@@ -424,7 +424,7 @@ void load_symbols_rpc();
     int zts_getsockopt(GETSOCKOPT_SIG)
 #endif
     {
-        DEBUG_INFO("zt_getsockopt(%d)\n", fd);
+        DEBUG_INFO("fd=%d", fd);
         if(optname == SO_TYPE) {
             int* val = (int*)optval;
             *val = 2;
@@ -487,9 +487,9 @@ void load_symbols_rpc();
     #endif
 #endif
         // -1 is passed since we we're generating the new socket in this call
-        DEBUG_INFO("api_netpath=%s\n", api_netpath);
+        DEBUG_INFO("api_netpath=%s", api_netpath);
         int err = rpc_send_command(api_netpath, RPC_SOCKET, -1, &rpc_st, sizeof(struct socket_st));
-        DEBUG_INFO("err=%d\n", err);
+        DEBUG_INFO("err=%d", err);
         return err;
     }
 
@@ -502,7 +502,7 @@ void load_symbols_rpc();
     JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1connect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
         struct sockaddr_in addr;
         const char *str = (*env)->GetStringUTFChars(env, addrstr, 0);
-        DEBUG_INFO("zt_connect(): fd = %d\naddr = %s\nport=%d", fd, str, port);
+        DEBUG_INFO("fd=%d, addr=%s, port=%d", fd, str, port);
         addr.sin_addr.s_addr = inet_addr(str);
         addr.sin_family = AF_INET;
         addr.sin_port = htons( port );
@@ -518,7 +518,7 @@ void load_symbols_rpc();
 #endif
     {
         get_api_netpath();
-        DEBUG_INFO("zt_connect(%d)\n", fd);
+        DEBUG_INFO("fd=%d", fd);
         struct connect_st rpc_st;
 #if defined(__linux__)
     #if !defined(__ANDROID__)
@@ -542,7 +542,7 @@ void load_symbols_rpc();
     JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1bind(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
         struct sockaddr_in addr;
         const char *str = (*env)->GetStringUTFChars(env, addrstr, 0);
-        DEBUG_INFO("zt_bind(): fd = %d\naddr = %s\nport=%d", fd, str, port);
+        DEBUG_INFO("fd=%d, addr=%s, port=%d", fd, str, port);
         addr.sin_addr.s_addr = inet_addr(str);
         addr.sin_family = AF_INET;
         addr.sin_port = htons( port );
@@ -600,7 +600,7 @@ void load_symbols_rpc();
     #endif
         {
             get_api_netpath();
-            DEBUG_INFO("zt_accept4(%d):\n", fd);
+            DEBUG_INFO("fd=%d", fd);
         #if !defined(__ANDROID__)
             if ((flags & SOCK_CLOEXEC))
                 fcntl(fd, F_SETFL, FD_CLOEXEC);

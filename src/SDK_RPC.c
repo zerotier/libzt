@@ -50,8 +50,8 @@
 
 
 // externs common between SDK_Intercept and SDK_Socket from SDK.h
-//int (*realsocket)(SOCKET_SIG);
-//int (*realconnect)(CONNECT_SIG);
+int (*realsocket)(SOCKET_SIG);
+int (*realconnect)(CONNECT_SIG);
 
 void dwr(int level, const char *fmt, ... );
 

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7C1345841D80CDD700AF7FD1 /* ZTSDK.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C1345831D80CDD700AF7FD1 /* ZTSDK.swift */; };
 		7C8BC03C1D3348A6001E1B6F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C8BC03B1D3348A6001E1B6F /* AppDelegate.swift */; };
 		7C8BC03E1D3348A6001E1B6F /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C8BC03D1D3348A6001E1B6F /* ViewController.swift */; };
 		7C8BC0411D3348A6001E1B6F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 7C8BC03F1D3348A6001E1B6F /* Main.storyboard */; };
@@ -32,6 +33,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		7C1345831D80CDD700AF7FD1 /* ZTSDK.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ZTSDK.swift; path = ../../../../../src/ZTSDK.swift; sourceTree = "<group>"; };
 		7C8BC0381D3348A6001E1B6F /* Example_iOS_App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Example_iOS_App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7C8BC03B1D3348A6001E1B6F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7C8BC03D1D3348A6001E1B6F /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -76,6 +78,7 @@
 		7C8BC03A1D3348A6001E1B6F /* Example_iOS_App */ = {
 			isa = PBXGroup;
 			children = (
+				7C1345831D80CDD700AF7FD1 /* ZTSDK.swift */,
 				7CE8BFA91D3C553400350023 /* SDK_XcodeWrapper.cpp */,
 				7CE8BFAA1D3C553400350023 /* SDK_XcodeWrapper.hpp */,
 				7C8BC03B1D3348A6001E1B6F /* AppDelegate.swift */,
@@ -163,6 +166,7 @@
 			files = (
 				7C8BC03E1D3348A6001E1B6F /* ViewController.swift in Sources */,
 				7CE8BFAB1D3C553400350023 /* SDK_XcodeWrapper.cpp in Sources */,
+				7C1345841D80CDD700AF7FD1 /* ZTSDK.swift in Sources */,
 				7C8BC03C1D3348A6001E1B6F /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

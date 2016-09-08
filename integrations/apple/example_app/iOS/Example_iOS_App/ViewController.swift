@@ -10,7 +10,9 @@ import UIKit
 
 class ViewController: UIViewController {
 
-    var serverPort:UInt16 = 8080
+    let zt = ZTSDK();
+    
+    var serverPort:Int16 = 8080
     var serverAddr:String = "10.9.9.100"
     var selectedProtocol:Int32 = 0
     var sock:Int32 = -1
@@ -29,18 +31,16 @@ class ViewController: UIViewController {
         // Use ordinary read/write calls on ZeroTier socket
         
         // TCP
-        if(selectedProtocol == SOCK_STREAM)
-        {
+        if(selectedProtocol == SOCK_STREAM) {
             var buffer = [UInt8](count: 100, repeatedValue: 0)
             read(accepted_sock, &buffer, 100);
             print(buffer)
             
         }
         // UDP
-        if(selectedProtocol == SOCK_DGRAM)
-        {
+        if(selectedProtocol == SOCK_DGRAM) {
             var buffer = [UInt8](count: 100, repeatedValue: 0)
-            read(sock, &buffer, 100);
+            read(Int32(sock), &buffer, 100);
             print(buffer)
         }
     }
@@ -48,16 +48,13 @@ class ViewController: UIViewController {
     
     @IBAction func UI_TX(sender: AnyObject) {
         // Use ordinary read/write calls on ZeroTier socket
-        
         // TCP
-        if(selectedProtocol == SOCK_STREAM)
-        {
-            write(sock, txtTX.description, txtTX.description.characters.count);
+        if(selectedProtocol == SOCK_STREAM) {
+            write(Int32(sock), txtTX.description, txtTX.description.characters.count);
         }
         // UDP
-        if(selectedProtocol == SOCK_DGRAM)
-        {
-            sendto(sock, txtTX.description, txtTX.description.characters.count, 0, UnsafePointer<sockaddr>([udp_addr]), UInt32(udp_addr.sin_len))
+        if(selectedProtocol == SOCK_DGRAM) {
+            sendto(Int32(sock), txtTX.description, txtTX.description.characters.count, 0, UnsafePointer<sockaddr>([udp_addr]), UInt32(udp_addr.sin_len))
         }
     }
     
@@ -66,12 +63,12 @@ class ViewController: UIViewController {
     
     @IBOutlet weak var btnJoinNetwork: UIButton!
     @IBAction func UI_JoinNetwork(sender: AnyObject) {
-        zt_join_network(txtNWID.text!)
+        zt.join_network(txtNWID.text!)
     }
     
     @IBOutlet weak var btnLeaveNetwork: UIButton!
     @IBAction func UI_LeaveNetwork(sender: AnyObject) {
-        zt_leave_network(txtNWID.text!)
+        zt.leave_network(txtNWID.text!)
     }
     
     @IBOutlet weak var segmentProtocol: UISegmentedControl!
@@ -95,16 +92,10 @@ class ViewController: UIViewController {
         // TCP
         if(selectedProtocol == SOCK_STREAM)
         {
-            sock = zt_socket(AF_INET, SOCK_STREAM, 0)
-            var addr = sockaddr_in(sin_len: UInt8(sizeof(sockaddr_in)),
-                                   sin_family: UInt8(AF_INET),
-                                   sin_port: UInt16(serverPort).bigEndian,
-                                   sin_addr: in_addr(s_addr: 0),
-                                   sin_zero: (0,0,0,0,0,0,0,0))
+            sock = zt.socket(AF_INET, socket_type: SOCK_STREAM, socket_protocol: 0)
+            let ztaddr: ZTAddress = ZTAddress(family: AF_INET, addr: serverAddr, port: serverPort)
+            let connect_err = zt.connect(sock, addr: ztaddr)
             
-            inet_pton(AF_INET, serverAddr, &(addr.sin_addr));
-            
-            let connect_err = zt_connect(sock, UnsafePointer<sockaddr>([addr]), UInt32(addr.sin_len))
             print("connect_err = \(connect_err),\(errno)")
             
             if connect_err < 0 {
@@ -138,16 +129,9 @@ class ViewController: UIViewController {
         // TCP
         if(selectedProtocol == SOCK_STREAM)
         {
-            sock = zt_socket(AF_INET, SOCK_STREAM, 0)
-            var addr = sockaddr_in(sin_len: UInt8(sizeof(sockaddr_in)),
-                                   sin_family: UInt8(AF_INET),
-                                   sin_port: UInt16(serverPort).bigEndian,
-                                   sin_addr: in_addr(s_addr: 0),
-                                   sin_zero: (0,0,0,0,0,0,0,0))
-            
-            inet_pton(AF_INET, serverAddr, &(addr.sin_addr));
-            
-            let bind_err = zt_bind(sock, UnsafePointer<sockaddr>([addr]), UInt32(addr.sin_len))
+            sock = Int16(zt_socket(AF_INET, SOCK_STREAM, 0))
+            let ztaddr: ZTAddress = ZTAddress(family: AF_INET, addr: serverAddr, port: serverPort)
+            let bind_err = zt.bind(sock, addr: ztaddr)
             
             print("bind_err = \(bind_err),\(errno)")
             
@@ -158,13 +142,13 @@ class ViewController: UIViewController {
             }
             
             // Put socket into listening state
-            zt_listen(sock, 1);
+            zt_listen(Int32(sock), 1);
             
             // Accept connection
             var len:socklen_t = 0;
             var legIntPtr = withUnsafeMutablePointer(&len, { $0 })
             while(accepted_sock < 0) {
-                accepted_sock = zt_accept(sock, UnsafeMutablePointer<sockaddr>([addr]), legIntPtr)
+                accepted_sock = zt.accept(sock, addr: ztaddr)
             }
             print("accepted connection")
         }
@@ -172,18 +156,13 @@ class ViewController: UIViewController {
         // UDP
         if(selectedProtocol == SOCK_DGRAM)
         {
-            var addr = sockaddr_in(sin_len: UInt8(sizeof(sockaddr_in)),
-                                   sin_family: UInt8(AF_INET),
-                                   sin_port: UInt16(serverPort).bigEndian,
-                                   sin_addr: in_addr(s_addr: 0),
-                                   sin_zero: (0,0,0,0,0,0,0,0))
+            let ztaddr: ZTAddress = ZTAddress(family: AF_INET, addr: serverAddr, port: serverPort)
 
-            
-            sock = zt_socket(AF_INET, SOCK_DGRAM, 0)
-            err = zt_bind(sock, UnsafePointer<sockaddr>([addr]), UInt32(addr.sin_len))
+            sock = Int16(zt_socket(AF_INET, SOCK_DGRAM, 0))
+            err = zt.bind(sock, addr: ztaddr)
             print("bind_err = ", err)
             
-            err = zt_listen(sock, 0)
+            err = zt.listen(sock, backlog: 0)
             print("listen_err = ", err)
         }
     }
@@ -208,12 +187,14 @@ class ViewController: UIViewController {
         while(true)
         {
             sleep(1)
+            
             dispatch_async(dispatch_get_main_queue()) {
                 var str_buf = [Int8](count: 16, repeatedValue: 0)
-                zt_get_addresses(self.txtNWID.text!, &str_buf);
+                print(self.zt.get_address(self.txtNWID.text!)) //, &str_buf);
                 self.lblAddress.text = String.fromCString(str_buf)
                 // print("IPV4 = ", String.fromCString(str_buf))
             }
+            
             
             // TCP
             if(selectedProtocol == SOCK_STREAM)
@@ -233,23 +214,22 @@ class ViewController: UIViewController {
                 }
             }
             // UDP
+            /*
             if(selectedProtocol == SOCK_DGRAM)
             {
                 let len = 32
                 var buffer = [UInt8](count: len, repeatedValue: 0)
 
-                /*
-                udp_addr = sockaddr_in(sin_len: UInt8(sizeof(sockaddr_in)),
-                            sin_family: UInt8(AF_INET),
-                            sin_port: UInt16(0).bigEndian,
-                            sin_addr: in_addr(s_addr: 0),
-                            sin_zero: (0,0,0,0,0,0,0,0))
+                //udp_addr = sockaddr_in(sin_len: UInt8(sizeof(sockaddr_in)),
+                //            sin_family: UInt8(AF_INET),
+                //            sin_port: UInt16(0).bigEndian,
+                //            sin_addr: in_addr(s_addr: 0),
+                //            sin_zero: (0,0,0,0,0,0,0,0))
                 
-                var addrlen:socklen_t = 0;
-                var legIntPtr = withUnsafeMutablePointer(&addrlen, { $0 })
-                let n = recvfrom(sock, &buffer, len, 0, UnsafeMutablePointer<sockaddr>([udp_addr]), legIntPtr)
-                */
-                
+                //var addrlen:socklen_t = 0;
+                //var legIntPtr = withUnsafeMutablePointer(&addrlen, { $0 })
+                //let n = recvfrom(sock, &buffer, len, 0, UnsafeMutablePointer<sockaddr>([udp_addr]), legIntPtr)
+ 
                 
                 var socketAddress = sockaddr_storage()
                 var socketAddressLength = socklen_t(sizeof(sockaddr_storage.self))
@@ -269,11 +249,9 @@ class ViewController: UIViewController {
                     
                     print("bytesWritten = ", bytesWritten);
                     
-                    /*
-                    let bytesWritten = withUnsafePointer(&socketAddress.sin) {
-                        sendto(sock, buffer, len, 0, UnsafePointer($0), socklen_t(socketAddress.sin.sin_len))
-                    }
-*/
+                    //let bytesWritten = withUnsafePointer(&socketAddress.sin) {
+                    //    sendto(sock, buffer, len, 0, UnsafePointer($0), socklen_t(socketAddress.sin.sin_len))
+                    //}
 
                     if let str = String(data: NSData(bytes: &buffer, length: len), encoding: NSUTF8StringEncoding) {
                         dispatch_async(dispatch_get_main_queue()) {
@@ -284,14 +262,8 @@ class ViewController: UIViewController {
                     }
                 }
             }
+             */
         }
-    }
-    
-    // ZeroTier service thread
-    var service_thread : NSThread!
-    func ztnc_start_service() {
-        let path = NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory.DocumentDirectory, NSSearchPathDomainMask.UserDomainMask, true)
-        zt_start_service_and_rpc(path[0],"8056c2e21c000001")
     }
 
     override func viewDidLoad() {
@@ -306,11 +278,13 @@ class ViewController: UIViewController {
         
         selectedProtocol = SOCK_STREAM
         
-        // ZeroTier Service thread
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
-            self.service_thread = NSThread(target:self, selector:"ztnc_start_service", object:nil)
-            self.service_thread.start()
-        });
+        print("Starting ZeroTier...\n");
+        zt.start_service(nil);
+        
+        print("Joining network...\n");
+        zt.join_network(txtNWID.text!);
+        
+        print("Complete\n");
         
         // UI RX update
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {

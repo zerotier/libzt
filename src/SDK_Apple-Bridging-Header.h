@@ -18,6 +18,7 @@ void zt_enable_intercept();
 void zt_start_service(const char * path);
 void zt_stop_service();
 void zt_start_service_and_rpc(const char * path, const char * nwid);
+bool zt_service_is_running();
 void zt_join_network(const char *nwid);
 void zt_leave_network(const char *nwid);
 void zt_is_running(const char *nwid);

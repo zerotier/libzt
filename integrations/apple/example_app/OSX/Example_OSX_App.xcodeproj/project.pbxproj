@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7C0C03D51D832599009C0827 /* ZTSDK.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C0C03D41D832599009C0827 /* ZTSDK.swift */; };
 		7C74DACF1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C74DACD1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.cpp */; };
 		7C74DAD21D3C47D300A6C0B9 /* ZeroTierSDK_OSX.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */; };
 		7C74DAD31D3C485800A6C0B9 /* ZeroTierSDK_OSX.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */; };
@@ -32,6 +33,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		7C0C03D41D832599009C0827 /* ZTSDK.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ZTSDK.swift; path = ../../../../../src/ZTSDK.swift; sourceTree = "<group>"; };
 		7C74DACD1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SDK_XcodeWrapper.cpp; path = ../../../../../src/SDK_XcodeWrapper.cpp; sourceTree = "<group>"; };
 		7C74DACE1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SDK_XcodeWrapper.hpp; path = ../../../../../src/SDK_XcodeWrapper.hpp; sourceTree = "<group>"; };
 		7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ZeroTierSDK_OSX.framework; path = ../../../../build/osx_app_framework/Debug/ZeroTierSDK_OSX.framework; sourceTree = "<group>"; };
@@ -76,6 +78,7 @@
 		7CFCB42F1D1AFEE800D3E66C /* Example_OSX_App */ = {
 			isa = PBXGroup;
 			children = (
+				7C0C03D41D832599009C0827 /* ZTSDK.swift */,
 				7C74DACD1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.cpp */,
 				7C74DACE1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.hpp */,
 				7CFCB4301D1AFEE800D3E66C /* AppDelegate.swift */,
@@ -160,6 +163,7 @@
 			files = (
 				7CFCB4331D1AFEE800D3E66C /* ViewController.swift in Sources */,
 				7C74DACF1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.cpp in Sources */,
+				7C0C03D51D832599009C0827 /* ZTSDK.swift in Sources */,
 				7CFCB4311D1AFEE800D3E66C /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -22,7 +22,9 @@ bool zt_service_is_running();
 void zt_join_network(const char *nwid);
 void zt_leave_network(const char *nwid);
 void zt_is_running(const char *nwid);
-void zt_get_addresses(const char *nwid, char * addrstr);
+void zt_get_ipv4_address(const char *nwid, char *addrstr);
+void zt_get_ipv6_address(const char *nwid, char *addrstr);
+
 
 // SOCKS5 PROXY CONTROLS
 void zt_start_proxy_server(const char *nwid, struct sockaddr_storage addr);

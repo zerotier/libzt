@@ -16,15 +16,13 @@ struct ZTAddress
     var port: Int16
     var data: sockaddr_in?
     
-    init(family: Int32, addr: String, port: Int16)
-    {
+    init(_ family: Int32, _ addr: String, _ port: Int16) {
         self.family = family
         self.addr = addr
         self.port = port
     }
     
-    func to_sockaddr_in() -> UnsafePointer<sockaddr>
-    {
+    func to_sockaddr_in() -> UnsafePointer<sockaddr> {
         var data = sockaddr_in(sin_len: UInt8(sizeof(sockaddr_in)),
                                     sin_family: UInt8(AF_INET),
                                     sin_port: UInt16(port).bigEndian,
@@ -34,8 +32,7 @@ struct ZTAddress
         return UnsafePointer<sockaddr>([data]);
     }
     
-    func len() -> UInt8
-    {
+    func len() -> UInt8 {
         return UInt8(sizeof(sockaddr_in))
     }
 }
@@ -46,8 +43,7 @@ struct ZTAddress
 class ZTSDK : NSObject
 {
     var service_thread : NSThread!
-    private func ztnc_start_service(path: String?)
-    {
+    private func ztnc_start_service(path: String?) {
         if(path == nil) {
             zt_start_service(
                 NSSearchPathForDirectoriesInDomains(
@@ -58,9 +54,7 @@ class ZTSDK : NSObject
     }
     
     // Starts the ZeroTier background service
-    func start_service(path: String?)
-    {
-        
+    func start_service(path: String?) {
         let queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)
         dispatch_async(queue) {
             self.ztnc_start_service(path)
@@ -70,26 +64,22 @@ class ZTSDK : NSObject
     }
     
     // Stops the ZeroTier background service
-    func stop_service()
-    {
+    func stop_service() {
         zt_stop_service();
     }
     
     // Returns whether the ZeroTier background service is running
-    func service_is_running() -> Bool
-    {
+    func service_is_running() -> Bool {
         return zt_service_is_running();
     }
     
     // Joins a ZeroTier network
-    func join_network(nwid: String)
-    {
+    func join_network(nwid: String) {
         zt_join_network(nwid);
     }
     
     // Leaves a ZeroTier network
-    func leave_network(nwid: String)
-    {
+    func leave_network(nwid: String) {
         zt_leave_network(nwid);
     }
     

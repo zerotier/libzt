@@ -93,11 +93,10 @@ class ViewController: UIViewController {
         if(selectedProtocol == SOCK_STREAM)
         {
             sock = zt.socket(AF_INET, SOCK_STREAM, 0)
-            let ztaddr: ZTAddress = ZTAddress(family: AF_INET, addr: serverAddr, port: serverPort)
+            let ztaddr: ZTAddress = ZTAddress(AF_INET, serverAddr, serverPort)
             let connect_err = zt.connect(sock, ztaddr)
             
             print("connect_err = \(connect_err),\(errno)")
-            
             if connect_err < 0 {
                 let err = errno
                 print("Error connecting IPv4 socket \(err)")
@@ -130,7 +129,7 @@ class ViewController: UIViewController {
         if(selectedProtocol == SOCK_STREAM)
         {
             sock = zt_socket(AF_INET, SOCK_STREAM, 0)
-            let ztaddr: ZTAddress = ZTAddress(family: AF_INET, addr: serverAddr, port: serverPort)
+            let ztaddr: ZTAddress = ZTAddress(AF_INET, serverAddr, serverPort)
             let bind_err = zt.bind(sock, ztaddr)
             
             print("bind_err = \(bind_err),\(errno)")
@@ -144,9 +143,6 @@ class ViewController: UIViewController {
             // Put socket into listening state
             zt_listen(Int32(sock), 1);
             
-            // Accept connection
-            var len:socklen_t = 0;
-            var legIntPtr = withUnsafeMutablePointer(&len, { $0 })
             while(accepted_sock < 0) {
                 accepted_sock = zt.accept(sock, ztaddr)
             }
@@ -156,7 +152,7 @@ class ViewController: UIViewController {
         // UDP
         if(selectedProtocol == SOCK_DGRAM)
         {
-            let ztaddr: ZTAddress = ZTAddress(family: AF_INET, addr: serverAddr, port: serverPort)
+            let ztaddr: ZTAddress = ZTAddress(AF_INET, serverAddr, serverPort)
 
             sock = zt_socket(AF_INET, SOCK_DGRAM, 0)
             err = zt.bind(sock, ztaddr)
@@ -189,9 +185,9 @@ class ViewController: UIViewController {
             sleep(1)
             
             dispatch_async(dispatch_get_main_queue()) {
-                var str_buf = [Int8](count: 16, repeatedValue: 0)
-                print(self.zt.get_address(self.txtNWID.text!)) //, &str_buf);
-                self.lblAddress.text = String.fromCString(str_buf)
+                //var str_buf = [Int8](count: 16, repeatedValue: 0)
+                //print(self.zt.get_address(self.txtNWID.text!)) //, &str_buf);
+                //self.lblAddress.text = String.fromCString(str_buf)
                 // print("IPV4 = ", String.fromCString(str_buf))
             }
             
@@ -277,14 +273,10 @@ class ViewController: UIViewController {
         serverPort = 8080
         
         selectedProtocol = SOCK_STREAM
-        
-        sleep(3)
         print("Starting ZeroTier...\n");
         zt.start_service(nil);
-        
         print("Joining network...\n");
         zt.join_network(txtNWID.text!);
-        
         print("Complete\n");
         
         // UI RX update

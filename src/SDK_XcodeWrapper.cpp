@@ -61,8 +61,12 @@ extern "C" void zt_leave_network(const char *nwid) {
     zts_leave_network(nwid);
 }
 // Returns a list of addresses associated with this device on the given network
-extern "C" void zt_get_addresses(const char *nwid, char *addrstr) {
-    zts_get_addresses(nwid, addrstr);
+extern "C" void zt_get_ipv4_address(const char *nwid, char *addrstr) {
+    zts_get_ipv4_address(nwid, addrstr);
+}
+// Returns a list of addresses associated with this device on the given network
+extern "C" void zt_get_ipv6_address(const char *nwid, char *addrstr) {
+    zts_get_ipv6_address(nwid, addrstr);
 }
 
 

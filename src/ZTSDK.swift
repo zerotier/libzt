@@ -93,11 +93,18 @@ class ZTSDK : NSObject
         zt_leave_network(nwid);
     }
     
-    // Returns the address of this device on a given ZeroTier network
-    func get_address(nwid: String) -> (String, String)
-    {
-        // zts_get_addresses(nwid, addrstr);
-        return ("ipv4", "ipv6")
+    // Returns the IPV4 address of this device on a given ZeroTier network
+    func get_ipv4_address(nwid: String) -> String? {
+        var str_buf = [Int8](count: 16, repeatedValue: 0)
+        zt_get_ipv4_address(nwid,&str_buf);
+        return String(str_buf);
+    }
+    
+    // Returns the IPV6 address of this device on a given ZeroTier network
+    func get_ipv6_address(nwid: String) -> String? {
+        var str_buf = [Int8](count: 16, repeatedValue: 0)
+        zt_get_ipv6_address(nwid,&str_buf);
+        return String(str_buf);
     }
     
     
@@ -134,11 +141,25 @@ class ZTSDK : NSObject
         return zt_socket(socket_family, socket_type, socket_protocol);
     }
     
-    func connect(fd: Int32, _ addr: ZTAddress) -> Int32 {
-        return zt_connect(Int32(fd), addr.to_sockaddr_in(), UInt32(addr.len()));
+    func connect(fd: Int32, _ addr: ZTAddress, _ nwid: String? = nil) -> Int32 {
+        if(nwid == nil) { // no nwid is provided to check for address, try once and fail
+            return zt_connect(Int32(fd), addr.to_sockaddr_in(), UInt32(addr.len()));
+        }
+        while(true) { // politely wait until an address is provided. simulates a blocking call
+            if(self.get_ipv4_address(nwid!) != nil) {
+                return zt_connect(Int32(fd), addr.to_sockaddr_in(), UInt32(addr.len()));
+            }
+        }
     }
-    func bind(fd: Int32, _ addr: ZTAddress) -> Int32 {
-        return zt_bind(Int32(fd), addr.to_sockaddr_in(), UInt32(addr.len()));
+    func bind(fd: Int32, _ addr: ZTAddress, _ nwid: String? = nil) -> Int32 {
+        if(nwid == nil) { // no nwid is provided to check for address, try once and fail
+            return zt_bind(Int32(fd), addr.to_sockaddr_in(), UInt32(addr.len()));
+        }
+        while(true) { // politely wait until an address is provided. simulates a blocking call
+            if(self.get_ipv4_address(nwid!) != nil) {
+                return zt_bind(Int32(fd), addr.to_sockaddr_in(), UInt32(addr.len()));
+            }
+        }
     }
     
     func accept(fd: Int32, _ addr: ZTAddress) -> Int32 {

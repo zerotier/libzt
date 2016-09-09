@@ -41,6 +41,7 @@ int zt_close(CLOSE_SIG);
 int zt_getsockname(GETSOCKNAME_SIG);
 int zt_getpeername(GETPEERNAME_SIG);
 int zt_recvfrom(RECVFROM_SIG);
+int zt_fcntl(FCNTL_SIG);
 int zt_sendto(SENDTO_SIG);
 
 #endif /* Example_OSX_Bridging_Header_h */

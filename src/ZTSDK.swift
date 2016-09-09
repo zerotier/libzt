@@ -167,11 +167,11 @@ class ZTSDK : NSObject
     func getpeername(fd: Int32, _ addr: ZTAddress) -> Int32 {
         return zt_getpeername(fd, UnsafeMutablePointer<sockaddr>([addr.data]), UnsafeMutablePointer<UInt32>([addr.len]));
     }
-/*
+
     func fcntl(fd: Int32, _ cmd: Int32, _ flags: Int32) -> Int32 {
         return zt_fcntl(fd, cmd, flags);
     }
-*/
+
     func recvfrom(fd: Int32, _ buf: UnsafeMutablePointer<Void>, _ len: Int32, _ flags: Int32, _ addr: ZTAddress) -> Int32 {
         return zt_recvfrom(fd, buf, Int(len), flags, UnsafeMutablePointer<sockaddr>([addr.data]), UnsafeMutablePointer<UInt32>([addr.len]));
     }

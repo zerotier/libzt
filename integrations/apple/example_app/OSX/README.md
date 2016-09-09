@@ -58,7 +58,7 @@ Run application
 Start the service:
 
 ```
-    zt.start_service(".");
+    zt.start_service("."); // Where the ZeroTier config files for this app will be stored
     zt.join_network(nwid);
 ```
 
@@ -67,9 +67,9 @@ Listen for incoming connections:
 ```
     let sock: Int32 = zt.socket(AF_INET, SOCK_STREAM, 0)
     let ztaddr: ZTAddress = ZTAddress(AF_INET, serverAddr, Int16(serverPort))
-    let bind_err = zt.bind(sock, ztaddr)
+    let bind_err: Int32 = zt.bind(sock, ztaddr)
     zt_listen(sock, 1);
-    accepted_sock = zt.accept(sock, ztaddr)
+    let accepted_sock: Int32 = zt.accept(sock, ztaddr)
 ```
 
 Or, establish a connection:
@@ -77,12 +77,9 @@ Or, establish a connection:
 ```
     let sock: Int32 = zt.socket(AF_INET, SOCK_STREAM, 0)
     let ztaddr: ZTAddress = ZTAddress(AF_INET, serverAddr, Int16(serverPort))
-    let connect_err = zt.connect(sock, ztaddr)
+    let connect_err: Int32 = zt.connect(sock, ztaddr)
 ```
 
-**Step 4: Pick an API**
+**Alternative APIs**
 
-The following APIs are available for this integration:
-- `Direct Call`: Consult [src/SDK_Apple-Bridging-Header.h](../../../../src/SDK_Apple-Bridging-Header.h).
-- `Hook of BSD-like sockets`: Use BSD-like sockets as you normally would.
-- `Proxy of NSStream`: Create NSStream. Configure stream for SOCKS5 Proxy (127.0.0.1:PORT). Start Proxy. Use stream. An example of how to use the proxy can be found in the example iOS/OSX projects.
+CLick [here](../../../../docs/api_discussion.md) to learn more about alternative APIs such as the Intercept and SOCKS5 Proxy.

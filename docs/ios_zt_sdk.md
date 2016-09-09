@@ -24,9 +24,7 @@ This short tutorial will show you how to enable ZeroTier functionality for your 
 
 **Step 3: Start the ZeroTier service**
 
-Now find a place in your code to set up the ZeroTier service thread:
-
-`Start the service:
+Start the service:
 
 ```
     zt.start_service(nil);
@@ -40,7 +38,7 @@ Listen for incoming connections:
     let ztaddr: ZTAddress = ZTAddress(AF_INET, serverAddr, Int16(serverPort))
     let bind_err = zt.bind(sock, ztaddr)
     zt_listen(sock, 1);
-    accepted_sock = zt.accept(sock, ztaddr)
+    let accepted_sock: Int32 = zt.accept(sock, ztaddr)
 ```
 
 Or, establish a connection:
@@ -48,12 +46,9 @@ Or, establish a connection:
 ```
     let sock: Int32 = zt.socket(AF_INET, SOCK_STREAM, 0)
     let ztaddr: ZTAddress = ZTAddress(AF_INET, serverAddr, Int16(serverPort))
-    let connect_err = zt.connect(sock, ztaddr)
+    let connect_err: Int32 = zt.connect(sock, ztaddr)
 ```
 
-**Step 4: Pick an API**
+**Alternative APIs**
 
-The following APIs are available for this integration:
-- `Direct Call`: Consult [src/SDK_Apple-Bridging-Header.h](../../../../src/SDK_Apple-Bridging-Header.h).
-- `Hook of BSD-like sockets`: Use BSD-like sockets as you normally would. This likely won't work for calls used by a third-party library.
-- `Proxy of NSStream`: Create NSStream. Configure stream for SOCKS5 Proxy (127.0.0.1:PORT). Start Proxy. Use stream. An example of how to use the proxy can be found in the example iOS/OSX projects.
+CLick [here](../../../../docs/api_discussion.md) to learn more about alternative APIs such as the Intercept and SOCKS5 Proxy.

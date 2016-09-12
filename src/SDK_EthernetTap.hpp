@@ -229,7 +229,7 @@ namespace ZeroTier {
 		 */
 	 	static err_t nc_recved(void *arg, struct tcp_pcb *PCB, struct pbuf *p, err_t err);
 		static err_t nc_recved_proxy(void *arg, struct tcp_pcb *PCB, struct pbuf *p, err_t err);
-	    static void nc_udp_recved(void * arg, struct udp_pcb * upcb, struct pbuf * p, struct ip_addr * addr, u16_t port);
+	    static void nc_udp_recved(void * arg, struct udp_pcb * upcb, struct pbuf * p, ip_addr_t * addr, u16_t port);
 
 	    
 		/*
@@ -475,12 +475,14 @@ namespace ZeroTier {
 		ip_addr_t convert_ip(struct sockaddr_in * addr)
 		{
 		  ip_addr_t conn_addr;
+		 /*
 		  struct sockaddr_in *ipv4 = addr;
 		  short a = ip4_addr1(&(ipv4->sin_addr));
 		  short b = ip4_addr2(&(ipv4->sin_addr));
 		  short c = ip4_addr3(&(ipv4->sin_addr));
 		  short d = ip4_addr4(&(ipv4->sin_addr));
 		  IP4_ADDR(&conn_addr, a,b,c,d);
+		 */
 		  return conn_addr;
 		}
 

@@ -44,12 +44,13 @@
 
 #include "SDK_LWIPStack.hpp"
 
-#include "lwip/tcp_impl.h"
+//#include "lwip/tcp_impl.h"
+#include "lwip/priv/tcp_priv.h"
 #include "netif/etharp.h"
 #include "lwip/api.h"
 #include "lwip/ip.h"
 #include "lwip/ip_addr.h"
-#include "lwip/ip_frag.h"
+//#include "lwip/ip_frag.h"
 #include "lwip/tcp.h"
 #include "lwip/init.h"
 #include "lwip/mem.h"
@@ -57,6 +58,8 @@
 #include "lwip/ip_addr.h"
 #include "lwip/netif.h"
 #include "lwip/udp.h"
+#include "lwip/tcp.h"
+
 
 #include "SDK.h"
 #include "SDK_Debug.h"
@@ -176,7 +179,10 @@ bool NetconEthernetTap::addIp(const InetAddress &ip)
 		_ips.push_back(ip);
 		std::sort(_ips.begin(),_ips.end());
 
+		DEBUG_INFO("ETHARP_HWADDR_LEN = %d", ETHARP_HWADDR_LEN);
+
 		if (ip.isV4()) {
+			DEBUG_INFO("IPV4");
 			// Set IP
 			static ip_addr_t ipaddr, netmask, gw;
 			IP4_ADDR(&gw,127,0,0,1);
@@ -187,16 +193,43 @@ bool NetconEthernetTap::addIp(const InetAddress &ip)
 			lwipstack->__netif_add(&interface,&ipaddr, &netmask, &gw, NULL, tapif_init, lwipstack->_ethernet_input);
 			interface.state = this;
 			interface.output = lwipstack->_etharp_output;
-			_mac.copyTo(interface.hwaddr, 6);
+			_mac.copyTo(interface.hwaddr, ETHARP_HWADDR_LEN);
 			interface.mtu = _mtu;
 			interface.name[0] = 't';
 			interface.name[1] = 'p';
 			interface.linkoutput = low_level_output;
-			interface.hwaddr_len = 6;
+			interface.hwaddr_len = ETHARP_HWADDR_LEN;
 			interface.flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_IGMP;
 			lwipstack->__netif_set_default(&interface);
 			lwipstack->__netif_set_up(&interface);
 		}
+		
+		if(ip.isV6())
+		{
+			DEBUG_INFO("IPV6");
+			/*
+			// Set IP
+			static ip_addr_t ipaddr, netmask, gw;
+			IP6_ADDR(&gw,127,0,0,1);
+			ipaddr.addr = *((u32_t *)ip.rawIpData());
+			netmask.addr = *((u32_t *)ip.netmask().rawIpData());
+
+			// Set up the lwip-netif for LWIP's sake
+			lwipstack->__netif_add(&interface,&ipaddr, &netmask, &gw, NULL, tapif_init, lwipstack->_ethernet_input);
+			interface.state = this;
+			interface.output = lwipstack->_etharp_output;
+			_mac.copyTo(interface.hwaddr, ETHARP_HWADDR_LEN);
+			interface.mtu = _mtu;
+			interface.name[0] = 't';
+			interface.name[1] = 'p';
+			interface.linkoutput = low_level_output;
+			interface.hwaddr_len = ETHARP_HWADDR_LEN;
+			interface.flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_IGMP;
+			lwipstack->__netif_set_default(&interface);
+			lwipstack->__netif_set_up(&interface);
+			*/
+		}
+		
 	}
 	return true;
 }
@@ -739,17 +772,24 @@ err_t NetconEthernetTap::nc_accept(void *arg, struct tcp_pcb *newPCB, err_t err)
   	return -1;
 }
     
-void NetconEthernetTap::nc_udp_recved(void * arg, struct udp_pcb * upcb, struct pbuf * p, struct ip_addr * addr, u16_t port)
+void NetconEthernetTap::nc_udp_recved(void * arg, struct udp_pcb * upcb, struct pbuf * p, ip_addr_t * addr, u16_t port)
 {
     Larg *l = (Larg*)arg;
     //DEBUG_EXTRA("nc_udp_recved(conn=%p,pcb=%p,port=%d)\n", (void*)&(l->conn), (void*)&upcb, port);
     int tot = 0;
 	unsigned char *addr_pos, *sz_pos, *payload_pos;
     struct pbuf* q = p;
+    struct sockaddr_storage sockaddr_big;
 
+#if defined(LWIP_IPV6)
 	struct sockaddr_in addr_in;
 	addr_in.sin_addr.s_addr = addr->addr;
 	addr_in.sin_port = port;
+#else // ipv4
+	struct sockaddr_in *addr_in = (struct sockaddr_in *)&sockaddr_big;
+	addr_in->sin_addr.s_addr = addr->addr;
+	addr_in->sin_port = port;
+#endif
 
     Mutex::Lock _l2(l->tap->_rx_buf_m);
     // Cycle through pbufs and write them to the RX buffer

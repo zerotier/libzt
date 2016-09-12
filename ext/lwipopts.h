@@ -44,6 +44,8 @@
  */
 #include "lwip/debug.h"
 
+//#define LWIP_IPV6 1
+
 //#define LWIP_DEBUG 1
 //#define LWIP_DBG_TYPES_ON LWIP_DBG_TRACE
 
@@ -66,7 +68,7 @@ remote peer.
 
 #define TCP_WND TCP_MSS*10 // max = 0xffff
 
-#define LWIP_NOASSERT 1
+//#define LWIP_NOASSERT 1
 #define TCP_LISTEN_BACKLOG   0
 
 /*------------------------------------------------------------------------------

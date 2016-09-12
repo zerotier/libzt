@@ -90,7 +90,7 @@ extern char *debug_logfile;
 int zts_start_proxy_server(const char *homepath, const char * nwid, struct sockaddr_storage * addr);
 int zts_stop_proxy_server(const char *nwid);
 int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage *addr);
-bool zts_proxy_is_running();
+bool zts_proxy_is_running(const char *nwid);
 
 // ZT Service Controls
 void zts_start_service(const char *path);
@@ -99,17 +99,19 @@ void zts_stop_service();
 bool zts_service_is_running();
 void zts_join_network(const char * nwid);
 void zts_leave_network(const char * nwid);
-void zts_get_addresses(const char * nwid, char * addrstr);
+// void zts_get_addresses(const char * nwid, char * addrstr);
+void zts_get_ipv4_address(const char *nwid, char *addrstr);
+void zts_get_ipv6_address(const char *nwid, char *addrstr);
 int zts_get_device_id();
 bool zts_is_relayed();
 char *zts_get_homepath();
 
 // ZT Intercept/RPC Controls
 // TODO: Remove any?
-void set_intercept_status(int mode); // TODO: Rethink this
-void init_service(int key, const char * path);
-void init_service_and_rpc(int key, const char * path, const char * nwid);
-void init_intercept(int key);
+//void set_intercept_status(int mode); // TODO: Rethink this
+//void init_service(int key, const char * path);
+//void init_service_and_rpc(int key, const char * path, const char * nwid);
+//void init_intercept(int key);
 
 int zts_socket(SOCKET_SIG);
 int zts_connect(CONNECT_SIG);
@@ -153,7 +155,8 @@ ssize_t zts_recvmsg(RECVMSG_SIG);
 	JNIEXPORT jstring JNICALL Java_ZeroTier_ZTSDK_zt_1get_1homepath(JNIEnv *env, jobject thisObj);
 	JNIEXPORT void JNICALL Java_ZeroTier_ZTSDK_zt_1join_1network(JNIEnv *env, jobject thisObj, jstring nwid);
     JNIEXPORT void JNICALL Java_ZeroTier_ZTSDK_zt_1leave_1network(JNIEnv *env, jobject thisObj, jstring nwid);
-    JNIEXPORT jobject JNICALL Java_ZeroTier_ZTSDK_zt_1get_1addresses(JNIEnv *env, jobject thisObj, jstring nwid);
+    JNIEXPORT jobject JNICALL Java_ZeroTier_ZTSDK_zt_1get_1ipv4_1address(JNIEnv *env, jobject thisObj, jstring nwid);
+	JNIEXPORT jobject JNICALL Java_ZeroTier_ZTSDK_zt_1get_1ipv6_1address(JNIEnv *env, jobject thisObj, jstring nwid);
     JNIEXPORT jboolean JNICALL Java_ZeroTier_ZTSDK_zt_1is_1relayed();
 	
 	// SOCKS5 PROXY SERVER CONTROLS

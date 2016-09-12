@@ -59,42 +59,43 @@ class ZTSDK : NSObject
         dispatch_async(queue) {
             self.ztnc_start_service(path)
         }
-        sleep(2)
+        sleep(3)
         while(service_is_running() == false) { /* waiting for service to start */ }
     }
     
     // Stops the ZeroTier background service
     func stop_service() {
-        zt_stop_service();
+        zt_stop_service()
     }
     
     // Returns whether the ZeroTier background service is running
     func service_is_running() -> Bool {
-        return zt_service_is_running();
+        return zt_service_is_running()
     }
     
     // Joins a ZeroTier network
     func join_network(nwid: String) {
-        zt_join_network(nwid);
+        zt_join_network(nwid)
     }
     
     // Leaves a ZeroTier network
     func leave_network(nwid: String) {
-        zt_leave_network(nwid);
+        zt_leave_network(nwid)
     }
     
     // Returns the IPV4 address of this device on a given ZeroTier network
     func get_ipv4_address(nwid: String) -> String? {
         var str_buf = [Int8](count: 16, repeatedValue: 0)
-        zt_get_ipv4_address(nwid,&str_buf);
-        return String(str_buf);
+        zt_get_ipv4_address(nwid,&str_buf)
+        return String.fromCString(str_buf)
+        //return "IPV4"
     }
     
     // Returns the IPV6 address of this device on a given ZeroTier network
     func get_ipv6_address(nwid: String) -> String? {
         var str_buf = [Int8](count: 16, repeatedValue: 0)
-        zt_get_ipv6_address(nwid,&str_buf);
-        return String(str_buf);
+        zt_get_ipv6_address(nwid,&str_buf)
+        return String.fromCString(str_buf)
     }
     
     

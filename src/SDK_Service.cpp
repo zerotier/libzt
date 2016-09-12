@@ -106,6 +106,11 @@ int zts_stop_proxy_server(const char *nwid) {
     return 0;
 }
 //
+bool zts_proxy_is_running(const char *nwid)
+{
+    return false; // TODO
+}
+//
 int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage * addr) {
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
     ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
@@ -152,41 +157,51 @@ void zts_stop_service() {
 }
 
 // FIXME: Re-implemented to make it play nicer with the C-linkage required for Xcode integrations
-// Now only returns first assigned address per network. Shouldn't normally be a problem
-void zts_get_addresses(const char * nwid, char *addrstr)
+// Now only returns first assigned address per network. Shouldn't normally be a problem.
+
+// Get IPV4 Address for this device on given network
+void zts_get_ipv4_address(const char *nwid, char *addrstr)
+{
+    uint64_t nwid_int = strtoull(nwid, NULL, 16);
+    ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
+    if(tap && tap->_ips.size()){ 
+        for(int i=0; i<tap->_ips.size(); i++)
+        {
+            std::string addr = tap->_ips[0].toString();
+            DEBUG_EXTRA("addr=%s, addrlen=%d", addr.c_str(), addr.length());
+        }
+        //memcpy(addrstr, addr.c_str(), addr.length());  
+    }
+    else {
+        memcpy(addrstr, "-1.-1.-1.-1/-1", 14);
+    }
+}
+// Get IPV6 Address for this device on given network
+void zts_get_ipv6_address(const char *nwid, char *addrstr)
 {
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
     ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
     if(tap && tap->_ips.size()){ 
         std::string addr = tap->_ips[0].toString();
-        DEBUG_INFO("addr.length() = %d, addr = %s\n", addr.length(), addr.c_str());
+        DEBUG_EXTRA("addr=%s, addrlen=%d", addr.c_str(), addr.length());
         memcpy(addrstr, addr.c_str(), addr.length());  
     }
     else {
         memcpy(addrstr, "-1.-1.-1.-1/-1", 14);
     }
-    /*
-    uint64_t nwid_int = strtoull(nwid.c_str(), NULL, 16);
-    ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
-    std::vector<std::string> ip_strings;
-    if(tap) {
-        for(int i=0; i<tap->_ips.size(); i++) {
-            ip_strings.push_back(tap->_ips[i].toString());
-        }
-        return ip_strings;
-    }
-    return ip_strings;
-    */
 }
-//
-int zts_get_device_id() { /* TODO */ return 0; }
-//
+// Get device ID
+int zts_get_device_id() 
+{ 
+    /* TODO */ return 0; 
+}
+// 
 bool zts_is_relayed() {
     // TODO
     // zt1Service->getNode()->peers()
     return false;
 }
-//
+// Return the home path for this instance of ZeroTier
 char *zts_get_homepath() {
     return (char*)givenHomeDir.c_str();
 }
@@ -203,12 +218,15 @@ char *zts_get_homepath() {
     FuncPtr Debug;
     void SetDebugFunction( FuncPtr fp ) { Debug = fp; }
     
+    /*
     // Starts a ZeroTier service at the given path
     void unity_start_service(char * path, int len) {
-        std::string dstr = std::string(path);
-        dstr = "unity_start_service(): path = " + dstr; 
-        Debug(dstr.c_str());
-        init_service(INTERCEPT_DISABLED, path);
+        zts_start_service(path);
+
+        //std::string dstr = std::string(path);
+        //dstr = "unity_start_service(): path = " + dstr; 
+        //Debug(dstr.c_str());
+        //init_service(INTERCEPT_DISABLED, path);
     }
     // Starts a ZeroTier service and RPC
     void unity_start_service_and_rpc(char * path, char *nwid, int len) {
@@ -217,6 +235,7 @@ char *zts_get_homepath() {
         Debug(dstr.c_str());
         init_service_and_rpc(INTERCEPT_DISABLED, path, nwid);
     }
+    */
 #endif
 
 
@@ -231,20 +250,6 @@ char *zts_get_homepath() {
 // between build environments whilst also preventing duplicate symbols
 // we need to check for this case
 
-/*
-#if defined(USING_BRIDGING_HEADER)
-    void zts_start_service(const char *path)
-    {
-
-    }
-
-    void zts_start_service(const char *path, const char *nwid)
-    {
-
-    }
-#endif
-*/
-
 void zts_start_service(const char *path)
 {
     DEBUG_INFO("path=%s", path);
@@ -253,40 +258,9 @@ void zts_start_service(const char *path)
     zts_start_core_service(NULL);
 }
 
-#if !defined(USING_BRIDGING_HEADER)
-void zt_start_service(const char * path, const char *nwid) {
-        DEBUG_INFO("path=%s", path);
-        if(path)
-            homeDir = path;
-        zts_start_core_service(NULL);
-    }
-
-void zt_join_network()
-{
-
-}
-#endif 
-/*
-#if (defined(__APPLE__) || defined(__linux__)) && (!defined(__IOS__) && !defined(__ANDROID__))
-    void zt_start_service(const char * path, const char *nwid) {
-        printf("path = %s\n", path);
-        if(path)
-            homeDir = path;
-        zts_start_core_service(NULL);
-    }
-    void zt_join_network(const char * nwid) { 
-        zts_join_network(nwid);
-    }
-    void zt_leave_network(const char * nwid) { 
-        zts_leave_network(nwid);
-    }
-#endif
-*/
-
-
-
 // Typically used on iOS/OSX 
 #if !defined(__ANDROID__)
+/*
     // Starts a service thread and performs basic setup tasks
     void init_service(int key, const char * path) {
         givenHomeDir = path;
@@ -295,11 +269,13 @@ void zt_join_network()
         *intercept_thread_id = key;
         pthread_create(&intercept_thread, NULL, zts_start_core_service, (void *)(intercept_thread_id));
     }
-    void init_service_and_rpc(int key, const char * path, const char * nwid) {
-        rpcEnabled = true;
-        rpcNWID = nwid;
-        init_service(key, path);
-    }
+    
+    //void init_service_and_rpc(int key, const char * path, const char * nwid) {
+    //   rpcEnabled = true;
+    //    rpcNWID = nwid;
+    //    init_service(key, path);
+    //}
+
     // Enables or disables intercept for current thread using key in thread-local storage
     void set_intercept_status(int mode) {
         #if defined(__APPLE__)
@@ -312,6 +288,7 @@ void zt_join_network()
         *intercept_thread_id = mode;
         pthread_setspecific(thr_id_key, intercept_thread_id);
     }
+    */
 #endif
 
 
@@ -366,7 +343,7 @@ void zt_join_network()
     }
     // FIXME: Re-implemented to make it play nicer with the C-linkage required for Xcode integrations
     // Now only returns first assigned address per network. Shouldn't normally be a problem
-    JNIEXPORT jobject JNICALL Java_ZeroTier_ZTSDK_zt_1get_1addresses(JNIEnv *env, jobject thisObj, jstring nwid) {
+    JNIEXPORT jobject JNICALL Java_ZeroTier_ZTSDK_zt_1get_1ipv4_1address(JNIEnv *env, jobject thisObj, jstring nwid) {
         const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
         char address_string[32];
         memset(address_string, 0, 32);
@@ -376,24 +353,20 @@ void zt_join_network()
         jstring _str = (*env).NewStringUTF(address_string);
         env->CallBooleanMethod(addresses, env->GetMethodID(clazz, "add", "(Ljava/lang/Object;)Z"), _str);
         return addresses;
-        /*
-        const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
-        std::vector<std::string> address_strings = zts_get_addresses(nwid_str);
-        jclass clazz = (*env).FindClass("java/util/ArrayList");
-        jobject addresses = (*env).NewObject(clazz, (*env).GetMethodID(clazz, "<init>", "()V"));
-        if(address_strings.size()) {
-            for (int n=0;n<address_strings.size();n++) {
-                jstring _str = (*env).NewStringUTF(address_strings[n].c_str());
-                env->CallBooleanMethod(addresses, env->GetMethodID(clazz, "add", "(Ljava/lang/Object;)Z"), _str);
-            }
-        }
-        else { // Add dummy value 
-            jstring _str = (*env).NewStringUTF("-1.-1.-1.-1/-1");
-            env->CallBooleanMethod(addresses, env->GetMethodID(clazz, "add", "(Ljava/lang/Object;)Z"), _str);
-        }
-        return addresses; 
-        */
 	}
+
+    JNIEXPORT jobject JNICALL Java_ZeroTier_ZTSDK_zt_1get_1ipv6_1address(JNIEnv *env, jobject thisObj, jstring nwid) {
+        const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
+        char address_string[32];
+        memset(address_string, 0, 32);
+        zts_get_addresses(nwid_str, address_string);
+        jclass clazz = (*env).FindClass("java/util/ArrayList");
+        jobject addresses = (*env).NewObject(clazz, (*env).GetMethodID(clazz, "<init>", "()V"));        
+        jstring _str = (*env).NewStringUTF(address_string);
+        env->CallBooleanMethod(addresses, env->GetMethodID(clazz, "add", "(Ljava/lang/Object;)Z"), _str);
+        return addresses;
+	}
+
     // Returns the device is in integer form
     JNIEXPORT jint Java_ZeroTier_ZTSDK_zt_1get_1device_1id() {
         return zts_get_device_id();
@@ -401,19 +374,6 @@ void zt_join_network()
     // Returns whether the path to an endpoint is currently relayed by a root server
     JNIEXPORT jboolean JNICALL Java_ZeroTier_ZTSDK_zt_1is_1relayed() {
         return zts_is_relayed();
-    }
-    // Returns the local address of the SOCKS5 Proxy server
-    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1get_1proxy_1server_1address(JNIEnv *env, jobject thisObj, jstring nwid, jobject ztaddr) {
-        struct sockaddr_in addr;
-        int err = zts_get_proxy_server_address(env->GetStringUTFChars(nwid, NULL), (struct sockaddr_storage*)&addr);
-        // SET ZTAddress fields
-        jfieldID fid;
-        jclass cls = env->GetObjectClass(ztaddr);
-        fid = env->GetFieldID(cls, "port", "I");
-        env->SetIntField(ztaddr, fid, addr.sin_port);
-        fid = env->GetFieldID(cls,"_rawAddr", "J");
-        env->SetLongField(ztaddr, fid,addr.sin_addr.s_addr);
-        return err;    
     }
     // Starts a SOCKS5 proxy server for a given ZeroTier network
     JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1start_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid, jobject ztaddr) {
@@ -431,6 +391,19 @@ void zt_join_network()
     JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1stop_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid) {
         return zts_stop_proxy_server((char*)env->GetStringUTFChars(nwid, NULL));
     }
+    // Returns the local address of the SOCKS5 Proxy server
+    JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1get_1proxy_1server_1address(JNIEnv *env, jobject thisObj, jstring nwid, jobject ztaddr) {
+        struct sockaddr_in addr;
+        int err = zts_get_proxy_server_address(env->GetStringUTFChars(nwid, NULL), (struct sockaddr_storage*)&addr);
+        // SET ZTAddress fields
+        jfieldID fid;
+        jclass cls = env->GetObjectClass(ztaddr);
+        fid = env->GetFieldID(cls, "port", "I");
+        env->SetIntField(ztaddr, fid, addr.sin_port);
+        fid = env->GetFieldID(cls,"_rawAddr", "J");
+        env->SetLongField(ztaddr, fid,addr.sin_addr.s_addr);
+        return err;    
+    }
     //
     JNIEXPORT jboolean JNICALL Java_ZeroTier_ZTSDK_zt_1proxy_1is_1running(JNIEnv *env, jobject thisObj, jstring nwid) {
         // TODO: implement
@@ -442,15 +415,16 @@ void zt_join_network()
     // ------------------------------- zts_start_service ----------------------------
     // ------------------------------------------------------------------------------
 
+
 // Starts a ZeroTier service in the background
 void *zts_start_core_service(void *thread_id) {
     #if defined(__ANDROID__)
         DEBUG_INFO("ZTSDK_BUILD_VERSION = %d", ZTSDK_BUILD_VERSION);
     #endif
 
-    #if defined(SDK_BUNDLED) && !defined(__ANDROID__)
-        set_intercept_status(INTERCEPT_DISABLED); // Ignore network calls from ZT service
-    #endif
+    //#if defined(SDK_BUNDLED) && !defined(__ANDROID__)
+    //    set_intercept_status(INTERCEPT_DISABLED); // Ignore network calls from ZT service
+    //#endif
 
     #if defined(__UNITY_3D__)
         char current_dir[MAX_DIR_SZ];

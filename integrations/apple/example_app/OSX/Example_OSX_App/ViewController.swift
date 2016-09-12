@@ -35,28 +35,22 @@ class ViewController: NSViewController {
             serverAddr = sender.stringValue
         }
     }
-    
     @IBAction func txtPortChanged(sender: AnyObject) {
         serverPort = sender.intValue
     }
-    
     // Join a ZeroTier network
     @IBAction func UI_JoinNetwork(sender: AnyObject) {
         zt.join_network(txtNWID.stringValue);
     }
-    
     // Leave a ZeroTier network
     @IBAction func UI_LeaveNetwork(sender: AnyObject) {
         zt.leave_network(txtNWID.stringValue);
     }
-    
     // Select an API
     var selectedShim:Int32 = 0
     @IBAction func UI_SelectAPI(sender: AnyObject) {
         selectedShim = sender.intValue // 0 = BSD-style, 1 = SOCKS5 Proxy, etc
     }
-    
-
     // Select a protocol
     // Protocol { TCP / UDP }
     var selectedProtocol:Int32 = 0
@@ -122,7 +116,7 @@ class ViewController: NSViewController {
         }
             
         // Put socket into listening state
-        zt_listen(sock, 1);
+        zt.listen(sock, 1);
         
         // TCP
         if(selectedProtocol == SOCK_STREAM) {
@@ -187,9 +181,7 @@ class ViewController: NSViewController {
         {
             sleep(1)
             dispatch_async(dispatch_get_main_queue()) {
-                //var str_buf = [Int8](count: 16, repeatedValue: 0)
-                //zt_get_addresses(self.txtNWID.stringValue, &str_buf);
-                //print("IPV4 = ", String.fromCString(str_buf))
+                print("IPV4 = ", String.fromCString(self.zt.get_ipv4_address(self.txtNWID.stringValue)!)) // get IP address
             }
             // TCP
             if(selectedProtocol == SOCK_STREAM)
@@ -254,18 +246,6 @@ class ViewController: NSViewController {
         print("buffer = \(buffer)\n")
     }
  
-    var service_thread : NSThread!
-    func ztnc_start_service() {
-        // Specify a path where the app's ZeroTier data files will be stored. 
-        // A path of "." will store them in the same location as the binary
-        
-        //  - If you plan on using SOCKS Proxy, you don't need to initialize the RPC
-        // start_service(".")
-        //  - If you plan on using direct calls via RPC
-        zt_start_service_and_rpc(".","8056c2e21c000001");
-    }
-    
-    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -273,13 +253,10 @@ class ViewController: NSViewController {
         txtAddr.stringValue = serverAddr
         txtPort.intValue = serverPort
         txtNWID.stringValue = "8056c2e21c000001"
+        selectedProtocol = SOCK_STREAM // Just for selecting test mode. Not necessary for zt API
         
-        selectedProtocol = SOCK_STREAM
-        print("Starting ZeroTier...\n");
-        zt.start_service(nil);
-        print("Joining network...\n");
+        zt.start_service(".");
         zt.join_network(txtNWID.stringValue);
-        print("Complete\n");
         
         // Update UI on RX of data
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {

@@ -141,7 +141,7 @@ osx_intercept:
 
 # Build only the SDK service
 osx_sdk_service: lwip $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DEFS) -DSDK -DZT_ONE_NO_ROOT_CHECK -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -I$(ZT1)/osdep -I$(ZT1)/node -Isrc -o $(SDK_SERVICE) $(OBJS) $(ZT1)/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp $(ZT1)/one.cpp -x c src/SDK_RPC.c $(LDLIBS) -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DEFS) -DSDK -DZT_ONE_NO_ROOT_CHECK -Iext -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -I$(ZT1)/osdep -I$(ZT1)/node -Isrc -o $(SDK_SERVICE) $(OBJS) $(ZT1)/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp $(ZT1)/one.cpp -x c src/SDK_RPC.c $(LDLIBS) -ldl
 	ln -sf $(SDK_SERVICE_NAME) zerotier-cli
 	ln -sf $(SDK_SERVICE_NAME) zerotier-idtool
 

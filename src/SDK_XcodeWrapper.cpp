@@ -34,21 +34,21 @@
 
 // ZEROTIER CONTROLS
 // Starts a ZeroTier service at the specified path
-// This will only support SOCKS5 Proxy
 extern "C" void zt_start_service(const char *path, const char *nwid) {
-    //zts_start_service(path);
-    init_service(INTERCEPT_DISABLED, path);
+    zts_start_service(path);
+    //init_service(INTERCEPT_DISABLED, path);
 }
+
 // Starts a ZeroTier service at the specified path and initializes the RPC mechanism
-// This will allow direct API calls
-extern "C" void zt_start_service_and_rpc(const char *path, const char *nwid) {
-    init_service_and_rpc(INTERCEPT_DISABLED, path, nwid);
-}
-//
+//extern "C" void zt_start_service_and_rpc(const char *path, const char *nwid) {
+//    init_service_and_rpc(INTERCEPT_DISABLED, path, nwid);
+//}
+
+// Stops the core ZeroTier service
 extern "C" void zt_stop_service() {
     zts_stop_service();
 }
-//
+// Returns whether the core ZeroTier service is running
 extern "C" bool zt_service_is_running() {
     return zts_service_is_running();
 }
@@ -80,8 +80,8 @@ extern "C" void zt_stop_proxy_server(const char *nwid) {
     zts_stop_proxy_server(nwid);
 }
 //
-extern "C" void zt_proxy_running(const char *homepath, const char *nwid, struct sockaddr_storage *addr) {
-    zts_start_proxy_server(homepath, nwid, addr);
+extern "C" void zt_proxy_is_running(const char *nwid) {
+    zts_proxy_is_running(nwid);
 }
 //
 extern "C" void zt_get_proxy_server_address(const char *nwid, struct sockaddr_storage *addr) {
@@ -97,6 +97,7 @@ extern "C" void zt_init_rpc(const char *path, const char *nwid) {
 
 
 // SOCKET API
+// These are used in ZTSDK.swift to implement the higher-level API
 extern "C" int zt_socket(SOCKET_SIG) {
     return zts_socket(socket_family, socket_type, protocol);
 }

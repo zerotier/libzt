@@ -33,7 +33,7 @@
 #include "lwip/ip_addr.h"
 #include "lwip/netif.h"
 #include "lwip/init.h"
-#include "lwip/tcp_impl.h"
+//#include "lwip/tcp_impl.h"
 #include "lwip/udp.h"
 
 #include <stdio.h>
@@ -43,7 +43,7 @@
 #define _GNU_SOURCE
 #endif
 
-typedef ip_addr ip_addr_t;
+//typedef ip_addr ip_addr_t;
 struct tcp_pcb;
 
 // lwip General Stack API
@@ -52,7 +52,7 @@ struct tcp_pcb;
 #define LWIP_HTONS_SIG u16_t x
 #define LWIP_NTOHS_SIG u16_t x
 #define IPADDR_NTOA_SIG const ip_addr_t *addr
-#define ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, ip_addr_t *ipaddr
+#define ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip_addr_t *ipaddr
 #define ETHERNET_INPUT_SIG struct pbuf *p, struct netif *netif
 #define IP_INPUT_SIG struct pbuf *p, struct netif *inp
 #define NETIF_SET_DEFAULT_SIG struct netif *netif
@@ -62,12 +62,12 @@ struct tcp_pcb;
 
 // lwIP UDP API
 #define UDP_NEW_SIG void
-#define UDP_CONNECT_SIG struct udp_pcb * pcb, struct ip_addr * ipaddr, u16_t port
+#define UDP_CONNECT_SIG struct udp_pcb * pcb, ip_addr_t * ipaddr, u16_t port
 #define UDP_SEND_SIG struct udp_pcb * pcb, struct pbuf * p
 #define UDP_SENDTO_SIG struct udp_pcb *pcb, struct pbuf *p, ip_addr_t *dst_ip, u16_t dst_port
-#define UDP_RECV_SIG struct udp_pcb * pcb, void (* recv)(void * arg, struct udp_pcb * upcb, struct pbuf * p, struct ip_addr * addr, u16_t port), void * recv_arg
+#define UDP_RECV_SIG struct udp_pcb * pcb, void (* recv)(void * arg, struct udp_pcb * upcb, struct pbuf * p, ip_addr_t * addr, u16_t port), void * recv_arg
 #define UDP_RECVED_SIG struct udp_pcb * pcb, u16_t len
-#define UDP_BIND_SIG struct udp_pcb * pcb, struct ip_addr * ipaddr, u16_t port
+#define UDP_BIND_SIG struct udp_pcb * pcb, const ip_addr_t * ipaddr, u16_t port
 #define UDP_REMOVE_SIG struct udp_pcb *pcb
 
 // lwIP TCP API
@@ -77,7 +77,7 @@ struct tcp_pcb;
 #define TCP_RECV_SIG struct tcp_pcb * pcb, err_t (* recv)(void * arg, struct tcp_pcb * tpcb, struct pbuf * p, err_t err)
 #define TCP_RECVED_SIG struct tcp_pcb * pcb, u16_t len
 #define TCP_SNDBUF_SIG struct tcp_pcb * pcb
-#define TCP_CONNECT_SIG struct tcp_pcb * pcb, struct ip_addr * ipaddr, u16_t port, err_t (* connected)(void * arg, struct tcp_pcb * tpcb, err_t err)
+#define TCP_CONNECT_SIG struct tcp_pcb * pcb, ip_addr_t * ipaddr, u16_t port, err_t (* connected)(void * arg, struct tcp_pcb * tpcb, err_t err)
 #define TCP_RECV_SIG struct tcp_pcb * pcb, err_t (* recv)(void * arg, struct tcp_pcb * tpcb, struct pbuf * p, err_t err)
 #define TCP_ERR_SIG struct tcp_pcb * pcb, void (* err)(void * arg, err_t err)
 #define TCP_POLL_SIG struct tcp_pcb * pcb, err_t (* poll)(void * arg, struct tcp_pcb * tpcb), u8_t interval
@@ -88,7 +88,7 @@ struct tcp_pcb;
 #define TCP_ACCEPT_SIG struct tcp_pcb * pcb, err_t (* accept)(void * arg, struct tcp_pcb * newpcb, err_t err)
 #define TCP_LISTEN_SIG struct tcp_pcb * pcb
 #define TCP_LISTEN_WITH_BACKLOG_SIG struct tcp_pcb * pcb, u8_t backlog
-#define TCP_BIND_SIG struct tcp_pcb * pcb, struct ip_addr * ipaddr, u16_t port
+#define TCP_BIND_SIG struct tcp_pcb * pcb, ip_addr_t * ipaddr, u16_t port
 #define TCP_INPUT_SIG struct pbuf *p, struct netif *inp
 
 void dwr(int level, const char *fmt, ... );

@@ -190,6 +190,7 @@ check:
 	./check.sh $(BUILD)/android_jni_lib/x86_64/libZeroTierOneJNI.so
 
 # Tests
+OSTYPE=$(shell uname -s | tr '[A-Z]' '[a-z]')
 TEST_OBJDIR := $(BUILD)/tests
 TEST_SOURCES := $(wildcard tests/api_test/*.c)
 TEST_TARGETS := $(addprefix $(BUILD)/tests/$(OSTYPE).,$(notdir $(TEST_SOURCES:.c=.out)))

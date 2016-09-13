@@ -44,13 +44,19 @@
 
 #include "SDK_LWIPStack.hpp"
 
-//#include "lwip/tcp_impl.h"
-#include "lwip/priv/tcp_priv.h"
+// LWIP
+#if defined(LWIP_VERSION_2)
+	//#define LWIPDIR "ext/lwip_2.0.0"
+	#include "lwip/priv/tcp_priv.h"
+#elif defined (LWIP_VERSION_1)
+ 	//#define LWIPDIR "ext/lwip_1.4.1"
+	#include "lwip/tcp_impl.h"
+	#include "lwip/ip_frag.h"
+#endif
 #include "netif/etharp.h"
 #include "lwip/api.h"
 #include "lwip/ip.h"
 #include "lwip/ip_addr.h"
-//#include "lwip/ip_frag.h"
 #include "lwip/tcp.h"
 #include "lwip/init.h"
 #include "lwip/mem.h"
@@ -59,6 +65,7 @@
 #include "lwip/netif.h"
 #include "lwip/udp.h"
 #include "lwip/tcp.h"
+
 
 
 #include "SDK.h"
@@ -259,7 +266,6 @@ void NetconEthernetTap::put(const MAC &from,const MAC &to,unsigned int etherType
 	struct pbuf *p,*q;
 	if (!_enabled)
 		return;
-
 	struct eth_hdr ethhdr;
 	from.copyTo(ethhdr.src.addr, 6);
 	to.copyTo(ethhdr.dest.addr, 6);
@@ -549,11 +555,11 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
 	if(detected_rpc) {
 		unloadRPC(data, pid, tid, timestamp, CANARY, cmd, payload);
 		memcpy(&CANARY_num, CANARY, CANARY_SZ);
-		DEBUG_EXTRA(" <sock=%p> RPC: (pid=%d, tid=%d, timestamp=%s, cmd=%d)", 
+		DEBUG_EXTRA(" RPC: sock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", 
 			(void*)&sock, pid, tid, timestamp, cmd);
 
 		if(cmd == RPC_SOCKET) {				
-			DEBUG_INFO("  <sock=%p> RPC_SOCKET", (void*)&sock);
+			DEBUG_INFO("  RPC_SOCKET, sock=%p", (void*)&sock);
 			// Create new lwip socket and associate it with this sock
 			struct socket_st socket_rpc;
 			memcpy(&socket_rpc, &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct socket_st));
@@ -581,7 +587,7 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
 				// Find job
 				sockdata = jobmap[CANARY_num];
 				if(!sockdata.first) {
-					DEBUG_ERROR(" <sock=%p> unable to locate job entry for %llu", (void*)&sock, CANARY_num);
+					DEBUG_ERROR(" unable to locate job entry for %llu, sock=%p", CANARY_num, (void*)&sock);
 					return;
 				}  else
 					foundJob = true;
@@ -643,36 +649,36 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
         rpcSock = sockdata.first;
         buf = (unsigned char*)sockdata.second;
 		unloadRPC(buf, pid, tid, timestamp, CANARY, cmd, payload);
-		DEBUG_EXTRA(" <sock=%p> RPC: (pid=%d, tid=%d, timestamp=%s, cmd=%d)", 
+		DEBUG_EXTRA(" RPC: sock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", 
 			(void*)&sock, pid, tid, timestamp, cmd);
 
 		switch(cmd) {
 			case RPC_BIND:
-				DEBUG_INFO("  <sock=%p> RPC_BIND", (void*)&sock);
+				DEBUG_INFO("  RPC_BIND, sock=%p", (void*)&sock);
 			    struct bind_st bind_rpc;
 			    memcpy(&bind_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct bind_st));
 			    handleBind(sock, rpcSock, uptr, &bind_rpc);
 				break;
 		  	case RPC_LISTEN:
-		  		DEBUG_INFO("  <sock=%p> RPC_LISTEN", (void*)&sock);
+		  		DEBUG_INFO("  RPC_LISTEN, sock=%p", (void*)&sock);
 			    struct listen_st listen_rpc;
 			    memcpy(&listen_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct listen_st));
 			    handleListen(sock, rpcSock, uptr, &listen_rpc);
 				break;
 		  	case RPC_GETSOCKNAME:
-		  		DEBUG_INFO("  <sock=%p> RPC_GETSOCKNAME", (void*)&sock);
+		  		DEBUG_INFO("  RPC_GETSOCKNAME, sock=%p", (void*)&sock);
 		  		struct getsockname_st getsockname_rpc;
 		    	memcpy(&getsockname_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct getsockname_st));
 		  		handleGetsockname(sock, rpcSock, uptr, &getsockname_rpc);
 		  		break;
 			case RPC_GETPEERNAME:
-		  		DEBUG_INFO("  <sock=%p> RPC_GETPEERNAME", (void*)&sock);
+		  		DEBUG_INFO("  RPC_GETPEERNAME, sock=%p", (void*)&sock);
 		  		struct getsockname_st getpeername_rpc;
 		    	memcpy(&getpeername_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct getsockname_st));
 		  		handleGetpeername(sock, rpcSock, uptr, &getpeername_rpc);
 		  		break;
 			case RPC_CONNECT:
-				DEBUG_INFO("  <sock=%p> RPC_CONNECT", (void*)&sock);
+				DEBUG_INFO("  RPC_CONNECT, sock=%p", (void*)&sock);
 			    struct connect_st connect_rpc;
 			    memcpy(&connect_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct connect_st));
 			    handleConnect(sock, rpcSock, conn, &connect_rpc);
@@ -725,7 +731,7 @@ void NetconEthernetTap::unloadRPC(void *data, pid_t &pid, pid_t &tid,
 
 err_t NetconEthernetTap::nc_accept(void *arg, struct tcp_pcb *newPCB, err_t err)
 {
-	DEBUG_INFO("pcb=%p", (void*)&newPCB);
+	DEBUG_ATTN("pcb=%p", (void*)&newPCB);
 	Larg *l = (Larg*)arg;
     Mutex::Lock _l(l->tap->_tcpconns_m);
 	Connection *conn = l->conn;
@@ -903,7 +909,7 @@ err_t NetconEthernetTap::nc_connected_proxy(void *arg, struct tcp_pcb *PCB, err_
     
 err_t NetconEthernetTap::nc_connected(void *arg, struct tcp_pcb *PCB, err_t err)
 {
-    DEBUG_INFO("pcb=%p", (void*)&PCB);
+    DEBUG_ATTN("pcb=%p", (void*)&PCB);
 	Larg *l = (Larg*)arg;
 	if(l && l->conn)
 		l->tap->sendReturnValue(l->tap->_phy.getDescriptor(l->conn->rpcSock), ERR_OK);
@@ -917,7 +923,7 @@ err_t NetconEthernetTap::nc_poll(void* arg, struct tcp_pcb *PCB)
 
 void NetconEthernetTap::nc_err(void *arg, err_t err)
 {
-	DEBUG_INFO("err=%d", err);
+	DEBUG_ERROR("err=%d", err);
 	Larg *l = (Larg*)arg;
 	Mutex::Lock _l(l->tap->_tcpconns_m);
 
@@ -1037,17 +1043,19 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 		return;
 	}
 
-	int ip = rawAddr->sin_addr.s_addr;
-	unsigned char d[4];
-	d[0] = ip & 0xFF;
-	d[1] = (ip >>  8) & 0xFF;
-	d[2] = (ip >> 16) & 0xFF;
-	d[3] = (ip >> 24) & 0xFF;
-	DEBUG_INFO(" addr=%d.%d.%d.%d:%d", d[0],d[1],d[2],d[3], port);
-
+	#if DEBUG_LEVEL >= MSG_TRANSFER
+		int ip = rawAddr->sin_addr.s_addr;
+		unsigned char d[4];
+		d[0] = ip & 0xFF;
+		d[1] = (ip >>  8) & 0xFF;
+		d[2] = (ip >> 16) & 0xFF;
+		d[3] = (ip >> 24) & 0xFF;
+		DEBUG_INFO(" addr=%d.%d.%d.%d:%d", d[0],d[1],d[2],d[3], port);
+	#endif
+	
 	connAddr.addr = *((u32_t *)_ips[0].rawIpData());
 	Connection *conn = getConnection(sock);
-    DEBUG_INFO(" sock=%p, fd=%d, port=%d", (void*)&sock, bind_rpc->fd, port);
+    DEBUG_ATTN(" sock=%p, fd=%d, port=%d", (void*)&sock, bind_rpc->fd, port);
     if(conn) {
         if(conn->type == SOCK_DGRAM) {
        		#if defined(__ANDROID__)
@@ -1096,7 +1104,7 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 
 void NetconEthernetTap::handleListen(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct listen_st *listen_rpc)
 {
-	DEBUG_INFO("sock=%p", (void*)&sock);
+	DEBUG_ATTN("sock=%p", (void*)&sock);
 	Mutex::Lock _l(_tcpconns_m);
 	Connection *conn = getConnection(sock);
     
@@ -1138,10 +1146,10 @@ Connection * NetconEthernetTap::handleSocketProxy(PhySocket *sock, int socket_ty
 {
     Connection *conn = getConnection(sock);
     if(!conn){
-        DEBUG_INFO("unable to locate Connection object for this PhySocket sock=%p", (void*)&sock);
+        DEBUG_ERROR("unable to locate Connection object for this PhySocket sock=%p", (void*)&sock);
         return NULL;
     }
-	DEBUG_INFO("sock=%p", (void*)&sock);
+	DEBUG_ATTN("sock=%p", (void*)&sock);
     struct udp_pcb *new_udp_PCB = NULL;
     struct tcp_pcb *new_tcp_PCB = NULL;
     if(socket_type == SOCK_DGRAM) {
@@ -1170,7 +1178,7 @@ Connection * NetconEthernetTap::handleSocketProxy(PhySocket *sock, int socket_ty
 
 Connection * NetconEthernetTap::handleSocket(PhySocket *sock, void **uptr, struct socket_st* socket_rpc)
 {
-    DEBUG_INFO("sock=%p", (void*)&sock);
+    DEBUG_ATTN("sock=%p", (void*)&sock);
     struct udp_pcb *new_udp_PCB = NULL;
     struct tcp_pcb *new_tcp_PCB = NULL;
     if(socket_rpc->socket_type == SOCK_DGRAM) {
@@ -1202,7 +1210,7 @@ Connection * NetconEthernetTap::handleSocket(PhySocket *sock, void **uptr, struc
 
 int NetconEthernetTap::handleConnectProxy(PhySocket *sock, struct sockaddr_in *rawAddr)
 {
-    DEBUG_INFO("sock=%p", (void*)&sock);
+    DEBUG_ATTN("sock=%p", (void*)&sock);
     Mutex::Lock _l(_tcpconns_m);
     int port = rawAddr->sin_port;
 	ip_addr_t connAddr = convert_ip(rawAddr);
@@ -1298,7 +1306,7 @@ int NetconEthernetTap::handleConnectProxy(PhySocket *sock, struct sockaddr_in *r
 
 void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Connection *conn, struct connect_st* connect_rpc)
 {
-    DEBUG_EXTRA("sock=%p", (void*)&sock);
+    DEBUG_ATTN("sock=%p", (void*)&sock);
     Mutex::Lock _l(_tcpconns_m);
 	struct sockaddr_in *rawAddr = (struct sockaddr_in *) &connect_rpc->addr;
 	int port = lwipstack->__lwip_ntohs(rawAddr->sin_port);

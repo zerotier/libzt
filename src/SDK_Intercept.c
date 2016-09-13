@@ -25,7 +25,7 @@
  * LLC. Start here: http://www.zerotier.com/
  */
 
-#if defined(_SDK_INTERCEPT_)
+#if defined(SDK_INTERCEPT)
 
 #include <unistd.h>
 #include <stdio.h>
@@ -121,7 +121,7 @@ pthread_key_t thr_id_key;
     // Return whether 'intercept' API is enabled for this thread
 
     bool check_intercept_enabled() {
-        DEBUG_EXTRA("");
+        // DEBUG_EXTRA("");
         if(!realconnect){
             load_symbols();
         }
@@ -265,7 +265,7 @@ pthread_key_t thr_id_key;
 
     int socket(SOCKET_SIG)
     {   
-        DEBUG_INFO();
+        DEBUG_ATTN();
         if (!check_intercept_enabled() && socket_type) {
             int err = realsocket(socket_family, socket_type, protocol);
             if(err < 0) {
@@ -296,7 +296,7 @@ pthread_key_t thr_id_key;
 
     int connect(CONNECT_SIG)
     {
-        DEBUG_INFO("fd=%d", fd);
+        DEBUG_ATTN("fd=%d", fd);
         struct sockaddr_in *connaddr;
         connaddr = (struct sockaddr_in *)addr;
         if(addr->sa_family == AF_LOCAL || addr->sa_family == AF_UNIX) {
@@ -359,7 +359,7 @@ pthread_key_t thr_id_key;
 
     int bind(BIND_SIG)
     {
-        DEBUG_INFO("fd=%d", fd);
+        DEBUG_ATTN("fd=%d", fd);
         // make sure we don't touch any standard outputs
         if(fd == 0 || fd == 1 || fd == 2)
             return(realbind(fd, addr, addrlen));
@@ -417,7 +417,7 @@ pthread_key_t thr_id_key;
 
 #if defined(__linux__)
     int accept4(ACCEPT4_SIG) {
-        DEBUG_INFO("fd=%d", fd);
+        DEBUG_ATTN("fd=%d", fd);
         return zts_accept4(fd, addr, addrlen, flags);
     }
 #endif
@@ -428,7 +428,7 @@ pthread_key_t thr_id_key;
     // int fd struct sockaddr *addr, socklen_t *addrlen
 
     int accept(ACCEPT_SIG) {
-        DEBUG_INFO("fd=%d", fd);
+        DEBUG_ATTN("fd=%d", fd);
         if (!check_intercept_enabled())
             return realaccept(fd, addr, addrlen);
 
@@ -483,7 +483,7 @@ pthread_key_t thr_id_key;
 
     int listen(LISTEN_SIG)
     {
-        DEBUG_INFO("fd=%d", fd);
+        DEBUG_ATTN("fd=%d", fd);
         if (!check_intercept_enabled())
             return reallisten(fd, backlog);
         

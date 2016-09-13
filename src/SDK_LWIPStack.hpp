@@ -52,7 +52,11 @@ struct tcp_pcb;
 #define LWIP_HTONS_SIG u16_t x
 #define LWIP_NTOHS_SIG u16_t x
 #define IPADDR_NTOA_SIG const ip_addr_t *addr
-#define ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip_addr_t *ipaddr
+#if defined(LWIP_VERSION_2)
+    #define ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip_addr_t *ipaddr
+#elif defined (LWIP_VERSION_1)
+    #define ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, ip_addr_t *ipaddr
+#endif
 #define ETHERNET_INPUT_SIG struct pbuf *p, struct netif *netif
 #define IP_INPUT_SIG struct pbuf *p, struct netif *inp
 #define NETIF_SET_DEFAULT_SIG struct netif *netif

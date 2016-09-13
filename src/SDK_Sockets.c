@@ -115,7 +115,7 @@ int (*realclose)(CLOSE_SIG);
                     DEBUG_INFO("$ZT_NC_NETWORK(len=%d)=%s", strlen(api_netpath), api_netpath);
                 }
             #endif
-            DEBUG_EXTRA("api_netpath=%s", api_netpath);
+            //DEBUG_EXTRA("api_netpath=%s", api_netpath);
         }
     }
 

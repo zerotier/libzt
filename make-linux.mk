@@ -7,6 +7,27 @@
 #   tests: build only test applications for host system
 #   clean: removes all built files, objects, other trash
 
+# Target output filenames
+SHARED_LIB_NAME    = libztlinux.so
+INTERCEPT_NAME     = libztintercept.so
+SDK_SERVICE_NAME   = zerotier-sdk-service
+ONE_SERVICE_NAME   = zerotier-one
+ONE_CLI_NAME       = zerotier-cli
+ONE_ID_TOOL_NAME   = zerotier-idtool
+LWIP_LIB_NAME      = liblwip.so
+#
+SHARED_LIB         = $(BUILD)/$(SHARED_LIB_NAME)
+INTERCEPT          = $(BUILD)/$(INTERCEPT_NAME)
+SDK_SERVICE        = $(BUILD)/$(SDK_SERVICE_NAME)
+ONE_SERVICE        = $(BUILD)/$(ONE_SERVICE_NAME)
+ONE_CLI            = $(BUILD)/$(ONE_CLI_NAME)
+ONE_IDTOOL         = $(BUILD)/$(ONE_IDTOOL_NAME)
+LWIP_LIB           = $(BUILD)/$(LWIP_LIB_NAME)
+#
+LWIP_2_DIR         = ext/lwip_2.0.0
+LWIP_1_DIR         = ext/lwip_1.4.1
+LWIP_BASE_DIR      = ext/lwip
+
 # Automagically pick clang or gcc, with preference for clang
 # This is only done if we have not overridden these with an environment or CLI variable
 ifeq ($(origin CC),default)
@@ -49,10 +70,34 @@ ifeq ($(ZT_TRACE),1)
 	DEFS+=-DZT_TRACE
 endif
 
-# Debug output for lwIP
+
+INCLUDES+= -Iext \
+	-I$(ZT1)/osdep \
+	-I$(ZT1)/node \
+	-I$(ZT1)/service \
+	-I../$(ZT1)/osdep \
+	-I../$(ZT1)/node \
+	-I../$(ZT1)/service \
+	-I. \
+	-Isrc
+
+
+# lwIP
 ifeq ($(SDK_LWIP_DEBUG),1)
-	LWIP_FLAGS:=SDK_LWIP_DEBUG=1
+	LWIP_FLAGS+=SDK_LWIP_DEBUG=1
 endif
+ifeq ($(LWIP_VERSION_2),1)
+	CXXFLAGS+=-DLWIP_VERSION_2
+	INCLUDES+=-I$(LWIP_2_DIR)/src/include
+	INCLUDES+=-I$(LWIP_2_DIR)/src/include/ipv4
+	INCLUDES+=-I$(LWIP_2_DIR)/src/include/ipv6
+else
+	CXXFLAGS+=-DLWIP_VERSION_1
+	INCLUDES+=-I$(LWIP_1_DIR)/src/include
+	INCLUDES+=-I$(LWIP_1_DIR)/src/include/ipv4
+	INCLUDES+=-I$(LWIP_1_DIR)/src/include/ipv6
+endif
+
 
 # Debug output for the SDK
 # Specific levels can be controlled in src/SDK_Debug.h
@@ -65,22 +110,7 @@ ifeq ($(SDK_DEBUG_LOG_TO_FILE),1)
 endif
 
 
-# Target output filenames
-SHARED_LIB_NAME    = libztlinux.so
-INTERCEPT_NAME     = libztintercept.so
-SDK_SERVICE_NAME   = zerotier-sdk-service
-ONE_SERVICE_NAME   = zerotier-one
-ONE_CLI_NAME       = zerotier-cli
-ONE_ID_TOOL_NAME   = zerotier-idtool
-LWIP_LIB_NAME      = liblwip.so
-#
-SHARED_LIB         = $(BUILD)/$(SHARED_LIB_NAME)
-INTERCEPT          = $(BUILD)/$(INTERCEPT_NAME)
-SDK_SERVICE        = $(BUILD)/$(SDK_SERVICE_NAME)
-ONE_SERVICE        = $(BUILD)/$(ONE_SERVICE_NAME)
-ONE_CLI            = $(BUILD)/$(ONE_CLI_NAME)
-ONE_IDTOOL         = $(BUILD)/$(ONE_IDTOOL_NAME)
-LWIP_LIB           = $(BUILD)/$(LWIP_LIB_NAME)
+# ------ MISC TARGETS ------
 
 all: remove_only_intermediates linux_shared_lib check
 
@@ -92,7 +122,15 @@ remove_only_intermediates:
 
 # --- EXTERNAL LIBRARIES ---
 lwip:
-	make -f make-liblwip.mk $(LWIP_FLAGS)
+ifeq ($(LWIP_VERSION_2),1)
+	mv ext/lwip_2.0.0 ext/lwip
+	-make -f make-liblwip200.mk $(LWIP_FLAGS)
+	mv ext/lwip ext/lwip_2.0.0
+else
+	mv ext/lwip_1.4.1 ext/lwip
+	-make -f make-liblwip141.mk $(LWIP_FLAGS)
+	mv ext/lwip ext/lwip_1.4.1
+endif
 
 
 
@@ -111,11 +149,12 @@ one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernet
 # Build only the intercept library
 linux_intercept:
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
-	cd src ; gcc $(DEFS) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -I. -nostdlib -I../$(ZT1)/node -nostdlib -shared -o ../$(INTERCEPT) SDK_Sockets.c SDK_Intercept.c SDK_RPC.c -ldl
+	cd src ; gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o ../$(INTERCEPT) SDK_Sockets.c SDK_Intercept.c SDK_RPC.c -ldl
 
 # Build only the SDK service
 linux_sdk_service: lwip $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DEFS) -DSDK -DZT_ONE_NO_ROOT_CHECK -Iext -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -I$(ZT1)/osdep -I$(ZT1)/node -Isrc -o $(SDK_SERVICE) $(OBJS) $(ZT1)/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp $(ZT1)/one.cpp -x c src/SDK_RPC.c $(LDLIBS) -ldl
+	rm -rf .depend
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DEFS) $(INCLUDES) -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(ZT1)/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp $(ZT1)/one.cpp -x c src/SDK_RPC.c $(LDLIBS) -ldl
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-cli
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-idtool
 
@@ -124,7 +163,7 @@ linux_service_and_intercept: linux_intercept linux_sdk_service
 
 # Builds a single shared library which contains everything
 linux_shared_lib: $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -DSDK -DZT_ONE_NO_ROOT_CHECK -Iext/lwip/src/include -Iext/lwip/src/include/ipv4 -Iext/lwip/src/include/ipv6 -Izerotierone/osdep -Izerotierone/node -Izerotierone/service -Isrc -shared -o $(SHARED_LIB) $(OBJS) zerotierone/service/OneService.cpp src/SDK_Service.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp zerotierone/one.cpp -x c src/SDK_Sockets.c src/SDK_Intercept.c src/SDK_RPC.c $(LDLIBS) -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) -DSDK -DZT_ONE_NO_ROOT_CHECK -shared -o $(SHARED_LIB) $(OBJS) zerotierone/service/OneService.cpp src/SDK_Service.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp zerotierone/one.cpp -x c src/SDK_Sockets.c src/SDK_Intercept.c src/SDK_RPC.c $(LDLIBS) -ldl
 
 
 
@@ -200,18 +239,28 @@ $(BUILD)/tests/$(OSTYPE).%.out: tests/api_test/%.c
 $(TEST_OBJDIR):
 	mkdir -p $(TEST_OBJDIR)
 
-tests: $(TEST_OBJDIR) $(TEST_TARGETS) linux_service_and_intercept
+tests: $(TEST_OBJDIR) $(TEST_TARGETS)
 	mkdir -p $(BUILD)/tests; 
 	mkdir -p build/tests/zerotier
+
+test_suite: tests lwip linux_service_and_intercept
 	cp tests/api_test/test.sh $(BUILD)/tests/test.sh
 	cp tests/api_test/servers.sh $(BUILD)/tests/servers.sh
 	cp tests/api_test/clients.sh $(BUILD)/tests/clients.sh
 	cp tests/cleanup.sh $(BUILD)/tests/cleanup.sh
-	cp $(LWIP_LIB) $(BUILD)/tests/zerotier/liblwip.so
-
+	cp $(LWIP_LIB) $(BUILD)/tests/zerotier/$(LWIP_LIB_NAME)
 
 
 # ----- ADMINISTRATIVE -----
+
+#restore_lwip_dirs:
+#	if [ -d "$LWIP_2_DIR" && ! -d "$LWIP_1_DIR" ]; then
+#		-mv $LWIP_BASE_DIR $LWIP_1_DIR
+#	fi
+#	if [ -d "$LWIP_1_DIR" && ! -d "$LWIP_2_DIR" ]; then
+#		-mv $LWIP_BASE_DIR $LWIP_2_DIR
+#	fi
+
 clean_android:
 	# android JNI lib project
 	-test -s /usr/bin/javac || { echo "Javac not found"; exit 1; }
@@ -221,6 +270,7 @@ clean_android:
 	-cd $(INT)/android/example_app; ./gradlew clean
 
 clean_basic:
+	-rm -rf .depend
 	-rm -rf $(BUILD)/*
 	-rm -rf $(INT)/Unity3D/Assets/Plugins/*
 	-rm -rf zerotier-cli zerotier-idtool

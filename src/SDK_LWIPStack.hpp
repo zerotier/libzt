@@ -33,8 +33,12 @@
 #include "lwip/ip_addr.h"
 #include "lwip/netif.h"
 #include "lwip/init.h"
-//#include "lwip/tcp_impl.h"
 #include "lwip/udp.h"
+
+#if defined(LWIP_VERSION_2) // 2.0.0
+#else // 1.4.1
+    #include "lwip/tcp_impl.h"
+#endif
 
 #include <stdio.h>
 #include <dlfcn.h>
@@ -52,9 +56,9 @@ struct tcp_pcb;
 #define LWIP_HTONS_SIG u16_t x
 #define LWIP_NTOHS_SIG u16_t x
 #define IPADDR_NTOA_SIG const ip_addr_t *addr
-#if defined(LWIP_VERSION_2)
+#if defined(LWIP_VERSION_2) // 2.0.0+
     #define ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip_addr_t *ipaddr
-#elif defined (LWIP_VERSION_1)
+#else // 1.4.1
     #define ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, ip_addr_t *ipaddr
 #endif
 #define ETHERNET_INPUT_SIG struct pbuf *p, struct netif *netif

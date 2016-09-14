@@ -267,7 +267,7 @@ clean_android:
 	-cd $(INT)/android/example_app; ./gradlew clean
 
 clean_basic:
-	-rm -rf .depend
+	#-rm -rf .depend
 	-rm -rf $(BUILD)/*
 	-rm -rf $(INT)/Unity3D/Assets/Plugins/*
 	-rm -rf zerotier-cli zerotier-idtool

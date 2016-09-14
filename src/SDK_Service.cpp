@@ -193,6 +193,7 @@ void zts_get_ipv6_address(const char *nwid, char *addrstr)
 // Get device ID
 int zts_get_device_id() 
 { 
+    // zt->node->status
     /* TODO */ return 0; 
 }
 // 

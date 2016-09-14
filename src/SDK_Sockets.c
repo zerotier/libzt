@@ -112,7 +112,7 @@ int (*realclose)(CLOSE_SIG);
                 // This is used when you're dynamically-linking our library into your application at runtime
                 if (!api_netpath) {
                     api_netpath = getenv("ZT_NC_NETWORK");
-                    DEBUG_INFO("$ZT_NC_NETWORK(len=%d)=%s", strlen(api_netpath), api_netpath);
+                    DEBUG_INFO("$ZT_NC_NETWORK(len=%ld)=%s", strlen(api_netpath), api_netpath);
                 }
             #endif
             //DEBUG_EXTRA("api_netpath=%s", api_netpath);

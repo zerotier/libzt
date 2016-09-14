@@ -45,14 +45,13 @@
 #include "SDK_LWIPStack.hpp"
 
 // LWIP
-#if defined(LWIP_VERSION_2)
-	//#define LWIPDIR "ext/lwip_2.0.0"
+#if defined(LWIP_VERSION_2) // 2.0.0+
 	#include "lwip/priv/tcp_priv.h"
-#elif defined (LWIP_VERSION_1)
- 	//#define LWIPDIR "ext/lwip_1.4.1"
+#else // 1.4.1
 	#include "lwip/tcp_impl.h"
 	#include "lwip/ip_frag.h"
 #endif
+
 #include "netif/etharp.h"
 #include "lwip/api.h"
 #include "lwip/ip.h"
@@ -65,8 +64,6 @@
 #include "lwip/netif.h"
 #include "lwip/udp.h"
 #include "lwip/tcp.h"
-
-
 
 #include "SDK.h"
 #include "SDK_Debug.h"
@@ -367,7 +364,7 @@ void NetconEthernetTap::threadMain()
 						(void*)&(_Connections[i]->sock));
 				}
 				if((n < 0 && errno != EAGAIN) || (n == 0 && errno == EAGAIN)) {
-					DEBUG_INFO(" closing sock (%x)", (void*)_Connections[i]->sock);
+					//DEBUG_INFO(" closing sock (%x)", (void*)_Connections[i]->sock);
 					closeConnection(_Connections[i]->sock);
 				} else if (n > 0) {
 					DEBUG_INFO(" data read during connection check (%ld bytes)", n);
@@ -412,7 +409,7 @@ Connection *NetconEthernetTap::getConnection(PhySocket *sock)
 
 void NetconEthernetTap::closeConnection(PhySocket *sock)
 {
-    DEBUG_EXTRA("sock=%x", sock);
+    DEBUG_EXTRA("sock=%p", (void*)sock);
 	Mutex::Lock _l(_close_m);
 	// Here we assume _tcpconns_m is already locked by caller
 	if(!sock) {
@@ -499,16 +496,16 @@ void NetconEthernetTap::processReceivedData(PhySocket *sock,void **uptr,bool lwi
 				d[1] = (ip >>  8) & 0xFF;
 				d[2] = (ip >> 16) & 0xFF;
 				d[3] = (ip >> 24) & 0xFF;
-            	DEBUG_TRANS("UDP RX <---    :: {TX: %.3f%%, RX: %d, sock=%x} :: payload = %d bytes (src_addr=%d.%d.%d.%d:%d)", 
-					(float)conn->txsz / max, conn->rxsz/* / max*/, conn->sock, payload_sz, d[0],d[1],d[2],d[3], port);
+            	DEBUG_TRANS("UDP RX <---    :: {TX: %.3f%%, RX: %d, sock=%p} :: payload = %d bytes (src_addr=%d.%d.%d.%d:%d)", 
+					(float)conn->txsz / max, conn->rxsz/* / max*/, (void*)conn->sock, payload_sz, d[0],d[1],d[2],d[3], port);
 			#endif
             }
 			// STREAM
             //DEBUG_INFO("phyOnUnixWritable(): tid = %d\n", pthread_mach_thread_np(pthread_self()));
             if(conn->type==SOCK_STREAM) { // Only acknolwedge receipt of TCP packets
                 lwipstack->__tcp_recved(conn->TCP_pcb, n);
-            	DEBUG_TRANS("TCP RX <---    :: {TX: %.3f%%, RX: %.3f%%, sock=%x} :: %ld bytes",
-                	(float)conn->txsz / max, (float)conn->rxsz / max, conn->sock, n);
+            	DEBUG_TRANS("TCP RX <---    :: {TX: %.3f%%, RX: %.3f%%, sock=%p} :: %ld bytes",
+                	(float)conn->txsz / max, (float)conn->rxsz / max, (void*)conn->sock, n);
         	}
 		} else {
 			DEBUG_EXTRA(" errno = %d, rxsz = %d", errno, conn->rxsz);
@@ -527,7 +524,6 @@ void NetconEthernetTap::processReceivedData(PhySocket *sock,void **uptr,bool lwi
 
 void NetconEthernetTap::phyOnUnixWritable(PhySocket *sock,void **uptr,bool lwip_invoked)
 {
-	//DEBUG_EXTRA(" phyOnUnixWritable(sock=%p): lwip_invoked = %d\n", (void*)&sock, lwip_invoked);
 	processReceivedData(sock,uptr,lwip_invoked);
 }
 
@@ -587,7 +583,7 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
 				// Find job
 				sockdata = jobmap[CANARY_num];
 				if(!sockdata.first) {
-					DEBUG_ERROR(" unable to locate job entry for %llu, sock=%p", CANARY_num, (void*)&sock);
+					DEBUG_ERROR(" unable to locate job entry for %lu, sock=%p", CANARY_num, (void*)&sock);
 					return;
 				}  else
 					foundJob = true;
@@ -796,6 +792,8 @@ void NetconEthernetTap::nc_udp_recved(void * arg, struct udp_pcb * upcb, struct 
 	addr_in->sin_addr.s_addr = addr->addr;
 	addr_in->sin_port = port;
 #endif
+
+	// TODO: Finish address treatment
 
     Mutex::Lock _l2(l->tap->_rx_buf_m);
     // Cycle through pbufs and write them to the RX buffer
@@ -1439,8 +1437,8 @@ void NetconEthernetTap::handleWrite(Connection *conn)
 				d[1] = (ip >>  8) & 0xFF;
 				d[2] = (ip >> 16) & 0xFF;
 				d[3] = (ip >> 24) & 0xFF;
-				DEBUG_TRANS("UDP TX --->    :: {TX: ------, RX: ------, sock=%x} :: %d bytes (dest_addr=%d.%d.%d.%d:%d)", 
-					conn->sock, udp_trans_len, d[0], d[1], d[2], d[3], port);
+				DEBUG_TRANS("UDP TX --->    :: {TX: ------, RX: ------, sock=%p} :: %d bytes (dest_addr=%d.%d.%d.%d:%d)", 
+					(void*)conn->sock, udp_trans_len, d[0], d[1], d[2], d[3], port);
 			#endif
         }
         lwipstack->__pbuf_free(pb);

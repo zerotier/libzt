@@ -24,8 +24,8 @@ ONE_CLI            = $(BUILD)/$(ONE_CLI_NAME)
 ONE_IDTOOL         = $(BUILD)/$(ONE_IDTOOL_NAME)
 LWIP_LIB           = $(BUILD)/$(LWIP_LIB_NAME)
 #
-LWIP_2_DIR         = ext/lwip_2.0.0
-LWIP_1_DIR         = ext/lwip_1.4.1
+LWIP_2_DIR         = ext/lwip200
+LWIP_1_DIR         = ext/lwip141
 LWIP_BASE_DIR      = ext/lwip
 
 # Automagically pick clang or gcc, with preference for clang
@@ -92,7 +92,6 @@ ifeq ($(LWIP_VERSION_2),1)
 	INCLUDES+=-I$(LWIP_2_DIR)/src/include/ipv4
 	INCLUDES+=-I$(LWIP_2_DIR)/src/include/ipv6
 else
-	CXXFLAGS+=-DLWIP_VERSION_1
 	INCLUDES+=-I$(LWIP_1_DIR)/src/include
 	INCLUDES+=-I$(LWIP_1_DIR)/src/include/ipv4
 	INCLUDES+=-I$(LWIP_1_DIR)/src/include/ipv6
@@ -123,13 +122,13 @@ remove_only_intermediates:
 # --- EXTERNAL LIBRARIES ---
 lwip:
 ifeq ($(LWIP_VERSION_2),1)
-	mv ext/lwip_2.0.0 ext/lwip
+	mv ext/lwip200 ext/lwip
 	-make -f make-liblwip200.mk $(LWIP_FLAGS)
-	mv ext/lwip ext/lwip_2.0.0
+	mv ext/lwip ext/lwip200
 else
-	mv ext/lwip_1.4.1 ext/lwip
+	mv ext/lwip141 ext/lwip
 	-make -f make-liblwip141.mk $(LWIP_FLAGS)
-	mv ext/lwip ext/lwip_1.4.1
+	mv ext/lwip ext/lwip141
 endif
 
 
@@ -153,7 +152,6 @@ linux_intercept:
 
 # Build only the SDK service
 linux_sdk_service: lwip $(OBJS)
-	rm -rf .depend
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DEFS) $(INCLUDES) -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(ZT1)/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp $(ZT1)/one.cpp -x c src/SDK_RPC.c $(LDLIBS) -ldl
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-cli
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-idtool
@@ -270,12 +268,14 @@ clean_android:
 	-cd $(INT)/android/example_app; ./gradlew clean
 
 clean_basic:
-	-rm -rf .depend
 	-rm -rf $(BUILD)/*
 	-rm -rf $(INT)/Unity3D/Assets/Plugins/*
 	-rm -rf zerotier-cli zerotier-idtool
 	-find . -type f \( -name $(ONE_SERVICE_NAME) -o -name $(SDK_SERVICE_NAME) \) -delete
 	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
+
+clean_thorough: clean_basic
+	-rm -rf .depend
 
 clean: clean_basic clean_android
 

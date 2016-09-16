@@ -121,7 +121,6 @@ pthread_key_t thr_id_key;
     // Return whether 'intercept' API is enabled for this thread
 
     bool check_intercept_enabled() {
-        // DEBUG_EXTRA("");
         if(!realconnect){
             load_symbols();
         }
@@ -306,14 +305,18 @@ pthread_key_t thr_id_key;
             DEBUG_INFO("addr=%s", s_un->sun_path);
         }
         
-        int port = connaddr->sin_port;
-        int ip = connaddr->sin_addr.s_addr;
-        unsigned char d[4];
-        d[0] = ip & 0xFF;
-        d[1] = (ip >>  8) & 0xFF;
-        d[2] = (ip >> 16) & 0xFF;
-        d[3] = (ip >> 24) & 0xFF;
-        DEBUG_INFO("addr=%d.%d.%d.%d:%d", d[0],d[1],d[2],d[3], ntohs(port));
+        char addrstr[INET6_ADDRSTRLEN];
+        if(addr->sa_family == AF_INET) {
+            struct sockaddr_in *connaddr = (struct sockaddr_in *)addr;
+            inet_ntop(AF_INET, &(connaddr->sin_addr), addrstr, INET_ADDRSTRLEN);    
+            sprintf(addrstr, "%s:%d", addrstr, ntohs(connaddr->sin_port));
+        }
+        if(addr->sa_family == AF_INET6) {        
+            struct sockaddr_in6 *connaddr6 = (struct sockaddr_in6 *)addr;
+            inet_ntop(AF_INET6, &(connaddr6->sin6_addr), addrstr, INET6_ADDRSTRLEN);
+            sprintf(addrstr, "%s:%d", addrstr, ntohs(connaddr6->sin6_port));
+        }
+        DEBUG_INFO("addr=%s", addrstr);
         
         if(!check_intercept_enabled())
             return realconnect(fd, addr, addrlen);
@@ -363,26 +366,32 @@ pthread_key_t thr_id_key;
         // make sure we don't touch any standard outputs
         if(fd == 0 || fd == 1 || fd == 2)
             return(realbind(fd, addr, addrlen));
-        struct sockaddr_in *connaddr;
-        connaddr = (struct sockaddr_in *)addr;
 
-        if(connaddr->sin_family == AF_LOCAL
+        struct sockaddr_in *connaddr;
+        struct sockaddr_in6 *connaddr6;
+
+        char addrstr[INET6_ADDRSTRLEN];
+        if(addr->sa_family == AF_INET) {
+            struct sockaddr_in *connaddr = (struct sockaddr_in *)addr;
+            inet_ntop(AF_INET, &(connaddr->sin_addr), addrstr, INET_ADDRSTRLEN);    
+            sprintf(addrstr, "%s:%d", addrstr, ntohs(connaddr->sin_port));
+        }
+        if(addr->sa_family == AF_INET6) {        
+            struct sockaddr_in6 *connaddr6 = (struct sockaddr_in6 *)addr;
+            inet_ntop(AF_INET6, &(connaddr6->sin6_addr), addrstr, INET6_ADDRSTRLEN);
+            sprintf(addrstr, "%s:%d", addrstr, ntohs(connaddr6->sin6_port));
+        }
+        DEBUG_INFO("addr=%s", addrstr);
+
+        if(addr->sa_family == AF_LOCAL
         #if defined(__linux__)
-           || connaddr->sin_family == AF_NETLINK
+           || addr->sa_family == AF_NETLINK
         #endif
-           || connaddr->sin_family == AF_UNIX) {
+           || addr->sa_family == AF_UNIX) {
             int err = realbind(fd, addr, addrlen);
             DEBUG_BLANK("realbind(): err=%d", err);
             return err;
         }
-        int port = connaddr->sin_port;
-        int ip = connaddr->sin_addr.s_addr;
-        unsigned char d[4];
-        d[0] = ip & 0xFF;
-        d[1] = (ip >>  8) & 0xFF;
-        d[2] = (ip >> 16) & 0xFF;
-        d[3] = (ip >> 24) & 0xFF;
-        DEBUG_INFO("addr=%d.%d.%d.%d:%d", d[0],d[1],d[2],d[3], ntohs(port));
 
         int sock_type;
         socklen_t sock_type_len = sizeof(sock_type);

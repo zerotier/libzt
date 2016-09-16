@@ -472,7 +472,7 @@ void *zts_start_core_service(void *thread_id) {
         }
     }
     else {
-        fprintf(stderr, "homeDir is empty, could not construct path");
+        DEBUG_ERROR(stderr, "homeDir is empty, could not construct path");
         return NULL;
     }
 

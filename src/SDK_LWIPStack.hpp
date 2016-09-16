@@ -35,9 +35,13 @@
 #include "lwip/init.h"
 #include "lwip/udp.h"
 
+#include "Mutex.hpp"
+#include "OSUtils.hpp"
+#include "SDK_Debug.h"
+
 #if defined(LWIP_VERSION_2) // 2.0.0
 #else // 1.4.1
-    #include "lwip/tcp_impl.h"
+   // #include "lwip/tcp_impl.h"
 #endif
 
 #include <stdio.h>
@@ -242,7 +246,7 @@ namespace ZeroTier {
 #ifdef __DYNAMIC_LWIP__ // Use dynamically-loaded symbols (for use in normal desktop applications)
             
             if(_libref == NULL)
-                printf("dlerror(): %s\n", dlerror());
+                DEBUG_ERROR("dlerror(): %s", dlerror());
             
             _ethernet_input = (err_t(*)(ETHERNET_INPUT_SIG))dlsym(_libref, "ethernet_input");
             _etharp_output = (err_t(*)(ETHARP_OUTPUT_SIG))dlsym(_libref, "etharp_output");

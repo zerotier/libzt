@@ -495,6 +495,7 @@ namespace ZeroTier {
 
 		pid_t rpcCounter;
 		netif interface;
+		netif interface6;
 
 		MAC _mac;
 		Thread _thread;

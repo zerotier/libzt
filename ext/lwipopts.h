@@ -44,10 +44,18 @@
  */
 #include "lwip/debug.h"
 
-//#define LWIP_IPV6 1
 
-//#define LWIP_DEBUG 1
-//#define LWIP_DBG_TYPES_ON LWIP_DBG_TRACE
+// IPV6 Related
+#define LWIP_IPV6 1
+#define LWIP_IPV4 0
+//#define LWIP_IPV6_AUTOCONFIG 1
+
+#define IP6_DEBUG 1
+#define LWIP_DEBUG 1
+#define IP_DEBUG LWIP_DBG_ON
+#define LWIP_ETHERNET 1
+
+#define LWIP_DBG_TYPES_ON LWIP_DBG_TRACE | LWIP_DBG_STATE | LWIP_DBG_FRESH
 
 #define LWIP_CHKSUM_ALGORITHM 2
 

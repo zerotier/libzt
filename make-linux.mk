@@ -24,7 +24,7 @@ ONE_CLI            = $(BUILD)/$(ONE_CLI_NAME)
 ONE_IDTOOL         = $(BUILD)/$(ONE_IDTOOL_NAME)
 LWIP_LIB           = $(BUILD)/$(LWIP_LIB_NAME)
 #
-LWIP_2_DIR         = ext/lwip200
+LWIP_2_DIR         = ext/lwip
 LWIP_1_DIR         = ext/lwip141
 LWIP_BASE_DIR      = ext/lwip
 
@@ -122,9 +122,9 @@ remove_only_intermediates:
 # --- EXTERNAL LIBRARIES ---
 lwip:
 ifeq ($(LWIP_VERSION_2),1)
-	mv ext/lwip200 ext/lwip
+	#mv ext/lwip200 ext/lwip
 	-make -f make-liblwip200.mk $(LWIP_FLAGS)
-	mv ext/lwip ext/lwip200
+	#mv ext/lwip ext/lwip200
 else
 	mv ext/lwip141 ext/lwip
 	-make -f make-liblwip141.mk $(LWIP_FLAGS)

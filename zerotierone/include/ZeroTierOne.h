@@ -97,24 +97,49 @@ extern "C" {
 #define ZT_MAX_NETWORK_SPECIALISTS 256
 
 /**
- * Maximum number of static physical to ZeroTier address mappings (typically relays, etc.)
- */
-#define ZT_MAX_NETWORK_PINNED 16
-
-/**
- * Maximum number of rule table entries per network (can be increased)
- */
-#define ZT_MAX_NETWORK_RULES 256
-
-/**
  * Maximum number of multicast group subscriptions per network
  */
 #define ZT_MAX_NETWORK_MULTICAST_SUBSCRIPTIONS 4096
 
 /**
+ * Rules engine revision ID, which specifies rules engine capabilities
+ */
+#define ZT_RULES_ENGINE_REVISION 1
+
+/**
+ * Maximum number of base (non-capability) network rules
+ */
+#define ZT_MAX_NETWORK_RULES 1024
+
+/**
+ * Maximum number of per-member capabilities per network
+ */
+#define ZT_MAX_NETWORK_CAPABILITIES 128
+
+/**
+ * Maximum number of per-member tags per network
+ */
+#define ZT_MAX_NETWORK_TAGS 128
+
+/**
  * Maximum number of direct network paths to a given peer
  */
 #define ZT_MAX_PEER_NETWORK_PATHS 4
+
+/**
+ * Maximum number of trusted physical network paths
+ */
+#define ZT_MAX_TRUSTED_PATHS 16
+
+/**
+ * Maximum number of rules per capability
+ */
+#define ZT_MAX_CAPABILITY_RULES 64
+
+/**
+ * Global maximum length for capability chain of custody (including initial issue)
+ */
+#define ZT_MAX_CAPABILITY_CUSTODY_CHAIN_LENGTH 7
 
 /**
  * Maximum number of hops in a ZeroTier circuit test
@@ -130,6 +155,11 @@ extern "C" {
 #define ZT_CIRCUIT_TEST_MAX_HOP_BREADTH 8
 
 /**
+ * Circuit test report flag: upstream peer authorized in path (e.g. by network COM)
+ */
+#define ZT_CIRCUIT_TEST_REPORT_FLAGS_UPSTREAM_AUTHORIZED_IN_PATH 0x0000000000000001ULL
+
+/**
  * Maximum number of cluster members (and max member ID plus one)
  */
 #define ZT_CLUSTER_MAX_MEMBERS 128
@@ -143,6 +173,81 @@ extern "C" {
  * Maximum allowed cluster message length in bytes
  */
 #define ZT_CLUSTER_MAX_MESSAGE_LENGTH (1500 - 48)
+
+/**
+ * Packet characteristics flag: packet direction, 1 if inbound 0 if outbound
+ */
+#define ZT_RULE_PACKET_CHARACTERISTICS_INBOUND 0x8000000000000000ULL
+
+/**
+ * Packet characteristics flag: multicast or broadcast destination MAC
+ */
+#define ZT_RULE_PACKET_CHARACTERISTICS_MULTICAST 0x4000000000000000ULL
+
+/**
+ * Packet characteristics flag: broadcast destination MAC
+ */
+#define ZT_RULE_PACKET_CHARACTERISTICS_BROADCAST 0x2000000000000000ULL
+
+/**
+ * Packet characteristics flag: TCP left-most reserved bit
+ */
+#define ZT_RULE_PACKET_CHARACTERISTICS_TCP_RESERVED_0 0x0000000000000800ULL
+
+/**
+ * Packet characteristics flag: TCP middle reserved bit
+ */
+#define ZT_RULE_PACKET_CHARACTERISTICS_TCP_RESERVED_1 0x0000000000000400ULL
+
+/**
+ * Packet characteristics flag: TCP right-most reserved bit
+ */
+#define ZT_RULE_PACKET_CHARACTERISTICS_TCP_RESERVED_2 0x0000000000000200ULL
+
+/**
+ * Packet characteristics flag: TCP NS flag
+ */
+#define ZT_RULE_PACKET_CHARACTERISTICS_TCP_NS 0x0000000000000100ULL
+
+/**
+ * Packet characteristics flag: TCP CWR flag
+ */
+#define ZT_RULE_PACKET_CHARACTERISTICS_TCP_CWR 0x0000000000000080ULL
+
+/**
+ * Packet characteristics flag: TCP ECE flag
+ */
+#define ZT_RULE_PACKET_CHARACTERISTICS_TCP_ECE 0x0000000000000040ULL
+
+/**
+ * Packet characteristics flag: TCP URG flag
+ */
+#define ZT_RULE_PACKET_CHARACTERISTICS_TCP_URG 0x0000000000000020ULL
+
+/**
+ * Packet characteristics flag: TCP ACK flag
+ */
+#define ZT_RULE_PACKET_CHARACTERISTICS_TCP_ACK 0x0000000000000010ULL
+
+/**
+ * Packet characteristics flag: TCP PSH flag
+ */
+#define ZT_RULE_PACKET_CHARACTERISTICS_TCP_PSH 0x0000000000000008ULL
+
+/**
+ * Packet characteristics flag: TCP RST flag
+ */
+#define ZT_RULE_PACKET_CHARACTERISTICS_TCP_RST 0x0000000000000004ULL
+
+/**
+ * Packet characteristics flag: TCP SYN flag
+ */
+#define ZT_RULE_PACKET_CHARACTERISTICS_TCP_SYN 0x0000000000000002ULL
+
+/**
+ * Packet characteristics flag: TCP FIN flag
+ */
+#define ZT_RULE_PACKET_CHARACTERISTICS_TCP_FIN 0x0000000000000001ULL
 
 /**
  * A null/empty sockaddr (all zero) to signify an unspecified socket address
@@ -362,7 +467,7 @@ enum ZT_VirtualNetworkStatus
 	ZT_NETWORK_STATUS_PORT_ERROR = 4,
 
 	/**
-	 * ZeroTier One version too old
+	 * ZeroTier core version too old
 	 */
 	ZT_NETWORK_STATUS_CLIENT_TOO_OLD = 5
 };
@@ -386,12 +491,16 @@ enum ZT_VirtualNetworkType
 /**
  * The type of a virtual network rules table entry
  *
- * These must range from 0 to 127 (0x7f).
+ * These must range from 0 to 127 (0x7f) because the most significant bit
+ * is reserved as a NOT flag.
  *
- * Each rule is composed of one or more MATCHes followed by an ACTION.
+ * Each rule is composed of zero or more MATCHes followed by an ACTION.
+ * An ACTION with no MATCHes is always taken.
  */
 enum ZT_VirtualNetworkRuleType
 {
+	// 0 to 31 reserved for actions
+
 	/**
 	 * Drop frame
 	 */
@@ -403,14 +512,31 @@ enum ZT_VirtualNetworkRuleType
 	ZT_NETWORK_RULE_ACTION_ACCEPT = 1,
 
 	/**
-	 * Forward a copy of this frame to an observer
+	 * Forward a copy of this frame to an observer (by ZT address)
 	 */
 	ZT_NETWORK_RULE_ACTION_TEE = 2,
 
 	/**
-	 * Explicitly redirect this frame to another device (ignored if this is the target device)
+	 * Exactly like TEE but mandates ACKs from observer
 	 */
-	ZT_NETWORK_RULE_ACTION_REDIRECT = 3,
+	ZT_NETWORK_RULE_ACTION_WATCH = 3,
+
+	/**
+	 * Drop and redirect this frame to another node (by ZT address)
+	 */
+	ZT_NETWORK_RULE_ACTION_REDIRECT = 4,
+
+	/**
+	 * Log if match and if rule debugging is enabled in the build, otherwise does nothing (for developers)
+	 */
+	ZT_NETWORK_RULE_ACTION_DEBUG_LOG = 5,
+
+	/**
+	 * Maximum ID for an ACTION, anything higher is a MATCH
+	 */
+	ZT_NETWORK_RULE_ACTION__MAX_ID = 31,
+
+	// 32 to 127 reserved for match criteria
 
 	/**
 	 * Source ZeroTier address -- analogous to an Ethernet port ID on a switch
@@ -483,36 +609,58 @@ enum ZT_VirtualNetworkRuleType
 	ZT_NETWORK_RULE_MATCH_IP_PROTOCOL = 45,
 
 	/**
+	 * ICMP type and possibly code (does not match if not ICMP)
+	 */
+	ZT_NETWORK_RULE_MATCH_ICMP = 46,
+
+	/**
 	 * IP source port range (start-end, inclusive)
 	 */
-	ZT_NETWORK_RULE_MATCH_IP_SOURCE_PORT_RANGE = 46,
+	ZT_NETWORK_RULE_MATCH_IP_SOURCE_PORT_RANGE = 47,
 
 	/**
 	 * IP destination port range (start-end, inclusive)
 	 */
-	ZT_NETWORK_RULE_MATCH_IP_DEST_PORT_RANGE = 47,
+	ZT_NETWORK_RULE_MATCH_IP_DEST_PORT_RANGE = 48,
 
 	/**
 	 * Packet characteristics (set of flags)
 	 */
-	ZT_NETWORK_RULE_MATCH_CHARACTERISTICS = 48,
+	ZT_NETWORK_RULE_MATCH_CHARACTERISTICS = 49,
 
 	/**
 	 * Frame size range (start-end, inclusive)
 	 */
-	ZT_NETWORK_RULE_MATCH_FRAME_SIZE_RANGE = 49,
+	ZT_NETWORK_RULE_MATCH_FRAME_SIZE_RANGE = 50,
 
 	/**
-	 * Match a range of relative TCP sequence numbers (e.g. approx first N bytes of stream)
+	 * Match if local and remote tags differ by no more than value, use 0 to check for equality
 	 */
-	ZT_NETWORK_RULE_MATCH_TCP_RELATIVE_SEQUENCE_NUMBER_RANGE = 50
+	ZT_NETWORK_RULE_MATCH_TAGS_DIFFERENCE = 51,
+
+	/**
+	 * Match if local and remote tags ANDed together equal value.
+	 */
+	ZT_NETWORK_RULE_MATCH_TAGS_BITWISE_AND = 52,
+
+	/**
+	 * Match if local and remote tags ANDed together equal value.
+	 */
+	ZT_NETWORK_RULE_MATCH_TAGS_BITWISE_OR = 53,
+
+	/**
+	 * Match if local and remote tags XORed together equal value.
+	 */
+	ZT_NETWORK_RULE_MATCH_TAGS_BITWISE_XOR = 54,
+
+	/**
+	 * Maximum ID allowed for a MATCH entry in the rules table
+	 */
+	ZT_NETWORK_RULE_MATCH__MAX_ID = 127
 };
 
 /**
  * Network flow rule
- *
- * NOTE: Currently (1.1.x) only etherType is supported! Other things will
- * have no effect until the rules engine is fully implemented.
  *
  * Rules are stored in a table in which one or more match entries is followed
  * by an action. If more than one match precedes an action, the rule is
@@ -560,17 +708,12 @@ typedef struct
 		/**
 		 * Packet characteristic flags being matched
 		 */
-		uint64_t characteristics;
+		uint64_t characteristics[2];
 
 		/**
 		 * IP port range -- start-end inclusive -- host byte order
 		 */
 		uint16_t port[2];
-
-		/**
-		 * TCP relative sequence number range -- start-end inclusive -- host byte order
-		 */
-		uint32_t tcpseq[2];
 
 		/**
 		 * 40-bit ZeroTier address (in least significant bits, host byte order)
@@ -608,7 +751,7 @@ typedef struct
 		uint8_t ipProtocol;
 
 		/**
-		 * IP type of service
+		 * IP type of service a.k.a. DSCP field
 		 */
 		uint8_t ipTos;
 
@@ -616,8 +759,53 @@ typedef struct
 		 * Ethernet packet size in host byte order (start-end, inclusive)
 		 */
 		uint16_t frameSize[2];
+
+		/**
+		 * ICMP type and code
+		 */
+		struct {
+			uint8_t type; // ICMP type, always matched
+			uint8_t code; // ICMP code if matched
+			uint8_t flags; // flag 0x01 means also match code, otherwise only match type
+		} icmp;
+
+		/**
+		 * For tag-related rules
+		 */
+		struct {
+			uint32_t id;
+			uint32_t value;
+		} tag;
+
+		/**
+		 * Destinations for TEE and REDIRECT
+		 */
+		struct {
+			uint64_t address;
+			uint32_t flags;
+			uint16_t length;
+		} fwd;
 	} v;
 } ZT_VirtualNetworkRule;
+
+typedef struct
+{
+	/**
+	 * 128-bit ID (GUID) of this capability
+	 */
+	uint64_t id[2];
+
+	/**
+	 * Expiration time (measured vs. network config timestamp issued by controller)
+	 */
+	uint64_t expiration;
+
+
+	struct {
+		uint64_t from;
+		uint64_t to;
+	} custody[ZT_MAX_CAPABILITY_CUSTODY_CHAIN_LENGTH];
+} ZT_VirtualNetworkCapability;
 
 /**
  * A route to be pushed on a virtual network
@@ -633,6 +821,16 @@ typedef struct
 	 * Gateway IP address (port ignored) or NULL (family == 0) for LAN-local (no gateway)
 	 */
 	struct sockaddr_storage via;
+
+	/**
+	 * Route flags
+	 */
+	uint16_t flags;
+
+	/**
+	 * Route metric (not currently used)
+	 */
+	uint16_t metric;
 } ZT_VirtualNetworkRoute;
 
 /**
@@ -677,19 +875,28 @@ enum ZT_VirtualNetworkConfigOperation
 	ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_DESTROY = 4
 };
 
+enum ZT_RelayPolicy
+{
+	ZT_RELAY_POLICY_NEVER = 0,
+	ZT_RELAY_POLICY_TRUSTED = 1,
+	ZT_RELAY_POLICY_ALWAYS = 2
+};
+
 /**
  * What trust hierarchy role does this peer have?
  */
-enum ZT_PeerRole {
+enum ZT_PeerRole
+{
 	ZT_PEER_ROLE_LEAF = 0,     // ordinary node
-	ZT_PEER_ROLE_RELAY = 1,    // relay node
-	ZT_PEER_ROLE_ROOT = 2      // root server
+	ZT_PEER_ROLE_UPSTREAM = 1, // upstream node
+	ZT_PEER_ROLE_ROOT = 2      // global root
 };
 
 /**
  * Vendor ID
  */
-enum ZT_Vendor {
+enum ZT_Vendor
+{
 	ZT_VENDOR_UNSPECIFIED = 0,
 	ZT_VENDOR_ZEROTIER = 1
 };
@@ -697,7 +904,8 @@ enum ZT_Vendor {
 /**
  * Platform type
  */
-enum ZT_Platform {
+enum ZT_Platform
+{
 	ZT_PLATFORM_UNSPECIFIED = 0,
 	ZT_PLATFORM_LINUX = 1,
 	ZT_PLATFORM_WINDOWS = 2,
@@ -712,13 +920,15 @@ enum ZT_Platform {
 	ZT_PLATFORM_VXWORKS = 11,
 	ZT_PLATFORM_FREERTOS = 12,
 	ZT_PLATFORM_SYSBIOS = 13,
-	ZT_PLATFORM_HURD = 14
+	ZT_PLATFORM_HURD = 14,
+	ZT_PLATFORM_WEB = 15
 };
 
 /**
  * Architecture type
  */
-enum ZT_Architecture {
+enum ZT_Architecture
+{
 	ZT_ARCHITECTURE_UNSPECIFIED = 0,
 	ZT_ARCHITECTURE_X86 = 1,
 	ZT_ARCHITECTURE_X64 = 2,
@@ -727,7 +937,14 @@ enum ZT_Architecture {
 	ZT_ARCHITECTURE_MIPS32 = 5,
 	ZT_ARCHITECTURE_MIPS64 = 6,
 	ZT_ARCHITECTURE_POWER32 = 7,
-	ZT_ARCHITECTURE_POWER64 = 8
+	ZT_ARCHITECTURE_POWER64 = 8,
+	ZT_ARCHITECTURE_OPENRISC32 = 9,
+	ZT_ARCHITECTURE_OPENRISC64 = 10,
+	ZT_ARCHITECTURE_SPARC32 = 11,
+	ZT_ARCHITECTURE_SPARC64 = 12,
+	ZT_ARCHITECTURE_DOTNET_CLR = 13,
+	ZT_ARCHITECTURE_JAVA_JVM = 14,
+	ZT_ARCHITECTURE_WEB = 15
 };
 
 /**
@@ -766,6 +983,11 @@ typedef struct
 	unsigned int mtu;
 
 	/**
+	 * Recommended MTU to avoid fragmentation at the physical layer (hint)
+	 */
+	unsigned int physicalMtu;
+
+	/**
 	 * If nonzero, the network this port belongs to indicates DHCP availability
 	 *
 	 * This is a suggestion. The underlying implementation is free to ignore it
@@ -788,31 +1010,14 @@ typedef struct
 	int broadcastEnabled;
 
 	/**
-	 * If the network is in PORT_ERROR state, this is the error most recently returned by the port config callback
+	 * If the network is in PORT_ERROR state, this is the (negative) error code most recently reported
 	 */
 	int portError;
 
 	/**
-	 * Is this network enabled? If not, all frames to/from are dropped.
-	 */
-	int enabled;
-
-	/**
-	 * Network config revision as reported by netconf master
-	 *
-	 * If this is zero, it means we're still waiting for our netconf.
+	 * Revision number as reported by controller or 0 if still waiting for config
 	 */
 	unsigned long netconfRevision;
-
-	/**
-	 * Number of multicast group subscriptions
-	 */
-	unsigned int multicastSubscriptionCount;
-
-	/**
-	 * Multicast group subscriptions
-	 */
-	ZT_MulticastGroup multicastSubscriptions[ZT_MAX_NETWORK_MULTICAST_SUBSCRIPTIONS];
 
 	/**
 	 * Number of assigned addresses
@@ -830,6 +1035,16 @@ typedef struct
 	 * virtual network's configuration master.
 	 */
 	struct sockaddr_storage assignedAddresses[ZT_MAX_ZT_ASSIGNED_ADDRESSES];
+
+	/**
+	 * Number of ZT-pushed routes
+	 */
+	unsigned int routeCount;
+
+	/**
+	 * Routes (excluding those implied by assigned addresses and their masks)
+	 */
+	ZT_VirtualNetworkRoute routes[ZT_MAX_NETWORK_ROUTES];
 } ZT_VirtualNetworkConfig;
 
 /**
@@ -862,9 +1077,14 @@ typedef struct
 	uint64_t lastReceive;
 
 	/**
-	 * Is path active?
+	 * Is this a trusted path? If so this will be its nonzero ID.
 	 */
-	int active;
+	uint64_t trustedPathId;
+
+	/**
+	 * Is path expired?
+	 */
+	int expired;
 
 	/**
 	 * Is path preferred?
@@ -1027,17 +1247,12 @@ typedef struct {
 	uint64_t timestamp;
 
 	/**
-	 * Timestamp on remote device
-	 */
-	uint64_t remoteTimestamp;
-
-	/**
 	 * 64-bit packet ID of packet received by the reporting device
 	 */
 	uint64_t sourcePacketId;
 
 	/**
-	 * Flags (currently unused, will be zero)
+	 * Flags
 	 */
 	uint64_t flags;
 
@@ -1399,6 +1614,9 @@ typedef int (*ZT_PathCheckFunction)(
  * Note that this can take a few seconds the first time it's called, as it
  * will generate an identity.
  *
+ * TODO: should consolidate function pointers into versioned structure for
+ * better API stability.
+ *
  * @param node Result: pointer is set to new node instance on success
  * @param uptr User pointer to pass to functions/callbacks
  * @param now Current clock in milliseconds
@@ -1488,6 +1706,15 @@ enum ZT_ResultCode ZT_Node_processVirtualNetworkFrame(
  * @return OK (0) or error code if a fatal error condition has occurred
  */
 enum ZT_ResultCode ZT_Node_processBackgroundTasks(ZT_Node *node,uint64_t now,volatile uint64_t *nextBackgroundTaskDeadline);
+
+/**
+ * Set node's relay policy
+ *
+ * @param node Node instance
+ * @param rp New relay policy
+ * @return OK(0) or error code
+ */
+enum ZT_ResultCode ZT_Node_setRelayPolicy(ZT_Node *node,enum ZT_RelayPolicy rp);
 
 /**
  * Join a network
@@ -1812,25 +2039,27 @@ void ZT_Node_clusterHandleIncomingMessage(ZT_Node *node,const void *msg,unsigned
 void ZT_Node_clusterStatus(ZT_Node *node,ZT_ClusterStatus *cs);
 
 /**
- * Do things in the background until Node dies
+ * Set trusted paths
  *
- * This function can be called from one or more background threads to process
- * certain tasks in the background to improve foreground performance. It will
- * not return until the Node is shut down. If threading is not enabled in
- * this build it will return immediately and will do nothing.
+ * A trusted path is a physical network (network/bits) over which both
+ * encryption and authentication can be skipped to improve performance.
+ * Each trusted path must have a non-zero unique ID that is the same across
+ * all participating nodes.
  *
- * This is completely optional. If this is never called, all processing is
- * done in the foreground in the various processXXXX() methods.
+ * We don't recommend using trusted paths at all unless you really *need*
+ * near-bare-metal performance. Even on a LAN authentication and encryption
+ * are never a bad thing, and anything that introduces an "escape hatch"
+ * for encryption should be treated with the utmost care.
  *
- * This does NOT replace or eliminate the need to call the normal
- * processBackgroundTasks() function in your main loop. This mechanism is
- * used to offload the processing of expensive mssages onto background
- * handler threads to prevent foreground performance degradation under
- * high load.
+ * Calling with NULL pointers for networks and ids and a count of zero clears
+ * all trusted paths.
  *
  * @param node Node instance
+ * @param networks Array of [count] networks
+ * @param ids Array of [count] corresponding non-zero path IDs (zero path IDs are ignored)
+ * @param count Number of trusted paths-- values greater than ZT_MAX_TRUSTED_PATHS are clipped
  */
-void ZT_Node_backgroundThreadMain(ZT_Node *node);
+void ZT_Node_setTrustedPaths(ZT_Node *node,const struct sockaddr_storage *networks,const uint64_t *ids,unsigned int count);
 
 /**
  * Get ZeroTier One version

@@ -69,6 +69,8 @@
 
 #include "SDK.h"
 #include "SDK_Debug.h"
+ #include "Mutex.hpp"
+
 
 //#if !defined(__IOS__) && !defined(__ANDROID__) && !defined(__UNITY_3D__) && !defined(__XCODE__)
 //    const ip_addr_t ip_addr_any = { IPADDR_ANY };
@@ -128,7 +130,7 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
 	Utils::ntoh((uint16_t)ethhdr->type),0,buf + sizeof(struct eth_hdr),totalLength - sizeof(struct eth_hdr));
 	return ERR_OK;
 }
-    
+
 // ---------------------------------------------------------------------------
 
 NetconEthernetTap::NetconEthernetTap(
@@ -243,16 +245,13 @@ bool NetconEthernetTap::addIp(const InetAddress &ip)
 
 			interface6.ip6_autoconfig_enabled = 1;
 			_mac.copyTo(interface6.hwaddr, interface6.hwaddr_len);
-
 			lwipstack->__netif_create_ip6_linklocal_address(&interface6, 1);
 			lwipstack->__netif_add(&interface6, NULL, tapif_init, lwipstack->_ethernet_input);
 			netif_ip6_addr_set_state(&interface6, 1, IP6_ADDR_TENTATIVE); 
 			lwipstack->__netif_set_default(&interface6);
 			interface6.output_ip6 = lwipstack->_ethip6_output;
-
-			lwipstack->__netif_set_up(&interface6);		
+			lwipstack->__netif_set_up(&interface6);	
 			ip6_addr_copy(ip_2_ip6(interface6.ip6_addr[1]), addr6);
-
 			interface6.state = this;
 		}		
 	}
@@ -285,18 +284,17 @@ void NetconEthernetTap::put(const MAC &from,const MAC &to,unsigned int etherType
 	if (!_enabled)
 		return;
 
-    #if defined(LWIP_IPV6)
+    //#if defined(LWIP_IPV6)
     	DEBUG_EXTRA("IPV6");
     	DEBUG_EXTRA("sizeof(struct eth_hdr) = %d", sizeof(struct eth_hdr));
     	struct eth_hdr ethhdr;
     	from.copyTo(ethhdr.src.addr, 6);
     	to.copyTo(ethhdr.dest.addr, 6);
-    	ethhdr.type = Utils::hton((uint16_t)etherType);
 
+    	ethhdr.type = Utils::hton((uint16_t)etherType);
 		p = lwipstack->__pbuf_alloc(PBUF_RAW, len+sizeof(struct eth_hdr), PBUF_POOL);
 
 		if (p != NULL) {
-			DEBUG_EXTRA("p != NULL");
 			const char *dataptr = reinterpret_cast<const char *>(data);
 			// First pbuf gets ethernet header at start
 			q = p;
@@ -322,6 +320,7 @@ void NetconEthernetTap::put(const MAC &from,const MAC &to,unsigned int etherType
 		}
 
 	// IPV4
+		/*
     #elif defined(LWIP_IPV4)
     	DEBUG_EXTRA("IPV4");
 		struct eth_hdr ethhdr;
@@ -355,7 +354,7 @@ void NetconEthernetTap::put(const MAC &from,const MAC &to,unsigned int etherType
 			return;
 		}
 	#endif
-
+	*/
 	{
 		if(interface6.input(p, &interface6) != ERR_OK) {
 			DEBUG_ERROR("error while RX of packet (netif->input)");

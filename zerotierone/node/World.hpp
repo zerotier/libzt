@@ -150,7 +150,7 @@ public:
 			if (fullSignatureCheck) {
 				Buffer<ZT_WORLD_MAX_SERIALIZED_LENGTH> tmp;
 				update.serialize(tmp,true);
-				return C25519::verify(_updateSigningKey,tmp.data(),tmp.size(),update._signature);
+				return C25519::verify(_updatesMustBeSignedBy,tmp.data(),tmp.size(),update._signature);
 			} else return true;
 		}
 		return false;
@@ -164,12 +164,12 @@ public:
 	template<unsigned int C>
 	inline void serialize(Buffer<C> &b,bool forSign = false) const
 	{
-		if (forSign)
-			b.append((uint64_t)0x7f7f7f7f7f7f7f7fULL);
-		b.append((uint8_t)0x01); // version -- only one valid value for now
+		if (forSign) b.append((uint64_t)0x7f7f7f7f7f7f7f7fULL);
+
+		b.append((uint8_t)0x01);
 		b.append((uint64_t)_id);
 		b.append((uint64_t)_ts);
-		b.append(_updateSigningKey.data,ZT_C25519_PUBLIC_KEY_LEN);
+		b.append(_updatesMustBeSignedBy.data,ZT_C25519_PUBLIC_KEY_LEN);
 		if (!forSign)
 			b.append(_signature.data,ZT_C25519_SIGNATURE_LEN);
 		b.append((uint8_t)_roots.size());
@@ -179,8 +179,8 @@ public:
 			for(std::vector<InetAddress>::const_iterator ep(r->stableEndpoints.begin());ep!=r->stableEndpoints.end();++ep)
 				ep->serialize(b);
 		}
-		if (forSign)
-			b.append((uint64_t)0xf7f7f7f7f7f7f7f7ULL);
+
+		if (forSign) b.append((uint64_t)0xf7f7f7f7f7f7f7f7ULL);
 	}
 
 	template<unsigned int C>
@@ -191,11 +191,11 @@ public:
 		_roots.clear();
 
 		if (b[p++] != 0x01)
-			throw std::invalid_argument("invalid World serialized version");
+			throw std::invalid_argument("invalid object type");
 
 		_id = b.template at<uint64_t>(p); p += 8;
 		_ts = b.template at<uint64_t>(p); p += 8;
-		memcpy(_updateSigningKey.data,b.field(p,ZT_C25519_PUBLIC_KEY_LEN),ZT_C25519_PUBLIC_KEY_LEN); p += ZT_C25519_PUBLIC_KEY_LEN;
+		memcpy(_updatesMustBeSignedBy.data,b.field(p,ZT_C25519_PUBLIC_KEY_LEN),ZT_C25519_PUBLIC_KEY_LEN); p += ZT_C25519_PUBLIC_KEY_LEN;
 		memcpy(_signature.data,b.field(p,ZT_C25519_SIGNATURE_LEN),ZT_C25519_SIGNATURE_LEN); p += ZT_C25519_SIGNATURE_LEN;
 		unsigned int numRoots = b[p++];
 		if (numRoots > ZT_WORLD_MAX_ROOTS)
@@ -216,13 +216,13 @@ public:
 		return (p - startAt);
 	}
 
-	inline bool operator==(const World &w) const throw() { return ((_id == w._id)&&(_ts == w._ts)&&(_updateSigningKey == w._updateSigningKey)&&(_signature == w._signature)&&(_roots == w._roots)); }
+	inline bool operator==(const World &w) const throw() { return ((_id == w._id)&&(_ts == w._ts)&&(_updatesMustBeSignedBy == w._updatesMustBeSignedBy)&&(_signature == w._signature)&&(_roots == w._roots)); }
 	inline bool operator!=(const World &w) const throw() { return (!(*this == w)); }
 
 protected:
 	uint64_t _id;
 	uint64_t _ts;
-	C25519::Public _updateSigningKey;
+	C25519::Public _updatesMustBeSignedBy;
 	C25519::Signature _signature;
 	std::vector<Root> _roots;
 };

@@ -83,7 +83,7 @@ extern "C" {
 
 //#if defined(SDK_DEBUG)
  #if DEBUG_LEVEL >= MSG_ERROR
-  #define DEBUG_ERROR(fmt, args...) fprintf(stderr, RED"ZT_ERROR: %20s:%4d:%20s: " fmt "\n"RESET, __FILENAME__, __LINE__, __FUNCTION__, ##args)
+  #define DEBUG_ERROR(fmt, args...) fprintf(stderr, RED "ZT_ERROR: %20s:%4d:%20s: " fmt "\n" RESET, __FILENAME__, __LINE__, __FUNCTION__, ##args)
  #else
   #define DEBUG_ERROR(fmt, args...)
  #endif
@@ -93,7 +93,7 @@ extern "C" {
     #define DEBUG_BLANK(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, "ZT_INFO : %20s:%4d:" fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args))
   #else
     #define DEBUG_INFO(fmt, args...) fprintf(stderr, "ZT_INFO : %20s:%4d:%20s: " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args)
-    #define DEBUG_ATTN(fmt, args...) fprintf(stderr, CYN"ZT_INFO : %20s:%4d:%20s: " fmt "\n"RESET, __FILENAME__, __LINE__, __FUNCTION__, ##args)
+    #define DEBUG_ATTN(fmt, args...) fprintf(stderr, CYN "ZT_INFO : %20s:%4d:%20s: " fmt "\n" RESET, __FILENAME__, __LINE__, __FUNCTION__, ##args)
     #define DEBUG_BLANK(fmt, args...) fprintf(stderr, "ZT_INFO : %20s:%4d:" fmt "\n", __FILENAME__, __LINE__, ##args)
   #endif
  #else
@@ -104,7 +104,7 @@ extern "C" {
   #if defined(__ANDROID__)
     #define DEBUG_TRANS(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, "ZT_TRANS : %20s:%4d:%20s: " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args))
   #else
-    #define DEBUG_TRANS(fmt, args...) fprintf(stderr, GRN"ZT_TRANS: %20s:%4d:%20s: " fmt "\n"RESET, __FILENAME__, __LINE__, __FUNCTION__, ##args)
+    #define DEBUG_TRANS(fmt, args...) fprintf(stderr, GRN "ZT_TRANS: %20s:%4d:%20s: " fmt "\n" RESET, __FILENAME__, __LINE__, __FUNCTION__, ##args)
   #endif
  #else
   #define DEBUG_TRANS(fmt, args...)

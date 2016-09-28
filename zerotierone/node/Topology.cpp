@@ -44,38 +44,10 @@ static const unsigned char ZT_DEFAULT_WORLD[ZT_DEFAULT_WORLD_LENGTH] = {0x01,0x0
 
 Topology::Topology(const RuntimeEnvironment *renv) :
 	RR(renv),
+	_trustedPathCount(0),
 	_amRoot(false)
 {
-	std::string alls(RR->node->dataStoreGet("peers.save"));
-	const uint8_t *all = reinterpret_cast<const uint8_t *>(alls.data());
-	RR->node->dataStoreDelete("peers.save");
-
-	Buffer<ZT_PEER_SUGGESTED_SERIALIZATION_BUFFER_SIZE> *deserializeBuf = new Buffer<ZT_PEER_SUGGESTED_SERIALIZATION_BUFFER_SIZE>();
-	unsigned int ptr = 0;
-	while ((ptr + 4) < alls.size()) {
-		try {
-			const unsigned int reclen = ( // each Peer serialized record is prefixed by a record length
-					((((unsigned int)all[ptr]) & 0xff) << 24) |
-					((((unsigned int)all[ptr + 1]) & 0xff) << 16) |
-					((((unsigned int)all[ptr + 2]) & 0xff) << 8) |
-					(((unsigned int)all[ptr + 3]) & 0xff)
-				);
-			unsigned int pos = 0;
-			deserializeBuf->copyFrom(all + ptr,reclen + 4);
-			SharedPtr<Peer> p(Peer::deserializeNew(RR,RR->identity,*deserializeBuf,pos));
-			ptr += pos;
-			if (!p)
-				break; // stop if invalid records
-			if (p->address() != RR->identity.address())
-				_peers.set(p->address(),p);
-		} catch ( ... ) {
-			break; // stop if invalid records
-		}
-	}
-	delete deserializeBuf;
-
-	clean(RR->node->now());
-
+	// Get cached world if present
 	std::string dsWorld(RR->node->dataStoreGet("world"));
 	World cachedWorld;
 	if (dsWorld.length() > 0) {
@@ -86,6 +58,8 @@ Topology::Topology(const RuntimeEnvironment *renv) :
 			cachedWorld = World(); // clear if cached world is invalid
 		}
 	}
+
+	// Use default or cached world depending on which is shinier
 	World defaultWorld;
 	{
 		Buffer<ZT_DEFAULT_WORLD_LENGTH> wtmp(ZT_DEFAULT_WORLD,ZT_DEFAULT_WORLD_LENGTH);
@@ -100,34 +74,6 @@ Topology::Topology(const RuntimeEnvironment *renv) :
 
 Topology::~Topology()
 {
-	Buffer<ZT_PEER_SUGGESTED_SERIALIZATION_BUFFER_SIZE> *pbuf = 0;
-	try {
-		pbuf = new Buffer<ZT_PEER_SUGGESTED_SERIALIZATION_BUFFER_SIZE>();
-		std::string all;
-
-		Address *a = (Address *)0;
-		SharedPtr<Peer> *p = (SharedPtr<Peer> *)0;
-		Hashtable< Address,SharedPtr<Peer> >::Iterator i(_peers);
-		while (i.next(a,p)) {
-			if (std::find(_rootAddresses.begin(),_rootAddresses.end(),*a) == _rootAddresses.end()) {
-				pbuf->clear();
-				try {
-					(*p)->serialize(*pbuf);
-					try {
-						all.append((const char *)pbuf->data(),pbuf->size());
-					} catch ( ... ) {
-						return; // out of memory? just skip
-					}
-				} catch ( ... ) {} // peer too big? shouldn't happen, but it so skip
-			}
-		}
-
-		RR->node->dataStorePut("peers.save",all,true);
-
-		delete pbuf;
-	} catch ( ... ) {
-		delete pbuf;
-	}
 }
 
 SharedPtr<Peer> Topology::addPeer(const SharedPtr<Peer> &peer)
@@ -150,7 +96,6 @@ SharedPtr<Peer> Topology::addPeer(const SharedPtr<Peer> &peer)
 		np = hp;
 	}
 
-	np->use(RR->node->now());
 	saveIdentity(np->identity());
 
 	return np;
@@ -167,7 +112,6 @@ SharedPtr<Peer> Topology::getPeer(const Address &zta)
 		Mutex::Lock _l(_lock);
 		const SharedPtr<Peer> *const ap = _peers.get(zta);
 		if (ap) {
-			(*ap)->use(RR->node->now());
 			return *ap;
 		}
 	}
@@ -181,7 +125,6 @@ SharedPtr<Peer> Topology::getPeer(const Address &zta)
 				SharedPtr<Peer> &ap = _peers[zta];
 				if (!ap)
 					ap.swap(np);
-				ap->use(RR->node->now());
 				return ap;
 			}
 		}
@@ -195,7 +138,9 @@ SharedPtr<Peer> Topology::getPeer(const Address &zta)
 
 Identity Topology::getIdentity(const Address &zta)
 {
-	{
+	if (zta == RR->identity.address()) {
+		return RR->identity;
+	} else {
 		Mutex::Lock _l(_lock);
 		const SharedPtr<Peer> *const ap = _peers.get(zta);
 		if (ap)
@@ -228,10 +173,8 @@ SharedPtr<Peer> Topology::getBestRoot(const Address *avoid,unsigned int avoidCou
 			if (_rootAddresses[p] == RR->identity.address()) {
 				for(unsigned long q=1;q<_rootAddresses.size();++q) {
 					const SharedPtr<Peer> *const nextsn = _peers.get(_rootAddresses[(p + q) % _rootAddresses.size()]);
-					if ((nextsn)&&((*nextsn)->hasActiveDirectPath(now))) {
-						(*nextsn)->use(now);
+					if ((nextsn)&&((*nextsn)->hasActiveDirectPath(now)))
 						return *nextsn;
-					}
 				}
 				break;
 			}
@@ -266,10 +209,8 @@ SharedPtr<Peer> Topology::getBestRoot(const Address *avoid,unsigned int avoidCou
 		}
 
 		if (bestNotAvoid) {
-			(*bestNotAvoid)->use(now);
 			return *bestNotAvoid;
 		} else if ((!strictAvoid)&&(bestOverall)) {
-			(*bestOverall)->use(now);
 			return *bestOverall;
 		}
 
@@ -280,15 +221,7 @@ SharedPtr<Peer> Topology::getBestRoot(const Address *avoid,unsigned int avoidCou
 
 bool Topology::isUpstream(const Identity &id) const
 {
-	if (isRoot(id))
-		return true;
-	std::vector< SharedPtr<Network> > nws(RR->node->allNetworks());
-	for(std::vector< SharedPtr<Network> >::const_iterator nw(nws.begin());nw!=nws.end();++nw) {
-		if ((*nw)->config().isRelay(id.address())) {
-			return true;
-		}
-	}
-	return false;
+	return isRoot(id);
 }
 
 bool Topology::worldUpdateIfValid(const World &newWorld)
@@ -311,14 +244,22 @@ bool Topology::worldUpdateIfValid(const World &newWorld)
 void Topology::clean(uint64_t now)
 {
 	Mutex::Lock _l(_lock);
-	Hashtable< Address,SharedPtr<Peer> >::Iterator i(_peers);
-	Address *a = (Address *)0;
-	SharedPtr<Peer> *p = (SharedPtr<Peer> *)0;
-	while (i.next(a,p)) {
-		if (((now - (*p)->lastUsed()) >= ZT_PEER_IN_MEMORY_EXPIRATION)&&(std::find(_rootAddresses.begin(),_rootAddresses.end(),*a) == _rootAddresses.end())) {
-			_peers.erase(*a);
-		} else {
-			(*p)->clean(now);
+	{
+		Hashtable< Address,SharedPtr<Peer> >::Iterator i(_peers);
+		Address *a = (Address *)0;
+		SharedPtr<Peer> *p = (SharedPtr<Peer> *)0;
+		while (i.next(a,p)) {
+			if ( (!(*p)->isAlive(now)) && (std::find(_rootAddresses.begin(),_rootAddresses.end(),*a) == _rootAddresses.end()) )
+				_peers.erase(*a);
+		}
+	}
+	{
+		Hashtable< Path::HashKey,SharedPtr<Path> >::Iterator i(_paths);
+		Path::HashKey *k = (Path::HashKey *)0;
+		SharedPtr<Path> *p = (SharedPtr<Path> *)0;
+		while (i.next(k,p)) {
+			if (p->reclaimIfWeak())
+				_paths.erase(*k);
 		}
 	}
 }

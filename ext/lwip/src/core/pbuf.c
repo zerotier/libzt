@@ -235,7 +235,6 @@ pbuf_alloc(pbuf_layer layer, u16_t length, pbuf_type type)
     LWIP_ASSERT("pbuf_alloc: bad pbuf layer", 0);
     return NULL;
   }
-
   switch (type) {
   case PBUF_POOL:
     /* allocate head of pbuf chain into p */
@@ -272,14 +271,18 @@ pbuf_alloc(pbuf_layer layer, u16_t length, pbuf_type type)
     rem_len = length - p->len;
     /* any remaining pbufs to be allocated? */
     while (rem_len > 0) {
+
       q = (struct pbuf *)memp_malloc(MEMP_PBUF_POOL);
       if (q == NULL) {
         PBUF_POOL_IS_EMPTY();
         /* free chain so far allocated */
+
         pbuf_free(p);
+
         /* bail out unsuccessfully */
         return NULL;
       }
+
       q->type = type;
       q->flags = 0;
       q->next = NULL;
@@ -307,6 +310,7 @@ pbuf_alloc(pbuf_layer layer, u16_t length, pbuf_type type)
 
     break;
   case PBUF_RAM:
+
     /* If pbuf is to be allocated in RAM, allocate memory for it. */
     p = (struct pbuf*)mem_malloc(LWIP_MEM_ALIGN_SIZE(SIZEOF_STRUCT_PBUF + offset) + LWIP_MEM_ALIGN_SIZE(length));
     if (p == NULL) {
@@ -326,13 +330,16 @@ pbuf_alloc(pbuf_layer layer, u16_t length, pbuf_type type)
   /* pbuf references existing (externally allocated) RAM payload? */
   case PBUF_REF:
     /* only allocate memory for the pbuf structure */
+
     p = (struct pbuf *)memp_malloc(MEMP_PBUF);
+
     if (p == NULL) {
       LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_LEVEL_SERIOUS,
                   ("pbuf_alloc: Could not allocate MEMP_PBUF for PBUF_%s.\n",
                   (type == PBUF_ROM) ? "ROM" : "REF"));
       return NULL;
     }
+
     /* caller must set this field properly, afterwards */
     p->payload = NULL;
     p->len = p->tot_len = length;
@@ -348,6 +355,7 @@ pbuf_alloc(pbuf_layer layer, u16_t length, pbuf_type type)
   /* set flags */
   p->flags = 0;
   LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_TRACE, ("pbuf_alloc(length=%"U16_F") == %p\n", length, (void *)p));
+
   return p;
 }
 

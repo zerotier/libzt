@@ -110,7 +110,6 @@ ipaddr_aton(const char *cp, ip_addr_t *addr)
 err_t
 ip_input(struct pbuf *p, struct netif *inp)
 {
-  LWIP_DEBUGF(IP6_DEBUG, ("ip_input: netif = %p\n", (void*)inp));
   if (p != NULL) {
     if (IP_HDR_GET_VERSION(p->payload) == 6) {
       return ip6_input(p, inp);

@@ -231,7 +231,6 @@ struct InetAddress : public sockaddr_storage
 	 * @param port Port, 0 to 65535
 	 */
 	inline void setPort(unsigned int port)
-		throw()
 	{
 		switch(ss_family) {
 			case AF_INET:
@@ -241,6 +240,25 @@ struct InetAddress : public sockaddr_storage
 				reinterpret_cast<struct sockaddr_in6 *>(this)->sin6_port = Utils::hton((uint16_t)port);
 				break;
 		}
+	}
+
+	/**
+	 * @return True if this network/netmask route describes a default route (e.g. 0.0.0.0/0)
+	 */
+	inline bool isDefaultRoute() const
+	{
+		switch(ss_family) {
+			case AF_INET:
+				return ( (reinterpret_cast<const struct sockaddr_in *>(this)->sin_addr.s_addr == 0) && (reinterpret_cast<const struct sockaddr_in *>(this)->sin_port == 0) );
+			case AF_INET6:
+				const uint8_t *ipb = reinterpret_cast<const uint8_t *>(reinterpret_cast<const struct sockaddr_in6 *>(this)->sin6_addr.s6_addr);
+				for(int i=0;i<16;++i) {
+					if (ipb[i])
+						return false;
+				}
+				return (reinterpret_cast<const struct sockaddr_in6 *>(this)->sin6_port == 0);
+		}
+		return false;
 	}
 
 	/**
@@ -281,6 +299,19 @@ struct InetAddress : public sockaddr_storage
 	 * @return Netmask bits
 	 */
 	inline unsigned int netmaskBits() const throw() { return port(); }
+
+	/**
+	 * @return True if netmask bits is valid for the address type
+	 */
+	inline bool netmaskBitsValid() const
+	{
+		const unsigned int n = port();
+		switch(ss_family) {
+			case AF_INET: return (n <= 32);
+			case AF_INET6: return (n <= 128);
+		}
+		return false;
+	}
 
 	/**
 	 * Alias for port()
@@ -338,13 +369,31 @@ struct InetAddress : public sockaddr_storage
 	 * @return pointer to raw address bytes or NULL if not available
 	 */
 	inline const void *rawIpData() const
-		throw()
 	{
 		switch(ss_family) {
 			case AF_INET: return (const void *)&(reinterpret_cast<const struct sockaddr_in *>(this)->sin_addr.s_addr);
 			case AF_INET6: return (const void *)(reinterpret_cast<const struct sockaddr_in6 *>(this)->sin6_addr.s6_addr);
 			default: return 0;
 		}
+	}
+
+	/**
+	 * @return InetAddress containing only the IP portion of this address and a zero port, or NULL if not IPv4 or IPv6
+	 */
+	inline InetAddress ipOnly() const
+	{
+		InetAddress r;
+		switch(ss_family) {
+			case AF_INET:
+				r.ss_family = AF_INET;
+				reinterpret_cast<struct sockaddr_in *>(&r)->sin_addr.s_addr = reinterpret_cast<const struct sockaddr_in *>(this)->sin_addr.s_addr;
+				break;
+			case AF_INET6:
+				r.ss_family = AF_INET6;
+				memcpy(reinterpret_cast<struct sockaddr_in6 *>(&r)->sin6_addr.s6_addr,reinterpret_cast<const struct sockaddr_in6 *>(this)->sin6_addr.s6_addr,16);
+				break;
+		}
+		return r;
 	}
 
 	/**
@@ -363,6 +412,25 @@ struct InetAddress : public sockaddr_storage
 			return (memcmp(this,&a,sizeof(InetAddress)) == 0);
 		}
 		return false;
+	}
+
+	inline unsigned long hashCode() const
+	{
+		if (ss_family == AF_INET) {
+			return ((unsigned long)reinterpret_cast<const struct sockaddr_in *>(this)->sin_addr.s_addr + (unsigned long)reinterpret_cast<const struct sockaddr_in *>(this)->sin_port);
+		} else if (ss_family == AF_INET6) {
+			unsigned long tmp = reinterpret_cast<const struct sockaddr_in6 *>(this)->sin6_port;
+			const uint8_t *a = reinterpret_cast<const uint8_t *>(reinterpret_cast<const struct sockaddr_in6 *>(this)->sin6_addr.s6_addr);
+			for(long i=0;i<16;++i)
+				reinterpret_cast<uint8_t *>(&tmp)[i % sizeof(tmp)] ^= a[i];
+			return tmp;
+		} else {
+			unsigned long tmp = reinterpret_cast<const struct sockaddr_in6 *>(this)->sin6_port;
+			const uint8_t *a = reinterpret_cast<const uint8_t *>(this);
+			for(long i=0;i<sizeof(InetAddress);++i)
+				reinterpret_cast<uint8_t *>(&tmp)[i % sizeof(tmp)] ^= a[i];
+			return tmp;
+		}
 	}
 
 	/**
@@ -453,8 +521,7 @@ struct InetAddress : public sockaddr_storage
 	 * @param mac MAC address seed
 	 * @return IPv6 link-local address
 	 */
-	static InetAddress makeIpv6LinkLocal(const MAC &mac)
-		throw();
+	static InetAddress makeIpv6LinkLocal(const MAC &mac);
 
 	/**
 	 * Compute private IPv6 unicast address from network ID and ZeroTier address
@@ -497,8 +564,12 @@ struct InetAddress : public sockaddr_storage
 	 * @param zeroTierAddress 40-bit device address (in least significant 40 bits, highest 24 bits ignored)
 	 * @return IPv6 private unicast address with /88 netmask
 	 */
-	static InetAddress makeIpv6rfc4193(uint64_t nwid,uint64_t zeroTierAddress)
-		throw();
+	static InetAddress makeIpv6rfc4193(uint64_t nwid,uint64_t zeroTierAddress);
+
+	/**
+	 * Compute a private IPv6 "6plane" unicast address from network ID and ZeroTier address
+	 */
+	static InetAddress makeIpv66plane(uint64_t nwid,uint64_t zeroTierAddress);
 };
 
 } // namespace ZeroTier

@@ -22,7 +22,7 @@ namespace ZeroTier {
 
 const unsigned char Packet::ZERO_KEY[32] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-//#ifdef ZT_TRACE
+#ifdef ZT_TRACE
 
 const char *Packet::verbString(Verb v)
 	throw()
@@ -38,15 +38,16 @@ const char *Packet::verbString(Verb v)
 		case VERB_EXT_FRAME: return "EXT_FRAME";
 		case VERB_ECHO: return "ECHO";
 		case VERB_MULTICAST_LIKE: return "MULTICAST_LIKE";
-		case VERB_NETWORK_MEMBERSHIP_CERTIFICATE: return "NETWORK_MEMBERSHIP_CERTIFICATE";
+		case VERB_NETWORK_CREDENTIALS: return "NETWORK_CREDENTIALS";
 		case VERB_NETWORK_CONFIG_REQUEST: return "NETWORK_CONFIG_REQUEST";
-		case VERB_NETWORK_CONFIG_REFRESH: return "NETWORK_CONFIG_REFRESH";
+		case VERB_NETWORK_CONFIG: return "NETWORK_CONFIG_REFRESH";
 		case VERB_MULTICAST_GATHER: return "MULTICAST_GATHER";
 		case VERB_MULTICAST_FRAME: return "MULTICAST_FRAME";
 		case VERB_PUSH_DIRECT_PATHS: return "PUSH_DIRECT_PATHS";
 		case VERB_CIRCUIT_TEST: return "CIRCUIT_TEST";
 		case VERB_CIRCUIT_TEST_REPORT: return "CIRCUIT_TEST_REPORT";
 		case VERB_REQUEST_PROOF_OF_WORK: return "REQUEST_PROOF_OF_WORK";
+		case VERB_USER_MESSAGE: return "USER_MESSAGE";
 	}
 	return "(unknown)";
 }
@@ -68,7 +69,7 @@ const char *Packet::errorString(ErrorCode e)
 	return "(unknown)";
 }
 
-//#endif // ZT_TRACE
+#endif // ZT_TRACE
 
 void Packet::armor(const void *key,bool encryptPayload)
 {

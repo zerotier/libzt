@@ -37,7 +37,6 @@
 #include "Identity.hpp"
 #include "SelfAwareness.hpp"
 #include "Cluster.hpp"
-#include "DeferredPackets.hpp"
 
 const struct sockaddr_storage ZT_SOCKADDR_NULL = {0};
 
@@ -72,9 +71,13 @@ Node::Node(
 	_prngStreamPtr(0),
 	_now(now),
 	_lastPingCheck(0),
-	_lastHousekeepingRun(0)
+	_lastHousekeepingRun(0),
+	_relayPolicy(ZT_RELAY_POLICY_TRUSTED)
 {
 	_online = false;
+
+	memset(_expectingRepliesToBucketPtr,0,sizeof(_expectingRepliesToBucketPtr));
+	memset(_expectingRepliesTo,0,sizeof(_expectingRepliesTo));
 
 	// Use Salsa20 alone as a high-quality non-crypto PRNG
 	{
@@ -108,15 +111,16 @@ Node::Node(
 		RR->mc = new Multicaster(RR);
 		RR->topology = new Topology(RR);
 		RR->sa = new SelfAwareness(RR);
-		RR->dp = new DeferredPackets(RR);
 	} catch ( ... ) {
-		delete RR->dp;
 		delete RR->sa;
 		delete RR->topology;
 		delete RR->mc;
 		delete RR->sw;
 		throw;
 	}
+
+	if (RR->topology->amRoot())
+		_relayPolicy = ZT_RELAY_POLICY_ALWAYS;
 
 	postEvent(ZT_EVENT_UP);
 }
@@ -127,12 +131,11 @@ Node::~Node()
 
 	_networks.clear(); // ensure that networks are destroyed before shutdow
 
-	RR->dpEnabled = 0;
-	delete RR->dp;
 	delete RR->sa;
 	delete RR->topology;
 	delete RR->mc;
 	delete RR->sw;
+
 #ifdef ZT_ENABLE_CLUSTER
 	delete RR->cluster;
 #endif
@@ -173,11 +176,10 @@ ZT_ResultCode Node::processVirtualNetworkFrame(
 class _PingPeersThatNeedPing
 {
 public:
-	_PingPeersThatNeedPing(const RuntimeEnvironment *renv,uint64_t now,const std::vector<NetworkConfig::Relay> &relays) :
+	_PingPeersThatNeedPing(const RuntimeEnvironment *renv,uint64_t now) :
 		lastReceiveFromUpstream(0),
 		RR(renv),
 		_now(now),
-		_relays(relays),
 		_world(RR->topology->world())
 	{
 	}
@@ -208,25 +210,6 @@ public:
 			}
 		}
 
-		if (!upstream) {
-			// If I am a root server, only ping other root servers -- roots don't ping "down"
-			// since that would just be a waste of bandwidth and could potentially cause route
-			// flapping in Cluster mode.
-			if (RR->topology->amRoot())
-				return;
-
-			// Check for network preferred relays, also considered 'upstream' and thus always
-			// pinged to keep links up. If they have stable addresses we will try them there.
-			for(std::vector<NetworkConfig::Relay>::const_iterator r(_relays.begin());r!=_relays.end();++r) {
-				if (r->address == p->address()) {
-					stableEndpoint4 = r->phy4;
-					stableEndpoint6 = r->phy6;
-					upstream = true;
-					break;
-				}
-			}
-		}
-
 		if (upstream) {
 			// "Upstream" devices are roots and relays and get special treatment -- they stay alive
 			// forever and we try to keep (if available) both IPv4 and IPv6 channels open to them.
@@ -254,20 +237,19 @@ public:
 				// way whatsoever. This will e.g. find network preferred relays that lack
 				// stable endpoints by using root servers.
 				Packet outp(p->address(),RR->identity.address(),Packet::VERB_NOP);
-				RR->sw->send(outp,true,0);
+				RR->sw->send(outp,true);
 			}
 
 			lastReceiveFromUpstream = std::max(p->lastReceive(),lastReceiveFromUpstream);
-		} else if (p->activelyTransferringFrames(_now)) {
+		} else if (p->isActive(_now)) {
 			// Normal nodes get their preferred link kept alive if the node has generated frame traffic recently
-			p->doPingAndKeepalive(_now,0);
+			p->doPingAndKeepalive(_now,-1);
 		}
 	}
 
 private:
 	const RuntimeEnvironment *RR;
 	uint64_t _now;
-	const std::vector<NetworkConfig::Relay> &_relays;
 	World _world;
 };
 
@@ -283,27 +265,20 @@ ZT_ResultCode Node::processBackgroundTasks(uint64_t now,volatile uint64_t *nextB
 			_lastPingCheck = now;
 
 			// Get relays and networks that need config without leaving the mutex locked
-			std::vector< NetworkConfig::Relay > networkRelays;
 			std::vector< SharedPtr<Network> > needConfig;
 			{
 				Mutex::Lock _l(_networks_m);
 				for(std::vector< std::pair< uint64_t,SharedPtr<Network> > >::const_iterator n(_networks.begin());n!=_networks.end();++n) {
-					if (((now - n->second->lastConfigUpdate()) >= ZT_NETWORK_AUTOCONF_DELAY)||(!n->second->hasConfig())) {
+					if (((now - n->second->lastConfigUpdate()) >= ZT_NETWORK_AUTOCONF_DELAY)||(!n->second->hasConfig()))
 						needConfig.push_back(n->second);
-					}
-					if (n->second->hasConfig()) {
-						std::vector<NetworkConfig::Relay> r(n->second->config().relays());
-						networkRelays.insert(networkRelays.end(),r.begin(),r.end());
-					}
+					n->second->sendUpdatesToMembers();
 				}
 			}
-
-			// Request updated configuration for networks that need it
 			for(std::vector< SharedPtr<Network> >::const_iterator n(needConfig.begin());n!=needConfig.end();++n)
 				(*n)->requestConfiguration();
 
 			// Do pings and keepalives
-			_PingPeersThatNeedPing pfunc(RR,now,networkRelays);
+			_PingPeersThatNeedPing pfunc(RR,now);
 			RR->topology->eachPeer<_PingPeersThatNeedPing &>(pfunc);
 
 			// Update online status, post status change as event
@@ -346,6 +321,12 @@ ZT_ResultCode Node::processBackgroundTasks(uint64_t now,volatile uint64_t *nextB
 		return ZT_RESULT_FATAL_ERROR_INTERNAL;
 	}
 
+	return ZT_RESULT_OK;
+}
+
+ZT_ResultCode Node::setRelayPolicy(enum ZT_RelayPolicy rp)
+{
+	_relayPolicy = rp;
 	return ZT_RESULT_OK;
 }
 
@@ -438,15 +419,16 @@ ZT_PeerList *Node::peers() const
 		p->latency = pi->second->latency();
 		p->role = RR->topology->isRoot(pi->second->identity()) ? ZT_PEER_ROLE_ROOT : ZT_PEER_ROLE_LEAF;
 
-		std::vector<Path> paths(pi->second->paths());
-		Path *bestPath = pi->second->getBestPath(_now);
+		std::vector< std::pair< SharedPtr<Path>,bool > > paths(pi->second->paths(_now));
+		SharedPtr<Path> bestp(pi->second->getBestPath(_now,false));
 		p->pathCount = 0;
-		for(std::vector<Path>::iterator path(paths.begin());path!=paths.end();++path) {
-			memcpy(&(p->paths[p->pathCount].address),&(path->address()),sizeof(struct sockaddr_storage));
-			p->paths[p->pathCount].lastSend = path->lastSend();
-			p->paths[p->pathCount].lastReceive = path->lastReceived();
-			p->paths[p->pathCount].active = path->active(_now) ? 1 : 0;
-			p->paths[p->pathCount].preferred = ((bestPath)&&(*path == *bestPath)) ? 1 : 0;
+		for(std::vector< std::pair< SharedPtr<Path>,bool > >::iterator path(paths.begin());path!=paths.end();++path) {
+			memcpy(&(p->paths[p->pathCount].address),&(path->first->address()),sizeof(struct sockaddr_storage));
+			p->paths[p->pathCount].lastSend = path->first->lastOut();
+			p->paths[p->pathCount].lastReceive = path->first->lastIn();
+			p->paths[p->pathCount].expired = path->second;
+			p->paths[p->pathCount].preferred = (path->first == bestp) ? 1 : 0;
+			p->paths[p->pathCount].trustedPathId = RR->topology->getOutboundPathTrust(path->first->address());
 			++p->pathCount;
 		}
 	}
@@ -542,7 +524,7 @@ ZT_ResultCode Node::circuitTestBegin(ZT_CircuitTest *test,void (*reportCallback)
 			for(unsigned int a=0;a<test->hops[0].breadth;++a) {
 				outp.newInitializationVector();
 				outp.setDestination(Address(test->hops[0].addresses[a]));
-				RR->sw->send(outp,true,0);
+				RR->sw->send(outp,true);
 			}
 		} catch ( ... ) {
 			return ZT_RESULT_FATAL_ERROR_INTERNAL; // probably indicates FIFO too big for packet
@@ -636,18 +618,6 @@ void Node::clusterStatus(ZT_ClusterStatus *cs)
 	else
 #endif
 	memset(cs,0,sizeof(ZT_ClusterStatus));
-}
-
-void Node::backgroundThreadMain()
-{
-	++RR->dpEnabled;
-	for(;;) {
-		try {
-			if (RR->dp->process() < 0)
-				break;
-		} catch ( ... ) {} // sanity check -- should not throw
-	}
-	--RR->dpEnabled;
 }
 
 /****************************************************************************/
@@ -745,6 +715,11 @@ void Node::postCircuitTestReport(const ZT_CircuitTestReport *report)
 		(reinterpret_cast<void (*)(ZT_Node *,ZT_CircuitTest *,const ZT_CircuitTestReport *)>((*i)->_internalPtr))(reinterpret_cast<ZT_Node *>(this),*i,report);
 }
 
+void Node::setTrustedPaths(const struct sockaddr_storage *networks,const uint64_t *ids,unsigned int count)
+{
+	RR->topology->setTrustedPaths(reinterpret_cast<const InetAddress *>(networks),ids,count);
+}
+
 } // namespace ZeroTier
 
 /****************************************************************************/
@@ -830,6 +805,15 @@ enum ZT_ResultCode ZT_Node_processBackgroundTasks(ZT_Node *node,uint64_t now,vol
 		return reinterpret_cast<ZeroTier::Node *>(node)->processBackgroundTasks(now,nextBackgroundTaskDeadline);
 	} catch (std::bad_alloc &exc) {
 		return ZT_RESULT_FATAL_ERROR_OUT_OF_MEMORY;
+	} catch ( ... ) {
+		return ZT_RESULT_FATAL_ERROR_INTERNAL;
+	}
+}
+
+enum ZT_ResultCode ZT_Node_setRelayPolicy(ZT_Node *node,enum ZT_RelayPolicy rp)
+{
+	try {
+		return reinterpret_cast<ZeroTier::Node *>(node)->setRelayPolicy(rp);
 	} catch ( ... ) {
 		return ZT_RESULT_FATAL_ERROR_INTERNAL;
 	}
@@ -1014,10 +998,10 @@ void ZT_Node_clusterStatus(ZT_Node *node,ZT_ClusterStatus *cs)
 	} catch ( ... ) {}
 }
 
-void ZT_Node_backgroundThreadMain(ZT_Node *node)
+void ZT_Node_setTrustedPaths(ZT_Node *node,const struct sockaddr_storage *networks,const uint64_t *ids,unsigned int count)
 {
 	try {
-		reinterpret_cast<ZeroTier::Node *>(node)->backgroundThreadMain();
+		reinterpret_cast<ZeroTier::Node *>(node)->setTrustedPaths(networks,ids,count);
 	} catch ( ... ) {}
 }
 

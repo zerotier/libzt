@@ -39,11 +39,6 @@
 #include "OSUtils.hpp"
 #include "SDK_Debug.h"
 
-#if defined(LWIP_VERSION_2) // 2.0.0
-#else // 1.4.1
-   // #include "lwip/tcp_impl.h"
-#endif
-
 #include <stdio.h>
 #include <dlfcn.h>
 
@@ -66,7 +61,6 @@ struct tcp_pcb;
 //#define ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip4_addr_t *ipaddr
 #define NETIF_ADD_SIG struct netif *netif, void *state, netif_init_fn init, netif_input_fn input
 //#define NETIF_ADD_SIG struct netif *netif, ip_addr_t *ipaddr, ip_addr_t *netmask, ip_addr_t *gw, void *state, netif_init_fn init, netif_input_fn input
-
 
 #define ETHERNET_INPUT_SIG struct pbuf *p, struct netif *netif
 #define IP_INPUT_SIG struct pbuf *p, struct netif *inp
@@ -143,8 +137,7 @@ namespace ZeroTier {
         void (*_netif_loopif_init)(NETIF_LOOPIF_INIT_SIG);
         void (*_netif_create_ip6_linklocal_address)(NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG);
         err_t (*_ethip6_output)(ETHIP6_OUTPUT_SIG);
-
-       // void (*_netif_set_addr)(NETIF_SET_ADDR_SIG);
+        // void (*_netif_set_addr)(NETIF_SET_ADDR_SIG);
 
         void (*_lwip_init)();
         err_t (*_tcp_write)(TCP_WRITE_SIG);
@@ -190,8 +183,9 @@ namespace ZeroTier {
         void (*_netif_set_up)(NETIF_SET_UP_SIG);
         void (*_netif_poll)(NETIF_POLL_SIG);
         
-        Mutex _lock;
-        
+        Mutex _lock;        
+        Mutex _lock_mem;
+
         LWIPStack(const char* path) :
         _libref(NULL)
         {
@@ -368,17 +362,15 @@ namespace ZeroTier {
         inline void __etharp_tmr(void) throw() { Mutex::Lock _l(_lock); return _etharp_tmr(); }
         inline void __tcp_tmr(void) throw() { Mutex::Lock _l(_lock); return _tcp_tmr(); }
         inline u8_t __pbuf_free(PBUF_FREE_SIG) throw() { Mutex::Lock _l(_lock); return _pbuf_free(p); }
-        inline struct pbuf * __pbuf_alloc(PBUF_ALLOC_SIG) throw() { Mutex::Lock _l(_lock); return _pbuf_alloc(layer,length,type); }
+        inline struct pbuf * __pbuf_alloc(PBUF_ALLOC_SIG) throw() { Mutex::Lock _l(_lock_mem); return _pbuf_alloc(layer,length,type); }
         inline u16_t __lwip_htons(LWIP_HTONS_SIG) throw() { Mutex::Lock _l(_lock); return _lwip_htons(x); }
         inline u16_t __lwip_ntohs(LWIP_NTOHS_SIG) throw() { Mutex::Lock _l(_lock); return _lwip_ntohs(x); }
         inline char* __ipaddr_ntoa(IPADDR_NTOA_SIG) throw() { Mutex::Lock _l(_lock); return _ipaddr_ntoa(addr); }
-
 
         inline err_t __ethip6_output(ETHIP6_OUTPUT_SIG) throw() { Mutex::Lock _l(_lock); return _ethip6_output(netif,q,ip6addr); }
         //inline err_t __etharp_output(ETHARP_OUTPUT_SIG) throw() { Mutex::Lock _l(_lock); return _etharp_output(netif,q,ipaddr); }
         inline struct netif * __netif_add(NETIF_ADD_SIG) throw() { Mutex::Lock _l(_lock); return _netif_add(netif,state,init,input); }
         //inline struct netif * __netif_add(NETIF_ADD_SIG) throw() { Mutex::Lock _l(_lock); return _netif_add(netif,ipaddr,netmask,gw,state,init,input); }
-
 
         inline err_t __ethernet_input(ETHERNET_INPUT_SIG) throw() { Mutex::Lock _l(_lock); return _ethernet_input(p,netif); }
         inline void __tcp_input(TCP_INPUT_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_input(p,inp); }

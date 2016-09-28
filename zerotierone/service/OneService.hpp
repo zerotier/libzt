@@ -20,33 +20,11 @@
 #define ZT_ONESERVICE_HPP
 
 #include <string>
-#include <map>
-
-#include "../node/Node.hpp"
-
-// Include the right tap device driver for this platform -- add new platforms here
-#ifdef SDK
-	// In network containers builds, use the virtual netcon endpoint instead of a tun/tap port driver
-	#include "../src/SDK_EthernetTap.hpp"
-	namespace ZeroTier { typedef NetconEthernetTap EthernetTap; }
-#endif // not ZT_SDK so pick a tap driver
 
 namespace ZeroTier {
 
 /**
  * Local service for ZeroTier One as system VPN/NFV provider
- *
- * If built with ZT_ENABLE_NETWORK_CONTROLLER defined, this includes and
- * runs controller/SqliteNetworkController with a database called
- * controller.db in the specified home directory.
- *
- * If built with ZT_AUTO_UPDATE, an official ZeroTier update URL is
- * periodically checked and updates are automatically downloaded, verified
- * against a built-in list of update signing keys, and installed. This is
- * only supported for certain platforms.
- *
- * If built with ZT_ENABLE_CLUSTER, a 'cluster' file is checked and if
- * present is read to determine the identity of other cluster members.
  */
 class OneService
 {
@@ -75,6 +53,27 @@ public:
 		 * Your identity has collided with another
 		 */
 		ONE_IDENTITY_COLLISION = 3
+	};
+
+	/**
+	 * Local settings for each network
+	 */
+	struct NetworkSettings
+	{
+		/**
+		 * Allow this network to configure IP addresses and routes?
+		 */
+		bool allowManaged;
+
+		/**
+		 * Allow configuration of IPs and routes within global (Internet) IP space?
+		 */
+		bool allowGlobal;
+
+		/**
+		 * Allow overriding of system default routes for "full tunnel" operation?
+		 */
+		bool allowDefault;
 	};
 
 	/**
@@ -140,38 +139,28 @@ public:
 	 */
 	virtual void terminate() = 0;
 
-#ifdef SDK
 	/**
-	 * Joins a network
-	 */
-	virtual void join(const char *hp) = 0;
-    
-    /**
-     * Leaves a network
-     */
-    virtual void leave(const char *hp) = 0;
-
-    /**
-     * Returns the homePath given by the client application
-     * - Used for SDK mode
-     */
-    virtual std::string givenHomePath() = 0;
-
-	/*
+	 * Get local settings for a network
 	 *
+	 * @param nwid Network ID
+	 * @param settings Buffer to fill with local network settings
+	 * @return True if network was found and settings is filled
 	 */
-	virtual std::map< uint64_t,EthernetTap * > getTaps() = 0;
+	virtual bool getNetworkSettings(const uint64_t nwid,NetworkSettings &settings) const = 0;
 
-	/*
+	/**
+	 * Set local settings for a network
 	 *
+	 * @param nwid Network ID
+	 * @param settings New network local settings
+	 * @return True if network was found and setting modified
 	 */
-	virtual Node * getNode() = 0;
+	virtual bool setNetworkSettings(const uint64_t nwid,const NetworkSettings &settings) = 0;
 
 	/**
 	 * @return True if service is still running
 	 */
 	inline bool isRunning() const { return (this->reasonForTermination() == ONE_STILL_RUNNING); }
-#endif
 
 protected:
 	OneService() {}

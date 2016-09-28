@@ -443,10 +443,10 @@ namespace ZeroTier
 		closeConnection(sock);
 	}
 
-	void NetconEthernetTap::phyOnTcpWritable(PhySocket *sock,void **uptr, bool lwip_invoked) 
+	void NetconEthernetTap::phyOnTcpWritable(PhySocket *sock,void **uptr/*, bool lwip_invoked*/) 
 	{
 		DEBUG_INFO("sock=%p", (void*)&sock);
-		processReceivedData(sock,uptr,lwip_invoked);
+		processReceivedData(sock,uptr,true);
 	}
 
 	// RX data on stream socks and send back over client sock's underlying fd

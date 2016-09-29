@@ -253,6 +253,7 @@ bool NetconEthernetTap::addIp(const InetAddress &ip)
 			lwipstack->__netif_set_up(&interface6);	
 			ip6_addr_copy(ip_2_ip6(interface6.ip6_addr[1]), addr6);
 			interface6.state = this;
+			interface6.flags = NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 		}		
 	}
 	return true;
@@ -1114,11 +1115,8 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 	int err, port = lwipstack->__lwip_ntohs(rawAddr->sin_port);
 	ip_addr_t connAddr;
 
-	static ip_addr_t ba;
-	//IP6_ADDR2(&ipaddr, 0xfd56, 0x5799, 0xd8f6, 0x1238, 0x8c99, 0x93b4, 0x9d8e, 0x24f6);
-	//IP6_ADDR2(&nm, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xff00, 0x0, 0x0);
-	//IP6_ADDR2(&ba, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0001);
-//	IP_ADDR6(&ba, 0, 0, 0, PP_HTONL(0x00000001UL));
+	static ip6_addr_t ba;
+	IP6_ADDR2(&ba, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0);			
 	
 	if(!_ips.size()) {
 		// We haven't been given an address yet. Binding at this stage is premature
@@ -1164,7 +1162,7 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
         }
         else if (conn->type == SOCK_STREAM) {
             if(conn->TCP_pcb->state == CLOSED){
- //               err = lwipstack->__tcp_bind(conn->TCP_pcb, &ba, port);
+                err = lwipstack->__tcp_bind(conn->TCP_pcb, &ba, port);
                 if(err != ERR_OK) {
                     DEBUG_ERROR("err=%d", err);
                     if(err == ERR_USE)
@@ -1399,8 +1397,6 @@ int NetconEthernetTap::handleConnectProxy(PhySocket *sock, struct sockaddr_in *r
 void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Connection *conn, struct connect_st* connect_rpc)
 {
     DEBUG_ATTN("sock=%p", (void*)&sock);
-
-    /*
     Mutex::Lock _l(_tcpconns_m);
 	struct sockaddr_in *rawAddr = (struct sockaddr_in *) &connect_rpc->addr;
 	int port = lwipstack->__lwip_ntohs(rawAddr->sin_port);
@@ -1444,6 +1440,7 @@ void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Conne
 		}
 
 		static ip_addr_t ba;
+
 		IP6_ADDR2(&ba, 0xfd56,0x5799,0xd8f6,0x1238,0x8c99,0x9322,0x30ce,0x418a);
 
 
@@ -1487,7 +1484,6 @@ void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Conne
 		DEBUG_ERROR(" could not locate PCB based on application-provided fd");
 		sendReturnValue(rpcSock, -1, EBADF);
 	}
-	*/
 }
 
 void NetconEthernetTap::handleWrite(Connection *conn)

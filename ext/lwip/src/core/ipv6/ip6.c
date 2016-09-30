@@ -500,15 +500,11 @@ ip6_input(struct pbuf *p, struct netif *inp)
       if (netif_is_up(netif)) {
         /* unicast to this interface address? address configured? */
         for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
-          ip_addr_debug_print(1, netif_ip6_addr(inp, i));
-
-          if (ip6_addr_isvalid(netif_ip6_addr_state(netif, i))) {
-              if(ip6_addr_cmp(ip6_current_dest_addr(), netif_ip6_addr(netif, i))) {
-                /* exit outer loop */
-                goto netif_found;
-              }
+          if (ip6_addr_isvalid(netif_ip6_addr_state(netif, i)) &&
+              ip6_addr_cmp(ip6_current_dest_addr(), netif_ip6_addr(netif, i))) {
+            /* exit outer loop */
+            goto netif_found;
           }
-
         }
       }
       if (ip6_addr_islinklocal(ip6_current_dest_addr())) {
@@ -527,7 +523,6 @@ ip6_input(struct pbuf *p, struct netif *inp)
       }
     } while (netif != NULL);
 netif_found:
-
     LWIP_DEBUGF(IP6_DEBUG, ("ip6_input: packet accepted on interface %c%c\n",
         netif ? netif->name[0] : 'X', netif? netif->name[1] : 'X'));
   }
@@ -545,7 +540,6 @@ netif_found:
 
   /* packet not for us? */
   if (netif == NULL) {
-    ip6_debug_print(p);
     /* packet not for us, route or discard */
     LWIP_DEBUGF(IP6_DEBUG | LWIP_DBG_TRACE, ("ip6_input: packet not for us.\n"));
 #if LWIP_IPV6_FORWARD
@@ -716,6 +710,7 @@ options_done:
   pbuf_header_force(p, ip_data.current_ip_header_tot_len);
 
   /* send to upper layers */
+  LWIP_DEBUGF(IP6_DEBUG, ("ip6_input: \n"));
   ip6_debug_print(p);
   LWIP_DEBUGF(IP6_DEBUG, ("ip6_input: p->len %"U16_F" p->tot_len %"U16_F"\n", p->len, p->tot_len));
 
@@ -890,6 +885,7 @@ ip6_output_if_src(struct pbuf *p, const ip6_addr_t *src, const ip6_addr_t *dest,
       if (ip6_addr_isvalid(netif_ip6_addr_state(netif, i)) &&
           ip6_addr_cmp(dest, netif_ip6_addr(netif, i))) {
         /* Packet to self, enqueue it for loopback */
+        LWIP_DEBUGF(IP6_DEBUG, ("netif_loop_output()\n"));
         return netif_loop_output(netif, p);
       }
     }
@@ -902,6 +898,7 @@ ip6_output_if_src(struct pbuf *p, const ip6_addr_t *src, const ip6_addr_t *dest,
   }
 #endif /* LWIP_IPV6_FRAG */
 
+  LWIP_DEBUGF(IP6_DEBUG, ("netif->output_ip6()\n"));
   return netif->output_ip6(netif, p, dest);
 }
 

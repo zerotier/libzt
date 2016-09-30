@@ -48,44 +48,69 @@ endif
 
 CFLAGS:=$(CFLAGS) \
 	-I$(LWIPDIR)/include -I$(LWIPARCH)/include -I$(LWIPDIR)/include/ipv4 \
-	-I$(LWIPDIR) -I.
-
+	-I$(LWIPDIR) -I. -Iext
 
 # COREFILES, CORE4FILES: The minimum set of files needed for lwIP.
-COREFILES=$(LWIPDIR)/core/mem.c $(LWIPDIR)/core/memp.c $(LWIPDIR)/core/netif.c \
-	$(LWIPDIR)/core/pbuf.c $(LWIPDIR)/core/raw.c $(LWIPDIR)/core/stats.c \
-	$(LWIPDIR)/core/sys.c $(LWIPDIR)/core/tcp.c $(LWIPDIR)/core/tcp_in.c \
-	$(LWIPDIR)/core/tcp_out.c $(LWIPDIR)/core/udp.c \
-	$(LWIPDIR)/core/init.c $(LWIPDIR)/core/timers.c $(LWIPDIR)/core/def.c
-	
-CORE4FILES=$(wildcard $(LWIPDIR)/core/ipv4/*.c) $(LWIPDIR)/core/ipv4/inet.c \
-	$(LWIPDIR)/core/ipv4/inet_chksum.c
+COREFILES=$(LWIPDIR)/core/init.c \
+	$(LWIPDIR)/core/def.c \
+	$(LWIPDIR)/core/dns.c \
+	$(LWIPDIR)/core/inet_chksum.c \
+	$(LWIPDIR)/core/ip.c \
+	$(LWIPDIR)/core/mem.c \
+	$(LWIPDIR)/core/memp.c \
+	$(LWIPDIR)/core/netif.c \
+	$(LWIPDIR)/core/pbuf.c \
+	$(LWIPDIR)/core/raw.c \
+	$(LWIPDIR)/core/stats.c \
+	$(LWIPDIR)/core/sys.c \
+	$(LWIPDIR)/core/tcp.c \
+	$(LWIPDIR)/core/tcp_in.c \
+	$(LWIPDIR)/core/tcp_out.c \
+	$(LWIPDIR)/core/timeouts.c \
+	$(LWIPDIR)/core/udp.c
 
-# SNMPFILES: Extra SNMPv1 agent
-SNMPFILES=$(LWIPDIR)/core/snmp/asn1_dec.c $(LWIPDIR)/core/snmp/asn1_enc.c \
-	$(LWIPDIR)/core/snmp/mib2.c $(LWIPDIR)/core/snmp/mib_structs.c \
-	$(LWIPDIR)/core/snmp/msg_in.c $(LWIPDIR)/core/snmp/msg_out.c
+CORE4FILES=$(LWIPDIR)/core/ipv4/autoip.c \
+	$(LWIPDIR)/core/ipv4/dhcp.c \
+	$(LWIPDIR)/core/ipv4/etharp.c \
+	$(LWIPDIR)/core/ipv4/icmp.c \
+	$(LWIPDIR)/core/ipv4/igmp.c \
+	$(LWIPDIR)/core/ipv4/ip4_frag.c \
+	$(LWIPDIR)/core/ipv4/ip4.c \
+	$(LWIPDIR)/core/ipv4/ip4_addr.c
 
-# APIFILES: The files which implement the sequential and socket APIs.
-APIFILES=$(LWIPDIR)/api/api_lib.c $(LWIPDIR)/api/api_msg.c $(LWIPDIR)/api/tcpip.c \
-	$(LWIPDIR)/api/err.c $(LWIPDIR)/api/sockets.c $(LWIPDIR)/api/netbuf.c $(LWIPDIR)/api/netdb.c
+CORE6FILES=$(LWIPDIR)/core/ipv6/dhcp6.c \
+	$(LWIPDIR)/core/ipv6/ethip6.c \
+	$(LWIPDIR)/core/ipv6/icmp6.c \
+	$(LWIPDIR)/core/ipv6/inet6.c \
+	$(LWIPDIR)/core/ipv6/ip6.c \
+	$(LWIPDIR)/core/ipv6/ip6_addr.c \
+	$(LWIPDIR)/core/ipv6/ip6_frag.c \
+	$(LWIPDIR)/core/ipv6/mld6.c \
+	$(LWIPDIR)/core/ipv6/nd6.c
 
-# NETIFFILES: Files implementing various generic network interface functions.'
-NETIFFILES=$(LWIPDIR)/netif/etharp.c $(LWIPDIR)/netif/slipif.c
+	# APIFILES: The files which implement the sequential and socket APIs.
+APIFILES=$(LWIPDIR)/api/api_lib.c \
+	$(LWIPDIR)/api/api_msg.c \
+	$(LWIPDIR)/api/err.c \
+	$(LWIPDIR)/api/netbuf.c \
+	$(LWIPDIR)/api/netdb.c \
+	$(LWIPDIR)/api/netifapi.c \
+	$(LWIPDIR)/api/sockets.c \
+	$(LWIPDIR)/api/tcpip.c
 
-# NETIFFILES: Add PPP netif
-NETIFFILES+=$(LWIPDIR)/netif/ppp/auth.c $(LWIPDIR)/netif/ppp/chap.c \
-	$(LWIPDIR)/netif/ppp/chpms.c $(LWIPDIR)/netif/ppp/fsm.c \
-	$(LWIPDIR)/netif/ppp/ipcp.c $(LWIPDIR)/netif/ppp/lcp.c \
-	$(LWIPDIR)/netif/ppp/magic.c $(LWIPDIR)/netif/ppp/md5.c \
-	$(LWIPDIR)/netif/ppp/pap.c $(LWIPDIR)/netif/ppp/ppp.c \
-	$(LWIPDIR)/netif/ppp/randm.c $(LWIPDIR)/netif/ppp/vj.c
+# NETIFFILES: Files implementing various generic network interface functions
+NETIFFILES=$(LWIPDIR)/netif/ethernet.c 
+#\
+#	$(LWIPDIR)/netif/slipif.c
+
+# SIXLOWPAN: 6LoWPAN
+SIXLOWPAN=$(LWIPDIR)/netif/lowpan6.c \
 
 # ARCHFILES: Architecture specific files.
 ARCHFILES=$(wildcard $(LWIPARCH)/*.c $(LWIPARCH)tapif.c $(LWIPARCH)/netif/list.c $(LWIPARCH)/netif/tcpdump.c)
 
 # LWIPFILES: All the above.
-LWIPFILES=$(COREFILES) $(CORE4FILES) $(SNMPFILES) $(APIFILES) $(NETIFFILES) $(ARCHFILES)
+LWIPFILES=$(COREFILES) $(CORE4FILES) $(CORE6FILES) $(APIFILES) $(NETIFFILES) $(ARCHFILES)
 LWIPFILESW=$(wildcard $(LWIPFILES))
 LWIPOBJS=$(notdir $(LWIPFILESW:.c=.o))
 
@@ -98,7 +123,7 @@ all: $(LWIPLIB)
 .PHONY: all
 
 clean:
-	rm -f *.o $(LWIPLIB) *.s .depend* *.core core
+	rm -f *.o $(LWIPLIB4) $(LWIPLIB6) *.s .depend* *.core core
 
 depend dep: .depend
 

@@ -24,9 +24,7 @@ ONE_CLI            = $(BUILD)/$(ONE_CLI_NAME)
 ONE_IDTOOL         = $(BUILD)/$(ONE_IDTOOL_NAME)
 LWIP_LIB           = $(BUILD)/$(LWIP_LIB_NAME)
 #
-LWIP_2_DIR         = ext/lwip
-LWIP_1_DIR         = ext/lwip141
-LWIP_BASE_DIR      = ext/lwip
+LWIP_DIR      = ext/lwip
 
 # Automagically pick clang or gcc, with preference for clang
 # This is only done if we have not overridden these with an environment or CLI variable
@@ -80,24 +78,16 @@ INCLUDES+= -Iext \
 	-I../$(ZT1)/node \
 	-I../$(ZT1)/service \
 	-I. \
-	-Isrc
+	-Isrc \
+	-I$(LWIP_DIR)/src/include \
+	-I$(LWIP_DIR)/src/include/ipv4 \
+	-I$(LWIP_DIR)/src/include/ipv6
 
 
 # lwIP
 ifeq ($(SDK_LWIP_DEBUG),1)
 	LWIP_FLAGS+=SDK_LWIP_DEBUG=1
 endif
-ifeq ($(LWIP_VERSION_2),1)
-	CXXFLAGS+=-DLWIP_VERSION_2
-	INCLUDES+=-I$(LWIP_2_DIR)/src/include
-	INCLUDES+=-I$(LWIP_2_DIR)/src/include/ipv4
-	INCLUDES+=-I$(LWIP_2_DIR)/src/include/ipv6
-else
-	INCLUDES+=-I$(LWIP_1_DIR)/src/include
-	INCLUDES+=-I$(LWIP_1_DIR)/src/include/ipv4
-	INCLUDES+=-I$(LWIP_1_DIR)/src/include/ipv6
-endif
-
 
 # Debug output for the SDK
 # Specific levels can be controlled in src/SDK_Debug.h
@@ -122,17 +112,7 @@ remove_only_intermediates:
 
 # --- EXTERNAL LIBRARIES ---
 lwip:
-ifeq ($(LWIP_VERSION_2),1)
-	#mv ext/lwip200 ext/lwip
-	-make -f make-liblwip200.mk $(LWIP_FLAGS)
-	#mv ext/lwip ext/lwip200
-else
-	mv ext/lwip141 ext/lwip
-	-make -f make-liblwip141.mk $(LWIP_FLAGS)
-	mv ext/lwip ext/lwip141
-endif
-
-
+	-make -f make-liblwip.mk $(LWIP_FLAGS)
 
 
 # --------- LINUX ----------
@@ -251,14 +231,6 @@ test_suite: tests lwip linux_service_and_intercept
 
 
 # ----- ADMINISTRATIVE -----
-
-#restore_lwip_dirs:
-#	if [ -d "$LWIP_2_DIR" && ! -d "$LWIP_1_DIR" ]; then
-#		-mv $LWIP_BASE_DIR $LWIP_1_DIR
-#	fi
-#	if [ -d "$LWIP_1_DIR" && ! -d "$LWIP_2_DIR" ]; then
-#		-mv $LWIP_BASE_DIR $LWIP_2_DIR
-#	fi
 
 clean_android:
 	# android JNI lib project

@@ -36,41 +36,33 @@
 #include <sys/syscall.h>
 
 #include "SDK_EthernetTap.hpp"
+#include "SDK_Utils.hpp"
+#include "SDK.h"
+#include "SDK_Debug.h"
+#include "SDK_LWIPStack.hpp"
 
 #include "Utils.hpp"
 #include "OSUtils.hpp"
 #include "Constants.hpp"
 #include "Phy.hpp"
 
-#include "SDK_LWIPStack.hpp"
-
 // LWIP
 #include "lwip/priv/tcp_priv.h"
-
-
-//#include "lwip/etharp.h"
 #include "lwip/nd6.h"
-
 #include "lwip/api.h"
 #include "lwip/ip.h"
-
-//#include "lwip/tcp_impl.h"
-
-
 #include "lwip/ip_addr.h"
 #include "lwip/tcp.h"
 #include "lwip/init.h"
 #include "lwip/mem.h"
 #include "lwip/pbuf.h"
-//#include "lwip/ip_addr.h"
 #include "lwip/netif.h"
 #include "lwip/udp.h"
 #include "lwip/tcp.h"
 
-#include "SDK.h"
-#include "SDK_Debug.h"
- #include "Mutex.hpp"
-
+//#include "lwip/etharp.h"
+//#include "lwip/ip_addr.h"
+//#include "lwip/tcp_impl.h"
 
 //#if !defined(__IOS__) && !defined(__ANDROID__) && !defined(__UNITY_3D__) && !defined(__XCODE__)
 //    const ip_addr_t ip_addr_any = { IPADDR_ANY };
@@ -109,22 +101,10 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
 	struct eth_hdr *ethhdr;
 	ethhdr = (struct eth_hdr *)buf;
 
-
 	ZeroTier::MAC src_mac;
 	ZeroTier::MAC dest_mac;
 	src_mac.setTo(ethhdr->src.addr, 6);
 	dest_mac.setTo(ethhdr->dest.addr, 6);
-
-	DEBUG_ERROR("netif = %p", netif);
-	DEBUG_ERROR("tap = %p", tap);
-	DEBUG_ERROR("tap->_handler = %p", tap->_handler);
-	DEBUG_ERROR("tap->_arg = %p", tap->_arg);
-	DEBUG_ERROR("ethhdr = %p", ethhdr);
-	DEBUG_ERROR("tap->_nwid = %p", tap->_nwid);
-	//DEBUG_ERROR("src_mac = %p", (void*)src_mac);
-	//DEBUG_ERROR("dest_mac = %p", (void*)dest_mac);
-	DEBUG_ERROR("ethhdr->type = %p", ethhdr->type);
-	DEBUG_ERROR("buf = %p", buf);
 
 	tap->_handler(tap->_arg,tap->_nwid,src_mac,dest_mac,
 	Utils::ntoh((uint16_t)ethhdr->type),0,buf + sizeof(struct eth_hdr),totalLength - sizeof(struct eth_hdr));
@@ -191,12 +171,6 @@ bool NetconEthernetTap::enabled() const
 	return _enabled;
 }
 
-#define IP6_ADDR2(ipaddr, a,b,c,d,e,f,g,h) do { (ipaddr)->addr[0] = Utils::hton((u32_t)((a & 0xffff) << 16) | (b & 0xffff)); \
-                                               (ipaddr)->addr[1] = Utils::hton(((c & 0xffff) << 16) | (d & 0xffff)); \
-                                               (ipaddr)->addr[2] = Utils::hton(((e & 0xffff) << 16) | (f & 0xffff)); \
-                                               (ipaddr)->addr[3] = Utils::hton(((g & 0xffff) << 16) | (h & 0xffff)); } while(0)
-
-
 bool NetconEthernetTap::addIp(const InetAddress &ip)
 {
 	DEBUG_INFO("local_addr=%s", ip.toString().c_str());
@@ -209,7 +183,7 @@ bool NetconEthernetTap::addIp(const InetAddress &ip)
 		if (ip.isV4()) {			
 			DEBUG_INFO("IPV4");
 			// Set IP
-			static ip_addr_t ipaddr, netmask, gw;
+			static ip4_addr_t ipaddr, netmask, gw;
 			IP4_ADDR(&gw,127,0,0,1);
 			ipaddr.addr = *((u32_t *)ip.rawIpData());
 			netmask.addr = *((u32_t *)ip.netmask().rawIpData());
@@ -235,23 +209,24 @@ bool NetconEthernetTap::addIp(const InetAddress &ip)
 			DEBUG_INFO("IPV6");
 			static ip6_addr_t addr6;
 			IP6_ADDR2(&addr6, 0xfd56, 0x5799, 0xd8f6, 0x1238, 0x8c99, 0x93b4, 0x9d8e, 0x24f6);			
-			ip6_addr_copy(ip_2_ip6(interface6.ip6_addr[1]), addr6);
-			// interface.flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_IGMP;
+
 			interface6.mtu = _mtu;
 			interface6.name[0] = 't';
 			interface6.name[1] = 'p';
 			interface6.hwaddr_len = 6;
 			interface6.linkoutput = low_level_output;
-
 			interface6.ip6_autoconfig_enabled = 1;
+
 			_mac.copyTo(interface6.hwaddr, interface6.hwaddr_len);
 			lwipstack->__netif_create_ip6_linklocal_address(&interface6, 1);
 			lwipstack->__netif_add(&interface6, NULL, tapif_init, lwipstack->_ethernet_input);
-			netif_ip6_addr_set_state(&interface6, 1, IP6_ADDR_TENTATIVE); 
 			lwipstack->__netif_set_default(&interface6);
-			interface6.output_ip6 = lwipstack->_ethip6_output;
 			lwipstack->__netif_set_up(&interface6);	
+
+			netif_ip6_addr_set_state(&interface6, 1, IP6_ADDR_TENTATIVE); 
 			ip6_addr_copy(ip_2_ip6(interface6.ip6_addr[1]), addr6);
+
+			interface6.output_ip6 = lwipstack->_ethip6_output;
 			interface6.state = this;
 			interface6.flags = NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 		}		
@@ -284,78 +259,35 @@ void NetconEthernetTap::put(const MAC &from,const MAC &to,unsigned int etherType
 	struct pbuf *p,*q;
 	if (!_enabled)
 		return;
-
-    //#if defined(LWIP_IPV6)
-    	DEBUG_EXTRA("IPV6");
-    	DEBUG_EXTRA("sizeof(struct eth_hdr) = %d", sizeof(struct eth_hdr));
-    	struct eth_hdr ethhdr;
-    	from.copyTo(ethhdr.src.addr, 6);
-    	to.copyTo(ethhdr.dest.addr, 6);
-
-    	ethhdr.type = Utils::hton((uint16_t)etherType);
-		p = lwipstack->__pbuf_alloc(PBUF_RAW, len+sizeof(struct eth_hdr), PBUF_POOL);
-
-		if (p != NULL) {
-			const char *dataptr = reinterpret_cast<const char *>(data);
-			// First pbuf gets ethernet header at start
-			q = p;
-			if (q->len < sizeof(ethhdr)) {
-				DEBUG_ERROR("dropped packet: first pbuf smaller than ethernet header");
-				return;
-			}
-			int v = 6;
-			memcpy(&ethhdr, &v, 1);
-			memcpy(q->payload,&ethhdr,sizeof(ethhdr));
-			memcpy((char*)q->payload + sizeof(ethhdr),dataptr,q->len - sizeof(ethhdr));
-			dataptr += q->len - sizeof(ethhdr);
-
-			// Remaining pbufs (if any) get rest of data
-			while ((q = q->next)) {
-				memcpy(q->payload,dataptr,q->len);
-				dataptr += q->len;
-			}
-		} 
-		else {
-			DEBUG_ERROR("dropped packet: no pbufs available");
+	DEBUG_EXTRA("IPV6");
+	struct eth_hdr ethhdr;
+	from.copyTo(ethhdr.src.addr, 6);
+	to.copyTo(ethhdr.dest.addr, 6);
+	ethhdr.type = Utils::hton((uint16_t)etherType);
+	
+	p = lwipstack->__pbuf_alloc(PBUF_RAW, len+sizeof(struct eth_hdr), PBUF_POOL);
+	if (p != NULL) {
+		const char *dataptr = reinterpret_cast<const char *>(data);
+		// First pbuf gets ethernet header at start
+		q = p;
+		if (q->len < sizeof(ethhdr)) {
+			DEBUG_ERROR("dropped packet: first pbuf smaller than ethernet header");
 			return;
 		}
+		memcpy(q->payload,&ethhdr,sizeof(ethhdr));
+		memcpy((char*)q->payload + sizeof(ethhdr),dataptr,q->len - sizeof(ethhdr));
+		dataptr += q->len - sizeof(ethhdr);
 
-	// IPV4
-		/*
-    #elif defined(LWIP_IPV4)
-    	DEBUG_EXTRA("IPV4");
-		struct eth_hdr ethhdr;
-		from.copyTo(ethhdr.src.addr, 6);
-		to.copyTo(ethhdr.dest.addr, 6);
-		ethhdr.type = Utils::hton((uint16_t)etherType);
-
-		// We allocate a pbuf chain of pbufs from the pool.
-		p = lwipstack->__pbuf_alloc(PBUF_RAW, len+sizeof(struct eth_hdr), PBUF_POOL);
-
-		if (p != NULL) {
-			const char *dataptr = reinterpret_cast<const char *>(data);
-			// First pbuf gets ethernet header at start
-			q = p;
-			if (q->len < sizeof(ethhdr)) {
-				DEBUG_ERROR("dropped packet: first pbuf smaller than ethernet header");
-				return;
-			}
-			memcpy(q->payload,&ethhdr,sizeof(ethhdr));
-			memcpy((char*)q->payload + sizeof(ethhdr),dataptr,q->len - sizeof(ethhdr));
-			dataptr += q->len - sizeof(ethhdr);
-
-			// Remaining pbufs (if any) get rest of data
-			while ((q = q->next)) {
-				memcpy(q->payload,dataptr,q->len);
-				dataptr += q->len;
-			}
-		} 
-		else {
-			DEBUG_ERROR("dropped packet: no pbufs available");
-			return;
+		// Remaining pbufs (if any) get rest of data
+		while ((q = q->next)) {
+			memcpy(q->payload,dataptr,q->len);
+			dataptr += q->len;
 		}
-	#endif
-	*/
+	} 
+	else {
+		DEBUG_ERROR("dropped packet: no pbufs available");
+		return;
+	}
 	{
 		if(interface6.input(p, &interface6) != ERR_OK) {
 			DEBUG_ERROR("error while RX of packet (netif->input)");

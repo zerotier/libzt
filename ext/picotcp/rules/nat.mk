@@ -1,0 +1,2 @@
+OPTIONS+=-DPICO_SUPPORT_NAT
+MOD_OBJ+=$(LIBBASE)modules/pico_nat.o

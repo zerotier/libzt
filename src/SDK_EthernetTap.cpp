@@ -38,8 +38,20 @@
 #include "SDK_EthernetTap.hpp"
 #include "SDK_Utils.hpp"
 #include "SDK.h"
+#include "SDK_defs.h"
 #include "SDK_Debug.h"
-#include "SDK_LWIPStack.hpp"
+
+#if defined(SDK_LWIP) 
+	#include "SDK_lwip.hpp"
+#elif defined(SDK_PICOTCP)
+	#include "SDK_pico.hpp"
+	#include "pico_stack.h"
+	#include "pico_ipv4.h"
+	#include "pico_icmp4.h"
+	#include "pico_dev_tap.h"
+#elif defined(SDK_JIP)
+	#include "SDK_jip.hpp"
+#endif
 
 #include "Utils.hpp"
 #include "OSUtils.hpp"
@@ -71,12 +83,80 @@
 namespace ZeroTier {
 
 // ---------------------------------------------------------------------------
+static ZeroTier::NetconEthernetTap *picotap;
 
 static err_t tapif_init(struct netif *netif)
 {
   // Actual init functionality is in addIp() of tap
   return ERR_OK;
 }
+
+
+
+static void cb_ping(struct pico_icmp4_stats *s)
+{	
+    char host[30];
+    picotap->picostack->__pico_ipv4_to_string(host, s->dst.addr);
+    if (s->err == 0) {
+        // if all is well, print some pretty info
+        printf("%lu bytes from %s: icmp_req=%lu ttl=%lu time=%lu ms\n", s->size,
+                host, s->seq, s->ttl, (long unsigned int)s->time);
+        //if (s->seq >= NUM_PING)
+            //finished = 1;
+    } else {
+        // if something went wrong, print it and signal we want to stop
+        printf("PING %lu to %s: Error %d\n", s->seq, host, s->err);
+        //finished = 1;
+    }
+}
+
+static int pico_eth_send(struct pico_device *dev, void *buf, int len)
+{
+	DEBUG_INFO("len = %d", len);
+	struct eth_hdr *ethhdr;
+	ethhdr = (struct eth_hdr *)buf;
+
+	ZeroTier::MAC src_mac;
+	ZeroTier::MAC dest_mac;
+	src_mac.setTo(ethhdr->src.addr, 6);
+	dest_mac.setTo(ethhdr->dest.addr, 6);
+
+	picotap->_handler(picotap->_arg,picotap->_nwid,src_mac,dest_mac,
+		Utils::ntoh((uint16_t)ethhdr->type),0, ((char*)buf) + sizeof(struct eth_hdr),len - sizeof(struct eth_hdr));
+	return len;
+}
+
+static int pico_eth_poll(struct pico_device *dev, int loop_score)
+{
+	// OPTIMIZATION: The copy logic and/or buffer structure should be reworked for better performance after the BETA
+	// DEBUG_INFO();
+	// ZeroTier::NetconEthernetTap *tap = (ZeroTier::NetconEthernetTap*)netif->state;
+	Mutex::Lock _l(picotap->_pico_frame_rxbuf_m);
+
+    uint8_t *buf = NULL;
+    uint32_t len = 0;
+    struct eth_hdr ethhdr;
+	unsigned char frame[ZT_MAX_MTU];
+
+    while (picotap->pico_frame_rxbuf_tot > 0) {
+    	memset(frame, 0, sizeof(frame));
+
+		unsigned int len = 0;
+		memcpy(&len, picotap->pico_frame_rxbuf, sizeof(len)); // get frame len
+		DEBUG_ATTN("reading frame len = %ld", len);
+		memcpy(frame, picotap->pico_frame_rxbuf + sizeof(len), len); // get frame data
+		memmove(picotap->pico_frame_rxbuf, picotap->pico_frame_rxbuf + sizeof(len) + len, ZT_MAX_MTU-(sizeof(len) + len));
+		int rx_ret = picotap->picostack->__pico_stack_recv(dev, (uint8_t*)frame, len); 
+		picotap->pico_frame_rxbuf_tot-=(sizeof(len) + len);
+		DEBUG_ATTN("rx_ret = %d", rx_ret);
+		DEBUG_EXTRA("RX frame buffer %3f full", (float)(picotap->pico_frame_rxbuf_tot) / (float)(MAX_PICO_FRAME_RX_BUF_SZ));
+		loop_score--;
+    }
+    //DEBUG_ATTN("loop_score = %d", loop_score);
+    return loop_score;
+}
+
+
 
 /*
  * Outputs data from the pbuf queue to the interface
@@ -107,7 +187,7 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
 	dest_mac.setTo(ethhdr->dest.addr, 6);
 
 	tap->_handler(tap->_arg,tap->_nwid,src_mac,dest_mac,
-	Utils::ntoh((uint16_t)ethhdr->type),0,buf + sizeof(struct eth_hdr),totalLength - sizeof(struct eth_hdr));
+		Utils::ntoh((uint16_t)ethhdr->type),0,buf + sizeof(struct eth_hdr),totalLength - sizeof(struct eth_hdr));
 	return ERR_OK;
 }
 
@@ -134,21 +214,42 @@ NetconEthernetTap::NetconEthernetTap(
 		_run(true)
 {
 	sockstate = -1;
-    char sockPath[4096],lwipPath[4096];
+    char sockPath[4096],stackPath[4096];
     Utils::snprintf(sockPath,sizeof(sockPath),"%s%snc_%.16llx",homePath,ZT_PATH_SEPARATOR_S,_nwid,ZT_PATH_SEPARATOR_S,(unsigned long long)nwid);
     _dev = sockPath; // in SDK mode, set device to be just the network ID
-	Utils::snprintf(lwipPath,sizeof(lwipPath),"%s%sliblwip.so",homePath,ZT_PATH_SEPARATOR_S);
-	
-    lwipstack = new LWIPStack(lwipPath);
-	if(!lwipstack)
-		throw std::runtime_error("unable to dynamically load a new instance of liblwip.so (searched ZeroTier home path)");
-	lwipstack->__lwip_init();
-    
-	_unixListenSocket = _phy.unixListen(sockPath,(void *)this);
-	DEBUG_INFO("tap initialized on: path=%s", sockPath);
-	if (!_unixListenSocket)
-		DEBUG_ERROR("unable to bind to: path=%s", sockPath);
-     _thread = Thread::start(this);
+
+	// SIP-0
+	// Load and initialize network stack library
+
+    #if defined(SDK_LWIP)
+		Utils::snprintf(stackPath,sizeof(stackPath),"%s%sliblwip.so",homePath,ZT_PATH_SEPARATOR_S);
+		lwipstack = new lwIP_stack(stackPath);
+	#elif defined(SDK_PICOTCP)
+		Utils::snprintf(stackPath,sizeof(stackPath),"%s%slibpicotcp.so",homePath,ZT_PATH_SEPARATOR_S);
+		picostack = new picoTCP_stack(stackPath);
+	#elif defined(SDK_JIP)
+		Utils::snprintf(stackPath,sizeof(stackPath),"%s%slibjip.so",homePath,ZT_PATH_SEPARATOR_S);
+		jipstack = new jip_stack(stackPath);
+	#endif
+
+	if(!lwipstack && !picostack && !jipstack) {
+		DEBUG_ERROR("unable to dynamically load a new instance of (%s) (searched ZeroTier home path)", stackPath);
+		throw std::runtime_error("");
+	}
+	else {
+		if(lwipstack)
+			lwipstack->__lwip_init();
+		if(picostack)
+			picostack->__pico_stack_init();
+		//if(jipstack)
+		//	jipstack->__jip_init();
+	    
+		_unixListenSocket = _phy.unixListen(sockPath,(void *)this);
+		DEBUG_INFO("tap initialized on: path=%s", sockPath);
+		if (!_unixListenSocket)
+			DEBUG_ERROR("unable to bind to: path=%s", sockPath);
+	     _thread = Thread::start(this);
+ 	}
 }
 
 NetconEthernetTap::~NetconEthernetTap()
@@ -171,10 +272,14 @@ bool NetconEthernetTap::enabled() const
 	return _enabled;
 }
 
-bool NetconEthernetTap::addIp(const InetAddress &ip)
+void NetconEthernetTap::lwIP_init_interface(const InetAddress &ip)
 {
 	DEBUG_INFO("local_addr=%s", ip.toString().c_str());
 	Mutex::Lock _l(_ips_m);
+
+	// SIP-1
+	// Initialize network stack's interface, assign addresses
+
 	if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
 		_ips.push_back(ip);
 		std::sort(_ips.begin(),_ips.end());
@@ -231,6 +336,62 @@ bool NetconEthernetTap::addIp(const InetAddress &ip)
 			interface6.flags = NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 		}		
 	}
+}
+
+void NetconEthernetTap::picoTCP_init_interface(const InetAddress &ip)
+{
+	// TODO: Move this somewhere more appropriate
+	picotap = this;
+
+	DEBUG_INFO();
+	if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
+		_ips.push_back(ip);
+		std::sort(_ips.begin(),_ips.end());
+
+		if(ip.isV4())
+		{
+			int id;
+		    struct pico_ip4 ipaddr, netmask;
+		    ipaddr.addr = *((u32_t *)ip.rawIpData());
+		    netmask.addr = *((u32_t *)ip.netmask().rawIpData());
+		    picostack->__pico_ipv4_link_add(&picodev, ipaddr, netmask);
+
+		    picodev.send = pico_eth_send; // tx
+		    picodev.poll = pico_eth_poll; // rx
+
+		    // Register the device in picoTCP
+		    uint8_t mac[PICO_SIZE_ETH];
+		    _mac.copyTo(mac, PICO_SIZE_ETH);
+		    DEBUG_ATTN("mac = %s", _mac.toString().c_str());
+		    if( 0 != picostack->__pico_device_init(&picodev, "p0", mac)) {
+		        DEBUG_ERROR("device init failed");
+		        return;
+		    }
+		    DEBUG_INFO("successfully initialized device");
+		   	// picostack->__pico_icmp4_ping("10.8.8.1", 20, 1000, 10000, 64, cb_ping);
+		}
+		if(ip.isV6())
+		{
+		}
+	}
+}
+
+void NetconEthernetTap::jip_init_interface(const InetAddress &ip)
+{
+	// will be similar to lwIP initialization process
+}
+
+bool NetconEthernetTap::addIp(const InetAddress &ip)
+{
+	// SIP-3
+	// Initialize a new interface in the stack, assign an address
+    #if defined(SDK_LWIP)
+		lwIP_init_interface(ip);
+	#elif defined(SDK_PICOTCP)
+		picoTCP_init_interface(ip);
+	#elif defined(SDK_JIP)
+		jip_init_interface(ip);
+	#endif
 	return true;
 }
 
@@ -253,13 +414,13 @@ std::vector<InetAddress> NetconEthernetTap::ips() const
 	return _ips;
 }
 
-void NetconEthernetTap::put(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
+
+void NetconEthernetTap::lwIP_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
 {
-    DEBUG_EXTRA("RX packet: len=%d, etherType=%d", len, etherType);
+	DEBUG_INFO();
 	struct pbuf *p,*q;
 	if (!_enabled)
 		return;
-	DEBUG_EXTRA("IPV6");
 	struct eth_hdr ethhdr;
 	from.copyTo(ethhdr.src.addr, 6);
 	to.copyTo(ethhdr.dest.addr, 6);
@@ -295,6 +456,58 @@ void NetconEthernetTap::put(const MAC &from,const MAC &to,unsigned int etherType
 	}
 }
 
+void NetconEthernetTap::picoTCP_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
+{
+	DEBUG_INFO();
+	// Since picoTCP only allows the reception of frames from within the polling function, we
+	// must enqueue each frame into a memory structure shared by both threads. This structure will
+	Mutex::Lock _l(_pico_frame_rxbuf_m);
+	if(len > ((1024 * 1024) - pico_frame_rxbuf_tot)) {
+		DEBUG_ERROR("dropping packet (len = %d) - not enough space left on RX frame buffer", len);
+		return;
+	}
+	//if(len != memcpy(pico_frame_rxbuf, data, len)) {
+	//	DEBUG_ERROR("dropping packet (len = %d) - unable to copy contents of frame to RX frame buffer", len);
+	//	return;
+	//}
+
+	// assemble new eth header
+	struct eth_hdr ethhdr;
+	from.copyTo(ethhdr.src.addr, 6);
+	to.copyTo(ethhdr.dest.addr, 6);
+	ethhdr.type = Utils::hton((uint16_t)etherType);
+	int newlen = len+sizeof(struct eth_hdr);
+
+	memcpy(pico_frame_rxbuf + pico_frame_rxbuf_tot, &newlen, sizeof(newlen));                      // size of frame
+	memcpy(pico_frame_rxbuf + pico_frame_rxbuf_tot + sizeof(newlen), &ethhdr, sizeof(ethhdr));     // new eth header
+	memcpy(pico_frame_rxbuf + pico_frame_rxbuf_tot + sizeof(newlen) + sizeof(ethhdr), data, len);  // frame data
+	pico_frame_rxbuf_tot += len + sizeof(len) + sizeof(ethhdr);
+	DEBUG_INFO("RX frame buffer %3f full", (float)pico_frame_rxbuf_tot / (float)(1024 * 1024));
+}
+
+void NetconEthernetTap::jip_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
+{
+	DEBUG_INFO();
+}
+
+
+
+void NetconEthernetTap::put(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
+{
+    DEBUG_EXTRA("RX packet: len=%d, etherType=%d", len, etherType);
+
+    // SIP-
+    // RX packet
+
+    #if defined(SDK_LWIP)
+		lwIP_rx(from,to,etherType,data,len);
+	#elif defined(SDK_PICOTCP)
+		picoTCP_rx(from,to,etherType,data,len);
+	#elif defined(SDK_JIP)
+		jip_rx(from,to,etherType,data,len);
+	#endif
+}
+
 std::string NetconEthernetTap::deviceName() const
 {
 	return _dev;
@@ -326,13 +539,12 @@ void NetconEthernetTap::scanMulticastGroups(std::vector<MulticastGroup> &added,s
 	_multicastGroups.swap(newGroups);
 }
     
-void NetconEthernetTap::threadMain()
-	throw()
+void NetconEthernetTap::lwIP_loop()
 {
+	DEBUG_INFO();
 	uint64_t prev_tcp_time = 0, prev_status_time = 0, prev_discovery_time = 0;
 	// Main timer loop
 	while (_run) {
-		
 		uint64_t now = OSUtils::now();
 		uint64_t since_tcp = now - prev_tcp_time;
 		uint64_t since_discovery = now - prev_discovery_time;
@@ -405,6 +617,40 @@ void NetconEthernetTap::threadMain()
 		_phy.poll((unsigned long)std::min(tcp_remaining,discovery_remaining));
 	}
     lwipstack->close();
+}
+
+void NetconEthernetTap::picoTCP_loop()
+{
+	DEBUG_INFO();
+	while(_run)
+	{
+		//DEBUG_INFO("pico_tick");
+		usleep(1000);
+        picostack->__pico_stack_tick();
+	}
+}
+
+void NetconEthernetTap::jip_loop()
+{
+	DEBUG_INFO();
+	while(_run)
+	{
+
+	}
+}
+
+void NetconEthernetTap::threadMain()
+	throw()
+{
+	// SIP-2
+	// Enter main thread loop for network stack
+    #if defined(SDK_LWIP)
+		lwIP_loop();
+	#elif defined(SDK_PICOTCP)
+		picoTCP_loop();
+	#elif defined(SDK_JIP)
+		jip_loop();
+	#endif
 }
 
 Connection *NetconEthernetTap::getConnection(PhySocket *sock)

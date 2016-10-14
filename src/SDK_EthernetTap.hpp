@@ -46,7 +46,11 @@
 
 #include "netif/etharp.h"
 
+#include "SDK_defs.h"
 #include "SDK_RPC.h"
+#include "SDK_lwip.hpp"
+#include "SDK_pico.hpp"
+#include "SDK_jip.hpp"
 
 // lwIP structs
 struct tcp_pcb;
@@ -59,25 +63,6 @@ struct bind_st;
 struct connect_st;
 struct getsockname_st;
 struct accept_st;
-
-// Timing
-#define APPLICATION_POLL_FREQ           2
-#define ZT_LWIP_TCP_TIMER_INTERVAL      50
-#define STATUS_TMR_INTERVAL             500 // How often we check connection statuses (in ms)
-
-// TCP Buffer sizes
-#define DEFAULT_TCP_TX_BUF_SZ           1024 * 1024
-#define DEFAULT_TCP_RX_BUF_SZ           1024 * 1024
-
-// TCP RX/TX buffer soft boundaries
-#define DEFAULT_TCP_TX_BUF_SOFTMAX      DEFAULT_TCP_TX_BUF_SZ * 0.80
-#define DEFAULT_TCP_TX_BUF_SOFTMIN      DEFAULT_TCP_TX_BUF_SZ * 0.20
-#define DEFAULT_TCP_RX_BUF_SOFTMAX      DEFAULT_TCP_RX_BUF_SZ * 0.80
-#define DEFAULT_TCP_RX_BUF_SOFTMIN      DEFAULT_TCP_RX_BUF_SZ * 0.20
-
-// UDP Buffer sizes (should be about the size of your MTU)
-#define DEFAULT_UDP_TX_BUF_SZ           ZT_MAX_MTU
-#define DEFAULT_UDP_RX_BUF_SZ           ZT_MAX_MTU * 128
 
 namespace ZeroTier {
 
@@ -145,10 +130,29 @@ namespace ZeroTier {
 		void setFriendlyName(const char *friendlyName);
 		void scanMulticastGroups(std::vector<MulticastGroup> &added,std::vector<MulticastGroup> &removed);
 
+		// SIP-
+
+		struct pico_device picodev;
+		unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
+		int pico_frame_rxbuf_tot = 0;
+		Mutex _pico_frame_rxbuf_m;
+
+			void lwIP_loop();
+			void picoTCP_loop();
+			void jip_loop();
+
+			// rx
+			void lwIP_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
+			void picoTCP_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
+			void jip_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
+
+			void lwIP_init_interface(const InetAddress &ip);
+			void picoTCP_init_interface(const InetAddress &ip);
+			void jip_init_interface(const InetAddress &ip);
+
 		void threadMain()
 			throw();
 
-		LWIPStack *lwipstack;
 	  	uint64_t _nwid;
 	  	void (*_handler)(void *,uint64_t,const MAC &,const MAC &,unsigned int,unsigned int,const void *,unsigned int);
 	 	void *_arg;
@@ -166,6 +170,10 @@ namespace ZeroTier {
 		// --- end Proxy 
 
 		std::string _homePath;
+
+		lwIP_stack *lwipstack;
+		picoTCP_stack *picostack;
+		jip_stack *jipstack;
 
 	private:
 		// LWIP callbacks
@@ -490,10 +498,9 @@ namespace ZeroTier {
 		PhySocket *_unixListenSocket;
 
 		std::vector<Connection*> _Connections;
-	    
 		std::map<uint64_t, std::pair<PhySocket*, void*> > jobmap;
-
 		pid_t rpcCounter;
+
 		netif interface;
 		netif interface6;
 

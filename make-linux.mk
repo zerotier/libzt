@@ -25,6 +25,7 @@ ONE_IDTOOL         = $(BUILD)/$(ONE_IDTOOL_NAME)
 LWIP_LIB           = $(BUILD)/$(LWIP_LIB_NAME)
 #
 LWIP_DIR      = ext/lwip
+PICOTCP_DIR   = ext/picotcp
 
 # Automagically pick clang or gcc, with preference for clang
 # This is only done if we have not overridden these with an environment or CLI variable
@@ -81,13 +82,33 @@ INCLUDES+= -Iext \
 	-Isrc \
 	-I$(LWIP_DIR)/src/include \
 	-I$(LWIP_DIR)/src/include/ipv4 \
-	-I$(LWIP_DIR)/src/include/ipv6
+	-I$(LWIP_DIR)/src/include/ipv6 \
+	-I$(PICOTCP_DIR)/include \
+	-I$(PICOTCP_DIR)/build/include
 
 
-# lwIP
+# lwIP debug
 ifeq ($(SDK_LWIP_DEBUG),1)
 	LWIP_FLAGS+=SDK_LWIP_DEBUG=1
 endif
+
+# lwIP
+ifeq ($(SDK_LWIP),1)
+	STACK_FLAGS+=-DSDK_LWIP
+endif
+
+# picoTCP
+ifeq ($(SDK_PICOTCP),1)
+	STACK_FLAGS+=-DSDK_PICOTCP
+endif
+
+# jip
+ifeq ($(SDK_JIP),1)
+	STACK_FLAGS+=-DSDK_JIP
+endif
+
+
+
 
 # Debug output for the SDK
 # Specific levels can be controlled in src/SDK_Debug.h
@@ -114,6 +135,15 @@ remove_only_intermediates:
 lwip:
 	-make -f make-liblwip.mk $(LWIP_FLAGS)
 
+pico:
+	mkdir -p build
+	cd ext/picotcp; make lib ARCH=shared IPV4=1 IPV6=1
+	$(CC) -g -nostartfiles -shared -o ext/picotcp/build/lib/libpicotcp.so ext/picotcp/build/lib/*.o ext/picotcp/build/modules/*.o
+	cp ext/picotcp/build/lib/libpicotcp.so build/libpicotcp.so
+
+jip:
+	-make -f make-jip.mk $(JIP_FLAGS)
+
 
 # --------- LINUX ----------
 # Build everything
@@ -132,8 +162,8 @@ linux_intercept:
 	cd src ; gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o ../$(INTERCEPT) SDK_Sockets.c SDK_Intercept.c SDK_RPC.c -ldl
 
 # Build only the SDK service
-linux_sdk_service: lwip $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DEFS) $(INCLUDES) -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(ZT1)/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp $(ZT1)/one.cpp src/SDK_RPC.c $(LDLIBS) -ldl
+linux_sdk_service: $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(ZT1)/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp $(ZT1)/one.cpp src/SDK_RPC.c $(LDLIBS) -ldl
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-cli
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-idtool
 
@@ -245,7 +275,7 @@ clean_basic:
 	-rm -rf $(INT)/Unity3D/Assets/Plugins/*
 	-rm -rf zerotier-cli zerotier-idtool
 	-find . -type f \( -name $(ONE_SERVICE_NAME) -o -name $(SDK_SERVICE_NAME) \) -delete
-	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
+	-find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
 
 clean_thorough: clean_basic
 	-rm -rf .depend

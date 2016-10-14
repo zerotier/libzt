@@ -86,6 +86,9 @@ namespace ZeroTier {
 	  unsigned char rxbuf[DEFAULT_TCP_RX_BUF_SZ];
 	  // TODO: necessary still?
 	  int proxy_conn_state;
+
+	  // pico
+	  struct pico_socket *picosock;
 	};
 
 	/*

@@ -624,6 +624,7 @@ void NetconEthernetTap::picoTCP_loop()
 	DEBUG_INFO();
 	while(_run)
 	{
+		_phy.poll((unsigned long)std::min(500,1000));
 		//DEBUG_INFO("pico_tick");
 		usleep(1000);
         picostack->__pico_stack_tick();
@@ -1439,41 +1440,75 @@ Connection * NetconEthernetTap::handleSocketProxy(PhySocket *sock, int socket_ty
 	return NULL;
 }
 
+static void cb_tcpclient(uint16_t ev, struct pico_socket *s)
+{
+	DEBUG_ERROR("ACTIVITY!");
+}
+
 Connection * NetconEthernetTap::handleSocket(PhySocket *sock, void **uptr, struct socket_st* socket_rpc)
 {
     DEBUG_ATTN("sock=%p, sock_type=%d", (void*)&sock, socket_rpc->socket_type);
 
-    struct udp_pcb *new_udp_PCB = NULL;
-    struct tcp_pcb *new_tcp_PCB = NULL;
+	#if defined(SDK_LWIP) 
+	    struct udp_pcb *new_udp_PCB = NULL;
+	    struct tcp_pcb *new_tcp_PCB = NULL;
 
-    if(socket_rpc->socket_type == SOCK_DGRAM) {
-        DEBUG_EXTRA("SOCK_DGRAM");
-        Mutex::Lock _l(_tcpconns_m);
-        new_udp_PCB = lwipstack->__udp_new();
-    }
-    else if(socket_rpc->socket_type == SOCK_STREAM) {
-        DEBUG_EXTRA("SOCK_STREAM");
-        Mutex::Lock _l(_tcpconns_m);
-        new_tcp_PCB = lwipstack->__tcp_new();
-    }
-    else if(socket_rpc->socket_type == SOCK_RAW) {
-    	DEBUG_ERROR("SOCK_RAW, not currently supported.");
-    }
-    if(new_udp_PCB || new_tcp_PCB) {
-        Connection * newConn = new Connection();
-        *uptr = newConn;
-        newConn->type = socket_rpc->socket_type;
-        newConn->sock = sock;
-		newConn->local_addr = NULL;
-		newConn->peer_addr = NULL;
-        if(newConn->type == SOCK_DGRAM) newConn->UDP_pcb = new_udp_PCB;
-        if(newConn->type == SOCK_STREAM) newConn->TCP_pcb = new_tcp_PCB;
-        _Connections.push_back(newConn);
-        return newConn;
-    }
-	DEBUG_ERROR(" memory not available for new PCB");
-	sendReturnValue(_phy.getDescriptor(sock), -1, ENOMEM);
-	return NULL;
+	    if(socket_rpc->socket_type == SOCK_DGRAM) {
+	        DEBUG_EXTRA("SOCK_DGRAM");
+	        Mutex::Lock _l(_tcpconns_m);
+	        new_udp_PCB = lwipstack->__udp_new();
+	    }
+	    else if(socket_rpc->socket_type == SOCK_STREAM) {
+	        DEBUG_EXTRA("SOCK_STREAM");
+	        Mutex::Lock _l(_tcpconns_m);
+	        new_tcp_PCB = lwipstack->__tcp_new();
+	    }
+	    else if(socket_rpc->socket_type == SOCK_RAW) {
+	    	DEBUG_ERROR("SOCK_RAW, not currently supported.");
+	    }
+	    if(new_udp_PCB || new_tcp_PCB) {
+	        Connection * newConn = new Connection();
+	        *uptr = newConn;
+	        newConn->type = socket_rpc->socket_type;
+	        newConn->sock = sock;
+			newConn->local_addr = NULL;
+			newConn->peer_addr = NULL;
+	        if(newConn->type == SOCK_DGRAM) newConn->UDP_pcb = new_udp_PCB;
+	        if(newConn->type == SOCK_STREAM) newConn->TCP_pcb = new_tcp_PCB;
+	        _Connections.push_back(newConn);
+	        return newConn;
+	    }
+		DEBUG_ERROR(" memory not available for new PCB");
+		sendReturnValue(_phy.getDescriptor(sock), -1, ENOMEM);
+		return NULL;
+
+	#elif defined(SDK_PICOTCP)
+					DEBUG_ERROR("opening socket");
+
+		struct pico_socket * psock = picostack->__pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_TCP, &cb_tcpclient);
+					DEBUG_ERROR("fin");
+
+		if(psock)
+		{
+			DEBUG_ATTN("psock = %p", (void*)psock);
+			Connection * newConn = new Connection();
+	        *uptr = newConn;
+	        newConn->type = socket_rpc->socket_type;
+	        newConn->sock = sock;
+			newConn->local_addr = NULL;
+			newConn->peer_addr = NULL;
+			newConn->picosock = psock;
+	        //if(newConn->type == SOCK_DGRAM) newConn->pico_UDP_sock = new_udp_PCB;
+	        //if(newConn->type == SOCK_STREAM) newConn->pico_TCP_sock = new_tcp_PCB;
+	        _Connections.push_back(newConn);
+	        return newConn;
+		}
+		else
+		{
+			DEBUG_ERROR("psock == NULL");
+		}
+		return NULL;
+	#endif
 }
 
 int NetconEthernetTap::handleConnectProxy(PhySocket *sock, struct sockaddr_in *rawAddr)
@@ -1575,93 +1610,101 @@ int NetconEthernetTap::handleConnectProxy(PhySocket *sock, struct sockaddr_in *r
 void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Connection *conn, struct connect_st* connect_rpc)
 {
     DEBUG_ATTN("sock=%p", (void*)&sock);
-    Mutex::Lock _l(_tcpconns_m);
-	struct sockaddr_in *rawAddr = (struct sockaddr_in *) &connect_rpc->addr;
-	int port = lwipstack->__lwip_ntohs(rawAddr->sin_port);
-	ip_addr_t connAddr = convert_ip(rawAddr);    
-	int err = 0, ip = rawAddr->sin_addr.s_addr;
 
-    char addrstr[INET6_ADDRSTRLEN];
-    struct sockaddr *addr = (struct sockaddr*)rawAddr;
-    if(addr->sa_family == AF_INET) {
-        struct sockaddr_in *connaddr = (struct sockaddr_in *)addr;
-        inet_ntop(AF_INET, &(connaddr->sin_addr), addrstr, INET_ADDRSTRLEN);    
-        sprintf(addrstr, "%s:%d", addrstr, lwipstack->__lwip_ntohs(connaddr->sin_port));
-    }
-    if(addr->sa_family == AF_INET6) {        
-        struct sockaddr_in6 *connaddr6 = (struct sockaddr_in6 *)addr;
-        inet_ntop(AF_INET6, &(connaddr6->sin6_addr), addrstr, INET6_ADDRSTRLEN);
-        sprintf(addrstr, "%s:%d", addrstr, lwipstack->__lwip_ntohs(connaddr6->sin6_port));
-    }
-    DEBUG_INFO("addr=%s", addrstr);
+    #if defined(SDK_LWIP)
+	    Mutex::Lock _l(_tcpconns_m);
+		struct sockaddr_in *rawAddr = (struct sockaddr_in *) &connect_rpc->addr;
+		int port = lwipstack->__lwip_ntohs(rawAddr->sin_port);
+		ip_addr_t connAddr = convert_ip(rawAddr);    
+		int err = 0, ip = rawAddr->sin_addr.s_addr;
 
-    if(conn->type == SOCK_DGRAM) {
-        // Generates no network traffic
-        if((err = lwipstack->__udp_connect(conn->UDP_pcb,&connAddr,port)) < 0)
-            DEBUG_ERROR("error while connecting to with UDP");
-        lwipstack->__udp_recv(conn->UDP_pcb, nc_udp_recved, new Larg(this, conn));
+	    char addrstr[INET6_ADDRSTRLEN];
+	    struct sockaddr *addr = (struct sockaddr*)rawAddr;
+	    if(addr->sa_family == AF_INET) {
+	        struct sockaddr_in *connaddr = (struct sockaddr_in *)addr;
+	        inet_ntop(AF_INET, &(connaddr->sin_addr), addrstr, INET_ADDRSTRLEN);    
+	        sprintf(addrstr, "%s:%d", addrstr, lwipstack->__lwip_ntohs(connaddr->sin_port));
+	    }
+	    if(addr->sa_family == AF_INET6) {        
+	        struct sockaddr_in6 *connaddr6 = (struct sockaddr_in6 *)addr;
+	        inet_ntop(AF_INET6, &(connaddr6->sin6_addr), addrstr, INET6_ADDRSTRLEN);
+	        sprintf(addrstr, "%s:%d", addrstr, lwipstack->__lwip_ntohs(connaddr6->sin6_port));
+	    }
+	    DEBUG_INFO("addr=%s", addrstr);
+
+	    if(conn->type == SOCK_DGRAM) {
+	        // Generates no network traffic
+	        if((err = lwipstack->__udp_connect(conn->UDP_pcb,&connAddr,port)) < 0)
+	            DEBUG_ERROR("error while connecting to with UDP");
+	        lwipstack->__udp_recv(conn->UDP_pcb, nc_udp_recved, new Larg(this, conn));
+	        sendReturnValue(rpcSock, 0, ERR_OK);
+	        return;
+	    }
+		if(conn != NULL) {
+			lwipstack->__tcp_sent(conn->TCP_pcb, nc_sent);
+			lwipstack->__tcp_recv(conn->TCP_pcb, nc_recved);
+			lwipstack->__tcp_err(conn->TCP_pcb, nc_err);
+			lwipstack->__tcp_poll(conn->TCP_pcb, nc_poll, APPLICATION_POLL_FREQ);
+			lwipstack->__tcp_arg(conn->TCP_pcb, new Larg(this, conn));
+	        	
+			DEBUG_EXTRA(" pcb->state=%x", conn->TCP_pcb->state);
+			if(conn->TCP_pcb->state != CLOSED) {
+				DEBUG_INFO(" cannot connect using this PCB, PCB!=CLOSED");
+				sendReturnValue(rpcSock, -1, EAGAIN);
+				return;
+			}
+
+			static ip_addr_t ba;
+
+			IP6_ADDR2(&ba, 0xfd56,0x5799,0xd8f6,0x1238,0x8c99,0x9322,0x30ce,0x418a);
+
+
+			if((err = lwipstack->__tcp_connect(conn->TCP_pcb,&ba,port,nc_connected)) < 0)
+			{
+				if(err == ERR_ISCONN) {
+					sendReturnValue(rpcSock, -1, EISCONN); // Already in connected state
+					return;
+				} if(err == ERR_USE) {
+					sendReturnValue(rpcSock, -1, EADDRINUSE); // Already in use
+					return;
+				} if(err == ERR_VAL) {
+					sendReturnValue(rpcSock, -1, EINVAL); // Invalid ipaddress parameter
+					return;
+				} if(err == ERR_RTE) {
+					sendReturnValue(rpcSock, -1, ENETUNREACH); // No route to host
+					return;
+				} if(err == ERR_BUF) {
+					sendReturnValue(rpcSock, -1, EAGAIN); // No more ports available
+					return;
+				}
+				if(err == ERR_MEM) {
+					sendReturnValue(rpcSock, -1, EAGAIN); // TODO: Doesn't describe the problem well, but closest match
+					return;
+				}
+
+				// We should only return a value if failure happens immediately
+				// Otherwise, we still need to wait for a callback from lwIP.
+				// - This is because an ERR_OK from tcp_connect() only verifies
+				//   that the SYN packet was enqueued onto the stack properly,
+				//   that's it!
+				// - Most instances of a retval for a connect() should happen
+				//   in the nc_connect() and nc_err() callbacks!
+				DEBUG_ERROR(" unable to connect");
+				sendReturnValue(rpcSock, -1, EAGAIN);
+			}
+			// Everything seems to be ok, but we don't have enough info to retval
+			conn->listening=true;
+			conn->rpcSock=rpcSock; // used for return value from lwip CB
+		} else {
+			DEBUG_ERROR(" could not locate PCB based on application-provided fd");
+			sendReturnValue(rpcSock, -1, EBADF);
+		}
+	#elif defined(SDK_PICOTCP)
+		int ret = pico_socket_connect(s, &dst.ip4, send_port);
+		DEBUG_ATTN("ret = %d", ret);
         sendReturnValue(rpcSock, 0, ERR_OK);
         return;
-    }
-	if(conn != NULL) {
-		lwipstack->__tcp_sent(conn->TCP_pcb, nc_sent);
-		lwipstack->__tcp_recv(conn->TCP_pcb, nc_recved);
-		lwipstack->__tcp_err(conn->TCP_pcb, nc_err);
-		lwipstack->__tcp_poll(conn->TCP_pcb, nc_poll, APPLICATION_POLL_FREQ);
-		lwipstack->__tcp_arg(conn->TCP_pcb, new Larg(this, conn));
-        	
-		DEBUG_EXTRA(" pcb->state=%x", conn->TCP_pcb->state);
-		if(conn->TCP_pcb->state != CLOSED) {
-			DEBUG_INFO(" cannot connect using this PCB, PCB!=CLOSED");
-			sendReturnValue(rpcSock, -1, EAGAIN);
-			return;
-		}
-
-		static ip_addr_t ba;
-
-		IP6_ADDR2(&ba, 0xfd56,0x5799,0xd8f6,0x1238,0x8c99,0x9322,0x30ce,0x418a);
-
-
-		if((err = lwipstack->__tcp_connect(conn->TCP_pcb,&ba,port,nc_connected)) < 0)
-		{
-			if(err == ERR_ISCONN) {
-				sendReturnValue(rpcSock, -1, EISCONN); // Already in connected state
-				return;
-			} if(err == ERR_USE) {
-				sendReturnValue(rpcSock, -1, EADDRINUSE); // Already in use
-				return;
-			} if(err == ERR_VAL) {
-				sendReturnValue(rpcSock, -1, EINVAL); // Invalid ipaddress parameter
-				return;
-			} if(err == ERR_RTE) {
-				sendReturnValue(rpcSock, -1, ENETUNREACH); // No route to host
-				return;
-			} if(err == ERR_BUF) {
-				sendReturnValue(rpcSock, -1, EAGAIN); // No more ports available
-				return;
-			}
-			if(err == ERR_MEM) {
-				sendReturnValue(rpcSock, -1, EAGAIN); // TODO: Doesn't describe the problem well, but closest match
-				return;
-			}
-
-			// We should only return a value if failure happens immediately
-			// Otherwise, we still need to wait for a callback from lwIP.
-			// - This is because an ERR_OK from tcp_connect() only verifies
-			//   that the SYN packet was enqueued onto the stack properly,
-			//   that's it!
-			// - Most instances of a retval for a connect() should happen
-			//   in the nc_connect() and nc_err() callbacks!
-			DEBUG_ERROR(" unable to connect");
-			sendReturnValue(rpcSock, -1, EAGAIN);
-		}
-		// Everything seems to be ok, but we don't have enough info to retval
-		conn->listening=true;
-		conn->rpcSock=rpcSock; // used for return value from lwip CB
-	} else {
-		DEBUG_ERROR(" could not locate PCB based on application-provided fd");
-		sendReturnValue(rpcSock, -1, EBADF);
-	}
+	#endif
 }
 
 void NetconEthernetTap::handleWrite(Connection *conn)

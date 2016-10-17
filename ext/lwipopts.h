@@ -47,7 +47,7 @@
 
 // IPV6 Related
 #define LWIP_IPV6 1
-#define LWIP_IPV4 0
+#define LWIP_IPV4 1
 //#define LWIP_IPV6_AUTOCONFIG 1
 
 #define IP6_DEBUG 1

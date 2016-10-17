@@ -40,18 +40,12 @@
 #endif
 
 
-#if defined(SDK_LWIP) 
-    #include "SDK_lwip.hpp"
-#elif defined(SDK_PICOTCP)
-    #include "SDK_pico.hpp"
+#include "SDK_pico.hpp"
 
-    #include "pico_stack.h"
-    #include "pico_ipv4.h"
-    #include "pico_icmp4.h"
-    #include "pico_dev_tap.h"
-#elif defined(SDK_JIP)
-    #include "SDK_jip.hpp"
-#endif
+#include "pico_stack.h"
+#include "pico_ipv4.h"
+#include "pico_icmp4.h"
+#include "pico_dev_tap.h"
 
 
 #define PICO_STRING_TO_IPV4_SIG const char *ipstr, uint32_t *ip
@@ -76,6 +70,8 @@
 #define PICO_SOCKET_WRITE_SIG struct pico_socket *s, const void *buf, int len
 #define PICO_SOCKET_CLOSE_SIG struct pico_socket *s
 #define PICO_SOCKET_SHUTDOWN_SIG struct pico_socket *s, int mode
+
+#define PICO_IPV6_LINK_ADD_SIG struct pico_device *dev, struct pico_ip6 address, struct pico_ip6 netmask
 
 namespace ZeroTier {
     
@@ -128,6 +124,7 @@ namespace ZeroTier {
         int (*_pico_socket_close)(PICO_SOCKET_CLOSE_SIG);
         int (*_pico_socket_shutdown)(PICO_SOCKET_SHUTDOWN_SIG);
 
+        int (*_pico_ipv6_link_add)(PICO_IPV6_LINK_ADD_SIG);
         
         Mutex _lock;        
         Mutex _lock_mem;
@@ -184,6 +181,7 @@ namespace ZeroTier {
             _pico_socket_close = (int(*)(PICO_SOCKET_CLOSE_SIG))&pico_socket_close;
             _pico_socket_shutdown = (int(*)(PICO_SOCKET_SHUTDOWN_SIG))&pico_socket_shutdown;
 
+            _pico_ipv6_link_add = (int(*)(PICO_IPV6_LINK_ADD_SIG))&pico_ipv6_link_add;
 
 #endif
             
@@ -216,6 +214,8 @@ namespace ZeroTier {
             _pico_socket_write = (int(*)(PICO_SOCKET_WRITE_SIG))dlsym(_libref, "pico_socket_write");
             _pico_socket_close = (int(*)(PICO_SOCKET_CLOSE_SIG))dlsym(_libref, "pico_socket_close");
             _pico_socket_shutdown = (int(*)(PICO_SOCKET_SHUTDOWN_SIG))dlsym(_libref, "pico_socket_shutdown");
+
+            _pico_ipv6_link_add = (int(*)(PICO_IPV6_LINK_ADD_SIG))dlsym(_libref, "pico_ipv6_link_add");
 
 #endif
         }
@@ -250,6 +250,8 @@ namespace ZeroTier {
         inline int __pico_socket_write(PICO_SOCKET_WRITE_SIG) throw() { Mutex::Lock _l(_lock); return _pico_socket_write(s, buf, len); }
         inline int __pico_socket_close(PICO_SOCKET_CLOSE_SIG) throw() { Mutex::Lock _l(_lock); return _pico_socket_close(s); }
         inline int __pico_socket_shutdown(PICO_SOCKET_SHUTDOWN_SIG) throw() { Mutex::Lock _l(_lock); return _pico_socket_shutdown(s, mode); }
+
+        inline int __pico_ipv6_link_add(PICO_IPV6_LINK_ADD_SIG) throw() { Mutex::Lock _l(_lock); return _pico_ipv6_link_add(dev, address, netmask); }
 };
     
 } // namespace ZeroTier

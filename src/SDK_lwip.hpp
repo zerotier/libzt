@@ -59,8 +59,12 @@ struct tcp_pcb;
 #define ETHIP6_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip6_addr_t *ip6addr
 #define ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip6_addr_t *ipaddr
 //#define ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip4_addr_t *ipaddr
-#define NETIF_ADD_SIG struct netif *netif, void *state, netif_init_fn init, netif_input_fn input
-//#define NETIF_ADD_SIG struct netif *netif, ip_addr_t *ipaddr, ip_addr_t *netmask, ip_addr_t *gw, void *state, netif_init_fn init, netif_input_fn input
+
+//#if defined(LWIP_IPV6)
+    #define NETIF_ADD_SIG struct netif *netif, void *state, netif_init_fn init, netif_input_fn input
+//#elif defined(LWIP_IPV4)
+//    #define NETIF_ADD_SIG struct netif *netif, ip_addr_t *ipaddr, ip_addr_t *netmask, ip_addr_t *gw, void *state, netif_init_fn init, netif_input_fn input
+//#endif
 
 #define ETHERNET_INPUT_SIG struct pbuf *p, struct netif *netif
 #define IP_INPUT_SIG struct pbuf *p, struct netif *inp

@@ -87,6 +87,7 @@ INCLUDES+= -Iext \
 	-I$(PICOTCP_DIR)/build/include
 
 
+# Stack selection / parameters
 # lwIP debug
 ifeq ($(SDK_LWIP_DEBUG),1)
 	LWIP_FLAGS+=SDK_LWIP_DEBUG=1
@@ -106,6 +107,18 @@ endif
 ifeq ($(SDK_JIP),1)
 	STACK_FLAGS+=-DSDK_JIP
 endif
+
+
+
+# TCP protocol version
+ifeq ($(SDK_IPV4),1)
+	STACK_FLAGS+=-DSDK_IPV4
+endif
+
+ifeq ($(SDK_IPV6),1)
+	STACK_FLAGS+=-DSDK_IPV6
+endif
+
 
 
 

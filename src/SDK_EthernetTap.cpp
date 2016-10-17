@@ -49,6 +49,7 @@
 	#include "pico_ipv4.h"
 	#include "pico_icmp4.h"
 	#include "pico_dev_tap.h"
+	#include "pico_socket.h"
 #elif defined(SDK_JIP)
 	#include "SDK_jip.hpp"
 #endif
@@ -64,6 +65,8 @@
 #include "lwip/api.h"
 #include "lwip/ip.h"
 #include "lwip/ip_addr.h"
+ #include "lwip/ip4_addr.h"
+
 #include "lwip/tcp.h"
 #include "lwip/init.h"
 #include "lwip/mem.h"
@@ -71,6 +74,10 @@
 #include "lwip/netif.h"
 #include "lwip/udp.h"
 #include "lwip/tcp.h"
+
+ #include "lwip/netif.h"
+#include "lwip/dhcp.h"
+#include "netif/etharp.h"
 
 //#include "lwip/etharp.h"
 //#include "lwip/ip_addr.h"
@@ -288,7 +295,7 @@ void NetconEthernetTap::lwIP_init_interface(const InetAddress &ip)
 		if (ip.isV4()) {			
 			DEBUG_INFO("IPV4");
 			// Set IP
-			static ip4_addr_t ipaddr, netmask, gw;
+			static ip4_addr ipaddr, netmask, gw;
 			IP4_ADDR(&gw,127,0,0,1);
 			ipaddr.addr = *((u32_t *)ip.rawIpData());
 			netmask.addr = *((u32_t *)ip.netmask().rawIpData());
@@ -308,7 +315,7 @@ void NetconEthernetTap::lwIP_init_interface(const InetAddress &ip)
 			lwipstack->__netif_set_up(&interface);			
 		}
 */
-
+/*
 		if(ip.isV6())
 		{
 			DEBUG_INFO("IPV6");
@@ -335,6 +342,7 @@ void NetconEthernetTap::lwIP_init_interface(const InetAddress &ip)
 			interface6.state = this;
 			interface6.flags = NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 		}		
+		*/
 	}
 }
 
@@ -350,6 +358,7 @@ void NetconEthernetTap::picoTCP_init_interface(const InetAddress &ip)
 
 		if(ip.isV4())
 		{
+			/*
 			int id;
 		    struct pico_ip4 ipaddr, netmask;
 		    ipaddr.addr = *((u32_t *)ip.rawIpData());
@@ -367,11 +376,30 @@ void NetconEthernetTap::picoTCP_init_interface(const InetAddress &ip)
 		        DEBUG_ERROR("device init failed");
 		        return;
 		    }
-		    DEBUG_INFO("successfully initialized device");
+		    DEBUG_INFO("successfully initialized device with IPV4 address");
 		   	// picostack->__pico_icmp4_ping("10.8.8.1", 20, 1000, 10000, 64, cb_ping);
+		   	*/
 		}
 		if(ip.isV6())
 		{
+			int id;
+		    struct pico_ip6 ipaddr, netmask;
+		    picostack->__pico_string_to_ipv6("fd56:5799:d8f6:1238:8c99:93b4:9d8e:24f6", ipaddr.addr);
+		    picostack->__pico_string_to_ipv6("ffff:ffff:ffff:ffff:ffff:ff00:0000:0000", netmask.addr);
+		    picostack->__pico_ipv6_link_add(&picodev, ipaddr, netmask);
+
+		    picodev.send = pico_eth_send; // tx
+		    picodev.poll = pico_eth_poll; // rx
+
+		    // Register the device in picoTCP
+		    uint8_t mac[PICO_SIZE_ETH];
+		    _mac.copyTo(mac, PICO_SIZE_ETH);
+		    DEBUG_ATTN("mac = %s", _mac.toString().c_str());
+		    if( 0 != picostack->__pico_device_init(&picodev, "p0", mac)) {
+		        DEBUG_ERROR("device init failed");
+		        return;
+		    }
+		    DEBUG_INFO("successfully initialized device with IPV6 address");
 		}
 	}
 }
@@ -718,9 +746,9 @@ void NetconEthernetTap::phyOnUnixClose(PhySocket *sock,void **uptr) {
 }
 
 
-void NetconEthernetTap::processReceivedData(PhySocket *sock,void **uptr,bool lwip_invoked)
+void NetconEthernetTap::handleRead(PhySocket *sock,void **uptr,bool lwip_invoked)
 {
-	//DEBUG_EXTRA("processReceivedData(sock=%p): lwip_invoked = %d\n", (void*)&sock, lwip_invoked);
+	//DEBUG_EXTRA("handleRead(sock=%p): lwip_invoked = %d\n", (void*)&sock, lwip_invoked);
 	if(!lwip_invoked) {
 		_tcpconns_m.lock();
 		_rx_buf_m.lock();
@@ -780,7 +808,7 @@ void NetconEthernetTap::processReceivedData(PhySocket *sock,void **uptr,bool lwi
 
 void NetconEthernetTap::phyOnUnixWritable(PhySocket *sock,void **uptr,bool lwip_invoked)
 {
-	processReceivedData(sock,uptr,lwip_invoked);
+	handleRead(sock,uptr,lwip_invoked);
 }
 
 void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
@@ -1288,7 +1316,7 @@ void NetconEthernetTap::handleGetpeername(PhySocket *sock, PhySocket *rpcSock, v
 
 void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct bind_st *bind_rpc)
 {
-	
+	/*
 	Mutex::Lock _l(_tcpconns_m);
 	struct sockaddr_in *rawAddr = (struct sockaddr_in *) &bind_rpc->addr;
 	int err, port = lwipstack->__lwip_ntohs(rawAddr->sin_port);
@@ -1364,6 +1392,7 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 		DEBUG_ERROR(" unable to locate Connection");
 		sendReturnValue(rpcSock, -1, EBADF);
 	}
+	*/
 }
 
 void NetconEthernetTap::handleListen(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct listen_st *listen_rpc)
@@ -1440,15 +1469,45 @@ Connection * NetconEthernetTap::handleSocketProxy(PhySocket *sock, int socket_ty
 	return NULL;
 }
 
-static void cb_tcpclient(uint16_t ev, struct pico_socket *s)
-{
-	DEBUG_ERROR("ACTIVITY!");
-}
+#if defined(SDK_PICOTCP)
+	static void cb_tcpclient(uint16_t ev, struct pico_socket *s)
+	{
+		printf("ACTIVITY on pico_socket!\n");
+		if (ev & PICO_SOCK_EV_RD) {
+	        printf("PICO_SOCK_EV_RD\n");
+	    }
+
+	    if (ev & PICO_SOCK_EV_CONN) {
+	        printf("Connection established with server.\n");
+	    }
+
+	    if (ev & PICO_SOCK_EV_FIN) {
+	        printf("Socket closed. Exit normally. \n");
+	        //picotap->__pico_timer_add(2000, compare_results, NULL);
+	    }
+
+	    if (ev & PICO_SOCK_EV_ERR) {
+	        printf("Socket error received:. Bailing out.\n"/*, strerror(pico_err)*/);
+	        exit(1);
+	    }
+
+	    if (ev & PICO_SOCK_EV_CLOSE) {
+	        printf("Socket received close from peer - Wrong case if not all client data sent!\n");
+	        picotap->picostack->__pico_socket_close(s);
+	        return;
+	    }
+
+	    if (ev & PICO_SOCK_EV_WR) {
+	    	printf("PICO_SOCK_EV_WR\n");
+	    }
+	}
+#endif
 
 Connection * NetconEthernetTap::handleSocket(PhySocket *sock, void **uptr, struct socket_st* socket_rpc)
 {
     DEBUG_ATTN("sock=%p, sock_type=%d", (void*)&sock, socket_rpc->socket_type);
 
+    // lwIP
 	#if defined(SDK_LWIP) 
 	    struct udp_pcb *new_udp_PCB = NULL;
 	    struct tcp_pcb *new_tcp_PCB = NULL;
@@ -1482,15 +1541,18 @@ Connection * NetconEthernetTap::handleSocket(PhySocket *sock, void **uptr, struc
 		sendReturnValue(_phy.getDescriptor(sock), -1, ENOMEM);
 		return NULL;
 
+	// picoTCP
 	#elif defined(SDK_PICOTCP)
-					DEBUG_ERROR("opening socket");
-
-		struct pico_socket * psock = picostack->__pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_TCP, &cb_tcpclient);
-					DEBUG_ERROR("fin");
-
-		if(psock)
-		{
+		struct pico_socket * psock;
+		#if defined(SDK_IPV4)
+			psock = picostack->__pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_TCP, &cb_tcpclient);
+		#elif defined(SDK_IPV6)
+			psock = picostack->__pico_socket_open(PICO_PROTO_IPV6, PICO_PROTO_TCP, &cb_tcpclient);
+		#endif
+		if(psock) {
 			DEBUG_ATTN("psock = %p", (void*)psock);
+			int yes = 1;
+			//picostack->__pico_socket_setoption(psock, PICO_TCP_NODELAY, &yes);
 			Connection * newConn = new Connection();
 	        *uptr = newConn;
 	        newConn->type = socket_rpc->socket_type;
@@ -1498,14 +1560,11 @@ Connection * NetconEthernetTap::handleSocket(PhySocket *sock, void **uptr, struc
 			newConn->local_addr = NULL;
 			newConn->peer_addr = NULL;
 			newConn->picosock = psock;
-	        //if(newConn->type == SOCK_DGRAM) newConn->pico_UDP_sock = new_udp_PCB;
-	        //if(newConn->type == SOCK_STREAM) newConn->pico_TCP_sock = new_tcp_PCB;
 	        _Connections.push_back(newConn);
 	        return newConn;
 		}
-		else
-		{
-			DEBUG_ERROR("psock == NULL");
+		else {
+			DEBUG_ERROR("failed to create pico_socket");
 		}
 		return NULL;
 	#endif
@@ -1610,10 +1669,11 @@ int NetconEthernetTap::handleConnectProxy(PhySocket *sock, struct sockaddr_in *r
 void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Connection *conn, struct connect_st* connect_rpc)
 {
     DEBUG_ATTN("sock=%p", (void*)&sock);
+	Mutex::Lock _l(_tcpconns_m);
+	struct sockaddr_in *rawAddr = (struct sockaddr_in *) &connect_rpc->addr;
 
+	// lwIP
     #if defined(SDK_LWIP)
-	    Mutex::Lock _l(_tcpconns_m);
-		struct sockaddr_in *rawAddr = (struct sockaddr_in *) &connect_rpc->addr;
 		int port = lwipstack->__lwip_ntohs(rawAddr->sin_port);
 		ip_addr_t connAddr = convert_ip(rawAddr);    
 		int err = 0, ip = rawAddr->sin_addr.s_addr;
@@ -1699,10 +1759,41 @@ void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Conne
 			DEBUG_ERROR(" could not locate PCB based on application-provided fd");
 			sendReturnValue(rpcSock, -1, EBADF);
 		}
+
+	// picoTCP
 	#elif defined(SDK_PICOTCP)
-		int ret = pico_socket_connect(s, &dst.ip4, send_port);
-		DEBUG_ATTN("ret = %d", ret);
-        sendReturnValue(rpcSock, 0, ERR_OK);
+		if(conn->picosock) {
+			pico_address paddr;
+			int ret;
+
+			union pico_address dst = {
+        		.ip4 = {0}, .ip6 = {{0}}
+    		};
+
+			#if defined(SDK_IPV4)
+				//unsigned int addr = inet_addr("10.8.8.1");
+				paddr.ip4.addr = rawAddr->sin_addr.s_addr;
+				ret = picostack->__pico_socket_connect(conn->picosock, &paddr.ip4, rawAddr->sin_port);
+			#elif defined(SDK_IPV6)
+				//unsigned int addr = inet_addr("10.8.8.1");
+				struct pico_ip6 zaddr;
+		    	//picostack->__pico_string_to_ipv6("fd56:5799:d8f6:1238:8c99:9322:30ce:418a", zaddr.addr);
+				memcpy(zaddr.addr, &(rawAddr->sin_addr.s_addr), sizeof(rawAddr->sin_addr.s_addr));
+				ret = picostack->__pico_socket_connect(conn->picosock, &zaddr, rawAddr->sin_port);
+			#endif
+			
+			if(ret == PICO_ERR_EPROTONOSUPPORT) {
+				DEBUG_ERROR("PICO_ERR_EPROTONOSUPPORT");
+			}
+			if(ret == PICO_ERR_EINVAL) {
+				DEBUG_ERROR("PICO_ERR_EINVAL");
+			}
+			if(ret == PICO_ERR_EHOSTUNREACH) {
+				DEBUG_ERROR("PICO_ERR_EHOSTUNREACH");
+			}
+
+	        sendReturnValue(rpcSock, 0, ERR_OK);
+		}
         return;
 	#endif
 }

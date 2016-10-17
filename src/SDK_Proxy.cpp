@@ -446,7 +446,7 @@ namespace ZeroTier
 	void NetconEthernetTap::phyOnTcpWritable(PhySocket *sock,void **uptr/*, bool lwip_invoked*/) 
 	{
 		DEBUG_INFO("sock=%p", (void*)&sock);
-		processReceivedData(sock,uptr,true);
+		handleRead(sock,uptr,true);
 	}
 
 	// RX data on stream socks and send back over client sock's underlying fd

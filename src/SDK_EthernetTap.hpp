@@ -454,7 +454,7 @@ namespace ZeroTier {
 		void phyOnTcpClose(PhySocket *sock,void **uptr);
 		void phyOnTcpData(PhySocket *sock,void **uptr,void *data,unsigned long len);
 
-		void processReceivedData(PhySocket *sock,void **uptr,bool lwip_invoked);
+		void handleRead(PhySocket *sock,void **uptr,bool lwip_invoked);
 		void phyOnTcpWritable(PhySocket *sock,void **uptr);
 
 		/*

@@ -46,9 +46,9 @@
 #include "pico_ipv4.h"
 #include "pico_icmp4.h"
 #include "pico_dev_tap.h"
+#include "pico_protocol.h"
 
 
-#define PICO_STRING_TO_IPV4_SIG const char *ipstr, uint32_t *ip
 #define PICO_IPV4_TO_STRING_SIG char *ipbuf, const uint32_t ip
 #define PICO_TAP_CREATE_SIG char *name
 #define PICO_IPV4_LINK_ADD_SIG struct pico_device *dev, struct pico_ip4 address, struct pico_ip4 netmask
@@ -58,7 +58,9 @@
 //
 #define PICO_TIMER_ADD_SIG pico_time expire, void (*timer)(pico_time, void *), void *arg
 
+#define PICO_STRING_TO_IPV4_SIG const char *ipstr, uint32_t *ip
 #define PICO_STRING_TO_IPV6_SIG const char *ipstr, uint8_t *ip
+ 
 #define PICO_SOCKET_SETOPTION_SIG struct pico_socket *s, int option, void *value
 #define PICO_SOCKET_SEND_SIG struct pico_socket *s, const void *buf, int len
 #define PICO_SOCKET_SENDTO_SIG struct pico_socket *s, const void *buf, int len, void *dst, uint16_t remote_port
@@ -125,6 +127,7 @@ namespace ZeroTier {
         int (*_pico_socket_shutdown)(PICO_SOCKET_SHUTDOWN_SIG);
 
         int (*_pico_ipv6_link_add)(PICO_IPV6_LINK_ADD_SIG);
+        pico_err_t (*_get_pico_err)(void);
         
         Mutex _lock;        
         Mutex _lock_mem;
@@ -183,6 +186,8 @@ namespace ZeroTier {
 
             _pico_ipv6_link_add = (int(*)(PICO_IPV6_LINK_ADD_SIG))&pico_ipv6_link_add;
 
+            _get_pico_err = (pico_err_t(*)())&get_pico_err;
+
 #endif
             
 #ifdef __DYNAMIC_LWIP__ // Use dynamically-loaded symbols (for use in normal desktop applications)
@@ -217,6 +222,8 @@ namespace ZeroTier {
 
             _pico_ipv6_link_add = (int(*)(PICO_IPV6_LINK_ADD_SIG))dlsym(_libref, "pico_ipv6_link_add");
 
+            _get_pico_err = (pico_err_t(*)())dlsym(_libref, "get_pico_err");
+
 #endif
         }
         
@@ -230,14 +237,15 @@ namespace ZeroTier {
         inline void __pico_stack_init(void) throw() { Mutex::Lock _l(_lock); _pico_stack_init(); }
         inline void __pico_stack_tick(void) throw() { Mutex::Lock _l(_lock); _pico_stack_tick(); }
         inline struct pico_device * __pico_tap_create(PICO_TAP_CREATE_SIG) throw() { Mutex::Lock _l(_lock); return _pico_tap_create(name); }
-        inline int __pico_string_to_ipv4(PICO_STRING_TO_IPV4_SIG) throw() { Mutex::Lock _l(_lock); return _pico_string_to_ipv4(ipstr, ip); }
         inline int __pico_ipv4_to_string(PICO_IPV4_TO_STRING_SIG) throw() { Mutex::Lock _l(_lock); return _pico_ipv4_to_string(ipbuf, ip); }
         inline int __pico_ipv4_link_add(PICO_IPV4_LINK_ADD_SIG) throw() { Mutex::Lock _l(_lock); return _pico_ipv4_link_add(dev, address, netmask); }
         inline int __pico_device_init(PICO_DEVICE_INIT_SIG) throw() { Mutex::Lock _l(_lock); return _pico_device_init(dev, name, mac); }
         inline int __pico_stack_recv(PICO_STACK_RECV_SIG) throw() { /*Mutex::Lock _l(_lock);*/ return _pico_stack_recv(dev, buffer, len); }
         inline int __pico_icmp4_ping(PICO_ICMP4_PING_SIG) throw() { Mutex::Lock _l(_lock); return _pico_icmp4_ping(dst, count, interval, timeout, size, cb); }
 
+        inline int __pico_string_to_ipv4(PICO_STRING_TO_IPV4_SIG) throw() { Mutex::Lock _l(_lock); return _pico_string_to_ipv4(ipstr, ip); }
         inline int __pico_string_to_ipv6(PICO_STRING_TO_IPV6_SIG) throw() { Mutex::Lock _l(_lock); return _pico_string_to_ipv6(ipstr, ip); }
+
         inline int __pico_socket_setoption(PICO_SOCKET_SETOPTION_SIG) throw() { Mutex::Lock _l(_lock); return _pico_socket_setoption(s, option, value); }
         inline uint32_t __pico_timer_add(PICO_TIMER_ADD_SIG) throw() { Mutex::Lock _l(_lock); return _pico_timer_add(expire, timer, arg); }
         inline int __pico_socket_send(PICO_SOCKET_SEND_SIG) throw() { Mutex::Lock _l(_lock); return _pico_socket_send(s, buf, len); }
@@ -252,6 +260,8 @@ namespace ZeroTier {
         inline int __pico_socket_shutdown(PICO_SOCKET_SHUTDOWN_SIG) throw() { Mutex::Lock _l(_lock); return _pico_socket_shutdown(s, mode); }
 
         inline int __pico_ipv6_link_add(PICO_IPV6_LINK_ADD_SIG) throw() { Mutex::Lock _l(_lock); return _pico_ipv6_link_add(dev, address, netmask); }
+
+        inline pico_err_t __get_pico_err(void) throw() { Mutex::Lock _l(_lock); return _get_pico_err(); }
 };
     
 } // namespace ZeroTier

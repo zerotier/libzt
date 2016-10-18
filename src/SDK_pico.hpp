@@ -56,12 +56,9 @@
 #define PICO_DEVICE_INIT_SIG struct pico_device *dev, const char *name, uint8_t *mac
 #define PICO_STACK_RECV_SIG struct pico_device *dev, uint8_t *buffer, uint32_t len
 #define PICO_ICMP4_PING_SIG char *dst, int count, int interval, int timeout, int size, void (*cb)(struct pico_icmp4_stats *)
-//
 #define PICO_TIMER_ADD_SIG pico_time expire, void (*timer)(pico_time, void *), void *arg
-
 #define PICO_STRING_TO_IPV4_SIG const char *ipstr, uint32_t *ip
 #define PICO_STRING_TO_IPV6_SIG const char *ipstr, uint8_t *ip
-
 #define PICO_SOCKET_SETOPTION_SIG struct pico_socket *s, int option, void *value
 #define PICO_SOCKET_SEND_SIG struct pico_socket *s, const void *buf, int len
 #define PICO_SOCKET_SENDTO_SIG struct pico_socket *s, const void *buf, int len, void *dst, uint16_t remote_port
@@ -74,7 +71,7 @@
 #define PICO_SOCKET_WRITE_SIG struct pico_socket *s, const void *buf, int len
 #define PICO_SOCKET_CLOSE_SIG struct pico_socket *s
 #define PICO_SOCKET_SHUTDOWN_SIG struct pico_socket *s, int mode
-
+#define PICO_SOCKET_ACCEPT_SIG struct pico_socket *s, void *orig, uint16_t *port
 #define PICO_IPV6_LINK_ADD_SIG struct pico_device *dev, struct pico_ip6 address, struct pico_ip6 netmask
 
 namespace ZeroTier {
@@ -113,13 +110,11 @@ namespace ZeroTier {
         int (*_pico_device_init)(PICO_DEVICE_INIT_SIG);
         int32_t (*_pico_stack_recv)(PICO_STACK_RECV_SIG);
         int (*_pico_icmp4_ping)(PICO_ICMP4_PING_SIG);
-
         int (*_pico_string_to_ipv6)(PICO_STRING_TO_IPV6_SIG);
         int (*_pico_socket_setoption)(PICO_SOCKET_SETOPTION_SIG);
         uint32_t (*_pico_timer_add)(PICO_TIMER_ADD_SIG);
         int (*_pico_socket_send)(PICO_SOCKET_SEND_SIG);
         int (*_pico_socket_recv)(PICO_SOCKET_RECV_SIG);
-
         struct pico_socket * (*_pico_socket_open)(PICO_SOCKET_OPEN_SIG);
         int (*_pico_socket_bind)(PICO_SOCKET_BIND_SIG);
         int (*_pico_socket_connect)(PICO_SOCKET_CONNECT_SIG);
@@ -128,6 +123,8 @@ namespace ZeroTier {
         int (*_pico_socket_write)(PICO_SOCKET_WRITE_SIG);
         int (*_pico_socket_close)(PICO_SOCKET_CLOSE_SIG);
         int (*_pico_socket_shutdown)(PICO_SOCKET_SHUTDOWN_SIG);
+
+        struct pico_socket *(*_pico_socket_accept)(PICO_SOCKET_ACCEPT_SIG);
 
         int (*_pico_ipv6_link_add)(PICO_IPV6_LINK_ADD_SIG);
         pico_err_t (*_get_pico_err)(void);
@@ -172,13 +169,11 @@ namespace ZeroTier {
             _pico_device_init = (int(*)(PICO_DEVICE_INIT_SIG))&pico_device_init;
             _pico_stack_recv = (int32_t(*)(PICO_STACK_RECV_SIG))&pico_stack_recv;
             _pico_icmp4_ping = (int(*)(PICO_ICMP4_PING_SIG))&pico_icmp4_ping;
-
             _pico_string_to_ipv6 = (int(*)(PICO_STRING_TO_IPV6_SIG))&pico_string_to_ipv6;
             _pico_socket_setoption = (int(*)(PICO_SOCKET_SETOPTION_SIG))&pico_socket_setoption;
             _pico_timer_add = (uint32_t(*)(PICO_TIMER_ADD_SIG))&pico_timer_add;
             _pico_socket_send = (int(*)(PICO_SOCKET_SEND_SIG))&pico_socket_send;
             _pico_socket_recv = (int(*)(PICO_SOCKET_RECV_SIG))&pico_socket_recv;
-
             _pico_socket_open = (struct pico_socket*(*)(PICO_SOCKET_OPEN_SIG))&pico_socket_open;
             _pico_socket_bind = (int(*)(PICO_SOCKET_BIND_SIG))&pico_socket_bind;
             _pico_socket_connect = (int(*)(PICO_SOCKET_CONNECT_SIG))&pico_socket_connect;
@@ -187,6 +182,9 @@ namespace ZeroTier {
             _pico_socket_write = (int(*)(PICO_SOCKET_WRITE_SIG))&pico_socket_write;
             _pico_socket_close = (int(*)(PICO_SOCKET_CLOSE_SIG))&pico_socket_close;
             _pico_socket_shutdown = (int(*)(PICO_SOCKET_SHUTDOWN_SIG))&pico_socket_shutdown;
+
+            pico_socket_accept = (struct pico_socket*(*)(PICO_SOCKET_ACCEPT_SIG))&pico_socket_accept;
+
 
             _pico_ipv6_link_add = (int(*)(PICO_IPV6_LINK_ADD_SIG))&pico_ipv6_link_add;
 
@@ -209,13 +207,11 @@ namespace ZeroTier {
             _pico_device_init = (int(*)(PICO_DEVICE_INIT_SIG))dlsym(_libref, "pico_device_init");
             _pico_stack_recv = (int32_t(*)(PICO_STACK_RECV_SIG))dlsym(_libref, "pico_stack_recv");
             _pico_icmp4_ping = (int(*)(PICO_ICMP4_PING_SIG))dlsym(_libref, "pico_icmp4_ping");
-
             _pico_string_to_ipv6 = (int(*)(PICO_STRING_TO_IPV6_SIG))dlsym(_libref, "pico_string_to_ipv6");
             _pico_socket_setoption = (int(*)(PICO_SOCKET_SETOPTION_SIG))dlsym(_libref, "pico_socket_setoption");
             _pico_timer_add = (uint32_t(*)(PICO_TIMER_ADD_SIG))dlsym(_libref, "pico_timer_add");
             _pico_socket_send = (int(*)(PICO_SOCKET_SEND_SIG))dlsym(_libref, "pico_socket_send");
             _pico_socket_recv = (int(*)(PICO_SOCKET_RECV_SIG))dlsym(_libref, "pico_socket_recv");
-
             _pico_socket_open = (struct pico_socket*(*)(PICO_SOCKET_OPEN_SIG))dlsym(_libref, "pico_socket_open");
             _pico_socket_bind = (int(*)(PICO_SOCKET_BIND_SIG))dlsym(_libref, "pico_socket_bind");
             _pico_socket_connect = (int(*)(PICO_SOCKET_CONNECT_SIG))dlsym(_libref, "pico_socket_connect");
@@ -224,7 +220,7 @@ namespace ZeroTier {
             _pico_socket_write = (int(*)(PICO_SOCKET_WRITE_SIG))dlsym(_libref, "pico_socket_write");
             _pico_socket_close = (int(*)(PICO_SOCKET_CLOSE_SIG))dlsym(_libref, "pico_socket_close");
             _pico_socket_shutdown = (int(*)(PICO_SOCKET_SHUTDOWN_SIG))dlsym(_libref, "pico_socket_shutdown");
-
+            _pico_socket_accept = (struct pico_socket*(*)(PICO_SOCKET_ACCEPT_SIG))dlsym(_libref, "pico_socket_accept");
             _pico_ipv6_link_add = (int(*)(PICO_IPV6_LINK_ADD_SIG))dlsym(_libref, "pico_ipv6_link_add");
 
             _get_pico_err = (pico_err_t(*)())dlsym(_libref, "get_pico_err");
@@ -247,26 +243,22 @@ namespace ZeroTier {
         inline int __pico_device_init(PICO_DEVICE_INIT_SIG) throw() { Mutex::Lock _l(_lock); return _pico_device_init(dev, name, mac); }
         inline int __pico_stack_recv(PICO_STACK_RECV_SIG) throw() { /*Mutex::Lock _l(_lock);*/ return _pico_stack_recv(dev, buffer, len); }
         inline int __pico_icmp4_ping(PICO_ICMP4_PING_SIG) throw() { Mutex::Lock _l(_lock); return _pico_icmp4_ping(dst, count, interval, timeout, size, cb); }
-
         inline int __pico_string_to_ipv4(PICO_STRING_TO_IPV4_SIG) throw() { Mutex::Lock _l(_lock); return _pico_string_to_ipv4(ipstr, ip); }
         inline int __pico_string_to_ipv6(PICO_STRING_TO_IPV6_SIG) throw() { Mutex::Lock _l(_lock); return _pico_string_to_ipv6(ipstr, ip); }
-
         inline int __pico_socket_setoption(PICO_SOCKET_SETOPTION_SIG) throw() { Mutex::Lock _l(_lock); return _pico_socket_setoption(s, option, value); }
         inline uint32_t __pico_timer_add(PICO_TIMER_ADD_SIG) throw() { Mutex::Lock _l(_lock); return _pico_timer_add(expire, timer, arg); }
         inline int __pico_socket_send(PICO_SOCKET_SEND_SIG) throw() { Mutex::Lock _l(_lock); return _pico_socket_send(s, buf, len); }
         inline int __pico_socket_recv(PICO_SOCKET_RECV_SIG) throw() { Mutex::Lock _l(_lock); return _pico_socket_recv(s, buf, len); }
-
         inline struct pico_socket * __pico_socket_open(PICO_SOCKET_OPEN_SIG) throw() {  return _pico_socket_open(net, proto, wakeup); }
         inline int __pico_socket_bind(PICO_SOCKET_BIND_SIG) throw() { Mutex::Lock _l(_lock); return _pico_socket_bind(s, local_addr, port); }
         inline int __pico_socket_connect(PICO_SOCKET_CONNECT_SIG) throw() { Mutex::Lock _l(_lock); return _pico_socket_connect(s, srv_addr, remote_port); }
         inline int __pico_socket_listen(PICO_SOCKET_LISTEN_SIG) throw() { Mutex::Lock _l(_lock); return _pico_socket_listen(s, backlog); }
-        inline int __pico_socket_read(PICO_SOCKET_READ_SIG) throw() { Mutex::Lock _l(_lock); return _pico_socket_read(s, buf, len); }
-        inline int __pico_socket_write(PICO_SOCKET_WRITE_SIG) throw() { Mutex::Lock _l(_lock); return _pico_socket_write(s, buf, len); }
+        inline int __pico_socket_read(PICO_SOCKET_READ_SIG) throw() { /*Mutex::Lock _l(_lock); */ return _pico_socket_read(s, buf, len); }
+        inline int __pico_socket_write(PICO_SOCKET_WRITE_SIG) throw() { /*Mutex::Lock _l(_lock);*/ return _pico_socket_write(s, buf, len); }
         inline int __pico_socket_close(PICO_SOCKET_CLOSE_SIG) throw() { Mutex::Lock _l(_lock); return _pico_socket_close(s); }
         inline int __pico_socket_shutdown(PICO_SOCKET_SHUTDOWN_SIG) throw() { Mutex::Lock _l(_lock); return _pico_socket_shutdown(s, mode); }
-
+        inline struct pico_socket * __pico_socket_accept(PICO_SOCKET_ACCEPT_SIG) throw() { /*Mutex::Lock _l(_lock);*/ return _pico_socket_accept(s, orig, port); }
         inline int __pico_ipv6_link_add(PICO_IPV6_LINK_ADD_SIG) throw() { Mutex::Lock _l(_lock); return _pico_ipv6_link_add(dev, address, netmask); }
-
         inline pico_err_t __get_pico_err(void) throw() { Mutex::Lock _l(_lock); return _get_pico_err(); }
     };
     

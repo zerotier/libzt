@@ -165,26 +165,19 @@ PICO_TREE_DECLARE(TCPTable, sockport_cmp);
 
 struct pico_sockport *pico_get_sockport(uint16_t proto, uint16_t port)
 {
-    printf("pico_get_sockport\n");
     struct pico_sockport test = INIT_SOCKPORT;
     test.number = port;
 
     if (proto == PICO_PROTO_UDP){
-                    printf("pico_get_sockport: proto UDP?\n");
-
         return pico_tree_findKey(&UDPTable, &test);
     }
 
     else if (proto == PICO_PROTO_TCP){
-                    printf("pico_get_sockport: proto TCP?\n");
-
         return pico_tree_findKey(&TCPTable, &test);
     }
 
     else 
-        {
-            printf("pico_get_sockport: proto NULL?\n");
-            return NULL;
+        {            return NULL;
         }
 }
 
@@ -335,7 +328,6 @@ int pico_is_port_free(uint16_t proto, uint16_t port, void *addr, void *net)
 
 static int pico_check_socket(struct pico_socket *s)
 {
-    printf("pico_check_socket\n");
     struct pico_sockport *test;
     struct pico_socket *found;
     struct pico_tree_node *index;
@@ -343,8 +335,6 @@ static int pico_check_socket(struct pico_socket *s)
     test = pico_get_sockport(PROTO(s), s->local_port);
 
     if (!test) {
-            printf("!test\n");
-
         return -1;
     }
 
@@ -354,9 +344,6 @@ static int pico_check_socket(struct pico_socket *s)
             return 0;
         }
     }
-
-    printf("no key found\n");
-
     return -1;
 }
 
@@ -378,7 +365,6 @@ struct pico_socket *pico_sockets_find(uint16_t local, uint16_t remote)
             }
         }
     }
-
     return sock;
 }
 
@@ -728,25 +714,17 @@ int pico_socket_read(struct pico_socket *s, void *buf, int len)
 
 static int pico_socket_write_check_state(struct pico_socket *s)
 {
-            printf("pico_socket_write_check_state\n");
-
     if ((s->state & PICO_SOCKET_STATE_BOUND) == 0) {
-                    printf("PICO_ERR_EIO\n");
-
         pico_err = PICO_ERR_EIO;
         return -1;
     }
 
     if ((s->state & PICO_SOCKET_STATE_CONNECTED) == 0) {
-                    printf("PICO_ERR_ENOTCONN\n");
-
         pico_err = PICO_ERR_ENOTCONN;
         return -1;
     }
 
     if (s->state & PICO_SOCKET_STATE_SHUT_LOCAL) { /* check if in shutdown state */
-                printf("PICO_ERR_ESHUTDOWN\n");
-
         pico_err = PICO_ERR_ESHUTDOWN;
         return -1;
     }
@@ -756,11 +734,7 @@ static int pico_socket_write_check_state(struct pico_socket *s)
 
 static int pico_socket_write_attempt(struct pico_socket *s, const void *buf, int len)
 {
-        printf("pico_socket_write_attempt\n");
-
     if (pico_socket_write_check_state(s) < 0) {
-                        printf("pico_socket_write_check_state = -1\n");
-
         return -1;
     } else {
         return pico_socket_sendto(s, buf, len, &s->remote_addr, s->remote_port);
@@ -769,18 +743,13 @@ static int pico_socket_write_attempt(struct pico_socket *s, const void *buf, int
 
 int pico_socket_write(struct pico_socket *s, const void *buf, int len)
 {
-    printf("pico_socket_write\n");
     if (!s || buf == NULL) {
-            printf("PICO_ERR_EINVAL\n");
-
         pico_err = PICO_ERR_EINVAL;
         return -1;
     } else {
         /* check if exists in tree */
         /* See task #178 */
         if (pico_check_socket(s) != 0) {
-                        printf("PICO_ERR_EINVAL?\n");
-
             pico_err = PICO_ERR_EINVAL;
             return -1;
         }

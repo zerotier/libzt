@@ -70,6 +70,7 @@ int main(int argc, char *argv[]) {
     printf("Message from client: %s\n", buffer);
 
     //Sockets Layer Call: send()
+    printf("sending...\n");
     n = send(newsockfd, "Server got your message", 23+1, 0);
     if (n < 0)
         error("ERROR writing to socket");

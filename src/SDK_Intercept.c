@@ -367,9 +367,7 @@ pthread_key_t thr_id_key;
         if(fd == 0 || fd == 1 || fd == 2)
             return(realbind(fd, addr, addrlen));
 
-        struct sockaddr_in *connaddr;
-        struct sockaddr_in6 *connaddr6;
-
+        // TODO: Revisit
         char addrstr[INET6_ADDRSTRLEN];
         if(addr->sa_family == AF_INET) {
             struct sockaddr_in *connaddr = (struct sockaddr_in *)addr;
@@ -550,7 +548,7 @@ pthread_key_t thr_id_key;
     #endif
         DEBUG_INFO("fd=%d", fd);
         if(!connected_to_service(fd)) {
-            DEBUG_ERROR("fd=%d not used by service");
+            DEBUG_ERROR("fd=%d not used by service", fd);
             return realgetsockname(fd, addr, addrlen);
         }
         return zts_getsockname(fd, addr, addrlen);
@@ -578,7 +576,7 @@ pthread_key_t thr_id_key;
         
         if (!check_intercept_enabled())
             return realsyscall(number,a,b,c,d,e,f);
-        DEBUG_INFO("number=%u", number);
+        DEBUG_INFO("number=%ld", number);
         
 #if defined(__i386__)
         // TODO: Implement for 32-bit systems: syscall(__NR_socketcall, 18, args);

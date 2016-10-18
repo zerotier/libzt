@@ -479,6 +479,11 @@ namespace ZeroTier {
 		Connection *getConnection(PhySocket *sock);
 
 		/*
+	 	 * Returns a pointer to a TcpConnection associated with a given pico_socket
+	 	 */
+		Connection *getConnection(struct pico_socket *socket);
+
+		/*
 	 	 * Closes a TcpConnection, associated LWIP PCB strcuture, 
 	 	 * PhySocket, and underlying file descriptor
 	 	 */

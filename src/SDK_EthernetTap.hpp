@@ -153,7 +153,6 @@ namespace ZeroTier {
 			void jip_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
 
 			void lwIP_init_interface(const InetAddress &ip);
-			void picoTCP_init_interface(const InetAddress &ip);
 			void jip_init_interface(const InetAddress &ip);
 
 		void threadMain()
@@ -181,7 +180,6 @@ namespace ZeroTier {
 		picoTCP_stack *picostack;
 		jip_stack *jipstack;
 
-	private:
 		// LWIP callbacks
 		// NOTE: these are called from within LWIP, meaning that lwipstack->_lock is ALREADY
 		// locked in this case!
@@ -504,6 +502,7 @@ namespace ZeroTier {
 		PhySocket *_unixListenSocket;
 
 		std::vector<Connection*> _Connections;
+
 		std::map<uint64_t, std::pair<PhySocket*, void*> > jobmap;
 		pid_t rpcCounter;
 
@@ -518,6 +517,8 @@ namespace ZeroTier {
 		Mutex _multicastGroups_m;
 
 		Mutex _ips_m, _tcpconns_m, _rx_buf_m, _close_m;
+
+	private:
 
 		unsigned int _mtu;
 		volatile bool _enabled;

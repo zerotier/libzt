@@ -50,6 +50,7 @@
 	#include "pico_icmp4.h"
 	#include "pico_dev_tap.h"
 	#include "pico_socket.h"
+ 	#include "pico_protocol.h"
 #elif defined(SDK_JIP)
 	#include "SDK_jip.hpp"
 #endif
@@ -65,7 +66,7 @@
 #include "lwip/api.h"
 #include "lwip/ip.h"
 #include "lwip/ip_addr.h"
- #include "lwip/ip4_addr.h"
+#include "lwip/ip4_addr.h"
 
 #include "lwip/tcp.h"
 #include "lwip/init.h"
@@ -75,13 +76,6 @@
 #include "lwip/udp.h"
 #include "lwip/tcp.h"
 
- #include "lwip/netif.h"
-#include "lwip/dhcp.h"
-#include "netif/etharp.h"
-
-//#include "lwip/etharp.h"
-//#include "lwip/ip_addr.h"
-//#include "lwip/tcp_impl.h"
 
 //#if !defined(__IOS__) && !defined(__ANDROID__) && !defined(__UNITY_3D__) && !defined(__XCODE__)
 //    const ip_addr_t ip_addr_any = { IPADDR_ANY };
@@ -98,6 +92,7 @@ static err_t tapif_init(struct netif *netif)
   return ERR_OK;
 }
 
+pico_err_t pico_err;
 
 
 static void cb_ping(struct pico_icmp4_stats *s)
@@ -355,10 +350,9 @@ void NetconEthernetTap::picoTCP_init_interface(const InetAddress &ip)
 	if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
 		_ips.push_back(ip);
 		std::sort(_ips.begin(),_ips.end());
-
+	#if defined(SDK_IPV4)
 		if(ip.isV4())
 		{
-			/*
 			int id;
 		    struct pico_ip4 ipaddr, netmask;
 		    ipaddr.addr = *((u32_t *)ip.rawIpData());
@@ -378,19 +372,19 @@ void NetconEthernetTap::picoTCP_init_interface(const InetAddress &ip)
 		    }
 		    DEBUG_INFO("successfully initialized device with IPV4 address");
 		   	// picostack->__pico_icmp4_ping("10.8.8.1", 20, 1000, 10000, 64, cb_ping);
-		   	*/
 		}
+	#elif defined(SDK_IPV6)
 		if(ip.isV6())
 		{
-			int id;
-		    struct pico_ip6 ipaddr, netmask;
-		    picostack->__pico_string_to_ipv6("fd56:5799:d8f6:1238:8c99:93b4:9d8e:24f6", ipaddr.addr);
-		    picostack->__pico_string_to_ipv6("ffff:ffff:ffff:ffff:ffff:ff00:0000:0000", netmask.addr);
+			struct pico_ip6 ipaddr, netmask;
+			char ipv6_str[INET6_ADDRSTRLEN], nm_str[INET6_ADDRSTRLEN];
+			inet_ntop(AF_INET6, ip.rawIpData(), ipv6_str, INET6_ADDRSTRLEN);
+			inet_ntop(AF_INET6, ip.netmask().rawIpData(), nm_str, INET6_ADDRSTRLEN);
+	    	picostack->__pico_string_to_ipv6(ipv6_str, ipaddr.addr);
+	    	picostack->__pico_string_to_ipv6(nm_str, netmask.addr);
 		    picostack->__pico_ipv6_link_add(&picodev, ipaddr, netmask);
-
 		    picodev.send = pico_eth_send; // tx
 		    picodev.poll = pico_eth_poll; // rx
-
 		    // Register the device in picoTCP
 		    uint8_t mac[PICO_SIZE_ETH];
 		    _mac.copyTo(mac, PICO_SIZE_ETH);
@@ -401,6 +395,7 @@ void NetconEthernetTap::picoTCP_init_interface(const InetAddress &ip)
 		    }
 		    DEBUG_INFO("successfully initialized device with IPV6 address");
 		}
+	#endif
 	}
 }
 
@@ -1472,27 +1467,27 @@ Connection * NetconEthernetTap::handleSocketProxy(PhySocket *sock, int socket_ty
 #if defined(SDK_PICOTCP)
 	static void cb_tcpclient(uint16_t ev, struct pico_socket *s)
 	{
-		printf("ACTIVITY on pico_socket!\n");
+		DEBUG_INFO("ACTIVITY on pico_socket!\n");
 		if (ev & PICO_SOCK_EV_RD) {
-	        printf("PICO_SOCK_EV_RD\n");
+	        DEBUG_INFO("PICO_SOCK_EV_RD\n");
 	    }
 
 	    if (ev & PICO_SOCK_EV_CONN) {
-	        printf("Connection established with server.\n");
+	        DEBUG_INFO("Connection established with server.\n");
 	    }
 
 	    if (ev & PICO_SOCK_EV_FIN) {
-	        printf("Socket closed. Exit normally. \n");
+	        DEBUG_INFO("Socket closed. Exit normally. \n");
 	        //picotap->__pico_timer_add(2000, compare_results, NULL);
 	    }
 
 	    if (ev & PICO_SOCK_EV_ERR) {
-	        printf("Socket error received:. Bailing out.\n"/*, strerror(pico_err)*/);
+	        DEBUG_INFO("Socket error received:. Bailing out.\n"/*, strerror(pico_err)*/);
 	        exit(1);
 	    }
 
 	    if (ev & PICO_SOCK_EV_CLOSE) {
-	        printf("Socket received close from peer - Wrong case if not all client data sent!\n");
+	        DEBUG_INFO("Socket received close from peer - Wrong case if not all client data sent!\n");
 	        picotap->picostack->__pico_socket_close(s);
 	        return;
 	    }
@@ -1770,15 +1765,20 @@ void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Conne
         		.ip4 = {0}, .ip6 = {{0}}
     		};
 
+			// TODO: Rewrite this
 			#if defined(SDK_IPV4)
-				//unsigned int addr = inet_addr("10.8.8.1");
-				paddr.ip4.addr = rawAddr->sin_addr.s_addr;
-				ret = picostack->__pico_socket_connect(conn->picosock, &paddr.ip4, rawAddr->sin_port);
-			#elif defined(SDK_IPV6)
-				//unsigned int addr = inet_addr("10.8.8.1");
+				struct pico_ip4 zaddr;
+    			struct sockaddr_in *in4 = (struct sockaddr_in*)&connect_rpc->addr;
+    			char ipv4_str[INET_ADDRSTRLEN];
+    			inet_ntop(AF_INET, &(in4->sin_addr), ipv4_str, INET_ADDRSTRLEN);
+				picostack->__pico_string_to_ipv4(ipv4_str, &(zaddr.addr));
+				ret = picostack->__pico_socket_connect(conn->picosock, &zaddr, rawAddr->sin_port);
+			#elif defined(SDK_IPV6) // "fd56:5799:d8f6:1238:8c99:9322:30ce:418a"
 				struct pico_ip6 zaddr;
-		    	//picostack->__pico_string_to_ipv6("fd56:5799:d8f6:1238:8c99:9322:30ce:418a", zaddr.addr);
-				memcpy(zaddr.addr, &(rawAddr->sin_addr.s_addr), sizeof(rawAddr->sin_addr.s_addr));
+				struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&connect_rpc->addr;
+				char ipv6_str[INET6_ADDRSTRLEN];
+				inet_ntop(AF_INET6, &(in6->sin6_addr), ipv6_str, INET6_ADDRSTRLEN);
+		    	picostack->__pico_string_to_ipv6(ipv6_str, zaddr.addr);
 				ret = picostack->__pico_socket_connect(conn->picosock, &zaddr, rawAddr->sin_port);
 			#endif
 			
@@ -1791,7 +1791,6 @@ void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Conne
 			if(ret == PICO_ERR_EHOSTUNREACH) {
 				DEBUG_ERROR("PICO_ERR_EHOSTUNREACH");
 			}
-
 	        sendReturnValue(rpcSock, 0, ERR_OK);
 		}
         return;
@@ -1801,106 +1800,152 @@ void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Conne
 void NetconEthernetTap::handleWrite(Connection *conn)
 {
     DEBUG_EXTRA("conn=%p", (void*)&conn);
-	if(!conn || (!conn->TCP_pcb && !conn->UDP_pcb)) {
-		DEBUG_ERROR(" invalid connection");
-		return;
-	}
-    if(conn->type == SOCK_DGRAM) {
-        if(!conn->UDP_pcb) {
-            DEBUG_ERROR(" invalid UDP_pcb, type=SOCK_DGRAM");
-            return;
-        }
-        // TODO: Packet re-assembly hasn't yet been tested with lwIP so UDP packets are limited to MTU-sized chunks
-        int udp_trans_len = conn->txsz < ZT_UDP_DEFAULT_PAYLOAD_MTU ? conn->txsz : ZT_UDP_DEFAULT_PAYLOAD_MTU;
-        
-        DEBUG_EXTRA(" allocating pbuf chain of size=%d for UDP packet, txsz=%d", udp_trans_len, conn->txsz);
-        struct pbuf * pb = lwipstack->__pbuf_alloc(PBUF_TRANSPORT, udp_trans_len, PBUF_POOL);
-        if(!pb){
-            DEBUG_ERROR(" unable to allocate new pbuf of size=%d", conn->txsz);
-            return;
-        }
-        memcpy(pb->payload, conn->txbuf, udp_trans_len);
-        int err = lwipstack->__udp_send(conn->UDP_pcb, pb);
-        
-        if(err == ERR_MEM) {
-            DEBUG_ERROR(" error sending packet. out of memory");
-        } else if(err == ERR_RTE) {
-            DEBUG_ERROR(" could not find route to destinations address");
-        } else if(err != ERR_OK) {
-            DEBUG_ERROR(" error sending packet - %d", err);
-        } else {
-			// Success
-            int buf_remaining = (conn->txsz)-udp_trans_len;
-            if(buf_remaining)
-                memmove(&conn->txbuf, (conn->txbuf+udp_trans_len), buf_remaining);
-            conn->txsz -= udp_trans_len;
+	
+	// lwIP
+    #if defined(SDK_LWIP)
+		if(!conn || (!conn->TCP_pcb && !conn->UDP_pcb)) {
+			DEBUG_ERROR(" invalid connection");
+			return;
+		}
+	    if(conn->type == SOCK_DGRAM) {
+	        if(!conn->UDP_pcb) {
+	            DEBUG_ERROR(" invalid UDP_pcb, type=SOCK_DGRAM");
+	            return;
+	        }
+	        // TODO: Packet re-assembly hasn't yet been tested with lwIP so UDP packets are limited to MTU-sized chunks
+	        int udp_trans_len = conn->txsz < ZT_UDP_DEFAULT_PAYLOAD_MTU ? conn->txsz : ZT_UDP_DEFAULT_PAYLOAD_MTU;
+	        
+	        DEBUG_EXTRA(" allocating pbuf chain of size=%d for UDP packet, txsz=%d", udp_trans_len, conn->txsz);
+	        struct pbuf * pb = lwipstack->__pbuf_alloc(PBUF_TRANSPORT, udp_trans_len, PBUF_POOL);
+	        if(!pb){
+	            DEBUG_ERROR(" unable to allocate new pbuf of size=%d", conn->txsz);
+	            return;
+	        }
+	        memcpy(pb->payload, conn->txbuf, udp_trans_len);
+	        int err = lwipstack->__udp_send(conn->UDP_pcb, pb);
+	        
+	        if(err == ERR_MEM) {
+	            DEBUG_ERROR(" error sending packet. out of memory");
+	        } else if(err == ERR_RTE) {
+	            DEBUG_ERROR(" could not find route to destinations address");
+	        } else if(err != ERR_OK) {
+	            DEBUG_ERROR(" error sending packet - %d", err);
+	        } else {
+				// Success
+	            int buf_remaining = (conn->txsz)-udp_trans_len;
+	            if(buf_remaining)
+	                memmove(&conn->txbuf, (conn->txbuf+udp_trans_len), buf_remaining);
+	            conn->txsz -= udp_trans_len;
 
-			#if DEBUG_LEVEL >= MSG_TRANSFER
-				struct sockaddr_in * addr_in2 = (struct sockaddr_in *)conn->peer_addr;
-				int port = lwipstack->__lwip_ntohs(addr_in2->sin_port);
-				int ip = addr_in2->sin_addr.s_addr;
-				unsigned char d[4];
-				d[0] = ip & 0xFF;
-				d[1] = (ip >>  8) & 0xFF;
-				d[2] = (ip >> 16) & 0xFF;
-				d[3] = (ip >> 24) & 0xFF;
-				DEBUG_TRANS("UDP TX --->    :: {TX: ------, RX: ------, sock=%p} :: %d bytes (dest_addr=%d.%d.%d.%d:%d)", 
-					(void*)conn->sock, udp_trans_len, d[0], d[1], d[2], d[3], port);
-			#endif
-        }
-        lwipstack->__pbuf_free(pb);
-        return;
-    }
-    else if(conn->type == SOCK_STREAM) {
-        if(!conn->TCP_pcb) {
-            DEBUG_ERROR(" invalid TCP_pcb, type=SOCK_STREAM");
-            return;
-        }
-        // How much we are currently allowed to write to the connection
-        int sndbuf = conn->TCP_pcb->snd_buf;
-        int err, sz, r;
-    
-        if(!sndbuf) {
-            // PCB send buffer is full, turn off readability notifications for the
-            // corresponding PhySocket until nc_sent() is called and confirms that there is
-            // now space on the buffer
-            if(!conn->probation) {
-                DEBUG_ERROR(" LWIP stack is full, sndbuf == 0");
-                _phy.setNotifyReadable(conn->sock, false);
-                conn->probation = true;
-            }
-            return;
-        }
-        if(conn->txsz <= 0)
-            return; // Nothing to write
-        if(!conn->listening)
-            lwipstack->__tcp_output(conn->TCP_pcb);
+				#if DEBUG_LEVEL >= MSG_TRANSFER
+					struct sockaddr_in * addr_in2 = (struct sockaddr_in *)conn->peer_addr;
+					int port = lwipstack->__lwip_ntohs(addr_in2->sin_port);
+					int ip = addr_in2->sin_addr.s_addr;
+					unsigned char d[4];
+					d[0] = ip & 0xFF;
+					d[1] = (ip >>  8) & 0xFF;
+					d[2] = (ip >> 16) & 0xFF;
+					d[3] = (ip >> 24) & 0xFF;
+					DEBUG_TRANS("UDP TX --->    :: {TX: ------, RX: ------, sock=%p} :: %d bytes (dest_addr=%d.%d.%d.%d:%d)", 
+						(void*)conn->sock, udp_trans_len, d[0], d[1], d[2], d[3], port);
+				#endif
+	        }
+	        lwipstack->__pbuf_free(pb);
+	        return;
+	    }
+	    else if(conn->type == SOCK_STREAM) {
+	        if(!conn->TCP_pcb) {
+	            DEBUG_ERROR(" invalid TCP_pcb, type=SOCK_STREAM");
+	            return;
+	        }
+	        // How much we are currently allowed to write to the connection
+	        int sndbuf = conn->TCP_pcb->snd_buf;
+	        int err, sz, r;
+	    
+	        if(!sndbuf) {
+	            // PCB send buffer is full, turn off readability notifications for the
+	            // corresponding PhySocket until nc_sent() is called and confirms that there is
+	            // now space on the buffer
+	            if(!conn->probation) {
+	                DEBUG_ERROR(" LWIP stack is full, sndbuf == 0");
+	                _phy.setNotifyReadable(conn->sock, false);
+	                conn->probation = true;
+	            }
+	            return;
+	        }
+	        if(conn->txsz <= 0)
+	            return; // Nothing to write
+	        if(!conn->listening)
+	            lwipstack->__tcp_output(conn->TCP_pcb);
 
-        if(conn->sock) {
-            r = conn->txsz < sndbuf ? conn->txsz : sndbuf;
-            // Writes data pulled from the client's socket buffer to LWIP. This merely sends the
-            // data to LWIP to be enqueued and eventually sent to the network.
-            if(r > 0) {
-                err = lwipstack->__tcp_write(conn->TCP_pcb, &conn->txbuf, r, TCP_WRITE_FLAG_COPY);
-                lwipstack->__tcp_output(conn->TCP_pcb);
-                if(err != ERR_OK) {
-                    DEBUG_ERROR(" error while writing to PCB, err=%d", err);
-                    if(err == -1)
-                        DEBUG_ERROR("out of memory");
-                    return;
-                } else {
-                    sz = (conn->txsz)-r;
-                    if(sz)
-                        memmove(&conn->txbuf, (conn->txbuf+r), sz);
-                    conn->txsz -= r;
-                    int max = conn->type == SOCK_STREAM ? DEFAULT_TCP_TX_BUF_SZ : DEFAULT_UDP_TX_BUF_SZ;
-                    DEBUG_TRANS("TCP TX --->    :: {TX: %.3f%%, RX: %.3f%%, sock=%p} :: %d bytes",
-                        (float)conn->txsz / (float)max, (float)conn->rxsz / max, (void*)&conn->sock, r);
-                    return;
-                }
-            }
-        }
-    }
+	        if(conn->sock) {
+	            r = conn->txsz < sndbuf ? conn->txsz : sndbuf;
+	            // Writes data pulled from the client's socket buffer to LWIP. This merely sends the
+	            // data to LWIP to be enqueued and eventually sent to the network.
+	            if(r > 0) {
+	                err = lwipstack->__tcp_write(conn->TCP_pcb, &conn->txbuf, r, TCP_WRITE_FLAG_COPY);
+	                lwipstack->__tcp_output(conn->TCP_pcb);
+	                if(err != ERR_OK) {
+	                    DEBUG_ERROR(" error while writing to PCB, err=%d", err);
+	                    if(err == -1)
+	                        DEBUG_ERROR("out of memory");
+	                    return;
+	                } else {
+	                	// adjust buffer
+	                    sz = (conn->txsz)-r;
+	                    if(sz)
+	                        memmove(&conn->txbuf, (conn->txbuf+r), sz);
+	                    conn->txsz -= r;
+	                    int max = conn->type == SOCK_STREAM ? DEFAULT_TCP_TX_BUF_SZ : DEFAULT_UDP_TX_BUF_SZ;
+	                    DEBUG_TRANS("TCP TX --->    :: {TX: %.3f%%, RX: %.3f%%, sock=%p} :: %d bytes",
+	                        (float)conn->txsz / (float)max, (float)conn->rxsz / max, (void*)&conn->sock, r);
+	                    return;
+	                }
+	            }
+	        }
+	    }
+
+	// picoTCP
+    #elif defined(SDK_PICOTCP)
+	    if(!conn || !conn->picosock) {
+			DEBUG_ERROR(" invalid connection");
+			return;
+		}
+		int r, max_write_len = conn->txsz < ZT_MAX_MTU ? conn->txsz : ZT_MAX_MTU;
+	    if((r = picostack->__pico_socket_write(conn->picosock, &conn->txbuf, max_write_len)) < 0) {
+	    	DEBUG_ERROR("unable to write to pico_socket(%p)", (void*)&(conn->picosock));
+	    	return;
+	    }
+
+	    /*
+	 	if(pico_err == PICO_ERR_EINVAL)
+	 		DEBUG_ERROR("PICO_ERR_EINVAL - invalid argument");
+		if(pico_err == PICO_ERR_EIO)
+			DEBUG_ERROR("PICO_ERR_EIO - input/output error");
+		if(pico_err == PICO_ERR_ENOTCONN)
+			DEBUG_ERROR("PICO_ERR_ENOTCONN - the socket is not connected");
+		if(pico_err == PICO_ERR_ESHUTDOWN)
+			DEBUG_ERROR("PICO_ERR_ESHUTDOWN - cannot send after transport endpoint shutdown");
+		if(pico_err == PICO_ERR_EADDRNOTAVAIL)
+			DEBUG_ERROR("PICO_ERR_EADDRNOTAVAIL - address not available");
+		if(pico_err == PICO_ERR_EHOSTUNREACH)
+			DEBUG_ERROR("PICO_ERR_EHOSTUNREACH - host is unreachable");
+		if(pico_err == PICO_ERR_ENOMEM)
+			DEBUG_ERROR("PICO_ERR_ENOMEM - not enough space");
+		if(pico_err == PICO_ERR_EAGAIN)
+			DEBUG_ERROR("PICO_ERR_EAGAIN - resource temporarily unavailable");
+		*/
+
+	    // adjust buffer
+	    int sz = (conn->txsz)-r;
+	   	if(sz)
+	   		memmove(&conn->txbuf, (conn->txbuf+r), sz);
+		conn->txsz -= r;
+	   	
+	   	int max = conn->type == SOCK_STREAM ? DEFAULT_TCP_TX_BUF_SZ : DEFAULT_UDP_TX_BUF_SZ;
+	    DEBUG_TRANS("TCP TX --->    :: {TX: %.3f%%, RX: %.3f%%, sock=%p} :: %d bytes",
+	    	(float)conn->txsz / (float)max, (float)conn->rxsz / max, (void*)&conn->sock, r);
+    #endif
 }
 
 } // namespace ZeroTier

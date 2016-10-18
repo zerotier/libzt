@@ -52,6 +52,9 @@
 #include "SDK_pico.hpp"
 #include "SDK_jip.hpp"
 
+ 	#include "pico_protocol.h"
+
+
 // lwIP structs
 struct tcp_pcb;
 struct udp_pcb;

@@ -94,6 +94,7 @@ extern "C" {
   #else
     #define DEBUG_INFO(fmt, args...) fprintf(stderr, "ZT_INFO : %20s:%4d:%25s: " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args)
     #define DEBUG_ATTN(fmt, args...) fprintf(stderr, CYN "ZT_INFO : %20s:%4d:%25s: " fmt "\n" RESET, __FILENAME__, __LINE__, __FUNCTION__, ##args)
+    #define DEBUG_STACK(fmt, args...) fprintf(stderr, YEL "ZT_STACK: %20s:%4d:%25s: " fmt "\n" RESET, __FILENAME__, __LINE__, __FUNCTION__, ##args)
     #define DEBUG_BLANK(fmt, args...) fprintf(stderr, "ZT_INFO : %20s:%4d:" fmt "\n", __FILENAME__, __LINE__, ##args)
   #endif
  #else

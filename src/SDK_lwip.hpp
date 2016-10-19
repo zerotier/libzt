@@ -330,57 +330,57 @@ namespace ZeroTier {
         }
         
         inline void __netif_init(void) throw() { Mutex::Lock _l(_lock); _netif_init(); }
-        inline void __nd6_tmr(void) throw() { Mutex::Lock _l(_lock); _nd6_tmr(); }
-        inline void __netif_ip6_addr_set_state(NETIF_IP6_ADDR_SET_STATE_SIG) throw() { Mutex::Lock _l(_lock); _netif_ip6_addr_set_state(netif, addr_idx, state);  }
-        inline void __netif_loopif_init(NETIF_LOOPIF_INIT_SIG) throw() { Mutex::Lock _l(_lock); _netif_loopif_init(netif); }
-        inline void __netif_create_ip6_linklocal_address(NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG) throw() { Mutex::Lock _l(_lock); _netif_create_ip6_linklocal_address(netif, from_mac_48bit); }
+        inline void __nd6_tmr(void) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); _nd6_tmr(); }
+        inline void __netif_ip6_addr_set_state(NETIF_IP6_ADDR_SET_STATE_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); _netif_ip6_addr_set_state(netif, addr_idx, state);  }
+        inline void __netif_loopif_init(NETIF_LOOPIF_INIT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); _netif_loopif_init(netif); }
+        inline void __netif_create_ip6_linklocal_address(NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); _netif_create_ip6_linklocal_address(netif, from_mac_48bit); }
        // inline void __netif_set_addr(NETIF_SET_ADDR_SIG) throw() { Mutex::Lock _l(_lock); _netif_set_addr(netif, ipaddr, netmask, gw); }
 
-        inline void __lwip_init() throw() { Mutex::Lock _l(_lock); return _lwip_init(); }
-        inline err_t __tcp_write(TCP_WRITE_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_write(pcb,arg,len,apiflags); }
-        inline void __tcp_sent(TCP_SENT_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_sent(pcb,sent); }
-        inline struct tcp_pcb * __tcp_new(TCP_NEW_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_new(); }
+        inline void __lwip_init() throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _lwip_init(); }
+        inline err_t __tcp_write(TCP_WRITE_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_write(pcb,arg,len,apiflags); }
+        inline void __tcp_sent(TCP_SENT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_sent(pcb,sent); }
+        inline struct tcp_pcb * __tcp_new(TCP_NEW_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_new(); }
         
-        inline struct udp_pcb * __udp_new(UDP_NEW_SIG) throw() { Mutex::Lock _l(_lock); return _udp_new(); }
-        inline err_t __udp_connect(UDP_CONNECT_SIG) throw() { Mutex::Lock _l(_lock); return _udp_connect(pcb,ipaddr,port); }
-        inline err_t __udp_send(UDP_SEND_SIG) throw() { Mutex::Lock _l(_lock); return _udp_send(pcb,p); }
-        inline err_t __udp_sendto(UDP_SENDTO_SIG) throw() { Mutex::Lock _l(_lock); return _udp_sendto(pcb,p,dst_ip,dst_port); }
-        inline void __udp_recv(UDP_RECV_SIG) throw() { Mutex::Lock _l(_lock); return _udp_recv(pcb,recv,recv_arg); }
-        inline err_t __udp_bind(UDP_BIND_SIG) throw() { Mutex::Lock _l(_lock); return _udp_bind(pcb,ipaddr,port); }
-        inline void __udp_remove(UDP_REMOVE_SIG) throw() { Mutex::Lock _l(_lock); return _udp_remove(pcb); }
+        inline struct udp_pcb * __udp_new(UDP_NEW_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _udp_new(); }
+        inline err_t __udp_connect(UDP_CONNECT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _udp_connect(pcb,ipaddr,port); }
+        inline err_t __udp_send(UDP_SEND_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _udp_send(pcb,p); }
+        inline err_t __udp_sendto(UDP_SENDTO_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _udp_sendto(pcb,p,dst_ip,dst_port); }
+        inline void __udp_recv(UDP_RECV_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _udp_recv(pcb,recv,recv_arg); }
+        inline err_t __udp_bind(UDP_BIND_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _udp_bind(pcb,ipaddr,port); }
+        inline void __udp_remove(UDP_REMOVE_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _udp_remove(pcb); }
 
-        inline u16_t __tcp_sndbuf(TCP_SNDBUF_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_sndbuf(pcb); }
-        inline err_t __tcp_connect(TCP_CONNECT_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_connect(pcb,ipaddr,port,connected); }
-        inline void __tcp_recv(TCP_RECV_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_recv(pcb,recv); }
-        inline void __tcp_recved(TCP_RECVED_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_recved(pcb,len); }
-        inline void __tcp_err(TCP_ERR_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_err(pcb,err); }
-        inline void __tcp_poll(TCP_POLL_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_poll(pcb,poll,interval); }
-        inline void __tcp_arg(TCP_ARG_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_arg(pcb,arg); }
-        inline err_t __tcp_close(TCP_CLOSE_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_close(pcb); }
-        inline void __tcp_abort(TCP_ABORT_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_abort(pcb); }
-        inline err_t __tcp_output(TCP_OUTPUT_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_output(pcb); }
-        inline void __tcp_accept(TCP_ACCEPT_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_accept(pcb,accept); }
-        inline struct tcp_pcb * __tcp_listen(TCP_LISTEN_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_listen(pcb); }
-        inline struct tcp_pcb * __tcp_listen_with_backlog(TCP_LISTEN_WITH_BACKLOG_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_listen_with_backlog(pcb,backlog); }
-        inline err_t __tcp_bind(TCP_BIND_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_bind(pcb,ipaddr,port); }
-        inline void __etharp_tmr(void) throw() { Mutex::Lock _l(_lock); return _etharp_tmr(); }
-        inline void __tcp_tmr(void) throw() { Mutex::Lock _l(_lock); return _tcp_tmr(); }
-        inline u8_t __pbuf_free(PBUF_FREE_SIG) throw() { Mutex::Lock _l(_lock); return _pbuf_free(p); }
-        inline struct pbuf * __pbuf_alloc(PBUF_ALLOC_SIG) throw() { Mutex::Lock _l(_lock_mem); return _pbuf_alloc(layer,length,type); }
-        inline u16_t __lwip_htons(LWIP_HTONS_SIG) throw() { Mutex::Lock _l(_lock); return _lwip_htons(x); }
-        inline u16_t __lwip_ntohs(LWIP_NTOHS_SIG) throw() { Mutex::Lock _l(_lock); return _lwip_ntohs(x); }
-        inline char* __ipaddr_ntoa(IPADDR_NTOA_SIG) throw() { Mutex::Lock _l(_lock); return _ipaddr_ntoa(addr); }
+        inline u16_t __tcp_sndbuf(TCP_SNDBUF_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_sndbuf(pcb); }
+        inline err_t __tcp_connect(TCP_CONNECT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_connect(pcb,ipaddr,port,connected); }
+        inline void __tcp_recv(TCP_RECV_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_recv(pcb,recv); }
+        inline void __tcp_recved(TCP_RECVED_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_recved(pcb,len); }
+        inline void __tcp_err(TCP_ERR_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_err(pcb,err); }
+        inline void __tcp_poll(TCP_POLL_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_poll(pcb,poll,interval); }
+        inline void __tcp_arg(TCP_ARG_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_arg(pcb,arg); }
+        inline err_t __tcp_close(TCP_CLOSE_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_close(pcb); }
+        inline void __tcp_abort(TCP_ABORT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_abort(pcb); }
+        inline err_t __tcp_output(TCP_OUTPUT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_output(pcb); }
+        inline void __tcp_accept(TCP_ACCEPT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_accept(pcb,accept); }
+        inline struct tcp_pcb * __tcp_listen(TCP_LISTEN_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_listen(pcb); }
+        inline struct tcp_pcb * __tcp_listen_with_backlog(TCP_LISTEN_WITH_BACKLOG_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_listen_with_backlog(pcb,backlog); }
+        inline err_t __tcp_bind(TCP_BIND_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_bind(pcb,ipaddr,port); }
+        inline void __etharp_tmr(void) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _etharp_tmr(); }
+        inline void __tcp_tmr(void) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_tmr(); }
+        inline u8_t __pbuf_free(PBUF_FREE_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _pbuf_free(p); }
+        inline struct pbuf * __pbuf_alloc(PBUF_ALLOC_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock_mem); return _pbuf_alloc(layer,length,type); }
+        inline u16_t __lwip_htons(LWIP_HTONS_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _lwip_htons(x); }
+        inline u16_t __lwip_ntohs(LWIP_NTOHS_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _lwip_ntohs(x); }
+        inline char* __ipaddr_ntoa(IPADDR_NTOA_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _ipaddr_ntoa(addr); }
 
-        inline err_t __ethip6_output(ETHIP6_OUTPUT_SIG) throw() { Mutex::Lock _l(_lock); return _ethip6_output(netif,q,ip6addr); }
+        inline err_t __ethip6_output(ETHIP6_OUTPUT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _ethip6_output(netif,q,ip6addr); }
         //inline err_t __etharp_output(ETHARP_OUTPUT_SIG) throw() { Mutex::Lock _l(_lock); return _etharp_output(netif,q,ipaddr); }
-        inline struct netif * __netif_add(NETIF_ADD_SIG) throw() { Mutex::Lock _l(_lock); return _netif_add(netif,state,init,input); }
+        inline struct netif * __netif_add(NETIF_ADD_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _netif_add(netif,state,init,input); }
         //inline struct netif * __netif_add(NETIF_ADD_SIG) throw() { Mutex::Lock _l(_lock); return _netif_add(netif,ipaddr,netmask,gw,state,init,input); }
 
-        inline err_t __ethernet_input(ETHERNET_INPUT_SIG) throw() { Mutex::Lock _l(_lock); return _ethernet_input(p,netif); }
-        inline void __tcp_input(TCP_INPUT_SIG) throw() { Mutex::Lock _l(_lock); return _tcp_input(p,inp); }
-        inline err_t __ip_input(IP_INPUT_SIG) throw() { Mutex::Lock _l(_lock); return _ip_input(p,inp); }
-        inline void __netif_set_default(NETIF_SET_DEFAULT_SIG) throw() { Mutex::Lock _l(_lock); return _netif_set_default(netif); }
-        inline void __netif_set_up(NETIF_SET_UP_SIG) throw() { Mutex::Lock _l(_lock); return _netif_set_up(netif); }
+        inline err_t __ethernet_input(ETHERNET_INPUT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _ethernet_input(p,netif); }
+        inline void __tcp_input(TCP_INPUT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_input(p,inp); }
+        inline err_t __ip_input(IP_INPUT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _ip_input(p,inp); }
+        inline void __netif_set_default(NETIF_SET_DEFAULT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _netif_set_default(netif); }
+        inline void __netif_set_up(NETIF_SET_UP_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _netif_set_up(netif); }
 };
     
 } // namespace ZeroTier

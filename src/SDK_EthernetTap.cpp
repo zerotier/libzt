@@ -44,16 +44,17 @@
 #if defined(SDK_LWIP) 
 	#include "SDK_lwip.hpp"
 #elif defined(SDK_PICOTCP)
-	#include "SDK_pico.hpp"
 	#include "pico_stack.h"
 	#include "pico_ipv4.h"
 	#include "pico_icmp4.h"
 	#include "pico_dev_tap.h"
+	#include "pico_protocol.h"
 	#include "pico_socket.h"
- 	#include "pico_protocol.h"
 #elif defined(SDK_JIP)
 	#include "SDK_jip.hpp"
 #endif
+
+ #include "SDK_pico.hpp"
 
 #include "Utils.hpp"
 #include "OSUtils.hpp"
@@ -83,22 +84,27 @@
 
 namespace ZeroTier {
 
-static NetconEthernetTap *picotap;
-
 /*------------------------------------------------------------------------------
 ------------------------------- picoTCP callbacks ------------------------------
 ---------- This section represents the "driver" for the picoTCP stack ----------
 ------------------------------------------------------------------------------*/
 
-	// Prototypes
+	// Reference to the tap interface
+	// This is needed due to the fact that there's a lot going on in the tap interface
+	// that needs to be updated on each of the network stack's callbacks and not every
+	// network stack provides a mechanism for storing a reference to the tap.
+	//
+	// In future releases this will be replaced with a new structure of static pointers that 
+	// will make it easier to maintain multiple active tap interfaces
+	static NetconEthernetTap *picotap;
+
     static int pico_eth_send(struct pico_device *dev, void *buf, int len);
     static int pico_eth_poll(struct pico_device *dev, int loop_score);
 
-	void picoTCP_init_interface(const InetAddress &ip)
+    // Initialize network stack's interfaces and assign addresses
+	void pico_init_interface(NetconEthernetTap *tap, const InetAddress &ip)
 	{
-		picoTCP_stack *stack = picotap->picostack;
-		// TODO: Move this somewhere more appropriate
-		
+		picoTCP_stack *stack = tap->picostack;		
 		DEBUG_INFO();
 		if (std::find(picotap->_ips.begin(),picotap->_ips.end(),ip) == picotap->_ips.end()) {
 			picotap->_ips.push_back(ip);
@@ -113,7 +119,6 @@ static NetconEthernetTap *picotap;
 			    stack->__pico_ipv4_link_add(&(picotap->picodev), ipaddr, netmask);
 			    picotap->picodev.send = pico_eth_send; // tx
 			    picotap->picodev.poll = pico_eth_poll; // rx
-			    // Register the device in picoTCP
 			    uint8_t mac[PICO_SIZE_ETH];
 			    picotap->_mac.copyTo(mac, PICO_SIZE_ETH);
 			    DEBUG_ATTN("mac = %s", picotap->_mac.toString().c_str());
@@ -136,7 +141,6 @@ static NetconEthernetTap *picotap;
 			    stack->__pico_ipv6_link_add(&(picotap->picodev), ipaddr, netmask);
 			    picotap->picodev.send = pico_eth_send; // tx
 			    picotap->picodev.poll = pico_eth_poll; // rx
-			    // Register the device in picoTCP
 			    uint8_t mac[PICO_SIZE_ETH];
 			    picotap->_mac.copyTo(mac, PICO_SIZE_ETH);
 			    DEBUG_ATTN("mac = %s", picotap->_mac.toString().c_str());
@@ -144,26 +148,39 @@ static NetconEthernetTap *picotap;
 			        DEBUG_ERROR("device init failed");
 			        return;
 			    }
-			    DEBUG_INFO("device initialized as ipv6_addr = %s", ipv6_str);
+			    DEBUG_ATTN("device initialized as ipv6_addr = %s", ipv6_str);
 			}
 		#endif
 		}
 	}
-
-	// RX
-	// Copies data onto the RX buffer and notifies the system that data can be read, buffer will be emptied by pico_handleRead()
-	static void pico_cb_tcp_read(struct pico_socket *s)
+	
+	// I/O thread loop
+	void pico_loop(NetconEthernetTap *tap)
 	{
 		DEBUG_INFO();
-		Connection *conn = picotap->getConnection(s);
+		while(tap->_run)
+		{
+			tap->_phy.poll((unsigned long)std::min(100,200));
+			usleep(500);
+	        tap->picostack->__pico_stack_tick();
+		}
+	}
+
+	// RX packets from network onto internal buffer
+	// Also notifies the tap service that data can be read, buffer will be emptied by pico_handleRead()
+	static void pico_cb_tcp_read(NetconEthernetTap *tap, struct pico_socket *s)
+	{
+		// TODO: Verify 
+		DEBUG_INFO();
+		Connection *conn = tap->getConnection(s);
 		if(conn) {
 			int r;
 			do {
 				//int avail = DEFAULT_TCP_RX_BUF_SZ - conn->rxsz;
 				//if(avail) {
-		            r = picotap->picostack->__pico_socket_read(s, conn->rxbuf + (conn->rxsz), ZT_MAX_MTU);
-		            picotap->_phy.setNotifyWritable(conn->sock, true);
-		            DEBUG_ATTN("read=%d", r);
+		            r = tap->picostack->__pico_socket_read(s, conn->rxbuf + (conn->rxsz), ZT_MAX_MTU);
+		            tap->_phy.setNotifyWritable(conn->sock, true);
+		            DEBUG_INFO("read=%d", r);
 		            if (r > 0) {
 		                conn->rxsz += r;
 		            }
@@ -178,18 +195,20 @@ static NetconEthernetTap *picotap;
 		DEBUG_ERROR("invalid connection");
 	}
 
-	// TX
-	static void pico_cb_tcp_write(struct pico_socket *s)
+	// TX packets from internal buffer to network
+	static void pico_cb_tcp_write(NetconEthernetTap *tap, struct pico_socket *s)
 	{
-		Connection *conn = picotap->getConnection(s);
+		Connection *conn = tap->getConnection(s);
 		if(!conn)
 			DEBUG_ERROR("invalid connection");
+		if(!conn->txsz)
+			return;
 		DEBUG_INFO("txsz=%d bytes ready to be written", conn->txsz);
 
 		// Only called from a locked context, no need to lock anything
 		if(conn->txsz > 0) {
 			int r = conn->txsz < ZT_MAX_MTU ? conn->txsz : ZT_MAX_MTU;
-			if((r = picotap->picostack->__pico_socket_write(s, &conn->txbuf, r)) < 0) {
+			if((r = tap->picostack->__pico_socket_write(s, &conn->txbuf, r)) < 0) {
 				DEBUG_ERROR("unable to write to pico_socket=%p", (void*)s);
 				return;
 			}
@@ -198,41 +217,39 @@ static NetconEthernetTap *picotap;
                 memmove(&conn->txbuf, (conn->txbuf+r), sz);
             conn->txsz -= r;
             int max = conn->type == SOCK_STREAM ? DEFAULT_TCP_TX_BUF_SZ : DEFAULT_UDP_TX_BUF_SZ;
-            DEBUG_TRANS("[TCP  TX] --->    :: {TX: %.3f%%, RX: %.3f%%, sock=%p} :: %d bytes",
+            DEBUG_TRANS("[TCP TX] --->    :: {TX: %.3f%%, RX: %.3f%%, sock=%p} :: %d bytes",
                 (float)conn->txsz / (float)max, (float)conn->rxsz / max, (void*)&conn->sock, r);
             return;
 		}
 	}
 
-
+	// Main callback for TCP connections
 	static void pico_cb_tcp(uint16_t ev, struct pico_socket *s)
     {
-    	//DEBUG_INFO("pico_socket=%p", (void*)s);
         Mutex::Lock _l(picotap->_tcpconns_m);
         Connection *conn = picotap->getConnection(s);
         if(!conn) {
-        	DEBUG_ERROR(" invalid connection");
+        	DEBUG_ERROR("invalid connection");
         }
         if (ev & PICO_SOCK_EV_RD) {
-            pico_cb_tcp_read(s);
+            pico_cb_tcp_read(picotap, s);
         }
 
         // Accept connection (analogous to lwip_nc_accept)
         if (ev & PICO_SOCK_EV_CONN) {
-            DEBUG_INFO(" connection established with server.");
+            DEBUG_INFO("connection established with server, sock=%p", (void*)(conn->picosock));
             uint32_t peer;
 			uint16_t port;
-            
             struct pico_socket *client = picotap->picostack->__pico_socket_accept(s, &peer, &port);
             if(!client) {
-				DEBUG_ERROR(" there was an error accepting the connection");
+				DEBUG_ERROR("there was an error accepting the connection, sock=%p", (void*)(conn->picosock));
 			}
 
 			ZT_PHY_SOCKFD_TYPE fds[2];
 			if(socketpair(PF_LOCAL, SOCK_STREAM, 0, fds) < 0) {
 				if(errno < 0) {
 					picotap->sendReturnValue(conn, -1, errno);
-					DEBUG_ERROR(" unable to create socketpair");
+					DEBUG_ERROR("unable to create socketpair");
 					return;
 				}
 			}
@@ -243,54 +260,51 @@ static NetconEthernetTap *picotap;
 			newTcpConn->picosock = client;
 			int fd = picotap->_phy.getDescriptor(conn->sock);
 			if(sock_fd_write(fd, fds[1]) < 0) {
-				DEBUG_ERROR(" error sending new fd to client application");
+				DEBUG_ERROR("error sending new fd to client application");
 			}
         }
         if (ev & PICO_SOCK_EV_FIN) {
-            DEBUG_INFO(" socket closed. Exit normally.");
+            DEBUG_INFO("socket closed. Exit normally.");
             //picotap->__pico_timer_add(2000, compare_results, NULL);
         }
         if (ev & PICO_SOCK_EV_ERR) {
-            DEBUG_INFO(" socket error received" /*, strerror(pico_err)*/);
+            DEBUG_INFO("socket error received" /*, strerror(pico_err)*/);
             //exit(1);
         }
         if (ev & PICO_SOCK_EV_CLOSE) {
-            DEBUG_INFO(" socket received close from peer - Wrong case if not all client data sent!");
+            DEBUG_INFO("socket received close from peer - Wrong case if not all client data sent!");
             picotap->picostack->__pico_socket_close(s);
             picotap->closeConnection(conn);
             return;
         }
         if (ev & PICO_SOCK_EV_WR) {
-            pico_cb_tcp_write(s);
+            pico_cb_tcp_write(picotap, s);
         }
     }
 
-    static void cb_ping(struct pico_icmp4_stats *s)
+    // Called when an incoming ping is received
+    static void pico_cb_ping(struct pico_icmp4_stats *s)
     {   
     	DEBUG_INFO();
         char host[30];
         picotap->picostack->__pico_ipv4_to_string(host, s->dst.addr);
         if (s->err == 0) {
-            // if all is well, print some pretty info
             printf("%lu bytes from %s: icmp_req=%lu ttl=%lu time=%lu ms\n", s->size,
                     host, s->seq, s->ttl, (long unsigned int)s->time);
-            //if (s->seq >= NUM_PING)
-                //finished = 1;
         } else {
-            // if something went wrong, print it and signal we want to stop
             printf("PING %lu to %s: Error %d\n", s->seq, host, s->err);
-            //finished = 1;
         }
     }
 
+    // Sends data to the tap device (in our case, the ZeroTier service)
     static int pico_eth_send(struct pico_device *dev, void *buf, int len)
     {
         DEBUG_INFO("len=%d", len);
         struct eth_hdr *ethhdr;
         ethhdr = (struct eth_hdr *)buf;
 
-        ZeroTier::MAC src_mac;
-        ZeroTier::MAC dest_mac;
+        MAC src_mac;
+        MAC dest_mac;
         src_mac.setTo(ethhdr->src.addr, 6);
         dest_mac.setTo(ethhdr->dest.addr, 6);
 
@@ -299,11 +313,44 @@ static NetconEthernetTap *picotap;
         return len;
     }
 
+    // Receives data from the tap device and encapsulates it into a ZeroTier ethernet frame and places it in a locked memory buffer
+    void pico_rx(NetconEthernetTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
+	{
+		// DEBUG_INFO();
+		// Since picoTCP only allows the reception of frames from within the polling function, we
+		// must enqueue each frame into a memory structure shared by both threads. This structure will
+		Mutex::Lock _l(tap->_pico_frame_rxbuf_m);
+		if(len > ((1024 * 1024) - tap->pico_frame_rxbuf_tot)) {
+			DEBUG_ERROR("dropping packet (len = %d) - not enough space left on RX frame buffer", len);
+			return;
+		}
+		//if(len != memcpy(pico_frame_rxbuf, data, len)) {
+		//	DEBUG_ERROR("dropping packet (len = %d) - unable to copy contents of frame to RX frame buffer", len);
+		//	return;
+		//}
+
+		// assemble new eth header
+		struct eth_hdr ethhdr;
+		from.copyTo(ethhdr.src.addr, 6);
+		to.copyTo(ethhdr.dest.addr, 6);
+		ethhdr.type = Utils::hton((uint16_t)etherType);
+		int newlen = len+sizeof(struct eth_hdr);
+
+		memcpy(tap->pico_frame_rxbuf + tap->pico_frame_rxbuf_tot, &newlen, sizeof(newlen));                      // size of frame
+		memcpy(tap->pico_frame_rxbuf + tap->pico_frame_rxbuf_tot + sizeof(newlen), &ethhdr, sizeof(ethhdr));     // new eth header
+		memcpy(tap->pico_frame_rxbuf + tap->pico_frame_rxbuf_tot + sizeof(newlen) + sizeof(ethhdr), data, len);  // frame data
+		tap->pico_frame_rxbuf_tot += len + sizeof(len) + sizeof(ethhdr);
+		// DEBUG_INFO("RX frame buffer %3f full", (float)pico_frame_rxbuf_tot / (float)(1024 * 1024));
+		DEBUG_INFO("len=%d", len);
+	}
+
+	// Is called periodically by the stack, this removes data from the locked memory buffer and feeds it into the stack.
+	// A maximum of 'loop_score' frames can be processed in each call
     static int pico_eth_poll(struct pico_device *dev, int loop_score)
     {
     	// DEBUG_EXTRA();
         // OPTIMIZATION: The copy logic and/or buffer structure should be reworked for better performance after the BETA
-        // ZeroTier::NetconEthernetTap *tap = (ZeroTier::NetconEthernetTap*)netif->state;
+        // NetconEthernetTap *tap = (NetconEthernetTap*)netif->state;
         Mutex::Lock _l(picotap->_pico_frame_rxbuf_m);
 
         uint8_t *buf = NULL;
@@ -329,6 +376,7 @@ static NetconEthernetTap *picotap;
         return loop_score;
     }
 
+    // Creates a new pico_socket and Connection object to represent a new connection to be.
     static Connection *pico_handleSocket(PhySocket *sock, void **uptr, struct socket_st* socket_rpc)
     {
     	DEBUG_INFO();
@@ -358,7 +406,7 @@ static NetconEthernetTap *picotap;
 		return NULL;
     }
 
-
+    // Writes data from the I/O buffer to the network stack
     static void pico_handleWrite(Connection *conn)
     {
     	DEBUG_INFO();
@@ -395,10 +443,11 @@ static NetconEthernetTap *picotap;
 	   		memmove(&conn->txbuf, (conn->txbuf+r), sz);
 		conn->txsz -= r;
 	   	int max = conn->type == SOCK_STREAM ? DEFAULT_TCP_TX_BUF_SZ : DEFAULT_UDP_TX_BUF_SZ;
-	    DEBUG_TRANS("[TCP  TX] --->    :: {TX: %.3f%%, RX: %.3f%%, sock=%p} :: %d bytes",
+	    DEBUG_TRANS("[TCP TX] --->    :: {TX: %.3f%%, RX: %.3f%%, sock=%p} :: %d bytes",
 	    	(float)conn->txsz / (float)max, (float)conn->rxsz / max, (void*)&conn->sock, r);
     }
 
+    // Instructs the stack to connect to a remote host
     static void pico_handleConnect(PhySocket *sock, PhySocket *rpcSock, Connection *conn, struct connect_st* connect_rpc)
     {
     	DEBUG_INFO();
@@ -413,6 +462,7 @@ static NetconEthernetTap *picotap;
     			char ipv4_str[INET_ADDRSTRLEN];
     			inet_ntop(AF_INET, &(in4->sin_addr), ipv4_str, INET_ADDRSTRLEN);
 				picotap->picostack->__pico_string_to_ipv4(ipv4_str, &(zaddr.addr));
+				DEBUG_ATTN("addr=%s:%d", ipv4_str, (uint16_t*)&(addr->sin_port));
 				ret = picotap->picostack->__pico_socket_connect(conn->picosock, &zaddr, addr->sin_port);
 			#elif defined(SDK_IPV6) // "fd56:5799:d8f6:1238:8c99:9322:30ce:418a"
 				struct pico_ip6 zaddr;
@@ -420,6 +470,7 @@ static NetconEthernetTap *picotap;
 				char ipv6_str[INET6_ADDRSTRLEN];
 				inet_ntop(AF_INET6, &(in6->sin6_addr), ipv6_str, INET6_ADDRSTRLEN);
 		    	picotap->picostack->__pico_string_to_ipv6(ipv6_str, zaddr.addr);
+		    	DEBUG_ATTN("addr=%s:%d", ipv6_str, (uint16_t*)&(addr->sin_port));
 				ret = picotap->picostack->__pico_socket_connect(conn->picosock, &zaddr, addr->sin_port);
 			#endif
 			
@@ -436,6 +487,7 @@ static NetconEthernetTap *picotap;
 		}
     }
 
+    // Instructs the stack to bind to a given address
     static void pico_handleBind(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct bind_st *bind_rpc)
     {
     	DEBUG_INFO();
@@ -444,10 +496,8 @@ static NetconEthernetTap *picotap;
     		DEBUG_ERROR("invalid connection");
     		return;
     	}
-
 		struct sockaddr_in *addr = (struct sockaddr_in *) &bind_rpc->addr;
     	int ret;
-
     	// TODO: Rewrite this
 		#if defined(SDK_IPV4)
 			struct pico_ip4 zaddr;
@@ -455,6 +505,7 @@ static NetconEthernetTap *picotap;
 			char ipv4_str[INET_ADDRSTRLEN];
 			inet_ntop(AF_INET, &(in4->sin_addr), ipv4_str, INET_ADDRSTRLEN);
 			picotap->picostack->__pico_string_to_ipv4(ipv4_str, &(zaddr.addr));
+			DEBUG_ATTN("addr=%s", ipv4_str/*, ntohs((uint16_t*)&(addr->sin_port))*/);
 			ret = picotap->picostack->__pico_socket_bind(conn->picosock, &zaddr, (uint16_t*)&(addr->sin_port));
 		#elif defined(SDK_IPV6)
 			struct pico_ip6 zaddr;
@@ -462,6 +513,7 @@ static NetconEthernetTap *picotap;
 			char ipv6_str[INET6_ADDRSTRLEN];
 			inet_ntop(AF_INET6, &(in6->sin6_addr), ipv6_str, INET6_ADDRSTRLEN);
 	    	picotap->picostack->__pico_string_to_ipv6(ipv6_str, zaddr.addr);
+	    	DEBUG_ATTN("addr=%s", ipv6_str/*, ntohs((uint16_t*)&(addr->sin_port))*/);
 			ret = picotap->picostack->__pico_socket_bind(conn->picosock, &zaddr, (uint16_t*)&(addr->sin_port));
 		#endif
 		if(ret < 0) {
@@ -482,6 +534,7 @@ static NetconEthernetTap *picotap;
 		picotap->sendReturnValue(rpcSock, ERR_OK, ERR_OK); // success
     }
 
+    // Puts a pico_socket into a listening state to receive incoming connection requests
     static void pico_handleListen(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct listen_st *listen_rpc)
     {
     	Connection *conn = picotap->getConnection(sock);
@@ -505,68 +558,15 @@ static NetconEthernetTap *picotap;
     	picotap->sendReturnValue(rpcSock, ERR_OK, ERR_OK); // success
     }
 
-
+    // Feeds data into the client socket from the I/O buffer associated with the connection
     static void pico_handleRead(PhySocket *sock,void **uptr,bool lwip_invoked)
     {
-    	/*
-			int payload_sz, addr_sz_offset = sizeof(struct sockaddr_storage);
-			memcpy(&payload_sz, conn->rxbuf + addr_sz_offset, sizeof(int)); // OPT:
-			// extract address
-			struct sockaddr_storage addr;
-			memcpy(&addr, conn->rxbuf, addr_sz_offset);
-			
-			if(n == ZT_MAX_MTU) {
-				if(conn->rxsz-n > 0) // If more remains on buffer
-					memcpy(conn->rxbuf, conn->rxbuf+ZT_MAX_MTU, conn->rxsz - ZT_MAX_MTU);
-			  	conn->rxsz -= ZT_MAX_MTU;
-				// DGRAM
-	            if(conn->type==SOCK_DGRAM){
-	                _phy.setNotifyWritable(conn->sock, false);
-
-				#if DEBUG_LEVEL >= MSG_TRANSFER
-					struct sockaddr_in * addr_in2 = (struct sockaddr_in *)&addr;
-					int port = lwipstack->__lwip_ntohs(addr_in2->sin_port);
-					int ip = addr_in2->sin_addr.s_addr;
-					unsigned char d[4];
-					d[0] = ip & 0xFF;
-					d[1] = (ip >>  8) & 0xFF;
-					d[2] = (ip >> 16) & 0xFF;
-					d[3] = (ip >> 24) & 0xFF;
-	            	DEBUG_TRANS("UDP RX <---    :: {TX: %.3f%%, RX: %d, sock=%p} :: payload = %d bytes (src_addr=%d.%d.%d.%d:%d)", 
-						(float)conn->txsz / max, conn->rxsz, (void*)conn->sock, payload_sz, d[0],d[1],d[2],d[3], port);
-				#endif
-	            }
-				// STREAM
-	            //DEBUG_INFO("phyOnUnixWritable(): tid = %d\n", pthread_mach_thread_np(pthread_self()));
-	            if(conn->type==SOCK_STREAM) { // Only acknolwedge receipt of TCP packets
-	                lwipstack->__tcp_recved(conn->TCP_pcb, n);
-	            	DEBUG_TRANS("TCP RX <---    :: {TX: %.3f%%, RX: %.3f%%, sock=%p} :: %ld bytes",
-	                	(float)conn->txsz / max, (float)conn->rxsz / max, (void*)conn->sock, n);
-	        	}
-			} else {
-				DEBUG_EXTRA(" errno = %d, rxsz = %d", errno, conn->rxsz);
-				_phy.setNotifyWritable(conn->sock, false);
-			}
-		*/
-
-			/*
-						float max = conn->type == SOCK_STREAM ? (float)DEFAULT_TCP_RX_BUF_SZ : (float)DEFAULT_UDP_RX_BUF_SZ;
-			long n = _phy.streamSend(conn->sock, conn->rxbuf, ZT_MAX_MTU);
-			int payload_sz, addr_sz_offset = sizeof(struct sockaddr_storage);
-			memcpy(&payload_sz, conn->rxbuf + addr_sz_offset, sizeof(int)); // OPT:
-			// extract address
-			struct sockaddr_storage addr;
-			memcpy(&addr, conn->rxbuf, addr_sz_offset);
-			*/
-
+    	// DEBUG_INFO();
 		Connection *conn = picotap->getConnection(sock);
-		DEBUG_INFO("rxsz=%d", conn->rxsz);
 		if(conn && conn->rxsz) {
 			float max = conn->type == SOCK_STREAM ? (float)DEFAULT_TCP_RX_BUF_SZ : (float)DEFAULT_UDP_RX_BUF_SZ;
 			long n = picotap->_phy.streamSend(conn->sock, conn->rxbuf, /* ZT_MAX_MTU */ conn->rxsz);
-
-			  	DEBUG_INFO(" n=%d", n);
-
+			// DEBUG_INFO(" n=%d", n);
 			// extract address and payload size info
 			if(conn->type==SOCK_DGRAM) {
 				int payload_sz, addr_sz_offset = sizeof(struct sockaddr_storage);
@@ -578,7 +578,6 @@ static NetconEthernetTap *picotap;
 					memcpy(conn->rxbuf, conn->rxbuf+ZT_MAX_MTU, conn->rxsz - ZT_MAX_MTU);
 			  	conn->rxsz -= ZT_MAX_MTU;
 			}
-
 			if(conn->type==SOCK_STREAM) {
 				//int payload_sz, addr_sz_offset = sizeof(struct sockaddr_storage);
 				//memcpy(&payload_sz, conn->rxbuf + addr_sz_offset, sizeof(int));
@@ -588,15 +587,15 @@ static NetconEthernetTap *picotap;
 				if(conn->rxsz-n > 0) // If more remains on buffer
 					memcpy(conn->rxbuf, conn->rxbuf+n, conn->rxsz - n);
 			  	conn->rxsz -= n;
-			  	DEBUG_INFO(" rxsz=%d", conn->rxsz);
+			  	DEBUG_INFO("rxsz=%d", conn->rxsz);
 			}
-
 			if(n) {
 				//DEBUG_INFO("wrote %d bytes to client application", n);
 				if(conn->type==SOCK_STREAM) { // Only acknolwedge receipt of TCP packets
-	            	DEBUG_TRANS("[TCP  RX] <---    :: {TX: %.3f%%, RX: %.3f%%, sock=%p} :: %ld bytes",
+	            	DEBUG_TRANS("[TCP RX] <---    :: {TX: %.3f%%, RX: %.3f%%, sock=%p} :: %ld bytes",
 	                	(float)conn->txsz / max, (float)conn->rxsz / max, (void*)conn->sock, n);
 	        	}
+	        	picotap->_phy.setNotifyWritable(conn->sock, true);
 			}
 			if(!n || !(conn->rxsz)) {
 				//DEBUG_ERROR("error writing %d-byte-sized chunk to client socket", ZT_MAX_MTU);
@@ -605,6 +604,7 @@ static NetconEthernetTap *picotap;
 		}
     }
 
+    // Closes a pico_socket
     static void pico_handleClose(Connection *conn)
     {
     	DEBUG_INFO();
@@ -618,15 +618,6 @@ static NetconEthernetTap *picotap;
     	}
     	DEBUG_ERROR("invalid connection or pico_socket");
     }
-
-
-
-
-
-
-
-
-
 
 
 
@@ -830,7 +821,7 @@ bool NetconEthernetTap::addIp(const InetAddress &ip)
     #if defined(SDK_LWIP)
 		lwIP_init_interface(ip);
 	#elif defined(SDK_PICOTCP)
-		picoTCP_init_interface(ip);
+		pico_init_interface(this, ip);
 	#elif defined(SDK_JIP)
 		jip_init_interface(ip);
 	#endif
@@ -898,54 +889,21 @@ void NetconEthernetTap::lwIP_rx(const MAC &from,const MAC &to,unsigned int ether
 	}
 }
 
-void NetconEthernetTap::picoTCP_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
-{
-	//DEBUG_INFO();
-	// Since picoTCP only allows the reception of frames from within the polling function, we
-	// must enqueue each frame into a memory structure shared by both threads. This structure will
-	Mutex::Lock _l(_pico_frame_rxbuf_m);
-	if(len > ((1024 * 1024) - pico_frame_rxbuf_tot)) {
-		DEBUG_ERROR("dropping packet (len = %d) - not enough space left on RX frame buffer", len);
-		return;
-	}
-	//if(len != memcpy(pico_frame_rxbuf, data, len)) {
-	//	DEBUG_ERROR("dropping packet (len = %d) - unable to copy contents of frame to RX frame buffer", len);
-	//	return;
-	//}
-
-	// assemble new eth header
-	struct eth_hdr ethhdr;
-	from.copyTo(ethhdr.src.addr, 6);
-	to.copyTo(ethhdr.dest.addr, 6);
-	ethhdr.type = Utils::hton((uint16_t)etherType);
-	int newlen = len+sizeof(struct eth_hdr);
-
-	memcpy(pico_frame_rxbuf + pico_frame_rxbuf_tot, &newlen, sizeof(newlen));                      // size of frame
-	memcpy(pico_frame_rxbuf + pico_frame_rxbuf_tot + sizeof(newlen), &ethhdr, sizeof(ethhdr));     // new eth header
-	memcpy(pico_frame_rxbuf + pico_frame_rxbuf_tot + sizeof(newlen) + sizeof(ethhdr), data, len);  // frame data
-	pico_frame_rxbuf_tot += len + sizeof(len) + sizeof(ethhdr);
-	//DEBUG_INFO("RX frame buffer %3f full", (float)pico_frame_rxbuf_tot / (float)(1024 * 1024));
-	DEBUG_INFO("len=%d", len);
-}
 
 void NetconEthernetTap::jip_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
 {
 	DEBUG_INFO();
 }
 
-
-
 void NetconEthernetTap::put(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
 {
-    DEBUG_EXTRA("RX packet: len=%d, etherType=%d", len, etherType);
-
+    // DEBUG_EXTRA("RX packet: len=%d, etherType=%d", len, etherType);
     // SIP-
     // RX packet
-
     #if defined(SDK_LWIP)
 		lwIP_rx(from,to,etherType,data,len);
 	#elif defined(SDK_PICOTCP)
-		picoTCP_rx(from,to,etherType,data,len);
+		pico_rx(this, from,to,etherType,data,len);
 	#elif defined(SDK_JIP)
 		jip_rx(from,to,etherType,data,len);
 	#endif
@@ -1062,17 +1020,6 @@ void NetconEthernetTap::lwIP_loop()
     lwipstack->close();
 }
 
-void NetconEthernetTap::picoTCP_loop()
-{
-	DEBUG_INFO();
-	while(_run)
-	{
-		_phy.poll((unsigned long)std::min(100,200));
-		usleep(1000);
-        picostack->__pico_stack_tick();
-	}
-}
-
 void NetconEthernetTap::jip_loop()
 {
 	DEBUG_INFO();
@@ -1090,7 +1037,7 @@ void NetconEthernetTap::threadMain()
     #if defined(SDK_LWIP)
 		lwIP_loop();
 	#elif defined(SDK_PICOTCP)
-		picoTCP_loop();
+		pico_loop(this);
 	#elif defined(SDK_JIP)
 		jip_loop();
 	#endif
@@ -1278,8 +1225,7 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
 	if(detected_rpc) {
 		unloadRPC(data, pid, tid, timestamp, CANARY, cmd, payload);
 		memcpy(&CANARY_num, CANARY, CANARY_SZ);
-		DEBUG_EXTRA(" RPC: sock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", 
-			(void*)&sock, pid, tid, timestamp, cmd);
+		// DEBUG_EXTRA(" RPC: sock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", (void*)&sock, pid, tid, timestamp, cmd);
 
 		if(cmd == RPC_SOCKET) {				
 			DEBUG_INFO("  RPC_SOCKET, sock=%p", (void*)&sock);
@@ -1372,8 +1318,7 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
         rpcSock = sockdata.first;
         buf = (unsigned char*)sockdata.second;
 		unloadRPC(buf, pid, tid, timestamp, CANARY, cmd, payload);
-		DEBUG_EXTRA(" RPC: sock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", 
-			(void*)&sock, pid, tid, timestamp, cmd);
+		//DEBUG_EXTRA(" RPC: sock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", (void*)&sock, pid, tid, timestamp, cmd);
 
 		switch(cmd) {
 			case RPC_BIND:
@@ -2224,7 +2169,7 @@ void NetconEthernetTap::handleWrite(Connection *conn)
 					d[1] = (ip >>  8) & 0xFF;
 					d[2] = (ip >> 16) & 0xFF;
 					d[3] = (ip >> 24) & 0xFF;
-					DEBUG_TRANS("[UDP  TX] --->    :: {TX: ------, RX: ------, sock=%p} :: %d bytes (dest_addr=%d.%d.%d.%d:%d)", 
+					DEBUG_TRANS("[UDP TX] --->    :: {TX: ------, RX: ------, sock=%p} :: %d bytes (dest_addr=%d.%d.%d.%d:%d)", 
 						(void*)conn->sock, udp_trans_len, d[0], d[1], d[2], d[3], port);
 				#endif
 	        }
@@ -2275,7 +2220,7 @@ void NetconEthernetTap::handleWrite(Connection *conn)
 	                        memmove(&conn->txbuf, (conn->txbuf+r), sz);
 	                    conn->txsz -= r;
 	                    int max = conn->type == SOCK_STREAM ? DEFAULT_TCP_TX_BUF_SZ : DEFAULT_UDP_TX_BUF_SZ;
-	                    DEBUG_TRANS("[TCP  TX] --->    :: {TX: %.3f%%, RX: %.3f%%, sock=%p} :: %d bytes",
+	                    DEBUG_TRANS("[TCP TX] --->    :: {TX: %.3f%%, RX: %.3f%%, sock=%p} :: %d bytes",
 	                        (float)conn->txsz / (float)max, (float)conn->rxsz / max, (void*)&conn->sock, r);
 	                    return;
 	                }

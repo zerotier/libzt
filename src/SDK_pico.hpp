@@ -28,9 +28,6 @@
 #ifndef SDK_PICOSTACK_H
 #define SDK_PICOSTACK_H
 
-#include "Mutex.hpp"
-#include "OSUtils.hpp"
-#include "SDK_Debug.h"
 
 #include <stdio.h>
 #include <dlfcn.h>
@@ -39,7 +36,14 @@
 #define _GNU_SOURCE
 #endif
 
-
+#include "Utils.hpp"
+#include "OSUtils.hpp"
+#include "Mutex.hpp"
+#include "Constants.hpp"
+#include "Phy.hpp"
+ 
+#include "SDK_Debug.h"
+#include "SDK_EthernetTap.hpp"
 #include "SDK_pico.hpp"
 
 #include "pico_stack.h"
@@ -49,7 +53,7 @@
 #include "pico_protocol.h"
 #include "pico_socket.h"
 
-
+// picoTCP API function signatures
 #define PICO_IPV4_TO_STRING_SIG char *ipbuf, const uint32_t ip
 #define PICO_TAP_CREATE_SIG char *name
 #define PICO_IPV4_LINK_ADD_SIG struct pico_device *dev, struct pico_ip4 address, struct pico_ip4 netmask

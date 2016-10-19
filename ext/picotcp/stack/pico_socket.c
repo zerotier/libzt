@@ -548,7 +548,7 @@ static int pico_socket_deliver(struct pico_protocol *p, struct pico_frame *f, ui
 
     sp = pico_get_sockport(p->proto_number, localport);
     if (!sp) {
-        dbg("No such port %d\n", short_be(localport));
+        //dbg("No such port %d\n", short_be(localport));
         return -1;
     }
 

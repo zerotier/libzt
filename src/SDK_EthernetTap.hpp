@@ -52,7 +52,7 @@
 #include "SDK_pico.hpp"
 #include "SDK_jip.hpp"
 
- 	#include "pico_protocol.h"
+#include "pico_protocol.h"
 
 
 // lwIP structs
@@ -144,12 +144,10 @@ namespace ZeroTier {
 		Mutex _pico_frame_rxbuf_m;
 
 			void lwIP_loop();
-			void picoTCP_loop();
 			void jip_loop();
 
 			// rx
 			void lwIP_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
-			void picoTCP_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
 			void jip_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
 
 			void lwIP_init_interface(const InetAddress &ip);
@@ -523,11 +521,9 @@ namespace ZeroTier {
 
 		Mutex _ips_m, _tcpconns_m, _rx_buf_m, _close_m;
 
-	private:
-
 		unsigned int _mtu;
 		volatile bool _enabled;
-		volatile bool _run;
+		volatile bool _run;	
 	};
 
 } // namespace ZeroTier

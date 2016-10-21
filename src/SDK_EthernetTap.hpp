@@ -48,8 +48,8 @@
 
 #include "SDK_defs.h"
 #include "SDK_RPC.h"
-#include "SDK_lwip.hpp"
-#include "SDK_pico.hpp"
+#include "SDK_lwIP.hpp"
+#include "SDK_picoTCP.hpp"
 #include "SDK_jip.hpp"
 
 #include "pico_protocol.h"
@@ -138,21 +138,6 @@ namespace ZeroTier {
 
 		// SIP-
 
-		struct pico_device picodev;
-		unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
-		int pico_frame_rxbuf_tot = 0;
-		Mutex _pico_frame_rxbuf_m;
-
-			void lwIP_loop();
-			void jip_loop();
-
-			// rx
-			void lwIP_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
-			void jip_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
-
-			void lwIP_init_interface(const InetAddress &ip);
-			void jip_init_interface(const InetAddress &ip);
-
 		void threadMain()
 			throw();
 
@@ -174,9 +159,26 @@ namespace ZeroTier {
 
 		std::string _homePath;
 
-		lwIP_stack *lwipstack;
-		picoTCP_stack *picostack;
+		// lwIP
+		void lwIP_loop();
+		void lwIP_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
+		void lwIP_init_interface(const InetAddress &ip);
+		#if defined(SDK_LWIP)
+			lwIP_stack *lwipstack;
+		#endif
+
+		// jip
+		void jip_loop();
+		void jip_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
+		void jip_init_interface(const InetAddress &ip);
 		jip_stack *jipstack;
+
+		// picoTCP
+		struct pico_device picodev;
+		unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
+		int pico_frame_rxbuf_tot = 0;
+		Mutex _pico_frame_rxbuf_m;
+		picoTCP_stack *picostack;
 
 		// LWIP callbacks
 		// NOTE: these are called from within LWIP, meaning that lwipstack->_lock is ALREADY

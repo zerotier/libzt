@@ -37,6 +37,8 @@
 #include "lwip/init.h"
 #include "lwip/udp.h"
 #include "lwip/tcp.h"
+#include "lwip/priv/tcp_priv.h"
+
 
 #include "Mutex.hpp"
 #include "OSUtils.hpp"
@@ -50,6 +52,19 @@
 #endif
 
 struct tcp_pcb;
+
+#if defined(SDK_IPV4)
+    #define NETIF_ADD_SIG struct netif *netif, ip_addr_t *ipaddr, ip_addr_t *netmask, ip_addr_t *gw, void *state, netif_init_fn init, netif_input_fn input
+    #define ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip4_addr_t *ipaddr
+#endif
+
+#if defined(SDK_IPV6)
+    #define NETIF_ADD_SIG struct netif *netif, void *state, netif_init_fn init, netif_input_fn input
+    #define ETHIP6_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip6_addr_t *ip6addr
+    #define ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip6_addr_t *ipaddr
+    #define NETIF_IP6_ADDR_SET_STATE_SIG struct netif* netif, s8_t addr_idx, u8_t state
+    #define NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG struct netif *netif, u8_t from_mac_48bit
+#endif
 
 // lwip General Stack API
 #define PBUF_FREE_SIG struct pbuf *p
@@ -89,8 +104,6 @@ struct tcp_pcb;
 #define TCP_INPUT_SIG struct pbuf *p, struct netif *inp
 
 // lwIP network stack interfaces
-#define NETIF_IP6_ADDR_SET_STATE_SIG struct netif* netif, s8_t addr_idx, u8_t state
-#define NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG struct netif *netif, u8_t from_mac_48bit
 #define ETHERNET_INPUT_SIG struct pbuf *p, struct netif *netif
 #define IP_INPUT_SIG struct pbuf *p, struct netif *inp
 #define NETIF_SET_DEFAULT_SIG struct netif *netif
@@ -98,17 +111,6 @@ struct tcp_pcb;
 #define NETIF_POLL_SIG struct netif *netif
 
 //#define NETIF_SET_ADDR_SIG struct netif *netif, const ip4_addr_t *ipaddr, const ip4_addr_t *netmask, const ip4_addr_t *gw
-
-#if defined(SDK_IPV6)
-    #define NETIF_ADD_SIG struct netif *netif, void *state, netif_init_fn init, netif_input_fn input
-    #define ETHIP6_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip6_addr_t *ip6addr
-    #define ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip6_addr_t *ipaddr
-#endif
-
-#if defined(SDK_IPV4)
-    #define NETIF_ADD_SIG struct netif *netif, ip_addr_t *ipaddr, ip_addr_t *netmask, ip_addr_t *gw, void *state, netif_init_fn init, netif_input_fn input
-    #define ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip4_addr_t *ipaddr
-#endif
 
 namespace ZeroTier {
     
@@ -135,15 +137,15 @@ namespace ZeroTier {
 #endif
         }
 
+        #if defined(SDK_IPV4)
+                err_t (*_etharp_output)(ETHARP_OUTPUT_SIG);
+        #endif
+        
         #if defined(SDK_IPV6)
             err_t (*_ethip6_output)(ETHIP6_OUTPUT_SIG);
             void (*_nd6_tmr)(void);
             void (*_netif_ip6_addr_set_state)(NETIF_IP6_ADDR_SET_STATE_SIG);
             void (*_netif_create_ip6_linklocal_address)(NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG);
-        #endif
-
-        #if defined(SDK_IPV4)
-            err_t (*_etharp_output)(ETHARP_OUTPUT_SIG);
         #endif
 
         void (*_netif_init)(void);
@@ -221,6 +223,17 @@ namespace ZeroTier {
             
 #ifdef __STATIC_LWIP__ // Set static references (for use in iOS)
 
+            #if defined(SDK_IPV4)
+                        _etharp_output = (err_t(*)(ETHARP_OUTPUT_SIG))&etharp_output;
+            #endif
+                        
+            #if defined(SDK_IPV6)
+                        _nd6_tmr = (void(*)(void))&nd6_tmr;
+                        _netif_ip6_addr_set_state = (void(*)(NETIF_IP6_ADDR_SET_STATE_SIG))&netif_ip6_addr_set_state;
+                        _netif_create_ip6_linklocal_address = (void(*)(NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG))&netif_create_ip6_linklocal_address;
+                        _ethip6_output = (err_t(*)(ETHIP6_OUTPUT_SIG))&ethip6_output;
+            #endif
+            
             _netif_init = (void(*)(void))&netif_init;
             _ethernet_input = (err_t(*)(ETHERNET_INPUT_SIG))&ethernet_input;
             _lwip_init = (void(*)(void))&lwip_init;
@@ -260,17 +273,6 @@ namespace ZeroTier {
             _netif_add = (struct netif*(*)(NETIF_ADD_SIG))&netif_add;
             _netif_set_up = (void(*)(NETIF_SET_UP_SIG))&netif_set_up;
 
-            #if defined(SDK_IPV6)
-                _nd6_tmr = (void(*)(void))&nd6_tmr;
-                _netif_ip6_addr_set_state = (void(*)(NETIF_IP6_ADDR_SET_STATE_SIG))&netif_ip6_addr_set_state;
-                _netif_create_ip6_linklocal_address = (void(*)(NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG))&netif_create_ip6_linklocal_address;
-                _ethip6_output = (err_t(*)(ETHIP6_OUTPUT_SIG))&ethip6_output;
-            #endif
-
-            #if defined(SDK_IPV6)
-                _etharp_output = (err_t(*)(ETHARP_OUTPUT_SIG))&etharp_output;
-            #endif
-
 #endif
             
 #ifdef __DYNAMIC_LWIP__ // Use dynamically-loaded symbols (for use in normal desktop applications)
@@ -278,16 +280,16 @@ namespace ZeroTier {
             if(_libref == NULL)
                 DEBUG_ERROR("dlerror(): %s", dlerror());
             
-        #if defined(SDK_IPV4)
-            _etharp_output = (err_t(*)(ETHARP_OUTPUT_SIG))dlsym(_libref, "etharp_output");
-        #endif
+            #if defined(SDK_IPV4)
+                _etharp_output = (err_t(*)(ETHARP_OUTPUT_SIG))dlsym(_libref, "etharp_output");
+            #endif
 
-        #if defined(SDK_IPV6)
-            _nd6_tmr = (void(*)(void))dlsym(_libref, "nd6_tmr");
-            _netif_ip6_addr_set_state = (void(*)(NETIF_IP6_ADDR_SET_STATE_SIG))dlsym(_libref, "netif_ip6_addr_set_state");
-            _netif_create_ip6_linklocal_address = (void(*)(NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG))dlsym(_libref, "netif_create_ip6_linklocal_address");
-            _ethip6_output = (err_t(*)(ETHIP6_OUTPUT_SIG))dlsym(_libref, "ethip6_output");
-        #endif
+            #if defined(SDK_IPV6)
+                _nd6_tmr = (void(*)(void))dlsym(_libref, "nd6_tmr");
+                _netif_ip6_addr_set_state = (void(*)(NETIF_IP6_ADDR_SET_STATE_SIG))dlsym(_libref, "netif_ip6_addr_set_state");
+                _netif_create_ip6_linklocal_address = (void(*)(NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG))dlsym(_libref, "netif_create_ip6_linklocal_address");
+                _ethip6_output = (err_t(*)(ETHIP6_OUTPUT_SIG))dlsym(_libref, "ethip6_output");
+            #endif
 
             _netif_init = (void(*)(void))dlsym(_libref, "netif_init");
             // _netif_set_addr = (void(*))(NETIF_SET_ADDR_SIG))dlsym(_libref, "netif_set_addr");
@@ -340,6 +342,19 @@ namespace ZeroTier {
                 dlclose(_libref);
         }
         
+        
+        #if defined(SDK_IPV4)
+                inline struct netif * __netif_add(NETIF_ADD_SIG) throw() { Mutex::Lock _l(_lock); return _netif_add(netif,ipaddr,netmask,gw,state,init,input); }
+        #endif
+                
+        #if defined(SDK_IPV6)
+                inline struct netif * __netif_add(NETIF_ADD_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _netif_add(netif,state,init,input); }
+                inline void __nd6_tmr(void) throw() { /*DEBUG_STACK();*/ Mutex::Lock _l(_lock); _nd6_tmr(); }
+                inline void __netif_ip6_addr_set_state(NETIF_IP6_ADDR_SET_STATE_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); _netif_ip6_addr_set_state(netif, addr_idx, state);  }
+                inline void __netif_create_ip6_linklocal_address(NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); _netif_create_ip6_linklocal_address(netif, from_mac_48bit); }
+                inline err_t __ethip6_output(ETHIP6_OUTPUT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _ethip6_output(netif,q,ip6addr); }
+        #endif
+        
         inline void __netif_init(void) throw() { Mutex::Lock _l(_lock); _netif_init(); }
         // inline void __netif_set_addr(NETIF_SET_ADDR_SIG) throw() { Mutex::Lock _l(_lock); _netif_set_addr(netif, ipaddr, netmask, gw); }
 
@@ -384,17 +399,6 @@ namespace ZeroTier {
         inline err_t __ip_input(IP_INPUT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _ip_input(p,inp); }
         inline void __netif_set_default(NETIF_SET_DEFAULT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _netif_set_default(netif); }
         inline void __netif_set_up(NETIF_SET_UP_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _netif_set_up(netif); }
-
-        #if defined(SDK_IPV6)
-            inline struct netif * __netif_add(NETIF_ADD_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _netif_add(netif,state,init,input); }
-            inline void __nd6_tmr(void) throw() { /*DEBUG_STACK();*/ Mutex::Lock _l(_lock); _nd6_tmr(); }
-            inline void __netif_ip6_addr_set_state(NETIF_IP6_ADDR_SET_STATE_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); _netif_ip6_addr_set_state(netif, addr_idx, state);  }
-            inline void __netif_create_ip6_linklocal_address(NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); _netif_create_ip6_linklocal_address(netif, from_mac_48bit); }
-            inline err_t __ethip6_output(ETHIP6_OUTPUT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _ethip6_output(netif,q,ip6addr); }
-        #endif
-        #if defined(SDK_IPV4)
-            inline struct netif * __netif_add(NETIF_ADD_SIG) throw() { Mutex::Lock _l(_lock); return _netif_add(netif,ipaddr,netmask,gw,state,init,input); }
-        #endif
 };
     
 } // namespace ZeroTier

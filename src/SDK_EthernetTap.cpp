@@ -694,8 +694,9 @@ NetconEthernetTap::NetconEthernetTap(
 
 	// SIP-0
 	// Load and initialize network stack library
-
     #if defined(SDK_LWIP)
+    DEBUG_INFO("Did I get here?");
+
 		Utils::snprintf(stackPath,sizeof(stackPath),"%s%sliblwip.so",homePath,ZT_PATH_SEPARATOR_S);
 		lwipstack = new lwIP_stack(stackPath);
 		if(!lwipstack) {
@@ -703,6 +704,7 @@ NetconEthernetTap::NetconEthernetTap(
 			throw std::runtime_error("");
 		}
 		lwipstack->__lwip_init();
+		DEBUG_EXTRA("network stack initialized (%p)", lwipstack);
 	#elif defined(SDK_PICOTCP)
 		Utils::snprintf(stackPath,sizeof(stackPath),"%s%slibpicotcp.so",homePath,ZT_PATH_SEPARATOR_S);
 		picostack = new picoTCP_stack(stackPath);
@@ -711,6 +713,7 @@ NetconEthernetTap::NetconEthernetTap(
 			throw std::runtime_error("");
 		}
 		picostack->__pico_stack_init();
+		DEBUG_EXTRA("network stack initialized (%p)", picostack);
 	#elif defined(SDK_JIP)
 		Utils::snprintf(stackPath,sizeof(stackPath),"%s%slibjip.so",homePath,ZT_PATH_SEPARATOR_S);
 		jipstack = new jip_stack(stackPath);

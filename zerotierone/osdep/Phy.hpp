@@ -918,7 +918,7 @@ public:
 					}
 					if ((FD_ISSET(sock,&wfds))&&(FD_ISSET(sock,&_writefds))) {
 						try {
-							_handler->phyOnTcpWritable((PhySocket *)&(*s),&(s->uptr),false);
+							_handler->phyOnTcpWritable((PhySocket *)&(*s),&(s->uptr));
 						} catch ( ... ) {}
 					}
 				}	break;

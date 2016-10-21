@@ -20,9 +20,11 @@
 #define ZT_ATOMICCOUNTER_HPP
 
 #include "Constants.hpp"
+#include "Mutex.hpp"
 #include "NonCopyable.hpp"
 
-#ifndef __GNUC__
+#ifdef __WINDOWS__
+// <atomic> will replace this whole class eventually once it's ubiquitous
 #include <atomic>
 #endif
 
@@ -34,34 +36,75 @@ namespace ZeroTier {
 class AtomicCounter : NonCopyable
 {
 public:
+	/**
+	 * Initialize counter at zero
+	 */
 	AtomicCounter()
+		throw()
 	{
 		_v = 0;
 	}
 
+	inline operator int() const
+		throw()
+	{
+#ifdef __GNUC__
+		return __sync_or_and_fetch(const_cast <volatile int *>(&_v),0);
+#else
+#ifdef __WINDOWS__
+		return (int)_v;
+#else
+		_l.lock();
+		int v = _v;
+		_l.unlock();
+		return v;
+#endif
+#endif
+	}
+
 	inline int operator++()
+		throw()
 	{
 #ifdef __GNUC__
 		return __sync_add_and_fetch(&_v,1);
 #else
+#ifdef __WINDOWS__
 		return ++_v;
+#else
+		_l.lock();
+		int v = ++_v;
+		_l.unlock();
+		return v;
+#endif
 #endif
 	}
 
 	inline int operator--()
+		throw()
 	{
 #ifdef __GNUC__
 		return __sync_sub_and_fetch(&_v,1);
 #else
+#ifdef __WINDOWS__
 		return --_v;
+#else
+		_l.lock();
+		int v = --_v;
+		_l.unlock();
+		return v;
+#endif
 #endif
 	}
 
 private:
-#ifdef __GNUC__
-	int _v;
-#else
+#ifdef __WINDOWS__
 	std::atomic_int _v;
+#else
+	int _v;
+#ifndef __GNUC__
+#warning Neither __WINDOWS__ nor __GNUC__ so AtomicCounter using Mutex
+	Mutex _l;
+#endif
 #endif
 };
 

@@ -861,14 +861,6 @@ void WindowsEthernetTap::scanMulticastGroups(std::vector<MulticastGroup> &added,
 	_multicastGroups.swap(newGroups);
 }
 
-NET_IFINDEX WindowsEthernetTap::interfaceIndex() const
-{
-	NET_IFINDEX idx = -1;
-	if (ConvertInterfaceLuidToIndex(&_deviceLuid,&idx) == NO_ERROR)
-		return idx;
-	return -1;
-}
-
 void WindowsEthernetTap::threadMain()
 	throw()
 {

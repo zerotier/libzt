@@ -37,11 +37,7 @@
 #endif
 
 #ifdef __WINDOWS__
-#include <windows.h>
 #include <wincrypt.h>
-#include <ShlObj.h>
-#include <netioapi.h>
-#include <iphlpapi.h>
 #endif
 
 #include "OSUtils.hpp"
@@ -105,86 +101,6 @@ std::vector<std::string> OSUtils::listDirectory(const char *path)
 #endif
 
 	return r;
-}
-
-std::vector<std::string> OSUtils::listSubdirectories(const char *path)
-{
-	std::vector<std::string> r;
-
-#ifdef __WINDOWS__
-	HANDLE hFind;
-	WIN32_FIND_DATAA ffd;
-	if ((hFind = FindFirstFileA((std::string(path) + "\\*").c_str(),&ffd)) != INVALID_HANDLE_VALUE) {
-		do {
-			if ((strcmp(ffd.cFileName,"."))&&(strcmp(ffd.cFileName,".."))&&((ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0))
-				r.push_back(std::string(ffd.cFileName));
-		} while (FindNextFileA(hFind,&ffd));
-		FindClose(hFind);
-	}
-#else
-	struct dirent de;
-	struct dirent *dptr;
-	DIR *d = opendir(path);
-	if (!d)
-		return r;
-	dptr = (struct dirent *)0;
-	for(;;) {
-		if (readdir_r(d,&de,&dptr))
-			break;
-		if (dptr) {
-			if ((strcmp(dptr->d_name,"."))&&(strcmp(dptr->d_name,".."))&&(dptr->d_type == DT_DIR))
-				r.push_back(std::string(dptr->d_name));
-		} else break;
-	}
-	closedir(d);
-#endif
-
-	return r;
-}
-
-bool OSUtils::rmDashRf(const char *path)
-{
-#ifdef __WINDOWS__
-	HANDLE hFind;
-	WIN32_FIND_DATAA ffd;
-	if ((hFind = FindFirstFileA((std::string(path) + "\\*").c_str(),&ffd)) != INVALID_HANDLE_VALUE) {
-		do {
-			if ((strcmp(ffd.cFileName,".") != 0)&&(strcmp(ffd.cFileName,"..") != 0)) {
-				if ((ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
-					if (DeleteFileA((std::string(path) + ZT_PATH_SEPARATOR_S + ffd.cFileName).c_str()) == FALSE)
-						return false;
-				} else {
-					if (!rmDashRf((std::string(path) + ZT_PATH_SEPARATOR_S + ffd.cFileName).c_str()))
-						return false;
-				}
-			}
-		} while (FindNextFileA(hFind,&ffd));
-		FindClose(hFind);
-	}
-	return (RemoveDirectoryA(path) != FALSE);
-#else
-	struct dirent de;
-	struct dirent *dptr;
-	DIR *d = opendir(path);
-	if (!d)
-		return true;
-	dptr = (struct dirent *)0;
-	for(;;) {
-		if (readdir_r(d,&de,&dptr))
-			break;
-		if ((dptr)&&(strcmp(dptr->d_name,".") != 0)&&(strcmp(dptr->d_name,"..") != 0)) {
-			std::string p(path);
-			p.push_back(ZT_PATH_SEPARATOR);
-			p.append(dptr->d_name);
-			if (unlink(p.c_str()) != 0) {
-				if (!rmDashRf(p.c_str()))
-					return false;
-			}
-		} else break;
-	}
-	closedir(d);
-	return (rmdir(path) == 0);
-#endif
 }
 
 void OSUtils::lockDownFile(const char *path,bool isDir)
@@ -309,42 +225,6 @@ bool OSUtils::writeFile(const char *path,const void *buf,unsigned int len)
 		}
 	}
 	return false;
-}
-
-std::string OSUtils::platformDefaultHomePath()
-{
-#ifdef __UNIX_LIKE__
-
-#ifdef __APPLE__
-	// /Library/... on Apple
-	return std::string("/Library/Application Support/ZeroTier/One");
-#else
-
-#ifdef __BSD__
-	// BSD likes /var/db instead of /var/lib
-	return std::string("/var/db/zerotier-one");
-#else
-	// Use /var/lib for Linux and other *nix
-	return std::string("/var/lib/zerotier-one");
-#endif
-
-#endif
-
-#else // not __UNIX_LIKE__
-
-#ifdef __WINDOWS__
-	// Look up app data folder on Windows, e.g. C:\ProgramData\...
-	char buf[16384];
-	if (SUCCEEDED(SHGetFolderPathA(NULL,CSIDL_COMMON_APPDATA,NULL,0,buf)))
-		return (std::string(buf) + "\\ZeroTier\\One");
-	else return std::string("C:\\ZeroTier\\One");
-#else
-
-	return (std::string(ZT_PATH_SEPARATOR_S) + "ZeroTier" + ZT_PATH_SEPARATOR_S + "One"); // UNKNOWN PLATFORM
-
-#endif
-
-#endif // __UNIX_LIKE__ or not...
 }
 
 // Used to convert HTTP header names to ASCII lower case

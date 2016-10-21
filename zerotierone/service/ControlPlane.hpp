@@ -31,7 +31,7 @@ namespace ZeroTier {
 
 class OneService;
 class Node;
-class EmbeddedNetworkController;
+class SqliteNetworkController;
 struct InetAddress;
 
 /**
@@ -43,16 +43,18 @@ public:
 	ControlPlane(OneService *svc,Node *n,const char *uiStaticPath);
 	~ControlPlane();
 
+#ifdef ZT_ENABLE_NETWORK_CONTROLLER
 	/**
 	 * Set controller, which will be available under /controller
 	 *
 	 * @param c Network controller instance
 	 */
-	inline void setController(EmbeddedNetworkController *c)
+	inline void setController(SqliteNetworkController *c)
 	{
 		Mutex::Lock _l(_lock);
 		_controller = c;
 	}
+#endif
 
 	/**
 	 * Add an authentication token for API access
@@ -87,7 +89,9 @@ public:
 private:
 	OneService *const _svc;
 	Node *const _node;
-	EmbeddedNetworkController *_controller;
+#ifdef ZT_ENABLE_NETWORK_CONTROLLER
+	SqliteNetworkController *_controller;
+#endif
 	std::string _uiStaticPath;
 	std::set<std::string> _authTokens;
 	Mutex _lock;

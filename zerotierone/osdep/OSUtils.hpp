@@ -105,25 +105,9 @@ public:
 	 * This returns only files, not sub-directories.
 	 *
 	 * @param path Path to list
-	 * @return Names of files in directory (without path prepended)
+	 * @return Names of files in directory
 	 */
 	static std::vector<std::string> listDirectory(const char *path);
-
-	/**
-	 * List a directory's subdirectories
-	 *
-	 * @param path Path to list
-	 * @return Names of subdirectories (without path prepended)
-	 */
-	static std::vector<std::string> listSubdirectories(const char *path);
-
-	/**
-	 * Delete a directory and all its files and subdirectories recursively
-	 *
-	 * @param path Path to delete
-	 * @return True on success
-	 */
-	static bool rmDashRf(const char *path);
 
 	/**
 	 * Set modes on a file to something secure
@@ -250,11 +234,6 @@ public:
 	 * @return Lower case ASCII character or unchanged if not a letter
 	 */
 	static inline char toLower(char c) throw() { return (char)OSUtils::TOLOWER_TABLE[(unsigned long)c]; }
-
-	/**
-	 * @return Platform default ZeroTier One home path
-	 */
-	static std::string platformDefaultHomePath();
 
 private:
 	static const unsigned char TOLOWER_TABLE[256];

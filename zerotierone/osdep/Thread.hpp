@@ -125,16 +125,7 @@ public:
 		throw()
 	{
 		memset(&_tid,0,sizeof(_tid));
-		pthread_attr_init(&_tattr);
-		// This corrects for systems with abnormally small defaults (musl) and also
-		// shrinks the stack on systems with large defaults to save a bit of memory.
-		pthread_attr_setstacksize(&_tattr,524288);
 		_started = false;
-	}
-
-	~Thread()
-	{
-		pthread_attr_destroy(&_tattr);
 	}
 
 	Thread(const Thread &t)
@@ -166,7 +157,7 @@ public:
 	{
 		Thread t;
 		t._started = true;
-		if (pthread_create(&t._tid,&t._tattr,&___zt_threadMain<C>,instance))
+		if (pthread_create(&t._tid,(const pthread_attr_t *)0,&___zt_threadMain<C>,instance))
 			throw std::runtime_error("pthread_create() failed, unable to create thread");
 		return t;
 	}
@@ -193,7 +184,6 @@ public:
 
 private:
 	pthread_t _tid;
-	pthread_attr_t _tattr;
 	volatile bool _started;
 };
 

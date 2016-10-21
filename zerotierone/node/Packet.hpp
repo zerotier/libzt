@@ -34,11 +34,7 @@
 #include "Utils.hpp"
 #include "Buffer.hpp"
 
-#ifdef ZT_USE_SYSTEM_LZ4
-#include <lz4.h>
-#else
 #include "../ext/lz4/lz4.h"
-#endif
 
 /**
  * Protocol version -- incremented only for major changes
@@ -51,23 +47,14 @@
  *   + Yet another multicast redesign
  *   + New crypto completely changes key agreement cipher
  * 4 - 0.6.0 ... 1.0.6
- *   + BREAKING CHANGE: New identity format based on hashcash design
- * 5 - 1.1.0 ... 1.1.5
+ *   + New identity format based on hashcash design
+ * 5 - 1.1.0 ... CURRENT
  *   + Supports circuit test, proof of work, and echo
  *   + Supports in-band world (root server definition) updates
  *   + Clustering! (Though this will work with protocol v4 clients.)
  *   + Otherwise backward compatible with protocol v4
- * 6 - 1.1.5 ... 1.1.10
- *   + Network configuration format revisions including binary values
- * 7 - 1.1.10 -- 1.2.0
- *   + Introduce trusted paths for local SDN use
- * 8 - 1.2.0  -- CURRENT
- *   + Multipart network configurations for large network configs
- *   + Tags and Capabilities
- *   + Inline push of CertificateOfMembership deprecated
- *   + Certificates of representation for federation and mesh
  */
-#define ZT_PROTO_VERSION 8
+#define ZT_PROTO_VERSION 5
 
 /**
  * Minimum supported protocol version
@@ -106,21 +93,10 @@
 #define ZT_PROTO_CIPHER_SUITE__C25519_POLY1305_SALSA2012 1
 
 /**
- * Cipher suite: NONE
+ * DEPRECATED payload encrypted flag, will be removed for re-use soon.
  *
- * This differs from POLY1305/NONE in that *no* crypto is done, not even
- * authentication. This is for trusted local LAN interconnects for internal
- * SDN use within a data center.
- *
- * For this mode the MAC field becomes a trusted path ID and must match the
- * configured ID of a trusted path or the packet is discarded.
- */
-#define ZT_PROTO_CIPHER_SUITE__NO_CRYPTO_TRUSTED_PATH 2
-
-/**
- * DEPRECATED payload encrypted flag, may be re-used in the future.
- *
- * This has been replaced by the three-bit cipher suite selection field.
+ * This has been replaced by the two-bit cipher suite selection field where
+ * a value of 0 indicates unencrypted (but authenticated) messages.
  */
 #define ZT_PROTO_FLAG_ENCRYPTED 0x80
 
@@ -307,7 +283,6 @@
 #define ZT_PROTO_VERB_MULTICAST_GATHER_IDX_MAC (ZT_PROTO_VERB_MULTICAST_GATHER_IDX_FLAGS + 1)
 #define ZT_PROTO_VERB_MULTICAST_GATHER_IDX_ADI (ZT_PROTO_VERB_MULTICAST_GATHER_IDX_MAC + 6)
 #define ZT_PROTO_VERB_MULTICAST_GATHER_IDX_GATHER_LIMIT (ZT_PROTO_VERB_MULTICAST_GATHER_IDX_ADI + 4)
-#define ZT_PROTO_VERB_MULTICAST_GATHER_IDX_COM (ZT_PROTO_VERB_MULTICAST_GATHER_IDX_GATHER_LIMIT + 4)
 
 // Note: COM, GATHER_LIMIT, and SOURCE_MAC are optional, and so are specified without size
 #define ZT_PROTO_VERB_MULTICAST_FRAME_IDX_NETWORK_ID (ZT_PACKET_IDX_PAYLOAD)
@@ -355,7 +330,7 @@ namespace ZeroTier {
  *   <[5] destination ZT address>
  *   <[5] source ZT address>
  *   <[1] flags/cipher/hops>
- *   <[8] 64-bit MAC (or trusted path ID in trusted path mode)>
+ *   <[8] 64-bit MAC>
  *   [... -- begin encryption envelope -- ...]
  *   <[1] encrypted flags (MS 3 bits) and verb (LS 5 bits)>
  *   [... verb-specific payload ...]
@@ -528,7 +503,7 @@ public:
 		/**
 		 * No operation (ignored, no reply)
 		 */
-		VERB_NOP = 0x00,
+		VERB_NOP = 0,
 
 		/**
 		 * Announcement of a node's existence:
@@ -539,7 +514,7 @@ public:
 		 *   <[8] timestamp (ms since epoch)>
 		 *   <[...] binary serialized identity (see Identity)>
 		 *   <[1] destination address type>
-		 *   [<[...] destination address to which packet was sent>]
+		 *   [<[...] destination address>]
 		 *   <[8] 64-bit world ID of current world>
 		 *   <[8] 64-bit timestamp of current world>
 		 *
@@ -571,7 +546,7 @@ public:
 		 *
 		 * ERROR has no payload.
 		 */
-		VERB_HELLO = 0x01,
+		VERB_HELLO = 1,
 
 		/**
 		 * Error response:
@@ -580,7 +555,7 @@ public:
 		 *   <[1] error code>
 		 *   <[...] error-dependent payload>
 		 */
-		VERB_ERROR = 0x02,
+		VERB_ERROR = 2,
 
 		/**
 		 * Success response:
@@ -588,29 +563,25 @@ public:
 		 *   <[8] in-re packet ID>
 		 *   <[...] request-specific payload>
 		 */
-		VERB_OK = 0x03,
+		VERB_OK = 3,
 
 		/**
 		 * Query an identity by address:
 		 *   <[5] address to look up>
-		 *   [<[...] additional addresses to look up>
 		 *
 		 * OK response payload:
 		 *   <[...] binary serialized identity>
-		 *  [<[...] additional binary serialized identities>]
 		 *
 		 * If querying a cluster, duplicate OK responses may occasionally occur.
-		 * These must be tolerated, which is easy since they'll have info you
-		 * already have.
+		 * These should be discarded.
 		 *
-		 * If the address is not found, no response is generated. The semantics
-		 * of WHOIS is similar to ARP and NDP in that persistent retrying can
-		 * be performed.
+		 * If the address is not found, no response is generated. WHOIS requests
+		 * will time out much like ARP requests and similar do in L2.
 		 */
-		VERB_WHOIS = 0x04,
+		VERB_WHOIS = 4,
 
 		/**
-		 * Relay-mediated NAT traversal or firewall punching initiation:
+		 * Meet another node at a given protocol address:
 		 *   <[1] flags (unused, currently 0)>
 		 *   <[5] ZeroTier address of peer that might be found at this address>
 		 *   <[2] 16-bit protocol address port>
@@ -624,9 +595,18 @@ public:
 		 *
 		 * Upon receipt a peer sends HELLO to establish a direct link.
 		 *
+		 * Nodes should implement rate control, limiting the rate at which they
+		 * respond to these packets to prevent their use in DDOS attacks. Nodes
+		 * may also ignore these messages if a peer is not known or is not being
+		 * actively communicated with.
+		 *
+		 * Unfortunately the physical address format in this message pre-dates
+		 * InetAddress's serialization format. :( ZeroTier is four years old and
+		 * yes we've accumulated a tiny bit of cruft here and there.
+		 *
 		 * No OK or ERROR is generated.
 		 */
-		VERB_RENDEZVOUS = 0x05,
+		VERB_RENDEZVOUS = 5,
 
 		/**
 		 * ZT-to-ZT unicast ethernet frame (shortened EXT_FRAME):
@@ -642,44 +622,31 @@ public:
 		 * ERROR may be generated if a membership certificate is needed for a
 		 * closed network. Payload will be network ID.
 		 */
-		VERB_FRAME = 0x06,
+		VERB_FRAME = 6,
 
 		/**
 		 * Full Ethernet frame with MAC addressing and optional fields:
 		 *   <[8] 64-bit network ID>
 		 *   <[1] flags>
+		 *  [<[...] certificate of network membership>]
 		 *   <[6] destination MAC or all zero for destination node>
 		 *   <[6] source MAC or all zero for node of origin>
 		 *   <[2] 16-bit ethertype>
 		 *   <[...] ethernet payload>
 		 *
 		 * Flags:
-		 *   0x01 - Certificate of network membership attached (DEPRECATED)
-		 *   0x02 - Most significant bit of subtype (see below)
-		 *   0x04 - Middle bit of subtype (see below)
-		 *   0x08 - Least significant bit of subtype (see below)
-		 *   0x10 - ACK requested in the form of OK(EXT_FRAME)
+		 *   0x01 - Certificate of network membership is attached
 		 *
-		 * Subtypes (0..7):
-		 *   0x0 - Normal frame (bridging can be determined by checking MAC)
-		 *   0x1 - TEEd outbound frame
-		 *   0x2 - REDIRECTed outbound frame
-		 *   0x3 - WATCHed outbound frame (TEE with ACK, ACK bit also set)
-		 *   0x4 - TEEd inbound frame
-		 *   0x5 - REDIRECTed inbound frame
-		 *   0x6 - WATCHed inbound frame
-		 *   0x7 - (reserved for future use)
-		 *   
-		 * An extended frame carries full MAC addressing, making it a
-		 * superset of VERB_FRAME. It is used for bridged traffic,
-		 * redirected or observed traffic via rules, and can in theory
-		 * be used for multicast though MULTICAST_FRAME exists for that
-		 * purpose and has additional options and capabilities.
+		 * An extended frame carries full MAC addressing, making them a
+		 * superset of VERB_FRAME. They're used for bridging or when we
+		 * want to attach a certificate since FRAME does not support that.
 		 *
-		 * OK payload (if ACK flag is set):
-		 *   <[8] 64-bit network ID>
+		 * Multicast frames may not be sent as EXT_FRAME.
+		 *
+		 * ERROR may be generated if a membership certificate is needed for a
+		 * closed network. Payload will be network ID.
 		 */
-		VERB_EXT_FRAME = 0x07,
+		VERB_EXT_FRAME = 7,
 
 		/**
 		 * ECHO request (a.k.a. ping):
@@ -689,7 +656,7 @@ public:
 		 * is generated. Response to ECHO requests is optional and ECHO may be
 		 * ignored if a node detects a possible flood.
 		 */
-		VERB_ECHO = 0x08,
+		VERB_ECHO = 8,
 
 		/**
 		 * Announce interest in multicast group(s):
@@ -703,116 +670,77 @@ public:
 		 * controllers and root servers. In the current network, root servers
 		 * will provide the service of final multicast cache.
 		 *
-		 * VERB_NETWORK_CREDENTIALS should be pushed along with this, especially
-		 * if using upstream (e.g. root) nodes as multicast databases. This allows
-		 * GATHERs to be authenticated.
+		 * It is recommended that NETWORK_MEMBERSHIP_CERTIFICATE pushes be sent
+		 * along with MULTICAST_LIKE when pushing LIKEs to peers that do not
+		 * share a network membership (such as root servers), since this can be
+		 * used to authenticate GATHER requests and limit responses to peers
+		 * authorized to talk on a network. (Should be an optional field here,
+		 * but saving one or two packets every five minutes is not worth an
+		 * ugly hack or protocol rev.)
 		 *
 		 * OK/ERROR are not generated.
 		 */
-		VERB_MULTICAST_LIKE = 0x09,
+		VERB_MULTICAST_LIKE = 9,
 
 		/**
-		 * Network credentials push:
+		 * Network member certificate replication/push:
 		 *   <[...] serialized certificate of membership>
-		 *   [<[...] additional certificates of membership>]
-		 *   <[1] 0x00, null byte marking end of COM array>
-		 *   <[2] 16-bit number of capabilities>
-		 *   <[...] one or more serialized Capability>
-		 *   <[2] 16-bit number of tags>
-		 *   <[...] one or more serialized Tags>
-		 *   <[2] 16-bit number of revocations>
-		 *   <[...] one or more serialized Revocations>
+		 *   [ ... additional certificates may follow ...]
 		 *
-		 * This can be sent by anyone at any time to push network credentials.
-		 * These will of course only be accepted if they are properly signed.
-		 * Credentials can be for any number of networks.
-		 *
-		 * The use of a zero byte to terminate the COM section is for legacy
-		 * backward compatiblity. Newer fields are prefixed with a length.
+		 * This is sent in response to ERROR_NEED_MEMBERSHIP_CERTIFICATE and may
+		 * be pushed at any other time to keep exchanged certificates up to date.
 		 *
 		 * OK/ERROR are not generated.
 		 */
-		VERB_NETWORK_CREDENTIALS = 0x0a,
+		VERB_NETWORK_MEMBERSHIP_CERTIFICATE = 10,
 
 		/**
 		 * Network configuration request:
 		 *   <[8] 64-bit network ID>
 		 *   <[2] 16-bit length of request meta-data dictionary>
 		 *   <[...] string-serialized request meta-data>
-		 *   <[8] 64-bit revision of netconf we currently have>
-		 *   <[8] 64-bit timestamp of netconf we currently have>
+		 *  [<[8] 64-bit revision of netconf we currently have>]
 		 *
 		 * This message requests network configuration from a node capable of
-		 * providing it.
+		 * providing it. If the optional revision is included, a response is
+		 * only generated if there is a newer network configuration available.
 		 *
-		 * Respones to this are always whole configs intended for the recipient.
-		 * For patches and other updates a NETWORK_CONFIG is sent instead.
-		 *
-		 * It would be valid and correct as of 1.2.0 to use NETWORK_CONFIG always,
-		 * but OK(NTEWORK_CONFIG_REQUEST) should be sent for compatibility.
-		 * 
 		 * OK response payload:
 		 *   <[8] 64-bit network ID>
-		 *   <[2] 16-bit length of network configuration dictionary chunk>
-		 *   <[...] network configuration dictionary (may be incomplete)>
-		 *   [ ... end of legacy single chunk response ... ]
-		 *   <[1] 8-bit flags>
-		 *   <[8] 64-bit config update ID (should never be 0)>
-		 *   <[4] 32-bit total length of assembled dictionary>
-		 *   <[4] 32-bit index of chunk>
-		 *   [ ... end signed portion ... ]
-		 *   <[1] 8-bit chunk signature type>
-		 *   <[2] 16-bit length of chunk signature>
-		 *   <[...] chunk signature>
+		 *   <[2] 16-bit length of network configuration dictionary>
+		 *   <[...] network configuration dictionary>
 		 *
-		 * The chunk signature signs the entire payload of the OK response.
-		 * Currently only one signature type is supported: ed25519 (1).
+		 * OK returns a Dictionary (string serialized) containing the network's
+		 * configuration and IP address assignment information for the querying
+		 * node. It also contains a membership certificate that the querying
+		 * node can push to other peers to demonstrate its right to speak on
+		 * a given network.
 		 *
-		 * Each config chunk is signed to prevent memory exhaustion or
-		 * traffic crowding DOS attacks against config fragment assembly.
-		 *
-		 * If the packet is from the network controller it is permitted to end
-		 * before the config update ID or other chunking related or signature
-		 * fields. This is to support older controllers that don't include
-		 * these fields and may be removed in the future.
+		 * When a new network configuration is received, another config request
+		 * should be sent with the new netconf's revision. This confirms receipt
+		 * and also causes any subsequent changes to rapidly propagate as this
+		 * cycle will repeat until there are no changes. This is optional but
+		 * recommended behavior.
 		 *
 		 * ERROR response payload:
 		 *   <[8] 64-bit network ID>
+		 *
+		 * UNSUPPORTED_OPERATION is returned if this service is not supported,
+		 * and OBJ_NOT_FOUND if the queried network ID was not found.
 		 */
-		VERB_NETWORK_CONFIG_REQUEST = 0x0b,
+		VERB_NETWORK_CONFIG_REQUEST = 11,
 
 		/**
-		 * Network configuration data push:
-		 *   <[8] 64-bit network ID>
-		 *   <[2] 16-bit length of network configuration dictionary chunk>
-		 *   <[...] network configuration dictionary (may be incomplete)>
-		 *   <[1] 8-bit flags>
-		 *   <[8] 64-bit config update ID (should never be 0)>
-		 *   <[4] 32-bit total length of assembled dictionary>
-		 *   <[4] 32-bit index of chunk>
-		 *   [ ... end signed portion ... ]
-		 *   <[1] 8-bit chunk signature type>
-		 *   <[2] 16-bit length of chunk signature>
-		 *   <[...] chunk signature>
+		 * Network configuration refresh request:
+		 *   <[...] array of 64-bit network IDs>
 		 *
-		 * This is a direct push variant for network config updates. It otherwise
-		 * carries the same payload as OK(NETWORK_CONFIG_REQUEST) and has the same
-		 * semantics.
+		 * This can be sent by the network controller to inform a node that it
+		 * should now make a NETWORK_CONFIG_REQUEST.
 		 *
-		 * The legacy mode missing the additional chunking fields is not supported
-		 * here.
-		 *
-		 * Flags:
-		 *   0x01 - Use fast propagation
-		 *
-		 * An OK should be sent if the config is successfully received and
-		 * accepted.
-		 *
-		 * OK payload:
-		 *   <[8] 64-bit network ID>
-		 *   <[8] 64-bit config update ID>
+		 * It does not generate an OK or ERROR message, and is treated only as
+		 * a hint to refresh now.
 		 */
-		VERB_NETWORK_CONFIG = 0x0c,
+		VERB_NETWORK_CONFIG_REFRESH = 12,
 
 		/**
 		 * Request endpoints for multicast distribution:
@@ -821,10 +749,10 @@ public:
 		 *   <[6] MAC address of multicast group being queried>
 		 *   <[4] 32-bit ADI for multicast group being queried>
 		 *   <[4] 32-bit requested max number of multicast peers>
-		 *   [<[...] network certificate of membership>]
+		 *  [<[...] network certificate of membership>]
 		 *
 		 * Flags:
-		 *   0x01 - COM is attached
+		 *   0x01 - Network certificate of membership is attached
 		 *
 		 * This message asks a peer for additional known endpoints that have
 		 * LIKEd a given multicast group. It's sent when the sender wishes
@@ -833,9 +761,6 @@ public:
 		 *
 		 * More than one OK response can occur if the response is broken up across
 		 * multiple packets or if querying a clustered node.
-		 *
-		 * The COM should be included so that upstream nodes that are not
-		 * members of our network can validate our request.
 		 *
 		 * OK response payload:
 		 *   <[8] 64-bit network ID>
@@ -848,12 +773,13 @@ public:
 		 *
 		 * ERROR is not generated; queries that return no response are dropped.
 		 */
-		VERB_MULTICAST_GATHER = 0x0d,
+		VERB_MULTICAST_GATHER = 13,
 
 		/**
 		 * Multicast frame:
 		 *   <[8] 64-bit network ID>
 		 *   <[1] flags>
+		 *  [<[...] network certificate of membership>]
 		 *  [<[4] 32-bit implicit gather limit>]
 		 *  [<[6] source MAC>]
 		 *   <[6] destination MAC (multicast address)>
@@ -862,7 +788,7 @@ public:
 		 *   <[...] ethernet payload>
 		 *
 		 * Flags:
-		 *   0x01 - Network certificate of membership attached (DEPRECATED)
+		 *   0x01 - Network certificate of membership is attached
 		 *   0x02 - Implicit gather limit field is present
 		 *   0x04 - Source MAC is specified -- otherwise it's computed from sender
 		 *
@@ -877,11 +803,11 @@ public:
 		 *   <[6] MAC address of multicast group>
 		 *   <[4] 32-bit ADI for multicast group>
 		 *   <[1] flags>
-		 *  [<[...] network certficate of membership (DEPRECATED)>]
+		 *  [<[...] network certficate of membership>]
 		 *  [<[...] implicit gather results if flag 0x01 is set>]
 		 *
 		 * OK flags (same bits as request flags):
-		 *   0x01 - OK includes certificate of network membership (DEPRECATED)
+		 *   0x01 - OK includes certificate of network membership
 		 *   0x02 - OK includes implicit gather results
 		 *
 		 * ERROR response payload:
@@ -889,9 +815,7 @@ public:
 		 *   <[6] multicast group MAC>
 		 *   <[4] 32-bit multicast group ADI>
 		 */
-		VERB_MULTICAST_FRAME = 0x0e,
-
-		// 0x0f is reserved for an old deprecated message
+		VERB_MULTICAST_FRAME = 14,
 
 		/**
 		 * Push of potential endpoints for direct communication:
@@ -927,7 +851,7 @@ public:
 		 *
 		 * OK and ERROR are not generated.
 		 */
-		VERB_PUSH_DIRECT_PATHS = 0x10,
+		VERB_PUSH_DIRECT_PATHS = 16,
 
 		/**
 		 * Source-routed circuit test message:
@@ -943,16 +867,20 @@ public:
 		 *   [ ... end of signed portion of request ... ]
 		 *   <[2] 16-bit length of signature of request>
 		 *   <[...] signature of request by originator>
-		 *   <[2] 16-bit length of additional fields>
-		 *   [[...] additional fields]
+		 *   <[2] 16-bit previous hop credential length (including type)>
+		 *   [[1] previous hop credential type]
+		 *   [[...] previous hop credential]
 		 *   <[...] next hop(s) in path>
 		 *
 		 * Flags:
-		 *   0x01 - Report back to originator at all hops
+		 *   0x01 - Report back to originator at middle hops
 		 *   0x02 - Report back to originator at last hop
 		 *
 		 * Originator credential types:
 		 *   0x01 - 64-bit network ID for which originator is controller
+		 *
+		 * Previous hop credential types:
+		 *   0x01 - Certificate of network membership
 		 *
 		 * Path record format:
 		 *   <[1] 8-bit flags (unused, must be zero)>
@@ -1002,25 +930,25 @@ public:
 		 *   <[8] 64-bit timestamp (echoed from original>
 		 *   <[8] 64-bit test ID (echoed from original)>
 		 */
-		VERB_CIRCUIT_TEST = 0x11,
+		VERB_CIRCUIT_TEST = 17,
 
 		/**
 		 * Circuit test hop report:
-		 *   <[8] 64-bit timestamp (echoed from original test)>
-		 *   <[8] 64-bit test ID (echoed from original test)>
+		 *   <[8] 64-bit timestamp (from original test)>
+		 *   <[8] 64-bit test ID (from original test)>
 		 *   <[8] 64-bit reserved field (set to 0, currently unused)>
 		 *   <[1] 8-bit vendor ID (set to 0, currently unused)>
 		 *   <[1] 8-bit reporter protocol version>
-		 *   <[1] 8-bit reporter software major version>
-		 *   <[1] 8-bit reporter software minor version>
-		 *   <[2] 16-bit reporter software revision>
-		 *   <[2] 16-bit reporter OS/platform or 0 if not specified>
-		 *   <[2] 16-bit reporter architecture or 0 if not specified>
+		 *   <[1] 8-bit reporter major version>
+		 *   <[1] 8-bit reporter minor version>
+		 *   <[2] 16-bit reporter revision>
+		 *   <[2] 16-bit reporter OS/platform>
+		 *   <[2] 16-bit reporter architecture>
 		 *   <[2] 16-bit error code (set to 0, currently unused)>
-		 *   <[8] 64-bit report flags>
-		 *   <[8] 64-bit packet ID of received CIRCUIT_TEST packet>
-		 *   <[5] upstream ZeroTier address from which CIRCUIT_TEST was received>
-		 *   <[1] 8-bit packet hop count of received CIRCUIT_TEST>
+		 *   <[8] 64-bit report flags (set to 0, currently unused)>
+		 *   <[8] 64-bit source packet ID>
+		 *   <[5] upstream ZeroTier address from which test was received>
+		 *   <[1] 8-bit source packet hop count (ZeroTier hop count)>
 		 *   <[...] local wire address on which packet was received>
 		 *   <[...] remote wire address from which packet was received>
 		 *   <[2] 16-bit length of additional fields>
@@ -1032,9 +960,6 @@ public:
 		 *   <[5] ZeroTier address of next hop>
 		 *   <[...] current best direct path address, if any, 0 if none>
 		 *
-		 * Report flags:
-		 *   0x1 - Upstream peer in circuit test path allowed in path (e.g. network COM valid)
-		 *
 		 * Circuit test reports can be sent by hops in a circuit test to report
 		 * back results. They should include information about the sender as well
 		 * as about the paths to which next hops are being sent.
@@ -1042,7 +967,7 @@ public:
 		 * If a test report is received and no circuit test was sent, it should be
 		 * ignored. This message generates no OK or ERROR response.
 		 */
-		VERB_CIRCUIT_TEST_REPORT = 0x12,
+		VERB_CIRCUIT_TEST_REPORT = 18,
 
 		/**
 		 * Request proof of work:
@@ -1085,18 +1010,7 @@ public:
 		 *
 		 * ERROR has no payload.
 		 */
-		VERB_REQUEST_PROOF_OF_WORK = 0x13,
-
-		/**
-		 * A message with arbitrary user-definable content:
-		 *   <[8] 64-bit arbitrary message type ID>
-		 *  [<[...] message payload>]
-		 *
-		 * This can be used to send arbitrary messages over VL1. It generates no
-		 * OK or ERROR and has no special semantics outside of whatever the user
-		 * (via the ZeroTier core API) chooses to give it.
-		 */
-		VERB_USER_MESSAGE = 0x14
+		VERB_REQUEST_PROOF_OF_WORK = 19
 	};
 
 	/**
@@ -1105,39 +1019,39 @@ public:
 	enum ErrorCode
 	{
 		/* No error, not actually used in transit */
-		ERROR_NONE = 0x00,
+		ERROR_NONE = 0,
 
 		/* Invalid request */
-		ERROR_INVALID_REQUEST = 0x01,
+		ERROR_INVALID_REQUEST = 1,
 
 		/* Bad/unsupported protocol version */
-		ERROR_BAD_PROTOCOL_VERSION = 0x02,
+		ERROR_BAD_PROTOCOL_VERSION = 2,
 
 		/* Unknown object queried */
-		ERROR_OBJ_NOT_FOUND = 0x03,
+		ERROR_OBJ_NOT_FOUND = 3,
 
 		/* HELLO pushed an identity whose address is already claimed */
-		ERROR_IDENTITY_COLLISION = 0x04,
+		ERROR_IDENTITY_COLLISION = 4,
 
 		/* Verb or use case not supported/enabled by this node */
-		ERROR_UNSUPPORTED_OPERATION = 0x05,
+		ERROR_UNSUPPORTED_OPERATION = 5,
 
-		/* Network membership certificate update needed */
-		ERROR_NEED_MEMBERSHIP_CERTIFICATE = 0x06,
+		/* Message to private network rejected -- no unexpired certificate on file */
+		ERROR_NEED_MEMBERSHIP_CERTIFICATE = 6,
 
 		/* Tried to join network, but you're not a member */
-		ERROR_NETWORK_ACCESS_DENIED_ = 0x07, /* extra _ at end to avoid Windows name conflict */
+		ERROR_NETWORK_ACCESS_DENIED_ = 7, /* extra _ to avoid Windows name conflict */
 
 		/* Multicasts to this group are not wanted */
-		ERROR_UNWANTED_MULTICAST = 0x08
+		ERROR_UNWANTED_MULTICAST = 8
 	};
 
-#ifdef ZT_TRACE
+//#ifdef ZT_TRACE
 	static const char *verbString(Verb v)
 		throw();
 	static const char *errorString(ErrorCode e)
 		throw();
-#endif
+//#endif
 
 	template<unsigned int C2>
 	Packet(const Buffer<C2> &b) :
@@ -1297,6 +1211,7 @@ public:
 	 */
 	inline unsigned int cipher() const
 	{
+		// Note: this uses the new cipher spec field, which is incompatible with <1.0.0 peers
 		return (((unsigned int)(*this)[ZT_PACKET_IDX_FLAGS] & 0x38) >> 3);
 	}
 
@@ -1307,28 +1222,10 @@ public:
 	{
 		unsigned char &b = (*this)[ZT_PACKET_IDX_FLAGS];
 		b = (b & 0xc7) | (unsigned char)((c << 3) & 0x38); // bits: FFCCCHHH
-		// Set DEPRECATED "encrypted" flag -- used by pre-1.0.3 peers
+		// DEPRECATED "encrypted" flag -- used by pre-1.0.3 peers
 		if (c == ZT_PROTO_CIPHER_SUITE__C25519_POLY1305_SALSA2012)
 			b |= ZT_PROTO_FLAG_ENCRYPTED;
 		else b &= (~ZT_PROTO_FLAG_ENCRYPTED);
-	}
-
-	/**
-	 * Get the trusted path ID for this packet (only meaningful if cipher is trusted path)
-	 *
-	 * @return Trusted path ID (from MAC field)
-	 */
-	inline uint64_t trustedPathId() const { return at<uint64_t>(ZT_PACKET_IDX_MAC); }
-
-	/**
-	 * Set this packet's trusted path ID and set the cipher spec to trusted path
-	 *
-	 * @param tpid Trusted path ID
-	 */
-	inline void setTrusted(const uint64_t tpid)
-	{
-		setCipher(ZT_PROTO_CIPHER_SUITE__NO_CRYPTO_TRUSTED_PATH);
-		setAt(ZT_PACKET_IDX_MAC,tpid);
 	}
 
 	/**
@@ -1373,10 +1270,6 @@ public:
 
 	/**
 	 * Verify and (if encrypted) decrypt packet
-	 *
-	 * This does not handle trusted path mode packets and will return false
-	 * for these. These are handled in IncomingPacket if the sending physical
-	 * address and MAC field match a trusted path.
 	 *
 	 * @param key 32-byte key
 	 * @return False if packet is invalid or failed MAC authenticity check

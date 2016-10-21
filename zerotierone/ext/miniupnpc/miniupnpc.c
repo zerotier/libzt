@@ -1,11 +1,10 @@
 #define _CRT_SECURE_NO_WARNINGS
-
-/* $Id: miniupnpc.c,v 1.149 2016/02/09 09:50:46 nanard Exp $ */
-/* vim: tabstop=4 shiftwidth=4 noexpandtab
- * Project : miniupnp
+/* $Id: miniupnpc.c,v 1.141 2015/10/26 17:05:07 nanard Exp $ */
+/* vim: tabstop=4 shiftwidth=4 noexpandtab */
+/* Project : miniupnp
  * Web : http://miniupnp.free.fr/
  * Author : Thomas BERNARD
- * copyright (c) 2005-2016 Thomas Bernard
+ * copyright (c) 2005-2015 Thomas Bernard
  * This software is subjet to the conditions detailed in the
  * provided LICENSE file. */
 #include <stdlib.h>
@@ -74,25 +73,6 @@
 #define SERVICEPREFIX "u"
 #define SERVICEPREFIX2 'u'
 
-/* check if an ip address is a private (LAN) address
- * see https://tools.ietf.org/html/rfc1918 */
-static int is_rfc1918addr(const char * addr)
-{
-	/* 192.168.0.0     -   192.168.255.255 (192.168/16 prefix) */
-	if(COMPARE(addr, "192.168."))
-		return 1;
-	/* 10.0.0.0        -   10.255.255.255  (10/8 prefix) */
-	if(COMPARE(addr, "10."))
-		return 1;
-	/* 172.16.0.0      -   172.31.255.255  (172.16/12 prefix) */
-	if(COMPARE(addr, "172.")) {
-		int i = atoi(addr + 4);
-		if((16 <= i) && (i <= 31))
-			return 1;
-	}
-	return 0;
-}
-
 /* root description parsing */
 MINIUPNP_LIBSPEC void parserootdesc(const char * buffer, int bufsize, struct IGDdatas * data)
 {
@@ -128,7 +108,6 @@ char * simpleUPnPcommand2(int s, const char * url, const char * service,
 	int soapbodylen;
 	char * buf;
 	int n;
-	int status_code;
 
 	*bufsize = 0;
 	snprintf(soapact, sizeof(soapact), "%s#%s", service, action);
@@ -232,15 +211,11 @@ char * simpleUPnPcommand2(int s, const char * url, const char * service,
 		return NULL;
 	}
 
-	buf = getHTTPResponse(s, bufsize, &status_code);
+	buf = getHTTPResponse(s, bufsize);
 #ifdef DEBUG
 	if(*bufsize > 0 && buf)
 	{
-		printf("HTTP %d SOAP Response :\n%.*s\n", status_code, *bufsize, buf);
-	}
-	else
-	{
-		printf("HTTP %d, empty SOAP response. size=%d\n", status_code, *bufsize);
+		printf("SOAP Response :\n%.*s\n", *bufsize, buf);
 	}
 #endif
 	closesocket(s);
@@ -552,7 +527,7 @@ UPNPIGD_IsConnected(struct UPNPUrls * urls, struct IGDdatas * data)
  *     3 = an UPnP device has been found but was not recognized as an IGD
  *
  * In any positive non zero return case, the urls and data structures
- * passed as parameters are set. Dont forget to call FreeUPNPUrls(urls) to
+ * passed as parameters are set. Donc forget to call FreeUPNPUrls(urls) to
  * free allocated memory.
  */
 MINIUPNP_LIBSPEC int
@@ -572,9 +547,6 @@ UPNP_GetValidIGD(struct UPNPDev * devlist,
 	int state = -1; /* state 1 : IGD connected. State 2 : IGD. State 3 : anything */
 	int n_igd = 0;
 	char extIpAddr[16];
-	char myLanAddr[40];
-	int status_code = -1;
-
 	if(!devlist)
 	{
 #ifdef DEBUG
@@ -597,8 +569,8 @@ UPNP_GetValidIGD(struct UPNPDev * devlist,
 		/* we should choose an internet gateway device.
 		 * with st == urn:schemas-upnp-org:device:InternetGatewayDevice:1 */
 		desc[i].xml = miniwget_getaddr(dev->descURL, &(desc[i].size),
-		                               myLanAddr, sizeof(myLanAddr),
-		                               dev->scope_id, &status_code);
+		                               lanaddr, lanaddrlen,
+		                               dev->scope_id);
 #ifdef DEBUG
 		if(!desc[i].xml)
 		{
@@ -615,8 +587,6 @@ UPNP_GetValidIGD(struct UPNPDev * devlist,
 			{
 				desc[i].is_igd = 1;
 				n_igd++;
-				if(lanaddr)
-					strncpy(lanaddr, myLanAddr, lanaddrlen);
 			}
 		}
 	}
@@ -632,25 +602,20 @@ UPNP_GetValidIGD(struct UPNPDev * devlist,
 				parserootdesc(desc[i].xml, desc[i].size, data);
 				if(desc[i].is_igd || state >= 3 )
 				{
-				  int is_connected;
-
 				  GetUPNPUrls(urls, data, dev->descURL, dev->scope_id);
 
 				  /* in state 2 and 3 we dont test if device is connected ! */
 				  if(state >= 2)
 				    goto free_and_return;
-				  is_connected = UPNPIGD_IsConnected(urls, data);
 #ifdef DEBUG
 				  printf("UPNPIGD_IsConnected(%s) = %d\n",
-				     urls->controlURL, is_connected);
+				     urls->controlURL,
+			         UPNPIGD_IsConnected(urls, data));
 #endif
 				  /* checks that status is connected AND there is a external IP address assigned */
-				  if(is_connected &&
-				     (UPNP_GetExternalIPAddress(urls->controlURL,  data->first.servicetype, extIpAddr) == 0)) {
-					if(!is_rfc1918addr(extIpAddr) && (extIpAddr[0] != '\0')
-					   && (0 != strcmp(extIpAddr, "0.0.0.0")))
-					  goto free_and_return;
-				  }
+				  if(UPNPIGD_IsConnected(urls, data)
+				     && (UPNP_GetExternalIPAddress(urls->controlURL,  data->first.servicetype, extIpAddr) == 0))
+					goto free_and_return;
 				  FreeUPNPUrls(urls);
 				  if(data->second.servicetype[0] != '\0') {
 #ifdef DEBUG
@@ -662,17 +627,14 @@ UPNP_GetValidIGD(struct UPNPDev * devlist,
 				    memcpy(&data->first, &data->second, sizeof(struct IGDdatas_service));
 				    memcpy(&data->second, &data->tmp, sizeof(struct IGDdatas_service));
 				    GetUPNPUrls(urls, data, dev->descURL, dev->scope_id);
-				    is_connected = UPNPIGD_IsConnected(urls, data);
 #ifdef DEBUG
 				    printf("UPNPIGD_IsConnected(%s) = %d\n",
-				       urls->controlURL, is_connected);
+				       urls->controlURL,
+			           UPNPIGD_IsConnected(urls, data));
 #endif
-				    if(is_connected &&
-				       (UPNP_GetExternalIPAddress(urls->controlURL,  data->first.servicetype, extIpAddr) == 0)) {
-					  if(!is_rfc1918addr(extIpAddr) && (extIpAddr[0] != '\0')
-					     && (0 != strcmp(extIpAddr, "0.0.0.0")))
-					    goto free_and_return;
-				    }
+				    if(UPNPIGD_IsConnected(urls, data)
+				       && (UPNP_GetExternalIPAddress(urls->controlURL,  data->first.servicetype, extIpAddr) == 0))
+					  goto free_and_return;
 				    FreeUPNPUrls(urls);
 				  }
 				}
@@ -706,9 +668,8 @@ UPNP_GetIGDFromUrl(const char * rootdescurl,
 {
 	char * descXML;
 	int descXMLsize = 0;
-
 	descXML = miniwget_getaddr(rootdescurl, &descXMLsize,
-	                           lanaddr, lanaddrlen, 0, NULL);
+	   	                       lanaddr, lanaddrlen, 0);
 	if(descXML) {
 		memset(data, 0, sizeof(struct IGDdatas));
 		memset(urls, 0, sizeof(struct UPNPUrls));

@@ -35,6 +35,7 @@ class Multicaster;
 class NetworkController;
 class SelfAwareness;
 class Cluster;
+class DeferredPackets;
 
 /**
  * Holds global state for an instance of ZeroTier::Node
@@ -50,9 +51,11 @@ public:
 		,mc((Multicaster *)0)
 		,topology((Topology *)0)
 		,sa((SelfAwareness *)0)
+		,dp((DeferredPackets *)0)
 #ifdef ZT_ENABLE_CLUSTER
 		,cluster((Cluster *)0)
 #endif
+		,dpEnabled(0)
 	{
 	}
 
@@ -79,9 +82,15 @@ public:
 	Multicaster *mc;
 	Topology *topology;
 	SelfAwareness *sa;
+	DeferredPackets *dp;
+
 #ifdef ZT_ENABLE_CLUSTER
 	Cluster *cluster;
 #endif
+
+	// This is set to >0 if background threads are waiting on deferred
+	// packets, otherwise 'dp' should not be used.
+	volatile int dpEnabled;
 };
 
 } // namespace ZeroTier

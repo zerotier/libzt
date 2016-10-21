@@ -95,12 +95,12 @@ LinuxEthernetTap::LinuxEthernetTap(
 	// Try to recall our last device name, or pick an unused one if that fails.
 	bool recalledDevice = false;
 	std::string devmapbuf;
-	Dictionary<8194> devmap;
+	Dictionary devmap;
 	if (OSUtils::readFile((_homePath + ZT_PATH_SEPARATOR_S + "devicemap").c_str(),devmapbuf)) {
-		devmap.load(devmapbuf.c_str());
-		char desiredDevice[128];
-		if (devmap.get(nwids,desiredDevice,sizeof(desiredDevice)) > 0) {
-			Utils::scopy(ifr.ifr_name,sizeof(ifr.ifr_name),desiredDevice);
+		devmap.fromString(devmapbuf);
+		std::string desiredDevice(devmap.get(nwids,""));
+		if (desiredDevice.length() > 2) {
+			Utils::scopy(ifr.ifr_name,sizeof(ifr.ifr_name),desiredDevice.c_str());
 			Utils::snprintf(procpath,sizeof(procpath),"/proc/sys/net/ipv4/conf/%s",ifr.ifr_name);
 			recalledDevice = (stat(procpath,&sbuf) != 0);
 		}
@@ -172,18 +172,17 @@ LinuxEthernetTap::LinuxEthernetTap(
 	// Set close-on-exec so that devices cannot persist if we fork/exec for update
 	::fcntl(_fd,F_SETFD,fcntl(_fd,F_GETFD) | FD_CLOEXEC);
 
-	(void)::pipe(_shutdownSignalPipe);
+	::pipe(_shutdownSignalPipe);
 
-	devmap.erase(nwids);
-	devmap.add(nwids,_dev.c_str());
-	OSUtils::writeFile((_homePath + ZT_PATH_SEPARATOR_S + "devicemap").c_str(),(const void *)devmap.data(),devmap.sizeBytes());
+	devmap[nwids] = _dev;
+	OSUtils::writeFile((_homePath + ZT_PATH_SEPARATOR_S + "devicemap").c_str(),devmap.toString());
 
 	_thread = Thread::start(this);
 }
 
 LinuxEthernetTap::~LinuxEthernetTap()
 {
-	(void)::write(_shutdownSignalPipe[1],"\0",1); // causes thread to exit
+	::write(_shutdownSignalPipe[1],"\0",1); // causes thread to exit
 	Thread::join(_thread);
 	::close(_fd);
 	::close(_shutdownSignalPipe[0]);
@@ -254,7 +253,7 @@ bool LinuxEthernetTap::removeIp(const InetAddress &ip)
 	if (!ip)
 		return true;
 	std::vector<InetAddress> allIps(ips());
-	if (std::find(allIps.begin(),allIps.end(),ip) != allIps.end()) {
+	if (!std::binary_search(allIps.begin(),allIps.end(),ip)) {
 		if (___removeIp(_dev,ip))
 			return true;
 	}
@@ -294,7 +293,7 @@ std::vector<InetAddress> LinuxEthernetTap::ips() const
 		freeifaddrs(ifa);
 
 	std::sort(r.begin(),r.end());
-	r.erase(std::unique(r.begin(),r.end()),r.end());
+	std::unique(r.begin(),r.end());
 
 	return r;
 }
@@ -308,7 +307,7 @@ void LinuxEthernetTap::put(const MAC &from,const MAC &to,unsigned int etherType,
 		*((uint16_t *)(putBuf + 12)) = htons((uint16_t)etherType);
 		memcpy(putBuf + 14,data,len);
 		len += 14;
-		(void)::write(_fd,putBuf,len);
+		::write(_fd,putBuf,len);
 	}
 }
 
@@ -356,7 +355,7 @@ void LinuxEthernetTap::scanMulticastGroups(std::vector<MulticastGroup> &added,st
 		newGroups.push_back(MulticastGroup::deriveMulticastGroupForAddressResolution(*ip));
 
 	std::sort(newGroups.begin(),newGroups.end());
-	newGroups.erase(std::unique(newGroups.begin(),newGroups.end()),newGroups.end());
+	std::unique(newGroups.begin(),newGroups.end());
 
 	for(std::vector<MulticastGroup>::iterator m(newGroups.begin());m!=newGroups.end();++m) {
 		if (!std::binary_search(_multicastGroups.begin(),_multicastGroups.end(),*m))

@@ -105,7 +105,6 @@ public:
 	inline const NET_LUID &luid() const { return _deviceLuid; }
 	inline const GUID &guid() const { return _deviceGuid; }
 	inline const std::string &instanceId() const { return _deviceInstanceId; }
-	NET_IFINDEX interfaceIndex() const;
 
 	void threadMain()
 		throw();

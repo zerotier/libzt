@@ -44,10 +44,6 @@
 #define TRACE(f,...) {}
 #endif
 
-// Bit mask for "expecting reply" hash
-#define ZT_EXPECTING_REPLIES_BUCKET_MASK1 255
-#define ZT_EXPECTING_REPLIES_BUCKET_MASK2 31
-
 namespace ZeroTier {
 
 /**
@@ -91,7 +87,6 @@ public:
 		unsigned int frameLength,
 		volatile uint64_t *nextBackgroundTaskDeadline);
 	ZT_ResultCode processBackgroundTasks(uint64_t now,volatile uint64_t *nextBackgroundTaskDeadline);
-	ZT_ResultCode setRelayPolicy(enum ZT_RelayPolicy rp);
 	ZT_ResultCode join(uint64_t nwid,void *uptr);
 	ZT_ResultCode leave(uint64_t nwid,void **uptr);
 	ZT_ResultCode multicastSubscribe(uint64_t nwid,uint64_t multicastGroup,unsigned long multicastAdi);
@@ -122,8 +117,17 @@ public:
 	void clusterRemoveMember(unsigned int memberId);
 	void clusterHandleIncomingMessage(const void *msg,unsigned int len);
 	void clusterStatus(ZT_ClusterStatus *cs);
+	void backgroundThreadMain();
 
 	// Internal functions ------------------------------------------------------
+
+	/**
+	 * Convenience threadMain() for easy background thread launch
+	 *
+	 * This allows background threads to be launched with Thread::start
+	 * that will run against this node.
+	 */
+	inline void threadMain() throw() { this->backgroundThreadMain(); }
 
 	/**
 	 * @return Time as of last call to run()
@@ -244,43 +248,26 @@ public:
 	 */
 	inline int configureVirtualNetworkPort(uint64_t nwid,void **nuptr,ZT_VirtualNetworkConfigOperation op,const ZT_VirtualNetworkConfig *nc) { return _virtualNetworkConfigFunction(reinterpret_cast<ZT_Node *>(this),_uPtr,nwid,nuptr,op,nc); }
 
+	/**
+	 * @return True if we appear to be online
+	 */
 	inline bool online() const throw() { return _online; }
-	inline ZT_RelayPolicy relayPolicy() const { return _relayPolicy; }
 
 #ifdef ZT_TRACE
 	void postTrace(const char *module,unsigned int line,const char *fmt,...);
 #endif
 
+	/**
+	 * @return Next 64-bit random number (not for cryptographic use)
+	 */
 	uint64_t prng();
+
+	/**
+	 * Post a circuit test report to any listeners for a given test ID
+	 *
+	 * @param report Report (includes test ID)
+	 */
 	void postCircuitTestReport(const ZT_CircuitTestReport *report);
-	void setTrustedPaths(const struct sockaddr_storage *networks,const uint64_t *ids,unsigned int count);
-
-	/**
-	 * Register that we are expecting a reply to a packet ID
-	 *
-	 * @param packetId Packet ID to expect reply to
-	 */
-	inline void expectReplyTo(const uint64_t packetId)
-	{
-		const unsigned long bucket = (unsigned long)(packetId & ZT_EXPECTING_REPLIES_BUCKET_MASK1);
-		_expectingRepliesTo[bucket][_expectingRepliesToBucketPtr[bucket]++ & ZT_EXPECTING_REPLIES_BUCKET_MASK2] = packetId;
-	}
-
-	/**
-	 * Check whether a given packet ID is something we are expecting a reply to
-	 *
-	 * @param packetId Packet ID to check
-	 * @return True if we're expecting a reply
-	 */
-	inline bool expectingReplyTo(const uint64_t packetId) const
-	{
-		const unsigned long bucket = (unsigned long)(packetId & ZT_EXPECTING_REPLIES_BUCKET_MASK1);
-		for(unsigned long i=0;i<=ZT_EXPECTING_REPLIES_BUCKET_MASK2;++i) {
-			if (_expectingRepliesTo[bucket][i] == packetId)
-				return true;
-		}
-		return false;
-	}
 
 private:
 	inline SharedPtr<Network> _network(uint64_t nwid) const
@@ -297,9 +284,6 @@ private:
 	RuntimeEnvironment *RR;
 
 	void *_uPtr; // _uptr (lower case) is reserved in Visual Studio :P
-
-	uint8_t _expectingRepliesToBucketPtr[ZT_EXPECTING_REPLIES_BUCKET_MASK1 + 1];
-	uint64_t _expectingRepliesTo[ZT_EXPECTING_REPLIES_BUCKET_MASK1 + 1][ZT_EXPECTING_REPLIES_BUCKET_MASK2 + 1];
 
 	ZT_DataStoreGetFunction _dataStoreGetFunction;
 	ZT_DataStorePutFunction _dataStorePutFunction;
@@ -327,7 +311,6 @@ private:
 	uint64_t _now;
 	uint64_t _lastPingCheck;
 	uint64_t _lastHousekeepingRun;
-	ZT_RelayPolicy _relayPolicy;
 	bool _online;
 };
 

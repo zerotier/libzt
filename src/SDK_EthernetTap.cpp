@@ -2055,28 +2055,40 @@ void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Conne
 
 	// lwIP
     #if defined(SDK_LWIP)
-    	struct sockaddr_in *rawAddr = (struct sockaddr_in *) &connect_rpc->addr;
-		int port = lwipstack->__lwip_ntohs(rawAddr->sin_port);
-		ip_addr_t connAddr = convert_ip(rawAddr);    
-		int err = 0, ip = rawAddr->sin_addr.s_addr;
 
+		ip_addr_t ba;
 	    char addrstr[INET6_ADDRSTRLEN];
+	    struct sockaddr_in6 *rawAddr = (struct sockaddr_in6 *) &connect_rpc->addr;
 	    struct sockaddr *addr = (struct sockaddr*)rawAddr;
-	    if(addr->sa_family == AF_INET) {
-	        struct sockaddr_in *connaddr = (struct sockaddr_in *)addr;
-	        inet_ntop(AF_INET, &(connaddr->sin_addr), addrstr, INET_ADDRSTRLEN);    
-	        sprintf(addrstr, "%s:%d", addrstr, lwipstack->__lwip_ntohs(connaddr->sin_port));
-	    }
-	    if(addr->sa_family == AF_INET6) {        
-	        struct sockaddr_in6 *connaddr6 = (struct sockaddr_in6 *)addr;
-	        inet_ntop(AF_INET6, &(connaddr6->sin6_addr), addrstr, INET6_ADDRSTRLEN);
-	        sprintf(addrstr, "%s:%d", addrstr, lwipstack->__lwip_ntohs(connaddr6->sin6_port));
-	    }
+		int err, port = lwipstack->__lwip_ntohs(rawAddr->sin6_port);
+
+		// ipv4
+		#if defined(SDK_IPV4)
+			//ip4_addr_t ba;
+		    if(addr->sa_family == AF_INET) {
+		        struct sockaddr_in *connaddr = (struct sockaddr_in *)addr;
+		        inet_ntop(AF_INET, &(connaddr->sin_addr), addrstr, INET_ADDRSTRLEN);    
+		        sprintf(addrstr, "%s:%d", addrstr, lwipstack->__lwip_ntohs(connaddr->sin_port));
+		    }
+		#endif
+
+		// ipv6
+		#if defined(SDK_IPV6)
+		    //ip6_addr_t ba;
+			struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&connect_rpc->addr;
+			in6_to_ip6((ip6_addr *)&ba, in6);
+
+		    if(addr->sa_family == AF_INET6) {        
+		        struct sockaddr_in6 *connaddr6 = (struct sockaddr_in6 *)addr;
+		        inet_ntop(AF_INET6, &(connaddr6->sin6_addr), addrstr, INET6_ADDRSTRLEN);
+		        sprintf(addrstr, "%s:%d", addrstr, lwipstack->__lwip_ntohs(connaddr6->sin6_port));
+		    }
+		#endif
 	    DEBUG_INFO("addr=%s", addrstr);
 
 	    if(conn->type == SOCK_DGRAM) {
 	        // Generates no network traffic
-	        if((err = lwipstack->__udp_connect(conn->UDP_pcb,&connAddr,port)) < 0)
+	        if((err = lwipstack->__udp_connect(conn->UDP_pcb,(ip_addr_t *)&ba,port)) < 0)
 	            DEBUG_ERROR("error while connecting to with UDP");
 	        lwipstack->__udp_recv(conn->UDP_pcb, nc_udp_recved, new Larg(this, conn));
 	        sendReturnValue(rpcSock, 0, ERR_OK);
@@ -2095,13 +2107,7 @@ void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Conne
 				sendReturnValue(rpcSock, -1, EAGAIN);
 				return;
 			}
-
-			static ip_addr_t ba;
-
-			IP6_ADDR2(&ba, 0xfd56,0x5799,0xd8f6,0x1238,0x8c99,0x9322,0x30ce,0x418a);
-
-
-			if((err = lwipstack->__tcp_connect(conn->TCP_pcb,&ba,port,nc_connected)) < 0)
+			if((err = lwipstack->__tcp_connect(conn->TCP_pcb,(ip_addr_t *)&ba,port,nc_connected)) < 0)
 			{
 				if(err == ERR_ISCONN) {
 					sendReturnValue(rpcSock, -1, EISCONN); // Already in connected state

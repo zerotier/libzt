@@ -26,8 +26,27 @@
  */
 
 
-#define IP6_ADDR2(ipaddr, a,b,c,d,e,f,g,h) do { (ipaddr)->addr[0] = Utils::hton((u32_t)((a & 0xffff) << 16) | (b & 0xffff)); \
-                                               (ipaddr)->addr[1] = Utils::hton(((c & 0xffff) << 16) | (d & 0xffff)); \
-                                               (ipaddr)->addr[2] = Utils::hton(((e & 0xffff) << 16) | (f & 0xffff)); \
-                                               (ipaddr)->addr[3] = Utils::hton(((g & 0xffff) << 16) | (h & 0xffff)); } while(0)
+#if defined(SDK_LWIP) && defined(SDK_IPV6)
+	#define IP6_ADDR2(ipaddr, a,b,c,d,e,f,g,h) do { (ipaddr)->addr[0] = ZeroTier::Utils::hton((u32_t)((a & 0xffff) << 16) | (b & 0xffff)); \
+	                                               (ipaddr)->addr[1] = ZeroTier::Utils::hton(((c & 0xffff) << 16) | (d & 0xffff)); \
+	                                               (ipaddr)->addr[2] = ZeroTier::Utils::hton(((e & 0xffff) << 16) | (f & 0xffff)); \
+	                                               (ipaddr)->addr[3] = ZeroTier::Utils::hton(((g & 0xffff) << 16) | (h & 0xffff)); } while(0)
 
+
+	// Convert from standard IPV6 address structure to an lwIP native structure                                               
+	void in6_to_ip6(ip6_addr_t *ba, struct sockaddr_in6 *in6)
+	{
+		uint8_t *ip = &(in6->sin6_addr).s6_addr[0];
+		uint16_t ip16;
+		IP6_ADDR2(ba,
+			(((ip[ 0] & 0xffff) << 8) | ((ip[ 1]) & 0xffff)),
+			(((ip[ 2] & 0xffff) << 8) | ((ip[ 3]) & 0xffff)),
+			(((ip[ 4] & 0xffff) << 8) | ((ip[ 5]) & 0xffff)),
+			(((ip[ 6] & 0xffff) << 8) | ((ip[ 7]) & 0xffff)),
+			(((ip[ 8] & 0xffff) << 8) | ((ip[ 9]) & 0xffff)),
+			(((ip[10] & 0xffff) << 8) | ((ip[11]) & 0xffff)),
+			(((ip[12] & 0xffff) << 8) | ((ip[13]) & 0xffff)),
+			(((ip[14] & 0xffff) << 8) | ((ip[15]) & 0xffff))
+		);
+	}
+#endif

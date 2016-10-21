@@ -88,6 +88,7 @@ INCLUDES+= -Iext \
 
 
 # Stack selection / parameters
+
 # lwIP debug
 ifeq ($(SDK_LWIP_DEBUG),1)
 	LWIP_FLAGS+=SDK_LWIP_DEBUG=1
@@ -112,14 +113,14 @@ endif
 
 # TCP protocol version
 ifeq ($(SDK_IPV4),1)
+	LWIP_FLAGS+=SDK_IPV4=1
 	STACK_FLAGS+=-DSDK_IPV4
 endif
 
 ifeq ($(SDK_IPV6),1)
-	STACK_FLAGS+=-DSDK_IPV6
+	LWIP_FLAGS+=SDK_IPV6=1
+	STACK_FLAGS+=-DSDK_IPV6 
 endif
-
-
 
 
 
@@ -175,8 +176,8 @@ linux_intercept:
 	cd src ; gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o ../$(INTERCEPT) SDK_Sockets.c SDK_Intercept.c SDK_RPC.c -ldl
 
 # Build only the SDK service
-linux_sdk_service: $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(ZT1)/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_pico.cpp src/SDK_Proxy.cpp $(ZT1)/one.cpp src/SDK_RPC.c $(LDLIBS) -ldl
+linux_sdk_service: pico lwip $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(ZT1)/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp $(ZT1)/one.cpp src/SDK_RPC.c $(LDLIBS) -ldl
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-cli
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-idtool
 

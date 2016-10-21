@@ -42,8 +42,9 @@
 #include "SDK_Debug.h"
 
 #if defined(SDK_LWIP) 
-	#include "SDK_lwip.hpp"
+	#include "SDK_lwIP.hpp"
 #elif defined(SDK_PICOTCP)
+ 	#include "SDK_picoTCP.hpp"
 	#include "pico_stack.h"
 	#include "pico_ipv4.h"
 	#include "pico_icmp4.h"
@@ -53,8 +54,6 @@
 #elif defined(SDK_JIP)
 	#include "SDK_jip.hpp"
 #endif
-
- #include "SDK_pico.hpp"
 
 #include "Utils.hpp"
 #include "OSUtils.hpp"
@@ -620,6 +619,9 @@ namespace ZeroTier {
     }
 
 
+/*------------------------------------------------------------------------------
+-------------------------------- Tap Service  ----------------------------------
+------------------------------------------------------------------------------*/
 
 static err_t tapif_init(struct netif *netif)
 {
@@ -693,32 +695,29 @@ NetconEthernetTap::NetconEthernetTap(
     #if defined(SDK_LWIP)
 		Utils::snprintf(stackPath,sizeof(stackPath),"%s%sliblwip.so",homePath,ZT_PATH_SEPARATOR_S);
 		lwipstack = new lwIP_stack(stackPath);
+		if(!lwipstack) {
+			DEBUG_ERROR("unable to dynamically load a new instance of (%s) (searched ZeroTier home path)", stackPath);
+			throw std::runtime_error("");
+		}
+		lwipstack->__lwip_init();
 	#elif defined(SDK_PICOTCP)
 		Utils::snprintf(stackPath,sizeof(stackPath),"%s%slibpicotcp.so",homePath,ZT_PATH_SEPARATOR_S);
 		picostack = new picoTCP_stack(stackPath);
+		if(!picostack) {
+			DEBUG_ERROR("unable to dynamically load a new instance of (%s) (searched ZeroTier home path)", stackPath);
+			throw std::runtime_error("");
+		}
+		picostack->__pico_stack_init();
 	#elif defined(SDK_JIP)
 		Utils::snprintf(stackPath,sizeof(stackPath),"%s%slibjip.so",homePath,ZT_PATH_SEPARATOR_S);
 		jipstack = new jip_stack(stackPath);
 	#endif
 
-	if(!lwipstack && !picostack && !jipstack) {
-		DEBUG_ERROR("unable to dynamically load a new instance of (%s) (searched ZeroTier home path)", stackPath);
-		throw std::runtime_error("");
-	}
-	else {
-		if(lwipstack)
-			lwipstack->__lwip_init();
-		if(picostack)
-			picostack->__pico_stack_init();
-		//if(jipstack)
-		//	jipstack->__jip_init();
-	    
-		_unixListenSocket = _phy.unixListen(sockPath,(void *)this);
-		DEBUG_INFO("tap initialized on: path=%s", sockPath);
-		if (!_unixListenSocket)
-			DEBUG_ERROR("unable to bind to: path=%s", sockPath);
-	     _thread = Thread::start(this);
- 	}
+	_unixListenSocket = _phy.unixListen(sockPath,(void *)this);
+	DEBUG_INFO("tap initialized on: path=%s", sockPath);
+	if (!_unixListenSocket)
+		DEBUG_ERROR("unable to bind to: path=%s", sockPath);
+     _thread = Thread::start(this);
 }
 
 NetconEthernetTap::~NetconEthernetTap()
@@ -728,7 +727,15 @@ NetconEthernetTap::~NetconEthernetTap()
 	_phy.whack(); // TODO: Rationale?
 	Thread::join(_thread);
 	_phy.close(_unixListenSocket,false);
-	delete lwipstack;
+	#if defined(SDK_LWIP)
+		delete lwipstack;
+	#endif
+	#if defined(SDK_PICOTCP)
+		delete picostack;
+	#endif
+	#if defined(SDK_JIP)
+		delete jipstack;
+	#endif
 }
 
 void NetconEthernetTap::setEnabled(bool en)
@@ -743,69 +750,69 @@ bool NetconEthernetTap::enabled() const
 
 void NetconEthernetTap::lwIP_init_interface(const InetAddress &ip)
 {
+	#if defined(SDK_LWIP)
 	DEBUG_INFO("local_addr=%s", ip.toString().c_str());
 	Mutex::Lock _l(_ips_m);
-
-	// SIP-1
-	// Initialize network stack's interface, assign addresses
 
 	if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
 		_ips.push_back(ip);
 		std::sort(_ips.begin(),_ips.end());
 
-/*
+	#if defined(SDK_IPV4)
 		if (ip.isV4()) {			
 			DEBUG_INFO("IPV4");
-			// Set IP
-			static ip4_addr ipaddr, netmask, gw;
-			IP4_ADDR(&gw,127,0,0,1);
-			ipaddr.addr = *((u32_t *)ip.rawIpData());
-			netmask.addr = *((u32_t *)ip.netmask().rawIpData());
-
-			// Set up the lwip-netif for LWIP's sake
+			// convert address
+			static ip_addr_t ipaddr, netmask, gw;
+			IP4_ADDR((ip4_addr_t *)&gw,127,0,0,1);
+			((ip4_addr_t *)&ipaddr)->addr = *((u32_t *)ip.rawIpData());
+			((ip4_addr_t *)&netmask)->addr = *((u32_t *)ip.netmask().rawIpData());
+			// initialize netif
 			lwipstack->__netif_add(&interface,&ipaddr, &netmask, &gw, NULL, tapif_init, lwipstack->_ethernet_input);
 			interface.state = this;
 			interface.output = lwipstack->_etharp_output;
 			_mac.copyTo(interface.hwaddr, 6);
 			interface.mtu = _mtu;
-			interface.name[0] = 't';
-			interface.name[1] = 'p';
+			interface.name[0] = 'l';
+			interface.name[1] = 'w';
+			interface.name[2] = '4';
 			interface.linkoutput = low_level_output;
 			interface.hwaddr_len = 6;
 			interface.flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_IGMP;
 			lwipstack->__netif_set_default(&interface);
 			lwipstack->__netif_set_up(&interface);			
 		}
-*/
-/*
-		if(ip.isV6())
-		{
-			DEBUG_INFO("IPV6");
-			static ip6_addr_t addr6;
-			IP6_ADDR2(&addr6, 0xfd56, 0x5799, 0xd8f6, 0x1238, 0x8c99, 0x93b4, 0x9d8e, 0x24f6);			
+	#endif
 
+	#if defined(SDK_IPV6)
+		if(ip.isV6()) {
+			DEBUG_INFO("IPV6");
+			// convert address
+			static ip6_addr_t addr6;
+		    struct sockaddr_in6 in6;
+		    memcpy(in6.sin6_addr.s6_addr,ip.rawIpData(),16);
+		    in6_to_ip6((ip6_addr *)&addr6, &in6);
+		    // initialize netif
 			interface6.mtu = _mtu;
-			interface6.name[0] = 't';
-			interface6.name[1] = 'p';
+			interface6.name[0] = 'l';
+			interface6.name[1] = 'w';
+			interface6.name[2] = '6';
 			interface6.hwaddr_len = 6;
 			interface6.linkoutput = low_level_output;
 			interface6.ip6_autoconfig_enabled = 1;
-
 			_mac.copyTo(interface6.hwaddr, interface6.hwaddr_len);
 			lwipstack->__netif_create_ip6_linklocal_address(&interface6, 1);
 			lwipstack->__netif_add(&interface6, NULL, tapif_init, lwipstack->_ethernet_input);
 			lwipstack->__netif_set_default(&interface6);
 			lwipstack->__netif_set_up(&interface6);	
-
 			netif_ip6_addr_set_state(&interface6, 1, IP6_ADDR_TENTATIVE); 
 			ip6_addr_copy(ip_2_ip6(interface6.ip6_addr[1]), addr6);
-
 			interface6.output_ip6 = lwipstack->_ethip6_output;
 			interface6.state = this;
 			interface6.flags = NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
-		}		
-		*/
+		}	
+	#endif	
 	}
+	#endif
 }
 
 void NetconEthernetTap::jip_init_interface(const InetAddress &ip)
@@ -816,8 +823,8 @@ void NetconEthernetTap::jip_init_interface(const InetAddress &ip)
 bool NetconEthernetTap::addIp(const InetAddress &ip)
 {
 	picotap = this;
-	// SIP-3
-	// Initialize a new interface in the stack, assign an address
+	// SIP-1
+	// Initialize network stack's interface, assign addresses
     #if defined(SDK_LWIP)
 		lwIP_init_interface(ip);
 	#elif defined(SDK_PICOTCP)
@@ -850,43 +857,52 @@ std::vector<InetAddress> NetconEthernetTap::ips() const
 
 void NetconEthernetTap::lwIP_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
 {
-	DEBUG_INFO();
-	struct pbuf *p,*q;
-	if (!_enabled)
-		return;
-	struct eth_hdr ethhdr;
-	from.copyTo(ethhdr.src.addr, 6);
-	to.copyTo(ethhdr.dest.addr, 6);
-	ethhdr.type = Utils::hton((uint16_t)etherType);
-	
-	p = lwipstack->__pbuf_alloc(PBUF_RAW, len+sizeof(struct eth_hdr), PBUF_POOL);
-	if (p != NULL) {
-		const char *dataptr = reinterpret_cast<const char *>(data);
-		// First pbuf gets ethernet header at start
-		q = p;
-		if (q->len < sizeof(ethhdr)) {
-			DEBUG_ERROR("dropped packet: first pbuf smaller than ethernet header");
+	#if defined(SDK_LWIP)
+		DEBUG_INFO();
+		struct pbuf *p,*q;
+		if (!_enabled)
+			return;
+		struct eth_hdr ethhdr;
+		from.copyTo(ethhdr.src.addr, 6);
+		to.copyTo(ethhdr.dest.addr, 6);
+		ethhdr.type = Utils::hton((uint16_t)etherType);
+		
+		p = lwipstack->__pbuf_alloc(PBUF_RAW, len+sizeof(struct eth_hdr), PBUF_POOL);
+		if (p != NULL) {
+			const char *dataptr = reinterpret_cast<const char *>(data);
+			// First pbuf gets ethernet header at start
+			q = p;
+			if (q->len < sizeof(ethhdr)) {
+				DEBUG_ERROR("dropped packet: first pbuf smaller than ethernet header");
+				return;
+			}
+			memcpy(q->payload,&ethhdr,sizeof(ethhdr));
+			memcpy((char*)q->payload + sizeof(ethhdr),dataptr,q->len - sizeof(ethhdr));
+			dataptr += q->len - sizeof(ethhdr);
+
+			// Remaining pbufs (if any) get rest of data
+			while ((q = q->next)) {
+				memcpy(q->payload,dataptr,q->len);
+				dataptr += q->len;
+			}
+		} 
+		else {
+			DEBUG_ERROR("dropped packet: no pbufs available");
 			return;
 		}
-		memcpy(q->payload,&ethhdr,sizeof(ethhdr));
-		memcpy((char*)q->payload + sizeof(ethhdr),dataptr,q->len - sizeof(ethhdr));
-		dataptr += q->len - sizeof(ethhdr);
-
-		// Remaining pbufs (if any) get rest of data
-		while ((q = q->next)) {
-			memcpy(q->payload,dataptr,q->len);
-			dataptr += q->len;
+		{
+			#if defined(SDK_IPV6)
+				if(interface6.input(p, &interface6) != ERR_OK) {
+					DEBUG_ERROR("error while feeding frame into stack interface6");
+				}
+			#endif
+			#if defined(SDK_IPV4)
+				if(interface.input(p, &interface) != ERR_OK) {
+					DEBUG_ERROR("error while feeding frame into stack interface");
+				}
+			#endif
 		}
-	} 
-	else {
-		DEBUG_ERROR("dropped packet: no pbufs available");
-		return;
-	}
-	{
-		if(interface6.input(p, &interface6) != ERR_OK) {
-			DEBUG_ERROR("error while RX of packet (netif->input)");
-		}
-	}
+	#endif
 }
 
 
@@ -942,82 +958,81 @@ void NetconEthernetTap::scanMulticastGroups(std::vector<MulticastGroup> &added,s
     
 void NetconEthernetTap::lwIP_loop()
 {
-	DEBUG_INFO();
-	uint64_t prev_tcp_time = 0, prev_status_time = 0, prev_discovery_time = 0;
-	// Main timer loop
-	while (_run) {
-		uint64_t now = OSUtils::now();
-		uint64_t since_tcp = now - prev_tcp_time;
-		uint64_t since_discovery = now - prev_discovery_time;
-		uint64_t since_status = now - prev_status_time;
-		uint64_t tcp_remaining = ZT_LWIP_TCP_TIMER_INTERVAL;
-		uint64_t discovery_remaining = 5000;
+	#if defined(SDK_LWIP)
+		DEBUG_INFO();
+		uint64_t prev_tcp_time = 0, prev_status_time = 0, prev_discovery_time = 0;
+		// Main timer loop
+		while (_run) {
+			uint64_t now = OSUtils::now();
+			uint64_t since_tcp = now - prev_tcp_time;
+			uint64_t since_discovery = now - prev_discovery_time;
+			uint64_t since_status = now - prev_status_time;
+			uint64_t tcp_remaining = ZT_LWIP_TCP_TIMER_INTERVAL;
+			uint64_t discovery_remaining = 5000;
 
-		#if defined(LWIP_IPV6)
-			#define DISCOVERY_INTERVAL 	1000 // fuck you
-		#elif
-			#define DISCOVERY_INTERVAL ARP_TMR_INTERVAL
-		#endif
-
-		// Connection prunning
-		if (since_status >= STATUS_TMR_INTERVAL) {
-			prev_status_time = now;
-			for(size_t i=0;i<_Connections.size();++i) {
-				if(!_Connections[i]->sock || _Connections[i]->type != SOCK_STREAM)
-					continue;
-				int fd = _phy.getDescriptor(_Connections[i]->sock);
-				// DEBUG_INFO(" tap_thread(): tcp\\jobs = {%d, %d}\n", _Connection.size(), jobmap.size());
-				// If there's anything on the RX buf, set to notify in case we stalled
-				if(_Connections[i]->rxsz > 0)
-					_phy.setNotifyWritable(_Connections[i]->sock, true);
-				fcntl(fd, F_SETFL, O_NONBLOCK);
-				unsigned char tmpbuf[BUF_SZ];
-				
-				ssize_t n = read(fd,&tmpbuf,BUF_SZ);
-				if(_Connections[i]->TCP_pcb->state == SYN_SENT) {
-					DEBUG_EXTRA("  should finish or be removed soon, sock=%p, state=SYN_SENT", 
-						(void*)&(_Connections[i]->sock));
-				}
-				if((n < 0 && errno != EAGAIN) || (n == 0 && errno == EAGAIN)) {
-					//DEBUG_INFO(" closing sock (%x)", (void*)_Connections[i]->sock);
-					closeConnection(_Connections[i]->sock);
-				} else if (n > 0) {
-					DEBUG_INFO(" data read during connection check (%ld bytes)", n);
-					phyOnUnixData(_Connections[i]->sock,_phy.getuptr(_Connections[i]->sock),&tmpbuf,n);
-				}		
-			}
-		}
-		// Main TCP/ETHARP timer section
-		if (since_tcp >= ZT_LWIP_TCP_TIMER_INTERVAL) {
-			prev_tcp_time = now;
-            lwipstack->__tcp_tmr();
-            // FIXME: could be removed or refactored?
-            // Makeshift poll
-			for(size_t i=0;i<_Connections.size();++i) {
-				if(_Connections[i]->txsz > 0){
-					handleWrite(_Connections[i]);
-				}
-			}
-		} else {
-			tcp_remaining = ZT_LWIP_TCP_TIMER_INTERVAL - since_tcp;
-		}
-		if (since_discovery >= DISCOVERY_INTERVAL) {
-			prev_discovery_time = now;
-			//#if defined(LWIP_IPV4)
-			//	DEBUG_EXTRA("etharp_tmr");
-			//	lwipstack->__etharp_tmr();
-			//#endif
 			#if defined(LWIP_IPV6)
-				DEBUG_EXTRA("nd6_tmr");
-				lwipstack->__nd6_tmr();
+				#define DISCOVERY_INTERVAL 	1000 // fuck you
+			#elif
+				#define DISCOVERY_INTERVAL ARP_TMR_INTERVAL
 			#endif
-		
-        } else {
-			discovery_remaining = DISCOVERY_INTERVAL - since_discovery;
+
+			// Connection prunning
+			if (since_status >= STATUS_TMR_INTERVAL) {
+				prev_status_time = now;
+				for(size_t i=0;i<_Connections.size();++i) {
+					if(!_Connections[i]->sock || _Connections[i]->type != SOCK_STREAM)
+						continue;
+					int fd = _phy.getDescriptor(_Connections[i]->sock);
+					// DEBUG_INFO(" tap_thread(): tcp\\jobs = {%d, %d}\n", _Connection.size(), jobmap.size());
+					// If there's anything on the RX buf, set to notify in case we stalled
+					if(_Connections[i]->rxsz > 0)
+						_phy.setNotifyWritable(_Connections[i]->sock, true);
+					fcntl(fd, F_SETFL, O_NONBLOCK);
+					unsigned char tmpbuf[BUF_SZ];
+					
+					ssize_t n = read(fd,&tmpbuf,BUF_SZ);
+					if(_Connections[i]->TCP_pcb->state == SYN_SENT) {
+						DEBUG_EXTRA("  should finish or be removed soon, sock=%p, state=SYN_SENT", 
+							(void*)&(_Connections[i]->sock));
+					}
+					if((n < 0 && errno != EAGAIN) || (n == 0 && errno == EAGAIN)) {
+						//DEBUG_INFO(" closing sock (%x)", (void*)_Connections[i]->sock);
+						closeConnection(_Connections[i]->sock);
+					} else if (n > 0) {
+						DEBUG_INFO(" data read during connection check (%ld bytes)", n);
+						phyOnUnixData(_Connections[i]->sock,_phy.getuptr(_Connections[i]->sock),&tmpbuf,n);
+					}		
+				}
+			}
+			// Main TCP/ETHARP timer section
+			if (since_tcp >= ZT_LWIP_TCP_TIMER_INTERVAL) {
+				prev_tcp_time = now;
+	            lwipstack->__tcp_tmr();
+	            // FIXME: could be removed or refactored?
+	            // Makeshift poll
+				for(size_t i=0;i<_Connections.size();++i) {
+					if(_Connections[i]->txsz > 0){
+						handleWrite(_Connections[i]);
+					}
+				}
+			} else {
+				tcp_remaining = ZT_LWIP_TCP_TIMER_INTERVAL - since_tcp;
+			}
+			if (since_discovery >= DISCOVERY_INTERVAL) {
+				prev_discovery_time = now;
+				#if defined(SDK_IPV4)
+					lwipstack->__etharp_tmr();
+				#endif
+				#if defined(SDK_IPV6)
+					lwipstack->__nd6_tmr();
+				#endif
+	        } else {
+				discovery_remaining = DISCOVERY_INTERVAL - since_discovery;
+			}
+			_phy.poll((unsigned long)std::min(tcp_remaining,discovery_remaining));
 		}
-		_phy.poll((unsigned long)std::min(tcp_remaining,discovery_remaining));
-	}
-    lwipstack->close();
+	    lwipstack->close();
+    #endif
 }
 
 void NetconEthernetTap::jip_loop()
@@ -1397,6 +1412,8 @@ void NetconEthernetTap::unloadRPC(void *data, pid_t &pid, pid_t &tid,
 --------------------------------- LWIP callbacks -------------------------------
 ------------------------------------------------------------------------------*/
 
+#if defined(SDK_LWIP)
+
 err_t NetconEthernetTap::nc_accept(void *arg, struct tcp_pcb *newPCB, err_t err)
 {
 	DEBUG_ATTN("pcb=%p", (void*)&newPCB);
@@ -1670,6 +1687,8 @@ void NetconEthernetTap::nc_err(void *arg, err_t err)
 	l->tap->closeConnection(l->conn);
 }
 
+#endif // SDK_LWIP
+
 /*------------------------------------------------------------------------------
 ----------------------------- RPC Handler functions ----------------------------
 ------------------------------------------------------------------------------*/
@@ -1713,13 +1732,6 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 
 	// lwIP
 	#if defined(SDK_LWIP)
-		struct sockaddr_in *rawAddr = (struct sockaddr_in *) &bind_rpc->addr;
-		int err, port = lwipstack->__lwip_ntohs(rawAddr->sin_port);
-		ip_addr_t connAddr;
-
-		static ip6_addr_t ba;
-		IP6_ADDR2(&ba, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0);			
-		
 		if(!_ips.size()) {
 			// We haven't been given an address yet. Binding at this stage is premature
 			DEBUG_ERROR("cannot bind yet. ZT address hasn't been provided");
@@ -1727,19 +1739,34 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 			return;
 		}
 
+		ip_addr_t ba;
 	    char addrstr[INET6_ADDRSTRLEN];
+	    struct sockaddr_in6 *rawAddr = (struct sockaddr_in6 *) &bind_rpc->addr;
 	    struct sockaddr *addr = (struct sockaddr*)rawAddr;
-	    if(addr->sa_family == AF_INET) {
-	        struct sockaddr_in *connaddr = (struct sockaddr_in *)addr;
-	        inet_ntop(AF_INET, &(connaddr->sin_addr), addrstr, INET_ADDRSTRLEN);    
-	        sprintf(addrstr, "%s:%d", addrstr, lwipstack->__lwip_ntohs(connaddr->sin_port));
-	    }
-	    if(addr->sa_family == AF_INET6) {        
-	        struct sockaddr_in6 *connaddr6 = (struct sockaddr_in6 *)addr;
-	        inet_ntop(AF_INET6, &(connaddr6->sin6_addr), addrstr, INET6_ADDRSTRLEN);
-	        sprintf(addrstr, "%s:%d", addrstr, lwipstack->__lwip_ntohs(connaddr6->sin6_port));
-	    }
-	    DEBUG_INFO("addr=%s", addrstr);
+		int err, port = lwipstack->__lwip_ntohs(rawAddr->sin6_port);
+
+		// ipv4
+		#if defined(SDK_IPV4)
+			//ip4_addr_t ba;
+		    if(addr->sa_family == AF_INET) {
+		        struct sockaddr_in *connaddr = (struct sockaddr_in *)addr;
+		        inet_ntop(AF_INET, &(connaddr->sin_addr), addrstr, INET_ADDRSTRLEN);    
+		        sprintf(addrstr, "%s:%d", addrstr, lwipstack->__lwip_ntohs(connaddr->sin_port));
+		    }
+		#endif
+
+		// ipv6
+		#if defined(SDK_IPV6)
+		    //ip6_addr_t ba;
+			struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&bind_rpc->addr;
+			in6_to_ip6((ip6_addr *)&ba, in6);
+
+		    if(addr->sa_family == AF_INET6) {        
+		        struct sockaddr_in6 *connaddr6 = (struct sockaddr_in6 *)addr;
+		        inet_ntop(AF_INET6, &(connaddr6->sin6_addr), addrstr, INET6_ADDRSTRLEN);
+		        sprintf(addrstr, "%s:%d", addrstr, lwipstack->__lwip_ntohs(connaddr6->sin6_port));
+		    }
+		#endif
 		
 		Connection *conn = getConnection(sock);
 	    DEBUG_ATTN(" sock=%p, fd=%d, port=%d", (void*)&sock, bind_rpc->fd, port);
@@ -1748,7 +1775,7 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 	       		#if defined(__ANDROID__)
 	            	err = lwipstack->__udp_bind(conn->UDP_pcb, NULL, port);
 	            #else
-					// err = lwipstack->__udp_bind(conn->UDP_pcb, &ba, port);
+					err = lwipstack->__udp_bind(conn->UDP_pcb, (const ip_addr_t *)&ba, port);
 	            #endif
 	            if(err == ERR_USE) // port in use
 	                sendReturnValue(rpcSock, -1, EADDRINUSE);
@@ -1764,7 +1791,7 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 	        }
 	        else if (conn->type == SOCK_STREAM) {
 	            if(conn->TCP_pcb->state == CLOSED){
-	                err = lwipstack->__tcp_bind(conn->TCP_pcb, &ba, port);
+	                err = lwipstack->__tcp_bind(conn->TCP_pcb, (const ip_addr_t *)&ba, port);
 	                if(err != ERR_OK) {
 	                    DEBUG_ERROR("err=%d", err);
 	                    if(err == ERR_USE)
@@ -1840,6 +1867,7 @@ void NetconEthernetTap::handleListen(PhySocket *sock, PhySocket *rpcSock, void *
     
 Connection * NetconEthernetTap::handleSocketProxy(PhySocket *sock, int socket_type)
 {
+	/*
     Connection *conn = getConnection(sock);
     if(!conn){
         DEBUG_ERROR("unable to locate Connection object for this PhySocket sock=%p", (void*)&sock);
@@ -1869,6 +1897,7 @@ Connection * NetconEthernetTap::handleSocketProxy(PhySocket *sock, int socket_ty
         return conn;
     }
 	DEBUG_ERROR(" memory not available for new PCB");
+	*/
 	return NULL;
 }
 
@@ -1919,6 +1948,7 @@ Connection * NetconEthernetTap::handleSocket(PhySocket *sock, void **uptr, struc
 
 int NetconEthernetTap::handleConnectProxy(PhySocket *sock, struct sockaddr_in *rawAddr)
 {
+	/*
     DEBUG_ATTN("sock=%p", (void*)&sock);
     Mutex::Lock _l(_tcpconns_m);
     int port = rawAddr->sin_port;
@@ -1977,17 +2007,16 @@ int NetconEthernetTap::handleConnectProxy(PhySocket *sock, struct sockaddr_in *r
 				return -1;
 			}
 			if(err == ERR_MEM) {
-				/* Can occur for the following reasons: tcp_enqueue_flags()
+				// Can occur for the following reasons: tcp_enqueue_flags()
 
-				1) tcp_enqueue_flags is always called with either SYN or FIN in flags.
-				  We need one available snd_buf byte to do that.
-				  This means we can't send FIN while snd_buf==0. A better fix would be to
-				  not include SYN and FIN sequence numbers in the snd_buf count.
+				// 1) tcp_enqueue_flags is always called with either SYN or FIN in flags.
+				// We need one available snd_buf byte to do that.
+				// This means we can't send FIN while snd_buf==0. A better fix would be to
+				// not include SYN and FIN sequence numbers in the snd_buf count.
 
-				2) Cannot allocate new pbuf
-				3) Cannot allocate new TCP segment
+				// 2) Cannot allocate new pbuf
+				// 3) Cannot allocate new TCP segment
 
-				*/
 				errno = EAGAIN; // TODO: Doesn't describe the problem well, but closest match
 				return -1;
 			}
@@ -2010,6 +2039,7 @@ int NetconEthernetTap::handleConnectProxy(PhySocket *sock, struct sockaddr_in *r
 		errno = EBADF;
 		return -1;
 	}
+	*/
     return -1;
 }
 

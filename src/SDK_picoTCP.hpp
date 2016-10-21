@@ -44,7 +44,6 @@
  
 #include "SDK_Debug.h"
 #include "SDK_EthernetTap.hpp"
-#include "SDK_pico.hpp"
 
 #include "pico_stack.h"
 #include "pico_ipv4.h"

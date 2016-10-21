@@ -109,17 +109,16 @@ all: one osx ios android lwip check
 
 # --- EXTERNAL LIBRARIES ---
 lwip:
-ifeq ($(LWIP_VERSION_2),1)
-	mv ext/lwip_2.0.0 ext/lwip
-	-make -f make-liblwip200.mk $(LWIP_FLAGS)
-	mv ext/lwip ext/lwip_2.0.0
-else
-	mv ext/lwip_1.4.1 ext/lwip
-	-make -f make-liblwip141.mk $(LWIP_FLAGS)
-	mv ext/lwip ext/lwip_1.4.1
-endif
+	-make -f make-liblwip.mk $(LWIP_FLAGS)
 
+pico:
+	mkdir -p build
+	cd ext/picotcp; make lib ARCH=shared IPV4=1 IPV6=1
+	$(CC) -g -nostartfiles -shared -o ext/picotcp/build/lib/libpicotcp.so ext/picotcp/build/lib/*.o ext/picotcp/build/modules/*.o
+	cp ext/picotcp/build/lib/libpicotcp.so build/libpicotcp.so
 
+jip:
+	-make -f make-jip.mk $(JIP_FLAGS)
 
 # ------- IOS / OSX --------
 # Build all Apple targets

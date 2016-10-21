@@ -36,6 +36,7 @@
 #include "lwip/netif.h"
 #include "lwip/init.h"
 #include "lwip/udp.h"
+#include "lwip/tcp.h"
 
 #include "Mutex.hpp"
 #include "OSUtils.hpp"
@@ -55,7 +56,6 @@ struct tcp_pcb;
 #define PBUF_ALLOC_SIG pbuf_layer layer, u16_t length, pbuf_type type
 #define LWIP_HTONS_SIG u16_t x
 #define LWIP_NTOHS_SIG u16_t x
-#define IPADDR_NTOA_SIG const ip_addr_t *addr
 
 // lwIP UDP API
 #define UDP_NEW_SIG void
@@ -90,7 +90,6 @@ struct tcp_pcb;
 
 // lwIP network stack interfaces
 #define NETIF_IP6_ADDR_SET_STATE_SIG struct netif* netif, s8_t addr_idx, u8_t state
-#define NETIF_LOOPIF_INIT_SIG struct netif *netif
 #define NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG struct netif *netif, u8_t from_mac_48bit
 #define ETHERNET_INPUT_SIG struct pbuf *p, struct netif *netif
 #define IP_INPUT_SIG struct pbuf *p, struct netif *inp
@@ -148,7 +147,6 @@ namespace ZeroTier {
         #endif
 
         void (*_netif_init)(void);
-        void (*_netif_loopif_init)(NETIF_LOOPIF_INIT_SIG);
         // void (*_netif_set_addr)(NETIF_SET_ADDR_SIG);
 
         void (*_lwip_init)();
@@ -185,7 +183,6 @@ namespace ZeroTier {
         struct pbuf * (*_pbuf_alloc)(PBUF_ALLOC_SIG);
         u16_t (*_lwip_htons)(LWIP_HTONS_SIG);
         u16_t (*_lwip_ntohs)(LWIP_NTOHS_SIG);
-        char* (*_ipaddr_ntoa)(IPADDR_NTOA_SIG);
         err_t (*_ethernet_input)(ETHERNET_INPUT_SIG);
         void (*_tcp_input)(TCP_INPUT_SIG);
         err_t (*_ip_input)(IP_INPUT_SIG);
@@ -225,8 +222,6 @@ namespace ZeroTier {
 #ifdef __STATIC_LWIP__ // Set static references (for use in iOS)
 
             _netif_init = (void(*)(void))&netif_init;
-            _netif_loopif_init = (void(*)(NETIF_LOOPIF_INIT_SIG))&netif_loopif_init;
-
             _ethernet_input = (err_t(*)(ETHERNET_INPUT_SIG))&ethernet_input;
             _lwip_init = (void(*)(void))&lwip_init;
             _tcp_write = (err_t(*)(TCP_WRITE_SIG))&tcp_write;
@@ -259,7 +254,6 @@ namespace ZeroTier {
             _pbuf_alloc = (struct pbuf*(*)(PBUF_ALLOC_SIG))&pbuf_alloc;
             _lwip_htons = (u16_t(*)(LWIP_HTONS_SIG))&lwip_htons;
             _lwip_ntohs = (u16_t(*)(LWIP_NTOHS_SIG))&lwip_ntohs;
-            _ipaddr_ntoa = (char*(*)(IPADDR_NTOA_SIG))&ipaddr_ntoa;
             _tcp_input = (void(*)(TCP_INPUT_SIG))&tcp_input;
             _ip_input = (err_t(*)(IP_INPUT_SIG))&ip_input;
             _netif_set_default = (void(*)(NETIF_SET_DEFAULT_SIG))&netif_set_default;
@@ -283,9 +277,6 @@ namespace ZeroTier {
             
             if(_libref == NULL)
                 DEBUG_ERROR("dlerror(): %s", dlerror());
-
-            _netif_init = (void(*)(void))dlsym(_libref, "netif_init");
-            _netif_loopif_init = (void(*)(NETIF_LOOPIF_INIT_SIG))dlsym(_libref, "netif_loopif_init");
             
         #if defined(SDK_IPV4)
             _etharp_output = (err_t(*)(ETHARP_OUTPUT_SIG))dlsym(_libref, "etharp_output");
@@ -298,7 +289,8 @@ namespace ZeroTier {
             _ethip6_output = (err_t(*)(ETHIP6_OUTPUT_SIG))dlsym(_libref, "ethip6_output");
         #endif
 
-           // _netif_set_addr = (void(*))(NETIF_SET_ADDR_SIG))dlsym(_libref, "netif_set_addr");
+            _netif_init = (void(*)(void))dlsym(_libref, "netif_init");
+            // _netif_set_addr = (void(*))(NETIF_SET_ADDR_SIG))dlsym(_libref, "netif_set_addr");
 
             _ethernet_input = (err_t(*)(ETHERNET_INPUT_SIG))dlsym(_libref, "ethernet_input");
             _lwip_init = (void(*)(void))dlsym(_libref, "lwip_init");
@@ -334,7 +326,6 @@ namespace ZeroTier {
             _pbuf_alloc = (struct pbuf*(*)(PBUF_ALLOC_SIG))dlsym(_libref, "pbuf_alloc");
             _lwip_htons = (u16_t(*)(LWIP_HTONS_SIG))dlsym(_libref, "lwip_htons");
             _lwip_ntohs = (u16_t(*)(LWIP_NTOHS_SIG))dlsym(_libref, "lwip_ntohs");
-            _ipaddr_ntoa = (char*(*)(IPADDR_NTOA_SIG))dlsym(_libref, "ipaddr_ntoa");
             _tcp_input = (void(*)(TCP_INPUT_SIG))dlsym(_libref, "tcp_input");
             _ip_input = (err_t(*)(IP_INPUT_SIG))dlsym(_libref, "ip_input");
             _netif_set_default = (void(*)(NETIF_SET_DEFAULT_SIG))dlsym(_libref, "netif_set_default");
@@ -350,8 +341,7 @@ namespace ZeroTier {
         }
         
         inline void __netif_init(void) throw() { Mutex::Lock _l(_lock); _netif_init(); }
-        inline void __netif_loopif_init(NETIF_LOOPIF_INIT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); _netif_loopif_init(netif); }
-       // inline void __netif_set_addr(NETIF_SET_ADDR_SIG) throw() { Mutex::Lock _l(_lock); _netif_set_addr(netif, ipaddr, netmask, gw); }
+        // inline void __netif_set_addr(NETIF_SET_ADDR_SIG) throw() { Mutex::Lock _l(_lock); _netif_set_addr(netif, ipaddr, netmask, gw); }
 
         inline void __lwip_init() throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _lwip_init(); }
         inline err_t __tcp_write(TCP_WRITE_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _tcp_write(pcb,arg,len,apiflags); }
@@ -386,7 +376,6 @@ namespace ZeroTier {
         inline struct pbuf * __pbuf_alloc(PBUF_ALLOC_SIG) throw() { /*DEBUG_STACK();*/ Mutex::Lock _l(_lock_mem); return _pbuf_alloc(layer,length,type); }
         inline u16_t __lwip_htons(LWIP_HTONS_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _lwip_htons(x); }
         inline u16_t __lwip_ntohs(LWIP_NTOHS_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _lwip_ntohs(x); }
-        inline char* __ipaddr_ntoa(IPADDR_NTOA_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _ipaddr_ntoa(addr); }
 
         //inline err_t __etharp_output(ETHARP_OUTPUT_SIG) throw() { Mutex::Lock _l(_lock); return _etharp_output(netif,q,ipaddr); }
 

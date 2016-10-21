@@ -40,7 +40,11 @@
 #define __SHOW_FILENAMES__    true
 #define __SHOW_COLOR__        true
 
-#if defined(__SHOW_COLOR__)
+// Colors
+#if defined(__APPLE__)
+    #include "TargetConditionals.h"
+#endif
+#if defined(__SHOW_COLOR__) && !defined(__ANDROID__) && !defined(TARGET_OS_IPHONE) && !defined(TARGET_IPHONE_SIMULATOR) && !defined(__APP_FRAMEWORK__)
   #define RED   "\x1B[31m"
   #define GRN   "\x1B[32m"
   #define YEL   "\x1B[33m"

@@ -52,6 +52,7 @@
 	#define LWIP_IPV4   1
 //#endif
 
+#define LWIP_TCP 1
 #define IP6_DEBUG       1
 #define LWIP_DEBUG      1
 #define IP_DEBUG        LWIP_DBG_ON

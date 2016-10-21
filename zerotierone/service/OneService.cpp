@@ -1182,7 +1182,7 @@ public:
 		}
 	}
 
-	inline void phyOnTcpWritable(PhySocket *sock,void **uptr,bool lwip_invoked)
+	inline void phyOnTcpWritable(PhySocket *sock,void **uptr)
 	{
 		TcpConnection *tc = reinterpret_cast<TcpConnection *>(*uptr);
 		Mutex::Lock _l(tc->writeBuf_m);

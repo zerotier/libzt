@@ -366,6 +366,9 @@
 		7CEAF5891DBAD0BF006585E7 /* DeferredPackets.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DeferredPackets.cpp; path = ../../../zerotierone/node/DeferredPackets.cpp; sourceTree = "<group>"; };
 		7CEAF58A1DBAD0BF006585E7 /* DeferredPackets.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = DeferredPackets.hpp; path = ../../../zerotierone/node/DeferredPackets.hpp; sourceTree = "<group>"; };
 		7CEAF58E1DBAD10A006585E7 /* BackgroundResolver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = BackgroundResolver.cpp; path = ../../../zerotierone/osdep/BackgroundResolver.cpp; sourceTree = "<group>"; };
+		7CEAF5901DBADA69006585E7 /* tcp_in.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = tcp_in.c; path = ../../../ext/lwip/src/core/tcp_in.c; sourceTree = "<group>"; };
+		7CEAF5911DBADA69006585E7 /* tcp_out.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = tcp_out.c; path = ../../../ext/lwip/src/core/tcp_out.c; sourceTree = "<group>"; };
+		7CEAF5921DBADA69006585E7 /* tcp.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = tcp.c; path = ../../../ext/lwip/src/core/tcp.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -410,6 +413,9 @@
 		7CC002FB1D12164D003E68DC = {
 			isa = PBXGroup;
 			children = (
+				7CEAF5901DBADA69006585E7 /* tcp_in.c */,
+				7CEAF5911DBADA69006585E7 /* tcp_out.c */,
+				7CEAF5921DBADA69006585E7 /* tcp.c */,
 				7CEAF58E1DBAD10A006585E7 /* BackgroundResolver.cpp */,
 				7CEAF5871DBACEC3006585E7 /* err.c */,
 				7CEAF5851DBACE7E006585E7 /* ethernet.c */,
@@ -951,6 +957,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7C969BCE1DB99F9E00BD3F7F /* tcp_in.c in Sources */,
+				7C969BCF1DB99F9E00BD3F7F /* tcp_out.c in Sources */,
+				7C969BD01DB99F9E00BD3F7F /* tcp.c in Sources */,
 				7CEAF58F1DBAD10A006585E7 /* BackgroundResolver.cpp in Sources */,
 				7CEAF58C1DBAD0E1006585E7 /* DeferredPackets.cpp in Sources */,
 				7CEAF58D1DBAD0E1006585E7 /* OneService.cpp in Sources */,
@@ -1005,9 +1014,6 @@
 				7C969BCB1DB99F9E00BD3F7F /* raw.c in Sources */,
 				7C969BCC1DB99F9E00BD3F7F /* stats.c in Sources */,
 				7C969BCD1DB99F9E00BD3F7F /* sys.c in Sources */,
-				7C969BCE1DB99F9E00BD3F7F /* tcp_in.c in Sources */,
-				7C969BCF1DB99F9E00BD3F7F /* tcp_out.c in Sources */,
-				7C969BD01DB99F9E00BD3F7F /* tcp.c in Sources */,
 				7C969BD11DB99F9E00BD3F7F /* timeouts.c in Sources */,
 				7C969BD21DB99F9E00BD3F7F /* udp.c in Sources */,
 				7C6F654E1D6F6BA1004F6CDF /* SDK_Service.cpp in Sources */,
@@ -1273,6 +1279,8 @@
 					"-DLWIP_DEBUG",
 					"-DSDK_IPV4",
 					"-DUSING_BRIDGING_HEADER",
+					"-DSDK_LWIP",
+					"-D__APP_FRAMEWORK__",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-OSX";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1304,6 +1312,7 @@
 					"-DSDK_SERVICE",
 					"-DSDK_BUNDLED",
 					"-D__XCODE__",
+					"-D__APP_FRAMEWORK__",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-OSX";
 				PRODUCT_NAME = "$(TARGET_NAME)";

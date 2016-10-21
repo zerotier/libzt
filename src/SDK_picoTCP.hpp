@@ -28,6 +28,7 @@
 #ifndef SDK_PICOSTACK_H
 #define SDK_PICOSTACK_H
 
+#if defined(SDK_PICOTCP)
 
 #include <stdio.h>
 #include <dlfcn.h>
@@ -126,11 +127,9 @@ namespace ZeroTier {
         int (*_pico_socket_write)(PICO_SOCKET_WRITE_SIG);
         int (*_pico_socket_close)(PICO_SOCKET_CLOSE_SIG);
         int (*_pico_socket_shutdown)(PICO_SOCKET_SHUTDOWN_SIG);
-
         struct pico_socket *(*_pico_socket_accept)(PICO_SOCKET_ACCEPT_SIG);
-
         int (*_pico_ipv6_link_add)(PICO_IPV6_LINK_ADD_SIG);
-        pico_err_t (*_get_pico_err)(void);
+        //pico_err_t (*_get_pico_err)(void);
         
         Mutex _lock;        
         Mutex _lock_mem;
@@ -165,7 +164,7 @@ namespace ZeroTier {
             // SIP-
             _pico_stack_init = (void(*)(void))&pico_stack_init;
             _pico_stack_tick = (void(*)(void))&pico_stack_tick;
-            _pico_tap_create = (struct pico_device*(*)(PICO_TAP_CREATE_SIG)&pico_tap_create;
+            _pico_tap_create = (struct pico_device*(*)(PICO_TAP_CREATE_SIG))&pico_tap_create;
             _pico_string_to_ipv4 = (int(*)(PICO_STRING_TO_IPV4_SIG))&pico_string_to_ipv4;
             _pico_ipv4_to_string = (int(*)(PICO_IPV4_TO_STRING_SIG))&pico_ipv4_to_string;
             _pico_ipv4_link_add = (int(*)(PICO_IPV4_LINK_ADD_SIG))&pico_ipv4_link_add;
@@ -185,13 +184,9 @@ namespace ZeroTier {
             _pico_socket_write = (int(*)(PICO_SOCKET_WRITE_SIG))&pico_socket_write;
             _pico_socket_close = (int(*)(PICO_SOCKET_CLOSE_SIG))&pico_socket_close;
             _pico_socket_shutdown = (int(*)(PICO_SOCKET_SHUTDOWN_SIG))&pico_socket_shutdown;
-
-            pico_socket_accept = (struct pico_socket*(*)(PICO_SOCKET_ACCEPT_SIG))&pico_socket_accept;
-
-
+            _pico_socket_accept = (struct pico_socket*(*)(PICO_SOCKET_ACCEPT_SIG))&pico_socket_accept;
             _pico_ipv6_link_add = (int(*)(PICO_IPV6_LINK_ADD_SIG))&pico_ipv6_link_add;
-
-            _get_pico_err = (pico_err_t(*)())&get_pico_err;
+            //_get_pico_err = (pico_err_t(*)())&get_pico_err;
 
 #endif
             
@@ -226,7 +221,7 @@ namespace ZeroTier {
             _pico_socket_accept = (struct pico_socket*(*)(PICO_SOCKET_ACCEPT_SIG))dlsym(_libref, "pico_socket_accept");
             _pico_ipv6_link_add = (int(*)(PICO_IPV6_LINK_ADD_SIG))dlsym(_libref, "pico_ipv6_link_add");
 
-            _get_pico_err = (pico_err_t(*)())dlsym(_libref, "get_pico_err");
+            //_get_pico_err = (pico_err_t(*)())dlsym(_libref, "get_pico_err");
 
 #endif
         }
@@ -262,9 +257,11 @@ namespace ZeroTier {
         inline int __pico_socket_shutdown(PICO_SOCKET_SHUTDOWN_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _pico_socket_shutdown(s, mode); }
         inline struct pico_socket * __pico_socket_accept(PICO_SOCKET_ACCEPT_SIG) throw() { DEBUG_STACK(); /*Mutex::Lock _l(_lock);*/ return _pico_socket_accept(s, orig, port); }
         inline int __pico_ipv6_link_add(PICO_IPV6_LINK_ADD_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _pico_ipv6_link_add(dev, address, netmask); }
-        inline pico_err_t __get_pico_err(void) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _get_pico_err(); }
+        //inline pico_err_t __get_pico_err(void) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _get_pico_err(); }
     };
     
 } // namespace ZeroTier
 
 #endif
+
+#endif // SDK_PICOTCP

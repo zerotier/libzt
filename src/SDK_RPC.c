@@ -41,7 +41,7 @@
 #include <fcntl.h>
 #include <dlfcn.h>
 #include <stdint.h>
-#include <sys/socket.h>
+//#include <sys/socket.h>
 #include <strings.h>
 
 #include "SDK.h"
@@ -52,8 +52,6 @@
 // externs common between SDK_Intercept and SDK_Socket from SDK.h
 int (*realsocket)(SOCKET_SIG);
 int (*realconnect)(CONNECT_SIG);
-
-void dwr(int level, const char *fmt, ... );
 
 #ifdef __cplusplus
 extern "C" {

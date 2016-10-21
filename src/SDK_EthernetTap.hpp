@@ -49,11 +49,12 @@
 #include "SDK_defs.h"
 #include "SDK_RPC.h"
 #include "SDK_lwIP.hpp"
-#include "SDK_picoTCP.hpp"
 #include "SDK_jip.hpp"
 
-#include "pico_protocol.h"
-
+#if defined(SDK_PICOTCP)
+    #include "SDK_picoTCP.hpp"
+    #include "pico_protocol.h"
+#endif
 
 // lwIP structs
 struct tcp_pcb;
@@ -174,11 +175,13 @@ namespace ZeroTier {
 		jip_stack *jipstack;
 
 		// picoTCP
-		struct pico_device picodev;
-		unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
-		int pico_frame_rxbuf_tot = 0;
-		Mutex _pico_frame_rxbuf_m;
-		picoTCP_stack *picostack;
+        #if defined(SDK_PICOTCP)
+            struct pico_device picodev;
+            unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
+            int pico_frame_rxbuf_tot = 0;
+            Mutex _pico_frame_rxbuf_m;
+            picoTCP_stack *picostack;
+        #endif
 
 		// LWIP callbacks
 		// NOTE: these are called from within LWIP, meaning that lwipstack->_lock is ALREADY

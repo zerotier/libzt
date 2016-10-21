@@ -88,6 +88,8 @@ namespace ZeroTier {
 ---------- This section represents the "driver" for the picoTCP stack ----------
 ------------------------------------------------------------------------------*/
 
+#if defined(SDK_PICOTCP)
+    
 	// Reference to the tap interface
 	// This is needed due to the fact that there's a lot going on in the tap interface
 	// that needs to be updated on each of the network stack's callbacks and not every
@@ -617,6 +619,7 @@ namespace ZeroTier {
     	}
     	DEBUG_ERROR("invalid connection or pico_socket");
     }
+#endif // SDK_PICOTCP
 
 
 /*------------------------------------------------------------------------------
@@ -822,12 +825,12 @@ void NetconEthernetTap::jip_init_interface(const InetAddress &ip)
 
 bool NetconEthernetTap::addIp(const InetAddress &ip)
 {
-	picotap = this;
 	// SIP-1
 	// Initialize network stack's interface, assign addresses
     #if defined(SDK_LWIP)
 		lwIP_init_interface(ip);
 	#elif defined(SDK_PICOTCP)
+        picotap = this;
 		pico_init_interface(this, ip);
 	#elif defined(SDK_JIP)
 		jip_init_interface(ip);
@@ -1747,7 +1750,6 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 
 		// ipv4
 		#if defined(SDK_IPV4)
-			//ip4_addr_t ba;
 		    if(addr->sa_family == AF_INET) {
 		        struct sockaddr_in *connaddr = (struct sockaddr_in *)addr;
 		        inet_ntop(AF_INET, &(connaddr->sin_addr), addrstr, INET_ADDRSTRLEN);    
@@ -1757,10 +1759,8 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 
 		// ipv6
 		#if defined(SDK_IPV6)
-		    //ip6_addr_t ba;
 			struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&bind_rpc->addr;
 			in6_to_ip6((ip6_addr *)&ba, in6);
-
 		    if(addr->sa_family == AF_INET6) {        
 		        struct sockaddr_in6 *connaddr6 = (struct sockaddr_in6 *)addr;
 		        inet_ntop(AF_INET6, &(connaddr6->sin6_addr), addrstr, INET6_ADDRSTRLEN);
@@ -1942,8 +1942,9 @@ Connection * NetconEthernetTap::handleSocket(PhySocket *sock, void **uptr, struc
 	    }
 		DEBUG_ERROR(" memory not available for new PCB");
 		sendReturnValue(_phy.getDescriptor(sock), -1, ENOMEM);
-		return NULL;
 	#endif
+    
+    return NULL;
 }
 
 int NetconEthernetTap::handleConnectProxy(PhySocket *sock, struct sockaddr_in *rawAddr)
@@ -2064,7 +2065,6 @@ void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Conne
 
 		// ipv4
 		#if defined(SDK_IPV4)
-			//ip4_addr_t ba;
 		    if(addr->sa_family == AF_INET) {
 		        struct sockaddr_in *connaddr = (struct sockaddr_in *)addr;
 		        inet_ntop(AF_INET, &(connaddr->sin_addr), addrstr, INET_ADDRSTRLEN);    
@@ -2074,7 +2074,6 @@ void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Conne
 
 		// ipv6
 		#if defined(SDK_IPV6)
-		    //ip6_addr_t ba;
 			struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&connect_rpc->addr;
 			in6_to_ip6((ip6_addr *)&ba, in6);
 

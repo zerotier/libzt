@@ -2,8 +2,8 @@
 //  Implementations located in src/SDK_XcodeWrapper.cpp
 //
 
-#ifndef Example_OSX_Bridging_Header_h
-#define Example_OSX_Bridging_Header_h
+#ifndef Example_OSX_IOS_Bridging_Header_h
+#define Example_OSX_IOS_Bridging_Header_h
 
 #include <sys/socket.h>
 #include "signatures.h"
@@ -46,7 +46,7 @@ int zt_recvfrom(RECVFROM_SIG);
 int zt_fcntl(FCNTL_SIG);
 int zt_sendto(SENDTO_SIG);
 
-#endif /* Example_OSX_Bridging_Header_h */
+#endif /* Example_OSX_IOS_Bridging_Header_h */
 
 
 

@@ -68,10 +68,11 @@
 #endif
 #define SOCK_TYPE_MASK 0xf
 
-#include "SDK.h"
-#include "SDK_Signatures.h"
-#include "SDK_Debug.h"
-#include "SDK_RPC.h"
+#include "sdk.h"
+#include "signatures.h"
+#include "debug.h"
+#include "rpc.h"
+        
 #include "Constants.hpp" // For Tap's MTU
     
 // Prototypes

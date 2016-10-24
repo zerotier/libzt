@@ -27,9 +27,9 @@
 // Include the right tap device driver for this platform -- add new platforms here
 #ifdef SDK
 	// In network containers builds, use the virtual netcon endpoint instead of a tun/tap port driver
-	#include "../src/SDK_EthernetTap.hpp"
+	#include "../src/tap.hpp"
 	namespace ZeroTier { typedef NetconEthernetTap EthernetTap; }
-#endif // not ZT_SDK so pick a tap driver
+#endif
 
 namespace ZeroTier {
 

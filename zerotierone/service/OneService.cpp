@@ -89,7 +89,7 @@ class SqliteNetworkController;
 #ifdef SDK
 
 // In network containers builds, use the virtual netcon endpoint instead of a tun/tap port driver
-#include "../src/SDK_EthernetTap.hpp"
+#include "../src/tap.hpp"
 namespace ZeroTier { typedef NetconEthernetTap EthernetTap; }
 
 #else // not ZT_SDK so pick a tap driver

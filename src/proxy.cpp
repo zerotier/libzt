@@ -25,8 +25,9 @@
  * LLC. Start here: http://www.zerotier.com/
  */
 
-#include "SDK_Debug.h"
-#include "SDK_EthernetTap.hpp"
+#include "debug.h"
+#include "tap.hpp"
+ 
 #include "Phy.hpp"
 #include "Utils.hpp"
 #include "OSUtils.hpp"

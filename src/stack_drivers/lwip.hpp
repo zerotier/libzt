@@ -42,7 +42,7 @@
 
 #include "Mutex.hpp"
 #include "OSUtils.hpp"
-#include "SDK_Debug.h"
+#include "debug.h"
 
 #include <stdio.h>
 #include <dlfcn.h>

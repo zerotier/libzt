@@ -35,16 +35,16 @@
 #include <sys/resource.h>
 #include <sys/syscall.h>
 
-#include "SDK_EthernetTap.hpp"
-#include "SDK_Utils.hpp"
-#include "SDK.h"
-#include "SDK_defs.h"
-#include "SDK_Debug.h"
+#include "tap.hpp"
+#include "utils.hpp"
+#include "sdk.h"
+#include "defs.h"
+#include "debug.h"
 
 #if defined(SDK_LWIP) 
-	#include "SDK_lwIP.hpp"
+	#include "lwip.hpp"
 #elif defined(SDK_PICOTCP)
- 	#include "SDK_picoTCP.hpp"
+ 	#include "picotcp.hpp"
 	#include "pico_stack.h"
 	#include "pico_ipv4.h"
 	#include "pico_icmp4.h"
@@ -52,7 +52,7 @@
 	#include "pico_protocol.h"
 	#include "pico_socket.h"
 #elif defined(SDK_JIP)
-	#include "SDK_jip.hpp"
+	#include "jip.hpp"
 #endif
 
 #include "Utils.hpp"

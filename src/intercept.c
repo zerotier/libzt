@@ -42,7 +42,6 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <sys/types.h>
-//#include <sys/socket.h>
 #include <sys/poll.h>
 #include <sys/un.h>
 #include <sys/resource.h>
@@ -55,9 +54,9 @@
     #include <linux/net.h>
 #endif
 
-#include "SDK.h"
-#include "SDK_Debug.h"
-#include "SDK_RPC.h"
+#include "sdk.h"
+#include "debug.h"
+#include "rpc.h"
 
 pthread_key_t thr_id_key;
 //char *api_netpath;

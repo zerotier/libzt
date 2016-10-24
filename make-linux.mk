@@ -80,6 +80,7 @@ INCLUDES+= -Iext \
 	-I../$(ZT1)/service \
 	-I. \
 	-Isrc \
+	-Isrc/stack_drivers \
 	-I$(LWIP_DIR)/src/include \
 	-I$(LWIP_DIR)/src/include/ipv4 \
 	-I$(LWIP_DIR)/src/include/ipv6 \
@@ -125,7 +126,7 @@ endif
 
 
 # Debug output for the SDK
-# Specific levels can be controlled in src/SDK_Debug.h
+# Specific levels can be controlled in src/debug.h
 ifeq ($(SDK_DEBUG),1)
 	DEFS+=-DSDK_DEBUG -g
 endif
@@ -173,11 +174,11 @@ one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernet
 # Build only the intercept library
 linux_intercept:
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
-	cd src ; gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o ../$(INTERCEPT) SDK_Sockets.c SDK_Intercept.c SDK_RPC.c -ldl
+	cd src ; gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o ../$(INTERCEPT) sockets.c intercept.c rpc.c -ldl
 
 # Build only the SDK service
 linux_sdk_service: pico lwip $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(ZT1)/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp $(ZT1)/one.cpp src/SDK_RPC.c $(LDLIBS) -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(ZT1)/service/OneService.cpp src/tap.cpp src/proxy.cpp $(ZT1)/one.cpp src/rpc.c $(LDLIBS) -ldl
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-cli
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-idtool
 
@@ -186,7 +187,7 @@ linux_service_and_intercept: linux_intercept linux_sdk_service
 
 # Builds a single shared library which contains everything
 linux_shared_lib: $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) -DSDK -DZT_ONE_NO_ROOT_CHECK -shared -o $(SHARED_LIB) $(OBJS) zerotierone/service/OneService.cpp src/SDK_Service.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp zerotierone/one.cpp -x c src/SDK_Sockets.c src/SDK_Intercept.c src/SDK_RPC.c $(LDLIBS) -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) -DSDK -DZT_ONE_NO_ROOT_CHECK -shared -o $(SHARED_LIB) $(OBJS) zerotierone/service/OneService.cpp src/service.cpp src/tap.cpp src/proxy.cpp zerotierone/one.cpp -x c src/sockets.c src/intercept.c src/rpc.c $(LDLIBS) -ldl
 
 
 

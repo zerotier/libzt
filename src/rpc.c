@@ -41,12 +41,11 @@
 #include <fcntl.h>
 #include <dlfcn.h>
 #include <stdint.h>
-//#include <sys/socket.h>
 #include <strings.h>
 
-#include "SDK.h"
-#include "SDK_RPC.h"
-#include "SDK_Debug.h"
+#include "sdk.h"
+#include "rpc.h"
+#include "debug.h"
 
 
 // externs common between SDK_Intercept and SDK_Socket from SDK.h

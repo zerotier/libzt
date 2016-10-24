@@ -24,8 +24,6 @@ ONE_CLI            = $(BUILD)/$(ONE_CLI_NAME)
 ONE_IDTOOL         = $(BUILD)/$(ONE_IDTOOL_NAME)
 LWIP_LIB           = $(BUILD)/$(LWIP_LIB_NAME)
 #
-LWIP_2_DIR         = ext/lwip_2.0.0
-LWIP_1_DIR         = ext/lwip_1.4.1
 LWIP_BASE_DIR      = ext/lwip
 
 # Automagically pick clang or gcc, with preference for clang

@@ -46,10 +46,10 @@
 #include "Utils.hpp"
 #include "OSUtils.hpp"
 
-#include "SDK_EthernetTap.hpp"
-#include "SDK.h"
-#include "SDK_Debug.h"
-#include "SDK_LocalBuild.h"
+#include "tap.hpp"
+#include "sdk.h"
+#include "debug.h"
+#include "build.h"
 
 std::string service_path;
 pthread_t intercept_thread;

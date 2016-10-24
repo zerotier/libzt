@@ -46,13 +46,13 @@
 
 #include "netif/etharp.h"
 
-#include "SDK_defs.h"
-#include "SDK_RPC.h"
-#include "SDK_lwIP.hpp"
-#include "SDK_jip.hpp"
+#include "defs.h"
+#include "rpc.h"
+#include "lwip.hpp"
+#include "jip.hpp"
 
 #if defined(SDK_PICOTCP)
-    #include "SDK_picoTCP.hpp"
+    #include "picotcp.hpp"
     #include "pico_protocol.h"
 #endif
 

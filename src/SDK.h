@@ -30,14 +30,14 @@
 
 #include <sys/socket.h>
 #include <stdbool.h>
-#include "SDK_Signatures.h"
+#include "signatures.h"
 
 #if defined(__ANDROID__)
 	// For defining the Android direct-call API
     #include <jni.h>
 #endif
 
-#include "SDK_LocalBuild.h"
+#include "build.h"
 
 #ifdef __cplusplus
 extern "C" {

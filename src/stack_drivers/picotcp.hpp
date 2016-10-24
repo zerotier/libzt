@@ -43,8 +43,8 @@
 #include "Constants.hpp"
 #include "Phy.hpp"
  
-#include "SDK_Debug.h"
-#include "SDK_EthernetTap.hpp"
+#include "debug.h"
+#include "tap.hpp"
 
 #include "pico_stack.h"
 #include "pico_ipv4.h"

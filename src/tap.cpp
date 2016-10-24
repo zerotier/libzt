@@ -695,8 +695,6 @@ NetconEthernetTap::NetconEthernetTap(
 	// SIP-0
 	// Load and initialize network stack library
     #if defined(SDK_LWIP)
-    DEBUG_INFO("Did I get here?");
-
 		Utils::snprintf(stackPath,sizeof(stackPath),"%s%sliblwip.so",homePath,ZT_PATH_SEPARATOR_S);
 		lwipstack = new lwIP_stack(stackPath);
 		if(!lwipstack) {

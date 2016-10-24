@@ -25,9 +25,9 @@
  * LLC. Start here: http://www.zerotier.com/
  */
 
-#include "SDK.h"
-#include "SDK_XcodeWrapper.hpp"
-#include "SDK_Signatures.h"
+#include "sdk.h"
+#include "XcodeWrapper.hpp"
+#include "signatures.h"
 
 #define INTERCEPT_ENABLED   111
 #define INTERCEPT_DISABLED  222

@@ -7,11 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		7C0C03D51D832599009C0827 /* ZTSDK.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C0C03D41D832599009C0827 /* ZTSDK.swift */; };
-		7C74DACF1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C74DACD1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.cpp */; };
 		7C74DAD21D3C47D300A6C0B9 /* ZeroTierSDK_OSX.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */; };
 		7C74DAD31D3C485800A6C0B9 /* ZeroTierSDK_OSX.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */; };
 		7C74DAD41D3C485800A6C0B9 /* ZeroTierSDK_OSX.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		7C7D529B1DBEAED300896C93 /* XcodeWrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D52981DBEAED300896C93 /* XcodeWrapper.cpp */; };
+		7C7D529C1DBEAED300896C93 /* ztsdk.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D529A1DBEAED300896C93 /* ztsdk.swift */; };
+		7C7D529E1DBEAF0000896C93 /* Apple-Bridging-Header.h in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D529D1DBEAEE500896C93 /* Apple-Bridging-Header.h */; };
 		7CFCB4311D1AFEE800D3E66C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CFCB4301D1AFEE800D3E66C /* AppDelegate.swift */; };
 		7CFCB4331D1AFEE800D3E66C /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CFCB4321D1AFEE800D3E66C /* ViewController.swift */; };
 		7CFCB4351D1AFEE800D3E66C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7CFCB4341D1AFEE800D3E66C /* Assets.xcassets */; };
@@ -33,10 +34,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		7C0C03D41D832599009C0827 /* ZTSDK.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ZTSDK.swift; path = ../../../../../src/ZTSDK.swift; sourceTree = "<group>"; };
-		7C74DACD1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SDK_XcodeWrapper.cpp; path = ../../../../../src/SDK_XcodeWrapper.cpp; sourceTree = "<group>"; };
-		7C74DACE1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SDK_XcodeWrapper.hpp; path = ../../../../../src/SDK_XcodeWrapper.hpp; sourceTree = "<group>"; };
 		7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ZeroTierSDK_OSX.framework; path = ../../../../build/osx_app_framework/Debug/ZeroTierSDK_OSX.framework; sourceTree = "<group>"; };
+		7C7D52981DBEAED300896C93 /* XcodeWrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = XcodeWrapper.cpp; path = ../../../../../src/wrappers/swift/XcodeWrapper.cpp; sourceTree = "<group>"; };
+		7C7D52991DBEAED300896C93 /* XcodeWrapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = XcodeWrapper.hpp; path = ../../../../../src/wrappers/swift/XcodeWrapper.hpp; sourceTree = "<group>"; };
+		7C7D529A1DBEAED300896C93 /* ztsdk.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ztsdk.swift; path = ../../../../../src/wrappers/swift/ztsdk.swift; sourceTree = "<group>"; };
+		7C7D529D1DBEAEE500896C93 /* Apple-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "Apple-Bridging-Header.h"; path = "../../../../../src/wrappers/swift/Apple-Bridging-Header.h"; sourceTree = "<group>"; };
 		7CFCB42D1D1AFEE800D3E66C /* Example_OSX_App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Example_OSX_App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CFCB4301D1AFEE800D3E66C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7CFCB4321D1AFEE800D3E66C /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -78,9 +80,10 @@
 		7CFCB42F1D1AFEE800D3E66C /* Example_OSX_App */ = {
 			isa = PBXGroup;
 			children = (
-				7C0C03D41D832599009C0827 /* ZTSDK.swift */,
-				7C74DACD1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.cpp */,
-				7C74DACE1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.hpp */,
+				7C7D529D1DBEAEE500896C93 /* Apple-Bridging-Header.h */,
+				7C7D52981DBEAED300896C93 /* XcodeWrapper.cpp */,
+				7C7D52991DBEAED300896C93 /* XcodeWrapper.hpp */,
+				7C7D529A1DBEAED300896C93 /* ztsdk.swift */,
 				7CFCB4301D1AFEE800D3E66C /* AppDelegate.swift */,
 				7CFCB4321D1AFEE800D3E66C /* ViewController.swift */,
 				7CFCB4341D1AFEE800D3E66C /* Assets.xcassets */,
@@ -161,9 +164,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7C7D529E1DBEAF0000896C93 /* Apple-Bridging-Header.h in Sources */,
+				7C7D529B1DBEAED300896C93 /* XcodeWrapper.cpp in Sources */,
 				7CFCB4331D1AFEE800D3E66C /* ViewController.swift in Sources */,
-				7C74DACF1D3C46EB00A6C0B9 /* SDK_XcodeWrapper.cpp in Sources */,
-				7C0C03D51D832599009C0827 /* ZTSDK.swift in Sources */,
+				7C7D529C1DBEAED300896C93 /* ztsdk.swift in Sources */,
 				7CFCB4311D1AFEE800D3E66C /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -273,13 +277,16 @@
 				CLANG_ENABLE_MODULES = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/../../../../build/OSX_app_framework/Release";
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../../../src";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../../../../src",
+					"$(SRCROOT)/../../../../src/wrappers/swift",
+				);
 				INFOPLIST_FILE = Example_OSX_App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.Example-OSX-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/../../../../src/SDK_Apple-Bridging-Header.h";
-				"SWIFT_OBJC_BRIDGING_HEADER[arch=*]" = "$(PROJECT_DIR)/../../../../src/SDK_Apple-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/../../../../src/wrappers/swift/Apple-Bridging-Header.h";
+				"SWIFT_OBJC_BRIDGING_HEADER[arch=*]" = "$(PROJECT_DIR)/../../../../src/wrappers/swift/Apple-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -291,12 +298,15 @@
 				CLANG_ENABLE_MODULES = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/../../../../build/OSX_app_framework/Release";
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../../../src";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../../../../src",
+					"$(SRCROOT)/../../../../src/wrappers/swift",
+				);
 				INFOPLIST_FILE = Example_OSX_App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.Example-OSX-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/../../../../src/SDK_Apple-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/../../../../src/wrappers/swift/Apple-Bridging-Header.h";
 			};
 			name = Release;
 		};

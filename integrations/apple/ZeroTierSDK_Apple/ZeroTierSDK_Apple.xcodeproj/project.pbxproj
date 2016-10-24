@@ -1317,7 +1317,6 @@
 					"-DSDK_DEBUG",
 					"-DSDK",
 					"-D__IOS__",
-					"-DLWIP_DEBUG",
 					"-DSDK_BUNDLED",
 					"-DUSING_BRIDGING_HEADER",
 					"-DSDK_IPV4",

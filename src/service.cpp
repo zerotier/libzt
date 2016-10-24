@@ -427,6 +427,15 @@ void *zts_start_core_service(void *thread_id) {
     //    set_intercept_status(INTERCEPT_DISABLED); // Ignore network calls from ZT service
     //#endif
 
+    #if defined(__IOS__)
+        // Go to the app's data directory so we can shorten the sun_path we bind to
+        char current_dir[MAX_DIR_SZ];
+        getcwd(current_dir, MAX_DIR_SZ);
+        std::string targetDir = homeDir; // + "/../../";
+        chdir(targetDir.c_str());
+        homeDir = localHomeDir;
+    #endif
+
     #if defined(__UNITY_3D__)
         char current_dir[MAX_DIR_SZ];
         getcwd(current_dir, MAX_DIR_SZ);
@@ -467,6 +476,7 @@ void *zts_start_core_service(void *thread_id) {
             if ((*pi != ".")&&(*pi != "..")) {
                 if (!ZeroTier::OSUtils::mkdir(ptmp)) {
                     DEBUG_ERROR("home path does not exist, and could not create");
+                    perror("error\n");
                 }
             }
         }
@@ -476,14 +486,7 @@ void *zts_start_core_service(void *thread_id) {
         return NULL;
     }
 
-    #if defined(__IOS__)
-        // Go to the app's data directory so we can shorten the sun_path we bind to
-        char current_dir[MAX_DIR_SZ];
-        getcwd(current_dir, MAX_DIR_SZ);
-        std::string targetDir = homeDir + "/../../";
-        chdir(targetDir.c_str());
-        homeDir = localHomeDir;
-    #endif
+
 
     //chdir(current_dir); // Return to previous current working directory (at the request of Unity3D)
     #if defined(__UNITY_3D__)

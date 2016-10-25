@@ -755,7 +755,6 @@ bool NetconEthernetTap::enabled() const
 void NetconEthernetTap::lwIP_init_interface(const InetAddress &ip)
 {
 	#if defined(SDK_LWIP)
-	DEBUG_INFO("local_addr=%s", ip.toString().c_str());
 	Mutex::Lock _l(_ips_m);
 
 	if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
@@ -764,7 +763,7 @@ void NetconEthernetTap::lwIP_init_interface(const InetAddress &ip)
 
 	#if defined(SDK_IPV4)
 		if (ip.isV4()) {			
-			DEBUG_INFO("IPV4");
+			DEBUG_INFO("local_addr=%s", ip.toString().c_str());
 			// convert address
 			static ip_addr_t ipaddr, netmask, gw;
 			IP4_ADDR((ip4_addr_t *)&gw,127,0,0,1);
@@ -789,7 +788,7 @@ void NetconEthernetTap::lwIP_init_interface(const InetAddress &ip)
 
 	#if defined(SDK_IPV6)
 		if(ip.isV6()) {
-			DEBUG_INFO("IPV6");
+			DEBUG_INFO("local_addr=%s", ip.toString().c_str());
 			// convert address
 			static ip6_addr_t addr6;
 		    struct sockaddr_in6 in6;
@@ -862,7 +861,7 @@ std::vector<InetAddress> NetconEthernetTap::ips() const
 void NetconEthernetTap::lwIP_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
 {
 	#if defined(SDK_LWIP)
-		DEBUG_INFO();
+		// DEBUG_EXTRA();
 		struct pbuf *p,*q;
 		if (!_enabled)
 			return;

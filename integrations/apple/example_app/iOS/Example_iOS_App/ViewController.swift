@@ -183,12 +183,11 @@ class ViewController: UIViewController {
         while(true)
         {
             sleep(1)
-            
             dispatch_async(dispatch_get_main_queue()) {
-                //var str_buf = [Int8](count: 16, repeatedValue: 0)
-                //print(self.zt.get_address(self.txtNWID.text!)) //, &str_buf);
-                //self.lblAddress.text = String.fromCString(str_buf)
-                // print("IPV4 = ", String.fromCString(str_buf))
+                var str_buf = [Int8](count: 16, repeatedValue: 0)
+                self.zt.get_ipv6_address(self.txtNWID.text!, &str_buf)
+                self.lblAddress.text = String.fromCString(str_buf)
+                print("addr = ", String.fromCString(str_buf))
             }
             
             

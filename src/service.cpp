@@ -165,12 +165,14 @@ void zts_get_ipv4_address(const char *nwid, char *addrstr)
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
     ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
     if(tap && tap->_ips.size()){ 
-        for(int i=0; i<tap->_ips.size(); i++)
-        {
-            std::string addr = tap->_ips[0].toString();
-            DEBUG_EXTRA("addr=%s, addrlen=%d", addr.c_str(), addr.length());
+        for(int i=0; i<tap->_ips.size(); i++) {
+            if(tap->_ips[i].isV4()) {
+                std::string addr = tap->_ips[i].toString();
+                // DEBUG_EXTRA("addr=%s, addrlen=%d", addr.c_str(), addr.length());
+                memcpy(addrstr, addr.c_str(), addr.length()); // first address found that matches protocol version 4
+                return;
+            }
         }
-        //memcpy(addrstr, addr.c_str(), addr.length());  
     }
     else {
         memcpy(addrstr, "-1.-1.-1.-1/-1", 14);
@@ -182,9 +184,14 @@ void zts_get_ipv6_address(const char *nwid, char *addrstr)
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
     ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
     if(tap && tap->_ips.size()){ 
-        std::string addr = tap->_ips[0].toString();
-        DEBUG_EXTRA("addr=%s, addrlen=%d", addr.c_str(), addr.length());
-        memcpy(addrstr, addr.c_str(), addr.length());  
+        for(int i=0; i<tap->_ips.size(); i++){
+            if(tap->_ips[i].isV6()) {
+                std::string addr = tap->_ips[i].toString();
+                // DEBUG_EXTRA("addr=%s, addrlen=%d", addr.c_str(), addr.length());
+                memcpy(addrstr, addr.c_str(), addr.length()); // first address found that matches protocol version 6
+                return;
+            }
+        }
     }
     else {
         memcpy(addrstr, "-1.-1.-1.-1/-1", 14);

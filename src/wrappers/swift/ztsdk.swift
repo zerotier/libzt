@@ -84,18 +84,13 @@ class ZTSDK : NSObject
     }
     
     // Returns the IPV4 address of this device on a given ZeroTier network
-    func get_ipv4_address(nwid: String) -> String? {
-        var str_buf = [Int8](count: 16, repeatedValue: 0)
-        zt_get_ipv4_address(nwid,&str_buf)
-        return String.fromCString(str_buf)
-        //return "IPV4"
+    func get_ipv4_address(nwid: String, inout _ addrbuf: [Int8]) {
+        zt_get_ipv4_address(nwid,&addrbuf)
     }
     
     // Returns the IPV6 address of this device on a given ZeroTier network
-    func get_ipv6_address(nwid: String) -> String? {
-        var str_buf = [Int8](count: 16, repeatedValue: 0)
-        zt_get_ipv6_address(nwid,&str_buf)
-        return String.fromCString(str_buf)
+    func get_ipv6_address(nwid: String, inout _ addrbuf: [Int8]) {
+        zt_get_ipv6_address(nwid,&addrbuf)
     }
     
     
@@ -127,6 +122,9 @@ class ZTSDK : NSObject
     
     */
     
+    // TODO: Verify this hasn't been broken. Should check for interface addresses based on 
+    // protocol version. (important)
+    
     // SOCKET API
     func socket(socket_family: Int32,  _ socket_type: Int32, _ socket_protocol: Int32) -> Int32 {
         return zt_socket(socket_family, socket_type, socket_protocol);
@@ -137,7 +135,10 @@ class ZTSDK : NSObject
             return zt_connect(Int32(fd), addr.to_sockaddr_in(), UInt32(addr.len()));
         }
         while(true) { // politely wait until an address is provided. simulates a blocking call
-            if(self.get_ipv4_address(nwid!) != nil) {
+            var addrbuf = [Int8](count: 16, repeatedValue: 0)
+            self.get_ipv4_address(nwid!, &addrbuf)
+            var addr_str:String = String.fromCString(addrbuf)!
+            if(addr_str != "-1.-1.-1.-1/-1") {
                 return zt_connect(Int32(fd), addr.to_sockaddr_in(), UInt32(addr.len()));
             }
         }
@@ -147,7 +148,10 @@ class ZTSDK : NSObject
             return zt_bind(Int32(fd), addr.to_sockaddr_in(), UInt32(addr.len()));
         }
         while(true) { // politely wait until an address is provided. simulates a blocking call
-            if(self.get_ipv4_address(nwid!) != nil) {
+            var addrbuf = [Int8](count: 16, repeatedValue: 0)
+            self.get_ipv4_address(nwid!, &addrbuf)
+            var addr_str:String = String.fromCString(addrbuf)!
+            if(addr_str != "-1.-1.-1.-1/-1") {
                 return zt_bind(Int32(fd), addr.to_sockaddr_in(), UInt32(addr.len()));
             }
         }

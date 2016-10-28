@@ -1,10 +1,9 @@
 #define _CRT_SECURE_NO_WARNINGS
-
-/* $Id: miniwget.c,v 1.75 2016/01/24 17:24:36 nanard Exp $ */
+/* $Id: miniwget.c,v 1.72 2015/10/26 17:05:08 nanard Exp $ */
 /* Project : miniupnp
  * Website : http://miniupnp.free.fr/
  * Author : Thomas Bernard
- * Copyright (c) 2005-2016 Thomas Bernard
+ * Copyright (c) 2005-2015 Thomas Bernard
  * This software is subject to the conditions detailed in the
  * LICENCE file provided in this distribution. */
 
@@ -50,12 +49,12 @@
 #define MIN(x,y) (((x)<(y))?(x):(y))
 #endif /* MIN */
 
+
 #ifdef _WIN32
 #define OS_STRING "Win32"
-#define MINIUPNPC_VERSION_STRING "2.0"
+#define MINIUPNPC_VERSION_STRING "1.9"
 #define UPNP_VERSION_STRING "UPnP/1.1"
 #endif
-
 #include "miniwget.h"
 #include "connecthostport.h"
 #include "receivedata.h"
@@ -71,7 +70,7 @@
  * to the length parameter.
  */
 void *
-getHTTPResponse(int s, int * size, int * status_code)
+getHTTPResponse(int s, int * size)
 {
 	char buf[2048];
 	int n;
@@ -89,10 +88,7 @@ getHTTPResponse(int s, int * size, int * status_code)
 	unsigned int content_buf_used = 0;
 	char chunksize_buf[32];
 	unsigned int chunksize_buf_index;
-	char * reason_phrase = NULL;
-	int reason_phrase_len = 0;
 
-	if(status_code) *status_code = -1;
 	header_buf = malloc(header_buf_len);
 	if(header_buf == NULL)
 	{
@@ -164,7 +160,7 @@ getHTTPResponse(int s, int * size, int * status_code)
 				continue;
 			/* parse header lines */
 			for(i = 0; i < endofheaders - 1; i++) {
-				if(linestart > 0 && colon <= linestart && header_buf[i]==':')
+				if(colon <= linestart && header_buf[i]==':')
 				{
 					colon = i;
 					while(i < (endofheaders-1)
@@ -175,29 +171,7 @@ getHTTPResponse(int s, int * size, int * status_code)
 				/* detecting end of line */
 				else if(header_buf[i]=='\r' || header_buf[i]=='\n')
 				{
-					if(linestart == 0 && status_code)
-					{
-						/* Status line
-						 * HTTP-Version SP Status-Code SP Reason-Phrase CRLF */
-						int sp;
-						for(sp = 0; sp < i; sp++)
-							if(header_buf[sp] == ' ')
-							{
-								if(*status_code < 0)
-									*status_code = atoi(header_buf + sp + 1);
-								else
-								{
-									reason_phrase = header_buf + sp + 1;
-									reason_phrase_len = i - sp - 1;
-									break;
-								}
-							}
-#ifdef DEBUG
-						printf("HTTP status code = %d, Reason phrase = %.*s\n",
-						       *status_code, reason_phrase_len, reason_phrase);
-#endif
-					}
-					else if(colon > linestart && valuestart > colon)
+					if(colon > linestart && valuestart > colon)
 					{
 #ifdef DEBUG
 						printf("header='%.*s', value='%.*s'\n",
@@ -368,8 +342,7 @@ static void *
 miniwget3(const char * host,
           unsigned short port, const char * path,
           int * size, char * addr_str, int addr_str_len,
-          const char * httpversion, unsigned int scope_id,
-          int * status_code)
+          const char * httpversion, unsigned int scope_id)
 {
 	char buf[2048];
     int s;
@@ -467,7 +440,7 @@ miniwget3(const char * host,
 			sent += n;
 		}
 	}
-	content = getHTTPResponse(s, size, status_code);
+	content = getHTTPResponse(s, size);
 	closesocket(s);
 	return content;
 }
@@ -476,20 +449,18 @@ miniwget3(const char * host,
  * Call miniwget3(); retry with HTTP/1.1 if 1.0 fails. */
 static void *
 miniwget2(const char * host,
-          unsigned short port, const char * path,
-          int * size, char * addr_str, int addr_str_len,
-          unsigned int scope_id, int * status_code)
+		  unsigned short port, const char * path,
+		  int * size, char * addr_str, int addr_str_len,
+          unsigned int scope_id)
 {
 	char * respbuffer;
 
 #if 1
 	respbuffer = miniwget3(host, port, path, size,
-	                       addr_str, addr_str_len, "1.1",
-	                       scope_id, status_code);
+	                       addr_str, addr_str_len, "1.1", scope_id);
 #else
 	respbuffer = miniwget3(host, port, path, size,
-	                       addr_str, addr_str_len, "1.0",
-	                       scope_id, status_code);
+	                       addr_str, addr_str_len, "1.0", scope_id);
 	if (*size == 0)
 	{
 #ifdef DEBUG
@@ -497,8 +468,7 @@ miniwget2(const char * host,
 #endif
 		free(respbuffer);
 		respbuffer = miniwget3(host, port, path, size,
-		                       addr_str, addr_str_len, "1.1",
-		                       scope_id, status_code);
+		                       addr_str, addr_str_len, "1.1", scope_id);
 	}
 #endif
 	return respbuffer;
@@ -623,8 +593,7 @@ parseURL(const char * url,
 }
 
 void *
-miniwget(const char * url, int * size,
-         unsigned int scope_id, int * status_code)
+miniwget(const char * url, int * size, unsigned int scope_id)
 {
 	unsigned short port;
 	char * path;
@@ -637,13 +606,12 @@ miniwget(const char * url, int * size,
 	printf("parsed url : hostname='%s' port=%hu path='%s' scope_id=%u\n",
 	       hostname, port, path, scope_id);
 #endif
-	return miniwget2(hostname, port, path, size, 0, 0, scope_id, status_code);
+	return miniwget2(hostname, port, path, size, 0, 0, scope_id);
 }
 
 void *
 miniwget_getaddr(const char * url, int * size,
-                 char * addr, int addrlen, unsigned int scope_id,
-                 int * status_code)
+                 char * addr, int addrlen, unsigned int scope_id)
 {
 	unsigned short port;
 	char * path;
@@ -658,6 +626,5 @@ miniwget_getaddr(const char * url, int * size,
 	printf("parsed url : hostname='%s' port=%hu path='%s' scope_id=%u\n",
 	       hostname, port, path, scope_id);
 #endif
-	return miniwget2(hostname, port, path, size, addr, addrlen, scope_id, status_code);
+	return miniwget2(hostname, port, path, size, addr, addrlen, scope_id);
 }
-

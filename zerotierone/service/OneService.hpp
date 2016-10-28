@@ -29,7 +29,7 @@
 	// In network containers builds, use the virtual netcon endpoint instead of a tun/tap port driver
 	#include "../src/tap.hpp"
 	namespace ZeroTier { typedef NetconEthernetTap EthernetTap; }
-#endif
+#endif // not ZT_SDK so pick a tap driver
 
 namespace ZeroTier {
 

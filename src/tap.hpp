@@ -56,6 +56,11 @@
     #include "pico_protocol.h"
 #endif
 
+#define ip4_addr1b(ipaddr) (((u8_t*)(ipaddr))[0])
+#define ip4_addr2b(ipaddr) (((u8_t*)(ipaddr))[1])
+#define ip4_addr3b(ipaddr) (((u8_t*)(ipaddr))[2])
+#define ip4_addr4b(ipaddr) (((u8_t*)(ipaddr))[3])
+
 // lwIP structs
 struct tcp_pcb;
 struct udp_pcb;
@@ -459,7 +464,7 @@ namespace ZeroTier {
 		void phyOnTcpData(PhySocket *sock,void **uptr,void *data,unsigned long len);
 
 		void handleRead(PhySocket *sock,void **uptr,bool lwip_invoked);
-		void phyOnTcpWritable(PhySocket *sock,void **uptr);
+		void phyOnTcpWritable(PhySocket *sock,void **uptr, bool lwip_invoked);
 
 		/*
 	 	 * Signals us to close the TcpConnection associated with this PhySocket
@@ -495,14 +500,14 @@ namespace ZeroTier {
 		ip_addr_t convert_ip(struct sockaddr_in * addr)
 		{
 		  ip_addr_t conn_addr;
-		 /*
+		 
 		  struct sockaddr_in *ipv4 = addr;
-		  short a = ip4_addr1(&(ipv4->sin_addr));
-		  short b = ip4_addr2(&(ipv4->sin_addr));
-		  short c = ip4_addr3(&(ipv4->sin_addr));
-		  short d = ip4_addr4(&(ipv4->sin_addr));
+		  short a = ip4_addr1b(&(ipv4->sin_addr));
+		  short b = ip4_addr2b(&(ipv4->sin_addr));
+		  short c = ip4_addr3b(&(ipv4->sin_addr));
+		  short d = ip4_addr4b(&(ipv4->sin_addr));
 		  IP4_ADDR(&conn_addr, a,b,c,d);
-		 */
+		 
 		  return conn_addr;
 		}
 

@@ -11,13 +11,11 @@ int atoi(const char *str);
 int main(int argc , char *argv[])
 {
     if(argc < 2) {
-       printf("usage: tcp_server <4/6> <port>\n");
-       printf("\t - where 4/6 represent IP version\n");
+       printf("usage: tcp_server <port>\n");
        return 0;
     }
-   
 
-    int sock, client_sock, c, read_size, ipv = atoi(argv[1]), port = atoi(argv[2]);
+    int sock, client_sock, c, read_size, port = atoi(argv[1]);
     char client_message[2000];
      
     char str[100];

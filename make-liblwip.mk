@@ -48,7 +48,7 @@ endif
 
 CFLAGS:=$(CFLAGS) \
 	-I$(LWIPDIR)/include -I$(LWIPARCH)/include -I$(LWIPDIR)/include/ipv4 \
-	-I$(LWIPDIR) -I. -Iext
+	-I$(LWIPDIR) -I. -Iext -Isrc/stack_drivers/lwip
 
 # COREFILES, CORE4FILES: The minimum set of files needed for lwIP.
 COREFILES=$(LWIPDIR)/core/init.c \
@@ -123,7 +123,7 @@ LWIPOBJS=$(notdir $(LWIPFILESW:.c=.o))
 LWIPLIB=liblwip.so
 
 %.o:
-	$(CC) $(CFLAGS) -c $(<:.o=.c)
+	$(CC) $(CFLAGS) -Isrc/stack_drivers/lwip -c $(<:.o=.c)
 
 all: $(LWIPLIB)
 .PHONY: all
@@ -137,7 +137,7 @@ include .depend
 
 $(LWIPLIB): $(LWIPOBJS)
 	mkdir -p build
-	$(CC) -g -nostartfiles -shared -o build/$@ $^
+	$(CC) -Isrc/stack_drivers/lwip -g -nostartfiles -shared -o build/$@ $^
 
 .depend: $(LWIPFILES)
 	$(CCDEP) $(CFLAGS) -MM $^ > .depend || rm -f .depend

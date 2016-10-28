@@ -85,7 +85,8 @@ INCLUDES+= -Iext \
 	-I$(LWIP_DIR)/src/include/ipv4 \
 	-I$(LWIP_DIR)/src/include/ipv6 \
 	-I$(PICOTCP_DIR)/include \
-	-I$(PICOTCP_DIR)/build/include
+	-I$(PICOTCP_DIR)/build/include \
+	-Isrc/stack_drivers/lwip
 
 
 # Stack selection / parameters
@@ -177,10 +178,15 @@ linux_intercept:
 	cd src ; gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o ../$(INTERCEPT) sockets.c intercept.c rpc.c -ldl
 
 # Build only the SDK service
-linux_sdk_service: pico lwip $(OBJS)
+ifeq ($(SDK_LWIP),1)
+linux_sdk_service: lwip $(OBJS)
+else
+linux_sdk_service: pico $(OBJS)
+endif
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(ZT1)/service/OneService.cpp src/tap.cpp src/proxy.cpp $(ZT1)/one.cpp src/rpc.c $(LDLIBS) -ldl
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-cli
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-idtool
+
 
 # Build both intercept library and SDK service (separate)
 linux_service_and_intercept: linux_intercept linux_sdk_service

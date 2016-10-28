@@ -444,7 +444,7 @@ namespace ZeroTier
 		closeConnection(sock);
 	}
 
-	void NetconEthernetTap::phyOnTcpWritable(PhySocket *sock,void **uptr/*, bool lwip_invoked*/) 
+	void NetconEthernetTap::phyOnTcpWritable(PhySocket *sock,void **uptr, bool lwip_invoked) 
 	{
 		DEBUG_INFO("sock=%p", (void*)&sock);
 		handleRead(sock,uptr,true);

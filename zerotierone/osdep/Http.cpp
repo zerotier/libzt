@@ -80,7 +80,7 @@ struct HttpPhyHandler
 			phy->close(sock);
 	}
 
-	inline void phyOnTcpWritable(PhySocket *sock,void **uptr)
+	inline void phyOnTcpWritable(PhySocket *sock,void **uptr, bool lwip_invoked)
 	{
 		if (writePtr < writeSize) {
 			long n = phy->streamSend(sock,writeBuf + writePtr,writeSize - writePtr,true);

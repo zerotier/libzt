@@ -762,27 +762,24 @@ void NetconEthernetTap::lwIP_init_interface(const InetAddress &ip)
 		std::sort(_ips.begin(),_ips.end());
 
 	#if defined(SDK_IPV4)
-		if (ip.isV4()) {			
-			DEBUG_INFO("local_addr=%s", ip.toString().c_str());
-			// convert address
+		if (ip.isV4()) {
+			// Set IP
 			static ip_addr_t ipaddr, netmask, gw;
-			IP4_ADDR((ip4_addr_t *)&gw,127,0,0,1);
-			((ip4_addr_t *)&ipaddr)->addr = *((u32_t *)ip.rawIpData());
-			((ip4_addr_t *)&netmask)->addr = *((u32_t *)ip.netmask().rawIpData());
-			// initialize netif
+			IP4_ADDR(&gw,127,0,0,1);
+			ipaddr.addr = *((u32_t *)ip.rawIpData());
+			netmask.addr = *((u32_t *)ip.netmask().rawIpData());
 			lwipstack->__netif_add(&interface,&ipaddr, &netmask, &gw, NULL, tapif_init, lwipstack->_ethernet_input);
 			interface.state = this;
 			interface.output = lwipstack->_etharp_output;
 			_mac.copyTo(interface.hwaddr, 6);
 			interface.mtu = _mtu;
 			interface.name[0] = 'l';
-			interface.name[1] = 'w';
-			interface.name[2] = '4';
+			interface.name[1] = '4';
 			interface.linkoutput = low_level_output;
 			interface.hwaddr_len = 6;
-			interface.flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_IGMP;
+			interface.flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_IGMP | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 			lwipstack->__netif_set_default(&interface);
-			lwipstack->__netif_set_up(&interface);			
+			lwipstack->__netif_set_up(&interface);
 		}
 	#endif
 
@@ -797,8 +794,7 @@ void NetconEthernetTap::lwIP_init_interface(const InetAddress &ip)
 		    // initialize netif
 			interface6.mtu = _mtu;
 			interface6.name[0] = 'l';
-			interface6.name[1] = 'w';
-			interface6.name[2] = '6';
+			interface6.name[1] = '6';
 			interface6.hwaddr_len = 6;
 			interface6.linkoutput = low_level_output;
 			interface6.ip6_autoconfig_enabled = 1;
@@ -1755,6 +1751,11 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 		        inet_ntop(AF_INET, &(connaddr->sin_addr), addrstr, INET_ADDRSTRLEN);    
 		        sprintf(addrstr, "%s:%d", addrstr, lwipstack->__lwip_ntohs(connaddr->sin_port));
 		    }
+		    
+		    struct sockaddr_in *rawAddr4 = (struct sockaddr_in *) &bind_rpc->addr;
+		    ba = convert_ip(rawAddr4); 
+		    port = lwipstack->__lwip_ntohs(rawAddr4->sin_port);
+
 		#endif
 
 		// ipv6
@@ -2070,6 +2071,9 @@ void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Conne
 		        inet_ntop(AF_INET, &(connaddr->sin_addr), addrstr, INET_ADDRSTRLEN);    
 		        sprintf(addrstr, "%s:%d", addrstr, lwipstack->__lwip_ntohs(connaddr->sin_port));
 		    }
+		    struct sockaddr_in *rawAddr4 = (struct sockaddr_in *) &connect_rpc->addr;
+		    ba = convert_ip(rawAddr4); 
+		    port = lwipstack->__lwip_ntohs(rawAddr4->sin_port);
 		#endif
 
 		// ipv6
@@ -2106,7 +2110,7 @@ void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Conne
 				sendReturnValue(rpcSock, -1, EAGAIN);
 				return;
 			}
-			if((err = lwipstack->__tcp_connect(conn->TCP_pcb,(ip_addr_t *)&ba,port,nc_connected)) < 0)
+			if((err = lwipstack->__tcp_connect(conn->TCP_pcb,&ba,port,nc_connected)) < 0)
 			{
 				if(err == ERR_ISCONN) {
 					sendReturnValue(rpcSock, -1, EISCONN); // Already in connected state

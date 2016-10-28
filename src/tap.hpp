@@ -497,10 +497,10 @@ namespace ZeroTier {
 	 	 */
 		void closeConnection(PhySocket *sock);
 
+	#if defined(SDK_PICOTCP)
 		ip_addr_t convert_ip(struct sockaddr_in * addr)
 		{
 		  ip_addr_t conn_addr;
-		 
 		  struct sockaddr_in *ipv4 = addr;
 		  short a = ip4_addr1b(&(ipv4->sin_addr));
 		  short b = ip4_addr2b(&(ipv4->sin_addr));
@@ -510,6 +510,7 @@ namespace ZeroTier {
 		 
 		  return conn_addr;
 		}
+	#endif
 
 		Phy<NetconEthernetTap *> _phy;
 		PhySocket *_unixListenSocket;

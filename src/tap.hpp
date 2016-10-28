@@ -497,7 +497,11 @@ namespace ZeroTier {
 	 	 */
 		void closeConnection(PhySocket *sock);
 
-	#if defined(SDK_PICOTCP)
+    void pico_init_interface(const InetAddress &ip);
+
+
+
+	#if defined(SDK_IPV4)
 		ip_addr_t convert_ip(struct sockaddr_in * addr)
 		{
 		  ip_addr_t conn_addr;

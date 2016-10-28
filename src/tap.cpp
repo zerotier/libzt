@@ -113,7 +113,6 @@ namespace ZeroTier {
 		#if defined(SDK_IPV4)
 			if(ip.isV4())
 			{
-				int id;
 			    struct pico_ip4 ipaddr, netmask;
 			    ipaddr.addr = *((u32_t *)ip.rawIpData());
 			    netmask.addr = *((u32_t *)ip.netmask().rawIpData());
@@ -161,8 +160,8 @@ namespace ZeroTier {
 		DEBUG_INFO();
 		while(tap->_run)
 		{
-			tap->_phy.poll((unsigned long)std::min(100,200));
-			usleep(500);
+			tap->_phy.poll((unsigned long)std::min(500,1000));
+			usleep(1000);
 	        tap->picostack->__pico_stack_tick();
 		}
 	}
@@ -284,6 +283,7 @@ namespace ZeroTier {
     }
 
     // Called when an incoming ping is received
+    /*
     static void pico_cb_ping(struct pico_icmp4_stats *s)
     {   
     	DEBUG_INFO();
@@ -296,6 +296,7 @@ namespace ZeroTier {
             printf("PING %lu to %s: Error %d\n", s->seq, host, s->err);
         }
     }
+	*/
 
     // Sends data to the tap device (in our case, the ZeroTier service)
     static int pico_eth_send(struct pico_device *dev, void *buf, int len)
@@ -353,27 +354,20 @@ namespace ZeroTier {
         // OPTIMIZATION: The copy logic and/or buffer structure should be reworked for better performance after the BETA
         // NetconEthernetTap *tap = (NetconEthernetTap*)netif->state;
         Mutex::Lock _l(picotap->_pico_frame_rxbuf_m);
-
-        uint8_t *buf = NULL;
-        uint32_t len = 0;
-        struct eth_hdr ethhdr;
         unsigned char frame[ZT_MAX_MTU];
+        uint32_t len;
 
         while (picotap->pico_frame_rxbuf_tot > 0) {
             memset(frame, 0, sizeof(frame));
-
-            unsigned int len = 0;
+            len = 0;
             memcpy(&len, picotap->pico_frame_rxbuf, sizeof(len)); // get frame len
-            //DEBUG_EXTRA("reading frame len = %ld", len);
             memcpy(frame, picotap->pico_frame_rxbuf + sizeof(len), len); // get frame data
             memmove(picotap->pico_frame_rxbuf, picotap->pico_frame_rxbuf + sizeof(len) + len, ZT_MAX_MTU-(sizeof(len) + len));
-            int rx_ret = picotap->picostack->__pico_stack_recv(dev, (uint8_t*)frame, len); 
+            picotap->picostack->__pico_stack_recv(dev, (uint8_t*)frame, len); 
             picotap->pico_frame_rxbuf_tot-=(sizeof(len) + len);
-            //DEBUG_EXTRA("rx_ret = %d", rx_ret);
-            //DEBUG_EXTRA("RX frame buffer %3f full", (float)(picotap->pico_frame_rxbuf_tot) / (float)(MAX_PICO_FRAME_RX_BUF_SZ));
+            // DEBUG_EXTRA("RX frame buffer %3f full", (float)(picotap->pico_frame_rxbuf_tot) / (float)(MAX_PICO_FRAME_RX_BUF_SZ));
             loop_score--;
         }
-        //DEBUG_ATTN("loop_score = %d", loop_score);
         return loop_score;
     }
 
@@ -389,8 +383,6 @@ namespace ZeroTier {
 		#endif
 		if(psock) {
 			DEBUG_ATTN("psock = %p", (void*)psock);
-			int yes = 1;
-			//picostack->__pico_socket_setoption(psock, PICO_TCP_NODELAY, &yes);
 			Connection * newConn = new Connection();
 	        *uptr = newConn;
 	        newConn->type = socket_rpc->socket_type;
@@ -454,7 +446,6 @@ namespace ZeroTier {
     	DEBUG_INFO();
 		if(conn->picosock) {
 			struct sockaddr_in *addr = (struct sockaddr_in *) &connect_rpc->addr;
-			pico_address paddr;
 			int ret;
 			// TODO: Rewrite this
 			#if defined(SDK_IPV4)
@@ -463,7 +454,7 @@ namespace ZeroTier {
     			char ipv4_str[INET_ADDRSTRLEN];
     			inet_ntop(AF_INET, &(in4->sin_addr), ipv4_str, INET_ADDRSTRLEN);
 				picotap->picostack->__pico_string_to_ipv4(ipv4_str, &(zaddr.addr));
-				DEBUG_ATTN("addr=%s:%d", ipv4_str, (uint16_t*)&(addr->sin_port));
+				DEBUG_ATTN("addr=%s:%d", ipv4_str, addr->sin_port);
 				ret = picotap->picostack->__pico_socket_connect(conn->picosock, &zaddr, addr->sin_port);
 			#elif defined(SDK_IPV6) // "fd56:5799:d8f6:1238:8c99:9322:30ce:418a"
 				struct pico_ip6 zaddr;
@@ -471,7 +462,7 @@ namespace ZeroTier {
 				char ipv6_str[INET6_ADDRSTRLEN];
 				inet_ntop(AF_INET6, &(in6->sin6_addr), ipv6_str, INET6_ADDRSTRLEN);
 		    	picotap->picostack->__pico_string_to_ipv6(ipv6_str, zaddr.addr);
-		    	DEBUG_ATTN("addr=%s:%d", ipv6_str, (uint16_t*)&(addr->sin_port));
+		    	DEBUG_ATTN("addr=%s:%d", ipv6_str, addr->sin_port);
 				ret = picotap->picostack->__pico_socket_connect(conn->picosock, &zaddr, addr->sin_port);
 			#endif
 			
@@ -567,7 +558,6 @@ namespace ZeroTier {
 		if(conn && conn->rxsz) {
 			float max = conn->type == SOCK_STREAM ? (float)DEFAULT_TCP_RX_BUF_SZ : (float)DEFAULT_UDP_RX_BUF_SZ;
 			long n = picotap->_phy.streamSend(conn->sock, conn->rxbuf, /* ZT_MAX_MTU */ conn->rxsz);
-			// DEBUG_INFO(" n=%d", n);
 			// extract address and payload size info
 			if(conn->type==SOCK_DGRAM) {
 				int payload_sz, addr_sz_offset = sizeof(struct sockaddr_storage);
@@ -599,13 +589,13 @@ namespace ZeroTier {
 	        	picotap->_phy.setNotifyWritable(conn->sock, true);
 			}
 			if(!n || !(conn->rxsz)) {
-				//DEBUG_ERROR("error writing %d-byte-sized chunk to client socket", ZT_MAX_MTU);
 				picotap->_phy.setNotifyWritable(conn->sock, false);
 			}
 		}
     }
 
     // Closes a pico_socket
+    /*
     static void pico_handleClose(Connection *conn)
     {
     	DEBUG_INFO();
@@ -619,6 +609,8 @@ namespace ZeroTier {
     	}
     	DEBUG_ERROR("invalid connection or pico_socket");
     }
+    */
+
 #endif // SDK_PICOTCP
 
 
@@ -626,44 +618,47 @@ namespace ZeroTier {
 -------------------------------- Tap Service  ----------------------------------
 ------------------------------------------------------------------------------*/
 
-static err_t tapif_init(struct netif *netif)
-{
-  // Actual init functionality is in addIp() of tap
-  return ERR_OK;
-}
-
-/*
- * Outputs data from the pbuf queue to the interface
- */
-static err_t low_level_output(struct netif *netif, struct pbuf *p)
-{
-	struct pbuf *q;
-	char buf[ZT_MAX_MTU+32];
-	char *bufptr;
-	int totalLength = 0;
-
-	ZeroTier::NetconEthernetTap *tap = (ZeroTier::NetconEthernetTap*)netif->state;
-	bufptr = buf;
-	// Copy data from each pbuf, one at a time
-	for(q = p; q != NULL; q = q->next) {
-		memcpy(bufptr, q->payload, q->len);
-		bufptr += q->len;
-		totalLength += q->len;
+#if SDK_LWIP
+	static err_t tapif_init(struct netif *netif)
+	{
+	  // Actual init functionality is in addIp() of tap
+	  return ERR_OK;
 	}
-	// [Send packet to network]
-	// Split ethernet header and feed into handler
-	struct eth_hdr *ethhdr;
-	ethhdr = (struct eth_hdr *)buf;
 
-	ZeroTier::MAC src_mac;
-	ZeroTier::MAC dest_mac;
-	src_mac.setTo(ethhdr->src.addr, 6);
-	dest_mac.setTo(ethhdr->dest.addr, 6);
+	/*
+	 * Outputs data from the pbuf queue to the interface
+	 */
+	static err_t low_level_output(struct netif *netif, struct pbuf *p)
+	{
+		struct pbuf *q;
+		char buf[ZT_MAX_MTU+32];
+		char *bufptr;
+		int totalLength = 0;
 
-	tap->_handler(tap->_arg,tap->_nwid,src_mac,dest_mac,
-		Utils::ntoh((uint16_t)ethhdr->type),0,buf + sizeof(struct eth_hdr),totalLength - sizeof(struct eth_hdr));
-	return ERR_OK;
-}
+		ZeroTier::NetconEthernetTap *tap = (ZeroTier::NetconEthernetTap*)netif->state;
+		bufptr = buf;
+		// Copy data from each pbuf, one at a time
+		for(q = p; q != NULL; q = q->next) {
+			memcpy(bufptr, q->payload, q->len);
+			bufptr += q->len;
+			totalLength += q->len;
+		}
+		// [Send packet to network]
+		// Split ethernet header and feed into handler
+		struct eth_hdr *ethhdr;
+		ethhdr = (struct eth_hdr *)buf;
+
+		ZeroTier::MAC src_mac;
+		ZeroTier::MAC dest_mac;
+		src_mac.setTo(ethhdr->src.addr, 6);
+		dest_mac.setTo(ethhdr->dest.addr, 6);
+
+		tap->_handler(tap->_arg,tap->_nwid,src_mac,dest_mac,
+			Utils::ntoh((uint16_t)ethhdr->type),0,buf + sizeof(struct eth_hdr),totalLength - sizeof(struct eth_hdr));
+		return ERR_OK;
+	}
+#endif
+
 
 // ---------------------------------------------------------------------------
 
@@ -1092,7 +1087,7 @@ void NetconEthernetTap::closeConnection(PhySocket *sock)
     
 	// picoTCP
 	#if defined(SDK_PICOTCP)
-		//pico_handleClose(conn);
+		// pico_handleClose(conn);
 	#endif
 
     // lwIP
@@ -1822,7 +1817,6 @@ void NetconEthernetTap::handleListen(PhySocket *sock, PhySocket *rpcSock, void *
 {
 	DEBUG_ATTN("sock=%p", (void*)&sock);
 	Mutex::Lock _l(_tcpconns_m);
-	Connection *conn = getConnection(sock);
     
     // picoTCP
   	#if defined(SDK_PICOTCP)
@@ -1831,6 +1825,7 @@ void NetconEthernetTap::handleListen(PhySocket *sock, PhySocket *rpcSock, void *
 
     // lwIP
 	#if defined(SDK_LWIP)
+  		Connection *conn = getConnection(sock);
 	    if(conn->type==SOCK_DGRAM) {
 			// FIX: Added sendReturnValue() call to fix listen() return bug on Android
 			sendReturnValue(rpcSock, ERR_OK, ERR_OK);

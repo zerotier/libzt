@@ -46,10 +46,10 @@
 
 // IPV6 Related
 //#if defined(SDK_IPV6)
-	#define LWIP_IPV6   1
+	#define LWIP_IPV6   0
 //#endif
 //#if defined(SDK_IPV4) 
-	#define LWIP_IPV4   0
+	#define LWIP_IPV4   1
 //#endif
 
 #define LWIP_TCP 1

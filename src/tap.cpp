@@ -76,7 +76,6 @@
 #include "lwip/udp.h"
 #include "lwip/tcp.h"
 
-
 //#if !defined(__IOS__) && !defined(__ANDROID__) && !defined(__UNITY_3D__) && !defined(__XCODE__)
 //    const ip_addr_t ip_addr_any = { IPADDR_ANY };
 //#endif
@@ -90,6 +89,8 @@ namespace ZeroTier {
 
 #if defined(SDK_PICOTCP)
     
+    static struct pico_device picodev;
+
 	// Reference to the tap interface
 	// This is needed due to the fact that there's a lot going on in the tap interface
 	// that needs to be updated on each of the network stack's callbacks and not every
@@ -116,16 +117,17 @@ namespace ZeroTier {
 			    struct pico_ip4 ipaddr, netmask;
 			    ipaddr.addr = *((u32_t *)ip.rawIpData());
 			    netmask.addr = *((u32_t *)ip.netmask().rawIpData());
-			    stack->__pico_ipv4_link_add(&(picotap->picodev), ipaddr, netmask);
-			    picotap->picodev.send = pico_eth_send; // tx
-			    picotap->picodev.poll = pico_eth_poll; // rx
 			    uint8_t mac[PICO_SIZE_ETH];
 			    picotap->_mac.copyTo(mac, PICO_SIZE_ETH);
 			    DEBUG_ATTN("mac = %s", picotap->_mac.toString().c_str());
-			    if( 0 != stack->__pico_device_init(&(picotap->picodev), "p0", mac)) {
+			    picodev.send = pico_eth_send; // tx
+			    picodev.poll = pico_eth_poll; // rx
+			    picodev.mtu = picotap->_mtu;
+			    if( 0 != stack->__pico_device_init(&(picodev), "p0", mac)) {
 			        DEBUG_ERROR("device init failed");
 			        return;
 			    }
+			    stack->__pico_ipv4_link_add(&(picodev), ipaddr, netmask);
 			    // DEBUG_INFO("device initialized as ipv4_addr = %s", ipv4_str);
 			   	// picostack->__pico_icmp4_ping("10.8.8.1", 20, 1000, 10000, 64, cb_ping);
 			}
@@ -138,13 +140,13 @@ namespace ZeroTier {
 				inet_ntop(AF_INET6, ip.netmask().rawIpData(), nm_str, INET6_ADDRSTRLEN);
 		    	stack->__pico_string_to_ipv6(ipv6_str, ipaddr.addr);
 		    	stack->__pico_string_to_ipv6(nm_str, netmask.addr);
-			    stack->__pico_ipv6_link_add(&(picotap->picodev), ipaddr, netmask);
-			    picotap->picodev.send = pico_eth_send; // tx
-			    picotap->picodev.poll = pico_eth_poll; // rx
+			    stack->__pico_ipv6_link_add(&(picodev), ipaddr, netmask);
+			    picodev.send = pico_eth_send; // tx
+			    picodev.poll = pico_eth_poll; // rx
 			    uint8_t mac[PICO_SIZE_ETH];
 			    picotap->_mac.copyTo(mac, PICO_SIZE_ETH);
 			    DEBUG_ATTN("mac = %s", picotap->_mac.toString().c_str());
-			    if( 0 != stack->__pico_device_init(&(picotap->picodev), "p0", mac)) {
+			    if( 0 != stack->__pico_device_init(&(picodev), "p0", mac)) {
 			        DEBUG_ERROR("device init failed");
 			        return;
 			    }
@@ -775,18 +777,17 @@ void NetconEthernetTap::lwIP_init_interface(const InetAddress &ip)
 			interface.flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_IGMP | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 			lwipstack->__netif_set_default(&interface);
 			lwipstack->__netif_set_up(&interface);
+			DEBUG_INFO("addr=%s, netmask=%s", ip.toString().c_str(), ip.netmask().toString().c_str());
 		}
 	#endif
 
 	#if defined(SDK_IPV6)
 		if(ip.isV6()) {
 			DEBUG_INFO("local_addr=%s", ip.toString().c_str());
-			// convert address
 			static ip6_addr_t addr6;
 		    struct sockaddr_in6 in6;
 		    memcpy(in6.sin6_addr.s6_addr,ip.rawIpData(),16);
 		    in6_to_ip6((ip6_addr *)&addr6, &in6);
-		    // initialize netif
 			interface6.mtu = _mtu;
 			interface6.name[0] = 'l';
 			interface6.name[1] = '6';
@@ -803,6 +804,7 @@ void NetconEthernetTap::lwIP_init_interface(const InetAddress &ip)
 			interface6.output_ip6 = lwipstack->_ethip6_output;
 			interface6.state = this;
 			interface6.flags = NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
+			DEBUG_INFO("addr=%s, netmask=%s", ip.toString().c_str(), ip.netmask().toString().c_str());
 		}	
 	#endif	
 	}
@@ -1102,7 +1104,7 @@ void NetconEthernetTap::closeConnection(PhySocket *sock)
 				DEBUG_EXTRA("ignoring close request. invalid PCB state for this operation. sock=%p", (void*)&sock);
 				return;
 			}	
-			DEBUG_BLANK("__tcp_close(...)");
+			// DEBUG_BLANK("__tcp_close(...)");
 			if(lwipstack->__tcp_close(conn->TCP_pcb) == ERR_OK) {
 				// Unregister callbacks for this PCB
 				lwipstack->__tcp_arg(conn->TCP_pcb, NULL);
@@ -1237,7 +1239,7 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
 		// DEBUG_EXTRA(" RPC: sock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", (void*)&sock, pid, tid, timestamp, cmd);
 
 		if(cmd == RPC_SOCKET) {				
-			DEBUG_INFO("  RPC_SOCKET, sock=%p", (void*)&sock);
+			DEBUG_INFO("RPC_SOCKET, sock=%p", (void*)&sock);
 			// Create new lwip socket and associate it with this sock
 			struct socket_st socket_rpc;
 			memcpy(&socket_rpc, &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct socket_st));
@@ -1265,7 +1267,7 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
 				// Find job
 				sockdata = jobmap[CANARY_num];
 				if(!sockdata.first) {
-					DEBUG_ERROR(" unable to locate job entry for %lu, sock=%p", CANARY_num, (void*)&sock);
+					DEBUG_ERROR("unable to locate job entry for %lu, sock=%p", CANARY_num, (void*)&sock);
 					return;
 				}  else
 					foundJob = true;
@@ -1331,31 +1333,31 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
 
 		switch(cmd) {
 			case RPC_BIND:
-				DEBUG_INFO("  RPC_BIND, sock=%p", (void*)&sock);
+				DEBUG_INFO("RPC_BIND, sock=%p", (void*)&sock);
 			    struct bind_st bind_rpc;
 			    memcpy(&bind_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct bind_st));
 			    handleBind(sock, rpcSock, uptr, &bind_rpc);
 				break;
 		  	case RPC_LISTEN:
-		  		DEBUG_INFO("  RPC_LISTEN, sock=%p", (void*)&sock);
+		  		DEBUG_INFO("RPC_LISTEN, sock=%p", (void*)&sock);
 			    struct listen_st listen_rpc;
 			    memcpy(&listen_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct listen_st));
 			    handleListen(sock, rpcSock, uptr, &listen_rpc);
 				break;
 		  	case RPC_GETSOCKNAME:
-		  		DEBUG_INFO("  RPC_GETSOCKNAME, sock=%p", (void*)&sock);
+		  		DEBUG_INFO("RPC_GETSOCKNAME, sock=%p", (void*)&sock);
 		  		struct getsockname_st getsockname_rpc;
 		    	memcpy(&getsockname_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct getsockname_st));
 		  		handleGetsockname(sock, rpcSock, uptr, &getsockname_rpc);
 		  		break;
 			case RPC_GETPEERNAME:
-		  		DEBUG_INFO("  RPC_GETPEERNAME, sock=%p", (void*)&sock);
+		  		DEBUG_INFO("RPC_GETPEERNAME, sock=%p", (void*)&sock);
 		  		struct getsockname_st getpeername_rpc;
 		    	memcpy(&getpeername_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct getsockname_st));
 		  		handleGetpeername(sock, rpcSock, uptr, &getpeername_rpc);
 		  		break;
 			case RPC_CONNECT:
-				DEBUG_INFO("  RPC_CONNECT, sock=%p", (void*)&sock);
+				DEBUG_INFO("RPC_CONNECT, sock=%p", (void*)&sock);
 			    struct connect_st connect_rpc;
 			    memcpy(&connect_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct connect_st));
 			    handleConnect(sock, rpcSock, conn, &connect_rpc);
@@ -1718,6 +1720,12 @@ void NetconEthernetTap::handleGetpeername(PhySocket *sock, PhySocket *rpcSock, v
 void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct bind_st *bind_rpc)
 {
 	Mutex::Lock _l(_tcpconns_m);
+	if(!_ips.size()) {
+		// We haven't been given an address yet. Binding at this stage is premature
+		DEBUG_ERROR("cannot bind yet. ZT address hasn't been provided");
+		sendReturnValue(rpcSock, -1, ENOMEM);
+		return;
+	}
 
 	// picoTCP
 	#if defined(SDK_PICOTCP)
@@ -1726,13 +1734,6 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 
 	// lwIP
 	#if defined(SDK_LWIP)
-		if(!_ips.size()) {
-			// We haven't been given an address yet. Binding at this stage is premature
-			DEBUG_ERROR("cannot bind yet. ZT address hasn't been provided");
-			sendReturnValue(rpcSock, -1, ENOMEM);
-			return;
-		}
-
 		ip_addr_t ba;
 	    char addrstr[INET6_ADDRSTRLEN];
 	    struct sockaddr_in6 *rawAddr = (struct sockaddr_in6 *) &bind_rpc->addr;
@@ -1746,11 +1747,9 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 		        inet_ntop(AF_INET, &(connaddr->sin_addr), addrstr, INET_ADDRSTRLEN);    
 		        sprintf(addrstr, "%s:%d", addrstr, lwipstack->__lwip_ntohs(connaddr->sin_port));
 		    }
-		    
 		    struct sockaddr_in *rawAddr4 = (struct sockaddr_in *) &bind_rpc->addr;
 		    ba = convert_ip(rawAddr4); 
 		    port = lwipstack->__lwip_ntohs(rawAddr4->sin_port);
-
 		#endif
 
 		// ipv6
@@ -1765,7 +1764,7 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 		#endif
 		
 		Connection *conn = getConnection(sock);
-	    DEBUG_ATTN(" sock=%p, fd=%d, port=%d", (void*)&sock, bind_rpc->fd, port);
+	    DEBUG_ATTN(" addr=%s, sock=%p, fd=%d", addrstr, (void*)&sock, bind_rpc->fd);
 	    if(conn) {
 	        if(conn->type == SOCK_DGRAM) {
 	       		#if defined(__ANDROID__)

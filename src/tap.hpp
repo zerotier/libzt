@@ -181,7 +181,6 @@ namespace ZeroTier {
 
 		// picoTCP
         #if defined(SDK_PICOTCP)
-            struct pico_device picodev;
             unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
             int pico_frame_rxbuf_tot = 0;
             Mutex _pico_frame_rxbuf_m;
@@ -496,9 +495,6 @@ namespace ZeroTier {
 	 	 * PhySocket, and underlying file descriptor
 	 	 */
 		void closeConnection(PhySocket *sock);
-
-    void pico_init_interface(const InetAddress &ip);
-
 
 
 	#if defined(SDK_IPV4)

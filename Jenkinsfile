@@ -5,7 +5,7 @@ parallel 'centos7': {
         try {
             checkout scm
             stage('Build centos7') {
-                sh 'make -f make-linux.mk linux_service_and_intercept SDK_LWIP=1 SDK_IPV4=1'
+                sh 'make linux_service_and_intercept SDK_LWIP=1 SDK_IPV4=1'
             }
         }
         catch (err) {

@@ -28,6 +28,8 @@
 #ifndef SDK_JIPSTACK_H
 #define SDK_JIPSTACK_H
 
+#if defined(SDK_JIP)
+
 #include "Mutex.hpp"
 #include "OSUtils.hpp"
 #include "debug.h"
@@ -41,6 +43,10 @@
 
 namespace ZeroTier {
     
+    void jip_init_interface(NetconEthernetTap *tap, const InetAddress &ip);
+    void jip_loop(NetconEthernetTap *tap);
+    void jip_rx(NetconEthernetTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
+
     /**
      * Loads an instance of picoTCP stack library in a private memory arena
      *
@@ -123,4 +129,6 @@ namespace ZeroTier {
     
 } // namespace ZeroTier
 
-#endif
+#endif // SDK_JIP
+
+#endif 

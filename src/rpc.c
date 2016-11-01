@@ -135,7 +135,7 @@ int rpc_join(char * sockname)
 #else
   if((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0){
 #endif
-     DEBUG_ERROR("error while creating RPC socket");
+     DEBUG_ERROR("error creating RPC socket");
     return -1;
   }
   while((conn_err != 0) /* && (attempts < SERVICE_CONNECT_ATTEMPTS) */){
@@ -144,7 +144,7 @@ int rpc_join(char * sockname)
     #else
       if((conn_err = connect(sock, (struct sockaddr*)&addr, sizeof(addr))) != 0) {
     #endif
-       DEBUG_ERROR("error while connecting to RPC socket. Re-attempting...");
+       DEBUG_ERROR("error connecting to RPC socket. Re-attempting...");
       usleep(100000);
     }
     else

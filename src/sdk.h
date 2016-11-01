@@ -158,13 +158,11 @@ ssize_t zts_recvmsg(RECVMSG_SIG);
     JNIEXPORT jobject JNICALL Java_ZeroTier_ZTSDK_zt_1get_1ipv4_1address(JNIEnv *env, jobject thisObj, jstring nwid);
 	JNIEXPORT jobject JNICALL Java_ZeroTier_ZTSDK_zt_1get_1ipv6_1address(JNIEnv *env, jobject thisObj, jstring nwid);
     JNIEXPORT jboolean JNICALL Java_ZeroTier_ZTSDK_zt_1is_1relayed();
-	
 	// SOCKS5 PROXY SERVER CONTROLS
 	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1start_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid, jobject zaddr);
     JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1stop_1proxy_1server(JNIEnv *env, jobject thisObj, jstring nwid);
     JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1get_1proxy_1server_1address(JNIEnv *env, jobject thisObj, jstring nwid, jobject zaddr);
 	JNIEXPORT jboolean JNICALL Java_ZeroTier_ZTSDK_zt_1proxy_1is_1running(JNIEnv *env, jobject thisObj, jstring nwid);
-
 	// SOCKET API
 	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1socket(JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol);
 	JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1connect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port);	

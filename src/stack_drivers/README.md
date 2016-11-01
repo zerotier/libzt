@@ -1,4 +1,4 @@
 Stack Drivers
 ====
 
-These files contain code to load and interface with network stacks.
+These files contain code to load, initialize, and interface network stacks to the ZeroTier ethernet tap service.

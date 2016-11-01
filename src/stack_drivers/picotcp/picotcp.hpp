@@ -80,6 +80,27 @@
 
 namespace ZeroTier {
     
+    class NetconEthernetTap;
+    struct Connection;
+
+    // Driver function prototypes
+    int pico_eth_send(struct pico_device *dev, void *buf, int len);
+    int pico_eth_poll(struct pico_device *dev, int loop_score);
+    void pico_init_interface(NetconEthernetTap *tap, const InetAddress &ip);
+    void pico_loop(NetconEthernetTap *tap);
+    void pico_cb_tcp_read(NetconEthernetTap *tap, struct pico_socket *s);
+    void pico_cb_tcp_write(NetconEthernetTap *tap, struct pico_socket *s);
+    void pico_cb_tcp(uint16_t ev, struct pico_socket *s);
+    int pico_eth_send(struct pico_device *dev, void *buf, int len);
+    void pico_rx(NetconEthernetTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
+    int pico_eth_poll(struct pico_device *dev, int loop_score);
+    Connection *pico_handleSocket(PhySocket *sock, void **uptr, struct socket_st* socket_rpc);
+    void pico_handleWrite(Connection *conn);
+    void pico_handleConnect(PhySocket *sock, PhySocket *rpcSock, Connection *conn, struct connect_st* connect_rpc);
+    void pico_handleBind(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct bind_st *bind_rpc);
+    void pico_handleListen(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct listen_st *listen_rpc);
+    void pico_handleRead(PhySocket *sock,void **uptr,bool lwip_invoked);
+
     /**
      * Loads an instance of picoTCP stack library in a private memory arena
      *

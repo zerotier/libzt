@@ -24,7 +24,21 @@ ONE_CLI            = $(BUILD)/$(ONE_CLI_NAME)
 ONE_IDTOOL         = $(BUILD)/$(ONE_IDTOOL_NAME)
 LWIP_LIB           = $(BUILD)/$(LWIP_LIB_NAME)
 #
-LWIP_BASE_DIR      = ext/lwip
+LWIP_DIR      = ext/lwip
+PICOTCP_DIR   = ext/picotcp
+# 
+LWIP_DRIVER_FILES  = src/stack_drivers/lwip/lwip.cpp 
+PICO_DRIVER_FILES  = src/stack_drivers/picotcp/picotcp.cpp 
+SDK_SERVICE_CPP_FILES:=src/tap.cpp \
+					    src/proxy.cpp \
+					    $(ZT1)/service/OneService.cpp \
+					    $(ZT1)/one.cpp 
+
+SDK_SERVICE_C_FILES = src/rpc.c
+SDK_INTERCEPT_C_FILES:=sockets.c \
+						intercept.c \
+						rpc.c
+
 
 # Automagically pick clang or gcc, with preference for clang
 # This is only done if we have not overridden these with an environment or CLI variable
@@ -79,23 +93,51 @@ INCLUDES+= -Iext \
 	-I../$(ZT1)/node \
 	-I../$(ZT1)/service \
 	-I. \
-	-Isrc
+	-Isrc \
+	-Isrc/stack_drivers \
+	-I$(LWIP_DIR)/src/include \
+	-I$(LWIP_DIR)/src/include/ipv4 \
+	-I$(LWIP_DIR)/src/include/ipv6 \
+	-I$(PICOTCP_DIR)/include \
+	-I$(PICOTCP_DIR)/build/include \
+	-Isrc/stack_drivers/lwip \
+	-Isrc/stack_drivers/picotcp \
+	-Isrc/stack_drivers/jip
 
 
-# lwIP
+# Stack selection / parameters
+
+# lwIP debug
 ifeq ($(SDK_LWIP_DEBUG),1)
 	LWIP_FLAGS+=SDK_LWIP_DEBUG=1
 endif
-ifeq ($(LWIP_VERSION_2),1)
-	CXXFLAGS+=-DLWIP_VERSION_2
-	INCLUDES+=-I$(LWIP_2_DIR)/src/include
-	INCLUDES+=-I$(LWIP_2_DIR)/src/include/ipv4
-	INCLUDES+=-I$(LWIP_2_DIR)/src/include/ipv6
-else
-	CXXFLAGS+=-DLWIP_VERSION_1
-	INCLUDES+=-I$(LWIP_1_DIR)/src/include
-	INCLUDES+=-I$(LWIP_1_DIR)/src/include/ipv4
-	INCLUDES+=-I$(LWIP_1_DIR)/src/include/ipv6
+
+# lwIP
+ifeq ($(SDK_LWIP),1)
+	STACK_FLAGS+=-DSDK_LWIP
+endif
+
+# picoTCP
+ifeq ($(SDK_PICOTCP),1)
+	STACK_FLAGS+=-DSDK_PICOTCP
+endif
+
+# jip
+ifeq ($(SDK_JIP),1)
+	STACK_FLAGS+=-DSDK_JIP
+endif
+
+
+
+# TCP protocol version
+ifeq ($(SDK_IPV4),1)
+	LWIP_FLAGS+=SDK_IPV4=1
+	STACK_FLAGS+=-DSDK_IPV4
+endif
+
+ifeq ($(SDK_IPV6),1)
+	LWIP_FLAGS+=SDK_IPV6=1
+	STACK_FLAGS+=-DSDK_IPV6 
 endif
 
 
@@ -174,13 +216,18 @@ osx_shared_lib: $(OBJS)
 
 osx_intercept:
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
-	cd src ; gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o ../$(INTERCEPT) SDK_Sockets.c SDK_Intercept.c SDK_RPC.c -ldl
+	cd src ; gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o ../$(INTERCEPT) $(SDK_INTERCEPT_C_FILES) -ldl
 
 # Build only the SDK service
+ifeq ($(SDK_LWIP),1)
 osx_sdk_service: lwip $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DEFS) $(INCLUDES) -DSDK -DZT_ONE_NO_ROOT_CHECK  -o $(SDK_SERVICE) $(OBJS) $(ZT1)/service/OneService.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp $(ZT1)/one.cpp -x c src/SDK_RPC.c $(LDLIBS) -ldl
-	ln -sf $(SDK_SERVICE_NAME) zerotier-cli
-	ln -sf $(SDK_SERVICE_NAME) zerotier-idtool
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK_SERVICE -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(LWIP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
+else
+osx_sdk_service: pico $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK_SERVICE -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(PICO_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
+endif
+	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-cli
+	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-idtool
 
 # Build both intercept library and SDK service (separate)
 osx_service_and_intercept: osx_intercept osx_sdk_service

@@ -56,11 +56,6 @@
     #include "pico_protocol.h"
 #endif
 
-#define ip4_addr1b(ipaddr) (((u8_t*)(ipaddr))[0])
-#define ip4_addr2b(ipaddr) (((u8_t*)(ipaddr))[1])
-#define ip4_addr3b(ipaddr) (((u8_t*)(ipaddr))[2])
-#define ip4_addr4b(ipaddr) (((u8_t*)(ipaddr))[3])
-
 // lwIP structs
 struct tcp_pcb;
 struct udp_pcb;
@@ -74,6 +69,9 @@ struct getsockname_st;
 struct accept_st;
 
 namespace ZeroTier {
+
+	extern struct pico_device picodev;
+	extern NetconEthernetTap *picotap;
 
 	class NetconEthernetTap;
 	class LWIPStack;
@@ -142,7 +140,8 @@ namespace ZeroTier {
 		void setFriendlyName(const char *friendlyName);
 		void scanMulticastGroups(std::vector<MulticastGroup> &added,std::vector<MulticastGroup> &removed);
 
-		// SIP-
+		int sendReturnValue(int fd, int retval, int _errno);	
+		void unloadRPC(void *data, pid_t &pid, pid_t &tid, char (timestamp[RPC_TIMESTAMP_SZ]), char (CANARY[sizeof(uint64_t)]), char &cmd, void* &payload);
 
 		void threadMain()
 			throw();
@@ -166,19 +165,13 @@ namespace ZeroTier {
 		std::string _homePath;
 
 		// lwIP
-		void lwIP_loop();
-		void lwIP_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
-		void lwIP_init_interface(const InetAddress &ip);
 		#if defined(SDK_LWIP)
 			lwIP_stack *lwipstack;
 		#endif
-
 		// jip
-		void jip_loop();
-		void jip_rx(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
-		void jip_init_interface(const InetAddress &ip);
-		jip_stack *jipstack;
-
+		#if defined(SDK_JIP)
+			jip_stack *jipstack;
+		#endif
 		// picoTCP
         #if defined(SDK_PICOTCP)
             unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
@@ -186,124 +179,6 @@ namespace ZeroTier {
             Mutex _pico_frame_rxbuf_m;
             picoTCP_stack *picostack;
         #endif
-
-		// LWIP callbacks
-		// NOTE: these are called from within LWIP, meaning that lwipstack->_lock is ALREADY
-		// locked in this case!
-
-		/*
-		 * Callback from LWIP for when a connection has been accepted and the PCB has been
-		 * put into an ACCEPT state.
-		 *
-		 * A socketpair is created, one end is kept and wrapped into a PhySocket object
-		 * for use in the main ZT I/O loop, and one end is sent to the client. The client
-		 * is then required to tell the service what new file descriptor it has allocated
-		 * for this connection. After the mapping is complete, the accepted socket can be
-		 * used.
-		 *
-		 * @param associated service state object
-		 * @param newly allocated PCB
-		 * @param error code
-		 * @return ERR_OK if everything is ok, -1 otherwise
-		 *
-		 *	 i := should be implemented in intercept lib
-		 *	 I := is implemented in intercept lib
-		 *	 X := is implemented in service
-		 *	 ? := required treatment Unknown
-		 *	 - := Not needed
-		 *
-		 *	[ ] EAGAIN or EWOULDBLOCK - The socket is marked nonblocking and no connections are present
-		 *													to be accepted. POSIX.1-2001 allows either error to be returned for
-		 *													this case, and does not require these constants to have the same value,
-		 *													so a portable application should check for both possibilities.
-		 *	[I] EBADF - The descriptor is invalid.
-		 *	[I] ECONNABORTED - A connection has been aborted.
-		 *	[i] EFAULT - The addr argument is not in a writable part of the user address space.
-		 *	[-] EINTR - The system call was interrupted by a signal that was caught before a valid connection arrived; see signal(7).
-		 *	[I] EINVAL - Socket is not listening for connections, or addrlen is invalid (e.g., is negative).
-		 *	[I] EINVAL - (accept4()) invalid value in flags.
-		 *	[I] EMFILE - The per-process limit of open file descriptors has been reached.
-		 *	[ ] ENFILE - The system limit on the total number of open files has been reached.
-		 *	[ ] ENOBUFS, ENOMEM - Not enough free memory. This often means that the memory allocation is
-		 *												limited by the socket buffer limits, not by the system memory.
-		 *	[I] ENOTSOCK - The descriptor references a file, not a socket.
-		 *	[I] EOPNOTSUPP - The referenced socket is not of type SOCK_STREAM.
-		 *	[ ] EPROTO - Protocol error.
-		 *
-		 */
-		static err_t nc_accept(void *arg, struct tcp_pcb *newPCB, err_t err);
-
-		/*
-		 * Callback from LWIP for when data is available to be read from the network.
-		 *
-		 * Data is in the form of a linked list of struct pbufs, it is then recombined and
-		 * send to the client over the associated unix socket.
-		 *
-		 * @param associated service state object
-		 * @param allocated PCB
-		 * @param chain of pbufs
-		 * @param error code
-		 * @return ERR_OK if everything is ok, -1 otherwise
-		 *
-		 */
-	 	static err_t nc_recved(void *arg, struct tcp_pcb *PCB, struct pbuf *p, err_t err);
-		static err_t nc_recved_proxy(void *arg, struct tcp_pcb *PCB, struct pbuf *p, err_t err);
-	    static void nc_udp_recved(void * arg, struct udp_pcb * upcb, struct pbuf * p, ip_addr_t * addr, u16_t port);
-
-	    
-		/*
-		 * Callback from LWIP when an internal error is associtated with the given (arg)
-		 *
-		 * Since the PCB related to this error might no longer exist, only its perviously
-		 * associated (arg) is provided to us.
-		 *
-		 * @param associated service state object
-		 * @param error code
-		 *
-		 */
-		static void nc_err(void *arg, err_t err);
-
-		/*
-		 * Callback from LWIP to do whatever work we might need to do.
-		 *
-		 * @param associated service state object
-		 * @param PCB we're polling on
-		 * @return ERR_OK if everything is ok, -1 otherwise
-		 *
-		 */
-		static err_t nc_poll(void* arg, struct tcp_pcb *PCB);
-
-		/*
-		 * Callback from LWIP to signal that 'len' bytes have successfully been sent.
-		 * As a result, we should put our socket back into a notify-on-readability state
-		 * since there is now room on the PCB buffer to write to.
-		 *
-		 * NOTE: This could be used to track the amount of data sent by a connection.
-		 *
-		 * @param associated service state object
-		 * @param relevant PCB
-		 * @param length of data sent
-		 * @return ERR_OK if everything is ok, -1 otherwise
-		 *
-		 */
-		static err_t nc_sent(void *arg, struct tcp_pcb *PCB, u16_t len);
-
-		/*
-		 * Callback from LWIP which sends a return value to the client to signal that
-		 * a connection was established for this PCB
-		 *
-		 * @param associated service state object
-		 * @param relevant PCB
-		 * @param error code
-		 * @return ERR_OK if everything is ok, -1 otherwise
-		 *
-		 */
-		static err_t nc_connected(void *arg, struct tcp_pcb *PCB, err_t err);
-	    static err_t nc_connected_proxy(void *arg, struct tcp_pcb *PCB, err_t err);
-
-		
-		//static void nc_close(struct tcp_pcb *PCB);
-		//static err_t nc_send(struct tcp_pcb *PCB);
 
 		/*
 		 * Handles an RPC to bind an LWIP PCB to a given address and port
@@ -443,18 +318,6 @@ namespace ZeroTier {
 	 	 */
 		void handleWrite(Connection *conn);
 
-		/*
-		 * Sends a return value to the intercepted application
-		 */
-		int sendReturnValue(PhySocket *sock, int retval, int _errno);
-		int sendReturnValue(int fd, int retval, int _errno);
-
-		/* 
-	 	* Unpacks the buffer from an RPC command
-	 	*/
-		void unloadRPC(void *data, pid_t &pid, pid_t &tid, 
-	        char (timestamp[RPC_TIMESTAMP_SZ]), char (magic[sizeof(uint64_t)]), char &cmd, void* &payload);
-
 		// Unused -- no UDP or TCP from this thread/Phy<>
 		void phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address, const struct sockaddr *from,void *data,unsigned long len);
 		void phyOnTcpConnect(PhySocket *sock,void **uptr,bool success);
@@ -495,22 +358,6 @@ namespace ZeroTier {
 	 	 * PhySocket, and underlying file descriptor
 	 	 */
 		void closeConnection(PhySocket *sock);
-
-
-	#if defined(SDK_IPV4)
-		ip_addr_t convert_ip(struct sockaddr_in * addr)
-		{
-		  ip_addr_t conn_addr;
-		  struct sockaddr_in *ipv4 = addr;
-		  short a = ip4_addr1b(&(ipv4->sin_addr));
-		  short b = ip4_addr2b(&(ipv4->sin_addr));
-		  short c = ip4_addr3b(&(ipv4->sin_addr));
-		  short d = ip4_addr4b(&(ipv4->sin_addr));
-		  IP4_ADDR(&conn_addr, a,b,c,d);
-		 
-		  return conn_addr;
-		}
-	#endif
 
 		Phy<NetconEthernetTap *> _phy;
 		PhySocket *_unixListenSocket;

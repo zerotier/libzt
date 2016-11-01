@@ -25,6 +25,8 @@
  * LLC. Start here: http://www.zerotier.com/
  */
 
+#ifndef _SDK_UTILS_HPP_
+#define _SDK_UTILS_HPP_
 
 #if defined(SDK_LWIP) && defined(SDK_IPV6)
 	#define IP6_ADDR2(ipaddr, a,b,c,d,e,f,g,h) do { (ipaddr)->addr[0] = ZeroTier::Utils::hton((u32_t)((a & 0xffff) << 16) | (b & 0xffff)); \
@@ -32,9 +34,8 @@
 	                                               (ipaddr)->addr[2] = ZeroTier::Utils::hton(((e & 0xffff) << 16) | (f & 0xffff)); \
 	                                               (ipaddr)->addr[3] = ZeroTier::Utils::hton(((g & 0xffff) << 16) | (h & 0xffff)); } while(0)
 
-
 	// Convert from standard IPV6 address structure to an lwIP native structure                                               
-	void in6_to_ip6(ip6_addr_t *ba, struct sockaddr_in6 *in6)
+	inline void in6_to_ip6(ip6_addr_t *ba, struct sockaddr_in6 *in6)
 	{
 		uint8_t *ip = &(in6->sin6_addr).s6_addr[0];
 		uint16_t ip16;
@@ -50,3 +51,24 @@
 		);
 	}
 #endif
+
+#if defined(SDK_LWIP) && defined(SDK_IPV4)
+	#define ip4_addr1b(ipaddr) (((u8_t*)(ipaddr))[0])
+	#define ip4_addr2b(ipaddr) (((u8_t*)(ipaddr))[1])
+	#define ip4_addr3b(ipaddr) (((u8_t*)(ipaddr))[2])
+	#define ip4_addr4b(ipaddr) (((u8_t*)(ipaddr))[3])
+
+	inline ip_addr_t convert_ip(struct sockaddr_in * addr)
+	{
+	  ip_addr_t conn_addr;
+	  struct sockaddr_in *ipv4 = addr;
+	  short a = ip4_addr1b(&(ipv4->sin_addr));
+	  short b = ip4_addr2b(&(ipv4->sin_addr));
+	  short c = ip4_addr3b(&(ipv4->sin_addr));
+	  short d = ip4_addr4b(&(ipv4->sin_addr));
+	  IP4_ADDR(&conn_addr, a,b,c,d);
+	  return conn_addr;
+	}
+#endif
+
+#endif // _SDK_UTILS_HPP_

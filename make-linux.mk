@@ -26,6 +26,19 @@ LWIP_LIB           = $(BUILD)/$(LWIP_LIB_NAME)
 #
 LWIP_DIR      = ext/lwip
 PICOTCP_DIR   = ext/picotcp
+# 
+LWIP_DRIVER_FILES  = src/stack_drivers/lwip/lwip.cpp 
+PICO_DRIVER_FILES  = src/stack_drivers/picotcp/picotcp.cpp 
+SDK_SERVICE_CPP_FILES:=src/tap.cpp \
+					    src/proxy.cpp \
+					    $(ZT1)/service/OneService.cpp \
+					    $(ZT1)/one.cpp 
+
+SDK_SERVICE_C_FILES = src/rpc.c
+SDK_INTERCEPT_C_FILES:=sockets.c \
+						intercept.c \
+						rpc.c
+
 
 # Automagically pick clang or gcc, with preference for clang
 # This is only done if we have not overridden these with an environment or CLI variable
@@ -86,7 +99,10 @@ INCLUDES+= -Iext \
 	-I$(LWIP_DIR)/src/include/ipv6 \
 	-I$(PICOTCP_DIR)/include \
 	-I$(PICOTCP_DIR)/build/include \
-	-Isrc/stack_drivers/lwip
+	-Isrc/stack_drivers/lwip \
+	-Isrc/stack_drivers/picotcp \
+	-Isrc/stack_drivers/jip
+
 
 
 # Stack selection / parameters
@@ -145,8 +161,6 @@ remove_only_intermediates:
 	-find . -type f \( -name '*.o' -o -name '*.so' \) -delete
 
 
-
-
 # --- EXTERNAL LIBRARIES ---
 lwip:
 	-make -f make-liblwip.mk $(LWIP_FLAGS)
@@ -175,15 +189,16 @@ one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernet
 # Build only the intercept library
 linux_intercept:
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
-	cd src ; gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o ../$(INTERCEPT) sockets.c intercept.c rpc.c -ldl
+	cd src ; gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o ../$(INTERCEPT) $(SDK_INTERCEPT_C_FILES) -ldl
 
 # Build only the SDK service
 ifeq ($(SDK_LWIP),1)
 linux_sdk_service: lwip $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK_SERVICE -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(LWIP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
 else
 linux_sdk_service: pico $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK_SERVICE -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(PICO_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
 endif
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(ZT1)/service/OneService.cpp src/tap.cpp src/proxy.cpp $(ZT1)/one.cpp src/rpc.c $(LDLIBS) -ldl
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-cli
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-idtool
 

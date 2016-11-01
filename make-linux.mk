@@ -163,6 +163,7 @@ remove_only_intermediates:
 
 # --- EXTERNAL LIBRARIES ---
 lwip:
+	mkdir -p build
 	-make -f make-liblwip.mk $(LWIP_FLAGS)
 
 pico:
@@ -194,9 +195,11 @@ linux_intercept:
 # Build only the SDK service
 ifeq ($(SDK_LWIP),1)
 linux_sdk_service: lwip $(OBJS)
+	mkdir -p build
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK_SERVICE -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(LWIP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
 else
 linux_sdk_service: pico $(OBJS)
+	mkdir -p build
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK_SERVICE -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(PICO_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
 endif
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-cli

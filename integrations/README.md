@@ -14,10 +14,15 @@ For more support on these integrations, or if you'd like help creating a new int
 ***
 ## Important Build flags
 
+- `SDK_IPV4=1` - Enable IPv4 support in whatever stack you have selected
+- `SDK_IPV6=1` - Enable IPv6 support in whatever stack you have selected
+
+- `SDK_LWIP=1` - Enable the use of `lwIP`
+- `SDK_PICOTCP=1` - Enable the use of `picoTCP`
+
 - `SDK_DEBUG=1` - Turns on SDK activity/warning/error output. Levels of verbosity can be adjusted in `src/SDK_Debug.h`
-- `SDK_DEBUG_LOGFILE=1` - Used in conjunction with `SDK_DEBUG`, this will write all SDK debug chatter to a log file. To use this, set `make SDK_DEBUG_LOGFILE=1` then `export ZT_SDK_LOGFILE=debug.log`. 
-- `SDK_LWIP_DEBUG=1` - Turns on debug output for the lwIP library.
-- `SDK_BUNDLED=1` - Builds the SDK as a single bundled target including a the RPC mechanism, the lwIP library, and the ZeroTier service.
+- `SDK_LWIP_DEBUG=1` - Turns on debug output for the `lwIP` library.
+- `SDK_BUNDLED=1` - Builds the SDK as a single bundled target including a the RPC mechanism, the `lwIP` library, and the ZeroTier service.
 
 ***
 ## Current Integrations

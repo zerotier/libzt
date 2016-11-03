@@ -11,6 +11,7 @@ parallel 'centos7': {
                 sh 'make linux_service_and_intercept SDK_LWIP=1 SDK_IPV4=1'
             }
             stage('Run Basic Unit Test') {
+                sh 'yum -y install docker'
                 sh 'make unit_test SDK_LWIP=1 SDK_IPV4=1'
                 sh './tests/unit/docker/start.sh'
             }

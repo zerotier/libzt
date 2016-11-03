@@ -9,10 +9,17 @@ Currently our *lwIP* stack driver supports IPV4 and limited IPV6, whereas our *p
 
 To enable specific protocol versions use `SDK_IPV4=1` and `SDK_IPV6=1` in conjunction with the above stack selection flags.
 
+Also, to enable debug for the SDK use `SDK_DEBUG=1`, to enable debug for the *lwIP* stack use `SDK_LWIP_DEBUG=1`. 
+
 ## Integrating Your Own Custom Stack
 
-If you don't know why this section exists, then I suggest turning back now. This is not for you. Now, let's get on with things, here's how you can integrate your own custom network stack if for some reason lwIP or picoTCP aren't cutting it for you.
+If you don't know why this section exists, then I suggest turning back now. This is not for you. Otherwise, let's get on with things, here's how you can integrate your own custom network stack if for some reason lwIP or picoTCP aren't cutting it for you:
 
-The integration points are designated in the tap service code with the tags such as `SIP-0, SIP-1, ..., SIP-n`.
+Investigate the structure of `src/tap.cpp`, this file contains calls to functions implemented in the stack driver code (located in `src/stack_drivers`).
 
-[More content to come]
+Each stack is different but generally you'll need to provide:
+ - An initialization function to configure and bring up the stack's `interface` (or similar).
+ - An I/O polling loop section where you'll execute your timer calls, and check for inbound and outbound frames.
+ - A low-level input and output function to handle feeding ethernet frames into and out of the stack in its own unique way.
+ - Calls to your stack's API which roughly correspond with `handleRead()`, `handleWrite()`, `handleSocket()`, `handleConnect()`, etc
+ - In those calls you'll need to handle the creation, management, and destruction of your stack's "connection" objects, whatever that may be.

@@ -10,6 +10,10 @@ parallel 'centos7': {
             stage('Build centos7') {
                 sh 'make linux_service_and_intercept SDK_LWIP=1 SDK_IPV4=1'
             }
+            stage('Run Basic Unit Test') {
+                sh 'make unit_test SDK_LWIP=1 SDK_IPV4=1'
+                sh './tests/unit/docker/start/sh'
+            }
         }
         catch (err) {
             currentBuild.result = "FAILURE"

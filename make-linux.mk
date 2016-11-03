@@ -9,7 +9,7 @@
 
 # Target output filenames
 SHARED_LIB_NAME    = libztlinux.so
-INTERCEPT_NAME     = libztintercept.so
+SDK_INTERCEPT_NAME = libztintercept.so
 SDK_SERVICE_NAME   = zerotier-sdk-service
 ONE_SERVICE_NAME   = zerotier-one
 ONE_CLI_NAME       = zerotier-cli
@@ -17,7 +17,7 @@ ONE_ID_TOOL_NAME   = zerotier-idtool
 LWIP_LIB_NAME      = liblwip.so
 #
 SHARED_LIB         = $(BUILD)/$(SHARED_LIB_NAME)
-INTERCEPT          = $(BUILD)/$(INTERCEPT_NAME)
+SDK_INTERCEPT      = $(BUILD)/$(SDK_INTERCEPT_NAME)
 SDK_SERVICE        = $(BUILD)/$(SDK_SERVICE_NAME)
 ONE_SERVICE        = $(BUILD)/$(ONE_SERVICE_NAME)
 ONE_CLI            = $(BUILD)/$(ONE_CLI_NAME)
@@ -35,9 +35,9 @@ SDK_SERVICE_CPP_FILES:=src/tap.cpp \
 					    $(ZT1)/one.cpp 
 
 SDK_SERVICE_C_FILES = src/rpc.c
-SDK_INTERCEPT_C_FILES:=sockets.c \
-						intercept.c \
-						rpc.c
+SDK_INTERCEPT_C_FILES:=src/sockets.c \
+						src/intercept.c \
+						src/rpc.c
 
 
 # Automagically pick clang or gcc, with preference for clang
@@ -190,7 +190,7 @@ one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernet
 # Build only the intercept library
 linux_intercept:
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
-	cd src ; gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o ../$(INTERCEPT) $(SDK_INTERCEPT_C_FILES) -ldl
+	gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o $(SDK_INTERCEPT) $(SDK_INTERCEPT_C_FILES) -ldl
 
 # Build only the SDK service
 ifeq ($(SDK_LWIP),1)
@@ -211,7 +211,7 @@ linux_service_and_intercept: linux_intercept linux_sdk_service
 
 # Builds a single shared library which contains everything
 linux_shared_lib: $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) -DSDK -DZT_ONE_NO_ROOT_CHECK -shared -o $(SHARED_LIB) $(OBJS) zerotierone/service/OneService.cpp src/service.cpp src/tap.cpp src/proxy.cpp zerotierone/one.cpp -x c src/sockets.c src/intercept.c src/rpc.c $(LDLIBS) -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK_SERVICE -DSDK -DZT_ONE_NO_ROOT_CHECK -shared -o $(SHARED_LIB) $(OBJS) $(LWIP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(SDK_INTERCEPT_C_FILES) $(LDLIBS) -ldl
 
 
 
@@ -231,11 +231,29 @@ android_jni_lib:
 
 
 # -------- TESTING ---------
-# Build the docker demo images
-docker_demo: one linux_shared_lib
+
+unit_test: one linux_service_and_intercept
 	mkdir -p $(BUILD)
-	cp $(INTERCEPT) $(INT)/docker/docker_demo/$(INTERCEPT_NAME)
-	cp $(SERVICE) $(INT)/docker/docker_demo/$(SERVICE_NAME)
+	cp $(SDK_INTERCEPT) tests/unit/docker/$(SDK_INTERCEPT_NAME)
+	cp $(SDK_SERVICE) tests/unit/docker/$(SDK_SERVICE_NAME)
+	cp $(LWIP_LIB) tests/unit/docker/$(LWIP_LIB_NAME)
+	cp $(ONE_CLI) tests/unit/docker/$(ONE_CLI_NAME)
+	cp $(ONE_SERVICE) tests/unit/docker/$(ONE_SERVICE_NAME)
+	touch tests/unit/docker/docker_demo.name
+	# Server image
+	# This image will contain the server application and everything required to 
+	# run the ZeroTier SDK service
+	cd tests/unit/docker; docker build --tag="docker_demo" -f sdk_dockerfile .
+	# Client image
+	# This image is merely a test image designed to interact with the server image
+	# in order to verify it's working properly
+	cd tests/unit/docker; docker build --tag="docker_demo_monitor" -f monitor_dockerfile .
+
+# Build the docker demo images
+docker_demo: one linux_service_and_intercept
+	mkdir -p $(BUILD)
+	cp $(SDK_INTERCEPT) $(INT)/docker/docker_demo/$(SDK_INTERCEPT_NAME)
+	cp $(SDK_SERVICE) $(INT)/docker/docker_demo/$(SDK_SERVICE_NAME)
 	cp $(LWIP_LIB) $(INT)/docker/docker_demo/$(LWIP_LIB_NAME)
 	cp $(ONE_CLI) $(INT)/docker/docker_demo/$(ONE_CLI_NAME)
 	touch $(INT)/docker/docker_demo/docker_demo.name
@@ -249,7 +267,7 @@ docker_demo: one linux_shared_lib
 	cd $(INT)/docker/docker_demo; docker build --tag="docker_demo_monitor" -f monitor_dockerfile .
 
 # Builds all docker test images
-docker_images: one linux_shared_lib
+docker_images: one linux_service_and_intercept
 	./tests/docker/build_images.sh
 
 # Runs docker container tests
@@ -262,18 +280,18 @@ docker_check_test:
 
 # Check for the presence of built frameworks/bundles/libaries
 check:
-	./check.sh $(LWIP_LIB)
-	./check.sh $(INTERCEPT)
-	./check.sh $(ONE_SERVICE)
-	./check.sh $(SDK_SERVICE)
-	./check.sh $(SHARED_LIB)
-	./check.sh $(BUILD)/android_jni_lib/arm64-v8a/libZeroTierOneJNI.so
-	./check.sh $(BUILD)/android_jni_lib/armeabi/libZeroTierOneJNI.so
-	./check.sh $(BUILD)/android_jni_lib/armeabi-v7a/libZeroTierOneJNI.so
-	./check.sh $(BUILD)/android_jni_lib/mips/libZeroTierOneJNI.so
-	./check.sh $(BUILD)/android_jni_lib/mips64/libZeroTierOneJNI.so
-	./check.sh $(BUILD)/android_jni_lib/x86/libZeroTierOneJNI.so
-	./check.sh $(BUILD)/android_jni_lib/x86_64/libZeroTierOneJNI.so
+	-./check.sh $(LWIP_LIB)
+	-./check.sh $(SDK_INTERCEPT)
+	-./check.sh $(ONE_SERVICE)
+	-./check.sh $(SDK_SERVICE)
+	-./check.sh $(SHARED_LIB)
+	-./check.sh $(BUILD)/android_jni_lib/arm64-v8a/libZeroTierOneJNI.so
+	-./check.sh $(BUILD)/android_jni_lib/armeabi/libZeroTierOneJNI.so
+	-./check.sh $(BUILD)/android_jni_lib/armeabi-v7a/libZeroTierOneJNI.so
+	-./check.sh $(BUILD)/android_jni_lib/mips/libZeroTierOneJNI.so
+	-./check.sh $(BUILD)/android_jni_lib/mips64/libZeroTierOneJNI.so
+	-./check.sh $(BUILD)/android_jni_lib/x86/libZeroTierOneJNI.so
+	-./check.sh $(BUILD)/android_jni_lib/x86_64/libZeroTierOneJNI.so
 
 # Tests
 OSTYPE=$(shell uname -s | tr '[A-Z]' '[a-z]')
@@ -313,7 +331,7 @@ clean_basic:
 	-rm -rf $(BUILD)/*
 	-rm -rf $(INT)/Unity3D/Assets/Plugins/*
 	-rm -rf zerotier-cli zerotier-idtool
-	-find . -type f \( -name $(ONE_SERVICE_NAME) -o -name $(SDK_SERVICE_NAME) \) -delete
+	-find . -type f \( -name $(ONE_SERVICE_NAME) -o -name $(SDK_SERVICE_NAME) -o -name $(ONE_CLI_NAME) \) -delete
 	-find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
 
 clean_thorough: clean_basic

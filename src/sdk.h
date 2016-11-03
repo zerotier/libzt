@@ -28,12 +28,27 @@
 #ifndef _ZT_SDK_H
 #define _ZT_SDK_H	1
 
+#if defined(SDK_SERVICE)
+	// Sanity checks for compilation
+	#if !defined(SDK_LWIP) && !defined(SDK_PICOTCP)
+	 #error "No network stack specified, use SDK_LWIP=1, SDK_PICOTCP=1, or similar"
+	#endif
+	#if defined(SDK_LWIP) && defined(SDK_PICOTCP)
+	 #error "Dual stacks is not currently supported, try one or the other"
+	#endif
+	#if !defined(SDK_IPV4) && !defined(SDK_IPV6)
+	 #error "No IP protocol version specified, use SDK_IPV4=1, or SDK_IPV6=1"
+	#endif
+	#if !defined(SDK_IPV4) && !defined(SDK_IPV6)
+	 #error "Dual protocol versions is not currently supported. try one or the other"
+	#endif
+#endif
+
 #include <sys/socket.h>
 #include <stdbool.h>
 #include "signatures.h"
 
 #if defined(__ANDROID__)
-	// For defining the Android direct-call API
     #include <jni.h>
 #endif
 

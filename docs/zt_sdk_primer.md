@@ -40,8 +40,8 @@ When your applcation attempts to establish a connection over a socket the follow
 - our library's `zt_socket()` is executed instead
 -  library establishes an `AF_LOCAL` socket connection with the service (this is used to orchestrate communication between the library and the ZeroTier service)
 - an `RPC_SOCKET` message is sent to the ZeroTier tap service
-- the tap service receives the `RPC_SOCKET` message and requests a new `tcp_pcb` representing the new "socket" from lwIP
-- If the user-space network stack grants the tap service the new `tcp_pcb`, the tap service then repurposes the socket used for the RPC message and returns its file descriptor to your application for it to use as the new socket.
+- the tap service receives the `RPC_SOCKET` message and requests the allocation of a new "connection" object representing the new "socket" from lwIP
+- If the user-space network stack grants the tap service the new connection object, the tap service then repurposes the socket used for the RPC message and returns its file descriptor to your application for it to use as the new socket.
 
 From your application's perspective nothing out of the ordinary has happened. It called `socket()`, and got a file descriptor back.
 

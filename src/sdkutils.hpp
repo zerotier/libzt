@@ -38,7 +38,6 @@
 	inline void in6_to_ip6(ip6_addr_t *ba, struct sockaddr_in6 *in6)
 	{
 		uint8_t *ip = &(in6->sin6_addr).s6_addr[0];
-		uint16_t ip16;
 		IP6_ADDR2(ba,
 			(((ip[ 0] & 0xffff) << 8) | ((ip[ 1]) & 0xffff)),
 			(((ip[ 2] & 0xffff) << 8) | ((ip[ 3]) & 0xffff)),

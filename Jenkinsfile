@@ -19,6 +19,8 @@ parallel 'centos7': {
     }
 }, 'macOS': {
     node('macOS') {
+
+        // osx_service_and_intercept
         try {
             checkout scm
             stage('Build macOS') {
@@ -28,6 +30,32 @@ parallel 'centos7': {
         catch (err) {
             currentBuild.result = "FAILURE"
             slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
+        // osx_app_framework
+        try {
+            checkout scm
+            stage('Build macOS App Framework') {
+                sh 'make osx_app_framework'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (app framework) (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
+        // ios_app_framework
+        try {
+            checkout scm
+            stage('Build iOS App Framework') {
+                sh 'make ios_app_framework'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on iOS (app framework) (<${env.BUILD_URL}|Open>)"
             throw err
         }
     }

@@ -1,13 +1,11 @@
 ZeroTier SDK
 ======
 
-ZeroTier-enabled apps. Virtual network access embedded directly into applications and games.
+ZeroTier-enabled apps and devices.
 
-## What does it do?
+Secure virtual network access embedded directly into applications, games, and devices. Imagine starting an instance of your application or game and having it automatically be a member of your virtual network without having to rewrite your networking layer. Check out our [Integrations](integrations/) to learn how to integrate this into your application, device, or ecosystem.
 
-Imagine starting an instance of your application or game and having it automatically be a member of your virtual network without having to rewrite your networking layer.
-
-## How is it used?
+## How do I use it?
 
 There are generally two ways one might want to use the service. 
 
@@ -17,13 +15,9 @@ There are generally two ways one might want to use the service.
 
 ![Image](docs/img/methods.png)
 
-## Build instructions
-
-Check out our [Integrations](integrations/) to learn how to integrate this into your application.
-
 ## How does it work?
 
-We've built a special background tap service that pairs the ZeroTier protocol with swappable user-space network stacks. For our initial release we've provided drivers for [Lightweight IP (lwIP)](http://savannah.nongnu.org/projects/lwip/) and [picoTCP](http://www.picotcp.com/). The aim is to provide a new way for you to bring your applications onto your virtual network. For a more in-depth explanation of our technology take a look at our [SDK Primer](docs/zt_sdk_primer.md)
+We've designed a background tap service that pairs the ZeroTier protocol with swappable user-space network stacks. We've provided drivers for [Lightweight IP (lwIP)](http://savannah.nongnu.org/projects/lwip/) and [picoTCP](http://www.picotcp.com/). The aim is to give you a new way to bring your applications onto your virtual network. For a more in-depth explanation of our technology take a look at our [SDK Primer](docs/zt_sdk_primer.md)
 
 ## APIs
 

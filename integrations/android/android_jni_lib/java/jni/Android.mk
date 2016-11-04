@@ -8,23 +8,26 @@ ZT := ../../../../../zerotierone
 LOCAL_MODULE := ZeroTierOneJNI
 LOCAL_C_INCLUDES := $(ZT1)/include
 LOCAL_C_INCLUDES += $(ZT1)/ext/lwip/src/include
-LOCAL_C_INCLUDES += $(ZT1)/ext/lwip/src/include/ipv4
+LOCAL_C_INCLUDES += $(ZT1)/ext/lwip/src/include/lwip
+LOCAL_C_INCLUDES += $(ZT1)/ext/lwip/src/include/lwip/priv
 LOCAL_C_INCLUDES += $(ZT1)/node
 LOCAL_C_INCLUDES += $(ZT1)/
 LOCAL_C_INCLUDES += $(ZT1)/service
 LOCAL_C_INCLUDES += $(ZT1)/osdep
 LOCAL_C_INCLUDES += $(ZTSDK)/src
+LOCAL_C_INCLUDES += $(ZTSDK)/stack_drivers/lwip
+
 
 LOCAL_LDLIBS := -llog
 # LOCAL_CFLAGS := -g
 
 # Netcon files
 LOCAL_SRC_FILES := \
-	$(ZTSDK)/SDK_RPC.c \
-	$(ZTSDK)/SDK_Proxy.cpp \
-	$(ZTSDK)/SDK_Sockets.c \
-	$(ZTSDK)/SDK_Service.cpp \
-	$(ZTSDK)/SDK_EthernetTap.cpp
+	$(ZTSDK)/rpc.c \
+	$(ZTSDK)/proxy.cpp \
+	$(ZTSDK)/sockets.c \
+	$(ZTSDK)/service.cpp \
+	$(ZTSDK)/tap.cpp
 
 # ZeroTierOne ext files
 LOCAL_SRC_FILES += \

@@ -337,7 +337,7 @@ clean_basic:
 clean_thorough: clean_basic
 	-rm -rf .depend
 
-clean: clean_basic clean_android
+clean: clean_basic
 
 clean_for_production:
 	-find . -type f \( -name '*.identity'\) -delete

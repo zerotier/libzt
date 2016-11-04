@@ -395,7 +395,6 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
 				// Find job
 				sockdata = jobmap[CANARY_num];
 				if(!sockdata.first) {
-					DEBUG_ERROR("unable to locate job entry for %lu, sock=%p", CANARY_num, (void*)&sock);
 					return;
 				}  else
 					foundJob = true;

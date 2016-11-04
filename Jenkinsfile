@@ -32,7 +32,6 @@ parallel 'centos7': {
             throw err
         }
 
-
         // service (picoTCP IPv4)
         try {
             checkout scm
@@ -102,17 +101,17 @@ parallel 'centos7': {
         }
 
         // ios_app_framework
-        //try {
-        //    checkout scm
-        //    stage('Build iOS App Framework') {
-        //        sh 'make ios_app_framework'
-        //    }
-        //}
-        //catch (err) {
-        //    currentBuild.result = "FAILURE"
-        //    slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on iOS (<${env.BUILD_URL}|Open>)"
-        //    throw err
-        //}
+        try {
+            checkout scm
+            stage('Build iOS App Framework') {
+                sh 'make ios_app_framework'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on iOS (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
     }
 }
 

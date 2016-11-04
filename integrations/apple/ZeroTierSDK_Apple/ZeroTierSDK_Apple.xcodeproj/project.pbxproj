@@ -856,10 +856,11 @@
 					};
 					7CC003221D1216E3003E68DC = {
 						CreatedOnToolsVersion = 7.3;
-						DevelopmentTeam = 57AG88JR8A;
+						DevelopmentTeam = 8ZD9JUCZ4V;
 					};
 					7CC0032F1D1216F8003E68DC = {
 						CreatedOnToolsVersion = 7.3;
+						DevelopmentTeam = 8ZD9JUCZ4V;
 					};
 					7CC0033B1D121741003E68DC = {
 						CreatedOnToolsVersion = 7.3;

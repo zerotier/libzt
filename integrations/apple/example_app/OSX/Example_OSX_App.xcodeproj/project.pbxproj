@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		7C74DAD21D3C47D300A6C0B9 /* ZeroTierSDK_OSX.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */; };
 		7C74DAD31D3C485800A6C0B9 /* ZeroTierSDK_OSX.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */; };
 		7C74DAD41D3C485800A6C0B9 /* ZeroTierSDK_OSX.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7C7D529B1DBEAED300896C93 /* XcodeWrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D52981DBEAED300896C93 /* XcodeWrapper.cpp */; };
@@ -53,7 +52,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				7C74DAD31D3C485800A6C0B9 /* ZeroTierSDK_OSX.framework in Frameworks */,
-				7C74DAD21D3C47D300A6C0B9 /* ZeroTierSDK_OSX.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

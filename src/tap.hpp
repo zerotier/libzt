@@ -49,7 +49,7 @@
 #include "defs.h"
 #include "rpc.h"
 #include "lwip.hpp"
-#include "jip.hpp"
+// #include "jip.hpp"
 
 #if defined(SDK_PICOTCP)
     #include "picotcp.hpp"

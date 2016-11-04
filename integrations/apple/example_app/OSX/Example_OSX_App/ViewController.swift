@@ -181,8 +181,10 @@ class ViewController: NSViewController {
         {
             sleep(1)
             dispatch_async(dispatch_get_main_queue()) {
-                print("IPV4 = ", String.fromCString(self.zt.get_ipv4_address(self.txtNWID.stringValue)!)) // get IP address
+                var str_buf = [Int8](count: 16, repeatedValue: 0)
+                print("addr = ", String.fromCString(str_buf))
             }
+
             // TCP
             if(selectedProtocol == SOCK_STREAM)
             {
@@ -248,7 +250,6 @@ class ViewController: NSViewController {
  
     override func viewDidLoad() {
         super.viewDidLoad()
-
         // Set initial UI values for demo
         txtAddr.stringValue = serverAddr
         txtPort.intValue = serverPort

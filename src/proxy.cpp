@@ -106,7 +106,7 @@ namespace ZeroTier
 			struct sockaddr_in *in4 = (struct sockaddr_in *)&addr;
 			proxyListenPhySocket = _phy.tcpListen((const struct sockaddr*)&in4,(void *)this);
 			sockstate = SOCKS_OPEN;
-			DEBUG_INFO("SOCKS5 proxy server address for <%.16lx> is: <%s> (sock=%p)", nwid, inet_ntoa(in4->sin_addr), /*ntohs(in4->sin_port), */(void*)&proxyListenPhySocket);
+			DEBUG_INFO("SOCKS5 proxy server address for <%.16llx> is: <%s> (sock=%p)", nwid, inet_ntoa(in4->sin_addr), /*ntohs(in4->sin_port), */(void*)&proxyListenPhySocket);
 			return 0;
 		}
 		else {
@@ -126,7 +126,7 @@ namespace ZeroTier
 				unsigned int randp = 0;
 				Utils::getSecureRandom(&randp,sizeof(randp));
 				portno = 1000 + (randp % 1000);
-				DEBUG_INFO("no port specified in networks.d/%.16lx.port, randomly picking port", nwid);
+				DEBUG_INFO("no port specified in networks.d/%.16llx.port, randomly picking port", nwid);
 				std::stringstream ss;
 				ss << portno;
 				portStr = ss.str();

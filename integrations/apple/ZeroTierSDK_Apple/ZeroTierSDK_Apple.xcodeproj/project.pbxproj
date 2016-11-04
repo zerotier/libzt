@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7C2228D11DCC1193006A2661 /* lwip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C2228CF1DCC1193006A2661 /* lwip.cpp */; };
+		7C2228D41DCC11A8006A2661 /* picotcp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C2228D21DCC11A8006A2661 /* picotcp.cpp */; };
+		7C2228D51DCC11B8006A2661 /* picotcp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C2228D21DCC11A8006A2661 /* picotcp.cpp */; };
+		7C2228D61DCC11B8006A2661 /* lwip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C2228CF1DCC1193006A2661 /* lwip.cpp */; };
+		7C5B40971DCC14E300C43410 /* picotcp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C2228D21DCC11A8006A2661 /* picotcp.cpp */; };
+		7C5B40981DCC14E300C43410 /* lwip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C2228CF1DCC1193006A2661 /* lwip.cpp */; };
 		7C7D52831DBEADD200896C93 /* intercept.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D52791DBEADD200896C93 /* intercept.c */; };
 		7C7D52841DBEADD200896C93 /* proxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D527A1DBEADD200896C93 /* proxy.cpp */; };
 		7C7D52851DBEADD200896C93 /* rpc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D527B1DBEADD200896C93 /* rpc.c */; };
@@ -21,9 +27,6 @@
 		7C7D52911DBEADE600896C93 /* sockets.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D527F1DBEADD200896C93 /* sockets.c */; };
 		7C7D52921DBEADE600896C93 /* tap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D52801DBEADD200896C93 /* tap.cpp */; };
 		7C7D52931DBEADE600896C93 /* tap.hpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D52811DBEADD200896C93 /* tap.hpp */; };
-		7C7D52941DBEADE600896C93 /* utils.hpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D52821DBEADD200896C93 /* utils.hpp */; };
-		7C7F16451DBEB76F00C7AFFD /* jip.hpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D52971DBEAE2500896C93 /* jip.hpp */; };
-		7C7F16461DBEB76F00C7AFFD /* lwip.hpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D52961DBEADFF00896C93 /* lwip.hpp */; };
 		7C7F16471DBEB76F00C7AFFD /* intercept.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D52791DBEADD200896C93 /* intercept.c */; };
 		7C7F16481DBEB76F00C7AFFD /* proxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D527A1DBEADD200896C93 /* proxy.cpp */; };
 		7C7F16491DBEB76F00C7AFFD /* rpc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D527B1DBEADD200896C93 /* rpc.c */; };
@@ -224,6 +227,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		7C2228CF1DCC1193006A2661 /* lwip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = lwip.cpp; path = ../../../src/stack_drivers/lwip/lwip.cpp; sourceTree = "<group>"; };
+		7C2228D01DCC1193006A2661 /* lwip.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = lwip.hpp; path = ../../../src/stack_drivers/lwip/lwip.hpp; sourceTree = "<group>"; };
+		7C2228D21DCC11A8006A2661 /* picotcp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = picotcp.cpp; path = ../../../src/stack_drivers/picotcp/picotcp.cpp; sourceTree = "<group>"; };
+		7C2228D31DCC11A8006A2661 /* picotcp.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = picotcp.hpp; path = ../../../src/stack_drivers/picotcp/picotcp.hpp; sourceTree = "<group>"; };
 		7C7D52771DBEADD200896C93 /* debug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = debug.h; path = ../../../src/debug.h; sourceTree = "<group>"; };
 		7C7D52781DBEADD200896C93 /* defs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = defs.h; path = ../../../src/defs.h; sourceTree = "<group>"; };
 		7C7D52791DBEADD200896C93 /* intercept.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = intercept.c; path = ../../../src/intercept.c; sourceTree = "<group>"; };
@@ -235,9 +242,6 @@
 		7C7D527F1DBEADD200896C93 /* sockets.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sockets.c; path = ../../../src/sockets.c; sourceTree = "<group>"; };
 		7C7D52801DBEADD200896C93 /* tap.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tap.cpp; path = ../../../src/tap.cpp; sourceTree = "<group>"; };
 		7C7D52811DBEADD200896C93 /* tap.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = tap.hpp; path = ../../../src/tap.hpp; sourceTree = "<group>"; };
-		7C7D52821DBEADD200896C93 /* utils.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = utils.hpp; path = ../../../src/utils.hpp; sourceTree = "<group>"; };
-		7C7D52961DBEADFF00896C93 /* lwip.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = lwip.hpp; path = ../../../src/stack_drivers/lwip.hpp; sourceTree = "<group>"; };
-		7C7D52971DBEAE2500896C93 /* jip.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = jip.hpp; path = ../../../src/stack_drivers/jip.hpp; sourceTree = "<group>"; };
 		7C969B3C1DB99E7900BD3F7F /* def.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = def.c; path = ../../../ext/lwip/src/core/def.c; sourceTree = "<group>"; };
 		7C969B3D1DB99E7900BD3F7F /* dns.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dns.c; path = ../../../ext/lwip/src/core/dns.c; sourceTree = "<group>"; };
 		7C969B3E1DB99E7900BD3F7F /* inet_chksum.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = inet_chksum.c; path = ../../../ext/lwip/src/core/inet_chksum.c; sourceTree = "<group>"; };
@@ -693,8 +697,10 @@
 		7CC003131D12167D003E68DC /* SDK */ = {
 			isa = PBXGroup;
 			children = (
-				7C7D52971DBEAE2500896C93 /* jip.hpp */,
-				7C7D52961DBEADFF00896C93 /* lwip.hpp */,
+				7C2228D21DCC11A8006A2661 /* picotcp.cpp */,
+				7C2228D31DCC11A8006A2661 /* picotcp.hpp */,
+				7C2228CF1DCC1193006A2661 /* lwip.cpp */,
+				7C2228D01DCC1193006A2661 /* lwip.hpp */,
 				7C7D52771DBEADD200896C93 /* debug.h */,
 				7C7D52781DBEADD200896C93 /* defs.h */,
 				7C7D52791DBEADD200896C93 /* intercept.c */,
@@ -706,7 +712,6 @@
 				7C7D527F1DBEADD200896C93 /* sockets.c */,
 				7C7D52801DBEADD200896C93 /* tap.cpp */,
 				7C7D52811DBEADD200896C93 /* tap.hpp */,
-				7C7D52821DBEADD200896C93 /* utils.hpp */,
 				7CC0034F1D12178D003E68DC /* SDK.h */,
 			);
 			name = SDK;
@@ -920,11 +925,13 @@
 			files = (
 				7C969B7F1DB99E9A00BD3F7F /* nd6.c in Sources */,
 				7CEAF5531DBAC872006585E7 /* Multicaster.cpp in Sources */,
+				7C2228D41DCC11A8006A2661 /* picotcp.cpp in Sources */,
 				7CEAF50B1DBAC841006585E7 /* PortMapper.cpp in Sources */,
 				7C969B6D1DB99E8E00BD3F7F /* ip4.c in Sources */,
 				7CEAF5501DBAC872006585E7 /* Identity.cpp in Sources */,
 				7CEAF5601DBAC872006585E7 /* Topology.cpp in Sources */,
 				7C969B691DB99E8E00BD3F7F /* icmp.c in Sources */,
+				7C2228D11DCC1193006A2661 /* lwip.cpp in Sources */,
 				7CEAF5521DBAC872006585E7 /* InetAddress.cpp in Sources */,
 				7CEAF58B1DBAD0BF006585E7 /* DeferredPackets.cpp in Sources */,
 				7CEAF55C1DBAC872006585E7 /* Salsa20.cpp in Sources */,
@@ -997,6 +1004,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7C2228D51DCC11B8006A2661 /* picotcp.cpp in Sources */,
+				7C2228D61DCC11B8006A2661 /* lwip.cpp in Sources */,
 				7C7F16881DBEB8B300C7AFFD /* lz4.c in Sources */,
 				7C7F16891DBEB8B300C7AFFD /* http_parser.c in Sources */,
 				7C7F16721DBEB88700C7AFFD /* autoip.c in Sources */,
@@ -1057,8 +1066,6 @@
 				7C7F16681DBEB7AB00C7AFFD /* OSUtils.cpp in Sources */,
 				7C7F16691DBEB7AB00C7AFFD /* PortMapper.cpp in Sources */,
 				7C7F166B1DBEB7AB00C7AFFD /* ControlPlane.cpp in Sources */,
-				7C7F16451DBEB76F00C7AFFD /* jip.hpp in Sources */,
-				7C7F16461DBEB76F00C7AFFD /* lwip.hpp in Sources */,
 				7C7F16471DBEB76F00C7AFFD /* intercept.c in Sources */,
 				7C7F16481DBEB76F00C7AFFD /* proxy.cpp in Sources */,
 				7C7F16491DBEB76F00C7AFFD /* rpc.c in Sources */,
@@ -1072,6 +1079,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7C5B40971DCC14E300C43410 /* picotcp.cpp in Sources */,
+				7C5B40981DCC14E300C43410 /* lwip.cpp in Sources */,
 				7C7D528B1DBEADE600896C93 /* intercept.c in Sources */,
 				7C7D528C1DBEADE600896C93 /* proxy.cpp in Sources */,
 				7C7D528D1DBEADE600896C93 /* rpc.c in Sources */,
@@ -1080,7 +1089,6 @@
 				7C7D52911DBEADE600896C93 /* sockets.c in Sources */,
 				7C7D52921DBEADE600896C93 /* tap.cpp in Sources */,
 				7C7D52931DBEADE600896C93 /* tap.hpp in Sources */,
-				7C7D52941DBEADE600896C93 /* utils.hpp in Sources */,
 				7C969BCE1DB99F9E00BD3F7F /* tcp_in.c in Sources */,
 				7C969BCF1DB99F9E00BD3F7F /* tcp_out.c in Sources */,
 				7C969BD01DB99F9E00BD3F7F /* tcp.c in Sources */,
@@ -1308,6 +1316,8 @@
 					"$(SRCROOT)/../../../ext/lwip/src/include",
 					"$(SRCROOT)/../../../ext",
 					"$(SRCROOT)/../../../zerotierone",
+					"$(SRCROOT)/../../../src/stack_drivers/lwip",
+					"$(SRCROOT)/../../../src",
 				);
 				INFOPLIST_FILE = ZeroTierSDK_iOS/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -1346,6 +1356,8 @@
 					"$(SRCROOT)/../../../ext/lwip/src/include",
 					"$(SRCROOT)/../../../ext",
 					"$(SRCROOT)/../../../zerotierone",
+					"$(SRCROOT)/../../../src/stack_drivers/lwip",
+					"$(SRCROOT)/../../../src",
 				);
 				INFOPLIST_FILE = ZeroTierSDK_iOS/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -1385,6 +1397,7 @@
 					"$(SRCROOT)/../../../ext/lwip/src/include",
 					"$(SRCROOT)/../../../ext/lwip/src/include/ipv4/",
 					"$(SRCROOT)/../../../ext/",
+					"$(SRCROOT)/../../../src",
 				);
 				INFOPLIST_FILE = ZeroTierSDK_OSX/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -1421,6 +1434,7 @@
 					"$(SRCROOT)/../../../ext/lwip/src/include",
 					"$(SRCROOT)/../../../ext/lwip/src/include/ipv4/",
 					"$(SRCROOT)/../../../ext/",
+					"$(SRCROOT)/../../../src",
 				);
 				INFOPLIST_FILE = ZeroTierSDK_OSX/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -1432,6 +1446,8 @@
 					"-DSDK_BUNDLED",
 					"-D__XCODE__",
 					"-D__APP_FRAMEWORK__",
+					"-DSDK_IPV4",
+					"-DSDK_LWIP",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-OSX";
 				PRODUCT_NAME = "$(TARGET_NAME)";

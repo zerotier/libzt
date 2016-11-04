@@ -48,7 +48,3 @@ else
 	touch "$file_path$fail$test_name.txt"
 	printf 'Test: redis server did NOT respond!\n' >> "$file_path$fail$test_name.txt"
 fi
-
-
-
-

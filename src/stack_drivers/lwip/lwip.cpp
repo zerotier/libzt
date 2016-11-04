@@ -25,10 +25,8 @@
  * LLC. Start here: http://www.zerotier.com/
  */
 
-//#include "lwip.hpp"
 #include "tap.hpp"
 #include "sdkutils.hpp"
-//#include "debug.h"
 
 namespace ZeroTier
 {

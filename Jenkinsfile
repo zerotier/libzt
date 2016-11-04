@@ -9,8 +9,8 @@ parallel 'centos7': {
         // service (lwIP IPv4)
         try {
             checkout scm
-            stage('linux_sdk_service lwIP IPv4') {
-                sh 'make linux_sdk_service SDK_LWIP=1 SDK_IPV4=1'
+            stage('linux_sdk_service (lwIP IPv4)') {
+                sh 'make clean; make linux_sdk_service SDK_LWIP=1 SDK_IPV4=1'
             }
         }
         catch (err) {
@@ -22,8 +22,8 @@ parallel 'centos7': {
         // service (lwIP IPv6)
         try {
             checkout scm
-            stage('linux_sdk_service lwIP IPv6') {
-                sh 'make linux_sdk_service SDK_LWIP=1 SDK_IPV6=1'
+            stage('linux_sdk_service (lwIP IPv6)') {
+                sh 'make clean; make linux_sdk_service SDK_LWIP=1 SDK_IPV6=1'
             }
         }
         catch (err) {
@@ -35,8 +35,8 @@ parallel 'centos7': {
         // service (picoTCP IPv4)
         try {
             checkout scm
-            stage('Build centos7') {
-                sh 'make linux_sdk_service SDK_PICOTCP=1 SDK_IPV4=1'
+            stage('linux_sdk_service (picoTCP IPv4)') {
+                sh 'make clean; make linux_sdk_service SDK_PICOTCP=1 SDK_IPV4=1'
             }
         }
         catch (err) {
@@ -48,8 +48,8 @@ parallel 'centos7': {
         // service (picoTCP IPv6)
         try {
             checkout scm
-            stage('Build centos7') {
-                sh 'make linux_sdk_service SDK_PICOTCP=1 SDK_IPV6=1'
+            stage('linux_sdk_service (picoTCP IPv6)') {
+                sh 'make clean; make linux_sdk_service SDK_PICOTCP=1 SDK_IPV6=1'
             }
         }
         catch (err) {
@@ -61,8 +61,8 @@ parallel 'centos7': {
         // intercept
         try {
             checkout scm
-            stage('Build centos7') {
-                sh 'make linux_intercept SDK_LWIP=1 SDK_IPV4=1'
+            stage('linux_intercept') {
+                sh 'make clean; make linux_intercept'
             }
         }
         catch (err) {
@@ -73,6 +73,8 @@ parallel 'centos7': {
     }
 }, 'macOS': {
     node('macOS') {
+
+        unlockKeychainMac "~/Library/Keychains/login.keychain-db"
 
         // osx_service_and_intercept
         try {

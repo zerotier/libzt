@@ -243,7 +243,7 @@ android: android_jni_lib
 # Build library for Android Unity integrations
 # Build JNI library for Android app integration
 android_jni_lib:
-	./increment.sh
+	-./increment.sh
 	cd $(INT)/android/android_jni_lib/proj; ./gradlew assembleDebug
 	mkdir -p $(BUILD)/android_jni_lib
 	cp docs/android_zt_sdk.md $(BUILD)/android_jni_lib/README.md
@@ -318,7 +318,7 @@ clean_basic:
 	-find . -type f \( -name $(ONE_SERVICE_NAME) -o -name $(SDK_SERVICE_NAME) \) -delete
 	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
 
-clean: clean_basic clean_android
+clean: clean_basic
 
 clean_for_production:
 	-find . -type f \( -name '*.identity'\) -delete

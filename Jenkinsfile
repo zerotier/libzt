@@ -10,10 +10,9 @@ parallel 'centos7': {
     // --------------------------- Network Stacks (Linux) ---------------------------
     // ------------------------------------------------------------------------------
 
-        // (lwIP IPv4)
         try {
             checkout scm
-            stage('lwIP IPv4') {
+            stage('linux lwIP IPv4') {
                 sh 'make clean; make lwip SDK_IPV4=1'
             }
         }
@@ -22,11 +21,9 @@ parallel 'centos7': {
             slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on centos7 (<${env.BUILD_URL}|Open>)"
             throw err
         }
-
-        // (lwIP IPv6)
         try {
             checkout scm
-            stage('lwIP IPv6') {
+            stage('linux lwIP IPv6') {
                 sh 'make clean; make lwip SDK_IPV6=1'
             }
         }
@@ -35,11 +32,9 @@ parallel 'centos7': {
             slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on centos7 (<${env.BUILD_URL}|Open>)"
             throw err
         }
-
-        // (picoTCP IPv4)
         try {
             checkout scm
-            stage('picoTCP IPv4') {
+            stage('linux picoTCP IPv4') {
                 sh 'make clean; make pico SDK_IPV4=1'
             }
         }
@@ -48,11 +43,9 @@ parallel 'centos7': {
             slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on centos7 (<${env.BUILD_URL}|Open>)"
             throw err
         }
-
-        // (picoTCP IPv6)
         try {
             checkout scm
-            stage('picoTCP IPv6') {
+            stage('linux picoTCP IPv6') {
                 sh 'make clean; make pico SDK_IPV6=1'
             }
         }
@@ -66,7 +59,6 @@ parallel 'centos7': {
     // ------------------------ SDK Service Library (Linux) -------------------------
     // ------------------------------------------------------------------------------
 
-        // service (lwIP IPv4)
         try {
             checkout scm
             stage('linux_sdk_service (lwIP IPv4)') {
@@ -78,8 +70,6 @@ parallel 'centos7': {
             slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on centos7 (<${env.BUILD_URL}|Open>)"
             throw err
         }
-
-        // service (lwIP IPv6)
         try {
             checkout scm
             stage('linux_sdk_service (lwIP IPv6)') {
@@ -91,8 +81,6 @@ parallel 'centos7': {
             slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on centos7 (<${env.BUILD_URL}|Open>)"
             throw err
         }
-
-        // service (picoTCP IPv4)
         try {
             checkout scm
             stage('linux_sdk_service (picoTCP IPv4)') {
@@ -104,8 +92,6 @@ parallel 'centos7': {
             slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on centos7 (<${env.BUILD_URL}|Open>)"
             throw err
         }
-
-        // service (picoTCP IPv6)
         try {
             checkout scm
             stage('linux_sdk_service (picoTCP IPv6)') {
@@ -122,7 +108,6 @@ parallel 'centos7': {
     // --------------------------- Intercept Library (Linux) ------------------------
     // ------------------------------------------------------------------------------
 
-        // intercept
         try {
             checkout scm
             stage('linux_intercept') {
@@ -134,6 +119,23 @@ parallel 'centos7': {
             slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on centos7 (<${env.BUILD_URL}|Open>)"
             throw err
         }
+
+    // ------------------------------------------------------------------------------
+    // ------------------------------ Unit tests (linux) ----------------------------
+    // ------------------------------------------------------------------------------
+
+        try {
+            checkout scm
+            stage('linux tests') {
+                sh 'make tests'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on centos7 (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
     }
 }, 'macOS': {
     node('macOS') {
@@ -144,10 +146,9 @@ parallel 'centos7': {
     // --------------------------- Network Stacks (macOS) ---------------------------
     // ------------------------------------------------------------------------------
 
-        // (lwIP IPv4)
         try {
             checkout scm
-            stage('lwIP IPv4') {
+            stage('macOS lwIP IPv4') {
                 sh 'make clean; make lwip SDK_IPV4=1'
             }
         }
@@ -156,11 +157,9 @@ parallel 'centos7': {
             slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
             throw err
         }
-
-        // (lwIP IPv6)
         try {
             checkout scm
-            stage('lwIP IPv6') {
+            stage('macOS lwIP IPv6') {
                 sh 'make clean; make lwip SDK_IPV6=1'
             }
         }
@@ -169,11 +168,9 @@ parallel 'centos7': {
             slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
             throw err
         }
-
-        // (picoTCP IPv4)
         try {
             checkout scm
-            stage('picoTCP IPv4') {
+            stage('macOS picoTCP IPv4') {
                 sh 'make clean; make pico SDK_IPV4=1'
             }
         }
@@ -182,11 +179,9 @@ parallel 'centos7': {
             slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
             throw err
         }
-
-        // (picoTCP IPv6)
         try {
             checkout scm
-            stage('picoTCP IPv6') {
+            stage('macOS picoTCP IPv6') {
                 sh 'make clean; make pico SDK_IPV6=1'
             }
         }
@@ -201,7 +196,6 @@ parallel 'centos7': {
     // -------------------------- Intercept Library (macOS) -------------------------
     // ------------------------------------------------------------------------------
 
-        // osx_intercept
         try {
             checkout scm
             stage('osx_intercept') {
@@ -218,7 +212,6 @@ parallel 'centos7': {
     // -------------------------- SDK Service Library (macOS) -----------------------
     // ------------------------------------------------------------------------------
 
-        // osx_service_and_intercept
         try {
             checkout scm
             stage('osx_service_and_intercept (lwIP IPv4)') {
@@ -230,7 +223,6 @@ parallel 'centos7': {
             slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
             throw err
         }
-
         try {
             checkout scm
             stage('osx_service_and_intercept (lwIP IPv6)') {
@@ -242,8 +234,6 @@ parallel 'centos7': {
             slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
             throw err
         }
-
-
         try {
             checkout scm
             stage('osx_service_and_intercept (picoTCP IPv4)') {
@@ -269,10 +259,9 @@ parallel 'centos7': {
         }
 
     // ------------------------------------------------------------------------------
-    // -------------------------- App Frameworks (macOS/iOS) ------------------------
+    // ---------------------------- App Frameworks (macOS) --------------------------
     // ------------------------------------------------------------------------------
 
-        // osx_app_framework
         try {
             checkout scm
             stage('macOS App Framework') {
@@ -284,8 +273,6 @@ parallel 'centos7': {
             slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
             throw err
         }
-
-        // ios_app_framework
         try {
             checkout scm
             stage('iOS App Framework') {
@@ -295,6 +282,39 @@ parallel 'centos7': {
         catch (err) {
             currentBuild.result = "FAILURE"
             slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on iOS (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
+    // ------------------------------------------------------------------------------
+    // --------------------------- Android JNI Lib (macOS) --------------------------
+    // ------------------------------------------------------------------------------
+
+        //try {
+        //    checkout scm
+        //    stage('macOS android_jni_lib') {
+        //        sh 'make android_jni_lib SDK_LWIP=1 SDK_IPV4=1'
+        //    }
+        //}
+        //catch (err) {
+        //    currentBuild.result = "FAILURE"
+        //    slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
+        //    throw err
+        //}
+
+
+    // ------------------------------------------------------------------------------
+    // ------------------------------ Unit tests (macOS) ----------------------------
+    // ------------------------------------------------------------------------------
+
+        try {
+            checkout scm
+            stage('macOS tests') {
+                sh 'make tests'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
             throw err
         }
     }

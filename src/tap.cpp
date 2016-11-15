@@ -141,6 +141,9 @@ NetconEthernetTap::NetconEthernetTap(
 	#endif
 
 	_unixListenSocket = _phy.unixListen(sockPath,(void *)this);
+
+	chmod(sockPath, 0777); // To make the RPC socket available to all users
+
 	DEBUG_INFO("tap initialized on: path=%s", sockPath);
 	if (!_unixListenSocket)
 		DEBUG_ERROR("unable to bind to: path=%s", sockPath);

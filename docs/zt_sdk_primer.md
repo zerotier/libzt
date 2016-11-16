@@ -51,7 +51,7 @@ From your application's perspective nothing out of the ordinary has happened. It
 - **What would happen if you performed a `getsockopt()` for the family/domain of an `AF_INET` socket you requested?** 
   - You'd expect this should return `AF_LOCAL` since we repurposed the unix-domain socket, right? Nope. We've got a special implementation of `getsockopt()` which will detect whether that socket is handled under the ZeroTier tap service and if it is, it'll lie to you about the socket domain/family and report `AF_INET`. 
 
-We've got a [special implementation](../src/SDK_Sockets.c) for most of the socket API functions: `zt_setsockopt(), zt_getsockopt(),zt_socket(),zt_connect(),zt_bind(),zt_accept4(),zt_accept(),zt_listen(),zt_close(),
+We've got a [special implementation](../src/sockets.c) for most of the socket API functions: `zt_setsockopt(), zt_getsockopt(),zt_socket(),zt_connect(),zt_bind(),zt_accept4(),zt_accept(),zt_listen(),zt_close(),
 zt_getsockname()`. Each type of API is implemented in terms of this set of core functions and has the ability to determine whether the call should be directed to the system or the ZeroTier tap service.
 
 ## Embedded Applications / IoT

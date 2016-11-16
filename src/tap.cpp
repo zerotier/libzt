@@ -126,7 +126,8 @@ NetconEthernetTap::NetconEthernetTap(
 		}
 		lwipstack->__lwip_init();
 		DEBUG_EXTRA("network stack initialized (%p)", lwipstack);
-	#elif defined(SDK_PICOTCP)
+	#elif defined(SDK_PICOTCP)            
+		pico_frame_rxbuf_tot = 0;
 		Utils::snprintf(stackPath,sizeof(stackPath),"%s%slibpicotcp.so",homePath,ZT_PATH_SEPARATOR_S);
 		picostack = new picoTCP_stack(stackPath);
 		if(!picostack) {

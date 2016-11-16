@@ -78,7 +78,7 @@ else
 endif
 
 # Debug output for the SDK
-# Specific levels can be controlled in src/SDK_Debug.h
+# Specific levels can be controlled in src/debug.h
 ifeq ($(SDK_DEBUG),1)
 	DEFS+=-DSDK_DEBUG -g
 endif
@@ -164,6 +164,7 @@ jip:
 # Build all Apple targets
 apple: one osx ios
 
+
 # Build vanilla ZeroTier One binary
 one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/OSXEthernetTap.o
 	mkdir -p $(BUILD)
@@ -174,8 +175,10 @@ one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/OSXEthernetTa
 # Build all iOS targets
 ios: ios_app_framework ios_unity3d_bundle
 
+
 # Build all OSX targets
 osx: osx_app_framework osx_unity3d_bundle osx_shared_lib osx_sdk_service osx_intercept
+
 
 # TODO: CHECK if XCODE TOOLS are installed
 # Build frameworks for application development
@@ -188,6 +191,7 @@ ios_app_framework:
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug -scheme ZeroTierSDK_iOS build SYMROOT="../../../$(BUILD)/ios_app_framework"
 	cp docs/ios_zt_sdk.md $(BUILD)/ios_app_framework/README.md
 
+
 # Build bundles for Unity integrations
 osx_unity3d_bundle:
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Release -scheme ZeroTierSDK_Unity3D_OSX build SYMROOT="../../../$(BUILD)/osx_unity3d_bundle"
@@ -196,10 +200,12 @@ osx_unity3d_bundle:
 	chmod 755 $(BUILD)/osx_unity3d_bundle/Debug/ZeroTierSDK_Unity3D_OSX.bundle
 	cp -p -R $(BUILD)/osx_unity3d_bundle/Debug/ZeroTierSDK_Unity3D_OSX.bundle $(INT)/Unity3D/Assets/Plugins
 
+
 ios_unity3d_bundle:
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Release -scheme ZeroTierSDK_Unity3D_iOS build SYMROOT="../../../$(BUILD)/ios_unity3d_bundle"
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug -scheme ZeroTierSDK_Unity3D_iOS build SYMROOT="../../../$(BUILD)/ios_unity3d_bundle"
 	cp docs/ios_unity3d_zt_sdk.md $(BUILD)/ios_unity3d_bundle/README.md
+
 # 
 simple_app: tests osx_service_and_intercept
 	mkdir -p build/simple_app
@@ -207,16 +213,24 @@ simple_app: tests osx_service_and_intercept
 	$(CXX) -Isrc $(SHARED_LIB) integrations/simple_app/app.cpp -o $(BUILD)/simple_app/app
 	cp $(LWIP_LIB) $(BUILD)/tests/zerotier/$(LWIP_LIB_NAME)
 
+
 remove_only_intermediates:
 	-find . -type f \( -name '*.o' -o -name '*.so' \) -delete
 
+
 # Builds a single shared library which contains everything
-osx_shared_lib: $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -DSDK -DZT_ONE_NO_ROOT_CHECK $(INCLUDES) -shared -o $(SHARED_LIB) $(OBJS) zerotierone/service/OneService.cpp src/SDK_Service.cpp src/SDK_EthernetTap.cpp src/SDK_Proxy.cpp zerotierone/one.cpp -x c src/SDK_Sockets.c src/SDK_Intercept.c src/SDK_RPC.c $(LDLIBS) -ldl
+ifeq ($(SDK_LWIP),1)
+osx_shared_lib: lwip $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) -DSDK -DZT_ONE_NO_ROOT_CHECK $(INCLUDES) -DSDK_INTERCEPT -shared -o $(SHARED_LIB) $(OBJS) $(LWIP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
+else
+osx_shared_lib: pico $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) -DSDK -DZT_ONE_NO_ROOT_CHECK $(INCLUDES) -shared -o $(SHARED_LIB) $(OBJS) $(PICO_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
+endif
 
 osx_intercept:
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
 	cd src ; gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o ../$(INTERCEPT) $(SDK_INTERCEPT_C_FILES) -ldl
+
 
 # Build only the SDK service
 ifeq ($(SDK_LWIP),1)
@@ -228,6 +242,7 @@ osx_sdk_service: pico $(OBJS)
 endif
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-cli
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-idtool
+
 
 # Build both intercept library and SDK service (separate)
 osx_service_and_intercept: osx_intercept osx_sdk_service
@@ -328,8 +343,8 @@ prep:
 
 # Copy and rename source files into example projects to follow local ordinances
 update_examples:
-	cp src/SDK_DotNetWrapper.cs integrations/Unity3D/Assets/ZTSDK.cs
-	cp src/SDK_JavaWrapper.java integrations/android/example_app/app/src/main/java/ZeroTier/ZTSDK.java
+	cp src/wrappers/dotnet/DotNetWrapper.cs integrations/Unity3D/Assets/ZTSDK.cs
+	cp src/wrappers/java/JavaWrapper.java integrations/android/example_app/app/src/main/java/ZeroTier/ZTSDK.java
 
 # For authors
 # Copies documentation to all of the relevant directories to make viewing in the repo a little easier

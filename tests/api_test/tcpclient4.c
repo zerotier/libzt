@@ -4,9 +4,12 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <unistd.h>
  
 int atoi(const char *str);
 int close(int filedes);
+
+#define MSG_SZ 128
 
 int main(int argc , char *argv[])
 {
@@ -17,7 +20,7 @@ int main(int argc , char *argv[])
    
     int sock, port = atoi(argv[2]);
     struct sockaddr_in server;
-    char message[1000] , server_reply[2000];
+    char message[MSG_SZ] , server_reply[MSG_SZ];
      
     sock = socket(AF_INET , SOCK_STREAM , 0);
     if (sock == -1) {
@@ -35,14 +38,25 @@ int main(int argc , char *argv[])
     printf("connected\n");
 
     char *msg = "welcome to the machine!";
-    // TX         
-    if(send(sock, msg, strlen(msg), 0) < 0) {
-        printf("send failed");
-        return 1;
-    }
-    else {
-        printf("sent message: %s\n", msg);
-        printf("len = %ld\n", strlen(msg));
+    
+    while(1)
+    {
+        sleep(1);
+        // TX         
+        if(send(sock, msg, strlen(msg), 0) < 0) {
+            printf("send failed");
+            return 1;
+        }
+        else {
+            printf("TX: %s\n", msg);
+            printf("len = %ld\n", strlen(msg));
+
+            int bytes_read = read(sock, server_reply, MSG_SZ);
+            if(bytes_read < 0)
+                printf("\tRX: Nothing\n");
+            else
+                printf("\tRX = (%d bytes): %s\n", bytes_read, server_reply);
+        }
     }
     close(sock);
     return 0;

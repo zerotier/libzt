@@ -30,5 +30,55 @@ We've designed a background tap service that pairs the ZeroTier protocol with sw
 **Direct Call**
 - Directly call the `zt_` API specified in [SDK.h](src/SDK.h). For this to work, just use one of the provided headers that specify the interface for your system/architecture and then either dynamically-load our library into your app or compile it right in. 
 
+
+***
+## Important Build Flags
+
+- `SDK_IPV4=1` - Enable IPv4 support
+- `SDK_IPV6=1` - Enable IPv6 support
+
+- `SDK_DEBUG=1` - Enables SDK debugging
+
+- `SDK_PICOTCP=1` - Enable the use of `picoTCP` (recommended)
+- `SDK_PICO_DEBUG=1` - Enables debug output for the `picoTCP` network stack
+
+- `SDK_LWIP=1` - Enable the use of `lwIP` (deprecated)
+- `SDK_LWIP_DEBUG=1` - Enables debug output for the `lwIP` library.
+
+***
+
+### Apple 
+ - For everything: `make apple`
+
+##### iOS
+ - [Embedding within an app](apple/example_app/iOS) `make ios_app_framework` -> `build/ios_app_framework/*`
+ - Unity3D plugin `make ios_unity3d_bundle` -> `build/ios_unity3d_bundle/*`
+
+##### OSX
+ - [Linking into an app at compiletime](../docs/osx_zt_sdk.md) `make osx_shared_lib` -> `build/libztosx.so`
+ - [Embedding within an app with Xcode](apple/example_app/OSX) `make osx_app_framework` -> `build/osx_app_framework/*`
+ - [Dynamic-linking into an app/service at runtime](../docs/osx_zt_sdk.md) `make osx_service_and_intercept` -> { `build/zerotier-sdk-service` + `build/libztintercept.so` }
+ - [Intercept library](../docs/osx_zt_sdk.md) `make osx_sdk_service` -> `build/zerotier-sdk-service`
+ - [SDK Service](../docs/osx_zt_sdk.md) `make osx_intercept` -> `build/libztintercept.so`
+ - [Unity3D plugin](apple/ZeroTierSDK_Apple) `make osx_unity3d_bundle`
+
+***
+### Linux
+ - For everything: `make linux`
+ - [Dynamic-linking into an app/service at runtime](../docs/linux_zt_sdk.md) `make linux_shared_lib`
+ - Service and Intercept `make linux_service_and_intercept` -> { `build/zerotier-sdk-service` + `build/libztintercept.so` }
+ - [Using the SDK with Docker](docker)
+
+### Android 
+ - For everything: `make android`
+ 
+ - [Embedding within an app](android) `make android_jni_lib` -> `build/android_jni_lib/YOUR_ARCH/libZeroTierOneJNI.so`
+ - [Unity 3D plugin](../docs/android_unity3d_zt_sdk.md) `make android_unity3d_plugin` -> `build/android_unity3d_plugin/*`
+
+***
+### Windows
+ - Not yet.
+
+
 ***
 ![Image](docs/img/api_diagram.png)

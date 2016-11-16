@@ -1,5 +1,5 @@
 //
-//  Implementations located in src/SDK_XcodeWrapper.cpp
+//  Implementations located in src/wrappers/swift/XcodeWrapper.cpp
 //
 
 #ifndef Example_OSX_IOS_Bridging_Header_h

@@ -70,12 +70,12 @@ struct accept_st;
 
 namespace ZeroTier {
 
-	extern struct pico_device picodev;
-	extern NetconEthernetTap *picotap;
-
 	class NetconEthernetTap;
 	class LWIPStack;
 
+	extern struct pico_device picodev;
+	extern NetconEthernetTap *picotap;
+	
 	/*
 	 * TCP connection
 	 */
@@ -146,9 +146,16 @@ namespace ZeroTier {
 		void threadMain()
 			throw();
 
+		std::string _homePath;
+		MAC _mac;
+	  	unsigned int _mtu;
 	  	uint64_t _nwid;
 	  	void (*_handler)(void *,uint64_t,const MAC &,const MAC &,unsigned int,unsigned int,const void *,unsigned int);
 	 	void *_arg;
+		Phy<NetconEthernetTap *> _phy;
+		PhySocket *_unixListenSocket;
+		volatile bool _enabled;
+		volatile bool _run;	
 
 	  	// --- Proxy
 		struct sockaddr_storage proxyServerAddress; 
@@ -162,7 +169,6 @@ namespace ZeroTier {
 		void phyOnFileDescriptorActivity(PhySocket *sock,void **uptr,bool readable,bool writable);
 		// --- end Proxy 
 
-		std::string _homePath;
 
 		// lwIP
 		#if defined(SDK_LWIP)
@@ -175,7 +181,7 @@ namespace ZeroTier {
 		// picoTCP
         #if defined(SDK_PICOTCP)
             unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
-            int pico_frame_rxbuf_tot = 0;
+            int pico_frame_rxbuf_tot;
             Mutex _pico_frame_rxbuf_m;
             picoTCP_stack *picostack;
         #endif
@@ -359,9 +365,6 @@ namespace ZeroTier {
 	 	 */
 		void closeConnection(PhySocket *sock);
 
-		Phy<NetconEthernetTap *> _phy;
-		PhySocket *_unixListenSocket;
-
 		std::vector<Connection*> _Connections;
 
 		std::map<uint64_t, std::pair<PhySocket*, void*> > jobmap;
@@ -370,7 +373,6 @@ namespace ZeroTier {
 		netif interface;
 		netif interface6;
 
-		MAC _mac;
 		Thread _thread;
 		std::string _dev; // path to Unix domain socket
 
@@ -378,10 +380,6 @@ namespace ZeroTier {
 		Mutex _multicastGroups_m;
 
 		Mutex _ips_m, _tcpconns_m, _rx_buf_m, _close_m;
-
-		unsigned int _mtu;
-		volatile bool _enabled;
-		volatile bool _run;	
 	};
 
 } // namespace ZeroTier

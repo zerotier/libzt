@@ -12,20 +12,20 @@ Below are the specific instructions for each integration requiring *little to no
 For more support on these integrations, or if you'd like help creating a new integration, stop by our [community section](https://www.zerotier.com/community/)!
 
 ***
-## Important Build flags
+## Important Build Flags
 
-- `SDK_IPV4=1` - Enable IPv4 support in whatever stack you have selected
-- `SDK_IPV6=1` - Enable IPv6 support in whatever stack you have selected
+- `SDK_IPV4=1` - Enable IPv4 support
+- `SDK_IPV6=1` - Enable IPv6 support
 
-- `SDK_LWIP=1` - Enable the use of `lwIP`
-- `SDK_PICOTCP=1` - Enable the use of `picoTCP`
+- `SDK_DEBUG=1` - Enables SDK debugging
 
-- `SDK_DEBUG=1` - Turns on SDK activity/warning/error output. Levels of verbosity can be adjusted in `src/SDK_Debug.h`
-- `SDK_LWIP_DEBUG=1` - Turns on debug output for the `lwIP` library.
-- `SDK_BUNDLED=1` - Builds the SDK as a single bundled target including a the RPC mechanism, the `lwIP` library, and the ZeroTier service.
+- `SDK_PICOTCP=1` - Enable the use of `picoTCP` (recommended)
+- `SDK_PICO_DEBUG=1` - Enables debug output for the `picoTCP` network stack
+
+- `SDK_LWIP=1` - Enable the use of `lwIP` (deprecated)
+- `SDK_LWIP_DEBUG=1` - Enables debug output for the `lwIP` library.
 
 ***
-## Current Integrations
 
 ### Apple 
  - For everything: `make apple`
@@ -40,11 +40,13 @@ For more support on these integrations, or if you'd like help creating a new int
  - [Dynamic-linking into an app/service at runtime](../docs/osx_zt_sdk.md) `make osx_service_and_intercept` -> { `build/zerotier-sdk-service` + `build/libztintercept.so` }
  - [Intercept library](../docs/osx_zt_sdk.md) `make osx_sdk_service` -> `build/zerotier-sdk-service`
  - [SDK Service](../docs/osx_zt_sdk.md) `make osx_intercept` -> `build/libztintercept.so`
- - [Unity3D plugin](apple/ZeroTierSDK_Apple) `make osx_unity3d_bundle` -> 
+ - [Unity3D plugin](apple/ZeroTierSDK_Apple) `make osx_unity3d_bundle`
 
 ***
 ### Linux
+ - For everything: `make linux`
  - [Dynamic-linking into an app/service at runtime](../docs/linux_zt_sdk.md) `make linux_shared_lib`
+ - Service and Intercept `make linux_service_and_intercept` -> { `build/zerotier-sdk-service` + `build/libztintercept.so` }
  - [Using the SDK with Docker](docker)
 
 ### Android 

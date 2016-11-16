@@ -19,8 +19,8 @@ This short tutorial will show you how to enable ZeroTier functionality for your 
 - Add `src` directory to *Build Settings -> Header Search Paths*
 - Add `build/ios_app_framework/Release-iphoneos/` to *Build Settings -> Framework Search Paths*
 - Add `ZeroTierSDK.frameworkiOS` to *General->Embedded Binaries*
-- Add `src/ZTSDK.swift`, `src/SDK_XcodeWrapper.cpp` and `src/SDK_XcodeWrapper.hpp` to your project:
-- Set `src/SDK_Apple-Bridging-Header.h` as your bridging-header in *Build Settings -> Objective-C Bridging-header*
+- Add `src/wrappers/swift/ZTSDK.swift`, `src/wrappers/swift/XcodeWrapper.cpp` and `src/wrappers/swift/XcodeWrapper.hpp` to your project:
+- Set `src/wrappers/swift/Apple-Bridging-Header.h` as your bridging-header in *Build Settings -> Objective-C Bridging-header*
 
 **Step 3: Start the ZeroTier service**
 

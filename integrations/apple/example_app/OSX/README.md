@@ -36,6 +36,11 @@ Run application
 
     ./app
 
+## Via `DYLD_LIBRARY_PATH` (Injecting code dynamically at runtime)
+
+As of the release of El Capitan, Apple requires one to turn off System Integrity Protection for code injection from external libraries. This method of intercepting network calls is now deprecated and we are investigating new methods for future releases of the SDK. If you still wish to use this method just `export DYLD_LIBRARY_PATH=./path/to/libztintercept.so:$DYLD_LIBRARY_PATH`. Also set `ZT_NC_NETWORK` appropriately.
+
+
 ## Via App Framework in XCode
 
 ***
@@ -50,8 +55,8 @@ Run application
 - Add `src` directory to *Build Settings -> Header Search Paths*
 - Add `build/osx_app_framework/Release/` to *Build Settings -> Framework Search Paths*
 - Add `ZeroTierSDK.frameworkOSX` to *General->Embedded Binaries*
-- Add `src/ZTSDK.swift`, `src/SDK_XcodeWrapper.cpp`, and `src/SDK_XcodeWrapper.hpp` to your project:
-- Set `src/SDK_Apple-Bridging-Header.h` as your bridging-header in *Build Settings -> Objective-C Bridging-header*
+- Add `src/wrappers/swift/ZTSDK.swift`, `src/wrappers/swift/XcodeWrapper.cpp`, and `src/wrappers/swift/XcodeWrapper.hpp` to your project:
+- Set `src/wrappers/swift/Apple-Bridging-Header.h` as your bridging-header in *Build Settings -> Objective-C Bridging-header*
 
 **Step 3: Start the ZeroTier service**
 

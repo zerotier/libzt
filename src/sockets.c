@@ -286,7 +286,8 @@ int (*realclose)(CLOSE_SIG);
             // DEBUG_EXTRA("zt_recvfrom(%d, ...)\n", fd);
             if(read(fd, buf, ZT_MAX_MTU) > 0) {
                 // TODO: case for address size mismatch?
-                memcpy(addr, buf, addrlen);
+                memcpy(addr, buf, *addrlen);
+                DEBUG_ERROR("addrlen = %d", *addrlen);
                 memcpy(&tmpsz, buf + sizeof(struct sockaddr_storage), sizeof(tmpsz));
             }
             else {
@@ -608,8 +609,8 @@ int (*realclose)(CLOSE_SIG);
             if ((flags & SOCK_NONBLOCK))
                fcntl(fd, F_SETFL, O_NONBLOCK);
         #endif
-            int len = !addr ? 0 : addrlen;
-            return accept(fd, addr, len);
+            addrlen = !addr ? 0 : addrlen;
+            return accept(fd, addr, addrlen);
         }
 #endif
     
@@ -763,7 +764,7 @@ int (*realclose)(CLOSE_SIG);
         }
         struct sockaddr_storage sock_storage;
         memcpy(&sock_storage, addrbuf, sizeof(struct sockaddr));
-        addrlen = sizeof(struct sockaddr_in);
+        *addrlen = sizeof(struct sockaddr_in);
         memcpy(addr, &sock_storage, sizeof(struct sockaddr));
         addr->sa_family = AF_INET;
         return 0;
@@ -826,7 +827,7 @@ int (*realclose)(CLOSE_SIG);
         }
         struct sockaddr_storage sock_storage;
         memcpy(&sock_storage, addrbuf, sizeof(struct sockaddr));
-        addrlen = sizeof(struct sockaddr_in);
+        *addrlen = sizeof(struct sockaddr_in);
         memcpy(addr, &sock_storage, sizeof(struct sockaddr));
         addr->sa_family = AF_INET;
         return 0;

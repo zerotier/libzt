@@ -12,7 +12,7 @@ If you want to skip the following steps and just take a look at the project, go 
 ***
 
 **Step 1: App Code Modifications**
- - In your project, create a new package called `ZeroTier` and class file within called `ZTSDK.java` and copy contents from `src/SDK_JavaWrapper.java`
+ - In your project, create a new package called `ZeroTier` and class file within called `ZTSDK.java` and copy contents from `src/wrappers/java/JavaWrapper.java`
  
  - Start the service
 

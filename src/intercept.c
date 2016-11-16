@@ -59,7 +59,6 @@
 #include "rpc.h"
 
 pthread_key_t thr_id_key;
-//char *api_netpath;
 
 // externs common between SDK_Intercept and SDK_Socket from SDK.h
 #if defined(__linux__)
@@ -321,10 +320,12 @@ pthread_key_t thr_id_key;
             return realconnect(fd, addr, addrlen);
 
         // Check that this is a valid fd
+        /*
         if(fcntl(fd, F_GETFD) < 0) {
             errno = EBADF;
             return -1;
         }
+        */
         // Check that it is a socket 
         int sock_type;
         socklen_t sock_type_len = sizeof(sock_type);
@@ -402,10 +403,12 @@ pthread_key_t thr_id_key;
             return realbind(fd, addr, addrlen);
 
         // Check that this is a valid fd
+        /*
         if(fcntl(fd, F_GETFD) < 0) {
             errno = EBADF;
             return -1;
         }
+        */
         // Check that it is a socket
         int opt = -1;
         socklen_t opt_len;
@@ -445,20 +448,19 @@ pthread_key_t thr_id_key;
             DEBUG_ERROR("EBADF");
             return -1;
         }
-        // Check that it is a socket
+        /*
         int opt;
         socklen_t opt_len;
         if(getsockopt(fd, SOL_SOCKET, SO_TYPE, (void *) &opt, &opt_len) < 0) {
             errno = ENOTSOCK;
-            DEBUG_ERROR("ENOTSOCK");
             return -1;
         }
         // Check that this socket supports accept()
-        if(!(opt && (SOCK_STREAM | SOCK_SEQPACKET))) {
+        if((opt != SOCK_STREAM) && (opt != SOCK_SEQPACKET)) {
             errno = EOPNOTSUPP;
-            DEBUG_ERROR("EOPNOTSUPP");
             return -1;
         }
+        */
         // Check that we haven't hit the soft-limit file descriptors allowed
         struct rlimit rl;
         getrlimit(RLIMIT_NOFILE, &rl);
@@ -490,33 +492,11 @@ pthread_key_t thr_id_key;
     int listen(LISTEN_SIG)
     {
         DEBUG_ATTN("fd=%d", fd);
-        if (!check_intercept_enabled())
+        if (!check_intercept_enabled() || !connected_to_service(fd))
             return reallisten(fd, backlog);
-        
-        int sock_type;
-        socklen_t sock_type_len = sizeof(sock_type);
-        // Check that this is a valid fd
-        if(fcntl(fd, F_GETFD) < 0) {
-            errno = EBADF;
-            return -1;
-        }
-        // Check that it is a socket
-        if(getsockopt(fd, SOL_SOCKET, SO_TYPE, (void *) &sock_type, &sock_type_len) < 0) {
-            errno = ENOTSOCK;
-            return -1;
-        }
-        // Check that this socket supports accept()
-        if(!(sock_type && (SOCK_STREAM | SOCK_SEQPACKET))) {
-            errno = EOPNOTSUPP;
-            return -1;
-        }
         // make sure we don't touch any standard outputs
         if(fd == 0 || fd == 1 || fd == 2)
             return reallisten(fd, backlog);
-        
-        if(!connected_to_service(fd)) {
-            return reallisten(fd, backlog);
-        }
         return zts_listen(fd, backlog);
     }
 
@@ -526,10 +506,9 @@ pthread_key_t thr_id_key;
     // int fd
 
     int close(CLOSE_SIG) {
-        DEBUG_INFO("fd=%d", fd);
-        if(!check_intercept_enabled()) { 
+        DEBUG_EXTRA("fd=%d", fd);
+        if(!check_intercept_enabled())
             return realclose(fd);
-        }
         return zts_close(fd);
     }
 

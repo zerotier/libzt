@@ -67,6 +67,7 @@
 #define PICO_SOCKET_SEND_SIG struct pico_socket *s, const void *buf, int len
 #define PICO_SOCKET_SENDTO_SIG struct pico_socket *s, const void *buf, int len, void *dst, uint16_t remote_port
 #define PICO_SOCKET_RECV_SIG struct pico_socket *s, void *buf, int len
+#define PICO_SOCKET_RECVFROM_SIG struct pico_socket *s, void *buf, int len, void *orig, uint16_t *remote_port
 #define PICO_SOCKET_OPEN_SIG uint16_t net, uint16_t proto, void (*wakeup)(uint16_t ev, struct pico_socket *s)
 #define PICO_SOCKET_BIND_SIG struct pico_socket *s, void *local_addr, uint16_t *port
 #define PICO_SOCKET_CONNECT_SIG struct pico_socket *s, const void *srv_addr, uint16_t remote_port
@@ -77,6 +78,8 @@
 #define PICO_SOCKET_SHUTDOWN_SIG struct pico_socket *s, int mode
 #define PICO_SOCKET_ACCEPT_SIG struct pico_socket *s, void *orig, uint16_t *port
 #define PICO_IPV6_LINK_ADD_SIG struct pico_device *dev, struct pico_ip6 address, struct pico_ip6 netmask
+//#define PICO_IPV6_SOURCE_FIND_SIG strut pico_ip6 *dst
+
 
 namespace ZeroTier {
     
@@ -90,7 +93,14 @@ namespace ZeroTier {
     void pico_loop(NetconEthernetTap *tap);
     void pico_cb_tcp_read(NetconEthernetTap *tap, struct pico_socket *s);
     void pico_cb_tcp_write(NetconEthernetTap *tap, struct pico_socket *s);
-    void pico_cb_tcp(uint16_t ev, struct pico_socket *s);
+    void pico_cb_socket_activity(uint16_t ev, struct pico_socket *s);
+    
+    /*
+    void pico_cb_udp(uint16_t ev, struct pico_socket *s);
+    void pico_cb_udp_write(NetconEthernetTap *tap, struct pico_socket *s);
+    void pico_cb_udp_read(NetconEthernetTap *tap, struct pico_socket *s);
+    */
+
     int pico_eth_send(struct pico_device *dev, void *buf, int len);
     void pico_rx(NetconEthernetTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
     int pico_eth_poll(struct pico_device *dev, int loop_score);
@@ -124,8 +134,6 @@ namespace ZeroTier {
 #endif
         }
 
-        // SIP-
-
         void (*_pico_stack_init)(void);
         void (*_pico_stack_tick)(void);
         int (*_pico_string_to_ipv4)(PICO_STRING_TO_IPV4_SIG);
@@ -139,7 +147,9 @@ namespace ZeroTier {
         int (*_pico_socket_setoption)(PICO_SOCKET_SETOPTION_SIG);
         uint32_t (*_pico_timer_add)(PICO_TIMER_ADD_SIG);
         int (*_pico_socket_send)(PICO_SOCKET_SEND_SIG);
+        int (*_pico_socket_sendto)(PICO_SOCKET_SENDTO_SIG);
         int (*_pico_socket_recv)(PICO_SOCKET_RECV_SIG);
+        int (*_pico_socket_recvfrom)(PICO_SOCKET_RECVFROM_SIG);
         struct pico_socket * (*_pico_socket_open)(PICO_SOCKET_OPEN_SIG);
         int (*_pico_socket_bind)(PICO_SOCKET_BIND_SIG);
         int (*_pico_socket_connect)(PICO_SOCKET_CONNECT_SIG);
@@ -150,7 +160,7 @@ namespace ZeroTier {
         int (*_pico_socket_shutdown)(PICO_SOCKET_SHUTDOWN_SIG);
         struct pico_socket *(*_pico_socket_accept)(PICO_SOCKET_ACCEPT_SIG);
         int (*_pico_ipv6_link_add)(PICO_IPV6_LINK_ADD_SIG);
-        //pico_err_t (*_get_pico_err)(void);
+        //struct pico_ip6 *(*pico_ipv6_source_find)(PICO_IPV6_SOURCE_FIND_SIG);
         
         Mutex _lock;        
         Mutex _lock_mem;
@@ -182,7 +192,6 @@ namespace ZeroTier {
             
 #ifdef __STATIC_LWIP__ // Set static references (for use in iOS)
 
-            // SIP-
             _pico_stack_init = (void(*)(void))&pico_stack_init;
             _pico_stack_tick = (void(*)(void))&pico_stack_tick;
             _pico_tap_create = (struct pico_device*(*)(PICO_TAP_CREATE_SIG))&pico_tap_create;
@@ -196,7 +205,9 @@ namespace ZeroTier {
             _pico_socket_setoption = (int(*)(PICO_SOCKET_SETOPTION_SIG))&pico_socket_setoption;
             _pico_timer_add = (uint32_t(*)(PICO_TIMER_ADD_SIG))&pico_timer_add;
             _pico_socket_send = (int(*)(PICO_SOCKET_SEND_SIG))&pico_socket_send;
+            _pico_socket_sendto = (int(*)(PICO_SOCKET_SENDTO_SIG))&pico_socket_sendto;
             _pico_socket_recv = (int(*)(PICO_SOCKET_RECV_SIG))&pico_socket_recv;
+            _pico_socket_recvfrom = (int32_t(*)(PICO_SOCKET_RECVFROM_SIG))&pico_socket_recvfrom;
             _pico_socket_open = (struct pico_socket*(*)(PICO_SOCKET_OPEN_SIG))&pico_socket_open;
             _pico_socket_bind = (int(*)(PICO_SOCKET_BIND_SIG))&pico_socket_bind;
             _pico_socket_connect = (int(*)(PICO_SOCKET_CONNECT_SIG))&pico_socket_connect;
@@ -207,7 +218,7 @@ namespace ZeroTier {
             _pico_socket_shutdown = (int(*)(PICO_SOCKET_SHUTDOWN_SIG))&pico_socket_shutdown;
             _pico_socket_accept = (struct pico_socket*(*)(PICO_SOCKET_ACCEPT_SIG))&pico_socket_accept;
             _pico_ipv6_link_add = (int(*)(PICO_IPV6_LINK_ADD_SIG))&pico_ipv6_link_add;
-            //_get_pico_err = (pico_err_t(*)())&get_pico_err;
+            //_pico_ipv6_source_find = (struct pico_ip6 *(*))(PICO_IPV6_SOURCE_FIND_SIG))&pico_ipv6_source_find;
 
 #endif
             
@@ -216,7 +227,6 @@ namespace ZeroTier {
             if(_libref == NULL)
                 DEBUG_ERROR("dlerror(): %s", dlerror());
 
-            // SIP-
             _pico_stack_init = (void(*)(void))dlsym(_libref, "pico_stack_init");
             _pico_stack_tick = (void(*)(void))dlsym(_libref, "pico_stack_tick");
             _pico_tap_create = (struct pico_device*(*)(PICO_TAP_CREATE_SIG))dlsym(_libref, "pico_tap_create");
@@ -230,7 +240,9 @@ namespace ZeroTier {
             _pico_socket_setoption = (int(*)(PICO_SOCKET_SETOPTION_SIG))dlsym(_libref, "pico_socket_setoption");
             _pico_timer_add = (uint32_t(*)(PICO_TIMER_ADD_SIG))dlsym(_libref, "pico_timer_add");
             _pico_socket_send = (int(*)(PICO_SOCKET_SEND_SIG))dlsym(_libref, "pico_socket_send");
+            _pico_socket_sendto = (int(*)(PICO_SOCKET_SENDTO_SIG))dlsym(_libref, "pico_socket_sendto");
             _pico_socket_recv = (int(*)(PICO_SOCKET_RECV_SIG))dlsym(_libref, "pico_socket_recv");
+            _pico_socket_recvfrom = (int32_t(*)(PICO_SOCKET_RECVFROM_SIG))dlsym(_libref, "pico_socket_recvfrom");
             _pico_socket_open = (struct pico_socket*(*)(PICO_SOCKET_OPEN_SIG))dlsym(_libref, "pico_socket_open");
             _pico_socket_bind = (int(*)(PICO_SOCKET_BIND_SIG))dlsym(_libref, "pico_socket_bind");
             _pico_socket_connect = (int(*)(PICO_SOCKET_CONNECT_SIG))dlsym(_libref, "pico_socket_connect");
@@ -241,8 +253,7 @@ namespace ZeroTier {
             _pico_socket_shutdown = (int(*)(PICO_SOCKET_SHUTDOWN_SIG))dlsym(_libref, "pico_socket_shutdown");
             _pico_socket_accept = (struct pico_socket*(*)(PICO_SOCKET_ACCEPT_SIG))dlsym(_libref, "pico_socket_accept");
             _pico_ipv6_link_add = (int(*)(PICO_IPV6_LINK_ADD_SIG))dlsym(_libref, "pico_ipv6_link_add");
-
-            //_get_pico_err = (pico_err_t(*)())dlsym(_libref, "get_pico_err");
+            //_pico_ipv6_source_find = (struct pico_ip6 *(*))(PICO_IPV6_SOURCE_FIND_SIG))dlsym(_libref, "pico_ipv6_source_find");
 
 #endif
         }
@@ -253,7 +264,6 @@ namespace ZeroTier {
                 dlclose(_libref);
         }
         
-        // SIP-
         inline void __pico_stack_init(void) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); _pico_stack_init(); }
         inline void __pico_stack_tick(void) throw() { /*DEBUG_STACK();*/ Mutex::Lock _l(_lock); _pico_stack_tick(); }
         inline struct pico_device * __pico_tap_create(PICO_TAP_CREATE_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _pico_tap_create(name); }
@@ -267,7 +277,9 @@ namespace ZeroTier {
         inline int __pico_socket_setoption(PICO_SOCKET_SETOPTION_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _pico_socket_setoption(s, option, value); }
         inline uint32_t __pico_timer_add(PICO_TIMER_ADD_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _pico_timer_add(expire, timer, arg); }
         inline int __pico_socket_send(PICO_SOCKET_SEND_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _pico_socket_send(s, buf, len); }
+        inline int __pico_socket_sendto(PICO_SOCKET_SENDTO_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _pico_socket_sendto(s, buf, len, dst, remote_port); }
         inline int __pico_socket_recv(PICO_SOCKET_RECV_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _pico_socket_recv(s, buf, len); }
+        inline int __pico_socket_recvfrom(PICO_SOCKET_RECVFROM_SIG) throw() { DEBUG_STACK(); /*Mutex::Lock _l(_lock);*/ return _pico_socket_recvfrom(s, buf, len, orig, remote_port); }
         inline struct pico_socket * __pico_socket_open(PICO_SOCKET_OPEN_SIG) throw() { DEBUG_STACK();  return _pico_socket_open(net, proto, wakeup); }
         inline int __pico_socket_bind(PICO_SOCKET_BIND_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _pico_socket_bind(s, local_addr, port); }
         inline int __pico_socket_connect(PICO_SOCKET_CONNECT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _pico_socket_connect(s, srv_addr, remote_port); }
@@ -278,7 +290,7 @@ namespace ZeroTier {
         inline int __pico_socket_shutdown(PICO_SOCKET_SHUTDOWN_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _pico_socket_shutdown(s, mode); }
         inline struct pico_socket * __pico_socket_accept(PICO_SOCKET_ACCEPT_SIG) throw() { DEBUG_STACK(); /*Mutex::Lock _l(_lock);*/ return _pico_socket_accept(s, orig, port); }
         inline int __pico_ipv6_link_add(PICO_IPV6_LINK_ADD_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _pico_ipv6_link_add(dev, address, netmask); }
-        //inline pico_err_t __get_pico_err(void) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _get_pico_err(); }
+        //inline struct pico_ipv6 * __pico_ipv6_source_find(PICO_IPV6_SOURCE_FIND_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock)l return _pico_ipv6_source_find(dst); }
     };
     
 } // namespace ZeroTier

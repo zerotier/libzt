@@ -19,6 +19,6 @@ ZTSDK API Options
 
 
 The following APIs are available for this integration:
-- `Direct Call`: Consult [src/SDK_Apple-Bridging-Header.h](../../../../src/SDK_Apple-Bridging-Header.h).
+- `Direct Call`: Consult [src/wrappers/swift/Apple-Bridging-Header.h](../../../../src/wrappers/swift/Apple-Bridging-Header.h).
 - `Hook of BSD-like sockets`: Use BSD-like sockets as you normally would.
 - `Proxy of NSStream`: Create NSStream. Configure stream for SOCKS5 Proxy (127.0.0.1:PORT). Start Proxy. Use stream. An example of how to use the proxy can be found in the example iOS/OSX projects.

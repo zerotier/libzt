@@ -39,6 +39,7 @@ SDK_INTERCEPT_C_FILES:=sockets.c \
 						intercept.c \
 						rpc.c
 
+ZTFLAGS:=-DSDK -DZT_ONE_NO_ROOT_CHECK
 
 # Automagically pick clang or gcc, with preference for clang
 # This is only done if we have not overridden these with an environment or CLI variable
@@ -221,10 +222,10 @@ remove_only_intermediates:
 # Builds a single shared library which contains everything
 ifeq ($(SDK_LWIP),1)
 osx_shared_lib: lwip $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) -DSDK -DZT_ONE_NO_ROOT_CHECK $(INCLUDES) -DSDK_INTERCEPT -shared -o $(SHARED_LIB) $(OBJS) $(LWIP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(INCLUDES) $(ZTFLAGS) -DSDK_INTERCEPT -shared -o $(SHARED_LIB) $(OBJS) $(LWIP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
 else
 osx_shared_lib: pico $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) -DSDK -DZT_ONE_NO_ROOT_CHECK $(INCLUDES) -shared -o $(SHARED_LIB) $(OBJS) $(PICO_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(INCLUDES) $(ZTFLAGS) -shared -o $(SHARED_LIB) $(OBJS) $(PICO_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
 endif
 
 osx_intercept:
@@ -235,10 +236,10 @@ osx_intercept:
 # Build only the SDK service
 ifeq ($(SDK_LWIP),1)
 osx_sdk_service: lwip $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK_SERVICE -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(LWIP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -o $(SDK_SERVICE) $(OBJS) $(LWIP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
 else
 osx_sdk_service: pico $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK_SERVICE -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(PICO_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -o $(SDK_SERVICE) $(OBJS) $(PICO_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
 endif
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-cli
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-idtool

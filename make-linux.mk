@@ -39,6 +39,8 @@ SDK_INTERCEPT_C_FILES:=src/sockets.c \
 						src/intercept.c \
 						src/rpc.c
 
+ZTFLAGS:=-DZT_ONE_NO_ROOT_CHECK -DSDK
+
 
 # Automagically pick clang or gcc, with preference for clang
 # This is only done if we have not overridden these with an environment or CLI variable
@@ -168,7 +170,7 @@ lwip:
 
 pico:
 	mkdir -p build
-	cd ext/picotcp; make lib ARCH=shared IPV4=1 IPV6=1
+	cd ext/picotcp; make lib PICO_SUPPORT_UDP=1 ARCH=shared IPV4=1 IPV6=1
 	$(CC) -g -nostartfiles -shared -o ext/picotcp/build/lib/libpicotcp.so ext/picotcp/build/lib/*.o ext/picotcp/build/modules/*.o
 	cp ext/picotcp/build/lib/libpicotcp.so build/libpicotcp.so
 
@@ -178,7 +180,7 @@ jip:
 
 # --------- LINUX ----------
 # Build everything
-linux: one linux_service_and_intercept linux_shared_lib
+linux: one linux_service_and_intercept 
 
 # Build vanilla ZeroTier One binary
 one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernetTap.o
@@ -196,11 +198,11 @@ linux_intercept:
 ifeq ($(SDK_LWIP),1)
 linux_sdk_service: lwip $(OBJS)
 	mkdir -p build
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK_SERVICE -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(LWIP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -o $(SDK_SERVICE) $(OBJS) $(LWIP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
 else
 linux_sdk_service: pico $(OBJS)
 	mkdir -p build
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK_SERVICE -DSDK -DZT_ONE_NO_ROOT_CHECK -o $(SDK_SERVICE) $(OBJS) $(PICO_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -o $(SDK_SERVICE) $(OBJS) $(PICO_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
 endif
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-cli
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-idtool
@@ -210,9 +212,13 @@ endif
 linux_service_and_intercept: linux_intercept linux_sdk_service
 
 # Builds a single shared library which contains everything
+ifeq ($(SDK_LWIP),1)
 linux_shared_lib: $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) -DSDK_SERVICE -DSDK -DZT_ONE_NO_ROOT_CHECK -shared -o $(SHARED_LIB) $(OBJS) $(LWIP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(SDK_INTERCEPT_C_FILES) $(LDLIBS) -ldl
-
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -shared -o $(SHARED_LIB) $(OBJS) $(LWIP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(SDK_INTERCEPT_C_FILES) $(LDLIBS) -ldl
+else
+linux_shared_lib: $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -shared -o $(SHARED_LIB) $(OBJS) $(PICOTCP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(SDK_INTERCEPT_C_FILES) $(LDLIBS) -ldl
+endif
 
 
 

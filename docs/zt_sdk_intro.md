@@ -40,7 +40,7 @@ We've designed a background tap service that pairs the ZeroTier protocol with sw
 - `SDK_DEBUG=1` - Enables SDK debugging
 
 - `SDK_PICOTCP=1` - Enable the use of `picoTCP` (recommended)
-- `SDK_PICO_DEBUG=1` - Enables debug output for the `picoTCP` network stack
+- `SDK_PICOTCP_DEBUG=1` - Enables debug output for the `picoTCP` network stack
 
 - `SDK_LWIP=1` - Enable the use of `lwIP` (deprecated)
 - `SDK_LWIP_DEBUG=1` - Enables debug output for the `lwIP` library.

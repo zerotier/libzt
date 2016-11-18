@@ -88,7 +88,6 @@ int (*realclose)(CLOSE_SIG);
     // Assembles (and/or) sets the RPC path for communication with the ZeroTier service
     void zts_init_rpc(const char *path, const char *nwid)
     {
-        DEBUG_EXTRA();
         #if !defined(__IOS__)
             // Since we don't use function interposition in iOS 
             if(!realconnect) {
@@ -110,13 +109,11 @@ int (*realclose)(CLOSE_SIG);
                 }
             #else
                 // Get path/nwid from environment variables
-                // This is used when you're dynamically-linking our library into your application at runtime
                 if (!api_netpath) {
                     api_netpath = getenv("ZT_NC_NETWORK");
-                    DEBUG_INFO("$ZT_NC_NETWORK(len=%ld)=%s", strlen(api_netpath), api_netpath);
+                    DEBUG_INFO("$ZT_NC_NETWORK=%s", api_netpath);
                 }
             #endif
-            //DEBUG_EXTRA("api_netpath=%s", api_netpath);
         }
     }
 
@@ -283,7 +280,6 @@ int (*realclose)(CLOSE_SIG);
     #endif
         {
             int tmpsz = 0; // payload size
-            // DEBUG_EXTRA("zt_recvfrom(%d, ...)\n", fd);
             if(read(fd, buf, ZT_MAX_MTU) > 0) {
                 // TODO: case for address size mismatch?
                 memcpy(addr, buf, *addrlen);
@@ -343,7 +339,7 @@ int (*realclose)(CLOSE_SIG);
 #endif
 
     // ------------------------------------------------------------------------------
-    // ----------------------- Exposed RX/TX API for UNITY 3D -----------------------
+    // --------------------- Exposed RX/TX API for .NET Wrapper ---------------------
     // ------------------------------------------------------------------------------
         
 #if defined(__UNITY_3D__)
@@ -455,14 +451,12 @@ int (*realclose)(CLOSE_SIG);
         get_api_netpath();
         DEBUG_INFO("");
         // Check that type makes sense
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__ANDROID__)
         int flags = socket_type & ~SOCK_TYPE_MASK;
-    #if !defined(__ANDROID__)
         if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK)) {
             errno = EINVAL;
             return -1;
         }
-    #endif
 #endif
         socket_type &= SOCK_TYPE_MASK;
         // Check protocol is in range
@@ -481,15 +475,7 @@ int (*realclose)(CLOSE_SIG);
         rpc_st.socket_family = socket_family;
         rpc_st.socket_type = socket_type;
         rpc_st.protocol = protocol;
-#if defined(__linux__)
-    #if !defined(__ANDROID__)
-        rpc_st.tid = 5; //syscall(SYS_gettid);
-    #else
-        rpc_st.tid = gettid(); // dummy value
-    #endif
-#endif
         // -1 is passed since we we're generating the new socket in this call
-        DEBUG_INFO("api_netpath=%s", api_netpath);
         int err = rpc_send_command(api_netpath, RPC_SOCKET, -1, &rpc_st, sizeof(struct socket_st));
         DEBUG_INFO("err=%d", err);
         return err;
@@ -522,13 +508,6 @@ int (*realclose)(CLOSE_SIG);
         get_api_netpath();
         DEBUG_INFO("fd=%d", fd);
         struct connect_st rpc_st;
-#if defined(__linux__)
-    #if !defined(__ANDROID__)
-        //rpc_st.tid = syscall(SYS_gettid);
-    #else
-        //rpc_st.tid = gettid(); // dummy value
-    #endif
-#endif
         rpc_st.fd = fd;
         memcpy(&rpc_st.addr, addr, sizeof(struct sockaddr_storage));
         memcpy(&rpc_st.addrlen, &addrlen, sizeof(socklen_t));
@@ -563,14 +542,6 @@ int (*realclose)(CLOSE_SIG);
         DEBUG_INFO("fd=%d", fd);
         struct bind_st rpc_st;
         rpc_st.fd = fd;
-#if defined(__linux__)
-    #if !defined(__ANDROID__)
-        // TODO: Candidate for removal
-        rpc_st.tid = 5;//syscall(SYS_gettid);
-    #else
-        rpc_st.tid = gettid(); // dummy value
-    #endif
-#endif
         memcpy(&rpc_st.addr, addr, sizeof(struct sockaddr_storage));
         memcpy(&rpc_st.addrlen, &addrlen, sizeof(socklen_t));
         return rpc_send_command(api_netpath, RPC_BIND, fd, &rpc_st, sizeof(struct bind_st));
@@ -676,13 +647,6 @@ int (*realclose)(CLOSE_SIG);
         struct listen_st rpc_st;
         rpc_st.fd = fd;
         rpc_st.backlog = backlog;
-#if defined(__linux__)
-    #if !defined(__ANDROID__)
-        rpc_st.tid = syscall(SYS_gettid);
-    #else
-        rpc_st.tid = gettid(); // dummy value
-    #endif
-#endif
         return rpc_send_command(api_netpath, RPC_LISTEN, fd, &rpc_st, sizeof(struct listen_st));
     }
     

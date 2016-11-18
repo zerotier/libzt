@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define MAXBUF 65536
 
@@ -13,7 +14,7 @@ int main()
    int sock;
    int status;
    struct sockaddr_in6 sin6;
-   int sin6len;
+   socklen_t sin6len;
    char buffer[MAXBUF];
 
    sock = socket(PF_INET6, SOCK_DGRAM,0);

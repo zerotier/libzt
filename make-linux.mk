@@ -114,6 +114,13 @@ ifeq ($(SDK_LWIP_DEBUG),1)
 	LWIP_FLAGS+=SDK_LWIP_DEBUG=1
 endif
 
+# picoTCP debug
+ifeq ($(SDK_PICOTCP_DEBUG),1)
+	PICOTCP_FLAGS+=DEBUG=1
+else
+	PICOTCP_FLAGS+=DEBUG=0
+endif
+
 # lwIP
 ifeq ($(SDK_LWIP),1)
 	STACK_FLAGS+=-DSDK_LWIP
@@ -170,7 +177,7 @@ lwip:
 
 pico:
 	mkdir -p build
-	cd ext/picotcp; make lib PICO_SUPPORT_UDP=1 ARCH=shared IPV4=1 IPV6=1
+	cd ext/picotcp; make lib $(SDK_PICOTCP_FLAGS) PICO_SUPPORT_UDP=1 ARCH=shared IPV4=1 IPV6=1
 	$(CC) -g -nostartfiles -shared -o ext/picotcp/build/lib/libpicotcp.so ext/picotcp/build/lib/*.o ext/picotcp/build/modules/*.o
 	cp ext/picotcp/build/lib/libpicotcp.so build/libpicotcp.so
 

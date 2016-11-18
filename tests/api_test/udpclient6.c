@@ -6,6 +6,7 @@
 #include <netdb.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
+#include <string.h>
 
 #define MAXBUF 65536
 
@@ -15,7 +16,7 @@ int main(int argc, char* argv[])
    int status;
    struct addrinfo sainfo, *psinfo;
    struct sockaddr_in6 sin6;
-   int sin6len;
+   socklen_t sin6len;
    char buffer[MAXBUF];
 
    sin6len = sizeof(struct sockaddr_in6);

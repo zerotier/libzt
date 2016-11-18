@@ -125,8 +125,8 @@ namespace ZeroTier {
 		DEBUG_INFO();
 		while(tap->_run)
 		{
-			tap->_phy.poll((unsigned long)std::min(500,1000));
-			usleep(1000);
+			tap->_phy.poll(25); // in ms
+			usleep(50);
 	        tap->picostack->__pico_stack_tick();
 		}
 	}
@@ -160,11 +160,9 @@ namespace ZeroTier {
 		            r = tap->picostack->__pico_socket_recvfrom(s, conn->rxbuf + (conn->rxsz), ZT_MAX_MTU, (void *)&peer.ip4.addr, &port);
 		            // DEBUG_ATTN("received packet (%d byte) from %08X:%u", r, long_be2(peer.ip4.addr), short_be(port));
 		            tap->_phy.setNotifyWritable(conn->sock, true);
-		            DEBUG_INFO("read=%d", r);
+		            DEBUG_EXTRA("read=%d", r);
 		            if (r > 0)
 		                conn->rxsz += r;
-		            else
-		            	DEBUG_ERROR("error while reading from pico_socket(%p)", s);
 	        	}
 	        	else
 	        		DEBUG_ERROR("not enough space left on I/O RX buffer for pico_socket(%p)", s);
@@ -206,6 +204,7 @@ namespace ZeroTier {
 	// Main callback for TCP connections
 	void pico_cb_tcp(uint16_t ev, struct pico_socket *s)
     {
+    	int err;
         Mutex::Lock _l(picotap->_tcpconns_m);
         Connection *conn = picotap->getConnection(s);
         if(!conn) {
@@ -224,7 +223,6 @@ namespace ZeroTier {
             if(!client) {
 				DEBUG_EXTRA("unable to accept conn. (event might not be incoming, not necessarily an error), sock=%p", (void*)(conn->picosock));
 			}
-
 			ZT_PHY_SOCKFD_TYPE fds[2];
 			if(socketpair(PF_LOCAL, SOCK_STREAM, 0, fds) < 0) {
 				if(errno < 0) {
@@ -245,7 +243,7 @@ namespace ZeroTier {
 			}
         }
         if (ev & PICO_SOCK_EV_FIN) {
-            DEBUG_INFO("socket closed. Exit normally.");
+            DEBUG_INFO("socket closed. exit normally.");
             //picotap->__pico_timer_add(2000, compare_results, NULL);
         }
         if (ev & PICO_SOCK_EV_ERR) {
@@ -253,8 +251,8 @@ namespace ZeroTier {
             //exit(1);
         }
         if (ev & PICO_SOCK_EV_CLOSE) {
-            DEBUG_INFO("socket received close from peer - Wrong case if not all client data sent!");
-            picotap->picostack->__pico_socket_close(s);
+            err = picotap->picostack->__pico_socket_close(s);
+            DEBUG_INFO("socket closure = %d", err);
             picotap->closeConnection(conn);
             return;
         }
@@ -462,7 +460,7 @@ namespace ZeroTier {
     			char ipv4_str[INET_ADDRSTRLEN];
     			inet_ntop(AF_INET, &(in4->sin_addr), ipv4_str, INET_ADDRSTRLEN);
 				picotap->picostack->__pico_string_to_ipv4(ipv4_str, &(zaddr.addr));
-				DEBUG_ATTN("addr=%s:%d", ipv4_str, addr->sin_port);
+				DEBUG_ATTN("addr=%s:%d", ipv4_str, Utils::ntoh(addr->sin_port));
 				ret = picotap->picostack->__pico_socket_connect(conn->picosock, &zaddr, addr->sin_port);
 			#elif defined(SDK_IPV6) // "fd56:5799:d8f6:1238:8c99:9322:30ce:418a"
 				struct pico_ip6 zaddr;
@@ -470,7 +468,7 @@ namespace ZeroTier {
 				char ipv6_str[INET6_ADDRSTRLEN];
 				inet_ntop(AF_INET6, &(in6->sin6_addr), ipv6_str, INET6_ADDRSTRLEN);
 		    	picotap->picostack->__pico_string_to_ipv6(ipv6_str, zaddr.addr);
-		    	DEBUG_ATTN("addr=%s:%d", ipv6_str, addr->sin_port);
+		    	DEBUG_ATTN("addr=%s:%d", ipv6_str, Utils::ntoh(addr->sin_port));
 				ret = picotap->picostack->__pico_socket_connect(conn->picosock, &zaddr, addr->sin_port);
 			#endif
 			
@@ -507,7 +505,7 @@ namespace ZeroTier {
 			char ipv4_str[INET_ADDRSTRLEN];
 			inet_ntop(AF_INET, &(in4->sin_addr), ipv4_str, INET_ADDRSTRLEN);
 			picotap->picostack->__pico_string_to_ipv4(ipv4_str, &(zaddr.addr));
-			DEBUG_ATTN("addr=%s", ipv4_str/*, ntohs((uint16_t*)&(addr->sin_port))*/);
+			DEBUG_ATTN("addr=%s:%d", ipv4_str, Utils::ntoh(addr->sin_port));
 			ret = picotap->picostack->__pico_socket_bind(conn->picosock, &zaddr, (uint16_t*)&(addr->sin_port));
 		#elif defined(SDK_IPV6)
 			struct pico_ip6 zaddr;
@@ -515,7 +513,7 @@ namespace ZeroTier {
 			char ipv6_str[INET6_ADDRSTRLEN];
 			inet_ntop(AF_INET6, &(in6->sin6_addr), ipv6_str, INET6_ADDRSTRLEN);
 	    	picotap->picostack->__pico_string_to_ipv6(ipv6_str, zaddr.addr);
-	    	DEBUG_ATTN("addr=%s", ipv6_str/*, ntohs((uint16_t*)&(addr->sin_port))*/);
+	    	DEBUG_ATTN("addr=%s:%d", ipv6_str, Utils::ntoh(addr->sin_port));
 			ret = picotap->picostack->__pico_socket_bind(conn->picosock, &zaddr, (uint16_t*)&(addr->sin_port));
 		#endif
 		if(ret < 0) {

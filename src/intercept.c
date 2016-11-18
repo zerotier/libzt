@@ -263,24 +263,24 @@ pthread_key_t thr_id_key;
     int socket(SOCKET_SIG)
     {   
         DEBUG_ATTN();
+        int err;
         if (!check_intercept_enabled() && socket_type) {
-            int err = realsocket(socket_family, socket_type, protocol);
-            if(err < 0) {
+            if((err = realsocket(socket_family, socket_type, protocol)) < 0) {
                 perror("socket:\n");
             }
             else {
-                DEBUG_INFO("err=%d", err);
+                DEBUG_BLANK("realsocket(): fd=%d", err);
                 return err;
             }
         }
-        // Check if local
+        // If the socket type is LOCAL, we don't want to handle it, pass to system
         if(socket_family == AF_LOCAL
     #if defined(__linux__)
            || socket_family == AF_NETLINK
     #endif
            || socket_family == AF_UNIX) {
-            int err = realsocket(socket_family, socket_type, protocol);
-            DEBUG_BLANK("realsocket(): err=%d", err);
+            err = realsocket(socket_family, socket_type, protocol);
+            DEBUG_BLANK("realsocket(): fd=%d", err);
             return err;
         }
         return zts_socket(socket_family, socket_type, protocol);

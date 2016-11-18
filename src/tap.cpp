@@ -212,6 +212,13 @@ std::vector<InetAddress> NetconEthernetTap::ips() const
 	return _ips;
 }
 
+// Receive data from ZT tap service (virtual wire) and present it to network stack
+// -----------------------------------------
+// | TAP <-> MEM BUFFER <-> STACK <-> APP  |
+// | |--------------->|                    | RX
+// | APP <-> I/O BUFFER <-> STACK <-> TAP  |
+// |                                       | 
+// ----------------------------------------- 
 void NetconEthernetTap::put(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
 {
     // DEBUG_EXTRA("RX packet: len=%d, etherType=%d", len, etherType);
@@ -326,6 +333,14 @@ void NetconEthernetTap::phyOnUnixClose(PhySocket *sock,void **uptr) {
     //closeConnection(sock);
 }
 
+
+// Receive data from ZT tap service and present it to network stack
+// -----------------------------------------
+// | TAP <-> MEM BUFFER <-> STACK <-> APP  |
+// | |--------------->|                    | RX
+// | APP <-> I/O BUFFER <-> STACK <-> TAP  |
+// |                                       | 
+// ----------------------------------------- 
 void NetconEthernetTap::handleRead(PhySocket *sock,void **uptr,bool lwip_invoked)
 {
 	// DEBUG_EXTRA("handleRead(sock=%p): lwip_invoked = %d\n", (void*)&sock, lwip_invoked);

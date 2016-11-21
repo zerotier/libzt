@@ -1,12 +1,11 @@
 OBJS=\
-	zerotierone/ext/lz4/lz4.o \
 	zerotierone/ext/json-parser/json.o \
 	zerotierone/ext/http-parser/http_parser.o \
+	zerotierone/ext/lz4/lz4.o \
 	zerotierone/node/C25519.o \
 	zerotierone/node/CertificateOfMembership.o \
 	zerotierone/node/Cluster.o \
 	zerotierone/node/DeferredPackets.o \
-	zerotierone/node/Dictionary.o \
 	zerotierone/node/Identity.o \
 	zerotierone/node/IncomingPacket.o \
 	zerotierone/node/InetAddress.o \
@@ -26,6 +25,7 @@ OBJS=\
 	zerotierone/node/Topology.o \
 	zerotierone/node/Utils.o \
 	zerotierone/osdep/BackgroundResolver.o \
+	zerotierone/osdep/ManagedRoute.o \
 	zerotierone/osdep/Http.o \
 	zerotierone/osdep/OSUtils.o \
 	zerotierone/service/ClusterGeoIpService.o \

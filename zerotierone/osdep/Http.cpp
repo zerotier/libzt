@@ -25,7 +25,12 @@
 #include "OSUtils.hpp"
 #include "../node/Constants.hpp"
 #include "../node/Utils.hpp"
+
+#ifdef ZT_USE_SYSTEM_HTTP_PARSER
+#include <http_parser.h>
+#else
 #include "../ext/http-parser/http_parser.h"
+#endif
 
 namespace ZeroTier {
 
@@ -33,12 +38,18 @@ namespace {
 
 static int ShttpOnMessageBegin(http_parser *parser);
 static int ShttpOnUrl(http_parser *parser,const char *ptr,size_t length);
+#if (HTTP_PARSER_VERSION_MAJOR >= 2) && (HTTP_PARSER_VERSION_MINOR >= 2)
 static int ShttpOnStatus(http_parser *parser,const char *ptr,size_t length);
+#else
+static int ShttpOnStatus(http_parser *parser);
+#endif
 static int ShttpOnHeaderField(http_parser *parser,const char *ptr,size_t length);
 static int ShttpOnValue(http_parser *parser,const char *ptr,size_t length);
 static int ShttpOnHeadersComplete(http_parser *parser);
 static int ShttpOnBody(http_parser *parser,const char *ptr,size_t length);
 static int ShttpOnMessageComplete(http_parser *parser);
+
+#if (HTTP_PARSER_VERSION_MAJOR >= 2) && (HTTP_PARSER_VERSION_MINOR >= 1)
 static const struct http_parser_settings HTTP_PARSER_SETTINGS = {
 	ShttpOnMessageBegin,
 	ShttpOnUrl,
@@ -49,6 +60,17 @@ static const struct http_parser_settings HTTP_PARSER_SETTINGS = {
 	ShttpOnBody,
 	ShttpOnMessageComplete
 };
+#else
+static const struct http_parser_settings HTTP_PARSER_SETTINGS = {
+	ShttpOnMessageBegin,
+	ShttpOnUrl,
+	ShttpOnHeaderField,
+	ShttpOnValue,
+	ShttpOnHeadersComplete,
+	ShttpOnBody,
+	ShttpOnMessageComplete
+};
+#endif
 
 struct HttpPhyHandler
 {
@@ -96,7 +118,7 @@ struct HttpPhyHandler
 	inline void phyOnUnixAccept(PhySocket *sockL,PhySocket *sockN,void **uptrL,void **uptrN) {}
 	inline void phyOnUnixClose(PhySocket *sock,void **uptr) {}
 	inline void phyOnUnixData(PhySocket *sock,void **uptr,void *data,unsigned long len) {}
-	inline void phyOnUnixWritable(PhySocket *sock,void **uptr) {}
+	inline void phyOnUnixWritable(PhySocket *sock,void **uptr, bool lwip_invoked) {}
 #endif // __UNIX_LIKE__
 
 	http_parser parser;
@@ -126,12 +148,18 @@ static int ShttpOnUrl(http_parser *parser,const char *ptr,size_t length)
 {
 	return 0;
 }
+#if (HTTP_PARSER_VERSION_MAJOR >= 2) && (HTTP_PARSER_VERSION_MINOR >= 2)
 static int ShttpOnStatus(http_parser *parser,const char *ptr,size_t length)
+#else
+static int ShttpOnStatus(http_parser *parser)
+#endif
 {
+	/*
 	HttpPhyHandler *hh = reinterpret_cast<HttpPhyHandler *>(parser->data);
 	hh->messageSize += (unsigned long)length;
 	if (hh->messageSize > hh->maxResponseSize)
 		return -1;
+	*/
 	return 0;
 }
 static int ShttpOnHeaderField(http_parser *parser,const char *ptr,size_t length)

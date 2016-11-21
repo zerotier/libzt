@@ -117,6 +117,11 @@ extern "C" {
 #define ZT_MAX_PEER_NETWORK_PATHS 4
 
 /**
+ * Maximum number of trusted physical network paths
+ */
+#define ZT_MAX_TRUSTED_PATHS 16
+
+/**
  * Maximum number of hops in a ZeroTier circuit test
  *
  * This is more or less the max that can be fit in a given packet (with
@@ -362,7 +367,7 @@ enum ZT_VirtualNetworkStatus
 	ZT_NETWORK_STATUS_PORT_ERROR = 4,
 
 	/**
-	 * ZeroTier One version too old
+	 * ZeroTier core version too old
 	 */
 	ZT_NETWORK_STATUS_CLIENT_TOO_OLD = 5
 };
@@ -411,6 +416,8 @@ enum ZT_VirtualNetworkRuleType
 	 * Explicitly redirect this frame to another device (ignored if this is the target device)
 	 */
 	ZT_NETWORK_RULE_ACTION_REDIRECT = 3,
+
+	// <32 == actions
 
 	/**
 	 * Source ZeroTier address -- analogous to an Ethernet port ID on a switch
@@ -505,7 +512,17 @@ enum ZT_VirtualNetworkRuleType
 	/**
 	 * Match a range of relative TCP sequence numbers (e.g. approx first N bytes of stream)
 	 */
-	ZT_NETWORK_RULE_MATCH_TCP_RELATIVE_SEQUENCE_NUMBER_RANGE = 50
+	ZT_NETWORK_RULE_MATCH_TCP_RELATIVE_SEQUENCE_NUMBER_RANGE = 50,
+
+	/**
+	 * Match a certificate of network membership field from the ZT origin's COM: greater than or equal to
+	 */
+	ZT_NETWORK_RULE_MATCH_COM_FIELD_GE = 51,
+
+	/**
+	 * Match a certificate of network membership field from the ZT origin's COM: less than or equal to
+	 */
+	ZT_NETWORK_RULE_MATCH_COM_FIELD_LE = 52
 };
 
 /**
@@ -616,6 +633,11 @@ typedef struct
 		 * Ethernet packet size in host byte order (start-end, inclusive)
 		 */
 		uint16_t frameSize[2];
+
+		/**
+		 * COM ID and value for ZT_NETWORK_RULE_MATCH_COM_FIELD_GE and ZT_NETWORK_RULE_MATCH_COM_FIELD_LE
+		 */
+		uint64_t comIV[2];
 	} v;
 } ZT_VirtualNetworkRule;
 
@@ -633,6 +655,16 @@ typedef struct
 	 * Gateway IP address (port ignored) or NULL (family == 0) for LAN-local (no gateway)
 	 */
 	struct sockaddr_storage via;
+
+	/**
+	 * Route flags
+	 */
+	uint16_t flags;
+
+	/**
+	 * Route metric (not currently used)
+	 */
+	uint16_t metric;
 } ZT_VirtualNetworkRoute;
 
 /**
@@ -727,7 +759,13 @@ enum ZT_Architecture {
 	ZT_ARCHITECTURE_MIPS32 = 5,
 	ZT_ARCHITECTURE_MIPS64 = 6,
 	ZT_ARCHITECTURE_POWER32 = 7,
-	ZT_ARCHITECTURE_POWER64 = 8
+	ZT_ARCHITECTURE_POWER64 = 8,
+	ZT_ARCHITECTURE_OPENRISC32 = 9,
+	ZT_ARCHITECTURE_OPENRISC64 = 10,
+	ZT_ARCHITECTURE_SPARC32 = 11,
+	ZT_ARCHITECTURE_SPARC64 = 12,
+	ZT_ARCHITECTURE_DOTNET_CLR = 13,
+	ZT_ARCHITECTURE_JAVA_JVM = 14
 };
 
 /**
@@ -788,31 +826,14 @@ typedef struct
 	int broadcastEnabled;
 
 	/**
-	 * If the network is in PORT_ERROR state, this is the error most recently returned by the port config callback
+	 * If the network is in PORT_ERROR state, this is the (negative) error code most recently reported
 	 */
 	int portError;
 
 	/**
-	 * Is this network enabled? If not, all frames to/from are dropped.
-	 */
-	int enabled;
-
-	/**
-	 * Network config revision as reported by netconf master
-	 *
-	 * If this is zero, it means we're still waiting for our netconf.
+	 * Revision number as reported by controller or 0 if still waiting for config
 	 */
 	unsigned long netconfRevision;
-
-	/**
-	 * Number of multicast group subscriptions
-	 */
-	unsigned int multicastSubscriptionCount;
-
-	/**
-	 * Multicast group subscriptions
-	 */
-	ZT_MulticastGroup multicastSubscriptions[ZT_MAX_NETWORK_MULTICAST_SUBSCRIPTIONS];
 
 	/**
 	 * Number of assigned addresses
@@ -830,6 +851,16 @@ typedef struct
 	 * virtual network's configuration master.
 	 */
 	struct sockaddr_storage assignedAddresses[ZT_MAX_ZT_ASSIGNED_ADDRESSES];
+
+	/**
+	 * Number of ZT-pushed routes
+	 */
+	unsigned int routeCount;
+
+	/**
+	 * Routes (excluding those implied by assigned addresses and their masks)
+	 */
+	ZT_VirtualNetworkRoute routes[ZT_MAX_NETWORK_ROUTES];
 } ZT_VirtualNetworkConfig;
 
 /**
@@ -860,6 +891,11 @@ typedef struct
 	 * Time of last receive in milliseconds or 0 for never
 	 */
 	uint64_t lastReceive;
+
+	/**
+	 * Is this a trusted path? If so this will be its nonzero ID.
+	 */
+	uint64_t trustedPathId;
 
 	/**
 	 * Is path active?
@@ -1810,6 +1846,29 @@ void ZT_Node_clusterHandleIncomingMessage(ZT_Node *node,const void *msg,unsigned
  * @param cs Cluster status structure to fill with data
  */
 void ZT_Node_clusterStatus(ZT_Node *node,ZT_ClusterStatus *cs);
+
+/**
+ * Set trusted paths
+ *
+ * A trusted path is a physical network (network/bits) over which both
+ * encryption and authentication can be skipped to improve performance.
+ * Each trusted path must have a non-zero unique ID that is the same across
+ * all participating nodes.
+ *
+ * We don't recommend using trusted paths at all unless you really *need*
+ * near-bare-metal performance. Even on a LAN authentication and encryption
+ * are never a bad thing, and anything that introduces an "escape hatch"
+ * for encryption should be treated with the utmost care.
+ *
+ * Calling with NULL pointers for networks and ids and a count of zero clears
+ * all trusted paths.
+ *
+ * @param node Node instance
+ * @param networks Array of [count] networks
+ * @param ids Array of [count] corresponding non-zero path IDs (zero path IDs are ignored)
+ * @param count Number of trusted paths-- values greater than ZT_MAX_TRUSTED_PATHS are clipped
+ */
+void ZT_Node_setTrustedPaths(ZT_Node *node,const struct sockaddr_storage *networks,const uint64_t *ids,unsigned int count);
 
 /**
  * Do things in the background until Node dies

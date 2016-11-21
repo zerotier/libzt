@@ -79,10 +79,10 @@ public:
 	 * @throws std::out_of_range Range error processing packet
 	 */
 	IncomingPacket(const void *data,unsigned int len,const InetAddress &localAddress,const InetAddress &remoteAddress,uint64_t now) :
- 		Packet(data,len),
- 		_receiveTime(now),
- 		_localAddress(localAddress),
- 		_remoteAddress(remoteAddress)
+		Packet(data,len),
+		_receiveTime(now),
+		_localAddress(localAddress),
+		_remoteAddress(remoteAddress)
 	{
 	}
 

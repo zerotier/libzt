@@ -252,7 +252,7 @@ public:
 #if defined(_WIN32) || defined(_WIN64)
 		::send(_whackSendSocket,(const char *)this,1,0);
 #else
-		::write(_whackSendSocket,(PhySocket *)this,1);
+		(void)(::write(_whackSendSocket,(PhySocket *)this,1));
 #endif
 	}
 
@@ -545,7 +545,6 @@ public:
 #endif
 
 		if (::bind(s,localAddress,(localAddress->sa_family == AF_INET6) ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in))) {
-            perror("bind");
 			ZT_PHY_CLOSE_SOCKET(s);
 			return (PhySocket *)0;
 		}

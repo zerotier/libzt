@@ -43,8 +43,23 @@ namespace ZeroTier {
 bool IncomingPacket::tryDecode(const RuntimeEnvironment *RR,bool deferred)
 {
 	const Address sourceAddress(source());
+
 	try {
-		if ((cipher() == ZT_PROTO_CIPHER_SUITE__C25519_POLY1305_NONE)&&(verb() == Packet::VERB_HELLO)) {
+		// Check for trusted paths or unencrypted HELLOs (HELLO is the only packet sent in the clear)
+		const unsigned int c = cipher();
+		bool trusted = false;
+		if (c == ZT_PROTO_CIPHER_SUITE__NO_CRYPTO_TRUSTED_PATH) {
+			// If this is marked as a packet via a trusted path, check source address and path ID.
+			// Obviously if no trusted paths are configured this always returns false and such
+			// packets are dropped on the floor.
+			if (RR->topology->shouldInboundPathBeTrusted(_remoteAddress,trustedPathId())) {
+				trusted = true;
+				TRACE("TRUSTED PATH packet approved from %s(%s), trusted path ID %llx",sourceAddress.toString().c_str(),_remoteAddress.toString().c_str(),trustedPathId());
+			} else {
+				TRACE("dropped packet from %s(%s), cipher set to trusted path mode but path %llx@%s is not trusted!",sourceAddress.toString().c_str(),_remoteAddress.toString().c_str(),trustedPathId(),_remoteAddress.toString().c_str());
+				return true;
+			}
+		} else if ((c == ZT_PROTO_CIPHER_SUITE__C25519_POLY1305_NONE)&&(verb() == Packet::VERB_HELLO)) {
 			// Unencrypted HELLOs require some potentially expensive verification, so
 			// do this in the background if background processing is enabled.
 			if ((RR->dpEnabled > 0)&&(!deferred)) {
@@ -61,12 +76,15 @@ bool IncomingPacket::tryDecode(const RuntimeEnvironment *RR,bool deferred)
 
 		SharedPtr<Peer> peer(RR->topology->getPeer(sourceAddress));
 		if (peer) {
-			if (!dearmor(peer->key())) {
-				TRACE("dropped packet from %s(%s), MAC authentication failed (size: %u)",peer->address().toString().c_str(),_remoteAddress.toString().c_str(),size());
-				return true;
+			if (!trusted) {
+				if (!dearmor(peer->key())) {
+					TRACE("dropped packet from %s(%s), MAC authentication failed (size: %u)",sourceAddress.toString().c_str(),_remoteAddress.toString().c_str(),size());
+					return true;
+				}
 			}
+
 			if (!uncompress()) {
-				TRACE("dropped packet from %s(%s), compressed data invalid",peer->address().toString().c_str(),_remoteAddress.toString().c_str());
+				TRACE("dropped packet from %s(%s), compressed data invalid",sourceAddress.toString().c_str(),_remoteAddress.toString().c_str());
 				return true;
 			}
 
@@ -403,8 +421,12 @@ bool IncomingPacket::_doOK(const RuntimeEnvironment *RR,const SharedPtr<Peer> &p
 				if ((nw)&&(nw->controller() == peer->address())) {
 					const unsigned int nclen = at<uint16_t>(ZT_PROTO_VERB_NETWORK_CONFIG_REQUEST__OK__IDX_DICT_LEN);
 					if (nclen) {
-						nw->setConfiguration(field(ZT_PROTO_VERB_NETWORK_CONFIG_REQUEST__OK__IDX_DICT,nclen),nclen,true);
-						TRACE("got network configuration for network %.16llx from %s",(unsigned long long)nw->id(),source().toString().c_str());
+						Dictionary<ZT_NETWORKCONFIG_DICT_CAPACITY> dconf((const char *)field(ZT_PROTO_VERB_NETWORK_CONFIG_REQUEST__OK__IDX_DICT,nclen),nclen);
+						NetworkConfig nconf;
+						if (nconf.fromDictionary(dconf)) {
+							nw->setConfiguration(nconf,true);
+							TRACE("got network configuration for network %.16llx from %s",(unsigned long long)nw->id(),source().toString().c_str());
+						}
 					}
 				}
 			}	break;
@@ -679,27 +701,8 @@ bool IncomingPacket::_doNETWORK_CONFIG_REQUEST(const RuntimeEnvironment *RR,cons
 		const uint64_t nwid = at<uint64_t>(ZT_PROTO_VERB_NETWORK_CONFIG_REQUEST_IDX_NETWORK_ID);
 
 		const unsigned int metaDataLength = at<uint16_t>(ZT_PROTO_VERB_NETWORK_CONFIG_REQUEST_IDX_DICT_LEN);
-		const uint8_t *metaDataBytes = (const uint8_t *)field(ZT_PROTO_VERB_NETWORK_CONFIG_REQUEST_IDX_DICT,metaDataLength);
-
-		NetworkConfigRequestMetaData metaData;
-		bool haveNewStyleMetaData = false;
-		for(unsigned int i=0;i<metaDataLength;++i) {
-			if ((metaDataBytes[i] == 0)&&(i < (metaDataLength - 2))) {
-				haveNewStyleMetaData = true;
-				break;
-			}
-		}
-		if (haveNewStyleMetaData) {
-			Buffer<4096> md(metaDataBytes,metaDataLength);
-			metaData.deserialize(md,0); // the meta-data deserializer automatically skips old-style meta-data
-		} else {
-#ifdef ZT_SUPPORT_OLD_STYLE_NETCONF
-			const Dictionary oldStyleMetaData((const char *)metaDataBytes,metaDataLength);
-			metaData.majorVersion = (unsigned int)oldStyleMetaData.getHexUInt(ZT_NETWORKCONFIG_REQUEST_METADATA_KEY_NODE_MAJOR_VERSION,0);
-			metaData.minorVersion = (unsigned int)oldStyleMetaData.getHexUInt(ZT_NETWORKCONFIG_REQUEST_METADATA_KEY_NODE_MINOR_VERSION,0);
-			metaData.revision = (unsigned int)oldStyleMetaData.getHexUInt(ZT_NETWORKCONFIG_REQUEST_METADATA_KEY_NODE_REVISION,0);
-#endif
-		}
+		const char *metaDataBytes = (const char *)field(ZT_PROTO_VERB_NETWORK_CONFIG_REQUEST_IDX_DICT,metaDataLength);
+		const Dictionary<ZT_NETWORKCONFIG_DICT_CAPACITY> metaData(metaDataBytes,metaDataLength);
 
 		//const uint64_t haveRevision = ((ZT_PROTO_VERB_NETWORK_CONFIG_REQUEST_IDX_DICT + metaDataLength + 8) <= size()) ? at<uint64_t>(ZT_PROTO_VERB_NETWORK_CONFIG_REQUEST_IDX_DICT + metaDataLength) : 0ULL;
 
@@ -708,22 +711,21 @@ bool IncomingPacket::_doNETWORK_CONFIG_REQUEST(const RuntimeEnvironment *RR,cons
 		peer->received(_localAddress,_remoteAddress,h,pid,Packet::VERB_NETWORK_CONFIG_REQUEST,0,Packet::VERB_NOP);
 
 		if (RR->localNetworkController) {
-			Buffer<8194> netconf;
+			NetworkConfig netconf;
 			switch(RR->localNetworkController->doNetworkConfigRequest((h > 0) ? InetAddress() : _remoteAddress,RR->identity,peer->identity(),nwid,metaData,netconf)) {
 
 				case NetworkController::NETCONF_QUERY_OK: {
-					Packet outp(peer->address(),RR->identity.address(),Packet::VERB_OK);
-					outp.append((unsigned char)Packet::VERB_NETWORK_CONFIG_REQUEST);
-					outp.append(pid);
-					outp.append(nwid);
-					outp.append((uint16_t)netconf.size());
-					outp.append(netconf.data(),(unsigned int)netconf.size());
-					outp.compress();
-					outp.armor(peer->key(),true);
-					if (outp.size() > ZT_PROTO_MAX_PACKET_LENGTH) { // sanity check
-						//TRACE("NETWORK_CONFIG_REQUEST failed: internal error: netconf size %u is too large",(unsigned int)netconfStr.length());
-					} else {
-						RR->node->putPacket(_localAddress,_remoteAddress,outp.data(),outp.size());
+					Dictionary<ZT_NETWORKCONFIG_DICT_CAPACITY> dconf;
+					if (netconf.toDictionary(dconf,metaData.getUI(ZT_NETWORKCONFIG_REQUEST_METADATA_KEY_VERSION,0) < 6)) {
+						Packet outp(peer->address(),RR->identity.address(),Packet::VERB_OK);
+						outp.append((unsigned char)Packet::VERB_NETWORK_CONFIG_REQUEST);
+						outp.append(pid);
+						outp.append(nwid);
+						const unsigned int dlen = dconf.sizeBytes();
+						outp.append((uint16_t)dlen);
+						outp.append((const void *)dconf.data(),dlen);
+						outp.compress();
+						RR->sw->send(outp,true,0);
 					}
 				}	break;
 
@@ -1208,8 +1210,20 @@ bool IncomingPacket::_doCIRCUIT_TEST_REPORT(const RuntimeEnvironment *RR,const S
 bool IncomingPacket::_doREQUEST_PROOF_OF_WORK(const RuntimeEnvironment *RR,const SharedPtr<Peer> &peer)
 {
 	try {
-		// Right now this is only allowed from root servers -- may be allowed from controllers and relays later.
-		if (RR->topology->isRoot(peer->identity())) {
+		// If this were allowed from anyone, it would itself be a DOS vector. Right
+		// now we only allow it from roots and controllers of networks you have joined.
+		bool allowed = RR->topology->isRoot(peer->identity());
+		if (!allowed) {
+			std::vector< SharedPtr<Network> > allNetworks(RR->node->allNetworks());
+			for(std::vector< SharedPtr<Network> >::const_iterator n(allNetworks.begin());n!=allNetworks.end();++n) {
+				if (peer->address() == (*n)->controller()) {
+					allowed = true;
+					break;
+				}
+			}
+		}
+
+		if (allowed) {
 			const uint64_t pid = packetId();
 			const unsigned int difficulty = (*this)[ZT_PACKET_IDX_PAYLOAD + 1];
 			const unsigned int challengeLength = at<uint16_t>(ZT_PACKET_IDX_PAYLOAD + 2);

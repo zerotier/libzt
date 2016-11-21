@@ -151,12 +151,11 @@ public:
 	/**
 	 * Set or update this network's configuration
 	 *
-	 * @param confBytes Network configuration in old-style Dictionary or new-style serialized format
-	 * @param confLen Length of network configuration in bytes
+	 * @param nconf Network configuration
 	 * @param saveToDisk IF true (default), write config to disk
 	 * @return 0 -- rejected, 1 -- accepted but not new, 2 -- accepted new config
 	 */
-	int setConfiguration(const void *confBytes,unsigned int confLen,bool saveToDisk);
+	int setConfiguration(const NetworkConfig &nconf,bool saveToDisk);
 
 	/**
 	 * Set netconf failure to 'access denied' -- called in IncomingPacket when controller reports this
@@ -281,16 +280,6 @@ public:
 	void learnBridgedMulticastGroup(const MulticastGroup &mg,uint64_t now);
 
 	/**
-	 * @return True if traffic on this network's tap is enabled
-	 */
-	inline bool enabled() const throw() { return _enabled; }
-
-	/**
-	 * @param enabled Should traffic be allowed on this network?
-	 */
-	void setEnabled(bool enabled);
-
-	/**
 	 * Destroy this network
 	 *
 	 * This causes the network to disable itself, destroy its tap device, and on
@@ -323,7 +312,6 @@ private:
 	void *_uPtr;
 	uint64_t _id;
 	MAC _mac; // local MAC address
-	volatile bool _enabled;
 	volatile bool _portInitialized;
 
 	std::vector< MulticastGroup > _myMulticastGroups; // multicast groups that we belong to (according to tap)

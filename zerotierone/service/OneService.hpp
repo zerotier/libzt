@@ -24,7 +24,7 @@
 
 #include "../node/Node.hpp"
 
-// Include the right tap device driver for this platform -- add new platforms here
+ // Include the right tap device driver for this platform -- add new platforms here
 #ifdef SDK
 	// In network containers builds, use the virtual netcon endpoint instead of a tun/tap port driver
 	#include "../src/tap.hpp"
@@ -75,6 +75,27 @@ public:
 		 * Your identity has collided with another
 		 */
 		ONE_IDENTITY_COLLISION = 3
+	};
+
+	/**
+	 * Local settings for each network
+	 */
+	struct NetworkSettings
+	{
+		/**
+		 * Allow this network to configure IP addresses and routes?
+		 */
+		bool allowManaged;
+
+		/**
+		 * Allow configuration of IPs and routes within global (Internet) IP space?
+		 */
+		bool allowGlobal;
+
+		/**
+		 * Allow overriding of system default routes for "full tunnel" operation?
+		 */
+		bool allowDefault;
 	};
 
 	/**
@@ -172,6 +193,24 @@ public:
 	 */
 	inline bool isRunning() const { return (this->reasonForTermination() == ONE_STILL_RUNNING); }
 #endif
+
+	/**
+	 * Get local settings for a network
+	 *
+	 * @param nwid Network ID
+	 * @param settings Buffer to fill with local network settings
+	 * @return True if network was found and settings is filled
+	 */
+	virtual bool getNetworkSettings(const uint64_t nwid,NetworkSettings &settings) const = 0;
+
+	/**
+	 * Set local settings for a network
+	 *
+	 * @param nwid Network ID
+	 * @param settings New network local settings
+	 * @return True if network was found and setting modified
+	 */
+	virtual bool setNetworkSettings(const uint64_t nwid,const NetworkSettings &settings) = 0;
 
 protected:
 	OneService() {}

@@ -157,6 +157,7 @@
 		7C969BD11DB99F9E00BD3F7F /* timeouts.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B4B1DB99E7900BD3F7F /* timeouts.c */; };
 		7C969BD21DB99F9E00BD3F7F /* udp.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B4C1DB99E7900BD3F7F /* udp.c */; };
 		7C969C7C1DBAA61700BD3F7F /* tcpip.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969C7B1DBAA61700BD3F7F /* tcpip.c */; };
+		7C9D4ED51DF246F200EF20CD /* json.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C0463251DE362BD003E2B0E /* json.c */; };
 		7CC003261D1216E3003E68DC /* ZeroTierSDK_iOS.h in Headers */ = {isa = PBXBuildFile; fileRef = 7CC003251D1216E3003E68DC /* ZeroTierSDK_iOS.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		7CC003591D1217A1003E68DC /* http_parser.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003571D1217A1003E68DC /* http_parser.c */; };
 		7CC0035C1D1217B2003E68DC /* lz4.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0035A1D1217B2003E68DC /* lz4.c */; };
@@ -1004,6 +1005,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7C9D4ED51DF246F200EF20CD /* json.c in Sources */,
 				7C2228D51DCC11B8006A2661 /* picotcp.cpp in Sources */,
 				7C2228D61DCC11B8006A2661 /* lwip.cpp in Sources */,
 				7C7F16881DBEB8B300C7AFFD /* lz4.c in Sources */,

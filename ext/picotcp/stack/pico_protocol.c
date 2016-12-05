@@ -11,13 +11,6 @@
 #include "pico_protocol.h"
 #include "pico_tree.h"
 
-/*
-static pico_err_t get_pico_err()
-{
-    return pico_err;
-}
-*/
-
 struct pico_proto_rr
 {
     struct pico_tree *t;

@@ -9,37 +9,34 @@
 
 #define MAXBUF 65536
 
-int main()
+int main(int argc, char *argv[])
 {
    int sock;
-   int status;
+   int n;
    struct sockaddr_in6 sin6;
    socklen_t sin6len;
    char buffer[MAXBUF];
 
    sock = socket(PF_INET6, SOCK_DGRAM,0);
-
    sin6len = sizeof(struct sockaddr_in6);
-
    memset(&sin6, 0, sin6len);
 
-   /* just use the first address returned in the structure */
-
-   sin6.sin6_port = htons(0);
+   sin6.sin6_port = htons(atoi(argv[1]));
    sin6.sin6_family = AF_INET6;
    sin6.sin6_addr = in6addr_any;
 
-   status = bind(sock, (struct sockaddr *)&sin6, sin6len);
-   if(-1 == status)
+   n = bind(sock, (struct sockaddr *)&sin6, sin6len);
+   if(-1 == n)
      perror("bind"), exit(1);
 
-   status = getsockname(sock, (struct sockaddr *)&sin6, &sin6len);
+   //n = getsockname(sock, (struct sockaddr *)&sin6, &sin6len);
+   //printf("%d\n", ntohs(sin6.sin6_port));
 
-   printf("%d\n", ntohs(sin6.sin6_port));
-
-   status = recvfrom(sock, buffer, MAXBUF, 0, 
-                     (struct sockaddr *)&sin6, &sin6len);
-   printf("buffer : %s\n", buffer);
+   while (1) {
+      sleep(1);
+      n = recvfrom(sock, buffer, MAXBUF, 0, (struct sockaddr *)&sin6, &sin6len);
+      printf("n = %d, buffer : %s\n", n, buffer);
+   }
 
    shutdown(sock, 2);
    close(sock);

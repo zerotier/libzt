@@ -23,7 +23,7 @@ void error(char *msg) {
 }
 
 int main(int argc, char **argv) {
-    int sockfd, portno, n;
+    int sock, portno, n;
     int serverlen;
     struct sockaddr_in serveraddr;
     struct hostent *server;
@@ -39,8 +39,8 @@ int main(int argc, char **argv) {
     portno = atoi(argv[2]);
 
     /* socket: create the socket */
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0) 
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0) 
         error("ERROR opening socket");
 
     /* gethostbyname: get the server's DNS entry */
@@ -59,31 +59,27 @@ int main(int argc, char **argv) {
 
     /* get a message from the user */
     char *msg = "A message to the server!\0";
-    fcntl(sockfd, F_SETFL, O_NONBLOCK); 
+    fcntl(sock, F_SETFL, O_NONBLOCK); 
     long count = 0;
     while(1)
     {
         count++;
-        printf("\nTX(%lu)...\n", count);
-        usleep(10000);
+        printf("\n\n\nTX(%lu)...\n", count);
+        sleep(1);
+        //usleep(10000);
         //bzero(buf, BUFSIZE);
         //printf("\nPlease enter msg: ");
         //fgets(buf, BUFSIZE, stdin);
 
         /* send the message to the server */
         serverlen = sizeof(serveraddr);
-        printf("A\n");
-        n = sendto(sockfd, msg, strlen(msg), 0, (struct sockaddr *)&serveraddr, serverlen);
-        printf("B\n");
+        n = sendto(sock, msg, strlen(msg), 0, (struct sockaddr *)&serveraddr, serverlen);
         //if (n < 0) 
         //    error("ERROR in sendto");
         
         /* print the server's reply */
-        printf("C\n");
         memset(buf, 0, sizeof(buf));
-        printf("D\n");
-        n = recvfrom(sockfd, buf, BUFSIZE, 0, (struct sockaddr *)&serveraddr, (socklen_t *)&serverlen);
-        printf("E\n");
+        n = recvfrom(sock, buf, BUFSIZE, 0, (struct sockaddr *)&serveraddr, (socklen_t *)&serverlen);
         //if (n < 0) 
         //    printf("ERROR in recvfrom: %d", n);
         printf("Echo from server: %s", buf);

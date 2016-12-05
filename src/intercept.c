@@ -167,7 +167,7 @@ pthread_key_t thr_id_key;
     ssize_t sendto(SENDTO_SIG)
     {
         DEBUG_INFO("fd=%d, len=%d", fd, (int)len);
-        //if (!check_intercept_enabled())
+        if (!check_intercept_enabled())
             return realsendto(fd, buf, len, flags, addr, addrlen);
         return zts_sendto(fd, buf, len, flags, addr, addrlen);
     }
@@ -198,8 +198,8 @@ pthread_key_t thr_id_key;
     ssize_t recvfrom(RECVFROM_SIG)
     {
         DEBUG_INFO("fd=%d", fd);
-        if(!check_intercept_enabled())
-            return realrecvfrom(fd, buf, len, flags, addr, addrlen);
+        //if(!check_intercept_enabled())
+        //    return realrecvfrom(fd, buf, len, flags, addr, addrlen);
         return zts_recvfrom(fd, buf, len, flags, addr, addrlen);
     }
 #endif

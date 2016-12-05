@@ -92,6 +92,4 @@ int pico_protocol_network_loop(int loop_score, int direction);
 int pico_protocol_transport_loop(int loop_score, int direction);
 int pico_protocol_socket_loop(int loop_score, int direction);
 
-// static pico_err_t get_pico_err();
-
 #endif

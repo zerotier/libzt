@@ -907,8 +907,8 @@ public:
 					{
 						Mutex::Lock _l(_nets_m);
 						for(std::map<uint64_t,NetworkState>::iterator n(_nets.begin());n!=_nets.end();++n) {
-							//if (n->second.tap)
-							//	syncManagedStuff(n->second,false,true);
+							if (n->second.tap)
+								syncManagedStuff(n->second,false,true);
 						}
 					}
 				}
@@ -1093,8 +1093,8 @@ public:
 			fclose(out);
 		}
 
-		//if (n->second.tap)
-		//	syncManagedStuff(n->second,true,true);
+		if (n->second.tap)
+			syncManagedStuff(n->second,true,true);
 
 		return true;
 	}
@@ -1216,7 +1216,7 @@ public:
 				for(std::list<ManagedRoute>::iterator mr(n.managedRoutes.begin());mr!=n.managedRoutes.end();++mr) {
 					if ( (mr->target() == *target) && ( ((via->ss_family == target->ss_family)&&(mr->via() == *via)) || (tapdev == mr->device()) ) ) {
 						haveRoute = true;
-						//mr->sync();
+						mr->sync();
 						break;
 					}
 				}
@@ -1515,7 +1515,7 @@ public:
 			case ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_CONFIG_UPDATE:
 				memcpy(&(n.config),nwc,sizeof(ZT_VirtualNetworkConfig));
 				if (n.tap) { // sanity check
-					//syncManagedStuff(n,true,true);
+					syncManagedStuff(n,true,true);
 				} else {
 					_nets.erase(nwid);
 					return -999; // tap init failed

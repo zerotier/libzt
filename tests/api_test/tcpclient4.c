@@ -41,7 +41,6 @@ int main(int argc , char *argv[])
     
     while(1)
     {
-        sleep(1);
         // TX         
         if(send(sock, msg, strlen(msg), 0) < 0) {
             printf("send failed");

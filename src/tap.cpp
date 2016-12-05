@@ -296,7 +296,7 @@ Connection *NetconEthernetTap::getConnection(struct pico_socket *sock)
 
 void NetconEthernetTap::closeConnection(PhySocket *sock)
 {
-    DEBUG_EXTRA("sock=%p", (void*)sock);
+    DEBUG_EXTRA("physock=%p", (void*)sock);
 	Mutex::Lock _l(_close_m);
 	// Here we assume _tcpconns_m is already locked by caller
 	if(!sock) {
@@ -328,7 +328,7 @@ void NetconEthernetTap::closeConnection(PhySocket *sock)
 }
 
 void NetconEthernetTap::phyOnUnixClose(PhySocket *sock,void **uptr) {
-    DEBUG_EXTRA("sock=%p", (void*)&sock);
+    DEBUG_EXTRA("physock=%p", (void*)&sock);
 	Mutex::Lock _l(_tcpconns_m);
     //closeConnection(sock);
 }
@@ -343,12 +343,10 @@ void NetconEthernetTap::phyOnUnixClose(PhySocket *sock,void **uptr) {
 // ----------------------------------------- 
 void NetconEthernetTap::handleRead(PhySocket *sock,void **uptr,bool lwip_invoked)
 {
-	// DEBUG_EXTRA("handleRead(sock=%p): lwip_invoked = %d\n", (void*)&sock, lwip_invoked);
-	// picoTCP
+	// DEBUG_EXTRA("handleRead(physock=%p): lwip_invoked = %d\n", (void*)&sock, lwip_invoked);
 	#if defined(SDK_PICOTCP)
 		pico_handleRead(sock, uptr, lwip_invoked);
 	#endif
-	// lwIP
 	#if defined(SDK_LWIP)
 		lwip_handleRead(this, sock, uptr, lwip_invoked);
 	#endif
@@ -361,7 +359,7 @@ void NetconEthernetTap::phyOnUnixWritable(PhySocket *sock,void **uptr,bool lwip_
 
 void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
 {
-    DEBUG_EXTRA("sock=%p, len=%d", (void*)&sock, (int)len);
+    DEBUG_EXTRA("physock=%p, len=%d", (void*)&sock, (int)len);
 	uint64_t CANARY_num;
 	pid_t pid, tid;
 	ssize_t wlen = len;
@@ -383,10 +381,10 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
 	if(detected_rpc) {
 		unloadRPC(data, pid, tid, timestamp, CANARY, cmd, payload);
 		memcpy(&CANARY_num, CANARY, CANARY_SZ);
-		// DEBUG_EXTRA(" RPC: sock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", (void*)&sock, pid, tid, timestamp, cmd);
+		// DEBUG_EXTRA(" RPC: physock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", (void*)&sock, pid, tid, timestamp, cmd);
 
 		if(cmd == RPC_SOCKET) {				
-			DEBUG_INFO("RPC_SOCKET, sock=%p", (void*)&sock);
+			DEBUG_INFO("RPC_SOCKET, physock=%p", (void*)&sock);
 			// Create new lwip socket and associate it with this sock
 			struct socket_st socket_rpc;
 			memcpy(&socket_rpc, &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct socket_st));
@@ -475,34 +473,34 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
         rpcSock = sockdata.first;
         buf = (unsigned char*)sockdata.second;
 		unloadRPC(buf, pid, tid, timestamp, CANARY, cmd, payload);
-		// DEBUG_EXTRA(" RPC: sock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", (void*)&sock, pid, tid, timestamp, cmd);
+		// DEBUG_EXTRA(" RPC: physock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", (void*)&sock, pid, tid, timestamp, cmd);
 		switch(cmd) {
 			case RPC_BIND:
-				DEBUG_INFO("RPC_BIND, sock=%p", (void*)&sock);
+				DEBUG_INFO("RPC_BIND, physock=%p", (void*)&sock);
 			    struct bind_st bind_rpc;
 			    memcpy(&bind_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct bind_st));
 			    handleBind(sock, rpcSock, uptr, &bind_rpc);
 				break;
 		  	case RPC_LISTEN:
-		  		DEBUG_INFO("RPC_LISTEN, sock=%p", (void*)&sock);
+		  		DEBUG_INFO("RPC_LISTEN, physock=%p", (void*)&sock);
 			    struct listen_st listen_rpc;
 			    memcpy(&listen_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct listen_st));
 			    handleListen(sock, rpcSock, uptr, &listen_rpc);
 				break;
 		  	case RPC_GETSOCKNAME:
-		  		DEBUG_INFO("RPC_GETSOCKNAME, sock=%p", (void*)&sock);
+		  		DEBUG_INFO("RPC_GETSOCKNAME, physock=%p", (void*)&sock);
 		  		struct getsockname_st getsockname_rpc;
 		    	memcpy(&getsockname_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct getsockname_st));
 		  		handleGetsockname(sock, rpcSock, uptr, &getsockname_rpc);
 		  		break;
 			case RPC_GETPEERNAME:
-		  		DEBUG_INFO("RPC_GETPEERNAME, sock=%p", (void*)&sock);
+		  		DEBUG_INFO("RPC_GETPEERNAME, physock=%p", (void*)&sock);
 		  		struct getsockname_st getpeername_rpc;
 		    	memcpy(&getpeername_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct getsockname_st));
 		  		handleGetpeername(sock, rpcSock, uptr, &getpeername_rpc);
 		  		break;
 			case RPC_CONNECT:
-				DEBUG_INFO("RPC_CONNECT, sock=%p", (void*)&sock);
+				DEBUG_INFO("RPC_CONNECT, physock=%p", (void*)&sock);
 			    struct connect_st connect_rpc;
 			    memcpy(&connect_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct connect_st));
 			    handleConnect(sock, rpcSock, conn, &connect_rpc);
@@ -552,12 +550,10 @@ void NetconEthernetTap::handleGetpeername(PhySocket *sock, PhySocket *rpcSock, v
     
 Connection * NetconEthernetTap::handleSocket(PhySocket *sock, void **uptr, struct socket_st* socket_rpc)
 {
-    DEBUG_ATTN("sock=%p, sock_type=%d", (void*)&sock, socket_rpc->socket_type);
-	// picoTCP
+    DEBUG_ATTN("physock=%p, sock_type=%d", sock, socket_rpc->socket_type);
 	#if defined(SDK_PICOTCP)
 		return pico_handleSocket(sock, uptr, socket_rpc);
 	#endif
-    // lwIP
 	#if defined(SDK_LWIP) 
 	    return lwip_handleSocket(this, sock, uptr, socket_rpc);
 	#endif
@@ -576,13 +572,11 @@ int NetconEthernetTap::handleConnectProxy(PhySocket *sock, struct sockaddr_in *r
 // Connect a stack's PCB/socket/Connection object to a remote host
 void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Connection *conn, struct connect_st* connect_rpc)
 {
-    DEBUG_ATTN("sock=%p", (void*)&sock);
+    DEBUG_ATTN("physock=%p", (void*)&sock);
 	Mutex::Lock _l(_tcpconns_m);
-	// picoTCP
 	#if defined(SDK_PICOTCP)
 		pico_handleConnect(sock, rpcSock, conn, connect_rpc);		
 	#endif
-	// lwIP
     #if defined(SDK_LWIP)
 		lwip_handleConnect(this, sock, rpcSock, conn, connect_rpc);
 	#endif
@@ -597,11 +591,9 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 		sendReturnValue(_phy.getDescriptor(rpcSock), -1, ENOMEM);
 		return;
 	}
-	// picoTCP
 	#if defined(SDK_PICOTCP)
 		pico_handleBind(sock,rpcSock,uptr,bind_rpc);
 	#endif
-	// lwIP
 	#if defined(SDK_LWIP)
 		lwip_handleBind(this, sock, rpcSock, uptr, bind_rpc);
 	#endif
@@ -610,11 +602,9 @@ void NetconEthernetTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **u
 void NetconEthernetTap::handleListen(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct listen_st *listen_rpc)
 {
 	Mutex::Lock _l(_tcpconns_m);
-    // picoTCP
   	#if defined(SDK_PICOTCP)
   		pico_handleListen(sock, rpcSock, uptr, listen_rpc);
   	#endif
-    // lwIP
 	#if defined(SDK_LWIP)
  		lwip_handleListen(this, sock, rpcSock, uptr, listen_rpc); 		
 	#endif
@@ -623,11 +613,9 @@ void NetconEthernetTap::handleListen(PhySocket *sock, PhySocket *rpcSock, void *
 // Write to the network stack (and thus out onto the network)
 void NetconEthernetTap::handleWrite(Connection *conn)
 {
-	// picoTCP
     #if defined(SDK_PICOTCP)
 	    pico_handleWrite(conn);
     #endif
-	// lwIP
     #if defined(SDK_LWIP)
 		lwip_handleWrite(this, conn);
 	#endif

@@ -279,12 +279,15 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_recvfrom(RECVFROM_SIG)
     #endif
         {
-            int tmpsz = 0; // payload size
-            if(read(fd, buf, ZT_MAX_MTU) > 0) {
+            int payload_offset, tmpsz = 0; // payload size
+            char tmpbuf[ZT_MAX_MTU];
+            if(read(fd, tmpbuf, ZT_MAX_MTU) > 0) {
                 // TODO: case for address size mismatch?
-                memcpy(addr, buf, *addrlen);
-                DEBUG_ERROR("addrlen = %d", *addrlen);
-                memcpy(&tmpsz, buf + sizeof(struct sockaddr_storage), sizeof(tmpsz));
+                memcpy(addr, tmpbuf, *addrlen);
+                memcpy(&tmpsz, tmpbuf + sizeof(struct sockaddr_storage), sizeof(tmpsz));
+                char body[2800];
+                payload_offset = sizeof(int) + sizeof(struct sockaddr_storage);
+                memcpy(buf, tmpbuf + payload_offset, ZT_MAX_MTU-payload_offset);
             }
             else {
                 perror("read:\n");

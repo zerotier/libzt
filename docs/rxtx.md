@@ -3,6 +3,13 @@ How Data is Sent and Received by an App using the SDK
 
 *Note: It is not necessary for you to understand anything in this document, this is merely for those curious about the inner workings of the intercept, tap service, stack driver, and network stack.*
 
+
+## Establishing a connection
+
+
+## Acception a connection
+
+
 ## Receiving data
 
 The **tap service** monitors incoming packets, when one destined for us is detected it notifies the **stack driver** via `put()`. Then `pico_rx()` is called, its job is to re-encapsulate the ethernet frame and copy it onto the guarded `pico_frame_rxbuf`. This buffer is guarded because it is accessed via the **tap service** thread and the **network stack** thread.
@@ -46,17 +53,30 @@ read()
 
 ## Sending data
 
-APP_THREAD
- write(): <DATA> ---> fd
+Your app performs a `write()`, `send()`, or `sendto()` call.
 
-SERVICE_THREAD
+```
+write()
+```
+
+The other end of the `AF_UNIX` socket which was written to is monitored by the **tap service** thread. Once data is read from the socket, it will call `phyOnUnixData()` which will copy the buffer contents onto the `Connection`'s `txbuf`. Then `pico_handleWrite()` will be called. The **stack driver** will determine how much of the buffer can safely be sent to the **network stack** (up to `ZT_MAX_MTU` which is currently set at 2800 bytes). A call is made to `pico_socket_write()` which copies the data from the `txbuf` to the `pico_socket`.
+
+```
  I/O loop PhySocket
   phyOnUnixData()
    handleWrite() 
     pico_socket_write(): conn->txbuf ---> conn->picosock
+```
 
-STACK_THREAD
- pico_cb_socket_activity
-  pico_cb_tcp_write()
-   pico_socket_write()
+Periodically a `PICO_SOCK_EV_WR` event will be raised by the **network stack**, this will call `pico_cb_socket_activity()` and ultimately `pico_cb_tcp_write()` where a `pico_socket_write()` call will be made to copy any remaining `txbuf` contents into the stack.
 
+```
+pico_cb_tcp_write()
+```
+
+After some time, the stack will emit an ethernet frame via `pico_eth_send()`, we then copy the frame into the **tap service** where it will then be sent onto the network.
+
+```
+pico_eth_send()
+ tap->_handler()
+```

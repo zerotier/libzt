@@ -1,4 +1,4 @@
-How Data is Sent and Received by an App using the SDK
+Under the Hood
 ======
 
 *Note: It is not necessary for you to understand anything in this document, this is merely for those curious about the inner workings of the intercept, tap service, stack driver, and network stack.*
@@ -6,19 +6,50 @@ How Data is Sent and Received by an App using the SDK
 
 ## Establishing a connection
 
-When your applcation attempts to establish a connection over a socket the following happens:
+When your app attempts to establish a connection over a socket the following happens:
 
-- app calls `socket()`
-- our library's `zt_socket()` is executed instead
--  library establishes an `AF_UNIX` socket connection with the service (this is used to orchestrate communication between the intercept/library and the **tap service**)
-- an `RPC_SOCKET` message is sent to the **tap service**
-- the **tap service** receives the `RPC_SOCKET` message and requests the allocation of a new `Connection` object from the **stack driver** which represents the new socket.
-- the **tap service** then repurposes the socket used for the RPC message and returns its file descriptor to your app for it to use as the new socket.
+Your app requests a socket:
+
+```
+socket()
+```
+
+Our library's implementation of `socket()` is executed instead of the kernel's. We automatically establish an `AF_UNIX` socket connection with the **tap service**. This is how your app will communicate with ZeroTier. An `RPC_SOCKET` message is sent to the **tap service**. The **tap service** receives the `RPC_SOCKET` message and requests the allocation of a new `Connection` object from the **stack driver** which represents the new socket. The **tap service** then repurposes the socket used for the RPC message and returns its file descriptor to your app for it to use as the new socket.
 
 From your app's perspective nothing out of the ordinary has happened. It called `socket()`, and got a file descriptor back.
 
+You app connects to a remote host:
+
+```
+connect()
+```
+
+This time a `RPC_CONNECT` call is sent to the **tap service**, it is unpacked by the **stack driver** in `pico_handleConnect()`. A `pico_socket_connect()` call is made to the **network stack**. Once it establishes a connection (or fails), it sends a return value back to the app.
+
+```
+phyOnUnixData()
+pico_handleConnect()
+pico_socket_connect()
+```
+
+***
+
 ## Acception a connection
 
+Your app places a socket into a listen state:
+
+```
+listen()
+```
+An RPC_LISTEN call is sent to the **tap service** and **stack driver**
+
+You app accepts a connection:
+
+```
+accept()
+```
+
+***
 
 ## Receiving data
 

@@ -1,15 +1,13 @@
-picoTCP Driver
+How Data is Sent and Received by an Application using the SDK
+======
 
+*Note: It is not necessary for you to understand anything in this document, this is merely for those curious about the inner workings of the intercept, tap service, stack driver, and network stack*
 
-### How data is RX'd and TX'd by an application using the SDK. Note, all of this complexity is hidden from you and your app and you don't really even need to know. But just in case you're curious, here it is:
+How data is RX'd and TX'd by an application using the SDK. Note, all of this complexity is hidden from you and your app and you don't really even need to know. But just in case you're curious, here it is:
 
 ## Receiving data
 
----------
-RX Packet
----------
-
-The ZeroTier SDK tap service monitors incoming packets, when one destined for us is detected it notifies the stack driver via `put()`. Then `pico_rx()` is called, its job is re-encapsulate the ethernet frame and copy it onto the RX I/O buffer. This buffer is locked since it is accessed via the tap service thread and the network stack thread.
+The ZeroTier SDK tap service monitors incoming packets, when one destined for us is detected it notifies the stack driver via `put()`. Then `pico_rx()` is called, its job is to re-encapsulate the ethernet frame and copy it onto the RX I/O buffer. This buffer is locked since it is accessed via the tap service thread and the network stack thread.
 
 ```
 SERVICE_THREAD
@@ -39,7 +37,7 @@ After some (more) time, the ZeroTier tap service thread will call `pico_handleRe
 
 ```
 SERVICE_THREAD
-pico_handleRead()
+pico_handleRead()x
  streamSend(): conn->rxbuf --- conn->sock
 ```
 
@@ -49,11 +47,9 @@ pico_handleRead()
 APP_THREAD
  read()
 
+***
 
 ## Sending data
----------
-TX Packet
----------
 
 APP_THREAD
  write(): <DATA> ---> fd

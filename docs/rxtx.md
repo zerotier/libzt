@@ -1,13 +1,11 @@
-How Data is Sent and Received by an Application using the SDK
+How Data is Sent and Received by an App using the SDK
 ======
 
-*Note: It is not necessary for you to understand anything in this document, this is merely for those curious about the inner workings of the intercept, tap service, stack driver, and network stack*
-
-How data is RX'd and TX'd by an application using the SDK. Note, all of this complexity is hidden from you and your app and you don't really even need to know. But just in case you're curious, here it is:
+*Note: It is not necessary for you to understand anything in this document, this is merely for those curious about the inner workings of the intercept, tap service, stack driver, and network stack.*
 
 ## Receiving data
 
-The ZeroTier SDK tap service monitors incoming packets, when one destined for us is detected it notifies the stack driver via `put()`. Then `pico_rx()` is called, its job is to re-encapsulate the ethernet frame and copy it onto the RX I/O buffer. This buffer is locked since it is accessed via the tap service thread and the network stack thread.
+The **tap service** monitors incoming packets, when one destined for us is detected it notifies the **stack driver** via `put()`. Then `pico_rx()` is called, its job is to re-encapsulate the ethernet frame and copy it onto the guarded `pico_frame_rxbuf`. This buffer is guarded because it is accessed via the **tap service** thread and the **network stack** thread.
 
 ```
 SERVICE_THREAD

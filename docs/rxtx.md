@@ -3,10 +3,7 @@ Under the Hood
 
 *Note: It is not necessary for you to understand anything in this document, this is merely for those curious about the inner workings of the intercept, tap service, stack driver, and network stack.*
 
-
-## Establishing a connection
-
-When your app attempts to establish a connection over a socket the following happens:
+## Creating a socket
 
 Your app requests a socket:
 
@@ -18,13 +15,19 @@ Our library's implementation of `socket()` is executed instead of the kernel's. 
 
 From your app's perspective nothing out of the ordinary has happened. It called `socket()`, and got a file descriptor back.
 
+***
+
+## Establishing a connection
+
+When your app attempts to establish a connection over a socket the following happens:
+
 You app connects to a remote host:
 
 ```
 connect()
 ```
 
-This time a `RPC_CONNECT` call is sent to the **tap service**, it is unpacked by the **stack driver** in `pico_handleConnect()`. A `pico_socket_connect()` call is made to the **network stack**. Once it establishes a connection (or fails), it sends a return value back to the app.
+An `RPC_CONNECT` call is sent to the **tap service**, it is unpacked by the **stack driver** in `pico_handleConnect()`. A `pico_socket_connect()` call is made to the **network stack**. Once it establishes a connection (or fails), it sends a return value back to the app.
 
 ```
 phyOnUnixData()
@@ -48,6 +51,10 @@ You app accepts a connection:
 ```
 accept()
 ```
+
+The **network stack** raises a `PICO_SOCK_EV_CONN` event which calls `pico_cb_socket_activity()`. From here we request a new `pico_socket` be created to represent the new connection. This is done via `pico_socket_accept()`. Once we have a valid `pico_socket`, we create an `AF_UNIX` socket pair. We associate one end with the newly-created `pico_socket` via a `Connection` object. And we send the other end of the socket pair to the app.
+
+Out library's implementation of `accept()` will read and return the new file descriptor representing one end of the socket pair. From your app's prespective this is a normal file descriptor.
 
 ***
 

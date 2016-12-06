@@ -1128,6 +1128,6 @@ namespace ZeroTier
                 break;
         }
         DEBUG_ERROR(" closing connection");
-        l->tap->closeConnection(l->conn);
+        l->tap->closeConnection(l->conn->sock);
     }
 }

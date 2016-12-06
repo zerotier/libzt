@@ -126,8 +126,8 @@ namespace ZeroTier {
 		DEBUG_INFO();
 		while(tap->_run)
 		{
-			tap->_phy.poll(25); // in ms
-			usleep(50);
+			tap->_phy.poll(50); // in ms
+			//usleep(50);
 	        tap->picostack->__pico_stack_tick();
 		}
 	}
@@ -144,7 +144,7 @@ namespace ZeroTier {
 	void pico_cb_tcp_read(NetconEthernetTap *tap, struct pico_socket *s)
 	{
 		// TODO: Verify 
-		DEBUG_INFO();
+		// DEBUG_INFO("picosock=%p", s);
 		Connection *conn = tap->getConnection(s);
 		if(conn) {
 			int r;				
@@ -161,7 +161,7 @@ namespace ZeroTier {
 		            r = tap->picostack->__pico_socket_recvfrom(s, conn->rxbuf + (conn->rxsz), ZT_MAX_MTU, (void *)&peer.ip4.addr, &port);
 		            // DEBUG_ATTN("received packet (%d byte) from %08X:%u", r, long_be2(peer.ip4.addr), short_be(port));
 		            tap->_phy.setNotifyWritable(conn->sock, true);
-		            DEBUG_EXTRA("read=%d", r);
+		            //DEBUG_EXTRA("read=%d", r);
 		            if (r > 0)
 		                conn->rxsz += r;
 	        	}
@@ -233,8 +233,8 @@ namespace ZeroTier {
 			if(r) {
 	            conn->rxsz += ZT_MAX_MTU;
 	            memcpy(sz_pos, &r, sizeof(r));
-	            tap->phyOnUnixWritable(conn->sock, NULL, false);
-	            tap->_phy.setNotifyWritable(conn->sock, false);
+	            tap->phyOnUnixWritable(conn->sock, NULL, true);
+	            //tap->_phy.setNotifyWritable(conn->sock, false);
 	        }
         	if (r < 0) {
             	DEBUG_ERROR("unable to read from picosock=%p", s);
@@ -256,9 +256,9 @@ namespace ZeroTier {
 
 		// Only called from a locked context, no need to lock anything
 		if(conn->txsz > 0) {
-			int r = conn->txsz < ZT_MAX_MTU ? conn->txsz : ZT_MAX_MTU;
-			if((r = tap->picostack->__pico_socket_write(s, &conn->txbuf, r)) < 0) {
-				DEBUG_ERROR("unable to write to picosock=%p", (void*)s);
+			int r, max_write_len = conn->txsz < ZT_MAX_MTU ? conn->txsz : ZT_MAX_MTU;
+			if((r = tap->picostack->__pico_socket_write(s, &conn->txbuf, max_write_len)) < 0) {
+				DEBUG_ERROR("unable to write to picosock=%p", s);
 				return;
 			}
 			int sz = (conn->txsz)-r;
@@ -283,12 +283,12 @@ namespace ZeroTier {
         }
         // Accept connection (analogous to lwip_nc_accept)
         if (ev & PICO_SOCK_EV_CONN) {
-            DEBUG_INFO("connection established with server, picosock=%p", (void*)(conn->picosock));
+            DEBUG_INFO("connection established with server, picosock=%p",(conn->picosock));
             uint32_t peer;
 			uint16_t port;
             struct pico_socket *client = picotap->picostack->__pico_socket_accept(s, &peer, &port);
             if(!client) {
-				DEBUG_EXTRA("unable to accept conn. (event might not be incoming, not necessarily an error), picosock=%p", (void*)(conn->picosock));
+				DEBUG_EXTRA("unable to accept conn. (event might not be incoming, not necessarily an error), picosock=%p", (conn->picosock));
 			}
 			ZT_PHY_SOCKFD_TYPE fds[2];
 			if(socketpair(PF_LOCAL, SOCK_STREAM, 0, fds) < 0) {
@@ -308,9 +308,10 @@ namespace ZeroTier {
 			if(sock_fd_write(fd, fds[1]) < 0) {
 				DEBUG_ERROR("error sending new fd to client application");
 			}
+			DEBUG_EXTRA("conn=%p, physock=%p, listen_picosock=%p, new_picosock=%p, fd=%d", newTcpConn, newTcpConn->sock, s, client, fds[1]);
         }
         if (ev & PICO_SOCK_EV_FIN) {
-            DEBUG_INFO("socket closed. exit normally.");
+            DEBUG_INFO("socket closed. exit normally. picosock=%p\n\n", s);
             //picotap->__pico_timer_add(2000, compare_results, NULL);
         }
         if (ev & PICO_SOCK_EV_ERR) {
@@ -318,8 +319,10 @@ namespace ZeroTier {
         }
         if (ev & PICO_SOCK_EV_CLOSE) {
             err = picotap->picostack->__pico_socket_close(s);
-            DEBUG_INFO("socket closure = %d", err);
-            picotap->closeConnection(conn);
+            DEBUG_INFO("socket closure = %d, picosock=%p", err, s);
+            if(err==0) {
+            	picotap->closeConnection(conn->sock);
+            }
             return;
         }
 
@@ -410,7 +413,7 @@ namespace ZeroTier {
 		memcpy(tap->pico_frame_rxbuf + tap->pico_frame_rxbuf_tot + sizeof(newlen) + sizeof(ethhdr), data, len);  // frame data
 		tap->pico_frame_rxbuf_tot += len + sizeof(len) + sizeof(ethhdr);
 		// DEBUG_INFO("RX frame buffer %3f full", (float)pico_frame_rxbuf_tot / (float)(1024 * 1024));
-		DEBUG_INFO("len=%d", len);
+		// DEBUG_INFO("len=%d", len);
 	}
 
 	// Called periodically by the stack, this removes data from the locked memory buffer and feeds it into the stack.
@@ -466,7 +469,7 @@ namespace ZeroTier {
 		}
 
 		if(psock) {
-			DEBUG_ATTN("physock=%p, picosock=%p", sock, (void*)psock);
+			DEBUG_ATTN("physock=%p, picosock=%p", sock, psock);
 			Connection * newConn = new Connection();
 	        *uptr = newConn;
 	        newConn->type = socket_rpc->socket_type;
@@ -500,7 +503,7 @@ namespace ZeroTier {
 
 		int max, r, max_write_len = conn->txsz < ZT_MAX_MTU ? conn->txsz : ZT_MAX_MTU;
 	    if((r = picotap->picostack->__pico_socket_write(conn->picosock, &conn->txbuf, max_write_len)) < 0) {
-	    	DEBUG_ERROR("unable to write to pico_socket(%p), r=%d", (conn->picosock), r);
+	    	DEBUG_ERROR("unable to write to picosock=%p, r=%d", (conn->picosock), r);
 	    	return;
 	    }
 	   
@@ -541,6 +544,7 @@ namespace ZeroTier {
 	    	DEBUG_TRANS("[UDP TX] --->    :: {TX: %.3f%%, RX: %.3f%%, physock=%p} :: %d bytes",
 	    		(float)conn->txsz / (float)max, (float)conn->rxsz / max, conn->sock, r);
 	    }
+	    check_buffer_states(conn);
     }
 
     // Instructs the stack to connect to a remote host
@@ -614,7 +618,7 @@ namespace ZeroTier {
 			ret = picotap->picostack->__pico_socket_bind(conn->picosock, &zaddr, (uint16_t*)&(addr->sin_port));
 		#endif
 		if(ret < 0) {
-			DEBUG_ERROR("unable to bind pico_socket(%p)", (void*)(conn->picosock));
+			DEBUG_ERROR("unable to bind pico_socket(%p), err=%d", (conn->picosock), ret);
 			if(ret == PICO_ERR_EINVAL) {
 				DEBUG_ERROR("PICO_ERR_EINVAL - invalid argument");
 				picotap->sendReturnValue(picotap->_phy.getDescriptor(rpcSock), -1, EINVAL);
@@ -635,12 +639,12 @@ namespace ZeroTier {
     void pico_handleListen(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct listen_st *listen_rpc)
     {
     	Connection *conn = picotap->getConnection(sock);
-    	DEBUG_ATTN("conn = %p", (void*)conn);
+    	DEBUG_ATTN("physock=%p, conn=%p, picosock=%p", sock, conn, conn->picosock);
     	if(!sock || !conn) {
     		DEBUG_ERROR("invalid connection");
     		return;
     	}
-    	int ret, backlog = 1;
+    	int ret, backlog = 100;
     	if((ret = picotap->picostack->__pico_socket_listen(conn->picosock, backlog)) < 0)
     	{
     		if(ret == PICO_ERR_EINVAL) {
@@ -664,12 +668,10 @@ namespace ZeroTier {
     // ----------------------------------------- 
     void pico_handleRead(PhySocket *sock,void **uptr,bool lwip_invoked)
     {
-    	/*
         if(!lwip_invoked) {
             picotap->_tcpconns_m.lock();
-            //picotap->_rx_buf_m.lock(); 
+            picotap->_rx_buf_m.lock(); 
         }
-		*/
 		
     	DEBUG_ATTN();
 		Connection *conn = picotap->getConnection(sock);
@@ -680,7 +682,7 @@ namespace ZeroTier {
 			
 			if(conn->type==SOCK_DGRAM) {
 				n = picotap->_phy.streamSend(conn->sock, conn->rxbuf, ZT_MAX_MTU);
-				DEBUG_EXTRA("SOCK_DGRAM, physock=%p", sock);
+				DEBUG_EXTRA("SOCK_DGRAM, conn=%p, physock=%p", conn, sock);
 				int payload_sz, addr_sz_offset = sizeof(struct sockaddr_storage);
 				memcpy(&payload_sz, conn->rxbuf + addr_sz_offset, sizeof(int));
 				struct sockaddr_storage addr;
@@ -693,7 +695,7 @@ namespace ZeroTier {
 			
 			if(conn->type==SOCK_STREAM) {
 				n = picotap->_phy.streamSend(conn->sock, conn->rxbuf, conn->rxsz);	
-				DEBUG_EXTRA("SOCK_STREAM, physock=%p", sock);
+				DEBUG_EXTRA("SOCK_STREAM, conn=%p, physock=%p, n=%d", conn, sock, n);
 				if(conn->rxsz-n > 0) // If more remains on buffer
 					memcpy(conn->rxbuf, conn->rxbuf+n, conn->rxsz - n);
 			  	conn->rxsz -= n;
@@ -701,22 +703,33 @@ namespace ZeroTier {
 			if(n) {
 				if(conn->type==SOCK_STREAM) {
 	            	DEBUG_TRANS("[TCP RX] <---    :: {TX: %.3f%%, RX: %.3f%%, physock=%p} :: %ld bytes",
-	                	(float)conn->txsz / max, (float)conn->rxsz / max, (void*)conn->sock, n);
+	                	(float)conn->txsz / max, (float)conn->rxsz / max, conn->sock, n);
 	        	}
-	        	picotap->_phy.setNotifyWritable(conn->sock, true);
+	        	if(conn->rxsz == 0) {
+					picotap->_phy.setNotifyWritable(sock, false);
+				}
+				else {
+	        		picotap->_phy.setNotifyWritable(sock, true);	
+				}
 			}
-			if(conn->rxsz == 0) {
-				picotap->_phy.setNotifyWritable(conn->sock, false);
-			}
+			else {
+				picotap->_phy.setNotifyWritable(sock, false);
+			}	
 		}
+		picotap->_phy.whack();
 		check_buffer_states(conn);
+
+		if(!lwip_invoked) {
+            picotap->_tcpconns_m.unlock();
+            picotap->_rx_buf_m.unlock();
+        }
     }
 
     // Closes a pico_socket
-    /*
-    static void pico_handleClose(Connection *conn)
+    void pico_handleClose(PhySocket *sock)
     {
     	DEBUG_INFO();
+    	/*
     	int ret;
     	if(conn && conn->picosock) {
 	    	if((ret = picotap->picostack->__pico_socket_close(conn->picosock)) < 0) {
@@ -726,9 +739,8 @@ namespace ZeroTier {
 	    	return;
     	}
     	DEBUG_ERROR("invalid connection or pico_socket");
+    	*/
     }
-    */
-
 }
 
 #endif // SDK_PICOTCP

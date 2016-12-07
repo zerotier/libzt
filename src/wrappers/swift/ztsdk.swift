@@ -137,7 +137,7 @@ class ZTSDK : NSObject
         while(true) { // politely wait until an address is provided. simulates a blocking call
             var addrbuf = [Int8](count: 16, repeatedValue: 0)
             self.get_ipv4_address(nwid!, &addrbuf)
-            var addr_str:String = String.fromCString(addrbuf)!
+            let addr_str:String = String.fromCString(addrbuf)!
             if(addr_str != "-1.-1.-1.-1/-1") {
                 return zt_connect(Int32(fd), addr.to_sockaddr_in(), UInt32(addr.len()));
             }
@@ -150,7 +150,7 @@ class ZTSDK : NSObject
         while(true) { // politely wait until an address is provided. simulates a blocking call
             var addrbuf = [Int8](count: 16, repeatedValue: 0)
             self.get_ipv4_address(nwid!, &addrbuf)
-            var addr_str:String = String.fromCString(addrbuf)!
+            let addr_str:String = String.fromCString(addrbuf)!
             if(addr_str != "-1.-1.-1.-1/-1") {
                 return zt_bind(Int32(fd), addr.to_sockaddr_in(), UInt32(addr.len()));
             }

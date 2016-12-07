@@ -95,7 +95,7 @@ class ViewController: NSViewController {
     // Connect to remote host on ZeroTier virtual network
     @IBAction func UI_Connect(sender: AnyObject) {
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
-            self.connect_thread = NSThread(target:self, selector:"attempt_connect", object:nil)
+            self.connect_thread = NSThread(target:self, selector:#selector(ViewController.attempt_connect), object:nil)
             self.connect_thread.start()
         });
     }
@@ -134,7 +134,7 @@ class ViewController: NSViewController {
     // Bind a ZeroTier socket
     @IBAction func UI_Bind(sender: AnyObject) {
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
-            self.bind_thread = NSThread(target:self, selector:"attempt_bind", object:nil)
+            self.bind_thread = NSThread(target:self, selector:#selector(ViewController.attempt_bind), object:nil)
             self.bind_thread.start()
         });
     }
@@ -181,7 +181,7 @@ class ViewController: NSViewController {
         {
             sleep(1)
             dispatch_async(dispatch_get_main_queue()) {
-                var str_buf = [Int8](count: 16, repeatedValue: 0)
+                let str_buf = [Int8](count: 16, repeatedValue: 0)
                 print("addr = ", String.fromCString(str_buf))
             }
 
@@ -261,7 +261,7 @@ class ViewController: NSViewController {
         
         // Update UI on RX of data
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), {
-            self.rx_thread = NSThread(target:self, selector:"update_rx", object:nil)
+            self.rx_thread = NSThread(target:self, selector:#selector(ViewController.update_rx), object:nil)
             self.rx_thread.start()
         });
     }

@@ -15,11 +15,13 @@ Our library's implementation of `socket()` is executed instead of the kernel's. 
 
 From your app's perspective nothing out of the ordinary has happened. It called `socket()`, and got a file descriptor back.
 
+
+
+
+
 ***
 
 ## Establishing a connection
-
-When your app attempts to establish a connection over a socket the following happens:
 
 You app connects to a remote host:
 
@@ -35,16 +37,21 @@ pico_handleConnect()
 pico_socket_connect()
 ```
 
+
+
+
+
+
 ***
 
-## Acception a connection
+## Accepting a connection
 
 Your app places a socket into a listen state:
 
 ```
 listen()
 ```
-An RPC_LISTEN call is sent to the **tap service** and **stack driver**
+An `RPC_LISTEN` call is sent to the **tap service** and **stack driver**
 
 You app accepts a connection:
 
@@ -54,7 +61,13 @@ accept()
 
 The **network stack** raises a `PICO_SOCK_EV_CONN` event which calls `pico_cb_socket_activity()`. From here we request a new `pico_socket` be created to represent the new connection. This is done via `pico_socket_accept()`. Once we have a valid `pico_socket`, we create an `AF_UNIX` socket pair. We associate one end with the newly-created `pico_socket` via a `Connection` object. And we send the other end of the socket pair to the app.
 
-Out library's implementation of `accept()` will read and return the new file descriptor representing one end of the socket pair. From your app's prespective this is a normal file descriptor.
+Our library's implementation of `accept()` will read and return the new file descriptor representing one end of the socket pair. From your app's prespective this is a normal file descriptor.
+
+
+
+
+
+
 
 ***
 
@@ -72,22 +85,22 @@ Periodically the **network stack** thread will call `pico_eth_poll()`, this is r
 
 ```
 pico_eth_poll()
- <pico_frame_rxbuf> ---> pico_stack_recv
+ <pico_frame_rxbuf> ---> pico_stack_recv()
 ```
 
 After some time has passed and the **network stack** has processed the incoming frames a `PICO_SOCK_EV_RD` event will be triggered which calls `pico_cb_socket_activity()`, and ultimately `pico_cb_tcp_read()`. This is where we copy the incoming data from the `pico_socket` to the `Connection`'s `rxbuf` (different from `pico_frame_rxbuf`). We then notify the **tap service** that the `PhySocket` (a wrapped file descriptor with one end visible to the application) associated with this `Connection` has data in its `rxbuf` that needs to be written so the app can read it.
 
 ```  
 pico_cb_socket_activity()
-    pico_cb_tcp_read() ---> conn->rxbuf
-    setNotifyWritable=TRUE
+    pico_cb_tcp_read() ---> <rxbuf>
+    setNotifyWritable(TRUE)
 ```
 
 After some (more) time, the **tap service** thread will call `pico_handleRead()`, this will copy the data from the `rxbuf` to the `AF_UNIX` socket which links the service and your application. 
 
 ```
 pico_handleRead()
- streamSend(): conn->rxbuf --- conn->sock
+ streamSend(): <rxbuf> ---> PhySock
 ```
 
 After this point it's up to your application to read the data via a conventional `read()`, `recv()`, or `recvfrom()` call.
@@ -95,6 +108,12 @@ After this point it's up to your application to read the data via a conventional
 ```
 read()
 ```
+
+
+
+
+
+
 
 
 ***
@@ -112,7 +131,7 @@ The other end of the `AF_UNIX` socket which was written to is monitored by the *
 ```
   phyOnUnixData()
    handleWrite() 
-    pico_socket_write(): conn->txbuf ---> conn->picosock
+    pico_socket_write(): <txbuf> ---> picosock
 ```
 
 Periodically a `PICO_SOCK_EV_WR` event will be raised by the **network stack**, this will call `pico_cb_socket_activity()` and ultimately `pico_cb_tcp_write()` where a `pico_socket_write()` call will be made to copy any remaining `txbuf` contents into the stack.

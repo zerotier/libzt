@@ -36,6 +36,7 @@
 #include "pico_dev_tap.h"
 #include "pico_protocol.h"
 #include "pico_socket.h"
+#include "pico_eth.h"
 
 namespace ZeroTier {
 
@@ -79,8 +80,8 @@ namespace ZeroTier {
 			if(ip.isV4())
 			{
 			    struct pico_ip4 ipaddr, netmask;
-			    ipaddr.addr = *((u32_t *)ip.rawIpData());
-			    netmask.addr = *((u32_t *)ip.netmask().rawIpData());
+			    ipaddr.addr = *((uint32_t *)ip.rawIpData());
+			    netmask.addr = *((uint32_t *)ip.netmask().rawIpData());
 			    uint8_t mac[PICO_SIZE_ETH];
 			    picotap->_mac.copyTo(mac, PICO_SIZE_ETH);
 			    DEBUG_ATTN("mac = %s", picotap->_mac.toString().c_str());
@@ -365,16 +366,16 @@ namespace ZeroTier {
    	int pico_eth_send(struct pico_device *dev, void *buf, int len)
     {
         DEBUG_INFO("len=%d", len);
-        struct eth_hdr *ethhdr;
-        ethhdr = (struct eth_hdr *)buf;
+        struct pico_eth_hdr *ethhdr;
+        ethhdr = (struct pico_eth_hdr *)buf;
 
         MAC src_mac;
         MAC dest_mac;
-        src_mac.setTo(ethhdr->src.addr, 6);
-        dest_mac.setTo(ethhdr->dest.addr, 6);
+        src_mac.setTo(ethhdr->saddr, 6);
+        dest_mac.setTo(ethhdr->daddr, 6);
 
         picotap->_handler(picotap->_arg,picotap->_nwid,src_mac,dest_mac,
-            Utils::ntoh((uint16_t)ethhdr->type),0, ((char*)buf) + sizeof(struct eth_hdr),len - sizeof(struct eth_hdr));
+            Utils::ntoh((uint16_t)ethhdr->proto),0, ((char*)buf) + sizeof(struct pico_eth_hdr),len - sizeof(struct pico_eth_hdr));
         return len;
     }
 
@@ -402,11 +403,11 @@ namespace ZeroTier {
 		//}
 
 		// assemble new eth header
-		struct eth_hdr ethhdr;
-		from.copyTo(ethhdr.src.addr, 6);
-		to.copyTo(ethhdr.dest.addr, 6);
-		ethhdr.type = Utils::hton((uint16_t)etherType);
-		int newlen = len+sizeof(struct eth_hdr);
+		struct pico_eth_hdr ethhdr;
+		from.copyTo(ethhdr.saddr, 6);
+		to.copyTo(ethhdr.daddr, 6);
+		ethhdr.proto = Utils::hton((uint16_t)etherType);
+		int newlen = len+sizeof(struct pico_eth_hdr);
 		// 
 		memcpy(tap->pico_frame_rxbuf + tap->pico_frame_rxbuf_tot, &newlen, sizeof(newlen));                      // size of frame
 		memcpy(tap->pico_frame_rxbuf + tap->pico_frame_rxbuf_tot + sizeof(newlen), &ethhdr, sizeof(ethhdr));     // new eth header

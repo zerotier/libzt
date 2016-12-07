@@ -65,13 +65,12 @@ namespace ZeroTier {
         void close() {
 #if defined(__STATIC__LWIP__)
             return;
-#elif defined(__DYNAMIC_LWIP__)
+#elif defined(__DYNAMIC_STACK__)
             dlclose(_libref);
 #endif
         }
 
         //void (*_netif_init)(void);
-
         
         Mutex _lock;        
         Mutex _lock_mem;
@@ -80,34 +79,34 @@ namespace ZeroTier {
         _libref(NULL)
         {
 #if defined(__ANDROID__) || defined(__UNITY_3D__)
-    #define __STATIC_LWIP__
+    #define __STATIC_STACK__
 #elif defined(__linux__)
-    #define __DYNAMIC_LWIP__
+    #define __DYNAMIC_STACK__
     // Dynamically load liblwip.so
     _libref = dlmopen(LM_ID_NEWLM, path, RTLD_NOW);
 #elif defined(__APPLE__)
     #include "TargetConditionals.h"
     #if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
         #include "node/Mutex.hpp"
-        #define __STATIC_LWIP__
+        #define __STATIC_STACK__
         // iOS Simulator or iOS device
         // Do nothing, symbols are statically-linked
     #elif TARGET_OS_MAC && !defined(SDK_BUNDLED)
-        #define __DYNAMIC_LWIP__
+        #define __DYNAMIC_STACK__
         // Dynamically load liblwip.so
         _libref = dlopen(path, RTLD_NOW);
     #else
-        #define __STATIC_LWIP__    
+        #define __STATIC_STACK__    
     #endif
 #endif
             
-#ifdef __STATIC_LWIP__ // Set static references (for use in iOS)
+#ifdef __STATIC_STACK__ // Set static references (for use in iOS)
 
             //_netif_init = (void(*)(void))&netif_init;
 
 #endif
             
-#ifdef __DYNAMIC_LWIP__ // Use dynamically-loaded symbols (for use in normal desktop applications)
+#ifdef __DYNAMIC_STACK__ // Use dynamically-loaded symbols (for use in normal desktop applications)
             
             if(_libref == NULL)
                 DEBUG_ERROR("dlerror(): %s", dlerror());
@@ -124,7 +123,6 @@ namespace ZeroTier {
         }
         
         //inline void __netif_init(void) throw() { Mutex::Lock _l(_lock); _netif_init(); }
-
 };
     
 } // namespace ZeroTier

@@ -268,7 +268,7 @@ namespace ZeroTier {
         void close() {
 #if defined(__STATIC__LWIP__)
             return;
-#elif defined(__DYNAMIC_LWIP__)
+#elif defined(__DYNAMIC_STACK__)
             dlclose(_libref);
 #endif
         }
@@ -334,38 +334,38 @@ namespace ZeroTier {
         _libref(NULL)
         {
 #if defined(__ANDROID__) || defined(__UNITY_3D__)
-    #define __STATIC_LWIP__
+    #define __STATIC_STACK__
 #elif defined(__linux__)
-    #define __DYNAMIC_LWIP__
+    #define __DYNAMIC_STACK__
     // Dynamically load liblwip.so
     _libref = dlmopen(LM_ID_NEWLM, path, RTLD_NOW);
 #elif defined(__APPLE__)
     #include "TargetConditionals.h"
     #if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
         #include "node/Mutex.hpp"
-        #define __STATIC_LWIP__
+        #define __STATIC_STACK__
         // iOS Simulator or iOS device
         // Do nothing, symbols are statically-linked
     #elif TARGET_OS_MAC && !defined(SDK_BUNDLED)
-        #define __DYNAMIC_LWIP__
+        #define __DYNAMIC_STACK__
         // Dynamically load liblwip.so
         _libref = dlopen(path, RTLD_NOW);
     #else
-        #define __STATIC_LWIP__    
+        #define __STATIC_STACK__    
     #endif
 #endif
             
-#ifdef __STATIC_LWIP__ // Set static references (for use in iOS)
+#ifdef __STATIC_STACK__ // Set static references (for use in iOS)
 
             #if defined(SDK_IPV4)
-                        _etharp_output = (err_t(*)(ETHARP_OUTPUT_SIG))&etharp_output;
+                _etharp_output = (err_t(*)(ETHARP_OUTPUT_SIG))&etharp_output;
             #endif
                         
             #if defined(SDK_IPV6)
-                        _nd6_tmr = (void(*)(void))&nd6_tmr;
-                        _netif_ip6_addr_set_state = (void(*)(NETIF_IP6_ADDR_SET_STATE_SIG))&netif_ip6_addr_set_state;
-                        _netif_create_ip6_linklocal_address = (void(*)(NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG))&netif_create_ip6_linklocal_address;
-                        _ethip6_output = (err_t(*)(ETHIP6_OUTPUT_SIG))&ethip6_output;
+                _nd6_tmr = (void(*)(void))&nd6_tmr;
+                _netif_ip6_addr_set_state = (void(*)(NETIF_IP6_ADDR_SET_STATE_SIG))&netif_ip6_addr_set_state;
+                _netif_create_ip6_linklocal_address = (void(*)(NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG))&netif_create_ip6_linklocal_address;
+                _ethip6_output = (err_t(*)(ETHIP6_OUTPUT_SIG))&ethip6_output;
             #endif
             
             _netif_init = (void(*)(void))&netif_init;
@@ -407,7 +407,7 @@ namespace ZeroTier {
 
 #endif
             
-#ifdef __DYNAMIC_LWIP__ // Use dynamically-loaded symbols (for use in normal desktop applications)
+#ifdef __DYNAMIC_STACK__ // Use dynamically-loaded symbols (for use in normal desktop applications)
             
             if(_libref == NULL)
                 DEBUG_ERROR("dlerror(): %s", dlerror());
@@ -473,15 +473,15 @@ namespace ZeroTier {
         }
         
         #if defined(SDK_IPV4)
-                inline struct netif * __netif_add(NETIF_ADD_SIG) throw() { Mutex::Lock _l(_lock); return _netif_add(netif,ipaddr,netmask,gw,state,init,input); }
+            inline struct netif * __netif_add(NETIF_ADD_SIG) throw() { Mutex::Lock _l(_lock); return _netif_add(netif,ipaddr,netmask,gw,state,init,input); }
         #endif
                 
         #if defined(SDK_IPV6)
-                inline struct netif * __netif_add(NETIF_ADD_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _netif_add(netif,state,init,input); }
-                inline void __nd6_tmr(void) throw() { /*DEBUG_STACK();*/ Mutex::Lock _l(_lock); _nd6_tmr(); }
-                inline void __netif_ip6_addr_set_state(NETIF_IP6_ADDR_SET_STATE_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); _netif_ip6_addr_set_state(netif, addr_idx, state);  }
-                inline void __netif_create_ip6_linklocal_address(NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); _netif_create_ip6_linklocal_address(netif, from_mac_48bit); }
-                inline err_t __ethip6_output(ETHIP6_OUTPUT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _ethip6_output(netif,q,ip6addr); }
+            inline struct netif * __netif_add(NETIF_ADD_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _netif_add(netif,state,init,input); }
+            inline void __nd6_tmr(void) throw() { /*DEBUG_STACK();*/ Mutex::Lock _l(_lock); _nd6_tmr(); }
+            inline void __netif_ip6_addr_set_state(NETIF_IP6_ADDR_SET_STATE_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); _netif_ip6_addr_set_state(netif, addr_idx, state);  }
+            inline void __netif_create_ip6_linklocal_address(NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); _netif_create_ip6_linklocal_address(netif, from_mac_48bit); }
+            inline err_t __ethip6_output(ETHIP6_OUTPUT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _ethip6_output(netif,q,ip6addr); }
         #endif
         
         inline void __netif_init(void) throw() { Mutex::Lock _l(_lock); _netif_init(); }

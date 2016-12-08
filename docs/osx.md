@@ -5,25 +5,13 @@ Welcome!
 
 Imagine a flat, encrypted, no-configuration LAN for all of the instances of your OSX app. 
 
-This short tutorial will show you how to enable ZeroTier functionality for your OSX app with little to no code modification. Check out our [ZeroTier SDK](https://www.zerotier.com/blog) page for more info on how the integration works.
-
 ***
 
-## Via Traditional Linking (Everything bundled)
+## Via Traditional Linking (Service and Intercept)
 
- - Use this if you'd like everything included in a single easy-to-use library.
+ - This will allow the interception of traditional socket API calls such as `socket()`, `connect()`, `bind()`, etc.
 
-```
-make osx_shared_lib`
-g++ app.cpp -o app libztosx.so
-./app
-```
-
-## Via Traditional Linking (Service+Intercept model)
-
- - Use this model if you'd like multiple applications to talk to the same ZeroTierSDK service instance. Often the *intercept-model* is used when you don't have access to the source of an app and you'd like to re-direct its network calls.
-
-Example:
+Build against our library:
 
     gcc app.c -o app libztintercept.so
     export ZT_NC_NETWORK=/tmp/sdk-test-home/nc_8056c2e21c000001
@@ -87,4 +75,4 @@ Or, establish a connection:
 
 **Alternative APIs**
 
-CLick [here](../../../../docs/api_discussion.md) to learn more about alternative APIs such as the Intercept and SOCKS5 Proxy.
+Click [here](../../../../docs/api_discussion.md) to learn more about alternative APIs such as the Intercept and SOCKS5 Proxy.

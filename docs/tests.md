@@ -1,5 +1,5 @@
 Testing
-====
+======
 
 To build the API unit tests:
  - `make tests`

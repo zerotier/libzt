@@ -63,7 +63,7 @@ namespace ZeroTier {
         void *_libref;
         
         void close() {
-#if defined(__STATIC__LWIP__)
+#if defined(__STATIC_STACK__)
             return;
 #elif defined(__DYNAMIC_STACK__)
             dlclose(_libref);

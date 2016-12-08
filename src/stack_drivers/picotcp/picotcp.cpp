@@ -678,7 +678,7 @@ namespace ZeroTier {
 		Connection *conn = picotap->getConnection(sock);
 		if(conn && conn->rxsz) {
 			float max = conn->type == SOCK_STREAM ? (float)DEFAULT_TCP_RX_BUF_SZ : (float)DEFAULT_UDP_RX_BUF_SZ;
-			long n = -1;
+			int n = -1;
 			// extract address and payload size info
 			
 			if(conn->type==SOCK_DGRAM) {
@@ -703,7 +703,7 @@ namespace ZeroTier {
 			}
 			if(n) {
 				if(conn->type==SOCK_STREAM) {
-	            	DEBUG_TRANS("[TCP RX] <---    :: {TX: %.3f%%, RX: %.3f%%, physock=%p} :: %ld bytes",
+	            	DEBUG_TRANS("[TCP RX] <---    :: {TX: %.3f%%, RX: %.3f%%, physock=%p} :: %d bytes",
 	                	(float)conn->txsz / max, (float)conn->rxsz / max, conn->sock, n);
 	        	}
 	        	if(conn->rxsz == 0) {

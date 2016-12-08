@@ -430,13 +430,14 @@ void *zts_start_core_service(void *thread_id) {
         DEBUG_INFO("ZTSDK_BUILD_VERSION = %d", ZTSDK_BUILD_VERSION);
     #endif
 
+    char current_dir[MAX_DIR_SZ];
+
     //#if defined(SDK_BUNDLED) && !defined(__ANDROID__)
     //    set_intercept_status(INTERCEPT_DISABLED); // Ignore network calls from ZT service
     //#endif
 
     #if defined(__IOS__)
         // Go to the app's data directory so we can shorten the sun_path we bind to
-        char current_dir[MAX_DIR_SZ];
         getcwd(current_dir, MAX_DIR_SZ);
         std::string targetDir = homeDir; // + "/../../";
         chdir(targetDir.c_str());
@@ -444,7 +445,6 @@ void *zts_start_core_service(void *thread_id) {
     #endif
 
     #if defined(__UNITY_3D__)
-        char current_dir[MAX_DIR_SZ];
         getcwd(current_dir, MAX_DIR_SZ);
         chdir(service_path.c_str());
         homeDir = current_dir; // homeDir shall be current_dir

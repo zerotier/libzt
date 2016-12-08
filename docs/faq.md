@@ -41,17 +41,6 @@ Desktop apps are a bit easier than mobile apps to integrate with ZeroTier and yo
 
 
 
-
-#### I'm not sure which API is best.
- - 
-
-***
-
-
-
-
-
-
 #### How do switch network stacks?
 
 We currently provide a driver for [picoTCP](http://www.picotcp.com/) and [lwIP](http://savannah.nongnu.org/projects/lwip/), and we recommend their useage in that order. Each one has its own pros and cons, if you experience strange behavior it might be worth it to test your app on a different stack. Use `SDK_PICOTCP=1` or `SDK_LWIP=1`. For more info, see: [Network Stacks](network_stacks.md)

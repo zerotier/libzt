@@ -128,6 +128,7 @@
 					7C8BC0371D3348A6001E1B6F = {
 						CreatedOnToolsVersion = 7.3;
 						DevelopmentTeam = 57AG88JR8A;
+						LastSwiftMigration = 0810;
 					};
 				};
 			};
@@ -296,6 +297,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/../../../../src/wrappers/swift/Apple-Bridging-Header.h";
+				SWIFT_VERSION = 2.3;
 			};
 			name = Debug;
 		};
@@ -313,6 +315,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/../../../../src/wrappers/swift/Apple-Bridging-Header.h";
+				SWIFT_VERSION = 2.3;
 			};
 			name = Release;
 		};

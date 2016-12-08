@@ -3,6 +3,23 @@ Under the Hood
 
 *Note: It is not necessary for you to understand anything in this document, this is merely for those curious about the inner workings of the intercept, tap service, stack driver, and network stack.*
 
+In this document we will walk you through what happens when your ZeroTier-enabled app does things like accepting a connection, receiving data, etc. But before we get into specific cases it's worth understanding the three major components which work together to produce this magic: 
+
+ - Intercept Library: Mates to your app and allows us to re-implement classic network calls such as `socket()`, `bind()`, etc
+ - Tap Service / Stack Driver: Mediates communication between the Intercept Library and the Network Stack. 
+ - Network Stack: Handles incoming ethernet frames and generates outgoing frames.
+
+So now that we've clarified what these components do, here's the general idea:
+
+You make a network call, the intercept routes that to our tap service which uses the user-space network stack to generate ethernet frames which is then sent out onto your ZeroTier virtual network.
+
+***
+
+
+
+
+
+
 ## Creating a socket
 
 Your app requests a socket:
@@ -14,12 +31,15 @@ socket()
 Our library's implementation of `socket()` is executed instead of the kernel's. We automatically establish an `AF_UNIX` socket connection with the **tap service**. This is how your app will communicate with ZeroTier. An `RPC_SOCKET` message is sent to the **tap service**. The **tap service** receives the `RPC_SOCKET` message and requests the allocation of a new `Connection` object from the **stack driver** which represents the new socket. The **tap service** then repurposes the socket used for the RPC message and returns its file descriptor to your app for it to use as the new socket.
 
 From your app's perspective nothing out of the ordinary has happened. It called `socket()`, and got a file descriptor back.
-
-
-
-
-
 ***
+
+
+
+
+
+
+
+
 
 ## Establishing a connection
 
@@ -36,13 +56,14 @@ phyOnUnixData()
 pico_handleConnect()
 pico_socket_connect()
 ```
-
-
-
-
-
-
 ***
+
+
+
+
+
+
+
 
 ## Accepting a connection
 
@@ -62,14 +83,14 @@ accept()
 The **network stack** raises a `PICO_SOCK_EV_CONN` event which calls `pico_cb_socket_activity()`. From here we request a new `pico_socket` be created to represent the new connection. This is done via `pico_socket_accept()`. Once we have a valid `pico_socket`, we create an `AF_UNIX` socket pair. We associate one end with the newly-created `pico_socket` via a `Connection` object. And we send the other end of the socket pair to the app.
 
 Our library's implementation of `accept()` will read and return the new file descriptor representing one end of the socket pair. From your app's prespective this is a normal file descriptor.
-
-
-
-
-
-
-
 ***
+
+
+
+
+
+
+
 
 ## Receiving data
 
@@ -108,15 +129,13 @@ After this point it's up to your application to read the data via a conventional
 ```
 read()
 ```
-
-
-
-
-
-
-
-
 ***
+
+
+
+
+
+
 
 ## Sending data
 
@@ -146,3 +165,5 @@ After some time, the **network stack** will emit an ethernet frame via `pico_eth
 pico_eth_send()
  tap->_handler()
 ```
+***
+

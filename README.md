@@ -12,6 +12,11 @@ The general idea is this:
 
 It's as simple as that!
 
+To build everything for your platform, you can start with:
+
+ - On Linux: `make linux SDK_PICOTCP=1 SDK_IPV4=1 SDK_DEBUG=1`
+ - On macOS: `make apple SDK_PICOTCP=1 SDK_IPV4=1 SDK_DEBUG=1`
+
 ***
 
 The SDK couples the ZeroTier core Ethernet virtualization engine with a user-space TCP/IP stack and a carefully-crafted API which intercepts and re-directs network API calls to our service. This allows servers and applications to be used without modification or recompilation. It can be used to run services on virtual networks without elevated privileges, special configuration of the physical host, kernel support, or any other application specific configuration. It's ideal for [containerized applications](../integrations/docker), [games](../integrations/Unity3D), and [desktop/mobile apps](../integrations).

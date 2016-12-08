@@ -5,9 +5,9 @@ Under the Hood
 
 In this document we will walk you through what happens when your ZeroTier-enabled app does things like accepting a connection, receiving data, etc. But before we get into specific cases it's worth understanding the three major components which work together to produce this magic: 
 
- - Intercept Library: Mates to your app and allows us to re-implement classic network calls such as `socket()`, `bind()`, etc
- - Tap Service / Stack Driver: Mediates communication between the Intercept Library and the Network Stack. 
- - Network Stack: Handles incoming ethernet frames and generates outgoing frames.
+ - **Intercept Library**: Mates to your app and allows us to re-implement classic network calls such as `socket()`, `bind()`, etc
+ - **Tap Service / Stack Driver**: Mediates communication between the Intercept Library and the Network Stack. 
+ - **Network Stack**: Handles incoming ethernet frames and generates outgoing frames.
 
 So now that we've clarified what these components do, here's the general idea:
 
@@ -20,7 +20,7 @@ You make a network call, the intercept routes that to our tap service which uses
 
 
 
-## Creating a socket
+### Creating a socket
 
 Your app requests a socket:
 
@@ -41,7 +41,7 @@ From your app's perspective nothing out of the ordinary has happened. It called 
 
 
 
-## Establishing a connection
+### Establishing a connection
 
 You app connects to a remote host:
 
@@ -65,7 +65,7 @@ pico_socket_connect()
 
 
 
-## Accepting a connection
+### Accepting a connection
 
 Your app places a socket into a listen state:
 
@@ -92,7 +92,7 @@ Our library's implementation of `accept()` will read and return the new file des
 
 
 
-## Receiving data
+### Receiving data
 
 The **tap service** monitors incoming packets, when one destined for us is detected it notifies the **stack driver** via `put()`. Then `pico_rx()` is called, its job is to re-encapsulate the ethernet frame and copy it onto the guarded `pico_frame_rxbuf`. This buffer is guarded because it is accessed via the **tap service** thread and the **network stack** thread.
 
@@ -137,7 +137,7 @@ read()
 
 
 
-## Sending data
+### Sending data
 
 Your app performs a `write()`, `send()`, or `sendto()` call.
 

@@ -4,7 +4,7 @@ Testing
 
 
 
-## Unit Tests
+### Unit Tests
 
 To build the API unit tests:
  - `make tests`
@@ -18,19 +18,16 @@ Running `build/tests/test.sh` will execute the automatic API unit tests.
 
 
 
-## Docker Unit Tests
+### Docker Unit Tests
 
 **Running all docker tests**
-Build the docker images:
-`make docker_images`
 
-Run the docker tests from the docker containers
-`make docker_test`
+ - Build the docker images: `make docker_images`
 
-Check the results of the completed tests:
-`make docker_test_check`
+ - Run the docker tests from the docker containers: `make docker_test`
 
-***
+ - Check the results of the completed tests: `make docker_test_check`
+
 Each unit test will temporarily copy all required ZeroTier binaries into its local directory, then build the `sdk_dockerfile` and `monitor_dockerfile`. Once built, each container will be run and perform tests and monitoring specified in `sdk_entrypoint.sh` and `monitor_entrypoint.sh`
 
 Results will be written to the `tests/docker/_results/` directory which is a common shared volume between all containers involved in the test and will be a combination of raw and formatted dumps to files whose names reflect the test performed. In the event of failure, `FAIL.` will be prepended to the result file's name (e.g. `FAIL.my_application_1.0.2.x86_64`), likewise in the event of success, `OK.` will be prepended.

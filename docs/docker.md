@@ -5,13 +5,13 @@ Welcome!
 
 Imagine a flat, encrypted, no-configuration LAN for all of your Docker containers. 
 
-This short tutorial will show you how to enable ZeroTier functionality for your Docker software container with little to no configuration. In this example we aim to build a Docker container with ZeroTier’s Network Container service bundled right in so that it’s effortless to hook any number of your services in the container up to your virtual network. Alternatively, you can check out a docker project directory [here](docker_demo).
+This short tutorial will show you how to enable ZeroTier functionality for your Docker container. In this example we aim to build a Docker container with ZeroTier’s Network Container service bundled right in so that it’s effortless to hook any number of your services in the container up to your virtual network. Alternatively, you can check out a docker project directory [here](docker_demo).
 
 
 **Step 1: Build ZeroTier shared library**
 
-`make linux_shared_lib`
- - For debug output from the SDK, use `make linux_shared_lib SDK_DEBUG=1`, or `make linux_shared_lib ZT_DEBUG=1` to see debug output from the ZeroTier service.
+`make linux_service_and_intercept`
+ - For debug output from the SDK, use `SDK_DEBUG=1`, or `ZT_DEBUG=1` to see debug output from the ZeroTier service.
 
 **Step 2: Build your Docker image**
 

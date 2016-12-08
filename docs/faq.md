@@ -54,7 +54,7 @@ Desktop apps are a bit easier than mobile apps to integrate with ZeroTier and yo
 
 ### How do switch network stacks?
 
-See [Network Stacks](docs/network_stacks.md)
+We currently provide a driver for [picoTCP](http://www.picotcp.com/) and [lwIP](http://savannah.nongnu.org/projects/lwip/), and we recommend their useage in that order. Each one has its own pros and cons, if you experience strange behavior it might be worth it to test your app on a different stack. Use `SDK_PICOTCP=1` or `SDK_LWIP=1`. For more info, see: [Network Stacks](network_stacks.md)
 
 ***
 
@@ -69,7 +69,7 @@ Yes. We think this solution is well suited for low-latency multiplayer games whe
 
 The ZeroTier protocol is inherently P2P and only falls back to a relay in the event that your direct link is interrupted. It's in our best interest to automatically find the quickest route for your data and to *not* handle your data. This has the obvious benefits of reduced latency for your game, but also provides you better security and control of your data and reduces our costs. It seems non-sensical to do it any other way. ZeroTier is not a "cloud" that you send all of your data to.
 
-We've just begun work on a native [Unity 3D](https://unity3d.com/) plugin to enable your Unity app to communicate over ZeroTier networks. You can check out our BETA [here](../integrations/Unity3D)
+We've just begun work on a native [Unity 3D](https://unity3d.com/) plugin to enable your Unity game to communicate over ZeroTier networks. You can check it out [here](../integrations/Unity3D)
 
 ***
 
@@ -91,7 +91,7 @@ We foresee the largest application of the ZeroTier SDK to be embedded devices th
 
 ### Controlling traffic?
 
-**Network Containers are currently all or nothing.** If engaged, the intercept library intercepts all network I/O calls and redirects them through the new path. A network-containerized application cannot communicate over the regular network connection of its host or container or with anything else except other hosts on its ZeroTier virtual LAN. Support for optional "fall-through" to the host IP stack for outgoing connections outside the virtual network and for gateway routes within the virtual network is planned. (It will be optional since in some cases total network isolation might be considered a nice security feature.)
+The SDK's interception of network calls is currently all or nothing. If engaged, the intercept library intercepts all network I/O calls and redirects them through the new path. A network-containerized application cannot communicate over the regular network connection of its host or container or with anything else except other hosts on its ZeroTier virtual LAN. Support for optional "fall-through" to the host IP stack for outgoing connections outside the virtual network and for gateway routes within the virtual network is planned. (It will be optional since in some cases total network isolation might be considered a nice security feature.)
 
 ***
 

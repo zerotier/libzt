@@ -1,4 +1,4 @@
-Under the Hood
+Technical Discussion
 ======
 
 *Note: It is not necessary for you to understand anything in this document, this is merely for those curious about the inner workings of the intercept, tap service, stack driver, and network stack.*

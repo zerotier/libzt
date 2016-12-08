@@ -44,13 +44,12 @@
 #include "Thread.hpp"
 #include "Phy.hpp"
 
-#if defined(SDK_LWIP)
-    #include "lwip.hpp"
-    #include "netif/etharp.h"
-#endif 
+#include "netif/etharp.h"
 
 #include "defs.h"
 #include "rpc.h"
+#include "lwip.hpp"
+// #include "jip.hpp"
 
 #if defined(SDK_PICOTCP)
     #include "picotcp.hpp"
@@ -173,7 +172,7 @@ namespace ZeroTier {
 
 		// lwIP
 		#if defined(SDK_LWIP)
-            netif interface, interface6;
+			netif interface, interface6;
 			lwIP_stack *lwipstack;
 		#endif
 		// jip
@@ -368,7 +367,9 @@ namespace ZeroTier {
 		void closeConnection(PhySocket *sock);
 
 		std::vector<Connection*> _Connections;
+
 		std::map<uint64_t, std::pair<PhySocket*, void*> > jobmap;
+		pid_t rpcCounter;
 
 		Thread _thread;
 		std::string _dev; // path to Unix domain socket

@@ -132,7 +132,7 @@ namespace ZeroTier {
         void *_libref;
         
         void close() {
-#if defined(__STATIC__LWIP__)
+#if defined(__STATIC_STACK__)
             return;
 #elif defined(__DYNAMIC_STACK__)
             dlclose(_libref);
@@ -176,7 +176,7 @@ namespace ZeroTier {
     #define __STATIC_STACK__
 #elif defined(__linux__)
     #define __DYNAMIC_STACK__
-    // Dynamically load liblwip.so
+    // Dynamically load stack library
     _libref = dlmopen(LM_ID_NEWLM, path, RTLD_NOW);
 #elif defined(__APPLE__)
     #include "TargetConditionals.h"
@@ -187,7 +187,7 @@ namespace ZeroTier {
         // Do nothing, symbols are statically-linked
     #elif TARGET_OS_MAC && !defined(SDK_BUNDLED)
         #define __DYNAMIC_STACK__
-        // Dynamically load liblwip.so
+        // Dynamically load stack library
         _libref = dlopen(path, RTLD_NOW);
     #else
         #define __STATIC_STACK__    
@@ -214,7 +214,7 @@ namespace ZeroTier {
             _pico_socket_recvfrom = (int32_t(*)(PICO_SOCKET_RECVFROM_SIG))&pico_socket_recvfrom;
             _pico_socket_open = (struct pico_socket*(*)(PICO_SOCKET_OPEN_SIG))&pico_socket_open;
             _pico_socket_bind = (int(*)(PICO_SOCKET_BIND_SIG))&pico_socket_bind;
-            _pico_socket_connect = (int(*)(PICO_SOCKET_CONNECT_SIG))xt;
+            _pico_socket_connect = (int(*)(PICO_SOCKET_CONNECT_SIG))&pico_socket_connect;
             _pico_socket_listen = (int(*)(PICO_SOCKET_LISTEN_SIG))&pico_socket_listen;
             _pico_socket_read = (int(*)(PICO_SOCKET_READ_SIG))&pico_socket_read;
             _pico_socket_write = (int(*)(PICO_SOCKET_WRITE_SIG))&pico_socket_write;

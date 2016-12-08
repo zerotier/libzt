@@ -17,6 +17,9 @@
 		7C2228D61DCC11B8006A2661 /* lwip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C2228CF1DCC1193006A2661 /* lwip.cpp */; };
 		7C5B40971DCC14E300C43410 /* picotcp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C2228D21DCC11A8006A2661 /* picotcp.cpp */; };
 		7C5B40981DCC14E300C43410 /* lwip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C2228CF1DCC1193006A2661 /* lwip.cpp */; };
+		7C7AF0241DFA1B8600AABE75 /* ManagedRoute.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C0463291DE363BA003E2B0E /* ManagedRoute.cpp */; };
+		7C7AF0251DFA223100AABE75 /* BackgroundResolver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF58E1DBAD10A006585E7 /* BackgroundResolver.cpp */; };
+		7C7AF0261DFA22F300AABE75 /* ethernet.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5851DBACE7E006585E7 /* ethernet.c */; };
 		7C7D52831DBEADD200896C93 /* intercept.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D52791DBEADD200896C93 /* intercept.c */; };
 		7C7D52841DBEADD200896C93 /* proxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D527A1DBEADD200896C93 /* proxy.cpp */; };
 		7C7D52851DBEADD200896C93 /* rpc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D527B1DBEADD200896C93 /* rpc.c */; };
@@ -121,15 +124,6 @@
 		7C969B6B1DB99E8E00BD3F7F /* ip4_addr.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B631DB99E8E00BD3F7F /* ip4_addr.c */; };
 		7C969B6C1DB99E8E00BD3F7F /* ip4_frag.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B641DB99E8E00BD3F7F /* ip4_frag.c */; };
 		7C969B6D1DB99E8E00BD3F7F /* ip4.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B651DB99E8E00BD3F7F /* ip4.c */; };
-		7C969B771DB99E9A00BD3F7F /* dhcp6.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B6E1DB99E9A00BD3F7F /* dhcp6.c */; };
-		7C969B781DB99E9A00BD3F7F /* ethip6.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B6F1DB99E9A00BD3F7F /* ethip6.c */; };
-		7C969B791DB99E9A00BD3F7F /* icmp6.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B701DB99E9A00BD3F7F /* icmp6.c */; };
-		7C969B7A1DB99E9A00BD3F7F /* inet6.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B711DB99E9A00BD3F7F /* inet6.c */; };
-		7C969B7B1DB99E9A00BD3F7F /* ip6_addr.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B721DB99E9A00BD3F7F /* ip6_addr.c */; };
-		7C969B7C1DB99E9A00BD3F7F /* ip6_frag.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B731DB99E9A00BD3F7F /* ip6_frag.c */; };
-		7C969B7D1DB99E9A00BD3F7F /* ip6.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B741DB99E9A00BD3F7F /* ip6.c */; };
-		7C969B7E1DB99E9A00BD3F7F /* mld6.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B751DB99E9A00BD3F7F /* mld6.c */; };
-		7C969B7F1DB99E9A00BD3F7F /* nd6.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B761DB99E9A00BD3F7F /* nd6.c */; };
 		7C969BAE1DB99EC300BD3F7F /* priv in Resources */ = {isa = PBXBuildFile; fileRef = 7C969BA31DB99EC300BD3F7F /* priv */; };
 		7C969BBA1DB99F9E00BD3F7F /* autoip.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B5E1DB99E8E00BD3F7F /* autoip.c */; };
 		7C969BBB1DB99F9E00BD3F7F /* dhcp.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B5F1DB99E8E00BD3F7F /* dhcp.c */; };
@@ -235,6 +229,7 @@
 		7C2228D01DCC1193006A2661 /* lwip.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = lwip.hpp; path = ../../../src/stack_drivers/lwip/lwip.hpp; sourceTree = "<group>"; };
 		7C2228D21DCC11A8006A2661 /* picotcp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = picotcp.cpp; path = ../../../src/stack_drivers/picotcp/picotcp.cpp; sourceTree = "<group>"; };
 		7C2228D31DCC11A8006A2661 /* picotcp.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = picotcp.hpp; path = ../../../src/stack_drivers/picotcp/picotcp.hpp; sourceTree = "<group>"; };
+		7C7AF0231DFA1B5C00AABE75 /* ManagedRoute.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ManagedRoute.cpp; path = ../../../zerotierone/osdep/ManagedRoute.cpp; sourceTree = "<group>"; };
 		7C7D52771DBEADD200896C93 /* debug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = debug.h; path = ../../../src/debug.h; sourceTree = "<group>"; };
 		7C7D52781DBEADD200896C93 /* defs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = defs.h; path = ../../../src/defs.h; sourceTree = "<group>"; };
 		7C7D52791DBEADD200896C93 /* intercept.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = intercept.c; path = ../../../src/intercept.c; sourceTree = "<group>"; };
@@ -613,6 +608,7 @@
 			isa = PBXGroup;
 			children = (
 				7C0463291DE363BA003E2B0E /* ManagedRoute.cpp */,
+				7C7AF0231DFA1B5C00AABE75 /* ManagedRoute.cpp */,
 				7C04632A1DE363BA003E2B0E /* ManagedRoute.hpp */,
 				7CEAF58E1DBAD10A006585E7 /* BackgroundResolver.cpp */,
 				7CEAF5891DBAD0BF006585E7 /* DeferredPackets.cpp */,
@@ -924,8 +920,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7C7AF0261DFA22F300AABE75 /* ethernet.c in Sources */,
+				7C7AF0251DFA223100AABE75 /* BackgroundResolver.cpp in Sources */,
+				7C04632B1DE363BA003E2B0E /* ManagedRoute.cpp in Sources */,
 				7C0463271DE362BD003E2B0E /* json.c in Sources */,
-				7C969B7F1DB99E9A00BD3F7F /* nd6.c in Sources */,
 				7CEAF5531DBAC872006585E7 /* Multicaster.cpp in Sources */,
 				7C2228D41DCC11A8006A2661 /* picotcp.cpp in Sources */,
 				7CEAF50B1DBAC841006585E7 /* PortMapper.cpp in Sources */,
@@ -952,37 +950,28 @@
 				7CEAF5841DBACB3E006585E7 /* OneService.cpp in Sources */,
 				7CEAF5091DBAC841006585E7 /* Http.cpp in Sources */,
 				7C969B6B1DB99E8E00BD3F7F /* ip4_addr.c in Sources */,
-				7C969B791DB99E9A00BD3F7F /* icmp6.c in Sources */,
 				7C969B5C1DB99E7900BD3F7F /* timeouts.c in Sources */,
 				7CEAF50A1DBAC841006585E7 /* OSUtils.cpp in Sources */,
 				7C969B511DB99E7900BD3F7F /* ip.c in Sources */,
 				7C969B551DB99E7900BD3F7F /* pbuf.c in Sources */,
-				7C969B7E1DB99E9A00BD3F7F /* mld6.c in Sources */,
 				7C969B661DB99E8E00BD3F7F /* autoip.c in Sources */,
-				7C969B7B1DB99E9A00BD3F7F /* ip6_addr.c in Sources */,
-				7C969B781DB99E9A00BD3F7F /* ethip6.c in Sources */,
 				7C969B571DB99E7900BD3F7F /* stats.c in Sources */,
 				7C969B4F1DB99E7900BD3F7F /* inet_chksum.c in Sources */,
 				7C969B681DB99E8E00BD3F7F /* etharp.c in Sources */,
 				7CEAF5581DBAC872006585E7 /* Packet.cpp in Sources */,
 				7C969B671DB99E8E00BD3F7F /* dhcp.c in Sources */,
-				7C969B771DB99E9A00BD3F7F /* dhcp6.c in Sources */,
 				7C7D52851DBEADD200896C93 /* rpc.c in Sources */,
 				7C7D52871DBEADD200896C93 /* sockets.c in Sources */,
 				7CEAF5561DBAC872006585E7 /* Node.cpp in Sources */,
 				7C7D52841DBEADD200896C93 /* proxy.cpp in Sources */,
-				7C04632B1DE363BA003E2B0E /* ManagedRoute.cpp in Sources */,
 				7CC003591D1217A1003E68DC /* http_parser.c in Sources */,
 				7C969B6A1DB99E8E00BD3F7F /* igmp.c in Sources */,
 				7C969B5D1DB99E7900BD3F7F /* udp.c in Sources */,
-				7C969B7D1DB99E9A00BD3F7F /* ip6.c in Sources */,
 				7C969B4E1DB99E7900BD3F7F /* dns.c in Sources */,
 				7CEAF55E1DBAC872006585E7 /* SHA512.cpp in Sources */,
 				7CEAF5511DBAC872006585E7 /* IncomingPacket.cpp in Sources */,
 				7C969B501DB99E7900BD3F7F /* init.c in Sources */,
-				7C969B7A1DB99E9A00BD3F7F /* inet6.c in Sources */,
 				7C969B591DB99E7900BD3F7F /* tcp_in.c in Sources */,
-				7C969B7C1DB99E9A00BD3F7F /* ip6_frag.c in Sources */,
 				7CEAF5611DBAC872006585E7 /* Utils.cpp in Sources */,
 				7CEAF4F61DBAC80C006585E7 /* ControlPlane.cpp in Sources */,
 				7CEAF55A1DBAC872006585E7 /* Peer.cpp in Sources */,
@@ -1005,6 +994,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7C7AF0241DFA1B8600AABE75 /* ManagedRoute.cpp in Sources */,
 				7C9D4ED51DF246F200EF20CD /* json.c in Sources */,
 				7C2228D51DCC11B8006A2661 /* picotcp.cpp in Sources */,
 				7C2228D61DCC11B8006A2661 /* lwip.cpp in Sources */,
@@ -1263,6 +1253,9 @@
 					"$(SRCROOT)/../../../zerotierone",
 					"$(SRCROOT)/../../../ext/lwip/src/include/",
 					"$(SRCROOT)/../../../ext/lwip/src/include/ipv4/",
+					"$(SRCROOT)/../../../ext/",
+					"$(SRCROOT)/../../../src",
+					"$(SRCROOT)/../../../src/stack_drivers/lwip/",
 				);
 				INFOPLIST_FILE = ZeroTierSDK_Unity3D_iOS/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
@@ -1270,6 +1263,9 @@
 					"-D__UNITY_3D__",
 					"-DSDK",
 					"-DSDK_DEBUG",
+					"-D__IOS__",
+					"-DSDK_IPV4",
+					"-DSDK_LWIP",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-Unity3D-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1288,12 +1284,18 @@
 					"$(SRCROOT)/../../../zerotierone",
 					"$(SRCROOT)/../../../ext/lwip/src/include/",
 					"$(SRCROOT)/../../../ext/lwip/src/include/ipv4/",
+					"$(SRCROOT)/../../../ext/",
+					"$(SRCROOT)/../../../src",
+					"$(SRCROOT)/../../../src/stack_drivers/lwip/",
 				);
 				INFOPLIST_FILE = ZeroTierSDK_Unity3D_iOS/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
 				OTHER_CFLAGS = (
 					"-D__UNITY_3D__",
 					"-DSDK",
+					"-D__IOS__",
+					"-DSDK_IPV4",
+					"-DSDK_LWIP",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-Unity3D-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";

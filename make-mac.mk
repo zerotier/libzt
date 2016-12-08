@@ -15,6 +15,7 @@ ONE_SERVICE_NAME   = zerotier-one
 ONE_CLI_NAME       = zerotier-cli
 ONE_ID_TOOL_NAME   = zerotier-idtool
 LWIP_LIB_NAME      = liblwip.so
+PICO_LIB_NAME      = libpicotcp.so
 #
 SHARED_LIB         = $(BUILD)/$(SHARED_LIB_NAME)
 INTERCEPT          = $(BUILD)/$(INTERCEPT_NAME)
@@ -23,6 +24,7 @@ ONE_SERVICE        = $(BUILD)/$(ONE_SERVICE_NAME)
 ONE_CLI            = $(BUILD)/$(ONE_CLI_NAME)
 ONE_IDTOOL         = $(BUILD)/$(ONE_IDTOOL_NAME)
 LWIP_LIB           = $(BUILD)/$(LWIP_LIB_NAME)
+PICO_LIB           = $(BUILD)/$(PICO_LIB_NAME)
 #
 LWIP_DIR      = ext/lwip
 PICOTCP_DIR   = ext/picotcp
@@ -186,18 +188,18 @@ osx: osx_app_framework osx_unity3d_bundle osx_shared_lib osx_sdk_service osx_int
 osx_app_framework:
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Release -scheme ZeroTierSDK_OSX build SYMROOT="../../../$(BUILD)/osx_app_framework"
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug -scheme ZeroTierSDK_OSX build SYMROOT="../../../$(BUILD)/osx_app_framework"
-	cp docs/osx_zt_sdk.md $(BUILD)/osx_app_framework/README.md
+	cp docs/osx.md $(BUILD)/osx_app_framework/README.md
 ios_app_framework:
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Release -scheme ZeroTierSDK_iOS build SYMROOT="../../../$(BUILD)/ios_app_framework"
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug -scheme ZeroTierSDK_iOS build SYMROOT="../../../$(BUILD)/ios_app_framework"
-	cp docs/ios_zt_sdk.md $(BUILD)/ios_app_framework/README.md
+	cp docs/ios.md $(BUILD)/ios_app_framework/README.md
 
 
 # Build bundles for Unity integrations
 osx_unity3d_bundle:
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Release -scheme ZeroTierSDK_Unity3D_OSX build SYMROOT="../../../$(BUILD)/osx_unity3d_bundle"
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug -scheme ZeroTierSDK_Unity3D_OSX build SYMROOT="../../../$(BUILD)/osx_unity3d_bundle"
-	cp docs/osx_unity3d_zt_sdk.md $(BUILD)/osx_unity3d_bundle/README.md
+	cp docs/osx_unity3d.md $(BUILD)/osx_unity3d_bundle/README.md
 	chmod 755 $(BUILD)/osx_unity3d_bundle/Debug/ZeroTierSDK_Unity3D_OSX.bundle
 	cp -p -R $(BUILD)/osx_unity3d_bundle/Debug/ZeroTierSDK_Unity3D_OSX.bundle $(INT)/Unity3D/Assets/Plugins
 
@@ -205,7 +207,7 @@ osx_unity3d_bundle:
 ios_unity3d_bundle:
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Release -scheme ZeroTierSDK_Unity3D_iOS build SYMROOT="../../../$(BUILD)/ios_unity3d_bundle"
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug -scheme ZeroTierSDK_Unity3D_iOS build SYMROOT="../../../$(BUILD)/ios_unity3d_bundle"
-	cp docs/ios_unity3d_zt_sdk.md $(BUILD)/ios_unity3d_bundle/README.md
+	cp docs/ios_unity3d.md $(BUILD)/ios_unity3d_bundle/README.md
 
 # 
 simple_app: tests osx_service_and_intercept
@@ -262,7 +264,7 @@ android_jni_lib:
 	-./increment.sh
 	cd $(INT)/android/android_jni_lib/proj; ./gradlew assembleDebug
 	mkdir -p $(BUILD)/android_jni_lib
-	cp docs/android_zt_sdk.md $(BUILD)/android_jni_lib/README.md
+	cp docs/android.md $(BUILD)/android_jni_lib/README.md
 	mv -f $(INT)/android/android_jni_lib/java/libs/* $(BUILD)/android_jni_lib
 	cp -R $(BUILD)/android_jni_lib/* $(INT)/android/example_app/app/src/main/jniLibs
 
@@ -272,22 +274,23 @@ android_jni_lib:
 # -------- TESTING ---------
 # Check for the presence of built frameworks/bundles/libaries
 check:
-	./check.sh $(LWIP_LIB)
-	./check.sh $(INTERCEPT)
-	./check.sh $(ONE_SERVICE)
-	./check.sh $(SDK_SERVICE)
-	./check.sh $(SHARED_LIB)
-	./check.sh $(BUILD)/osx_unity3d_bundle/Debug/ZeroTierSDK_Unity3D_OSX.bundle
-	./check.sh $(BUILD)/osx_app_framework/Debug/ZeroTierSDK_OSX.framework
-	./check.sh $(BUILD)/ios_app_framework/Debug-iphoneos/ZeroTierSDK_iOS.framework
-	./check.sh $(BUILD)/ios_unity3d_bundle/Debug-iphoneos/ZeroTierSDK_Unity3D_iOS.bundle
-	./check.sh $(BUILD)/android_jni_lib/arm64-v8a/libZeroTierOneJNI.so
-	./check.sh $(BUILD)/android_jni_lib/armeabi/libZeroTierOneJNI.so
-	./check.sh $(BUILD)/android_jni_lib/armeabi-v7a/libZeroTierOneJNI.so
-	./check.sh $(BUILD)/android_jni_lib/mips/libZeroTierOneJNI.so
-	./check.sh $(BUILD)/android_jni_lib/mips64/libZeroTierOneJNI.so
-	./check.sh $(BUILD)/android_jni_lib/x86/libZeroTierOneJNI.so
-	./check.sh $(BUILD)/android_jni_lib/x86_64/libZeroTierOneJNI.so
+	-./check.sh $(LWIP_LIB)
+	-./check.sh $(PICO_LIB)
+	-./check.sh $(INTERCEPT)
+	-./check.sh $(ONE_SERVICE)
+	-./check.sh $(SDK_SERVICE)
+	-./check.sh $(SHARED_LIB)
+	-./check.sh $(BUILD)/osx_unity3d_bundle/Debug/ZeroTierSDK_Unity3D_OSX.bundle
+	-./check.sh $(BUILD)/osx_app_framework/Debug/ZeroTierSDK_OSX.framework
+	-./check.sh $(BUILD)/ios_app_framework/Debug-iphoneos/ZeroTierSDK_iOS.framework
+	-./check.sh $(BUILD)/ios_unity3d_bundle/Debug-iphoneos/ZeroTierSDK_Unity3D_iOS.bundle
+	-./check.sh $(BUILD)/android_jni_lib/arm64-v8a/libZeroTierOneJNI.so
+	-./check.sh $(BUILD)/android_jni_lib/armeabi/libZeroTierOneJNI.so
+	-./check.sh $(BUILD)/android_jni_lib/armeabi-v7a/libZeroTierOneJNI.so
+	-./check.sh $(BUILD)/android_jni_lib/mips/libZeroTierOneJNI.so
+	-./check.sh $(BUILD)/android_jni_lib/mips64/libZeroTierOneJNI.so
+	-./check.sh $(BUILD)/android_jni_lib/x86/libZeroTierOneJNI.so
+	-./check.sh $(BUILD)/android_jni_lib/x86_64/libZeroTierOneJNI.so
 
 # Tests
 OSTYPE=$(shell uname -s | tr '[A-Z]' '[a-z]')

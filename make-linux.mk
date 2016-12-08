@@ -15,6 +15,7 @@ ONE_SERVICE_NAME   = zerotier-one
 ONE_CLI_NAME       = zerotier-cli
 ONE_ID_TOOL_NAME   = zerotier-idtool
 LWIP_LIB_NAME      = liblwip.so
+PICO_LIB_NAME      = libpicotcp.so
 #
 SHARED_LIB         = $(BUILD)/$(SHARED_LIB_NAME)
 SDK_INTERCEPT      = $(BUILD)/$(SDK_INTERCEPT_NAME)
@@ -23,6 +24,7 @@ ONE_SERVICE        = $(BUILD)/$(ONE_SERVICE_NAME)
 ONE_CLI            = $(BUILD)/$(ONE_CLI_NAME)
 ONE_IDTOOL         = $(BUILD)/$(ONE_IDTOOL_NAME)
 LWIP_LIB           = $(BUILD)/$(LWIP_LIB_NAME)
+PICO_LIB           = $(BUILD)/$(PICO_LIB_NAME)
 #
 LWIP_DIR      = ext/lwip
 PICOTCP_DIR   = ext/picotcp
@@ -187,7 +189,7 @@ jip:
 
 # --------- LINUX ----------
 # Build everything
-linux: one linux_service_and_intercept 
+linux: one linux_service_and_intercept linux_shared_lib
 
 # Build vanilla ZeroTier One binary
 one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernetTap.o
@@ -294,6 +296,7 @@ docker_check_test:
 # Check for the presence of built frameworks/bundles/libaries
 check:
 	-./check.sh $(LWIP_LIB)
+	-./check.sh $(PICO_LIB)
 	-./check.sh $(SDK_INTERCEPT)
 	-./check.sh $(ONE_SERVICE)
 	-./check.sh $(SDK_SERVICE)

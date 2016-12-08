@@ -38,8 +38,12 @@
 #include <sys/wait.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <net/route.h>
 #include <net/if.h>
+    #ifdef __IOS__
+        #include "/usr/include/net/route.h"
+    #else
+        #include <net/route.h>
+    #endif
 #ifdef __BSD__
 #include <net/if_dl.h>
 #include <sys/sysctl.h>

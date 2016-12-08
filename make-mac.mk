@@ -350,10 +350,12 @@ update_examples:
 # For authors
 # Copies documentation to all of the relevant directories to make viewing in the repo a little easier
 update_docs:
-	cp docs/android_zt_sdk.md integrations/android/README.md
-	cp docs/ios_zt_sdk.md integrations/apple/example_app/iOS/README.md
-	cp docs/osx_zt_sdk.md integrations/apple/example_app/OSX/README.md
+	cp docs/intro.md README.md
+	cp docs/network_stacks.md src/stack_drivers/README.md
 	cp docs/integrations.md integrations/README.md
-	cp docs/zt_sdk_intro.md README.md
-	cp docs/docker_linux_zt_sdk.md integrations/docker/README.md
-	cp docs/osx_unity3d_zt_sdk.md integrations/Unity3D/README.md
+	cp docs/osx.md integrations/apple/example_app/OSX/README.md
+	cp docs/ios.md integrations/apple/example_app/iOS/README.md
+	cp docs/docker.md integrations/docker/README.md
+	cp docs/android.md integrations/android/README.md
+	cp docs/osx_unity3d.md integrations/Unity3D/README.md
+	cp docs/tests.md tests/README.md

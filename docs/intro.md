@@ -14,8 +14,8 @@ It's as simple as that!
 
 To build everything for your platform, you can start with:
 
- - On Linux: `make linux SDK_PICOTCP=1 SDK_IPV4=1 SDK_DEBUG=1`
- - On macOS: `make apple SDK_PICOTCP=1 SDK_IPV4=1 SDK_DEBUG=1`
+ - On Linux: `make linux SDK_PICOTCP=1 SDK_IPV4=1 SDK_DEBUG=1; make -s check; ls -lG build`
+ - On macOS: `make apple SDK_PICOTCP=1 SDK_IPV4=1 SDK_DEBUG=1; make -s check; ls -lG build`
 
 ***
 

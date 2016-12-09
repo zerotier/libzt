@@ -104,6 +104,36 @@ parallel 'centos7': {
             throw err
         }
 
+
+    // ------------------------------------------------------------------------------
+    // ---------------------------- shared library (Linux) --------------------------
+    // ------------------------------------------------------------------------------
+
+
+        try {
+            checkout scm
+            stage('macOS shared lib') {
+                sh 'make shared_lib SDK_PICOTCP=1 SDK_IPV4=1'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
+        try {
+            checkout scm
+            stage('macOS shared lib') {
+                sh 'make shared_lib SDK_PICOTCP=1 SDK_IPV6=1'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
     // ------------------------------------------------------------------------------
     // --------------------------- Intercept Library (Linux) ------------------------
     // ------------------------------------------------------------------------------
@@ -284,6 +314,35 @@ parallel 'centos7': {
             slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on iOS (<${env.BUILD_URL}|Open>)"
             throw err
         }
+    // ------------------------------------------------------------------------------
+    // ----------------------------- shared library (macOS) -------------------------
+    // ------------------------------------------------------------------------------
+
+
+        try {
+            checkout scm
+            stage('macOS shared lib') {
+                sh 'make shared_lib SDK_PICOTCP=1 SDK_IPV4=1'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
+        try {
+            checkout scm
+            stage('macOS shared lib') {
+                sh 'make shared_lib SDK_PICOTCP=1 SDK_IPV6=1'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
 
     // ------------------------------------------------------------------------------
     // --------------------------- Android JNI Lib (macOS) --------------------------

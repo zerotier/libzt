@@ -539,12 +539,12 @@ public:
 			settings.allowGlobal = false;
 			settings.allowDefault = false;
 		}
-
-		EthernetTap *tap;
 		ZT_VirtualNetworkConfig config; // memcpy() of raw config from core
 		std::vector<InetAddress> managedIps;
 		std::list<ManagedRoute> managedRoutes;
 		NetworkSettings settings;
+	public:
+		EthernetTap *tap;
 	};
 	std::map<uint64_t,NetworkState> _nets;
 	Mutex _nets_m;
@@ -1052,11 +1052,13 @@ public:
     	return _homePath;
     }
 
-	virtual std::map< uint64_t,EthernetTap * > getTaps()
-	{
-        std::map< uint64_t,EthernetTap * > _taps;
-		// FIXME: Rewrite for _nets
-    	return _taps;
+    virtual EthernetTap * getTap(uint64_t nwid)
+    {
+		Mutex::Lock _l(_nets_m);
+		std::map<uint64_t,NetworkState>::const_iterator n(_nets.find(nwid));
+		if (n == _nets.end())
+			return NULL;
+		return n->second.tap;
     }
 
 	virtual Node * getNode()

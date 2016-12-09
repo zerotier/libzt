@@ -81,7 +81,7 @@ void zts_init_rpc(const char * path, const char * nwid);
 int zts_start_proxy_server(const char *homepath, const char * nwid, struct sockaddr_storage * addr) {
     DEBUG_INFO();
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
-    ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
+    ZeroTier::NetconEthernetTap * tap = zt1Service->getTap(nwid_int);
     if(tap) {
         if(tap->startProxyServer(homepath, nwid_int, addr) < 0) {
             DEBUG_ERROR("zts_start_proxy_server(%s): Problem while starting server.", nwid);
@@ -95,7 +95,7 @@ int zts_start_proxy_server(const char *homepath, const char * nwid, struct socka
 int zts_stop_proxy_server(const char *nwid) {
     DEBUG_INFO();
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
-    ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
+    ZeroTier::NetconEthernetTap * tap = zt1Service->getTap(nwid_int);
     if(tap) {
         if(tap->stopProxyServer() < 0) {
             DEBUG_ERROR("zts_stop_proxy_server(%s): Problem while stopping server.", nwid);
@@ -113,7 +113,7 @@ bool zts_proxy_is_running(const char *nwid)
 //
 int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage * addr) {
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
-    ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
+    ZeroTier::NetconEthernetTap * tap = zt1Service->getTap(nwid_int);
     if(tap) {
         tap->getProxyServerAddress(addr);
         return 0;
@@ -163,7 +163,7 @@ void zts_stop_service() {
 void zts_get_ipv4_address(const char *nwid, char *addrstr)
 {
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
-    ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
+    ZeroTier::NetconEthernetTap *tap = zt1Service->getTap(nwid_int);
     if(tap && tap->_ips.size()){ 
         for(int i=0; i<tap->_ips.size(); i++) {
             if(tap->_ips[i].isV4()) {
@@ -182,13 +182,13 @@ void zts_get_ipv4_address(const char *nwid, char *addrstr)
 void zts_get_ipv6_address(const char *nwid, char *addrstr)
 {
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
-    ZeroTier::NetconEthernetTap * tap = zt1Service->getTaps()[nwid_int];
+    ZeroTier::NetconEthernetTap *tap = zt1Service->getTap(nwid_int);
     if(tap && tap->_ips.size()){ 
-        for(int i=0; i<tap->_ips.size(); i++){
+        for(int i=0; i<tap->_ips.size(); i++) {
             if(tap->_ips[i].isV6()) {
                 std::string addr = tap->_ips[i].toString();
                 // DEBUG_EXTRA("addr=%s, addrlen=%d", addr.c_str(), addr.length());
-                memcpy(addrstr, addr.c_str(), addr.length()); // first address found that matches protocol version 6
+                memcpy(addrstr, addr.c_str(), addr.length()); // first address found that matches protocol version 4
                 return;
             }
         }

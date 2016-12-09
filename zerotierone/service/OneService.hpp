@@ -181,7 +181,7 @@ public:
 	/*
 	 *
 	 */
-	virtual std::map< uint64_t,EthernetTap * > getTaps() = 0;
+    virtual EthernetTap * getTap(uint64_t nwid) = 0;
 
 	/*
 	 *

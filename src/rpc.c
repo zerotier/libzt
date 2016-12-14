@@ -107,7 +107,7 @@ int get_retval(int rpc_sock)
 
 int load_symbols_rpc()
 {
-#if defined(SDK_BUNDLED) || defined(__IOS__) || defined(__UNITY_3D__)
+#if defined(__IOS__) || defined(__UNITY_3D__)
   realsocket = dlsym(RTLD_NEXT, "socket");
   realconnect = dlsym(RTLD_NOW, "connect");
   if(!realconnect || !realsocket)
@@ -144,7 +144,7 @@ int rpc_join(char * sockname)
     #else
       if((conn_err = connect(sock, (struct sockaddr*)&addr, sizeof(addr))) != 0) {
     #endif
-       DEBUG_ERROR("error connecting to RPC socket. Re-attempting...");
+       DEBUG_ERROR("error connecting to RPC socket (%s). Re-attempting...", sockname);
       usleep(100000);
     }
     else

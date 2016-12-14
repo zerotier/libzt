@@ -91,12 +91,14 @@ pthread_key_t thr_id_key;
     extern void load_symbols()
     {
         DEBUG_EXTRA("");
+
 #if defined(__linux__)
         realaccept4 = dlsym(RTLD_NEXT, "accept4");
     #if !defined(__ANDROID__)
         realsyscall = dlsym(RTLD_NEXT, "syscall");
     #endif
 #endif
+
         realsetsockopt = (int(*)(SETSOCKOPT_SIG))dlsym(RTLD_NEXT, "setsockopt");
         realgetsockopt = (int(*)(GETSOCKOPT_SIG))dlsym(RTLD_NEXT, "getsockopt");
         realsocket = (int(*)(SOCKET_SIG))dlsym(RTLD_NEXT, "socket");

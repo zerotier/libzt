@@ -4,12 +4,16 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h> 
-#include <unistd.h>  
- 
+#include <unistd.h>
+  
+#include <cstdlib>
+#include "sdk.h"
+
 int atoi(const char *str);
 
 int main(int argc , char *argv[])
-{
+{    
+    zts_init_rpc("/root/dev/ztest5","565799d8f612388c");
     if(argc < 2) {
        printf("usage: tcp_server <port>\n");
        return 0;
@@ -22,9 +26,9 @@ int main(int argc , char *argv[])
     int comm_fd;
  
     struct sockaddr_in servaddr;
-        struct sockaddr_in client;
+    struct sockaddr_in client;
 
-    sock = socket(AF_INET, SOCK_STREAM, 0); 
+    sock = zts_socket(AF_INET, SOCK_STREAM, 0); 
     bzero( &servaddr, sizeof(servaddr));
  
     servaddr.sin_family = AF_INET;
@@ -33,11 +37,11 @@ int main(int argc , char *argv[])
     bind(sock, (struct sockaddr *) &servaddr, sizeof(servaddr));
 
     printf("listening\n");
-    listen(sock , 3); 
+    zts_listen(sock , 3); 
     printf("waiting to accept\n");
     c = sizeof(struct sockaddr_in);
     
-    client_sock = accept(sock, (struct sockaddr *)&client, (socklen_t*)&c);
+    client_sock = zts_accept(sock, (struct sockaddr *)&client, (socklen_t*)&c);
     if (client_sock < 0) {
         perror("accept failed");
         return 0;

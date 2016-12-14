@@ -145,9 +145,10 @@ NetconEthernetTap::NetconEthernetTap(
 
 	chmod(sockPath, 0777); // To make the RPC socket available to all users
 
-	DEBUG_INFO("tap initialized on: path=%s", sockPath);
 	if (!_unixListenSocket)
 		DEBUG_ERROR("unable to bind to: path=%s", sockPath);
+	else
+		DEBUG_INFO("tap initialized on: path=%s", sockPath);
      _thread = Thread::start(this);
 }
 

@@ -248,15 +248,10 @@ char *zts_get_homepath() {
 
 
     // ------------------------------------------------------------------------------
-    // ------------------------------  --------------------------
+    // ----------------------------------- Other ------------------------------------
     // ------------------------------------------------------------------------------
     // For use when symbols are used in Swift
 
-// If we're using a bridging header for an Xcode project...
-// This matters because the header/wrapper needs to define symbols
-// for usage in Swift, but in order to maintain API naming consistency
-// between build environments whilst also preventing duplicate symbols
-// we need to check for this case
 
 void zts_start_service(const char *path)
 {
@@ -426,6 +421,11 @@ void zts_start_service(const char *path)
 
 // Starts a ZeroTier service in the background
 void *zts_start_core_service(void *thread_id) {
+
+    #if defined(SDK_BUNDLED)
+        homeDir = std::string((char*)thread_id);
+    #endif
+
     #if defined(__ANDROID__)
         DEBUG_INFO("ZTSDK_BUILD_VERSION = %d", ZTSDK_BUILD_VERSION);
     #endif
@@ -493,14 +493,13 @@ void *zts_start_core_service(void *thread_id) {
         return NULL;
     }
 
-
-
     //chdir(current_dir); // Return to previous current working directory (at the request of Unity3D)
     #if defined(__UNITY_3D__)
         DEBUG_INFO("starting service...");
     #endif
-
+    
     // Initialize RPC 
+    // TODO: remove?
     if(rpcEnabled) {
         zts_init_rpc(localHomeDir.c_str(), rpcNWID.c_str());
     }

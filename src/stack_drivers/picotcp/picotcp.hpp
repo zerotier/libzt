@@ -174,9 +174,12 @@ namespace ZeroTier {
         {
 #if defined(__ANDROID__) || defined(__UNITY_3D__)
     #define __STATIC_STACK__
-#elif defined(__linux__)
+#elif defined(__linux__) && !defined(SDK_BUNDLED)
     #define __DYNAMIC_STACK__
     // Dynamically load stack library
+    _libref = dlmopen(LM_ID_NEWLM, path, RTLD_NOW);
+#elif defined(__linux__) && defined(SDK_BUNDLED) // TODO: Determine why __STATIC_STACK__ won't work in SDK_BUNDLED mode
+    #define __DYNAMIC_STACK__
     _libref = dlmopen(LM_ID_NEWLM, path, RTLD_NOW);
 #elif defined(__APPLE__)
     #include "TargetConditionals.h"

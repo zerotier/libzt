@@ -53,6 +53,8 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include <pthread.h>
+
 #if defined(__linux__)
     #include <linux/errno.h>
     #include <sys/syscall.h>
@@ -62,7 +64,7 @@
 #ifdef __cplusplus
     extern "C" {
 #endif
-    
+
 #if defined(__linux__)
     #define SOCK_MAX (SOCK_PACKET + 1)
 #endif
@@ -84,7 +86,9 @@ int (*realclose)(CLOSE_SIG);
     // ------------------------------------------------------------------------------
     // ---------------------------------- zt_init_rpc -------------------------------
     // ------------------------------------------------------------------------------
-    
+
+    int service_initialized = 0;
+        
     // Assembles (and/or) sets the RPC path for communication with the ZeroTier service
     void zts_init_rpc(const char *path, const char *nwid)
     {
@@ -100,7 +104,7 @@ int (*realclose)(CLOSE_SIG);
             #if defined(SDK_BUNDLED)
                 // Get the path/nwid from the user application
                 // netpath = [path + "/nc_" + nwid] 
-                char *fullpath = malloc(strlen(path)+strlen(nwid)+1+4);
+                char *fullpath = (char *)malloc(strlen(path)+strlen(nwid)+1+4);
                 if(fullpath) {
                     strcpy(fullpath, path);
                     strcat(fullpath, "/nc_");
@@ -115,6 +119,20 @@ int (*realclose)(CLOSE_SIG);
                 }
             #endif
         }
+
+        // start the SDK service if this is bundled
+        #if defined(SDK_BUNDLED)
+            if(!service_initialized) {
+                //api_netpath = "/root/dev/ztest5/nc_565799d8f612388c";
+                DEBUG_ATTN("api_netpath = %s", api_netpath);
+                pthread_t intercept_thread;
+                pthread_create(&intercept_thread, NULL, zts_start_core_service, (void *)(path));
+                service_initialized = 1;
+                DEBUG_ATTN("waiting for service to come online");
+                //while(!zts_service_is_running()) { } 
+                sleep(10);
+            }
+        #endif
     }
 
     void get_api_netpath() { zts_init_rpc("",""); }
@@ -226,7 +244,7 @@ int (*realclose)(CLOSE_SIG);
                 errno = EMSGSIZE; // Message too large to send atomically via underlying protocol, don't send
                 return -1;
             }
-            buf = malloc(tot_len);
+            buf = (char *)malloc(tot_len);
             if(tot_len != 0 && buf == NULL) {
                 errno = ENOMEM; // Unable to allocate space for message
                 return -1;
@@ -236,7 +254,7 @@ int (*realclose)(CLOSE_SIG);
                 memcpy(p, iov[i].iov_base, iov[i].iov_len);
                 p += iov[i].iov_len;
             }
-            err = sendto(fd, buf, tot_len, flags, msg->msg_name, msg->msg_namelen);
+            //err = sendto(fd, buf, tot_len, flags, msg->msg_name, msg->msg_namelen);
             free(buf);
             return err;
         }
@@ -315,12 +333,12 @@ int (*realclose)(CLOSE_SIG);
             
             for(int i = 0; i < msg->msg_iovlen; ++i)
                 tot_len += iov[i].iov_len;
-            buf = malloc(tot_len);
+            buf = (char *)malloc(tot_len);
             if(tot_len != 0 && buf == NULL) {
                 errno = ENOMEM;
                 return -1;
             }
-            n = err = recvfrom(fd, buf, tot_len, flags, msg->msg_name, &msg->msg_namelen);
+            //n = err = recvfrom(fd, buf, tot_len, flags, msg->msg_name, &msg->msg_namelen);
             p = buf;
             
             // According to: http://pubs.opengroup.org/onlinepubs/009695399/functions/recvmsg.html
@@ -446,7 +464,7 @@ int (*realclose)(CLOSE_SIG);
 #endif
 
 #ifdef DYNAMIC_LIB
-    int zts_socket(SOCKET_SIG)
+    int zt_socket(SOCKET_SIG)
 #else
     int zts_socket(SOCKET_SIG)
 #endif
@@ -612,7 +630,6 @@ int (*realclose)(CLOSE_SIG);
     {
         get_api_netpath();
         DEBUG_INFO("fd=%d", fd);
-    // FIXME: Find a better solution for this before production
     #if !defined(__UNITY_3D__)
         if(addr)
             addr->sa_family = AF_INET;

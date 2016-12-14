@@ -97,12 +97,6 @@ namespace ZeroTier {
     void pico_cb_udp_read(NetconEthernetTap *tap, struct pico_socket *s);
     void pico_cb_tcp_write(NetconEthernetTap *tap, struct pico_socket *s);
     void pico_cb_socket_activity(uint16_t ev, struct pico_socket *s);
-    
-    /*
-    void pico_cb_udp(uint16_t ev, struct pico_socket *s);
-    void pico_cb_udp_write(NetconEthernetTap *tap, struct pico_socket *s);
-    void pico_cb_udp_read(NetconEthernetTap *tap, struct pico_socket *s);
-    */
 
     int pico_eth_send(struct pico_device *dev, void *buf, int len);
     void pico_rx(NetconEthernetTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);

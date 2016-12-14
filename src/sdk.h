@@ -117,6 +117,7 @@ void zts_leave_network(const char * nwid);
 // void zts_get_addresses(const char * nwid, char * addrstr);
 void zts_get_ipv4_address(const char *nwid, char *addrstr);
 void zts_get_ipv6_address(const char *nwid, char *addrstr);
+bool zts_has_address(const char *nwid);
 int zts_get_device_id();
 bool zts_is_relayed();
 char *zts_get_homepath();

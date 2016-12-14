@@ -123,14 +123,14 @@ int (*realclose)(CLOSE_SIG);
         // start the SDK service if this is bundled
         #if defined(SDK_BUNDLED)
             if(!service_initialized) {
-                //api_netpath = "/root/dev/ztest5/nc_565799d8f612388c";
                 DEBUG_ATTN("api_netpath = %s", api_netpath);
                 pthread_t intercept_thread;
                 pthread_create(&intercept_thread, NULL, zts_start_core_service, (void *)(path));
                 service_initialized = 1;
-                DEBUG_ATTN("waiting for service to come online");
-                //while(!zts_service_is_running()) { } 
-                sleep(10);
+                DEBUG_ATTN("waiting for service to assign address to network stack");
+                // wait for zt service to assign the network stack an address
+                sleep(1);
+                while(!zts_has_address(nwid)) { }
             }
         #endif
     }

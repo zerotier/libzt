@@ -160,6 +160,19 @@ void zts_stop_service() {
 // Now only returns first assigned address per network. Shouldn't normally be a problem.
 
 // Get IPV4 Address for this device on given network
+
+bool zts_has_address(const char *nwid)
+{
+    char ipv4_addr[64], ipv6_addr[64];
+    zts_get_ipv4_address(nwid, ipv4_addr);
+    zts_get_ipv6_address(nwid, ipv6_addr);
+    if(!strcmp(ipv4_addr, "-1.-1.-1.-1/-1") && !strcmp(ipv4_addr, "-1.-1.-1.-1/-1")) {
+        return false;
+    }
+    return true;
+}
+
+
 void zts_get_ipv4_address(const char *nwid, char *addrstr)
 {
     uint64_t nwid_int = strtoull(nwid, NULL, 16);

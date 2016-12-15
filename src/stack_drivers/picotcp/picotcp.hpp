@@ -171,9 +171,11 @@ namespace ZeroTier {
 #elif defined(__linux__) && !defined(SDK_BUNDLED)
     #define __DYNAMIC_STACK__
     // Dynamically load stack library
+    DEBUG_ATTN("loading network stack library (%s)", path);
     _libref = dlmopen(LM_ID_NEWLM, path, RTLD_NOW);
 #elif defined(__linux__) && defined(SDK_BUNDLED) // TODO: Determine why __STATIC_STACK__ won't work in SDK_BUNDLED mode
     #define __DYNAMIC_STACK__
+    DEBUG_ATTN("loading network stack library (%s)", path);
     _libref = dlmopen(LM_ID_NEWLM, path, RTLD_NOW);
 #elif defined(__APPLE__)
     #include "TargetConditionals.h"
@@ -185,9 +187,12 @@ namespace ZeroTier {
     #elif TARGET_OS_MAC && !defined(SDK_BUNDLED)
         #define __DYNAMIC_STACK__
         // Dynamically load stack library
+        DEBUG_ATTN("loading network stack library (%s)", path);
         _libref = dlopen(path, RTLD_NOW);
     #else
-        #define __STATIC_STACK__    
+        #define __DYNAMIC_STACK__   // should be switched to __STATIC_STACK__
+        DEBUG_ATTN("loading network stack library (%s)", path);
+        _libref = dlopen(path, RTLD_NOW);  
     #endif
 #endif
             

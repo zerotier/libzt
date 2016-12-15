@@ -48,7 +48,7 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/socket.h>
+//#include <sys/socket.h>
 #include <sys/poll.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -254,7 +254,15 @@ int (*realclose)(CLOSE_SIG);
                 memcpy(p, iov[i].iov_base, iov[i].iov_len);
                 p += iov[i].iov_len;
             }
-            //err = sendto(fd, buf, tot_len, flags, msg->msg_name, msg->msg_namelen);
+            #if defined(__cplusplus)
+                #if defined(__APPLE__)
+                    err = sendto(fd, buf, tot_len, flags, (const struct sockaddr *)(msg->msg_name), msg->msg_namelen);
+                #elif defined (__linux__)
+                    err = sendto(fd, buf, tot_len, flags, (__CONST_SOCKADDR_ARG)(msg->msg_name), msg->msg_namelen);
+                #endif
+            #else
+                err = sendto(fd, buf, tot_len, flags, msg->msg_name, msg->msg_namelen);
+            #endif
             free(buf);
             return err;
         }
@@ -303,7 +311,6 @@ int (*realclose)(CLOSE_SIG);
                 // TODO: case for address size mismatch?
                 memcpy(addr, tmpbuf, *addrlen);
                 memcpy(&tmpsz, tmpbuf + sizeof(struct sockaddr_storage), sizeof(tmpsz));
-                char body[2800];
                 payload_offset = sizeof(int) + sizeof(struct sockaddr_storage);
                 memcpy(buf, tmpbuf + payload_offset, ZT_MAX_MTU-payload_offset);
             }
@@ -338,7 +345,15 @@ int (*realclose)(CLOSE_SIG);
                 errno = ENOMEM;
                 return -1;
             }
-            //n = err = recvfrom(fd, buf, tot_len, flags, msg->msg_name, &msg->msg_namelen);
+            #if defined(__cplusplus)
+                #if defined(__APPLE__)
+                    n = err = recvfrom(fd, buf, tot_len, flags, (struct sockaddr * __restrict)(msg->msg_name), &msg->msg_namelen);
+                #elif defined(__linux__)
+                    n = err = recvfrom(fd, buf, tot_len, flags, (__SOCKADDR_ARG)(msg->msg_name), &msg->msg_namelen);
+                #endif
+            #else
+                n = err = recvfrom(fd, buf, tot_len, flags, msg->msg_name, &msg->msg_namelen);
+            #endif
             p = buf;
             
             // According to: http://pubs.opengroup.org/onlinepubs/009695399/functions/recvmsg.html

@@ -222,13 +222,16 @@ linux_service_and_intercept: linux_intercept linux_sdk_service
 
 # Builds a single shared library which contains everything
 linux_shared_lib: pico $(OBJS)
-	$(CXX) $(CXXFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -DSDK_DEBUG -DSDK_PICOTCP -DSDK_IPV4 $(PICO_DRIVER_FILES) $(SDK_INTERCEPT_C_FILES) $(SDK_SERVICE_CPP_FILES) src/service.cpp -c 
-	ar -rcs libzt.a picotcp.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o OneService.o $(OBJS)
+	$(CXX) $(CXXFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED $(PICO_DRIVER_FILES) $(SDK_INTERCEPT_C_FILES) $(SDK_SERVICE_CPP_FILES) src/service.cpp -c 
+	ar -rcs build/libzt.a picotcp.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o OneService.o $(OBJS)
 
-# Builds zt-embedded tests
+# Builds zts_* library tests
 linux_shared_lib_tests:
-	$(CXX) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -DSDK_DEBUG -DSDK_PICOTCP -DSDK_IPV4 $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) -Isrc tests/api_test/zt_tcpserver4.c -o zt_tcpserver4.out -L. -lzt -ldl
-	$(CXX) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -DSDK_DEBUG -DSDK_PICOTCP -DSDK_IPV4 -DSDK_DEBUG $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) -Isrc tests/api_test/zt_tcpclient4.c -o zt_tcpclient4.out -L. -lzt -ldl
+	mkdir -p $(TEST_OBJDIR)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.tcpserver4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.tcpserver4.out -Lbuild -lzt -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.tcpclient4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.tcpclient4.out -Lbuild -lzt -ldl
+
+
 
 # -------- ANDROID ---------
 # TODO: CHECK if ANDROID/GRADLE TOOLS are installed

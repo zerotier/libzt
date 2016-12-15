@@ -140,7 +140,6 @@ NetconEthernetTap::NetconEthernetTap(
 		Utils::snprintf(stackPath,sizeof(stackPath),"%s%slibjip.so",homePath,ZT_PATH_SEPARATOR_S);
 		jipstack = new jip_stack(stackPath);
 	#endif
-
 	_unixListenSocket = _phy.unixListen(sockPath,(void *)this);
 
 	chmod(sockPath, 0777); // To make the RPC socket available to all users

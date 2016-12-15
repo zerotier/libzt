@@ -2,7 +2,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
  
@@ -25,7 +24,7 @@ int main(int argc , char *argv[])
    
     int sock, port = atoi(argv[2]);
     struct sockaddr_in server;
-    char message[MSG_SZ] , server_reply[MSG_SZ];
+    char server_reply[MSG_SZ];
      
     sock = zts_socket(AF_INET , SOCK_STREAM , 0);
     if (sock == -1) {

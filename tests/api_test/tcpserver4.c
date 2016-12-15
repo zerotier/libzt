@@ -15,14 +15,11 @@ int main(int argc , char *argv[])
        return 0;
     }
 
-    int sock, client_sock, c, read_size, port = atoi(argv[1]);
+    int comm_fd, sock, client_sock, c, read_size, port = atoi(argv[1]);
     char client_message[2000];
-     
-    char str[100];
-    int comm_fd;
- 
+
     struct sockaddr_in servaddr;
-        struct sockaddr_in client;
+    struct sockaddr_in client;
 
     sock = socket(AF_INET, SOCK_STREAM, 0); 
     bzero( &servaddr, sizeof(servaddr));

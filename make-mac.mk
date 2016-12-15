@@ -37,9 +37,9 @@ SDK_SERVICE_CPP_FILES:=src/tap.cpp \
 					    $(ZT1)/one.cpp 
 
 SDK_SERVICE_C_FILES = src/rpc.c
-SDK_INTERCEPT_C_FILES:=sockets.c \
-						intercept.c \
-						rpc.c
+SDK_INTERCEPT_C_FILES:=src/sockets.c \
+						src/intercept.c \
+						src/rpc.c
 
 ZTFLAGS:=-DSDK -DZT_ONE_NO_ROOT_CHECK
 
@@ -221,18 +221,9 @@ remove_only_intermediates:
 	-find . -type f \( -name '*.o' -o -name '*.so' \) -delete
 
 
-# Builds a single shared library which contains everything
-ifeq ($(SDK_LWIP),1)
-osx_shared_lib: lwip $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(INCLUDES) $(ZTFLAGS) -DSDK_INTERCEPT -shared -o $(SHARED_LIB) $(OBJS) $(LWIP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
-else
-osx_shared_lib: pico $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(INCLUDES) $(ZTFLAGS) -DSDK_INTERCEPT -shared -o $(SHARED_LIB) $(OBJS) $(PICO_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
-endif
-
 osx_intercept:
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
-	cd src ; gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o ../$(INTERCEPT) $(SDK_INTERCEPT_C_FILES) -ldl
+	gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o $(INTERCEPT) $(SDK_INTERCEPT_C_FILES) -ldl
 
 
 # Build only the SDK service
@@ -249,6 +240,18 @@ endif
 
 # Build both intercept library and SDK service (separate)
 osx_service_and_intercept: osx_intercept osx_sdk_service
+
+# Builds a single shared library which contains everything
+osx_shared_lib: pico $(OBJS)
+	$(CXX) $(CXXFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED $(PICO_DRIVER_FILES) $(SDK_INTERCEPT_C_FILES) $(SDK_SERVICE_CPP_FILES) src/service.cpp -c 
+	libtool -static -o build/libzt.a zerotierone/node/IncomingPacket.o picotcp.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o OneService.o $(OBJS)
+
+# Builds zts_* library tests
+osx_shared_lib_tests:
+	mkdir -p $(TEST_OBJDIR)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.tcpserver4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.tcpserver4.out -Lbuild -lzt -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.tcpclient4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.tcpclient4.out -Lbuild -lzt -ldl
+
 
 
 

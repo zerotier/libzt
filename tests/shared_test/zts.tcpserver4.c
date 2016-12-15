@@ -2,7 +2,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <arpa/inet.h> 
 #include <unistd.h>
   
@@ -21,9 +20,6 @@ int main(int argc , char *argv[])
 
     int sock, client_sock, c, read_size, port = atoi(argv[1]);
     char client_message[2000];
-     
-    char str[100];
-    int comm_fd;
  
     struct sockaddr_in servaddr;
     struct sockaddr_in client;
@@ -34,7 +30,7 @@ int main(int argc , char *argv[])
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = htons(INADDR_ANY);
     servaddr.sin_port = htons(port);
-    bind(sock, (struct sockaddr *) &servaddr, sizeof(servaddr));
+    zts_bind(sock, (struct sockaddr *) &servaddr, sizeof(servaddr));
 
     printf("listening\n");
     zts_listen(sock , 3); 

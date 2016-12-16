@@ -1,4 +1,4 @@
-// TCP Client test program
+// TCP Client test program (IPV4)
 
 #include <stdio.h>
 #include <string.h>
@@ -15,12 +15,11 @@ int close(int filedes);
 
 int main(int argc , char *argv[])
 {
-    zts_init_rpc("/root/dev/ztest5","565799d8f612388c");
-
     if(argc < 3) {
-        printf("usage: client <addr> <port>\n");
+        printf("usage: client <addr> <port> <netpath> <nwid>\n");
         return 1;
     }
+    zts_init_rpc(argv[3],argv[4]);
    
     int sock, port = atoi(argv[2]);
     struct sockaddr_in server;

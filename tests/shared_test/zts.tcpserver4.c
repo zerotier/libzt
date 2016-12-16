@@ -1,4 +1,4 @@
-// TCP Server test program
+// TCP Server test program (IPV4)
 
 #include <stdio.h>
 #include <string.h>
@@ -12,11 +12,11 @@ int atoi(const char *str);
 
 int main(int argc , char *argv[])
 {    
-    zts_init_rpc("/root/dev/ztest5","565799d8f612388c");
-    if(argc < 2) {
-       printf("usage: tcp_server <port>\n");
-       return 0;
+    if(argc < 3) {
+        printf("usage: client <port> <netpath> <nwid>\n");
+        return 1;
     }
+    zts_init_rpc(argv[2],argv[3]);
 
     int sock, client_sock, c, read_size, port = atoi(argv[1]);
     char client_message[2000];

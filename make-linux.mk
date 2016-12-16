@@ -7,6 +7,30 @@
 #   tests: build only test applications for host system
 #   clean: removes all built files, objects, other trash
 
+# Build everything
+all: one linux android lwip pico check
+
+# ------------------------------------------------------------------------------
+# ----------------------------------- Config -----------------------------------
+# ------------------------------------------------------------------------------
+
+# Automagically pick clang or gcc, with preference for clang
+# This is only done if we have not overridden these with an environment or CLI variable
+ifeq ($(origin CC),default)
+	CC=$(shell if [ -e /usr/bin/clang ]; then echo clang; else echo gcc; fi)
+endif
+ifeq ($(origin CXX),default)
+	CXX=$(shell if [ -e /usr/bin/clang++ ]; then echo clang++; else echo g++; fi)
+endif
+
+INCLUDES=
+DEFS=
+ARCH_FLAGS=-arch x86_64
+CFLAGS=
+CXXFLAGS=$(CFLAGS) -fno-rtti
+
+include objects.mk
+
 # Target output filenames
 SHARED_LIB_NAME    = libztlinux.so
 SDK_INTERCEPT_NAME = libztintercept.so
@@ -41,27 +65,30 @@ SDK_INTERCEPT_C_FILES:=src/sockets.c \
 						src/intercept.c \
 						src/rpc.c
 
-ZTFLAGS:=-DZT_ONE_NO_ROOT_CHECK -DSDK
+INCLUDES+= -Iext \
+	-I$(ZT1)/osdep \
+	-I$(ZT1)/node \
+	-I$(ZT1)/service \
+	-I../$(ZT1)/osdep \
+	-I../$(ZT1)/node \
+	-I../$(ZT1)/service \
+	-I. \
+	-Isrc \
+	-Isrc/stack_drivers
 
+# ------------------------------------------------------------------------------
+# --------------------------------- ZT Config ----------------------------------
+# ------------------------------------------------------------------------------
 
-# Automagically pick clang or gcc, with preference for clang
-# This is only done if we have not overridden these with an environment or CLI variable
-ifeq ($(origin CC),default)
-	CC=$(shell if [ -e /usr/bin/clang ]; then echo clang; else echo gcc; fi)
-endif
-ifeq ($(origin CXX),default)
-	CXX=$(shell if [ -e /usr/bin/clang++ ]; then echo clang++; else echo g++; fi)
-endif
+ZTFLAGS:=-DSDK -DZT_ONE_NO_ROOT_CHECK
 
-#UNAME_M=$(shell $(CC) -dumpmachine | cut -d '-' -f 1)
+# Disable codesign since open source users will not have ZeroTier's certs
+CODESIGN=echo
+PRODUCTSIGN=echo
+CODESIGN_APP_CERT=
+CODESIGN_INSTALLER_CERT=
 
-INCLUDES?=
-DEFS?=
-LDLIBS?=
-CFLAGS=
-
-include objects.mk
-
+# Debug output for ZeroTier service
 ifeq ($(ZT_DEBUG),1)
 	DEFS+=-DZT_TRACE
 	CFLAGS+=-Wall -g -pthread $(INCLUDES) $(DEFS)
@@ -81,63 +108,46 @@ else
 	STRIP+=--strip-all
 endif
 
-# Debug output for ZeroTier service
-ifeq ($(ZT_TRACE),1)
-	DEFS+=-DZT_TRACE
+# ------------------------------------------------------------------------------
+# -------------------------------- SDK Config ----------------------------------
+# ------------------------------------------------------------------------------
+
+# Debug output for the SDK
+# Specific levels can be controlled in src/debug.h
+ifeq ($(SDK_DEBUG),1)
+	DEFS+=-DSDK_DEBUG -g
 endif
 
-CXXFLAGS+=-std=c++11
-
-INCLUDES+= -Iext \
-	-I$(ZT1)/osdep \
-	-I$(ZT1)/node \
-	-I$(ZT1)/service \
-	-I../$(ZT1)/osdep \
-	-I../$(ZT1)/node \
-	-I../$(ZT1)/service \
-	-I. \
-	-Isrc \
-	-Isrc/stack_drivers \
-	-I$(LWIP_DIR)/src/include \
-	-I$(LWIP_DIR)/src/include/ipv4 \
-	-I$(LWIP_DIR)/src/include/ipv6 \
-	-I$(PICOTCP_DIR)/include \
-	-I$(PICOTCP_DIR)/build/include \
-	-Isrc/stack_drivers/lwip \
-	-Isrc/stack_drivers/picotcp \
-	-Isrc/stack_drivers/jip
-
-
-
-# Stack selection / parameters
-
-# lwIP debug
-ifeq ($(SDK_LWIP_DEBUG),1)
-	LWIP_FLAGS+=SDK_LWIP_DEBUG=1
-endif
-
-# picoTCP debug
-ifeq ($(SDK_PICOTCP_DEBUG),1)
-	PICOTCP_FLAGS+=DEBUG=1
-else
-	PICOTCP_FLAGS+=DEBUG=0
-endif
+# ------------------------------------------------------------------------------
+# ------------------------ Network Stack Configuration -------------------------
+# ------------------------------------------------------------------------------
 
 # lwIP
 ifeq ($(SDK_LWIP),1)
 	STACK_FLAGS+=-DSDK_LWIP
+	INCLUDES+= -I$(LWIP_DIR)/src/include \
+		-I$(LWIP_DIR)/src/include/ipv4 \
+		-I$(LWIP_DIR)/src/include/ipv6 \
+		-Isrc/stack_drivers/lwip
+
+	ifeq ($(SDK_LWIP_DEBUG),1)
+		LWIP_FLAGS+=SDK_LWIP_DEBUG=1
+	endif
 endif
 
 # picoTCP
 ifeq ($(SDK_PICOTCP),1)
 	STACK_FLAGS+=-DSDK_PICOTCP
+	INCLUDES+= -I$(PICOTCP_DIR)/include \
+		-I$(PICOTCP_DIR)/build/include \
+		-Isrc/stack_drivers/picotcp
 endif
 
 # jip
 ifeq ($(SDK_JIP),1)
 	STACK_FLAGS+=-DSDK_JIP
+	INCLUDES+= -Isrc/stack_drivers/jip
 endif
-
 
 
 # TCP protocol version
@@ -151,89 +161,86 @@ ifeq ($(SDK_IPV6),1)
 	STACK_FLAGS+=-DSDK_IPV6 
 endif
 
-
-
-# Debug output for the SDK
-# Specific levels can be controlled in src/debug.h
-ifeq ($(SDK_DEBUG),1)
-	DEFS+=-DSDK_DEBUG -g
-endif
-# Log debug chatter to file, path is determined by environment variable ZT_SDK_LOGFILE
-ifeq ($(SDK_DEBUG_LOG_TO_FILE),1)
-	DEFS+=-DSDK_DEBUG_LOG_TO_FILE
-endif
-
-
-# ------ MISC TARGETS ------
-
-all: remove_only_intermediates linux_shared_lib check
-
-remove_only_intermediates:
-	-find . -type f \( -name '*.o' -o -name '*.so' \) -delete
-
-
-# --- EXTERNAL LIBRARIES ---
 lwip:
-	mkdir -p build
 	-make -f make-liblwip.mk $(LWIP_FLAGS)
 
 pico:
 	mkdir -p build
-	cd ext/picotcp; make lib $(SDK_PICOTCP_FLAGS) PICO_SUPPORT_UDP=1 ARCH=shared IPV4=1 IPV6=1
+	cd ext/picotcp; make lib ARCH=shared IPV4=1 IPV6=1
 	$(CC) -g -nostartfiles -shared -o ext/picotcp/build/lib/libpicotcp.so ext/picotcp/build/lib/*.o ext/picotcp/build/modules/*.o
 	cp ext/picotcp/build/lib/libpicotcp.so build/libpicotcp.so
 
 jip:
 	-make -f make-jip.mk $(JIP_FLAGS)
 
+# ------------------------------------------------------------------------------
+# ---------------------------------- Linux -------------------------------------
+# ------------------------------------------------------------------------------
 
-# --------- LINUX ----------
 # Build everything
 linux: one linux_service_and_intercept linux_shared_lib
 
 # Build vanilla ZeroTier One binary
 one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernetTap.o
 	mkdir -p $(BUILD)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $(BUILD)/zerotier-one $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernetTap.o $(LDLIBS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $(BUILD)/zerotier-one $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernetTap.o
 	$(STRIP) $(ONE_SERVICE)
 	cp $(ONE_SERVICE) $(INT)/docker/docker_demo/$(ONE_SERVICE_NAME)
+
+	# ---------------------------------------
+	# --------------- Intercept -------------
+	# ---------------------------------------
 
 # Build only the intercept library
 linux_intercept:
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
 	gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o $(SDK_INTERCEPT) $(SDK_INTERCEPT_C_FILES) -ldl
 
+	# ---------------------------------------
+	# ----- Service Library Combinations ----
+	# ---------------------------------------
+
 # Build only the SDK service
 ifeq ($(SDK_LWIP),1)
 linux_sdk_service: lwip $(OBJS)
 	mkdir -p build
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -o $(SDK_SERVICE) $(OBJS) $(LWIP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -o $(SDK_SERVICE) $(OBJS) $(LWIP_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) -ldl
 else
 linux_sdk_service: pico $(OBJS)
 	mkdir -p build
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -o $(SDK_SERVICE) $(OBJS) $(PICO_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) $(LDLIBS) -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -o $(SDK_SERVICE) $(OBJS) $(PICO_DRIVER_FILES) $(SDK_SERVICE_CPP_FILES) $(SDK_SERVICE_C_FILES) -ldl
 endif
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-cli
 	ln -sf $(SDK_SERVICE_NAME) $(BUILD)/zerotier-idtool
-
 
 # Build both intercept library and SDK service (separate)
 linux_service_and_intercept: linux_intercept linux_sdk_service
 
 # Builds a single shared library which contains everything
-linux_shared_lib: pico $(OBJS)
+linux_static_lib: pico $(OBJS)
 	$(CXX) $(CXXFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED $(PICO_DRIVER_FILES) $(SDK_INTERCEPT_C_FILES) $(SDK_SERVICE_CPP_FILES) src/service.cpp -c 
 	ar -rcs build/libzt.a picotcp.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o OneService.o $(OBJS)
 
 # Builds zts_* library tests
-linux_shared_lib_tests:
+linux_static_lib_tests:
 	mkdir -p $(TEST_OBJDIR)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.tcpserver4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.tcpserver4.out -Lbuild -lzt -ldl
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.tcpclient4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.tcpclient4.out -Lbuild -lzt -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.tcpserver6.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.tcpserver6.out -Lbuild -lzt -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.tcpclient6.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.tcpclient6.out -Lbuild -lzt -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.udpserver4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.udpserver4.out -Lbuild -lzt -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.udpclient4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.udpclient4.out -Lbuild -lzt -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.udpserver6.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.udpserver6.out -Lbuild -lzt -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.udpclient6.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.udpclient6.out -Lbuild -lzt -ldl
 
+# ------------------------------------------------------------------------------
+# --------------------------------- Android ------------------------------------
+# ------------------------------------------------------------------------------
 
+# Build all Android targets
+# Chip architectures can be specified in integrations/android/android_jni_lib/java/jni/Application.mk
+android: android_jni_lib
 
-# -------- ANDROID ---------
 # TODO: CHECK if ANDROID/GRADLE TOOLS are installed
 # Build library for Android Unity integrations
 # Build JNI library for Android app integration
@@ -244,10 +251,9 @@ android_jni_lib:
 	mv -f $(INT)/android/android_jni_lib/java/libs/* $(BUILD)/android_jni_lib
 	cp -R $(BUILD)/android_jni_lib/* $(INT)/android/example_app/app/src/main/jniLibs
 
-
-
-
-# -------- TESTING ---------
+# ------------------------------------------------------------------------------
+# ---------------------------------- Testing -----------------------------------
+# ------------------------------------------------------------------------------
 
 unit_test: one linux_service_and_intercept
 	mkdir -p $(BUILD)
@@ -317,28 +323,27 @@ TEST_OBJDIR := $(BUILD)/tests
 TEST_SOURCES := $(wildcard tests/api_test/*.c)
 TEST_TARGETS := $(addprefix $(BUILD)/tests/$(OSTYPE).,$(notdir $(TEST_SOURCES:.c=.out)))
 
+LIB_TEST_SOURCES := $(wildcard tests/shared_test/*.c)
+LIB_TEST_TARGETS := $(addprefix $(BUILD)/tests/$(OSTYPE).,$(notdir $(LIB_TEST_SOURCES:.c=.out)))
+
 $(BUILD)/tests/$(OSTYPE).%.out: tests/api_test/%.c
 	-$(CC) $(CC_FLAGS) -o $@ $<
+
+$(BUILD)/tests/$(OSTYPE).%.out: tests/shared_test/%.c
+	#-$(CC) $(CC_FLAGS) -o $@ $<
+	-$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.tcpserver4.c -Lbuild -lzt -ldl -o $@ $<
 
 $(TEST_OBJDIR):
 	mkdir -p $(TEST_OBJDIR)
 
 tests: $(TEST_OBJDIR) $(TEST_TARGETS)
 	mkdir -p $(BUILD)/tests; 
-	mkdir -p build/tests/zerotier
 
 test_suite: tests lwip linux_service_and_intercept
-	cp tests/api_test/test.sh $(BUILD)/tests/test.sh
-	cp tests/api_test/servers.sh $(BUILD)/tests/servers.sh
-	cp tests/api_test/clients.sh $(BUILD)/tests/clients.sh
-	cp tests/cleanup.sh $(BUILD)/tests/cleanup.sh
-	cp $(LWIP_LIB) $(BUILD)/tests/zerotier/$(LWIP_LIB_NAME)
 
-shared_lib_tests:
-	mkdir -p $(BUILD)/tests;
-	-$(CC) $(CC_FLAGS) -Isrc tests/api_test/zt_tcpserver4.c -o $(BUILD)/tests/zt_tcpserver4.out $(BUILD)/libztlinux.so
-
-# ----- ADMINISTRATIVE -----
+# ------------------------------------------------------------------------------
+# ------------------------------ Administrative --------------------------------
+# ------------------------------------------------------------------------------
 
 clean_android:
 	# android JNI lib project

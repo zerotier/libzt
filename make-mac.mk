@@ -184,11 +184,11 @@ one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/OSXEthernetTa
 ios: ios_app_framework ios_unity3d_bundle
 
 # Build all OSX targets
-osx: osx_app_framework osx_unity3d_bundle osx_shared_lib osx_sdk_service osx_intercept
+osx: osx_app_framework osx_unity3d_bundle osx_sdk_service osx_intercept
 
-	# ---------------------------------------
-	# ----------- App Frameworks ------------
-	# ---------------------------------------
+# ---------------------------------------
+# ----------- App Frameworks ------------
+# ---------------------------------------
 
 # TODO: CHECK if XCODE TOOLS are installed
 # Build frameworks for application development
@@ -202,9 +202,9 @@ ios_app_framework:
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug -scheme ZeroTierSDK_iOS build SYMROOT="../../../$(BUILD)/ios_app_framework"
 	cp docs/ios.md $(BUILD)/ios_app_framework/README.md
 
-	# ---------------------------------------
-	# ------------ Unity Bundles ------------
-	# ---------------------------------------
+# ---------------------------------------
+# ------------ Unity Bundles ------------
+# ---------------------------------------
 
 # Build bundles for Unity integrations
 osx_unity3d_bundle:
@@ -219,17 +219,17 @@ ios_unity3d_bundle:
 	cd $(INT)/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug -scheme ZeroTierSDK_Unity3D_iOS build SYMROOT="../../../$(BUILD)/ios_unity3d_bundle"
 	cp docs/ios_unity3d.md $(BUILD)/ios_unity3d_bundle/README.md
 
-	# ---------------------------------------
-	# --------------- Intercept -------------
-	# ---------------------------------------
+# ---------------------------------------
+# --------------- Intercept -------------
+# ---------------------------------------
 
 osx_intercept:
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
 	gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o $(SDK_INTERCEPT) $(SDK_INTERCEPT_C_FILES) -ldl
 
-	# ---------------------------------------
-	# ----- Service Library Combinations ----
-	# ---------------------------------------
+# ---------------------------------------
+# ----- Service Library Combinations ----
+# ---------------------------------------
 
 # Build only the SDK service
 ifeq ($(SDK_LWIP),1)
@@ -245,9 +245,15 @@ endif
 # Build both intercept library and SDK service (separate)
 osx_service_and_intercept: osx_intercept osx_sdk_service
 
+ifeq ($(SDK_LWIP),1)
+osx_static_lib: lwip $(OBJS)
+	$(CXX) $(CXXFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED $(LWIP_DRIVER_FILES) $(SDK_INTERCEPT_C_FILES) $(SDK_SERVICE_CPP_FILES) src/service.cpp -c 
+	libtool -static -o build/libzt.a lwip.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o OneService.o $(OBJS)
+else
 osx_static_lib: pico $(OBJS)
 	$(CXX) $(CXXFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED $(PICO_DRIVER_FILES) $(SDK_INTERCEPT_C_FILES) $(SDK_SERVICE_CPP_FILES) src/service.cpp -c 
 	libtool -static -o build/libzt.a picotcp.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o OneService.o $(OBJS)
+endif
 
 # Builds zts_* library tests
 osx_static_lib_tests: 

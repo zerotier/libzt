@@ -107,7 +107,7 @@ namespace ZeroTier
 
             #if defined(LWIP_IPV6)
                 #define DISCOVERY_INTERVAL 1000
-            #elif
+            #elif defined(LWIP_IPV4)
                 #define DISCOVERY_INTERVAL ARP_TMR_INTERVAL
             #endif
 

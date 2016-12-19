@@ -106,14 +106,14 @@ parallel 'centos7': {
 
 
     // ------------------------------------------------------------------------------
-    // ---------------------------- shared library (Linux) --------------------------
+    // ---------------------------- static library (Linux) --------------------------
     // ------------------------------------------------------------------------------
 
 
         try {
             checkout scm
             stage('macOS shared lib') {
-                sh 'make linux_shared_lib SDK_PICOTCP=1 SDK_IPV4=1'
+                sh 'make linux_static_lib SDK_PICOTCP=1 SDK_IPV4=1'
             }
         }
         catch (err) {
@@ -125,7 +125,7 @@ parallel 'centos7': {
         try {
             checkout scm
             stage('macOS shared lib') {
-                sh 'make linux_shared_lib SDK_PICOTCP=1 SDK_IPV6=1'
+                sh 'make linux_static_lib SDK_PICOTCP=1 SDK_IPV6=1'
             }
         }
         catch (err) {
@@ -315,14 +315,14 @@ parallel 'centos7': {
             throw err
         }
     // ------------------------------------------------------------------------------
-    // ----------------------------- shared library (macOS) -------------------------
+    // ----------------------------- static library (macOS) -------------------------
     // ------------------------------------------------------------------------------
 
 
         try {
             checkout scm
             stage('macOS shared lib') {
-                sh 'make osx_shared_lib SDK_PICOTCP=1 SDK_IPV4=1'
+                sh 'make osx_static_lib SDK_PICOTCP=1 SDK_IPV4=1'
             }
         }
         catch (err) {
@@ -334,7 +334,7 @@ parallel 'centos7': {
         try {
             checkout scm
             stage('macOS shared lib') {
-                sh 'make osx_shared_lib SDK_PICOTCP=1 SDK_IPV6=1'
+                sh 'make osx_static_lib SDK_PICOTCP=1 SDK_IPV6=1'
             }
         }
         catch (err) {

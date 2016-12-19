@@ -187,18 +187,18 @@ one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernet
 	$(STRIP) $(ONE_SERVICE)
 	cp $(ONE_SERVICE) $(INT)/docker/docker_demo/$(ONE_SERVICE_NAME)
 
-	# ---------------------------------------
-	# --------------- Intercept -------------
-	# ---------------------------------------
+# ---------------------------------------
+# --------------- Intercept -------------
+# ---------------------------------------
 
 # Build only the intercept library
 linux_intercept:
 	# Use gcc not clang to build standalone intercept library since gcc is typically used for libc and we want to ensure maximal ABI compatibility
 	gcc $(DEFS) $(INCLUDES) -g -O2 -Wall -std=c99 -fPIC -DVERBOSE -D_GNU_SOURCE -DSDK_INTERCEPT -nostdlib -nostdlib -shared -o $(SDK_INTERCEPT) $(SDK_INTERCEPT_C_FILES) -ldl
 
-	# ---------------------------------------
-	# ----- Service Library Combinations ----
-	# ---------------------------------------
+# ---------------------------------------
+# ----- Service Library Combinations ----
+# ---------------------------------------
 
 # Build only the SDK service
 ifeq ($(SDK_LWIP),1)

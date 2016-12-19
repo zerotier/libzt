@@ -44,12 +44,13 @@
 #include "Thread.hpp"
 #include "Phy.hpp"
 
-#include "netif/etharp.h"
-
 #include "defs.h"
 #include "rpc.h"
-#include "lwip.hpp"
-// #include "jip.hpp"
+ 
+#if defined(SDK_LWIP)
+	#include "netif/etharp.h"
+ 	#include "lwip.hpp"
+#endif
 
 #if defined(SDK_PICOTCP)
     #include "picotcp.hpp"

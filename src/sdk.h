@@ -52,8 +52,6 @@
     #include <jni.h>
 #endif
 
-#include "build.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -121,13 +119,6 @@ bool zts_has_address(const char *nwid);
 int zts_get_device_id();
 bool zts_is_relayed();
 char *zts_get_homepath();
-
-// ZT Intercept/RPC Controls
-// TODO: Remove any?
-//void set_intercept_status(int mode); // TODO: Rethink this
-//void init_service(int key, const char * path);
-//void init_service_and_rpc(int key, const char * path, const char * nwid);
-//void init_intercept(int key);
 
 int zts_socket(SOCKET_SIG);
 int zts_connect(CONNECT_SIG);
@@ -204,7 +195,7 @@ ssize_t zts_recvmsg(RECVMSG_SIG);
 
 
 // Prototypes for redefinition of syscalls
-// - Implemented in SDK_Intercept.c
+// - Implemented in intercept.c
 #if defined(SDK_INTERCEPT)
 	int socket(SOCKET_SIG);
 	int connect(CONNECT_SIG);

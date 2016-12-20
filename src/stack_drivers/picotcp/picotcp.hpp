@@ -137,7 +137,6 @@ namespace ZeroTier {
         void (*_pico_stack_tick)(void);
         int (*_pico_string_to_ipv4)(PICO_STRING_TO_IPV4_SIG);
         int (*_pico_ipv4_to_string)(PICO_IPV4_TO_STRING_SIG);
-        struct pico_device* (*_pico_tap_create)(PICO_TAP_CREATE_SIG); 
         int (*_pico_ipv4_link_add)(PICO_IPV4_LINK_ADD_SIG);
         int (*_pico_device_init)(PICO_DEVICE_INIT_SIG);
         int32_t (*_pico_stack_recv)(PICO_STACK_RECV_SIG);
@@ -200,7 +199,6 @@ namespace ZeroTier {
 
             _pico_stack_init = (void(*)(void))&pico_stack_init;
             _pico_stack_tick = (void(*)(void))&pico_stack_tick;
-            _pico_tap_create = (struct pico_device*(*)(PICO_TAP_CREATE_SIG))&pico_tap_create;
             _pico_string_to_ipv4 = (int(*)(PICO_STRING_TO_IPV4_SIG))&pico_string_to_ipv4;
             _pico_ipv4_to_string = (int(*)(PICO_IPV4_TO_STRING_SIG))&pico_ipv4_to_string;
             _pico_ipv4_link_add = (int(*)(PICO_IPV4_LINK_ADD_SIG))&pico_ipv4_link_add;
@@ -234,7 +232,6 @@ namespace ZeroTier {
 
             _pico_stack_init = (void(*)(void))dlsym(_libref, "pico_stack_init");
             _pico_stack_tick = (void(*)(void))dlsym(_libref, "pico_stack_tick");
-            _pico_tap_create = (struct pico_device*(*)(PICO_TAP_CREATE_SIG))dlsym(_libref, "pico_tap_create");
             _pico_string_to_ipv4 = (int(*)(PICO_STRING_TO_IPV4_SIG))dlsym(_libref, "pico_string_to_ipv4");
             _pico_ipv4_to_string = (int(*)(PICO_IPV4_TO_STRING_SIG))dlsym(_libref, "pico_ipv4_to_string");
             _pico_ipv4_link_add = (int(*)(PICO_IPV4_LINK_ADD_SIG))dlsym(_libref, "pico_ipv4_link_add");
@@ -270,7 +267,6 @@ namespace ZeroTier {
         
         inline void __pico_stack_init(void) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); _pico_stack_init(); }
         inline void __pico_stack_tick(void) throw() { /*DEBUG_STACK();*/ Mutex::Lock _l(_lock); _pico_stack_tick(); }
-        inline struct pico_device * __pico_tap_create(PICO_TAP_CREATE_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _pico_tap_create(name); }
         inline int __pico_ipv4_to_string(PICO_IPV4_TO_STRING_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _pico_ipv4_to_string(ipbuf, ip); }
         inline int __pico_ipv4_link_add(PICO_IPV4_LINK_ADD_SIG) throw() { DEBUG_STACK(); /*Mutex::Lock _l(_lock);*/ return _pico_ipv4_link_add(dev, address, netmask); }
         inline int __pico_device_init(PICO_DEVICE_INIT_SIG) throw() { DEBUG_STACK(); Mutex::Lock _l(_lock); return _pico_device_init(dev, name, mac); }

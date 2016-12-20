@@ -164,6 +164,7 @@ public:
 
 #else // not __WINDOWS__
 
+		/*
 		struct ifaddrs *ifatbl = (struct ifaddrs *)0;
 		struct ifaddrs *ifa;
 		if ((getifaddrs(&ifatbl) == 0)&&(ifatbl)) {
@@ -188,6 +189,7 @@ public:
 			}
 			freeifaddrs(ifatbl);
 		}
+		*/
 
 #endif
 

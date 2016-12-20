@@ -32,7 +32,7 @@ CXXFLAGS=$(CFLAGS) -fno-rtti
 include objects.mk
 
 # Target output filenames
-SHARED_LIB_NAME    = libztlinux.so
+STATIC_LIB_NAME    = libzt.a
 SDK_INTERCEPT_NAME = libztintercept.so
 SDK_SERVICE_NAME   = zerotier-sdk-service
 ONE_SERVICE_NAME   = zerotier-one
@@ -41,7 +41,7 @@ ONE_ID_TOOL_NAME   = zerotier-idtool
 LWIP_LIB_NAME      = liblwip.so
 PICO_LIB_NAME      = libpicotcp.so
 #
-SHARED_LIB         = $(BUILD)/$(SHARED_LIB_NAME)
+STATIC_LIB         = $(BUILD)/$(STATIC_LIB_NAME)
 SDK_INTERCEPT      = $(BUILD)/$(SDK_INTERCEPT_NAME)
 SDK_SERVICE        = $(BUILD)/$(SDK_SERVICE_NAME)
 ONE_SERVICE        = $(BUILD)/$(ONE_SERVICE_NAME)
@@ -178,7 +178,7 @@ jip:
 # ------------------------------------------------------------------------------
 
 # Build everything
-linux: one linux_service_and_intercept linux_shared_lib
+linux: one linux_service_and_intercept linux_static_lib
 
 # Build vanilla ZeroTier One binary
 one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/LinuxEthernetTap.o
@@ -216,10 +216,10 @@ endif
 # Build both intercept library and SDK service (separate)
 linux_service_and_intercept: linux_intercept linux_sdk_service
 
-# Builds a single shared library which contains everything
+# Builds a single static library which contains everything
 linux_static_lib: pico $(OBJS)
 	$(CXX) $(CXXFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED $(PICO_DRIVER_FILES) $(SDK_INTERCEPT_C_FILES) $(SDK_SERVICE_CPP_FILES) src/service.cpp -c 
-	ar -rcs build/libzt.a picotcp.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o OneService.o $(OBJS)
+	ar -rcs build/libzt.a picotcp.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o $(OBJS)
 
 # Builds zts_* library tests
 linux_static_lib_tests:
@@ -308,7 +308,7 @@ check:
 	-./check.sh $(SDK_INTERCEPT)
 	-./check.sh $(ONE_SERVICE)
 	-./check.sh $(SDK_SERVICE)
-	-./check.sh $(SHARED_LIB)
+	-./check.sh $(STATIC_LIB)
 	-./check.sh $(BUILD)/android_jni_lib/arm64-v8a/libZeroTierOneJNI.so
 	-./check.sh $(BUILD)/android_jni_lib/armeabi/libZeroTierOneJNI.so
 	-./check.sh $(BUILD)/android_jni_lib/armeabi-v7a/libZeroTierOneJNI.so
@@ -323,15 +323,8 @@ TEST_OBJDIR := $(BUILD)/tests
 TEST_SOURCES := $(wildcard tests/api_test/*.c)
 TEST_TARGETS := $(addprefix $(BUILD)/tests/$(OSTYPE).,$(notdir $(TEST_SOURCES:.c=.out)))
 
-LIB_TEST_SOURCES := $(wildcard tests/shared_test/*.c)
-LIB_TEST_TARGETS := $(addprefix $(BUILD)/tests/$(OSTYPE).,$(notdir $(LIB_TEST_SOURCES:.c=.out)))
-
 $(BUILD)/tests/$(OSTYPE).%.out: tests/api_test/%.c
 	-$(CC) $(CC_FLAGS) -o $@ $<
-
-$(BUILD)/tests/$(OSTYPE).%.out: tests/shared_test/%.c
-	#-$(CC) $(CC_FLAGS) -o $@ $<
-	-$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.tcpserver4.c -Lbuild -lzt -ldl -o $@ $<
 
 $(TEST_OBJDIR):
 	mkdir -p $(TEST_OBJDIR)

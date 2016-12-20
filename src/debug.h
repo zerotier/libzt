@@ -95,6 +95,8 @@ extern "C" {
   #if defined(__ANDROID__)
     #define DEBUG_INFO(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, "ZT_INFO : %14s:%4d:%20s: " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args))
     #define DEBUG_BLANK(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, "ZT_INFO : %14s:%4d:" fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args))
+    #define DEBUG_ATTN(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, "ZT_INFO : %14s:%4d:%25s: " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args))
+    #define DEBUG_STACK(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, "ZT_STACK: %14s:%4d:%25s: " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args))
   #else
     #define DEBUG_INFO(fmt, args...) fprintf(stderr, "ZT_INFO : %14s:%4d:%25s: " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args)
     #define DEBUG_ATTN(fmt, args...) fprintf(stderr, CYN "ZT_INFO : %14s:%4d:%25s: " fmt "\n" RESET, __FILENAME__, __LINE__, __FUNCTION__, ##args)

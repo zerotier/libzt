@@ -163,7 +163,10 @@ void zts_stop_service() {
 
 bool zts_has_address(const char *nwid)
 {
+    DEBUG_ERROR();
     char ipv4_addr[64], ipv6_addr[64];
+    memset(ipv4_addr, 0, 64);
+    memset(ipv6_addr, 0, 64);
     zts_get_ipv4_address(nwid, ipv4_addr);
     zts_get_ipv6_address(nwid, ipv6_addr);
     if(!strcmp(ipv4_addr, "-1.-1.-1.-1/-1") && !strcmp(ipv4_addr, "-1.-1.-1.-1/-1")) {
@@ -363,7 +366,7 @@ void zts_start_service(const char *path)
         const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
         char address_string[32];
         memset(address_string, 0, 32);
-        zts_get_addresses(nwid_str, address_string);
+        zts_get_ipv4_address(nwid_str, address_string);
         jclass clazz = (*env).FindClass("java/util/ArrayList");
         jobject addresses = (*env).NewObject(clazz, (*env).GetMethodID(clazz, "<init>", "()V"));        
         jstring _str = (*env).NewStringUTF(address_string);
@@ -375,7 +378,7 @@ void zts_start_service(const char *path)
         const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
         char address_string[32];
         memset(address_string, 0, 32);
-        zts_get_addresses(nwid_str, address_string);
+        zts_get_ipv6_address(nwid_str, address_string);
         jclass clazz = (*env).FindClass("java/util/ArrayList");
         jobject addresses = (*env).NewObject(clazz, (*env).GetMethodID(clazz, "<init>", "()V"));        
         jstring _str = (*env).NewStringUTF(address_string);
@@ -436,11 +439,8 @@ void zts_start_service(const char *path)
 void *zts_start_core_service(void *thread_id) {
 
     #if defined(SDK_BUNDLED)
-        homeDir = std::string((char*)thread_id);
-    #endif
-
-    #if defined(__ANDROID__)
-        DEBUG_INFO("ZTSDK_BUILD_VERSION = %d", ZTSDK_BUILD_VERSION);
+        if(thread_id)
+            homeDir = std::string((char*)thread_id);
     #endif
 
     char current_dir[MAX_DIR_SZ];
@@ -510,7 +510,8 @@ void *zts_start_core_service(void *thread_id) {
     #if defined(__UNITY_3D__)
         DEBUG_INFO("starting service...");
     #endif
-    
+            DEBUG_INFO("starting service...");
+
     // Initialize RPC 
     // TODO: remove?
     if(rpcEnabled) {

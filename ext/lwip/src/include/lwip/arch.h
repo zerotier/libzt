@@ -67,7 +67,11 @@ typedef uint16_t  u16_t;
 typedef int16_t   s16_t;
 typedef uint32_t  u32_t;
 typedef int32_t   s32_t;
-typedef uintptr_t mem_ptr_t;
+	#if defined(__ANDROID__)
+		typedef unsigned long mem_ptr_t;
+	#else
+		typedef uintptr_t mem_ptr_t;
+	#endif
 #endif
 
 /** Define this to 1 in arch/cc.h of your port if your compiler does not provide

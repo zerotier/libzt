@@ -38,7 +38,7 @@ There are generally two ways one might want to use the service.
 
 ## How does it work?
 
-We've designed a background tap service that pairs the ZeroTier protocol with swappable user-space network stacks. We've provided drivers for [Lightweight IP (lwIP)](http://savannah.nongnu.org/projects/lwip/) and [picoTCP](http://www.picotcp.com/). The aim is to give you a new way to bring your applications onto your virtual network. For a more in-depth explanation of how it works take a look at our [SDK Primer](docs/zt_sdk_primer.md)
+We've designed a background tap service that pairs the ZeroTier protocol with swappable user-space network stacks. We've provided drivers for [Lightweight IP (lwIP)](http://savannah.nongnu.org/projects/lwip/) and [picoTCP](http://www.picotcp.com/). The aim is to give you a new way to bring your applications onto your virtual network. For a more in-depth explanation of how it works take a look at our [Technical discussion](docs/technical.md)
 
 ## APIs
 
@@ -46,7 +46,7 @@ We've designed a background tap service that pairs the ZeroTier protocol with sw
 - Uses dynamic loading of our library to allow function interposition or "hooking" to re-implement traditional socket API functions like `socket()`, `connect()`, `bind()`, etc.
 
 **Direct Call**
-- Directly call the `zt_` API specified in [src/sdk.h](src/SDK.h). For this to work, just use one of the provided headers that specify the interface for your system/architecture and then either dynamically-load our library into your app or statically-link it at compile-time.
+- Directly call the `zts_*` API specified in [src/sdk.h](src/sdk.h). For this to work, just use one of the provided headers that specify the interface for your system/architecture and then either dynamically-load our library into your app or statically-link it at compile-time.
 
 
 ***
@@ -66,32 +66,32 @@ We've designed a background tap service that pairs the ZeroTier protocol with sw
 ***
 
 ### Apple 
- - For everything: `make apple`
+ - For everything: `make apple <flags>`
 
 ##### iOS
- - [Embedding within an app](apple/example_app/iOS) `make ios_app_framework` -> `build/ios_app_framework/*`
+ - [Embedding within an app](integrations/apple/example_app/iOS) `make ios_app_framework` -> `build/ios_app_framework/*`
  - Unity3D plugin `make ios_unity3d_bundle` -> `build/ios_unity3d_bundle/*`
 
 ##### OSX
- - [Linking into an app at compiletime](../docs/osx_zt_sdk.md) `make osx_shared_lib` -> `build/libztosx.so`
- - [Embedding within an app with Xcode](apple/example_app/OSX) `make osx_app_framework` -> `build/osx_app_framework/*`
- - [Dynamic-linking into an app/service at runtime](../docs/osx_zt_sdk.md) `make osx_service_and_intercept` -> { `build/zerotier-sdk-service` + `build/libztintercept.so` }
- - [Intercept library](../docs/osx_zt_sdk.md) `make osx_sdk_service` -> `build/zerotier-sdk-service`
- - [SDK Service](../docs/osx_zt_sdk.md) `make osx_intercept` -> `build/libztintercept.so`
- - [Unity3D plugin](apple/ZeroTierSDK_Apple) `make osx_unity3d_bundle`
+ - [Linking into an app at compiletime](docs/osx_zt_sdk.md) `make osx_shared_lib` -> `build/libztosx.so`
+ - [Embedding within an app with Xcode](integrations/apple/example_app/OSX) `make osx_app_framework` -> `build/osx_app_framework/*`
+ - [Dynamic-linking into an app/service at runtime](docs/osx_zt_sdk.md) `make osx_service_and_intercept` -> { `build/zerotier-sdk-service` + `build/libztintercept.so` }
+ - [Intercept library](docs/osx_zt_sdk.md) `make osx_sdk_service` -> `build/zerotier-sdk-service`
+ - [SDK Service](docs/osx_zt_sdk.md) `make osx_intercept` -> `build/libztintercept.so`
+ - [Unity3D plugin](integrations/apple/ZeroTierSDK_Apple) `make osx_unity3d_bundle`
 
 ***
 ### Linux
- - For everything: `make linux`
- - [Dynamic-linking into an app/service at runtime](../docs/linux_zt_sdk.md) `make linux_shared_lib`
+ - For everything: `make linux <flags>`
+ - [Dynamic-linking into an app/service at runtime](docs/linux_zt_sdk.md) `make linux_shared_lib`
  - Service and Intercept `make linux_service_and_intercept` -> { `build/zerotier-sdk-service` + `build/libztintercept.so` }
- - [Using the SDK with Docker](docker)
+ - [Using the SDK with Docker](integrations/docker)
 
 ### Android 
  - For everything: `make android`
  
- - [Embedding within an app](android) `make android_jni_lib` -> `build/android_jni_lib/YOUR_ARCH/libZeroTierOneJNI.so`
- - [Unity 3D plugin](../docs/android_unity3d_zt_sdk.md) `make android_unity3d_plugin` -> `build/android_unity3d_plugin/*`
+ - [Embedding within an app](integrations/android) `make android_jni_lib` -> `build/android_jni_lib/YOUR_ARCH/libZeroTierOneJNI.so`
+ - [Unity 3D plugin](docs/android_unity3d_zt_sdk.md) `make android_unity3d_plugin` -> `build/android_unity3d_plugin/*`
 
 ***
 ### Windows

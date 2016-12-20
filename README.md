@@ -6,9 +6,10 @@ ZeroTier-enabled apps, devices, and services.
 Secure virtual network access embedded directly into applications, games, and devices. Imagine starting an instance of your application or game and having it automatically be a member of your virtual network without having to rewrite your networking layer. Check out our [Integrations](integrations/) to learn how to integrate this into your application, device, or ecosystem.
 
 The general idea is this:
-	1) Your application starts.
-	2) The API and ZeroTier service initializes inside a separate thread of your app.
-	3) Your app can now reach anything on your virtual network via normal network calls.
+
+ - Your application starts.
+ - The API and ZeroTier service initializes inside a separate thread of your app.
+ - Your app can now reach anything on your flat virtual network via normal network calls.
 
 It's as simple as that!
 
@@ -19,7 +20,7 @@ To build everything for your platform, you can start with:
 
 ***
 
-The SDK couples the ZeroTier core Ethernet virtualization engine with a user-space TCP/IP stack and a carefully-crafted API which intercepts and re-directs network API calls to our service. This allows servers and applications to be used without modification or recompilation. It can be used to run services on virtual networks without elevated privileges, special configuration of the physical host, kernel support, or any other application specific configuration. It's ideal for [containerized applications](../integrations/docker), [games](../integrations/Unity3D), and [desktop/mobile apps](../integrations).
+The SDK couples the ZeroTier core Ethernet virtualization engine with a user-space TCP/IP stack and a carefully-crafted API which intercepts and re-directs network API calls to our service. This allows servers and applications to be used without modification or recompilation. It can be used to run services on virtual networks without elevated privileges, special configuration of the physical host, kernel support, or any other application specific configuration. It's ideal for [containerized applications](integrations/docker/), [games](integrations/Unity3D/), and [desktop/mobile apps](integrations/).
 
 Combine this functionality with the network/device management capabilities of [ZeroTier Central](https://my.zerotier.com) and its associated [API](https://my.zerotier.com/help/api) and we've hopefully created a simple and reliable way for you to flatten and reduce the complexity of your app's networking layer.
 

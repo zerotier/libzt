@@ -32,7 +32,7 @@ CXXFLAGS=$(CFLAGS) -fno-rtti
 include objects.mk
 
 # Target output filenames
-SHARED_LIB_NAME    = libztosx.so
+STATIC_LIB_NAME    = libzt.a
 INTERCEPT_NAME     = libztintercept.so
 SDK_SERVICE_NAME   = zerotier-sdk-service
 ONE_SERVICE_NAME   = zerotier-one
@@ -41,7 +41,7 @@ ONE_ID_TOOL_NAME   = zerotier-idtool
 LWIP_LIB_NAME      = liblwip.so
 PICO_LIB_NAME      = libpicotcp.so
 #
-SHARED_LIB         = $(BUILD)/$(SHARED_LIB_NAME)
+STATIC_LIB         = $(BUILD)/$(STATIC_LIB_NAME)
 SDK_INTERCEPT      = $(BUILD)/$(INTERCEPT_NAME)
 SDK_SERVICE        = $(BUILD)/$(SDK_SERVICE_NAME)
 ONE_SERVICE        = $(BUILD)/$(ONE_SERVICE_NAME)
@@ -91,6 +91,7 @@ CODESIGN_INSTALLER_CERT=
 # Debug output for ZeroTier service
 ifeq ($(ZT_DEBUG),1)
 	DEFS+=-DZT_TRACE
+	#CFLAGS+=-Wall -fPIE -fvisibility=hidden -pthread $(INCLUDES) $(DEFS)
 	CFLAGS+=-Wall -g -pthread $(INCLUDES) $(DEFS)
 	STRIP=echo
 	# The following line enables optimization for the crypto code, since
@@ -98,7 +99,8 @@ ifeq ($(ZT_DEBUG),1)
 #ext/lz4/lz4.o node/Salsa20.o node/SHA512.o node/C25519.o node/Poly1305.o: CFLAGS = -Wall -O2 -g -pthread $(INCLUDES) $(DEFS)
 else
 	CFLAGS?=-Ofast -fstack-protector
-	CFLAGS+=$(ARCH_FLAGS) -Wall -flto -fPIE -pthread -mmacosx-version-min=10.7 -DNDEBUG -Wno-unused-private-field $(INCLUDES) $(DEFS)
+	CFLAGS+=-Wall -fPIE -fvisibility=hidden -pthread $(INCLUDES) $(DEFS)
+	#CFLAGS+=$(ARCH_FLAGS) -Wall -flto -fPIC -pthread -mmacosx-version-min=10.7 -DNDEBUG -Wno-unused-private-field $(INCLUDES) $(DEFS)
 	STRIP=strip
 endif
 
@@ -184,7 +186,7 @@ one: $(OBJS) $(ZT1)/service/OneService.o $(ZT1)/one.o $(ZT1)/osdep/OSXEthernetTa
 ios: ios_app_framework ios_unity3d_bundle
 
 # Build all OSX targets
-osx: osx_app_framework osx_unity3d_bundle osx_sdk_service osx_intercept
+osx: osx_app_framework osx_unity3d_bundle osx_sdk_service osx_intercept osx_static_lib
 
 # ---------------------------------------
 # ----------- App Frameworks ------------
@@ -248,11 +250,11 @@ osx_service_and_intercept: osx_intercept osx_sdk_service
 ifeq ($(SDK_LWIP),1)
 osx_static_lib: lwip $(OBJS)
 	$(CXX) $(CXXFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED $(LWIP_DRIVER_FILES) $(SDK_INTERCEPT_C_FILES) $(SDK_SERVICE_CPP_FILES) src/service.cpp -c 
-	libtool -static -o build/libzt.a lwip.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o OneService.o $(OBJS)
+	ar -rcs build/libzt.a lwip.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o $(OBJS)
 else
 osx_static_lib: pico $(OBJS)
 	$(CXX) $(CXXFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED $(PICO_DRIVER_FILES) $(SDK_INTERCEPT_C_FILES) $(SDK_SERVICE_CPP_FILES) src/service.cpp -c 
-	libtool -static -o build/libzt.a picotcp.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o OneService.o $(OBJS)
+	libtool -static -o build/libzt.a lwip.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o OneService.o $(OBJS)
 endif
 
 # Builds zts_* library tests
@@ -260,10 +262,6 @@ osx_static_lib_tests:
 	mkdir -p $(TEST_OBJDIR)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.tcpserver4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.tcpserver4.out -Lbuild -lzt -ldl
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.tcpclient4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.tcpclient4.out -Lbuild -lzt -ldl
-
-osx_dynamic_lib:
-
-osx_dynamic_lib_tests:
 
 # ------------------------------------------------------------------------------
 # ---------------------------------- Android -----------------------------------
@@ -277,7 +275,6 @@ android: android_jni_lib
 # Build library for Android Unity integrations
 # Build JNI library for Android app integration
 android_jni_lib:
-	-./increment.sh
 	cd $(INT)/android/android_jni_lib/proj; ./gradlew assembleDebug
 	mkdir -p $(BUILD)/android_jni_lib
 	cp docs/android.md $(BUILD)/android_jni_lib/README.md
@@ -295,7 +292,7 @@ check:
 	-./check.sh $(SDK_INTERCEPT)
 	-./check.sh $(ONE_SERVICE)
 	-./check.sh $(SDK_SERVICE)
-	-./check.sh $(SHARED_LIB)
+	-./check.sh $(STATIC_LIB)
 	-./check.sh $(BUILD)/osx_unity3d_bundle/Debug/ZeroTierSDK_Unity3D_OSX.bundle
 	-./check.sh $(BUILD)/osx_app_framework/Debug/ZeroTierSDK_OSX.framework
 	-./check.sh $(BUILD)/ios_app_framework/Debug-iphoneos/ZeroTierSDK_iOS.framework

@@ -177,6 +177,7 @@ std::vector<InetAddress> OSUtils::resolve(const char *name)
 	std::vector<InetAddress>::iterator i;
 	InetAddress tmp;
 	struct addrinfo *ai = (struct addrinfo *)0,*p;
+	/*
 	if (!getaddrinfo(name,(const char *)0,(const struct addrinfo *)0,&ai)) {
 		try {
 			p = ai;
@@ -196,6 +197,7 @@ skip_add_inetaddr:
 		freeaddrinfo(ai);
 	}
 	std::sort(r.begin(),r.end());
+	*/
 	return r;
 }
 

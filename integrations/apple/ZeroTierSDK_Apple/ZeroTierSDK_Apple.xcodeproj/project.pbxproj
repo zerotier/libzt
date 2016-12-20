@@ -159,6 +159,71 @@
 		7CC004D11D131E37003E68DC /* http_parser.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003571D1217A1003E68DC /* http_parser.c */; };
 		7CC005201D1324B3003E68DC /* lz4.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC0035A1D1217B2003E68DC /* lz4.c */; };
 		7CC005211D1324B3003E68DC /* http_parser.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CC003571D1217A1003E68DC /* http_parser.c */; };
+		7CD785601E08C7B500E03BF0 /* lwip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C2228CF1DCC1193006A2661 /* lwip.cpp */; };
+		7CD785611E08C7B500E03BF0 /* rpc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D527B1DBEADD200896C93 /* rpc.c */; };
+		7CD785621E08C7B500E03BF0 /* service.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D527D1DBEADD200896C93 /* service.cpp */; };
+		7CD785631E08C7B500E03BF0 /* sockets.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D527F1DBEADD200896C93 /* sockets.c */; };
+		7CD785641E08C7B500E03BF0 /* tap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D52801DBEADD200896C93 /* tap.cpp */; };
+		7CD785661E08C7B500E03BF0 /* ManagedRoute.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7AF0231DFA1B5C00AABE75 /* ManagedRoute.cpp */; };
+		7CD785671E08C7B500E03BF0 /* BackgroundResolver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF58E1DBAD10A006585E7 /* BackgroundResolver.cpp */; };
+		7CD785681E08C7B500E03BF0 /* DeferredPackets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5891DBAD0BF006585E7 /* DeferredPackets.cpp */; };
+		7CD785691E08C7B500E03BF0 /* OneService.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5821DBACB3E006585E7 /* OneService.cpp */; };
+		7CD7856A1E08C7B500E03BF0 /* C25519.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5121DBAC872006585E7 /* C25519.cpp */; };
+		7CD7856B1E08C7B500E03BF0 /* CertificateOfMembership.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5141DBAC872006585E7 /* CertificateOfMembership.cpp */; };
+		7CD7856C1E08C7B500E03BF0 /* Cluster.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5161DBAC872006585E7 /* Cluster.cpp */; };
+		7CD7856D1E08C7B500E03BF0 /* Identity.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF51E1DBAC872006585E7 /* Identity.cpp */; };
+		7CD7856E1E08C7B500E03BF0 /* IncomingPacket.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5201DBAC872006585E7 /* IncomingPacket.cpp */; };
+		7CD7856F1E08C7B500E03BF0 /* InetAddress.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5221DBAC872006585E7 /* InetAddress.cpp */; };
+		7CD785701E08C7B500E03BF0 /* Multicaster.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5251DBAC872006585E7 /* Multicaster.cpp */; };
+		7CD785711E08C7B500E03BF0 /* Network.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5291DBAC872006585E7 /* Network.cpp */; };
+		7CD785721E08C7B500E03BF0 /* NetworkConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF52B1DBAC872006585E7 /* NetworkConfig.cpp */; };
+		7CD785731E08C7B500E03BF0 /* Node.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF52F1DBAC872006585E7 /* Node.cpp */; };
+		7CD785741E08C7B500E03BF0 /* OutboundMulticast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5321DBAC872006585E7 /* OutboundMulticast.cpp */; };
+		7CD785751E08C7B500E03BF0 /* Packet.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5341DBAC872006585E7 /* Packet.cpp */; };
+		7CD785761E08C7B500E03BF0 /* Path.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5361DBAC872006585E7 /* Path.cpp */; };
+		7CD785771E08C7B500E03BF0 /* Peer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5381DBAC872006585E7 /* Peer.cpp */; };
+		7CD785781E08C7B500E03BF0 /* Poly1305.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF53A1DBAC872006585E7 /* Poly1305.cpp */; };
+		7CD785791E08C7B500E03BF0 /* Salsa20.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF53D1DBAC872006585E7 /* Salsa20.cpp */; };
+		7CD7857A1E08C7B500E03BF0 /* SelfAwareness.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF53F1DBAC872006585E7 /* SelfAwareness.cpp */; };
+		7CD7857B1E08C7B500E03BF0 /* SHA512.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5411DBAC872006585E7 /* SHA512.cpp */; };
+		7CD7857C1E08C7B500E03BF0 /* Switch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5441DBAC872006585E7 /* Switch.cpp */; };
+		7CD7857D1E08C7B500E03BF0 /* Topology.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5461DBAC872006585E7 /* Topology.cpp */; };
+		7CD7857E1E08C7B500E03BF0 /* Utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5481DBAC872006585E7 /* Utils.cpp */; };
+		7CD7857F1E08C7B500E03BF0 /* Arp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF4F81DBAC841006585E7 /* Arp.cpp */; };
+		7CD785801E08C7B500E03BF0 /* Http.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF4FD1DBAC841006585E7 /* Http.cpp */; };
+		7CD785811E08C7B500E03BF0 /* OSUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF4FF1DBAC841006585E7 /* OSUtils.cpp */; };
+		7CD785821E08C7B500E03BF0 /* PortMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5021DBAC841006585E7 /* PortMapper.cpp */; };
+		7CD785831E08C7B500E03BF0 /* ControlPlane.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF4F11DBAC80C006585E7 /* ControlPlane.cpp */; };
+		7CD785841E08C7C300E03BF0 /* tcp_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5901DBADA69006585E7 /* tcp_in.c */; };
+		7CD785851E08C7C300E03BF0 /* tcp_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5911DBADA69006585E7 /* tcp_out.c */; };
+		7CD785861E08C7C300E03BF0 /* tcp.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5921DBADA69006585E7 /* tcp.c */; };
+		7CD785871E08C7C300E03BF0 /* err.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5871DBACEC3006585E7 /* err.c */; };
+		7CD785881E08C7C300E03BF0 /* ethernet.c in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF5851DBACE7E006585E7 /* ethernet.c */; };
+		7CD785891E08C7C300E03BF0 /* tcpip.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969C7B1DBAA61700BD3F7F /* tcpip.c */; };
+		7CD7858A1E08C7C300E03BF0 /* autoip.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969C731DBAA5FF00BD3F7F /* autoip.c */; };
+		7CD7858B1E08C7C300E03BF0 /* dhcp.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969C741DBAA5FF00BD3F7F /* dhcp.c */; };
+		7CD7858C1E08C7C300E03BF0 /* etharp.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969C751DBAA5FF00BD3F7F /* etharp.c */; };
+		7CD7858D1E08C7C300E03BF0 /* icmp.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969C761DBAA5FF00BD3F7F /* icmp.c */; };
+		7CD7858E1E08C7C300E03BF0 /* igmp.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969C771DBAA5FF00BD3F7F /* igmp.c */; };
+		7CD7858F1E08C7C300E03BF0 /* ip4_addr.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969C781DBAA5FF00BD3F7F /* ip4_addr.c */; };
+		7CD785901E08C7C300E03BF0 /* ip4_frag.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969C791DBAA5FF00BD3F7F /* ip4_frag.c */; };
+		7CD785911E08C7C300E03BF0 /* ip4.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969C7A1DBAA5FF00BD3F7F /* ip4.c */; };
+		7CD785921E08C7E200E03BF0 /* inet_chksum.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B3E1DB99E7900BD3F7F /* inet_chksum.c */; };
+		7CD785931E08C7E200E03BF0 /* init.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B3F1DB99E7900BD3F7F /* init.c */; };
+		7CD785941E08C7E200E03BF0 /* ip.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B401DB99E7900BD3F7F /* ip.c */; };
+		7CD785951E08C7E200E03BF0 /* mem.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B411DB99E7900BD3F7F /* mem.c */; };
+		7CD785961E08C7E200E03BF0 /* memp.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B421DB99E7900BD3F7F /* memp.c */; };
+		7CD785971E08C7E200E03BF0 /* netif.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B431DB99E7900BD3F7F /* netif.c */; };
+		7CD785981E08C7E200E03BF0 /* pbuf.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B441DB99E7900BD3F7F /* pbuf.c */; };
+		7CD785991E08C7E200E03BF0 /* raw.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B451DB99E7900BD3F7F /* raw.c */; };
+		7CD7859A1E08C7E200E03BF0 /* stats.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B461DB99E7900BD3F7F /* stats.c */; };
+		7CD7859B1E08C7E200E03BF0 /* sys.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B471DB99E7900BD3F7F /* sys.c */; };
+		7CD7859C1E08C7E200E03BF0 /* timeouts.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B4B1DB99E7900BD3F7F /* timeouts.c */; };
+		7CD7859D1E08C7E200E03BF0 /* udp.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B4C1DB99E7900BD3F7F /* udp.c */; };
+		7CD7859E1E08C7E200E03BF0 /* json.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C0463251DE362BD003E2B0E /* json.c */; };
+		7CD7859F1E08C87A00E03BF0 /* proxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D527A1DBEADD200896C93 /* proxy.cpp */; };
+		7CD785A01E08C87A00E03BF0 /* def.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B3C1DB99E7900BD3F7F /* def.c */; };
+		7CD785A11E08C87A00E03BF0 /* dns.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C969B3D1DB99E7900BD3F7F /* dns.c */; };
 		7CEAF4F61DBAC80C006585E7 /* ControlPlane.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF4F11DBAC80C006585E7 /* ControlPlane.cpp */; };
 		7CEAF5071DBAC841006585E7 /* Arp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF4F81DBAC841006585E7 /* Arp.cpp */; };
 		7CEAF5091DBAC841006585E7 /* Http.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7CEAF4FD1DBAC841006585E7 /* Http.cpp */; };
@@ -1148,6 +1213,71 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7CD7859F1E08C87A00E03BF0 /* proxy.cpp in Sources */,
+				7CD7858A1E08C7C300E03BF0 /* autoip.c in Sources */,
+				7CD7858B1E08C7C300E03BF0 /* dhcp.c in Sources */,
+				7CD7858C1E08C7C300E03BF0 /* etharp.c in Sources */,
+				7CD7858D1E08C7C300E03BF0 /* icmp.c in Sources */,
+				7CD7858E1E08C7C300E03BF0 /* igmp.c in Sources */,
+				7CD7858F1E08C7C300E03BF0 /* ip4_addr.c in Sources */,
+				7CD785901E08C7C300E03BF0 /* ip4_frag.c in Sources */,
+				7CD785911E08C7C300E03BF0 /* ip4.c in Sources */,
+				7CD785A01E08C87A00E03BF0 /* def.c in Sources */,
+				7CD785A11E08C87A00E03BF0 /* dns.c in Sources */,
+				7CD785841E08C7C300E03BF0 /* tcp_in.c in Sources */,
+				7CD785851E08C7C300E03BF0 /* tcp_out.c in Sources */,
+				7CD785861E08C7C300E03BF0 /* tcp.c in Sources */,
+				7CD785921E08C7E200E03BF0 /* inet_chksum.c in Sources */,
+				7CD785931E08C7E200E03BF0 /* init.c in Sources */,
+				7CD785941E08C7E200E03BF0 /* ip.c in Sources */,
+				7CD785951E08C7E200E03BF0 /* mem.c in Sources */,
+				7CD785961E08C7E200E03BF0 /* memp.c in Sources */,
+				7CD785971E08C7E200E03BF0 /* netif.c in Sources */,
+				7CD785981E08C7E200E03BF0 /* pbuf.c in Sources */,
+				7CD785991E08C7E200E03BF0 /* raw.c in Sources */,
+				7CD7859A1E08C7E200E03BF0 /* stats.c in Sources */,
+				7CD7859B1E08C7E200E03BF0 /* sys.c in Sources */,
+				7CD7859C1E08C7E200E03BF0 /* timeouts.c in Sources */,
+				7CD7859D1E08C7E200E03BF0 /* udp.c in Sources */,
+				7CD7859E1E08C7E200E03BF0 /* json.c in Sources */,
+				7CD785871E08C7C300E03BF0 /* err.c in Sources */,
+				7CD785881E08C7C300E03BF0 /* ethernet.c in Sources */,
+				7CD785891E08C7C300E03BF0 /* tcpip.c in Sources */,
+				7CD785601E08C7B500E03BF0 /* lwip.cpp in Sources */,
+				7CD785611E08C7B500E03BF0 /* rpc.c in Sources */,
+				7CD785621E08C7B500E03BF0 /* service.cpp in Sources */,
+				7CD785631E08C7B500E03BF0 /* sockets.c in Sources */,
+				7CD785641E08C7B500E03BF0 /* tap.cpp in Sources */,
+				7CD785661E08C7B500E03BF0 /* ManagedRoute.cpp in Sources */,
+				7CD785671E08C7B500E03BF0 /* BackgroundResolver.cpp in Sources */,
+				7CD785681E08C7B500E03BF0 /* DeferredPackets.cpp in Sources */,
+				7CD785691E08C7B500E03BF0 /* OneService.cpp in Sources */,
+				7CD7856A1E08C7B500E03BF0 /* C25519.cpp in Sources */,
+				7CD7856B1E08C7B500E03BF0 /* CertificateOfMembership.cpp in Sources */,
+				7CD7856C1E08C7B500E03BF0 /* Cluster.cpp in Sources */,
+				7CD7856D1E08C7B500E03BF0 /* Identity.cpp in Sources */,
+				7CD7856E1E08C7B500E03BF0 /* IncomingPacket.cpp in Sources */,
+				7CD7856F1E08C7B500E03BF0 /* InetAddress.cpp in Sources */,
+				7CD785701E08C7B500E03BF0 /* Multicaster.cpp in Sources */,
+				7CD785711E08C7B500E03BF0 /* Network.cpp in Sources */,
+				7CD785721E08C7B500E03BF0 /* NetworkConfig.cpp in Sources */,
+				7CD785731E08C7B500E03BF0 /* Node.cpp in Sources */,
+				7CD785741E08C7B500E03BF0 /* OutboundMulticast.cpp in Sources */,
+				7CD785751E08C7B500E03BF0 /* Packet.cpp in Sources */,
+				7CD785761E08C7B500E03BF0 /* Path.cpp in Sources */,
+				7CD785771E08C7B500E03BF0 /* Peer.cpp in Sources */,
+				7CD785781E08C7B500E03BF0 /* Poly1305.cpp in Sources */,
+				7CD785791E08C7B500E03BF0 /* Salsa20.cpp in Sources */,
+				7CD7857A1E08C7B500E03BF0 /* SelfAwareness.cpp in Sources */,
+				7CD7857B1E08C7B500E03BF0 /* SHA512.cpp in Sources */,
+				7CD7857C1E08C7B500E03BF0 /* Switch.cpp in Sources */,
+				7CD7857D1E08C7B500E03BF0 /* Topology.cpp in Sources */,
+				7CD7857E1E08C7B500E03BF0 /* Utils.cpp in Sources */,
+				7CD7857F1E08C7B500E03BF0 /* Arp.cpp in Sources */,
+				7CD785801E08C7B500E03BF0 /* Http.cpp in Sources */,
+				7CD785811E08C7B500E03BF0 /* OSUtils.cpp in Sources */,
+				7CD785821E08C7B500E03BF0 /* PortMapper.cpp in Sources */,
+				7CD785831E08C7B500E03BF0 /* ControlPlane.cpp in Sources */,
 				7CC005201D1324B3003E68DC /* lz4.c in Sources */,
 				7CC005211D1324B3003E68DC /* http_parser.c in Sources */,
 			);
@@ -1411,7 +1541,6 @@
 					"-DSDK_BUNDLED",
 					"-DSDK_DEBUG",
 					"-D__XCODE__",
-					"-DLWIP_DEBUG",
 					"-DSDK_IPV4",
 					"-DUSING_BRIDGING_HEADER",
 					"-DSDK_LWIP",
@@ -1466,6 +1595,8 @@
 					"$(SRCROOT)/../../../ext/lwip/src/include/ipv4/",
 					"$(SRCROOT)/../../../zerotierone",
 					"$(SRCROOT)/../../../ext/lwip/src/include/",
+					"$(SRCROOT)/../../../ext",
+					"$(SRCROOT)/../../../src",
 				);
 				INFOPLIST_FILE = ZeroTierSDK_Unity3D_OSX/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
@@ -1474,6 +1605,8 @@
 					"-DSDK",
 					"-D__UNITY_3D__",
 					"-DSDK_BUNDLED",
+					"-DSDK_IPV4=1",
+					"-DSDK_LWIP=1",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-Unity3D-OSX";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1490,6 +1623,8 @@
 					"$(SRCROOT)/../../../ext/lwip/src/include/ipv4/",
 					"$(SRCROOT)/../../../zerotierone",
 					"$(SRCROOT)/../../../ext/lwip/src/include/",
+					"$(SRCROOT)/../../../ext",
+					"$(SRCROOT)/../../../src",
 				);
 				INFOPLIST_FILE = ZeroTierSDK_Unity3D_OSX/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
@@ -1499,6 +1634,8 @@
 					"-DUSE_SOCKS_PROXY",
 					"-D__UNITY_3D__",
 					"-DSDK_BUNDLED",
+					"-DSDK_IPV4=1",
+					"-DSDK_LWIP=1",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.ZeroTierSDK-Unity3D-OSX";
 				PRODUCT_NAME = "$(TARGET_NAME)";

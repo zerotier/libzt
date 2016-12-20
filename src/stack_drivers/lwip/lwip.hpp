@@ -350,8 +350,10 @@ namespace ZeroTier {
         #define __DYNAMIC_STACK__
         // Dynamically load liblwip.so
         _libref = dlopen(path, RTLD_NOW);
-    #else
-        #define __STATIC_STACK__    
+    #elif TARGET_OS_MAC && defined(SDK_BUNDLED)
+        #define __DYNAMIC_STACK__   // TODO: Implement static version
+        // Dynamically load liblwip.so
+        _libref = dlopen(path, RTLD_NOW);   
     #endif
 #endif
             

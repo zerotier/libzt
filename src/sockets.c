@@ -130,7 +130,7 @@ int (*realclose)(CLOSE_SIG);
                 DEBUG_ATTN("waiting for service to assign address to network stack");
                 // wait for zt service to assign the network stack an address
                 sleep(1);
-                while(!zts_has_address(nwid)) { }
+                while(!zts_has_address(nwid)) { usleep(1000); }
             }
         #endif
     }

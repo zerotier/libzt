@@ -217,6 +217,7 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 
 	void Start()
 	{
+		Debug.Log ("Start()");
 		// Set defaults
 		InputField input;
 		GameObject go;
@@ -234,7 +235,7 @@ public class ZeroTierSockets_Demo : MonoBehaviour
 		input.text = "Welcome to the machine";
 
 		// Create new instance of ZeroTier in separate thread
-		zt = new ZTSDK ("zerotier/", "8056c2e21c000001");
+		zt = new ZTSDK (".", "8056c2e21c000001");
 	}
 
 	// Terminate the ZeroTier service when the application quits

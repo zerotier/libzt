@@ -27,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
         String nwid = "8056c2e21c000001";
         // Set up service
         final ZTSDK zt = new ZTSDK();
+
         final String homeDir = getApplicationContext().getFilesDir() + "/zerotier";
         new Thread(new Runnable() {
             public void run() {
@@ -133,8 +134,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // UDP Echo ZTSDK
-        if(mode==4)
-        {
+        if(mode==4) {
             // Remote server address (will be populated by recvfrom()
             ZTAddress remoteServer = new ZTAddress();
             ZTAddress bindAddr = new ZTAddress("0.0.0.0", 8080);
@@ -145,16 +145,15 @@ public class MainActivity extends AppCompatActivity {
             int sock = zt.socket(ZTSDK.AF_INET, ZTSDK.SOCK_DGRAM, 0);
 
             Log.d("ZTSDK", "binding...");
-            if((err = zt.bind(sock, bindAddr, nwid)) < 0)
+            if ((err = zt.bind(sock, bindAddr, nwid)) < 0)
                 Log.d("ZTSDK", "bind_err = " + err + "\n");
-            if((err = zt.listen(sock, 0)) < 0)
+            if ((err = zt.listen(sock, 0)) < 0)
                 Log.d("ZTSDK", "listen_err = " + err);
             ArrayList<String> addresses = zt.get_addresses(nwid);
-            if(addresses.size() < 0) {
+            if (addresses.size() < 0) {
                 Log.d("ZTSDK", "unable to obtain ZT address");
                 return;
-            }
-            else {
+            } else {
                 Log.d("ZTSDK", "App IP = " + addresses.get(0));
             }
 
@@ -164,10 +163,10 @@ public class MainActivity extends AppCompatActivity {
             zt.fcntl(sock, ZTSDK.F_SETFL, ZTSDK.O_NONBLOCK);
 
             // ECHO
-            while(true) {
+            while (true) {
 
                 // RX
-                if((err = zt.recvfrom(sock, buffer, 32, 0, remoteServer)) > 0) {
+                if ((err = zt.recvfrom(sock, buffer, 32, 0, remoteServer)) > 0) {
                     bufStr = new String(buffer).substring(0, err);
                     Log.d("ZTSDK", "read (" + err + ") bytes from " + remoteServer.Address() + " : " + remoteServer.Port() + ", msg = " + bufStr);
 

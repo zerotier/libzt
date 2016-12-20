@@ -28,24 +28,24 @@ For more support on these integrations, or if you'd like help creating a new int
 ***
 
 ### Apple 
- - For everything: `make apple`
+ - For everything: `make apple <flags>`
 
 ##### iOS
  - [Embedding within an app](apple/example_app/iOS) `make ios_app_framework` -> `build/ios_app_framework/*`
  - Unity3D plugin `make ios_unity3d_bundle` -> `build/ios_unity3d_bundle/*`
 
 ##### OSX
- - [Linking into an app at compiletime](../docs/osx_zt_sdk.md) `make osx_shared_lib` -> `build/libztosx.so`
+ - [Linking into an app at compiletime](../docs/osx.md) `make osx_static_lib` -> `build/libzt.a`
  - [Embedding within an app with Xcode](apple/example_app/OSX) `make osx_app_framework` -> `build/osx_app_framework/*`
- - [Dynamic-linking into an app/service at runtime](../docs/osx_zt_sdk.md) `make osx_service_and_intercept` -> { `build/zerotier-sdk-service` + `build/libztintercept.so` }
- - [Intercept library](../docs/osx_zt_sdk.md) `make osx_sdk_service` -> `build/zerotier-sdk-service`
- - [SDK Service](../docs/osx_zt_sdk.md) `make osx_intercept` -> `build/libztintercept.so`
+ - [Dynamic-linking into an app/service at runtime](../docs/osx.md) `make osx_service_and_intercept` -> { `build/zerotier-sdk-service` + `build/libztintercept.so` }
+ - [Intercept library](../docs/osx.md) `make osx_sdk_service` -> `build/zerotier-sdk-service`
+ - [SDK Service](../docs/osx.md) `make osx_intercept` -> `build/libztintercept.so`
  - [Unity3D plugin](apple/ZeroTierSDK_Apple) `make osx_unity3d_bundle`
 
 ***
 ### Linux
- - For everything: `make linux`
- - [Dynamic-linking into an app/service at runtime](../docs/linux_zt_sdk.md) `make linux_shared_lib`
+ - For everything: `make linux <flags>`
+ - [Dynamic-linking into an app/service at runtime](../docs/linux.md) `make linux_shared_lib`
  - Service and Intercept `make linux_service_and_intercept` -> { `build/zerotier-sdk-service` + `build/libztintercept.so` }
  - [Using the SDK with Docker](docker)
 
@@ -53,7 +53,6 @@ For more support on these integrations, or if you'd like help creating a new int
  - For everything: `make android`
  
  - [Embedding within an app](android) `make android_jni_lib` -> `build/android_jni_lib/YOUR_ARCH/libZeroTierOneJNI.so`
- - [Unity 3D plugin](../docs/android_unity3d_zt_sdk.md) `make android_unity3d_plugin` -> `build/android_unity3d_plugin/*`
 
 ***
 ### Windows

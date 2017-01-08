@@ -25,6 +25,10 @@
  * LLC. Start here: http://www.zerotier.com/
  */
 
+#if defined(__ANDROID__)
+    #include "src/debug.h"
+#endif
+
 #include "tap.hpp"
 #include "sdkutils.hpp"
 
@@ -676,10 +680,10 @@ namespace ZeroTier
     {
         DEBUG_EXTRA("conn=%p", (void*)&conn);
         lwIP_stack *stack = tap->lwipstack;
-    	if(!conn || (!conn->TCP_pcb && !conn->UDP_pcb)) {
-			DEBUG_ERROR(" invalid connection");
-			return;
-    	}
+        if(!conn || (!conn->TCP_pcb && !conn->UDP_pcb)) {
+            DEBUG_ERROR(" invalid connection");
+            return;
+        }
         if(conn->type == SOCK_DGRAM) {
             if(!conn->UDP_pcb) {
                 DEBUG_ERROR(" invalid UDP_pcb, type=SOCK_DGRAM");
@@ -704,24 +708,24 @@ namespace ZeroTier
             } else if(err != ERR_OK) {
                 DEBUG_ERROR(" error sending packet - %d", err);
             } else {
-    			// Success
+                // Success
                 int buf_remaining = (conn->txsz)-udp_trans_len;
                 if(buf_remaining)
                     memmove(&conn->txbuf, (conn->txbuf+udp_trans_len), buf_remaining);
                 conn->txsz -= udp_trans_len;
 
-    			#if DEBUG_LEVEL >= MSG_TRANSFER
-    				struct sockaddr_in * addr_in2 = (struct sockaddr_in *)conn->peer_addr;
-    				int port = stack->__lwip_ntohs(addr_in2->sin_port);
-    				int ip = addr_in2->sin_addr.s_addr;
-    				unsigned char d[4];
-    				d[0] = ip & 0xFF;
-    				d[1] = (ip >>  8) & 0xFF;
-    				d[2] = (ip >> 16) & 0xFF;
-    				d[3] = (ip >> 24) & 0xFF;
-    				DEBUG_TRANS("[UDP TX] --->    :: {TX: ------, RX: ------, sock=%p} :: %d bytes (dest_addr=%d.%d.%d.%d:%d)", 
-    					(void*)conn->sock, udp_trans_len, d[0], d[1], d[2], d[3], port);
-    			#endif
+                #if DEBUG_LEVEL >= MSG_TRANSFER
+                    struct sockaddr_in * addr_in2 = (struct sockaddr_in *)conn->peer_addr;
+                    int port = stack->__lwip_ntohs(addr_in2->sin_port);
+                    int ip = addr_in2->sin_addr.s_addr;
+                    unsigned char d[4];
+                    d[0] = ip & 0xFF;
+                    d[1] = (ip >>  8) & 0xFF;
+                    d[2] = (ip >> 16) & 0xFF;
+                    d[3] = (ip >> 24) & 0xFF;
+                    DEBUG_TRANS("[UDP TX] --->    :: {TX: ------, RX: ------, sock=%p} :: %d bytes (dest_addr=%d.%d.%d.%d:%d)", 
+                        (void*)conn->sock, udp_trans_len, d[0], d[1], d[2], d[3], port);
+                #endif
             }
             stack->__pbuf_free(pb);
             return;
@@ -764,7 +768,7 @@ namespace ZeroTier
                             DEBUG_ERROR("out of memory");
                         return;
                     } else {
-                    	// adjust buffer
+                        // adjust buffer
                         sz = (conn->txsz)-r;
                         if(sz)
                             memmove(&conn->txbuf, (conn->txbuf+r), sz);

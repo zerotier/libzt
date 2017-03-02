@@ -49,7 +49,6 @@
 #include "tap.hpp"
 #include "sdk.h"
 #include "debug.h"
-#include "build.h"
 
 std::string service_path;
 pthread_t intercept_thread;

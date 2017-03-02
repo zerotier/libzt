@@ -162,7 +162,6 @@ void zts_stop_service() {
 
 bool zts_has_address(const char *nwid)
 {
-    DEBUG_ERROR();
     char ipv4_addr[64], ipv6_addr[64];
     memset(ipv4_addr, 0, 64);
     memset(ipv6_addr, 0, 64);

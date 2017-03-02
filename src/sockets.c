@@ -71,7 +71,6 @@
 #define SOCK_TYPE_MASK 0xf
 
 #include "sdk.h"
-#include "signatures.h"
 #include "debug.h"
 #include "rpc.h"
         

@@ -6,7 +6,6 @@
 #define Example_OSX_IOS_Bridging_Header_h
 
 #include <sys/socket.h>
-#include "signatures.h"
 
 // ZT INTERCEPT/RPC CONTROLS
 int zt_init_rpc(const char *path, const char *nwid);

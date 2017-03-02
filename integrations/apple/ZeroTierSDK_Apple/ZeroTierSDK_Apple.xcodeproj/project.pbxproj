@@ -30,7 +30,6 @@
 		7C7D528C1DBEADE600896C93 /* proxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D527A1DBEADD200896C93 /* proxy.cpp */; };
 		7C7D528D1DBEADE600896C93 /* rpc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D527B1DBEADD200896C93 /* rpc.c */; };
 		7C7D528F1DBEADE600896C93 /* service.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D527D1DBEADD200896C93 /* service.cpp */; };
-		7C7D52901DBEADE600896C93 /* signatures.h in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D527E1DBEADD200896C93 /* signatures.h */; };
 		7C7D52911DBEADE600896C93 /* sockets.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D527F1DBEADD200896C93 /* sockets.c */; };
 		7C7D52921DBEADE600896C93 /* tap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D52801DBEADD200896C93 /* tap.cpp */; };
 		7C7D52931DBEADE600896C93 /* tap.hpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D52811DBEADD200896C93 /* tap.hpp */; };
@@ -302,7 +301,6 @@
 		7C7D527B1DBEADD200896C93 /* rpc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rpc.c; path = ../../../src/rpc.c; sourceTree = "<group>"; };
 		7C7D527C1DBEADD200896C93 /* rpc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = rpc.h; path = ../../../src/rpc.h; sourceTree = "<group>"; };
 		7C7D527D1DBEADD200896C93 /* service.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = service.cpp; path = ../../../src/service.cpp; sourceTree = "<group>"; };
-		7C7D527E1DBEADD200896C93 /* signatures.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = signatures.h; path = ../../../src/signatures.h; sourceTree = "<group>"; };
 		7C7D527F1DBEADD200896C93 /* sockets.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sockets.c; path = ../../../src/sockets.c; sourceTree = "<group>"; };
 		7C7D52801DBEADD200896C93 /* tap.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tap.cpp; path = ../../../src/tap.cpp; sourceTree = "<group>"; };
 		7C7D52811DBEADD200896C93 /* tap.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = tap.hpp; path = ../../../src/tap.hpp; sourceTree = "<group>"; };
@@ -769,7 +767,6 @@
 				7C7D527B1DBEADD200896C93 /* rpc.c */,
 				7C7D527C1DBEADD200896C93 /* rpc.h */,
 				7C7D527D1DBEADD200896C93 /* service.cpp */,
-				7C7D527E1DBEADD200896C93 /* signatures.h */,
 				7C7D527F1DBEADD200896C93 /* sockets.c */,
 				7C7D52801DBEADD200896C93 /* tap.cpp */,
 				7C7D52811DBEADD200896C93 /* tap.hpp */,
@@ -1143,7 +1140,6 @@
 				7C7D528C1DBEADE600896C93 /* proxy.cpp in Sources */,
 				7C7D528D1DBEADE600896C93 /* rpc.c in Sources */,
 				7C7D528F1DBEADE600896C93 /* service.cpp in Sources */,
-				7C7D52901DBEADE600896C93 /* signatures.h in Sources */,
 				7C7D52911DBEADE600896C93 /* sockets.c in Sources */,
 				7C7D52921DBEADE600896C93 /* tap.cpp in Sources */,
 				7C7D52931DBEADE600896C93 /* tap.hpp in Sources */,

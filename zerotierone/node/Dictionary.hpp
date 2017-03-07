@@ -444,14 +444,12 @@ public:
 	}
 
 	/**
-	 * @return Dictionary data as a 0-terminated C-string
-	 */
-	inline const char *data() const { return _d; }
-
-	/**
 	 * @return Value of C template parameter
 	 */
 	inline unsigned int capacity() const { return C; }
+
+	inline const char *data() const { return _d; }
+	inline char *unsafeData() { return _d; }
 
 private:
 	char _d[C];

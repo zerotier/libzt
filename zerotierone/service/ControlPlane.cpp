@@ -28,90 +28,24 @@
 #include "../ext/http-parser/http_parser.h"
 #endif
 
-#ifdef ZT_USE_SYSTEM_JSON_PARSER
-#include <json-parser/json.h>
-#else
-#include "../ext/json-parser/json.h"
-#endif
+#include "../ext/json/json.hpp"
 
-#ifdef ZT_ENABLE_NETWORK_CONTROLLER
-#include "../controller/SqliteNetworkController.hpp"
-#endif
+#include "../controller/EmbeddedNetworkController.hpp"
 
 #include "../node/InetAddress.hpp"
 #include "../node/Node.hpp"
 #include "../node/Utils.hpp"
+#include "../node/World.hpp"
+
 #include "../osdep/OSUtils.hpp"
 
 namespace ZeroTier {
 
-static std::string _jsonEscape(const char *s)
-{
-	std::string buf;
-	for(const char *p=s;(*p);++p) {
-		switch(*p) {
-			case '\t': buf.append("\\t");  break;
-			case '\b': buf.append("\\b");  break;
-			case '\r': buf.append("\\r");  break;
-			case '\n': buf.append("\\n");  break;
-			case '\f': buf.append("\\f");  break;
-			case '"':  buf.append("\\\""); break;
-			case '\\': buf.append("\\\\"); break;
-			case '/':  buf.append("\\/");  break;
-			default:   buf.push_back(*p);  break;
-		}
-	}
-	return buf;
-}
-static std::string _jsonEscape(const std::string &s) { return _jsonEscape(s.c_str()); }
+namespace {
 
-static std::string _jsonEnumerate(const struct sockaddr_storage *ss,unsigned int count)
+static void _networkToJson(nlohmann::json &nj,const ZT_VirtualNetworkConfig *nc,const std::string &portDeviceName,const OneService::NetworkSettings &localSettings)
 {
-	std::string buf;
-	buf.push_back('[');
-	for(unsigned int i=0;i<count;++i) {
-		if (i > 0)
-			buf.push_back(',');
-		buf.push_back('"');
-		buf.append(_jsonEscape(reinterpret_cast<const InetAddress *>(&(ss[i]))->toString()));
-		buf.push_back('"');
-	}
-	buf.push_back(']');
-	return buf;
-}
-static std::string _jsonEnumerate(const ZT_VirtualNetworkRoute *routes,unsigned int count)
-{
-	std::string buf;
-	buf.push_back('[');
-	for(unsigned int i=0;i<count;++i) {
-		if (i > 0)
-			buf.push_back(',');
-		buf.append("{\"target\":\"");
-		buf.append(_jsonEscape(reinterpret_cast<const InetAddress *>(&(routes[i].target))->toString()));
-		buf.append("\",\"via\":");
-		if (routes[i].via.ss_family == routes[i].target.ss_family) {
-			buf.push_back('"');
-			buf.append(_jsonEscape(reinterpret_cast<const InetAddress *>(&(routes[i].via))->toIpString()));
-			buf.append("\",");
-		} else buf.append("null,");
-		char tmp[1024];
-		Utils::snprintf(tmp,sizeof(tmp),"\"flags\":%u,\"metric\":%u}",(unsigned int)routes[i].flags,(unsigned int)routes[i].metric);
-		buf.append(tmp);
-	}
-	buf.push_back(']');
-	return buf;
-}
-
-static void _jsonAppend(unsigned int depth,std::string &buf,const ZT_VirtualNetworkConfig *nc,const std::string &portDeviceName,const OneService::NetworkSettings &localSettings)
-{
-	char json[4096];
-	char prefix[32];
-
-	if (depth >= sizeof(prefix)) // sanity check -- shouldn't be possible
-		return;
-	for(unsigned int i=0;i<depth;++i)
-		prefix[i] = '\t';
-	prefix[depth] = '\0';
+	char tmp[256];
 
 	const char *nstatus = "",*ntype = "";
 	switch(nc->status) {
@@ -127,141 +61,110 @@ static void _jsonAppend(unsigned int depth,std::string &buf,const ZT_VirtualNetw
 		case ZT_NETWORK_TYPE_PUBLIC:                     ntype = "PUBLIC"; break;
 	}
 
-	Utils::snprintf(json,sizeof(json),
-		"%s{\n"
-		"%s\t\"nwid\": \"%.16llx\",\n"
-		"%s\t\"mac\": \"%.2x:%.2x:%.2x:%.2x:%.2x:%.2x\",\n"
-		"%s\t\"name\": \"%s\",\n"
-		"%s\t\"status\": \"%s\",\n"
-		"%s\t\"type\": \"%s\",\n"
-		"%s\t\"mtu\": %u,\n"
-		"%s\t\"dhcp\": %s,\n"
-		"%s\t\"bridge\": %s,\n"
-		"%s\t\"broadcastEnabled\": %s,\n"
-		"%s\t\"portError\": %d,\n"
-		"%s\t\"netconfRevision\": %lu,\n"
-		"%s\t\"assignedAddresses\": %s,\n"
-		"%s\t\"routes\": %s,\n"
-		"%s\t\"portDeviceName\": \"%s\",\n"
-		"%s\t\"allowManaged\": %s,\n"
-		"%s\t\"allowGlobal\": %s,\n"
-		"%s\t\"allowDefault\": %s\n"
-		"%s}",
-		prefix,
-		prefix,nc->nwid,
-		prefix,(unsigned int)((nc->mac >> 40) & 0xff),(unsigned int)((nc->mac >> 32) & 0xff),(unsigned int)((nc->mac >> 24) & 0xff),(unsigned int)((nc->mac >> 16) & 0xff),(unsigned int)((nc->mac >> 8) & 0xff),(unsigned int)(nc->mac & 0xff),
-		prefix,_jsonEscape(nc->name).c_str(),
-		prefix,nstatus,
-		prefix,ntype,
-		prefix,nc->mtu,
-		prefix,(nc->dhcp == 0) ? "false" : "true",
-		prefix,(nc->bridge == 0) ? "false" : "true",
-		prefix,(nc->broadcastEnabled == 0) ? "false" : "true",
-		prefix,nc->portError,
-		prefix,nc->netconfRevision,
-		prefix,_jsonEnumerate(nc->assignedAddresses,nc->assignedAddressCount).c_str(),
-		prefix,_jsonEnumerate(nc->routes,nc->routeCount).c_str(),
-		prefix,_jsonEscape(portDeviceName).c_str(),
-		prefix,(localSettings.allowManaged) ? "true" : "false",
-		prefix,(localSettings.allowGlobal) ? "true" : "false",
-		prefix,(localSettings.allowDefault) ? "true" : "false",
-		prefix);
-	buf.append(json);
-}
+	Utils::snprintf(tmp,sizeof(tmp),"%.16llx",nc->nwid);
+	nj["id"] = tmp;
+	nj["nwid"] = tmp;
+	Utils::snprintf(tmp,sizeof(tmp),"%.2x:%.2x:%.2x:%.2x:%.2x:%.2x",(unsigned int)((nc->mac >> 40) & 0xff),(unsigned int)((nc->mac >> 32) & 0xff),(unsigned int)((nc->mac >> 24) & 0xff),(unsigned int)((nc->mac >> 16) & 0xff),(unsigned int)((nc->mac >> 8) & 0xff),(unsigned int)(nc->mac & 0xff));
+	nj["mac"] = tmp;
+	nj["name"] = nc->name;
+	nj["status"] = nstatus;
+	nj["type"] = ntype;
+	nj["mtu"] = nc->mtu;
+	nj["dhcp"] = (bool)(nc->dhcp != 0);
+	nj["bridge"] = (bool)(nc->bridge != 0);
+	nj["broadcastEnabled"] = (bool)(nc->broadcastEnabled != 0);
+	nj["portError"] = nc->portError;
+	nj["netconfRevision"] = nc->netconfRevision;
+	nj["portDeviceName"] = portDeviceName;
+	nj["allowManaged"] = localSettings.allowManaged;
+	nj["allowGlobal"] = localSettings.allowGlobal;
+	nj["allowDefault"] = localSettings.allowDefault;
 
-static std::string _jsonEnumerate(unsigned int depth,const ZT_PeerPhysicalPath *pp,unsigned int count)
-{
-	char json[1024];
-	char prefix[32];
-
-	if (depth >= sizeof(prefix)) // sanity check -- shouldn't be possible
-		return std::string();
-	for(unsigned int i=0;i<depth;++i)
-		prefix[i] = '\t';
-	prefix[depth] = '\0';
-
-	std::string buf;
-	for(unsigned int i=0;i<count;++i) {
-		if (i > 0)
-			buf.push_back(',');
-		Utils::snprintf(json,sizeof(json),
-			"{\n"
-			"%s\t\"address\": \"%s\",\n"
-			"%s\t\"lastSend\": %llu,\n"
-			"%s\t\"lastReceive\": %llu,\n"
-			"%s\t\"active\": %s,\n"
-			"%s\t\"preferred\": %s,\n"
-			"%s\t\"trustedPathId\": %llu\n"
-			"%s}",
-			prefix,_jsonEscape(reinterpret_cast<const InetAddress *>(&(pp[i].address))->toString()).c_str(),
-			prefix,pp[i].lastSend,
-			prefix,pp[i].lastReceive,
-			prefix,(pp[i].active == 0) ? "false" : "true",
-			prefix,(pp[i].preferred == 0) ? "false" : "true",
-			prefix,pp[i].trustedPathId,
-			prefix);
-		buf.append(json);
+	nlohmann::json aa = nlohmann::json::array();
+	for(unsigned int i=0;i<nc->assignedAddressCount;++i) {
+		aa.push_back(reinterpret_cast<const InetAddress *>(&(nc->assignedAddresses[i]))->toString());
 	}
-	return buf;
+	nj["assignedAddresses"] = aa;
+
+	nlohmann::json ra = nlohmann::json::array();
+	for(unsigned int i=0;i<nc->routeCount;++i) {
+		nlohmann::json rj;
+		rj["target"] = reinterpret_cast<const InetAddress *>(&(nc->routes[i].target))->toString();
+		if (nc->routes[i].via.ss_family == nc->routes[i].target.ss_family)
+			rj["via"] = reinterpret_cast<const InetAddress *>(&(nc->routes[i].via))->toIpString();
+		else rj["via"] = nlohmann::json();
+		rj["flags"] = (int)nc->routes[i].flags;
+		rj["metric"] = (int)nc->routes[i].metric;
+		ra.push_back(rj);
+	}
+	nj["routes"] = ra;
 }
 
-static void _jsonAppend(unsigned int depth,std::string &buf,const ZT_Peer *peer)
+static void _peerToJson(nlohmann::json &pj,const ZT_Peer *peer)
 {
-	char json[1024];
-	char prefix[32];
-
-	if (depth >= sizeof(prefix)) // sanity check -- shouldn't be possible
-		return;
-	for(unsigned int i=0;i<depth;++i)
-		prefix[i] = '\t';
-	prefix[depth] = '\0';
+	char tmp[256];
 
 	const char *prole = "";
 	switch(peer->role) {
-		case ZT_PEER_ROLE_LEAF:  prole = "LEAF"; break;
-		case ZT_PEER_ROLE_RELAY: prole = "RELAY"; break;
-		case ZT_PEER_ROLE_ROOT:  prole = "ROOT"; break;
+		case ZT_PEER_ROLE_LEAF: prole = "LEAF"; break;
+		case ZT_PEER_ROLE_MOON: prole = "MOON"; break;
+		case ZT_PEER_ROLE_PLANET: prole = "PLANET"; break;
 	}
 
-	Utils::snprintf(json,sizeof(json),
-		"%s{\n"
-		"%s\t\"address\": \"%.10llx\",\n"
-		"%s\t\"lastUnicastFrame\": %llu,\n"
-		"%s\t\"lastMulticastFrame\": %llu,\n"
-		"%s\t\"versionMajor\": %d,\n"
-		"%s\t\"versionMinor\": %d,\n"
-		"%s\t\"versionRev\": %d,\n"
-		"%s\t\"version\": \"%d.%d.%d\",\n"
-		"%s\t\"latency\": %u,\n"
-		"%s\t\"role\": \"%s\",\n"
-		"%s\t\"paths\": [%s]\n"
-		"%s}",
-		prefix,
-		prefix,peer->address,
-		prefix,peer->lastUnicastFrame,
-		prefix,peer->lastMulticastFrame,
-		prefix,peer->versionMajor,
-		prefix,peer->versionMinor,
-		prefix,peer->versionRev,
-		prefix,peer->versionMajor,peer->versionMinor,peer->versionRev,
-		prefix,peer->latency,
-		prefix,prole,
-		prefix,_jsonEnumerate(depth+1,peer->paths,peer->pathCount).c_str(),
-		prefix);
-	buf.append(json);
+	Utils::snprintf(tmp,sizeof(tmp),"%.10llx",peer->address);
+	pj["address"] = tmp;
+	pj["versionMajor"] = peer->versionMajor;
+	pj["versionMinor"] = peer->versionMinor;
+	pj["versionRev"] = peer->versionRev;
+	Utils::snprintf(tmp,sizeof(tmp),"%d.%d.%d",peer->versionMajor,peer->versionMinor,peer->versionRev);
+	pj["version"] = tmp;
+	pj["latency"] = peer->latency;
+	pj["role"] = prole;
+
+	nlohmann::json pa = nlohmann::json::array();
+	for(unsigned int i=0;i<peer->pathCount;++i) {
+		nlohmann::json j;
+		j["address"] = reinterpret_cast<const InetAddress *>(&(peer->paths[i].address))->toString();
+		j["lastSend"] = peer->paths[i].lastSend;
+		j["lastReceive"] = peer->paths[i].lastReceive;
+		j["trustedPathId"] = peer->paths[i].trustedPathId;
+		j["linkQuality"] = (double)peer->paths[i].linkQuality / (double)ZT_PATH_LINK_QUALITY_MAX;
+		j["active"] = (bool)(peer->paths[i].expired == 0);
+		j["expired"] = (bool)(peer->paths[i].expired != 0);
+		j["preferred"] = (bool)(peer->paths[i].preferred != 0);
+		pa.push_back(j);
+	}
+	pj["paths"] = pa;
 }
 
-ControlPlane::ControlPlane(OneService *svc,Node *n,const char *uiStaticPath) :
+static void _moonToJson(nlohmann::json &mj,const World &world)
+{
+	char tmp[64];
+	Utils::snprintf(tmp,sizeof(tmp),"%.16llx",world.id());
+	mj["id"] = tmp;
+	mj["timestamp"] = world.timestamp();
+	mj["signature"] = Utils::hex(world.signature().data,(unsigned int)world.signature().size());
+	mj["updatesMustBeSignedBy"] = Utils::hex(world.updatesMustBeSignedBy().data,(unsigned int)world.updatesMustBeSignedBy().size());
+	nlohmann::json ra = nlohmann::json::array();
+	for(std::vector<World::Root>::const_iterator r(world.roots().begin());r!=world.roots().end();++r) {
+		nlohmann::json rj;
+		rj["identity"] = r->identity.toString(false);
+		nlohmann::json eps = nlohmann::json::array();
+		for(std::vector<InetAddress>::const_iterator a(r->stableEndpoints.begin());a!=r->stableEndpoints.end();++a)
+			eps.push_back(a->toString());
+		rj["stableEndpoints"] = eps;
+		ra.push_back(rj);
+	}
+	mj["roots"] = ra;
+	mj["waiting"] = false;
+}
+
+} // anonymous namespace
+
+ControlPlane::ControlPlane(OneService *svc,Node *n) :
 	_svc(svc),
 	_node(n),
-#ifdef ZT_ENABLE_NETWORK_CONTROLLER
-	_controller((SqliteNetworkController *)0),
-#endif
-	_uiStaticPath((uiStaticPath) ? uiStaticPath : "")
-{
-}
-
-ControlPlane::~ControlPlane()
+	_controller((EmbeddedNetworkController *)0)
 {
 }
 
@@ -274,14 +177,13 @@ unsigned int ControlPlane::handleRequest(
 	std::string &responseBody,
 	std::string &responseContentType)
 {
-	char json[8194];
+	char tmp[256];
 	unsigned int scode = 404;
-	std::vector<std::string> ps(Utils::split(path.c_str(),"/","",""));
+	nlohmann::json res;
+	std::vector<std::string> ps(OSUtils::split(path.c_str(),"/","",""));
 	std::map<std::string,std::string> urlArgs;
-	Mutex::Lock _l(_lock);
 
-	if (!((fromAddress.ipsEqual(InetAddress::LO4))||(fromAddress.ipsEqual(InetAddress::LO6))))
-		return 403; // Forbidden: we only allow access from localhost right now
+	Mutex::Lock _l(_lock);
 
 	/* Note: this is kind of restricted in what it'll take. It does not support
 	 * URL encoding, and /'s in URL args will screw it up. But the only URL args
@@ -292,7 +194,7 @@ unsigned int ControlPlane::handleRequest(
 		if (qpos != std::string::npos) {
 			std::string args(ps[ps.size() - 1].substr(qpos + 1));
 			ps[ps.size() - 1] = ps[ps.size() - 1].substr(0,qpos);
-			std::vector<std::string> asplit(Utils::split(args.c_str(),"&","",""));
+			std::vector<std::string> asplit(OSUtils::split(args.c_str(),"&","",""));
 			for(std::vector<std::string>::iterator a(asplit.begin());a!=asplit.end();++a) {
 				std::size_t eqpos = a->find('=');
 				if (eqpos == std::string::npos)
@@ -300,8 +202,6 @@ unsigned int ControlPlane::handleRequest(
 				else urlArgs[a->substr(0,eqpos)] = a->substr(eqpos + 1);
 			}
 		}
-	} else {
-		ps.push_back(std::string("index.html"));
 	}
 
 	bool isAuth = false;
@@ -316,149 +216,163 @@ unsigned int ControlPlane::handleRequest(
 		}
 	}
 
-	if (httpMethod == HTTP_GET) {
-
-		std::string ext;
-		std::size_t dotIdx = ps[0].find_last_of('.');
-		if (dotIdx != std::string::npos)
-			ext = ps[0].substr(dotIdx);
-
-		if ((ps.size() == 1)&&(ext.length() >= 2)&&(ext[0] == '.')) {
-			/* Static web pages can be served without authentication to enable a simple web
-			 * UI. This is still only allowed from approved IP addresses. Anything with a
-			 * dot in the first path element (e.g. foo.html) is considered a static page,
-			 * as nothing in the API is so named. */
-
-			if (_uiStaticPath.length() > 0) {
-				if (ext == ".html")
-					responseContentType = "text/html";
-				else if (ext == ".js")
-					responseContentType = "application/javascript";
-				else if (ext == ".jsx")
-					responseContentType = "text/jsx";
-				else if (ext == ".json")
-					responseContentType = "application/json";
-				else if (ext == ".css")
-					responseContentType = "text/css";
-				else if (ext == ".png")
-					responseContentType = "image/png";
-				else if (ext == ".jpg")
-					responseContentType = "image/jpeg";
-				else if (ext == ".gif")
-					responseContentType = "image/gif";
-				else if (ext == ".txt")
-					responseContentType = "text/plain";
-				else if (ext == ".xml")
-					responseContentType = "text/xml";
-				else if (ext == ".svg")
-					responseContentType = "image/svg+xml";
-				else responseContentType = "application/octet-stream";
-				scode = OSUtils::readFile((_uiStaticPath + ZT_PATH_SEPARATOR_S + ps[0]).c_str(),responseBody) ? 200 : 404;
-			} else {
-				scode = 404;
+#ifdef __SYNOLOGY__
+	#include <stdlib.h>
+	// Authenticate via Synology's built-in cgi script
+	if (!isAuth) {
+		/*
+		fprintf(stderr, "path = %s\n", path.c_str());
+		fprintf(stderr, "headers.size=%d\n", headers.size());
+		std::map<std::string, std::string>::const_iterator it(headers.begin());		
+		while(it != headers.end()) {	
+			fprintf(stderr,"header[%s] = %s\n", (it->first).c_str(), (it->second).c_str());
+			it++;
+		}
+		*/
+		// parse out url args
+		int synotoken_pos = path.find("SynoToken");
+		int argpos = path.find("?");
+		if(synotoken_pos != std::string::npos && argpos != std::string::npos) {	
+			std::string cookie = path.substr(argpos+1, synotoken_pos-(argpos+1));
+			std::string synotoken = path.substr(synotoken_pos);
+			std::string cookie_val = cookie.substr(cookie.find("=")+1);
+			std::string synotoken_val = synotoken.substr(synotoken.find("=")+1);
+			// Set necessary env for auth script
+			std::map<std::string,std::string>::const_iterator ah2(headers.find("x-forwarded-for"));
+			setenv("HTTP_COOKIE", cookie_val.c_str(), true);
+			setenv("HTTP_X_SYNO_TOKEN", synotoken_val.c_str(), true);
+			setenv("REMOTE_ADDR", ah2->second.c_str(),true);
+	    	//fprintf(stderr, "HTTP_COOKIE: %s\n",std::getenv ("HTTP_COOKIE"));
+	    	//fprintf(stderr, "HTTP_X_SYNO_TOKEN: %s\n",std::getenv ("HTTP_X_SYNO_TOKEN"));
+	    	//fprintf(stderr, "REMOTE_ADDR: %s\n",std::getenv ("REMOTE_ADDR"));
+			// check synology web auth
+			char user[256], buf[1024];
+			FILE *fp = NULL;
+			bzero(user, 256);
+			fp = popen("/usr/syno/synoman/webman/modules/authenticate.cgi", "r");
+			if(!fp)
+				isAuth = false;
+			else {
+				bzero(buf, sizeof(buf));
+				fread(buf, 1024, 1, fp);
+				if(strlen(buf) > 0) {
+					snprintf(user, 256, "%s", buf);
+					isAuth = true;
+				}
 			}
+			pclose(fp);
+		}
+	}
+#endif
 
-		} else if (isAuth) {
-			/* Things that require authentication -- a.k.a. everything but static web app pages. */
-
+	if (httpMethod == HTTP_GET) {
+		if (isAuth) {
 			if (ps[0] == "status") {
-				responseContentType = "application/json";
-
 				ZT_NodeStatus status;
 				_node->status(&status);
 
-				std::string clusterJson;
-#ifdef ZT_ENABLE_CLUSTER
-				{
-					ZT_ClusterStatus cs;
-					_node->clusterStatus(&cs);
+				Utils::snprintf(tmp,sizeof(tmp),"%.10llx",status.address);
+				res["address"] = tmp;
+				res["publicIdentity"] = status.publicIdentity;
+				res["online"] = (bool)(status.online != 0);
+				res["tcpFallbackActive"] = _svc->tcpFallbackActive();
+				res["versionMajor"] = ZEROTIER_ONE_VERSION_MAJOR;
+				res["versionMinor"] = ZEROTIER_ONE_VERSION_MINOR;
+				res["versionRev"] = ZEROTIER_ONE_VERSION_REVISION;
+				res["versionBuild"] = ZEROTIER_ONE_VERSION_BUILD;
+				Utils::snprintf(tmp,sizeof(tmp),"%d.%d.%d",ZEROTIER_ONE_VERSION_MAJOR,ZEROTIER_ONE_VERSION_MINOR,ZEROTIER_ONE_VERSION_REVISION);
+				res["version"] = tmp;
+				res["clock"] = OSUtils::now();
 
-					if (cs.clusterSize >= 1) {
-						char t[1024];
-						Utils::snprintf(t,sizeof(t),"{\n\t\t\"myId\": %u,\n\t\t\"clusterSize\": %u,\n\t\t\"members\": [",cs.myId,cs.clusterSize);
-						clusterJson.append(t);
-						for(unsigned int i=0;i<cs.clusterSize;++i) {
-							Utils::snprintf(t,sizeof(t),"%s\t\t\t{\n\t\t\t\t\"id\": %u,\n\t\t\t\t\"msSinceLastHeartbeat\": %u,\n\t\t\t\t\"alive\": %s,\n\t\t\t\t\"x\": %d,\n\t\t\t\t\"y\": %d,\n\t\t\t\t\"z\": %d,\n\t\t\t\t\"load\": %llu,\n\t\t\t\t\"peers\": %llu\n\t\t\t}",
-								((i == 0) ? "\n" : ",\n"),
-								cs.members[i].id,
-								cs.members[i].msSinceLastHeartbeat,
-								(cs.members[i].alive != 0) ? "true" : "false",
-								cs.members[i].x,
-								cs.members[i].y,
-								cs.members[i].z,
-								cs.members[i].load,
-								cs.members[i].peers);
-							clusterJson.append(t);
-						}
-						clusterJson.append(" ]\n\t\t}");
+				World planet(_node->planet());
+				res["planetWorldId"] = planet.id();
+				res["planetWorldTimestamp"] = planet.timestamp();
+
+#ifdef ZT_ENABLE_CLUSTER
+				nlohmann::json cj;
+				ZT_ClusterStatus cs;
+				_node->clusterStatus(&cs);
+				if (cs.clusterSize >= 1) {
+					nlohmann::json cja = nlohmann::json::array();
+					for(unsigned int i=0;i<cs.clusterSize;++i) {
+						nlohmann::json cjm;
+						cjm["id"] = (int)cs.members[i].id;
+						cjm["msSinceLastHeartbeat"] = cs.members[i].msSinceLastHeartbeat;
+						cjm["alive"] = (bool)(cs.members[i].alive != 0);
+						cjm["x"] = cs.members[i].x;
+						cjm["y"] = cs.members[i].y;
+						cjm["z"] = cs.members[i].z;
+						cjm["load"] = cs.members[i].load;
+						cjm["peers"] = cs.members[i].peers;
+						cja.push_back(cjm);
 					}
+					cj["members"] = cja;
+					cj["myId"] = (int)cs.myId;
+					cj["clusterSize"] = cs.clusterSize;
 				}
+				res["cluster"] = cj;
+#else
+				res["cluster"] = nlohmann::json();
 #endif
 
-				Utils::snprintf(json,sizeof(json),
-					"{\n"
-					"\t\"address\": \"%.10llx\",\n"
-					"\t\"publicIdentity\": \"%s\",\n"
-					"\t\"worldId\": %llu,\n"
-					"\t\"worldTimestamp\": %llu,\n"
-					"\t\"online\": %s,\n"
-					"\t\"tcpFallbackActive\": %s,\n"
-					"\t\"versionMajor\": %d,\n"
-					"\t\"versionMinor\": %d,\n"
-					"\t\"versionRev\": %d,\n"
-					"\t\"version\": \"%d.%d.%d\",\n"
-					"\t\"clock\": %llu,\n"
-					"\t\"cluster\": %s\n"
-					"}\n",
-					status.address,
-					status.publicIdentity,
-					status.worldId,
-					status.worldTimestamp,
-					(status.online) ? "true" : "false",
-					(_svc->tcpFallbackActive()) ? "true" : "false",
-					ZEROTIER_ONE_VERSION_MAJOR,
-					ZEROTIER_ONE_VERSION_MINOR,
-					ZEROTIER_ONE_VERSION_REVISION,
-					ZEROTIER_ONE_VERSION_MAJOR,ZEROTIER_ONE_VERSION_MINOR,ZEROTIER_ONE_VERSION_REVISION,
-					(unsigned long long)OSUtils::now(),
-					((clusterJson.length() > 0) ? clusterJson.c_str() : "null"));
-				responseBody = json;
 				scode = 200;
-			} else if (ps[0] == "config") {
-				responseContentType = "application/json";
-				responseBody = "{}"; // TODO
-				scode = 200;
+			} else if (ps[0] == "moon") {
+				std::vector<World> moons(_node->moons());
+				if (ps.size() == 1) {
+					// Return [array] of all moons
+
+					res = nlohmann::json::array();
+					for(std::vector<World>::const_iterator m(moons.begin());m!=moons.end();++m) {
+						nlohmann::json mj;
+						_moonToJson(mj,*m);
+						res.push_back(mj);
+					}
+
+					scode = 200;
+				} else {
+					// Return a single moon by ID
+
+					const uint64_t id = Utils::hexStrToU64(ps[1].c_str());
+					for(std::vector<World>::const_iterator m(moons.begin());m!=moons.end();++m) {
+						if (m->id() == id) {
+							_moonToJson(res,*m);
+							scode = 200;
+							break;
+						}
+					}
+
+				}
 			} else if (ps[0] == "network") {
 				ZT_VirtualNetworkList *nws = _node->networks();
 				if (nws) {
 					if (ps.size() == 1) {
 						// Return [array] of all networks
-						responseContentType = "application/json";
-						responseBody = "[\n";
+
+						res = nlohmann::json::array();
 						for(unsigned long i=0;i<nws->networkCount;++i) {
-							if (i > 0)
-								responseBody.append(",");
 							OneService::NetworkSettings localSettings;
 							_svc->getNetworkSettings(nws->networks[i].nwid,localSettings);
-							_jsonAppend(1,responseBody,&(nws->networks[i]),_svc->portDeviceName(nws->networks[i].nwid),localSettings);
+							nlohmann::json nj;
+							_networkToJson(nj,&(nws->networks[i]),_svc->portDeviceName(nws->networks[i].nwid),localSettings);
+							res.push_back(nj);
 						}
-						responseBody.append("\n]\n");
+
 						scode = 200;
 					} else if (ps.size() == 2) {
 						// Return a single network by ID or 404 if not found
-						uint64_t wantnw = Utils::hexStrToU64(ps[1].c_str());
+
+						const uint64_t wantnw = Utils::hexStrToU64(ps[1].c_str());
 						for(unsigned long i=0;i<nws->networkCount;++i) {
 							if (nws->networks[i].nwid == wantnw) {
-								responseContentType = "application/json";
 								OneService::NetworkSettings localSettings;
 								_svc->getNetworkSettings(nws->networks[i].nwid,localSettings);
-								_jsonAppend(0,responseBody,&(nws->networks[i]),_svc->portDeviceName(nws->networks[i].nwid),localSettings);
-								responseBody.push_back('\n');
+								_networkToJson(res,&(nws->networks[i]),_svc->portDeviceName(nws->networks[i].nwid),localSettings);
 								scode = 200;
 								break;
 							}
 						}
-					} // else 404
+
+					} else scode = 404;
 					_node->freeQueryResult((void *)nws);
 				} else scode = 500;
 			} else if (ps[0] == "peer") {
@@ -466,58 +380,79 @@ unsigned int ControlPlane::handleRequest(
 				if (pl) {
 					if (ps.size() == 1) {
 						// Return [array] of all peers
-						responseContentType = "application/json";
-						responseBody = "[\n";
+
+						res = nlohmann::json::array();
 						for(unsigned long i=0;i<pl->peerCount;++i) {
-							if (i > 0)
-								responseBody.append(",\n");
-							_jsonAppend(1,responseBody,&(pl->peers[i]));
+							nlohmann::json pj;
+							_peerToJson(pj,&(pl->peers[i]));
+							res.push_back(pj);
 						}
-						responseBody.append("\n]\n");
+
 						scode = 200;
 					} else if (ps.size() == 2) {
 						// Return a single peer by ID or 404 if not found
+
 						uint64_t wantp = Utils::hexStrToU64(ps[1].c_str());
 						for(unsigned long i=0;i<pl->peerCount;++i) {
 							if (pl->peers[i].address == wantp) {
-								responseContentType = "application/json";
-								_jsonAppend(0,responseBody,&(pl->peers[i]));
-								responseBody.push_back('\n');
+								_peerToJson(res,&(pl->peers[i]));
 								scode = 200;
 								break;
 							}
 						}
-					} // else 404
+
+					} else scode = 404;
 					_node->freeQueryResult((void *)pl);
 				} else scode = 500;
-			} else if (ps[0] == "newIdentity") {
-				// Return a newly generated ZeroTier identity -- this is primarily for debugging
-				// and testing to make it easy for automated test scripts to generate test IDs.
-				Identity newid;
-				newid.generate();
-				responseBody = newid.toString(true);
-				responseContentType = "text/plain";
-				scode = 200;
 			} else {
-#ifdef ZT_ENABLE_NETWORK_CONTROLLER
-				if (_controller)
+				if (_controller) {
 					scode = _controller->handleControlPlaneHttpGET(std::vector<std::string>(ps.begin()+1,ps.end()),urlArgs,headers,body,responseBody,responseContentType);
-				else scode = 404;
-#else
-				scode = 404;
-#endif
+				} else scode = 404;
 			}
 
 		} else scode = 401; // isAuth == false
-
 	} else if ((httpMethod == HTTP_POST)||(httpMethod == HTTP_PUT)) {
-
 		if (isAuth) {
 
-			if (ps[0] == "config") {
-				// TODO
+			if (ps[0] == "moon") {
+				if (ps.size() == 2) {
+
+					uint64_t seed = 0;
+					try {
+						nlohmann::json j(OSUtils::jsonParse(body));
+						if (j.is_object()) {
+							seed = Utils::hexStrToU64(OSUtils::jsonString(j["seed"],"0").c_str());
+						}
+					} catch ( ... ) {
+						// discard invalid JSON
+					}
+
+					std::vector<World> moons(_node->moons());
+					const uint64_t id = Utils::hexStrToU64(ps[1].c_str());
+					for(std::vector<World>::const_iterator m(moons.begin());m!=moons.end();++m) {
+						if (m->id() == id) {
+							_moonToJson(res,*m);
+							scode = 200;
+							break;
+						}
+					}
+
+					if ((scode != 200)&&(seed != 0)) {
+						char tmp[64];
+						Utils::snprintf(tmp,sizeof(tmp),"%.16llx",id);
+						res["id"] = tmp;
+						res["roots"] = nlohmann::json::array();
+						res["timestamp"] = 0;
+						res["signature"] = nlohmann::json();
+						res["updatesMustBeSignedBy"] = nlohmann::json();
+						res["waiting"] = true;
+						_node->orbit(id,seed);
+					}
+
+				} else scode = 404;
 			} else if (ps[0] == "network") {
 				if (ps.size() == 2) {
+
 					uint64_t wantnw = Utils::hexStrToU64(ps[1].c_str());
 					_node->join(wantnw,(void *)0); // does nothing if we are a member
 					ZT_VirtualNetworkList *nws = _node->networks();
@@ -527,55 +462,47 @@ unsigned int ControlPlane::handleRequest(
 								OneService::NetworkSettings localSettings;
 								_svc->getNetworkSettings(nws->networks[i].nwid,localSettings);
 
-								json_value *j = json_parse(body.c_str(),body.length());
-								if (j) {
-									if (j->type == json_object) {
-										for(unsigned int k=0;k<j->u.object.length;++k) {
-											if (!strcmp(j->u.object.values[k].name,"allowManaged")) {
-												if (j->u.object.values[k].value->type == json_boolean)
-													localSettings.allowManaged = (j->u.object.values[k].value->u.boolean != 0);
-											} else if (!strcmp(j->u.object.values[k].name,"allowGlobal")) {
-												if (j->u.object.values[k].value->type == json_boolean)
-													localSettings.allowGlobal = (j->u.object.values[k].value->u.boolean != 0);
-											} else if (!strcmp(j->u.object.values[k].name,"allowDefault")) {
-												if (j->u.object.values[k].value->type == json_boolean)
-													localSettings.allowDefault = (j->u.object.values[k].value->u.boolean != 0);
-											}
-										}
+								try {
+									nlohmann::json j(OSUtils::jsonParse(body));
+									if (j.is_object()) {
+										nlohmann::json &allowManaged = j["allowManaged"];
+										if (allowManaged.is_boolean()) localSettings.allowManaged = (bool)allowManaged;
+										nlohmann::json &allowGlobal = j["allowGlobal"];
+										if (allowGlobal.is_boolean()) localSettings.allowGlobal = (bool)allowGlobal;
+										nlohmann::json &allowDefault = j["allowDefault"];
+										if (allowDefault.is_boolean()) localSettings.allowDefault = (bool)allowDefault;
 									}
-									json_value_free(j);
+								} catch ( ... ) {
+									// discard invalid JSON
 								}
 
 								_svc->setNetworkSettings(nws->networks[i].nwid,localSettings);
+								_networkToJson(res,&(nws->networks[i]),_svc->portDeviceName(nws->networks[i].nwid),localSettings);
 
-								responseContentType = "application/json";
-								_jsonAppend(0,responseBody,&(nws->networks[i]),_svc->portDeviceName(nws->networks[i].nwid),localSettings);
-								responseBody.push_back('\n');
 								scode = 200;
 								break;
 							}
 						}
 						_node->freeQueryResult((void *)nws);
 					} else scode = 500;
-				}
+
+				} else scode = 404;
 			} else {
-#ifdef ZT_ENABLE_NETWORK_CONTROLLER
 				if (_controller)
 					scode = _controller->handleControlPlaneHttpPOST(std::vector<std::string>(ps.begin()+1,ps.end()),urlArgs,headers,body,responseBody,responseContentType);
 				else scode = 404;
-#else
-				scode = 404;
-#endif
 			}
 
 		} else scode = 401; // isAuth == false
-
 	} else if (httpMethod == HTTP_DELETE) {
-
 		if (isAuth) {
 
-			if (ps[0] == "config") {
-				// TODO
+			if (ps[0] == "moon") {
+				if (ps.size() == 2) {
+					_node->deorbit(Utils::hexStrToU64(ps[1].c_str()));
+					res["result"] = true;
+					scode = 200;
+				} // else 404
 			} else if (ps[0] == "network") {
 				ZT_VirtualNetworkList *nws = _node->networks();
 				if (nws) {
@@ -584,8 +511,7 @@ unsigned int ControlPlane::handleRequest(
 						for(unsigned long i=0;i<nws->networkCount;++i) {
 							if (nws->networks[i].nwid == wantnw) {
 								_node->leave(wantnw,(void **)0);
-								responseBody = "true";
-								responseContentType = "application/json";
+								res["result"] = true;
 								scode = 200;
 								break;
 							}
@@ -594,22 +520,21 @@ unsigned int ControlPlane::handleRequest(
 					_node->freeQueryResult((void *)nws);
 				} else scode = 500;
 			} else {
-#ifdef ZT_ENABLE_NETWORK_CONTROLLER
 				if (_controller)
 					scode = _controller->handleControlPlaneHttpDELETE(std::vector<std::string>(ps.begin()+1,ps.end()),urlArgs,headers,body,responseBody,responseContentType);
 				else scode = 404;
-#else
-				scode = 404;
-#endif
 			}
 
-		} else {
-			scode = 401; // isAuth = false
-		}
-
+		} else scode = 401; // isAuth = false
 	} else {
 		scode = 400;
-		responseBody = "Method not supported.";
+	}
+
+	if (responseBody.length() == 0) {
+		if ((res.is_object())||(res.is_array()))
+			responseBody = OSUtils::jsonDump(res);
+		else responseBody = "{}";
+		responseContentType = "application/json";
 	}
 
 	// Wrap result in jsonp function call if the user included a jsonp= url argument.

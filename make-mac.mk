@@ -27,7 +27,7 @@ INCLUDES=
 DEFS=
 ARCH_FLAGS=-arch x86_64
 CFLAGS=
-CXXFLAGS=$(CFLAGS) -fno-rtti
+CXXFLAGS=$(CFLAGS) -fno-rtti -std=c++11
 
 include objects.mk
 
@@ -80,7 +80,7 @@ INCLUDES+= -Iext \
 # --------------------------------- ZT Config ----------------------------------
 # ------------------------------------------------------------------------------
 
-ZTFLAGS:=-DSDK -DZT_ONE_NO_ROOT_CHECK
+ZTFLAGS:=-DZT_SDK -DZT_ONE_NO_ROOT_CHECK
 
 # Disable codesign since open source users will not have ZeroTier's certs
 CODESIGN=echo

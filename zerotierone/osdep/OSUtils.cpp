@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 
 #include "../node/Constants.hpp"
+#include "../node/Utils.hpp"
 
 #ifdef __UNIX_LIKE__
 #include <unistd.h>
@@ -107,6 +108,90 @@ std::vector<std::string> OSUtils::listDirectory(const char *path)
 	return r;
 }
 
+std::map<std::string,char> OSUtils::listDirectoryFull(const char *path)
+{
+	std::map<std::string,char> r;
+
+#ifdef __WINDOWS__
+	HANDLE hFind;
+	WIN32_FIND_DATAA ffd;
+	if ((hFind = FindFirstFileA((std::string(path) + "\\*").c_str(),&ffd)) != INVALID_HANDLE_VALUE) {
+		do {
+			if ((strcmp(ffd.cFileName,"."))&&(strcmp(ffd.cFileName,".."))) {
+				r[ffd.cFileName] = ((ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) ? 'd' : 'f';
+			}
+		} while (FindNextFileA(hFind,&ffd));
+		FindClose(hFind);
+	}
+#else
+	struct dirent de;
+	struct dirent *dptr;
+	DIR *d = opendir(path);
+	if (!d)
+		return r;
+	dptr = (struct dirent *)0;
+	for(;;) {
+		if (readdir_r(d,&de,&dptr))
+			break;
+		if (dptr) {
+			if ((strcmp(dptr->d_name,"."))&&(strcmp(dptr->d_name,".."))) {
+				r[dptr->d_name] = (dptr->d_type == DT_DIR) ? 'd' : 'f';
+			}
+		} else break;
+	}
+	closedir(d);
+#endif
+
+	return r;
+}
+
+bool OSUtils::rmDashRf(const char *path)
+{
+#ifdef __WINDOWS__
+	HANDLE hFind;
+	WIN32_FIND_DATAA ffd;
+	if ((hFind = FindFirstFileA((std::string(path) + "\\*").c_str(),&ffd)) != INVALID_HANDLE_VALUE) {
+		do {
+			if ((strcmp(ffd.cFileName,".") != 0)&&(strcmp(ffd.cFileName,"..") != 0)) {
+				if ((ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
+					if (DeleteFileA((std::string(path) + ZT_PATH_SEPARATOR_S + ffd.cFileName).c_str()) == FALSE)
+						return false;
+				} else {
+					if (!rmDashRf((std::string(path) + ZT_PATH_SEPARATOR_S + ffd.cFileName).c_str()))
+						return false;
+				}
+			}
+		} while (FindNextFileA(hFind,&ffd));
+		FindClose(hFind);
+	}
+	return (RemoveDirectoryA(path) != FALSE);
+#else
+	struct dirent de;
+	struct dirent *dptr;
+	DIR *d = opendir(path);
+	if (!d)
+		return true;
+	dptr = (struct dirent *)0;
+	for(;;) {
+		if (readdir_r(d,&de,&dptr) != 0)
+			break;
+		if (!dptr)
+			break;
+		if ((strcmp(dptr->d_name,".") != 0)&&(strcmp(dptr->d_name,"..") != 0)&&(strlen(dptr->d_name) > 0)) {
+			std::string p(path);
+			p.push_back(ZT_PATH_SEPARATOR);
+			p.append(dptr->d_name);
+			if (unlink(p.c_str()) != 0) { // unlink first will remove symlinks instead of recursing them
+				if (!rmDashRf(p.c_str()))
+					return false;
+			}
+		}
+	}
+	closedir(d);
+	return (rmdir(path) == 0);
+#endif
+}
+
 void OSUtils::lockDownFile(const char *path,bool isDir)
 {
 #ifdef __UNIX_LIKE__
@@ -171,36 +256,6 @@ int64_t OSUtils::getFileSize(const char *path)
 	return -1;
 }
 
-std::vector<InetAddress> OSUtils::resolve(const char *name)
-{
-	std::vector<InetAddress> r;
-	std::vector<InetAddress>::iterator i;
-	InetAddress tmp;
-	struct addrinfo *ai = (struct addrinfo *)0,*p;
-	/*
-	if (!getaddrinfo(name,(const char *)0,(const struct addrinfo *)0,&ai)) {
-		try {
-			p = ai;
-			while (p) {
-				if ((p->ai_addr)&&((p->ai_addr->sa_family == AF_INET)||(p->ai_addr->sa_family == AF_INET6))) {
-					tmp = *(p->ai_addr);
-					for(i=r.begin();i!=r.end();++i) {
-						if (i->ipsEqual(tmp))
-							goto skip_add_inetaddr;
-					}
-					r.push_back(tmp);
-				}
-skip_add_inetaddr:
-				p = p->ai_next;
-			}
-		} catch ( ... ) {}
-		freeaddrinfo(ai);
-	}
-	std::sort(r.begin(),r.end());
-	*/
-	return r;
-}
-
 bool OSUtils::readFile(const char *path,std::string &buf)
 {
 	char tmp[1024];
@@ -231,6 +286,50 @@ bool OSUtils::writeFile(const char *path,const void *buf,unsigned int len)
 		}
 	}
 	return false;
+}
+
+std::vector<std::string> OSUtils::split(const char *s,const char *const sep,const char *esc,const char *quot)
+{
+	std::vector<std::string> fields;
+	std::string buf;
+
+	if (!esc)
+		esc = "";
+	if (!quot)
+		quot = "";
+
+	bool escapeState = false;
+	char quoteState = 0;
+	while (*s) {
+		if (escapeState) {
+			escapeState = false;
+			buf.push_back(*s);
+		} else if (quoteState) {
+			if (*s == quoteState) {
+				quoteState = 0;
+				fields.push_back(buf);
+				buf.clear();
+			} else buf.push_back(*s);
+		} else {
+			const char *quotTmp;
+			if (strchr(esc,*s))
+				escapeState = true;
+			else if ((buf.size() <= 0)&&((quotTmp = strchr(quot,*s))))
+				quoteState = *quotTmp;
+			else if (strchr(sep,*s)) {
+				if (buf.size() > 0) {
+					fields.push_back(buf);
+					buf.clear();
+				} // else skip runs of seperators
+			} else buf.push_back(*s);
+		}
+		++s;
+	}
+
+	if (buf.size())
+		fields.push_back(buf);
+
+	return fields;
 }
 
 std::string OSUtils::platformDefaultHomePath()
@@ -267,6 +366,81 @@ std::string OSUtils::platformDefaultHomePath()
 #endif
 
 #endif // __UNIX_LIKE__ or not...
+}
+
+// Inline these massive JSON operations in one place only to reduce binary footprint and compile time
+nlohmann::json OSUtils::jsonParse(const std::string &buf) { return nlohmann::json::parse(buf); }
+std::string OSUtils::jsonDump(const nlohmann::json &j) { return j.dump(1); }
+
+uint64_t OSUtils::jsonInt(const nlohmann::json &jv,const uint64_t dfl)
+{
+	try {
+		if (jv.is_number()) {
+			return (uint64_t)jv;
+		} else if (jv.is_string()) {
+			std::string s = jv;
+			return Utils::strToU64(s.c_str());
+		} else if (jv.is_boolean()) {
+			return ((bool)jv ? 1ULL : 0ULL);
+		}
+	} catch ( ... ) {}
+	return dfl;
+}
+
+bool OSUtils::jsonBool(const nlohmann::json &jv,const bool dfl)
+{
+	try {
+		if (jv.is_boolean()) {
+			return (bool)jv;
+		} else if (jv.is_number()) {
+			return ((uint64_t)jv > 0ULL);
+		} else if (jv.is_string()) {
+			std::string s = jv;
+			if (s.length() > 0) {
+				switch(s[0]) {
+					case 't':
+					case 'T':
+					case '1':
+						return true;
+				}
+			}
+			return false;
+		}
+	} catch ( ... ) {}
+	return dfl;
+}
+
+std::string OSUtils::jsonString(const nlohmann::json &jv,const char *dfl)
+{
+	try {
+		if (jv.is_string()) {
+			return jv;
+		} else if (jv.is_number()) {
+			char tmp[64];
+			Utils::snprintf(tmp,sizeof(tmp),"%llu",(uint64_t)jv);
+			return tmp;
+		} else if (jv.is_boolean()) {
+			return ((bool)jv ? std::string("1") : std::string("0"));
+		}
+	} catch ( ... ) {}
+	return std::string((dfl) ? dfl : "");
+}
+
+std::string OSUtils::jsonBinFromHex(const nlohmann::json &jv)
+{
+	std::string s(jsonString(jv,""));
+	if (s.length() > 0) {
+		char *buf = new char[(s.length() / 2) + 1];
+		try {
+			unsigned int l = Utils::unhex(s,buf,(unsigned int)s.length());
+			std::string b(buf,l);
+			delete [] buf;
+			return b;
+		} catch ( ... ) {
+			delete [] buf;
+		}
+	}
+	return std::string();
 }
 
 // Used to convert HTTP header names to ASCII lower case

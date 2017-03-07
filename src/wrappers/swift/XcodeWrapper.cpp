@@ -27,7 +27,6 @@
 
 #include "sdk.h"
 #include "XcodeWrapper.hpp"
-#include "signatures.h"
 
 #define INTERCEPT_ENABLED   111
 #define INTERCEPT_DISABLED  222

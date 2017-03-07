@@ -26,7 +26,7 @@ void echo(int sock) {
     //usleep(50);
     count++;
     // read a datagram from the socket (put result in bufin)
-    n=recvfrom(sock,bufin,MAXBUF,0,(struct sockaddr *)&remote,&len);
+    n=zts_recvfrom(sock,bufin,MAXBUF,0,(struct sockaddr *)&remote,&len);
     // print out the address of the sender
     printf("DGRAM from %s:%d\n", inet_ntoa(remote.sin_addr), ntohs(remote.sin_port));
 
@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
   struct sockaddr_in skaddr2;
 
   // Create socket
-  if ((sock = socket( PF_INET, SOCK_DGRAM, 0)) < 0) {
+  if ((sock = zts_socket( PF_INET, SOCK_DGRAM, 0)) < 0) {
     printf("error creating socket\n");
     return 0;
   }
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
   skaddr.sin_addr.s_addr = htonl(INADDR_ANY);
   skaddr.sin_port = htons(port);
   // Bind to address
-  if (bind(sock, (struct sockaddr *) &skaddr, sizeof(skaddr))<0) {
+  if (zts_bind(sock, (struct sockaddr *) &skaddr, sizeof(skaddr))<0) {
     printf("error binding\n");
     return 0;
   }

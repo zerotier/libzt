@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
         
         /* print the server's reply */
         memset(buf, 0, sizeof(buf));
-        n = recvfrom(sock, buf, BUFSIZE, 0, (struct sockaddr *)&serveraddr, (socklen_t *)&serverlen);
+        n = zts_recvfrom(sock, buf, BUFSIZE, 0, (struct sockaddr *)&serveraddr, (socklen_t *)&serverlen);
         //if (n < 0) 
         //    printf("ERROR in recvfrom: %d", n);
         printf("Echo from server: %s", buf);

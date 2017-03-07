@@ -51,23 +51,23 @@
 #include "debug.h"
 #include "build.h"
 
-std::string service_path;
-pthread_t intercept_thread;
-int * intercept_thread_id;
-pthread_key_t thr_id_key;
-static ZeroTier::OneService *volatile zt1Service;
-
-std::string localHomeDir; // Local shortened path
-std::string givenHomeDir; // What the user/application provides as a suggestion
-std::string homeDir; // The resultant platform-specific dir we *must* use internally
-std::string netDir;
-std::string rpcNWID;
-
-bool rpcEnabled;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+static ZeroTier::OneService *zt1Service;
+
+std::string service_path;
+std::string localHomeDir; // Local shortened path
+std::string givenHomeDir; // What the user/application provides as a suggestion
+std::string homeDir;      // The resultant platform-specific dir we *must* use internally
+std::string netDir;
+std::string rpcNWID;
+
+pthread_t intercept_thread;
+pthread_key_t thr_id_key;
+
+int * intercept_thread_id;
 
     // ------------------------------------------------------------------------------
     // --------------------------------- Base zts_* API -----------------------------
@@ -289,7 +289,6 @@ void zts_start_service(const char *path)
     }
     
     //void init_service_and_rpc(int key, const char * path, const char * nwid) {
-    //   rpcEnabled = true;
     //    rpcNWID = nwid;
     //    init_service(key, path);
     //}
@@ -505,17 +504,7 @@ void *zts_start_core_service(void *thread_id) {
         return NULL;
     }
 
-    //chdir(current_dir); // Return to previous current working directory (at the request of Unity3D)
-    #if defined(__UNITY_3D__)
-        DEBUG_INFO("starting service...");
-    #endif
-            DEBUG_INFO("starting service...");
-
-    // Initialize RPC 
-    // TODO: remove?
-    if(rpcEnabled) {
-        zts_init_rpc(localHomeDir.c_str(), rpcNWID.c_str());
-    }
+    DEBUG_INFO("starting service...");
 
     // Generate random port for new service instance
     unsigned int randp = 0;

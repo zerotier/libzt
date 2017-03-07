@@ -876,16 +876,15 @@ public:
 	}
 
 #ifdef ZT_SDK
+    virtual void leave(const char *hp)
+    {
+        _node->leave(Utils::hexStrToU64(hp),NULL);
+    }
 
 	virtual void join(const char *hp)
 	{
 		_node->join(Utils::hexStrToU64(hp),NULL);
 	}
-    
-    virtual void leave(const char *hp)
-    {
-        _node->leave(Utils::hexStrToU64(hp),NULL);
-    }
 
     virtual std::string givenHomePath()
     {

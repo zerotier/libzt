@@ -260,8 +260,8 @@ endif
 # Builds zts_* library tests
 osx_static_lib_tests: 
 	mkdir -p $(TEST_OBJDIR)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.tcpserver4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.tcpserver4.out -Lbuild -lzt -ldl
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.tcpclient4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.tcpclient4.out -Lbuild -lzt -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.udpserver4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.udpserver4.out -Lbuild -lzt -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.udpclient4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.udpclient4.out -Lbuild -lzt -ldl
 
 # ------------------------------------------------------------------------------
 # ---------------------------------- Android -----------------------------------

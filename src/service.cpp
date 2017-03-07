@@ -484,7 +484,7 @@ void *zts_start_core_service(void *thread_id) {
     
     // Construct path for network config and supporting service files
     if (homeDir.length()) {
-        std::vector<std::string> hpsp(ZeroTier::Utils::split(homeDir.c_str(),ZT_PATH_SEPARATOR_S,"",""));
+        std::vector<std::string> hpsp(ZeroTier::OSUtils::split(homeDir.c_str(),ZT_PATH_SEPARATOR_S,"",""));
         std::string ptmp;
         if (homeDir[0] == ZT_PATH_SEPARATOR)
             ptmp.push_back(ZT_PATH_SEPARATOR);

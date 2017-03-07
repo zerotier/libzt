@@ -27,7 +27,7 @@ INCLUDES=
 DEFS=
 ARCH_FLAGS=-arch x86_64
 CFLAGS=
-CXXFLAGS=$(CFLAGS) -fno-rtti -std=c++11
+CXXFLAGS=$(CFLAGS) -fno-rtti -std=c++11 -DZT_SDK
 
 include objects.mk
 

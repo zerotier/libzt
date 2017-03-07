@@ -152,14 +152,14 @@ public:
 
 #ifdef ZT_SDK
 	/**
-	 * Joins a network
-	 */
-	virtual void join(const char *hp) = 0;
-    
-    /**
      * Leaves a network
      */
     virtual void leave(const char *hp) = 0;
+
+	/**
+	 * Joins a network
+	 */
+	virtual void join(const char *hp) = 0;
 
     /**
      * Returns the homePath given by the client application

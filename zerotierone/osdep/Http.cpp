@@ -102,7 +102,7 @@ struct HttpPhyHandler
 			phy->close(sock);
 	}
 
-	inline void phyOnTcpWritable(PhySocket *sock,void **uptr, bool lwip_invoked)
+	inline void phyOnTcpWritable(PhySocket *sock,void **uptr, bool stack_invoked)
 	{
 		if (writePtr < writeSize) {
 			long n = phy->streamSend(sock,writeBuf + writePtr,writeSize - writePtr,true);
@@ -118,7 +118,7 @@ struct HttpPhyHandler
 	inline void phyOnUnixAccept(PhySocket *sockL,PhySocket *sockN,void **uptrL,void **uptrN) {}
 	inline void phyOnUnixClose(PhySocket *sock,void **uptr) {}
 	inline void phyOnUnixData(PhySocket *sock,void **uptr,void *data,unsigned long len) {}
-	inline void phyOnUnixWritable(PhySocket *sock,void **uptr, bool lwip_invoked) {}
+	inline void phyOnUnixWritable(PhySocket *sock,void **uptr) {}
 #endif // __UNIX_LIKE__
 
 	http_parser parser;

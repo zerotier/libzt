@@ -20,12 +20,14 @@
 #define ZT_ONESERVICE_HPP
 
 #include <string>
-#include <map>
+#include <vector>
+
+#include "../node/InetAddress.hpp"
 
 #include "../node/Node.hpp"
 
  // Include the right tap device driver for this platform -- add new platforms here
-#ifdef SDK
+#ifdef ZT_SDK
 	// In network containers builds, use the virtual netcon endpoint instead of a tun/tap port driver
 	#include "../src/tap.hpp"
 	namespace ZeroTier { typedef NetconEthernetTap EthernetTap; }
@@ -35,18 +37,6 @@ namespace ZeroTier {
 
 /**
  * Local service for ZeroTier One as system VPN/NFV provider
- *
- * If built with ZT_ENABLE_NETWORK_CONTROLLER defined, this includes and
- * runs controller/SqliteNetworkController with a database called
- * controller.db in the specified home directory.
- *
- * If built with ZT_AUTO_UPDATE, an official ZeroTier update URL is
- * periodically checked and updates are automatically downloaded, verified
- * against a built-in list of update signing keys, and installed. This is
- * only supported for certain platforms.
- *
- * If built with ZT_ENABLE_CLUSTER, a 'cluster' file is checked and if
- * present is read to determine the identity of other cluster members.
  */
 class OneService
 {
@@ -88,6 +78,12 @@ public:
 		bool allowManaged;
 
 		/**
+		 * Whitelist of addresses that can be configured by this network.
+		 * If empty and allowManaged is true, allow all private/pseudoprivate addresses.
+		 */
+		std::vector<InetAddress> allowManagedWhitelist;
+
+		/**
 		 * Allow configuration of IPs and routes within global (Internet) IP space?
 		 */
 		bool allowGlobal;
@@ -104,11 +100,6 @@ public:
 	static std::string platformDefaultHomePath();
 
 	/**
-	 * @return Auto-update URL or empty string if auto-updates unsupported or not enabled
-	 */
-	static std::string autoUpdateUrl();
-
-	/**
 	 * Create a new instance of the service
 	 *
 	 * Once created, you must call the run() method to actually start
@@ -121,9 +112,7 @@ public:
 	 * @param hp Home path
 	 * @param port TCP and UDP port for packets and HTTP control (if 0, pick random port)
 	 */
-	static OneService *newInstance(
-		const char *hp,
-		unsigned int port);
+	static OneService *newInstance(const char *hp,unsigned int port);
 
 	virtual ~OneService();
 
@@ -161,7 +150,7 @@ public:
 	 */
 	virtual void terminate() = 0;
 
-#ifdef SDK
+#ifdef ZT_SDK
 	/**
 	 * Joins a network
 	 */
@@ -187,11 +176,6 @@ public:
 	 *
 	 */
 	virtual Node * getNode() = 0;
-
-	/**
-	 * @return True if service is still running
-	 */
-	inline bool isRunning() const { return (this->reasonForTermination() == ONE_STILL_RUNNING); }
 #endif
 
 	/**
@@ -211,6 +195,11 @@ public:
 	 * @return True if network was found and setting modified
 	 */
 	virtual bool setNetworkSettings(const uint64_t nwid,const NetworkSettings &settings) = 0;
+
+	/**
+	 * @return True if service is still running
+	 */
+	inline bool isRunning() const { return (this->reasonForTermination() == ONE_STILL_RUNNING); }
 
 protected:
 	OneService() {}

@@ -1,14 +1,15 @@
 OBJS=\
-	zerotierone/ext/json-parser/json.o \
-	zerotierone/ext/http-parser/http_parser.o \
-	zerotierone/ext/lz4/lz4.o \
+	zerotierone/controller/EmbeddedNetworkController.o \
+	zerotierone/controller/JSONDB.o \
 	zerotierone/node/C25519.o \
+	zerotierone/node/Capability.o \
 	zerotierone/node/CertificateOfMembership.o \
+	zerotierone/node/CertificateOfOwnership.o \
 	zerotierone/node/Cluster.o \
-	zerotierone/node/DeferredPackets.o \
 	zerotierone/node/Identity.o \
 	zerotierone/node/IncomingPacket.o \
 	zerotierone/node/InetAddress.o \
+	zerotierone/node/Membership.o \
 	zerotierone/node/Multicaster.o \
 	zerotierone/node/Network.o \
 	zerotierone/node/NetworkConfig.o \
@@ -18,15 +19,18 @@ OBJS=\
 	zerotierone/node/Path.o \
 	zerotierone/node/Peer.o \
 	zerotierone/node/Poly1305.o \
+	zerotierone/node/Revocation.o \
 	zerotierone/node/Salsa20.o \
 	zerotierone/node/SelfAwareness.o \
 	zerotierone/node/SHA512.o \
 	zerotierone/node/Switch.o \
+	zerotierone/node/Tag.o \
 	zerotierone/node/Topology.o \
 	zerotierone/node/Utils.o \
-	zerotierone/osdep/BackgroundResolver.o \
 	zerotierone/osdep/ManagedRoute.o \
 	zerotierone/osdep/Http.o \
 	zerotierone/osdep/OSUtils.o \
 	zerotierone/service/ClusterGeoIpService.o \
-	zerotierone/service/ControlPlane.o
+	zerotierone/service/ControlPlane.o \
+	zerotierone/service/SoftwareUpdater.o \
+	zerotierone/ext/http-parser/http_parser.o

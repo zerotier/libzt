@@ -438,11 +438,19 @@ namespace ZeroTier {
             memset(frame, 0, sizeof(frame));
             len = 0;
             memcpy(&len, picotap->pico_frame_rxbuf, sizeof(len)); // get frame len
-            memcpy(frame, picotap->pico_frame_rxbuf + sizeof(len), len); // get frame data
-            memmove(picotap->pico_frame_rxbuf, picotap->pico_frame_rxbuf + sizeof(len) + len, ZT_MAX_MTU-(sizeof(len) + len));
-            picotap->picostack->__pico_stack_recv(dev, (uint8_t*)frame, len); 
-            picotap->pico_frame_rxbuf_tot-=(sizeof(len) + len);
-            // DEBUG_EXTRA("RX frame buffer %3f full", (float)(picotap->pico_frame_rxbuf_tot) / (float)(MAX_PICO_FRAME_RX_BUF_SZ));
+            /*
+            if(len > ZT_MAX_MTU * 10) // FIXME: Remove or update {
+            	DEBUG_ERROR("len seems to be an unreasonable value, dumping entire buffer...");
+            	memset(picotap->pico_frame_rxbuf, 0, MAX_PICO_FRAME_RX_BUF_SZ);
+            	picotap->pico_frame_rxbuf_tot = 0;
+            }
+            */
+            if(len > 0) {
+            	memcpy(frame, picotap->pico_frame_rxbuf + sizeof(len), len); // get frame data
+            	memmove(picotap->pico_frame_rxbuf, picotap->pico_frame_rxbuf + sizeof(len) + len, ZT_MAX_MTU-(sizeof(len) + len));
+            	picotap->picostack->__pico_stack_recv(dev, (uint8_t*)frame, len); 
+                picotap->pico_frame_rxbuf_tot-=(sizeof(len) + len);
+            }
             loop_score--;
         }
         return loop_score;

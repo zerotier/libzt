@@ -30,7 +30,7 @@
 #ifndef _SDK_DEBUG_H_
 #define _SDK_DEBUG_H_
 
-#define DEBUG_LEVEL     4 // Set this to adjust what you'd like to see in the debug traces
+#define DEBUG_LEVEL     1 // Set this to adjust what you'd like to see in the debug traces
 
 #define MSG_ERROR       1 // Errors
 #define MSG_TRANSFER    2 // RX/TX specific statements
@@ -106,6 +106,8 @@ extern "C" {
  #else
   #define DEBUG_INFO(fmt, args...)
   #define DEBUG_BLANK(fmt, args...)
+  #define DEBUG_ATTN(fmt, args...)
+  #define DEBUG_STACK(fmt, args...)
  #endif
  #if DEBUG_LEVEL >= MSG_TRANSFER
   #if defined(__ANDROID__)

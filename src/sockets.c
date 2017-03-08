@@ -316,7 +316,7 @@ int (*realclose)(CLOSE_SIG);
             else {
                 perror("read:\n");
             }
-            return tmpsz;
+            return tmpsz <= ZT_MAX_MTU ? tmpsz : -1;
         }
 //#endif
 

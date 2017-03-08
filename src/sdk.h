@@ -76,8 +76,6 @@
     #include <jni.h>
 #endif
 
-#include "build.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif

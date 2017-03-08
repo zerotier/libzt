@@ -49,7 +49,6 @@
 #include "tap.hpp"
 #include "sdk.h"
 #include "debug.h"
-#include "build.h"
 
 #ifdef __cplusplus
 extern "C" {

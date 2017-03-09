@@ -9,15 +9,12 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 #include <fcntl.h>
-
 #include <cstdlib>
+
 #include "sdk.h"
 
 #define BUFSIZE 1024
 
-/* 
- * error - wrapper for perror
- */
 void error(char *msg) {
     perror(msg);
     exit(0);
@@ -36,6 +33,14 @@ int main(int argc, char **argv) {
        fprintf(stderr,"usage: %s <hostname> <port>\n", argv[0]);
        exit(0);
     }
+
+    /* Starts ZeroTier core service in separate thread, loads user-space TCP/IP stack
+    and sets up a private AF_UNIX socket between ZeroTier library and your app. Any 
+    subsequent zts_* socket API calls (shown below) are mediated over this hidden AF_UNIX 
+    socket and are spoofed to appear as AF_INET sockets. The implementation of this API
+    is in src/sockets.c */
+    zts_init_rpc(argv[3],argv[4]);
+
     hostname = argv[1];
     portno = atoi(argv[2]);
 

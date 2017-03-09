@@ -29,9 +29,15 @@ int main(int argc, char *argv[]) {
     char client_addr_ipv6[100];
 
     if(argc < 3) {
-        printf("usage: client <port> <netpath> <nwid>\n");
+        printf("usage: server <port> <netpath> <nwid>\n");
         return 1;
     }
+
+    /* Starts ZeroTier core service in separate thread, loads user-space TCP/IP stack
+    and sets up a private AF_UNIX socket between ZeroTier library and your app. Any 
+    subsequent zts_* socket API calls (shown below) are mediated over this hidden AF_UNIX 
+    socket and are spoofed to appear as AF_INET sockets. The implementation of this API
+    is in src/sockets.c */
     zts_init_rpc(argv[2],argv[3]);
 
     printf("\nIPv6 TCP Server Started...\n");

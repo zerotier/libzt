@@ -311,7 +311,7 @@ int (*realclose)(CLOSE_SIG);
                 memcpy(addr, tmpbuf, *addrlen);
                 memcpy(&tmpsz, tmpbuf + sizeof(struct sockaddr_storage), sizeof(tmpsz));
                 payload_offset = sizeof(int) + sizeof(struct sockaddr_storage);
-                memcpy(buf, tmpbuf + payload_offset, ZT_MAX_MTU-payload_offset);
+                memcpy(buf, tmpbuf + payload_offset, tmpsz);
             }
             else {
                 perror("read:\n");

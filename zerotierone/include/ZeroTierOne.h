@@ -74,7 +74,7 @@ extern "C" {
  * We use 2800, which leaves some room for other payload in other types of
  * messages such as multicast propagation or future support for bridging.
  */
-#define ZT_MAX_MTU 2800
+#define ZT_MAX_MTU 2000
 
 /**
  * Maximum length of network short name

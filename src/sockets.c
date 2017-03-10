@@ -73,6 +73,7 @@
 #include "sdk.h"
 #include "debug.h"
 #include "rpc.h"
+#include "defs.h"
         
 #include "Constants.hpp" // For Tap's MTU
     
@@ -280,7 +281,7 @@ int (*realclose)(CLOSE_SIG);
     {
         struct sockaddr_in addr;
         jbyte *body = (*env)->GetByteArrayElements(env, buf, 0);
-        unsigned char buffer[ZT_MAX_MTU];
+        unsigned char buffer[SDK_MTU];
         int payload_offset = sizeof(int) + sizeof(struct sockaddr_storage);
         int rxbytes = zts_recvfrom(fd, &buffer, len, flags, &addr, sizeof(struct sockaddr_storage));
         if(rxbytes > 0)
@@ -304,19 +305,32 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_recvfrom(RECVFROM_SIG)
     #endif
         {
-            int payload_offset, tmpsz = 0; // payload size
-            char tmpbuf[ZT_MAX_MTU];
-            if(read(fd, tmpbuf, ZT_MAX_MTU) > 0) {
+            int payload_offset, tmpsz=0, pnum=0; // payload size
+            char tmpbuf[SDK_MTU];
+            memset(tmpbuf, 0, SDK_MTU);
+            
+            // Attempt to read SDK_MTU sized chunk
+            int total_read = 0, n=0;
+            while(total_read < SDK_MTU) {
+                n = read(fd, tmpbuf+total_read, SDK_MTU);
+                total_read += n;
+            }
+            if(n > 0) {
                 // TODO: case for address size mismatch?
                 memcpy(addr, tmpbuf, *addrlen);
                 memcpy(&tmpsz, tmpbuf + sizeof(struct sockaddr_storage), sizeof(tmpsz));
+                memcpy(&pnum, tmpbuf + sizeof(struct sockaddr_storage) + sizeof(int), sizeof(int));
+                if(tmpsz > SDK_MTU || tmpsz < 0) {
+                    DEBUG_ERROR("An error occured somewhere in the SDK, read=%d", n);
+                    return -1;
+                }
                 payload_offset = sizeof(int) + sizeof(struct sockaddr_storage);
                 memcpy(buf, tmpbuf + payload_offset, tmpsz);
             }
             else {
                 perror("read:\n");
             }
-            return tmpsz <= ZT_MAX_MTU ? tmpsz : -1;
+            return tmpsz;
         }
 //#endif
 

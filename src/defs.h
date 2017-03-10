@@ -25,6 +25,8 @@
  * LLC. Start here: http://www.zerotier.com/
  */
 
+#define SDK_MTU							ZT_MAX_MTU // 2800, usually 
+
 // --- lwIP
 #define APPLICATION_POLL_FREQ           2
 #define ZT_LWIP_TCP_TIMER_INTERVAL      50

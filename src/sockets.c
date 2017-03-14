@@ -101,16 +101,19 @@ int (*realclose)(CLOSE_SIG);
         // If no path, construct one or get it fron system env vars
         if(!api_netpath) {
             rpc_mutex_init();
+            // Provided by user
             #if defined(SDK_BUNDLED)
                 // Get the path/nwid from the user application
                 // netpath = [path + "/nc_" + nwid] 
                 char *fullpath = (char *)malloc(strlen(path)+strlen(nwid)+1+4);
                 if(fullpath) {
+                    zts_join_network_soft(path, nwid);
                     strcpy(fullpath, path);
                     strcat(fullpath, "/nc_");
                     strcat(fullpath, nwid);
                     api_netpath = fullpath;
                 }
+            // Provided by Env
             #else
                 // Get path/nwid from environment variables
                 if (!api_netpath) {
@@ -192,7 +195,7 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_sendto(SENDTO_SIG) // Used as internal implementation 
     #endif
         {
-            DEBUG_EXTRA("fd=%d", fd);
+            //DEBUG_EXTRA("fd=%d", fd);
             if(len > ZT_UDP_DEFAULT_PAYLOAD_MTU) {
                 errno = EMSGSIZE; // Msg is too large
                 return -1;
@@ -233,7 +236,7 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_sendmsg(SENDMSG_SIG)
     #endif
         {
-            DEBUG_EXTRA("fd=%d",fd);
+            //DEBUG_EXTRA("fd=%d",fd);
             char * p, * buf;
             size_t tot_len = 0;
             size_t err;
@@ -311,9 +314,15 @@ int (*realclose)(CLOSE_SIG);
             
             // Attempt to read SDK_MTU sized chunk
             int total_read = 0, n=0;
+            //fcntl(fd, F_SETFL, O_NONBLOCK);
             while(total_read < SDK_MTU) {
+                //DEBUG_ERROR("       READING...");
                 n = read(fd, tmpbuf+total_read, SDK_MTU);
-                total_read += n;
+                if(n>0)
+                    total_read += n;
+                //DEBUG_ERROR("         R... (read=%d, total_read=%d, errno=%d)", n, total_read, errno);
+                if(n<0)
+                    return -1;
             }
             if(n > 0) {
                 // TODO: case for address size mismatch?
@@ -330,6 +339,7 @@ int (*realclose)(CLOSE_SIG);
             else {
                 perror("read:\n");
             }
+            //DEBUG_ERROR("recvfrom=%d", tmpsz);
             return tmpsz;
         }
 //#endif
@@ -346,7 +356,7 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_recvmsg(RECVMSG_SIG)
     #endif
         {
-            DEBUG_EXTRA("fd=%d", fd);
+            //DEBUG_EXTRA("fd=%d", fd);
             ssize_t err, n, tot_len = 0;
             char *buf, *p;
             struct iovec *iov = msg->msg_iov;
@@ -555,7 +565,7 @@ int (*realclose)(CLOSE_SIG);
 #endif
     {
         get_api_netpath();
-        DEBUG_INFO("fd=%d", fd);
+        //DEBUG_INFO("fd=%d", fd);
         struct connect_st rpc_st;
         rpc_st.fd = fd;
         memcpy(&rpc_st.addr, addr, sizeof(struct sockaddr_storage));

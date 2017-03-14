@@ -30,7 +30,7 @@
 #ifndef _SDK_DEBUG_H_
 #define _SDK_DEBUG_H_
 
-#define DEBUG_LEVEL     4 // Set this to adjust what you'd like to see in the debug traces
+#define DEBUG_LEVEL     5 // Set this to adjust what you'd like to see in the debug traces
 
 #define MSG_ERROR       1 // Errors
 #define MSG_TRANSFER    2 // RX/TX specific statements
@@ -136,7 +136,7 @@ extern "C" {
    #if defined(__ANDROID__)
     #define DEBUG_FLOW(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, "ZT_FLOW : %14s:%4d:%25s: " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args))
   #else
-    #define DEBUG_FLOW(fmt, args...) fprintf(stderr, "ZT_FLOW: %14s:%4d:%25s: " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args)
+    #define DEBUG_FLOW(fmt, args...) fprintf(stderr, "ZT_FLOW : %14s:%4d:%25s: " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args)
   #endif
  #else
   #define DEBUG_FLOW(fmt, args...)

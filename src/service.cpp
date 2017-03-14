@@ -60,8 +60,7 @@ std::string service_path;
 std::string localHomeDir; // Local shortened path
 std::string givenHomeDir; // What the user/application provides as a suggestion
 std::string homeDir;      // The resultant platform-specific dir we *must* use internally
-std::string netDir;
-std::string rpcNWID;
+std::string netDir;       // Where network .conf files are to be written
 
 pthread_t intercept_thread;
 pthread_key_t thr_id_key;
@@ -122,8 +121,8 @@ int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage * ad
 
 // Basic ZT service controls
 // Will also spin up a SOCKS5 proxy server if USE_SOCKS_PROXY is set
-void zts_join_network(const char * nwid) { 
-    DEBUG_INFO();
+void zts_join_network(const char * nwid) {
+    DEBUG_ERROR();
     std::string confFile = zt1Service->givenHomePath() + "/networks.d/" + nwid + ".conf";
     if(!ZeroTier::OSUtils::mkdir(netDir)) {
         DEBUG_ERROR("unable to create: %s", netDir.c_str());
@@ -140,6 +139,17 @@ void zts_join_network(const char * nwid) {
         zts_start_proxy_server(homeDir.c_str(), nwid, NULL); // NULL addr for default
     #endif
 }
+// Just create the dir and conf file required, don't instruct the core to do anything
+void zts_join_network_soft(const char * filepath, const char * nwid) { 
+    std::string net_dir = std::string(filepath) + "/networks.d/";
+    std::string confFile = net_dir + std::string(nwid) + ".conf";
+    if(!ZeroTier::OSUtils::mkdir(net_dir)) {
+        DEBUG_ERROR("unable to create: %s", net_dir.c_str());
+    }
+    if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), "")) {
+        DEBUG_ERROR("unable to write network conf file: %s", confFile.c_str());
+    }
+}
 //
 void zts_leave_network(const char * nwid) { 
     if(zt1Service)
@@ -153,6 +163,12 @@ bool zts_service_is_running() {
 void zts_stop_service() {
     if(zt1Service) 
         zt1Service->terminate(); 
+}
+void zts_stop() {
+    DEBUG_INFO("Stopping STSDK");
+    zts_stop_service();
+    /* TODO: kill each proxy server as well
+    zts_stop_proxy_server(...); */
 }
 
 // FIXME: Re-implemented to make it play nicer with the C-linkage required for Xcode integrations

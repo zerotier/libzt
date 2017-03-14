@@ -63,7 +63,7 @@ namespace ZeroTier {
 int NetconEthernetTap::sendReturnValue(int fd, int retval, int _errno)
 {
 	//#if !defined(USE_SOCKS_PROXY)
-	DEBUG_EXTRA("fd=%d, retval=%d, errno=%d", fd, retval, _errno);
+	//DEBUG_EXTRA("fd=%d, retval=%d, errno=%d", fd, retval, _errno);
 	int sz = sizeof(char) + sizeof(retval) + sizeof(errno);
 	char retmsg[sz];
 	memset(&retmsg, 0, sizeof(retmsg));
@@ -328,7 +328,7 @@ void NetconEthernetTap::closeConnection(PhySocket *sock)
 }
 
 void NetconEthernetTap::phyOnUnixClose(PhySocket *sock,void **uptr) {
-    DEBUG_EXTRA("physock=%p", sock);
+    //DEBUG_EXTRA("physock=%p", sock);
 	Mutex::Lock _l(_tcpconns_m);
     //closeConnection(sock);
 }
@@ -359,7 +359,7 @@ void NetconEthernetTap::phyOnUnixWritable(PhySocket *sock,void **uptr,bool lwip_
 
 void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
 {
-    DEBUG_EXTRA("physock=%p, len=%d", sock, (int)len);
+    //DEBUG_EXTRA("physock=%p, len=%d", sock, (int)len);
 	uint64_t CANARY_num;
 	pid_t pid, tid;
 	ssize_t wlen = len;
@@ -384,7 +384,7 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
 		// DEBUG_EXTRA(" RPC: physock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", sock, pid, tid, timestamp, cmd);
 
 		if(cmd == RPC_SOCKET) {				
-			DEBUG_INFO("RPC_SOCKET, physock=%p", sock);
+			//DEBUG_INFO("RPC_SOCKET, physock=%p", sock);
 			// Create new lwip socket and associate it with this sock
 			struct socket_st socket_rpc;
 			memcpy(&socket_rpc, &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct socket_st));
@@ -478,31 +478,31 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
 		// DEBUG_EXTRA(" RPC: physock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", sock, pid, tid, timestamp, cmd);
 		switch(cmd) {
 			case RPC_BIND:
-				DEBUG_INFO("RPC_BIND, physock=%p", sock);
+				//DEBUG_INFO("RPC_BIND, physock=%p", sock);
 			    struct bind_st bind_rpc;
 			    memcpy(&bind_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct bind_st));
 			    handleBind(sock, rpcSock, uptr, &bind_rpc);
 				break;
 		  	case RPC_LISTEN:
-		  		DEBUG_INFO("RPC_LISTEN, physock=%p", sock);
+		  		//DEBUG_INFO("RPC_LISTEN, physock=%p", sock);
 			    struct listen_st listen_rpc;
 			    memcpy(&listen_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct listen_st));
 			    handleListen(sock, rpcSock, uptr, &listen_rpc);
 				break;
 		  	case RPC_GETSOCKNAME:
-		  		DEBUG_INFO("RPC_GETSOCKNAME, physock=%p", sock);
+		  		//DEBUG_INFO("RPC_GETSOCKNAME, physock=%p", sock);
 		  		struct getsockname_st getsockname_rpc;
 		    	memcpy(&getsockname_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct getsockname_st));
 		  		handleGetsockname(sock, rpcSock, uptr, &getsockname_rpc);
 		  		break;
 			case RPC_GETPEERNAME:
-		  		DEBUG_INFO("RPC_GETPEERNAME, physock=%p", sock);
+		  		//DEBUG_INFO("RPC_GETPEERNAME, physock=%p", sock);
 		  		struct getsockname_st getpeername_rpc;
 		    	memcpy(&getpeername_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct getsockname_st));
 		  		handleGetpeername(sock, rpcSock, uptr, &getpeername_rpc);
 		  		break;
 			case RPC_CONNECT:
-				DEBUG_INFO("RPC_CONNECT, physock=%p", sock);
+				//DEBUG_INFO("RPC_CONNECT, physock=%p", sock);
 			    struct connect_st connect_rpc;
 			    memcpy(&connect_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct connect_st));
 			    handleConnect(sock, rpcSock, conn, &connect_rpc);
@@ -574,7 +574,7 @@ int NetconEthernetTap::handleConnectProxy(PhySocket *sock, struct sockaddr_in *r
 // Connect a stack's PCB/socket/Connection object to a remote host
 void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Connection *conn, struct connect_st* connect_rpc)
 {
-    DEBUG_ATTN("physock=%p", sock);
+    //DEBUG_ATTN("physock=%p", sock);
 	Mutex::Lock _l(_tcpconns_m);
 	#if defined(SDK_PICOTCP)
 		pico_handleConnect(sock, rpcSock, conn, connect_rpc);		

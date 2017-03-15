@@ -39,20 +39,6 @@
 #include "pico_eth.h"
 
 namespace ZeroTier {
-	// This may be removed in production
-	void check_buffer_states(Connection *conn)
-	{
-		#if defined(SDK_DEBUG)
-			if(conn->rxsz < 0) {
-				DEBUG_ERROR("conn->rxsz < 0");
-				exit(0);
-			}
-			if(conn->txsz < 0) {
-				DEBUG_ERROR("conn->txsz < 0");
-				exit(0);
-			}
-		#endif
-	}
 
 	// Reference to the tap interface
 	// This is needed due to the fact that there's a lot going on in the tap interface
@@ -120,19 +106,19 @@ namespace ZeroTier {
 		}
 	}
 	
-	// I/O thread loop
+	// Main stack loop
 	void pico_loop(NetconEthernetTap *tap)
 	{
 		while(tap->_run)
 		{
-			tap->_phy.poll(50); // in ms
-			//usleep(50);
+			tap->_phy.poll(ZT_PHY_POLL_INTERVAL); // in ms
 	        tap->picostack->__pico_stack_tick();
 		}
 	}
 
-	// RX packets from network onto internal buffer
-	// Also notifies the tap service that data can be read
+	// RX packets from [ZT->STACK] onto RXBUF
+	// Also notify the tap service that data can be read:
+	// [RXBUF -> (ZTSOCK->APP)]
    	// -----------------------------------------
 	// | TAP <-> MEM BUFFER <-> STACK <-> APP  |
     // |                                       | 
@@ -142,8 +128,7 @@ namespace ZeroTier {
     // After this step, buffer will be emptied periodically by pico_handleRead()
 	void pico_cb_tcp_read(NetconEthernetTap *tap, struct pico_socket *s)
 	{
-		// TODO: Verify 
-		// DEBUG_INFO("picosock=%p", s);
+		DEBUG_INFO();
 		Connection *conn = tap->getConnection(s);
 		if(conn) {
 			int r;				
@@ -156,11 +141,9 @@ namespace ZeroTier {
 			do {
 				int avail = DEFAULT_TCP_RX_BUF_SZ - conn->rxsz;
 				if(avail) {
-		            // r = tap->picostack->__pico_socket_read(s, conn->rxbuf + (conn->rxsz), SDK_MTU);
 		            r = tap->picostack->__pico_socket_recvfrom(s, conn->rxbuf + (conn->rxsz), SDK_MTU, (void *)&peer.ip4.addr, &port);
 		            // DEBUG_ATTN("received packet (%d byte) from %08X:%u", r, long_be2(peer.ip4.addr), short_be(port));
 		            tap->_phy.setNotifyWritable(conn->sock, true);
-		            //DEBUG_EXTRA("read=%d", r);
 		            if (r > 0)
 		                conn->rxsz += r;
 	        	}
@@ -173,7 +156,7 @@ namespace ZeroTier {
 		DEBUG_ERROR("invalid connection");
 	}
 
-	// RX packets from network onto internal buffer
+	// RX packets from the stack onto internal buffer
 	// Also notifies the tap service that data can be read
    	// -----------------------------------------
 	// | TAP <-> MEM BUFFER <-> STACK <-> APP  |
@@ -188,6 +171,8 @@ namespace ZeroTier {
     //
 	void pico_cb_udp_read(NetconEthernetTap *tap, struct pico_socket *s)
 	{
+		DEBUG_INFO();
+
 		Connection *conn = tap->getConnection(s);
 		if(conn) {
 
@@ -212,11 +197,11 @@ namespace ZeroTier {
         	// addr_in6.sin6_addr.s6_addr;
         	// addr_in6.sin6_port = Utils::ntoh(s->remote_port);
 			// DEBUG_ATTN("remote_port=%d, local_port=%d", s->remote_port, Utils::ntoh(s->local_port));
-			
+
             picotap->_rx_buf_m.lock(); 
 
 			if(conn->rxsz == DEFAULT_UDP_RX_BUF_SZ) { // if UDP buffer full
-                DEBUG_FLOW(" [  RXBUF <- STACK] UDP RX buffer full. Discarding oldest payload segment");
+                //DEBUG_FLOW(" [  RXBUF <- STACK] UDP RX buffer full. Discarding oldest payload segment");
                 memmove(conn->rxbuf, conn->rxbuf + SDK_MTU, DEFAULT_UDP_RX_BUF_SZ - SDK_MTU);
                 addr_pos = conn->rxbuf + (DEFAULT_UDP_RX_BUF_SZ - SDK_MTU); // TODO:
                 sz_pos = addr_pos + sizeof(struct sockaddr_storage);
@@ -241,9 +226,7 @@ namespace ZeroTier {
     		} 
         	memcpy(payload_pos, tmpbuf, r); // write payload to app's socket
         	//DEBUG_EXTRA(" Copied onto rxbuf (%d) from stack socket", r);
-            
             picotap->_rx_buf_m.unlock(); 
-
         	return;
 		}
 	}
@@ -279,6 +262,7 @@ namespace ZeroTier {
 	// Main callback for TCP connections
 	void pico_cb_socket_activity(uint16_t ev, struct pico_socket *s)
     {
+    	DEBUG_INFO();
     	int err;
         Mutex::Lock _l(picotap->_tcpconns_m);
         Connection *conn = picotap->getConnection(s);
@@ -392,14 +376,10 @@ namespace ZeroTier {
     // It will then periodically be transfered into the network stack via pico_eth_poll()
     void pico_rx(NetconEthernetTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
 	{
-		//DEBUG_INFO("len=%d", len);
+		DEBUG_INFO();
 		// Since picoTCP only allows the reception of frames from within the polling function, we
 		// must enqueue each frame into a memory structure shared by both threads. This structure will
 		Mutex::Lock _l(tap->_pico_frame_rxbuf_m);
-		//if(len != memcpy(pico_frame_rxbuf, data, len)) {
-		//	DEBUG_ERROR("dropping packet (len = %d) - unable to copy contents of frame to RX frame buffer", len);
-		//	return;
-		//}
 
 		// assemble new eth header
 		struct pico_eth_hdr ethhdr;
@@ -425,8 +405,13 @@ namespace ZeroTier {
 		memcpy(tap->pico_frame_rxbuf + tap->pico_frame_rxbuf_tot + sizeof(newlen), &ethhdr, sizeof(ethhdr));     // new eth header
 		memcpy(tap->pico_frame_rxbuf + tap->pico_frame_rxbuf_tot + sizeof(newlen) + sizeof(ethhdr), data, len);  // frame data
 		tap->pico_frame_rxbuf_tot += newlen;
-		DEBUG_FLOW(" [ ZTWIRE -> FBUF ] Moved FRAME(sz=%d) into FBUF(sz=%d), data_len=%d, ethhdr.proto=%d", newlen, picotap->pico_frame_rxbuf_tot, len, ethhdr.proto);
+		DEBUG_FLOW(" [ ZTWIRE -> FBUF ] Move FRAME(sz=%d) into FBUF(sz=%d), data_len=%d", newlen, picotap->pico_frame_rxbuf_tot, len);
 		
+		/*
+		char graph[GRAPH_BUF_SZ];
+		gengraph(&graph, GRAPH_BUF_SZ, '|', 0.6);
+		DEBUG_FLOW(graph);
+		*/
 		//}
 		//else
 		//{
@@ -445,7 +430,7 @@ namespace ZeroTier {
 		//}
 	}
 
-	// Called periodically by the stack, this removes data from the locked memory buffer and feeds it into the stack.
+	// Called periodically by the stack, this removes data from the locked memory buffer (FBUF) and feeds it into the stack.
 	// A maximum of 'loop_score' frames can be processed in each call
    	// -----------------------------------------
 	// | TAP <-> MEM BUFFER <-> STACK <-> APP  |
@@ -455,12 +440,13 @@ namespace ZeroTier {
     // ----------------------------------------- 
     int pico_eth_poll(struct pico_device *dev, int loop_score)
     {
+    	//DEBUG_ERROR();
         // OPTIMIZATION: The copy logic and/or buffer structure should be reworked for better performance after the BETA
         // NetconEthernetTap *tap = (NetconEthernetTap*)netif->state;
         Mutex::Lock _l(picotap->_pico_frame_rxbuf_m);
         unsigned char frame[SDK_MTU];
         int len;
-        while (picotap->pico_frame_rxbuf_tot > 0) {
+        while (picotap->pico_frame_rxbuf_tot > 0 && loop_score > 0) {
         	DEBUG_INFO(" [   FBUF -> STACK] Frame buffer SZ=%d", picotap->pico_frame_rxbuf_tot);
             memset(frame, 0, sizeof(frame));
             len = 0;
@@ -476,7 +462,6 @@ namespace ZeroTier {
             	DEBUG_ERROR("Skipping frame of size (%d)",len);
             	exit(0);
             }
-
             loop_score--;
         }
         return loop_score;
@@ -509,7 +494,7 @@ namespace ZeroTier {
 	        *uptr = newConn;
 	        newConn->type = socket_rpc->socket_type;
 	        newConn->sock = sock;
-
+/*
 			int res = 0;
 			int sendbuff = UNIX_SOCK_BUF_SIZE;
 			socklen_t optlen = sizeof(sendbuff);
@@ -524,8 +509,8 @@ namespace ZeroTier {
 			// Get buffer size
 			// optlen = sizeof(sendbuff);
 			// res = getsockopt(picotap->_phy.getDescriptor(sock), SOL_SOCKET, SO_SNDBUF, &sendbuff, &optlen);
-			// DEBUG_ERROR("buflen=%d", sendbuff);
-
+			// DEBUG_INFO("buflen=%d", sendbuff);
+*/
 			newConn->local_addr = NULL;
 			// newConn->peer_addr = NULL;
 			newConn->picosock = psock;
@@ -597,7 +582,6 @@ namespace ZeroTier {
 	    	//DEBUG_TRANS("[UDP TX] --->    :: {TX: %.3f%%, RX: %.3f%%, physock=%p} :: %d bytes",
 	    	//	(float)conn->txsz / (float)max, (float)conn->rxsz / max, conn->sock, r);
 	    }
-	    check_buffer_states(conn);
     }
 
     // Instructs the stack to connect to a remote host
@@ -713,6 +697,7 @@ namespace ZeroTier {
     }
 
     // Feeds data into the local app socket from the I/O buffer associated with the "connection"
+    // [ (APP<-ZTSOCK) <- RXBUF ]
    	// -----------------------------------------
 	// | TAP <-> MEM BUFFER <-> STACK <-> APP  |
     // |                                       | 
@@ -721,33 +706,28 @@ namespace ZeroTier {
     // ----------------------------------------- 
     void pico_handleRead(PhySocket *sock,void **uptr,bool lwip_invoked)
     {
-    	DEBUG_ERROR();
+    	DEBUG_INFO();
         if(!lwip_invoked) {
+        	// The stack thread writes to RXBUF as well
             picotap->_tcpconns_m.lock();
             picotap->_rx_buf_m.lock(); 
         }
+
+        int tot = 0, n = -1;
 		
 		Connection *conn = picotap->getConnection(sock);
 		if(conn && conn->rxsz) {
 			float max = conn->type == SOCK_STREAM ? (float)DEFAULT_TCP_RX_BUF_SZ : (float)DEFAULT_UDP_RX_BUF_SZ;
-			int n = -1;
 			
 			if(conn->type==SOCK_DGRAM) {
-
-				// DEBUG_ERROR("about to enter write loop, conn->sock=%p conn->rxsz=%d", conn->sock, conn->rxsz);
-
-				int pending = 0;
-				//ioctl(picotap->_phy.getDescriptor(conn->sock), SIOCOUTQ, &pending);
-
+				//DEBUG_FLOW(" [ ZTSOCK <- RXBUF] attempting write, RXBUF(%d)", conn->rxsz);
 				// Try to write SDK_MTU-sized chunk to app socket
-				int total_written = 0;
-				while(total_written < SDK_MTU) {
-					//DEBUG_ERROR(" [ ZTSOCK <- RXBUF] WRITING.... (pending=%d)", pending);
-					n = picotap->_phy.streamSend(conn->sock, (conn->rxbuf)+total_written, SDK_MTU);
-					total_written += n;
-					//DEBUG_ERROR(" [ ZTSOCK <- RXBUF]   W... %d, written=%d, errno=%d", n, total_written, errno);
+				while(tot < SDK_MTU) {
+					n = picotap->_phy.streamSend(conn->sock, (conn->rxbuf)+tot, SDK_MTU);
+					tot += n;
+					DEBUG_FLOW(" [ ZTSOCK <- RXBUF]   wrote = %d, total = %d", n, tot);
 				}
-				//DEBUG_EXTRA("SOCK_DGRAM, conn=%p, physock=%p", conn, sock);
+				// DEBUG_EXTRA("SOCK_DGRAM, conn=%p, physock=%p", conn, sock);
 				int payload_sz, addr_sz_offset = sizeof(struct sockaddr_storage);
 				memcpy(&payload_sz, conn->rxbuf + addr_sz_offset, sizeof(int));
 				struct sockaddr_storage addr;
@@ -761,12 +741,10 @@ namespace ZeroTier {
 					////conn->rxsz=SDK_MTU;
 				}
 			  	conn->rxsz -= SDK_MTU;
-			  	//DEBUG_FLOW(" [ ZTSOCK <- RXBUF]   conn->rxsz=%d", conn->rxsz);
 			}
 			
 			if(conn->type==SOCK_STREAM) {
 				n = picotap->_phy.streamSend(conn->sock, conn->rxbuf, conn->rxsz);	
-				//DEBUG_EXTRA("SOCK_STREAM, conn=%p, physock=%p, n=%d", conn, sock, n);
 				if(conn->rxsz-n > 0) // If more remains on buffer
 					memcpy(conn->rxbuf, conn->rxbuf+n, conn->rxsz - n);
 			  	conn->rxsz -= n;
@@ -787,13 +765,12 @@ namespace ZeroTier {
 				picotap->_phy.setNotifyWritable(sock, false);
 			}	
 		}
-		picotap->_phy.whack();
-		check_buffer_states(conn);
-
+		//picotap->_phy.whack();
 		if(!lwip_invoked) {
             picotap->_tcpconns_m.unlock();
             picotap->_rx_buf_m.unlock();
         }
+        DEBUG_FLOW(" [ ZTSOCK <- RXBUF] Emitted (%d) from RXBUF(%d) to socket", tot, conn->rxsz);
     }
 
     // Closes a pico_socket

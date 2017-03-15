@@ -52,14 +52,17 @@ int main(int argc, char *argv[])
    //n = getsockname(sock, (struct sockaddr *)&sin6, &sin6len);
    //printf("%d\n", ntohs(sin6.sin6_port));
 
-   fcntl(sock, F_SETFL, O_NONBLOCK);  
+   //fcntl(sock, F_SETFL, O_NONBLOCK);  
    while (1) {
-      sleep(1);
+      //usleep(50000);
       n = zts_recvfrom(sock, buffer, MAXBUF, 0, (struct sockaddr *)&sin6, &sin6len);
-      printf("n = %d, buffer : %s\n", n, buffer);
+      //if(n > 0)
+         printf("recvfrom(): n = %d, buffer : %s\n", n, buffer);
    }
 
    shutdown(sock, 2);
    close(sock);
+
+   zts_stop(); /* Shut down ZT */
    return 0;
 }

@@ -16,6 +16,8 @@
 
 #define MAXBUF 65536
 
+#define TESTBUF 1024
+
 int main(int argc, char* argv[])
 {
   int status, sock, portno, n;
@@ -45,16 +47,19 @@ int main(int argc, char* argv[])
   memmove((char *) &serv_addr.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
   serv_addr.sin6_port = htons(portno);
 
-  sprintf(buffer,"Ciao");
+  sprintf(buffer,"Welcome to the machine");
+  //memset(buffer, 1, TESTBUF);
 
   fcntl(sock, F_SETFL, O_NONBLOCK);   
   while(1)
   {
-    sleep(1);
+    //usleep(50000);
     status = zts_sendto(sock, buffer, strlen(buffer), 0, (const struct sockaddr *)&serv_addr, sizeof(serv_addr));
-    printf("Sent : %s \t%d\n", buffer, status);
+    if(status > 0)
+      printf("sendto() : %s \t%d\n", buffer, status);
   }
-
   close(sock);
+
+  zts_stop(); /* Shut down ZT */
   return 0;
 }

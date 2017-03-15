@@ -308,23 +308,27 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_recvfrom(RECVFROM_SIG)
     #endif
         {
-            int payload_offset, tmpsz=0, pnum=0; // payload size
+            int read_chunk_sz = 0, payload_offset, tmpsz=0, pnum=0; // payload size
             char tmpbuf[SDK_MTU];
             memset(tmpbuf, 0, SDK_MTU);
             
             // Attempt to read SDK_MTU sized chunk
             int total_read = 0, n=0;
-            //fcntl(fd, F_SETFL, O_NONBLOCK);
+
+            // Read the entire SDK_MTU-sized chunk from the service socket
             while(total_read < SDK_MTU) {
-                //DEBUG_ERROR("       READING...");
                 n = read(fd, tmpbuf+total_read, SDK_MTU);
                 if(n>0)
                     total_read += n;
-                //DEBUG_ERROR("         R... (read=%d, total_read=%d, errno=%d)", n, total_read, errno);
-                if(n<0)
-                    return -1;
+                else
+                    return n;
             }
+
             if(n > 0) {
+                // No matter how much we read from the service, only copy 'read_chunk_sz'
+                // into the app's buffer
+                read_chunk_sz = len < SDK_MTU ? len : SDK_MTU;
+                
                 // TODO: case for address size mismatch?
                 memcpy(addr, tmpbuf, *addrlen);
                 memcpy(&tmpsz, tmpbuf + sizeof(struct sockaddr_storage), sizeof(tmpsz));
@@ -334,13 +338,12 @@ int (*realclose)(CLOSE_SIG);
                     return -1;
                 }
                 payload_offset = sizeof(int) + sizeof(struct sockaddr_storage);
-                memcpy(buf, tmpbuf + payload_offset, tmpsz);
+                memcpy(buf, tmpbuf + payload_offset, read_chunk_sz);
             }
             else {
-                perror("read:\n");
+                return -1;
             }
-            //DEBUG_ERROR("recvfrom=%d", tmpsz);
-            return tmpsz;
+            return read_chunk_sz;
         }
 //#endif
 

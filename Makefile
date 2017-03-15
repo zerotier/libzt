@@ -2,7 +2,7 @@
 
 BUILD=build
 INT=integrations
-ZT1=zerotierone
+ZT1=zto
 
 OSTYPE=$(shell uname -s)
 

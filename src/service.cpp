@@ -146,8 +146,10 @@ void zts_join_network_soft(const char * filepath, const char * nwid) {
     if(!ZeroTier::OSUtils::mkdir(net_dir)) {
         DEBUG_ERROR("unable to create: %s", net_dir.c_str());
     }
-    if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), "")) {
-        DEBUG_ERROR("unable to write network conf file: %s", confFile.c_str());
+    if(!ZeroTier::OSUtils::fileExists(confFile.c_str(),false)) {
+        if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), "")) {
+            DEBUG_ERROR("unable to write network conf file: %s", confFile.c_str());
+        }
     }
 }
 //

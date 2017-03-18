@@ -28,6 +28,17 @@
 #ifndef _ZT_SDK_H
 #define _ZT_SDK_H	1
 
+#include <sys/socket.h>
+#include <stdbool.h>
+
+    // ------------------------------------------------------------------------------
+    // ---------------------------- Compilation flag checks -------------------------
+    // ------------------------------------------------------------------------------
+
+#define INTERCEPT_ENABLED     111
+#define INTERCEPT_DISABLED    222
+#define MAX_DIR_SZ            256 // Max path length used for home dir
+
 #if defined(SDK_SERVICE)
 	// Sanity checks for compilation
 	#if !defined(SDK_LWIP) && !defined(SDK_PICOTCP)
@@ -44,22 +55,20 @@
 	#endif
 #endif
 
-#include <sys/socket.h>
-#include <stdbool.h>
+    // ------------------------------------------------------------------------------
+    // -------------- Socket API function signatures for convenience ----------------
+    // ------------------------------------------------------------------------------
 
 #define SETSOCKOPT_SIG int fd, int level, int optname, const void *optval, socklen_t optlen
 #define GETSOCKOPT_SIG int fd, int level, int optname, void *optval, socklen_t *optlen
-
 #define SENDMSG_SIG int fd, const struct msghdr *msg, int flags
 #define SENDTO_SIG int fd, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen
 #define RECV_SIG int fd, void *buf, size_t len, int flags
 #define RECVFROM_SIG int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen
 #define RECVMSG_SIG int fd, struct msghdr *msg,int flags
-
 #define SEND_SIG int fd, const void *buf, size_t len, int flags
 #define WRITE_SIG int fd, const void *buf, size_t len
 #define READ_SIG int fd, void *buf, size_t len
-
 #define SOCKET_SIG int socket_family, int socket_type, int protocol
 #define CONNECT_SIG int fd, const struct sockaddr *addr, socklen_t addrlen
 #define BIND_SIG int fd, const struct sockaddr *addr, socklen_t addrlen
@@ -80,14 +89,14 @@
 extern "C" {
 #endif
 
-#define INTERCEPT_ENABLED     111
-#define INTERCEPT_DISABLED    222
-#define MAX_DIR_SZ            256 // Max path length used for home dir
-
 extern void load_symbols();
 extern void zts_init_rpc(const char *path, const char *nwid);
 extern char *api_netpath;
 extern char *debug_logfile;
+
+    // ------------------------------------------------------------------------------
+    // ------------------------- Ancient INTERCEPT-related cruft --------------------
+    // ------------------------------------------------------------------------------
 
 // Function pointers to original system calls
 // - These are used when we detect that either the intercept is not 
@@ -115,20 +124,16 @@ extern char *debug_logfile;
 	extern int (*realgetsockopt)(GETSOCKOPT_SIG);
 	extern int (*realclose)(CLOSE_SIG);
 	extern int (*realgetsockname)(GETSOCKNAME_SIG);  
-    
-// Direct call
-// - Skips intercept
-// - Uses RPC
-// - Depending on the target, the API will be exposed as zt_* in 
-//   the specific way needed for that platform, but will be implemented 
-//   in terms of zts_*
+   
+    // ------------------------------------------------------------------------------
+    // ---------------------------- Direct API call section -------------------------
+    // ------------------------------------------------------------------------------
 
 // SOCKS5 Proxy Controls
 int zts_start_proxy_server(const char *homepath, const char * nwid, struct sockaddr_storage * addr);
 int zts_stop_proxy_server(const char *nwid);
 int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage *addr);
 bool zts_proxy_is_running(const char *nwid);
-
 // ZT Service Controls
 void zts_start_service(const char *path);
 void *zts_start_core_service(void *thread_id);
@@ -137,22 +142,17 @@ void zts_stop();
 bool zts_service_is_running();
 void zts_join_network(const char * nwid);
 void zts_join_network_soft(const char * filepath, const char * nwid);
+void zts_leave_network_soft(const char * filepath, const char * nwid);
 void zts_leave_network(const char * nwid);
-// void zts_get_addresses(const char * nwid, char * addrstr);
 void zts_get_ipv4_address(const char *nwid, char *addrstr);
 void zts_get_ipv6_address(const char *nwid, char *addrstr);
 bool zts_has_address(const char *nwid);
-int zts_get_device_id();
-bool zts_is_relayed();
+int zts_get_device_id(char *devID);
+int zts_get_device_id_from_file(const char *filepath, char *devID);
 char *zts_get_homepath();
-
-// ZT Intercept/RPC Controls
-// TODO: Remove any?
-//void set_intercept_status(int mode); // TODO: Rethink this
-//void init_service(int key, const char * path);
-//void init_service_and_rpc(int key, const char * path, const char * nwid);
-//void init_intercept(int key);
-
+void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID);
+void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID);
+// BSD-like socket API
 int zts_socket(SOCKET_SIG);
 int zts_connect(CONNECT_SIG);
 int zts_bind(BIND_SIG);
@@ -167,12 +167,10 @@ int zts_getsockname(GETSOCKNAME_SIG);
 int zts_getpeername(GETPEERNAME_SIG);
 int zts_close(CLOSE_SIG);
 int zts_fcntl(FCNTL_SIG);
-
 ssize_t zts_sendto(SENDTO_SIG);
 ssize_t zts_sendmsg(SENDMSG_SIG);
 ssize_t zts_recvfrom(RECVFROM_SIG);
 ssize_t zts_recvmsg(RECVMSG_SIG);
-    
 #if defined(__UNITY_3D__)
     ssize_t zts_recv(int fd, void *buf, int len);
     ssize_t zts_send(int fd, void *buf, int len);
@@ -185,7 +183,10 @@ ssize_t zts_recvmsg(RECVMSG_SIG);
     void zt_leave_network(const char * nwid); 
 #endif
 
-// Android JNI Direct-call API
+    // ------------------------------------------------------------------------------
+    // --------------------- Direct API call section (for Android) ------------------
+    // ------------------------------------------------------------------------------
+
 // JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
 #if defined(__ANDROID__)
 	// ZT SERVICE CONTROLS
@@ -228,7 +229,7 @@ ssize_t zts_recvmsg(RECVMSG_SIG);
 
 
 // Prototypes for redefinition of syscalls
-// - Implemented in SDK_Intercept.c
+// - Implemented in intercept.c
 #if defined(SDK_INTERCEPT)
 	int socket(SOCKET_SIG);
 	int connect(CONNECT_SIG);

@@ -45,6 +45,7 @@
 #include "OneService.hpp"
 #include "Utils.hpp"
 #include "OSUtils.hpp"
+#include "InetAddress.hpp"
 
 #include "tap.hpp"
 #include "sdk.h"
@@ -152,20 +153,26 @@ void zts_join_network_soft(const char * filepath, const char * nwid) {
         }
     }
 }
-//
+// Prevent service from joining network upon startup
+void zts_leave_network_soft(const char * filepath, const char * nwid) {
+    std::string net_dir = std::string(filepath) + "/networks.d/";
+    ZeroTier::OSUtils::rm((net_dir + nwid + ".conf").c_str()); 
+}
+// Instruct the service to leave the network
 void zts_leave_network(const char * nwid) { 
     if(zt1Service)
-        zt1Service->leave(nwid); 
+        zt1Service->leave(nwid);
 }
-//
+// Check whether the service is running
 bool zts_service_is_running() { 
     return !zt1Service ? false : zt1Service->isRunning(); 
 }
-//
+// Stop the service
 void zts_stop_service() {
     if(zt1Service) 
         zt1Service->terminate(); 
 }
+// Stop the service, proxy server, stack, etc
 void zts_stop() {
     DEBUG_INFO("Stopping STSDK");
     zts_stop_service();
@@ -177,7 +184,6 @@ void zts_stop() {
 // Now only returns first assigned address per network. Shouldn't normally be a problem.
 
 // Get IPV4 Address for this device on given network
-
 bool zts_has_address(const char *nwid)
 {
     char ipv4_addr[64], ipv6_addr[64];
@@ -190,8 +196,6 @@ bool zts_has_address(const char *nwid)
     }
     return true;
 }
-
-
 void zts_get_ipv4_address(const char *nwid, char *addrstr)
 {
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
@@ -229,23 +233,46 @@ void zts_get_ipv6_address(const char *nwid, char *addrstr)
         memcpy(addrstr, "-1.-1.-1.-1/-1", 14);
     }
 }
-// Get device ID
-int zts_get_device_id() 
-{ 
-    // zt->node->status
-    /* TODO */ return 0; 
+// Get device ID (from running service)
+int zts_get_device_id(char *devID) { 
+    if(zt1Service) {
+        char id[10];
+        sprintf(id, "%lx",zt1Service->getNode()->address());
+        memcpy(devID, id, 10);
+        return 0;
+    }
+    else
+        return -1;
 }
-// 
-bool zts_is_relayed() {
-    // TODO
-    // zt1Service->getNode()->peers()
-    return false;
+// Get device ID (from file)
+int zts_get_device_id_from_file(const char *filepath, char *devID) {
+    std::string fname("identity.public");
+    std::string fpath(filepath);
+
+    if(ZeroTier::OSUtils::fileExists((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),false)) {
+        std::string oldid;
+        ZeroTier::OSUtils::readFile((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),oldid);
+        memcpy(devID, oldid.c_str(), 10); // first 10 bytes of file
+        return 0;
+    }
+    return -1;
 }
 // Return the home path for this instance of ZeroTier
 char *zts_get_homepath() {
     return (char*)givenHomeDir.c_str();
 }
-
+// Returns a 6PLANE IPv6 address given a network ID and zerotier ID
+void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID)
+{
+    ZeroTier::InetAddress _6planeAddr = ZeroTier::InetAddress::makeIpv66plane(ZeroTier::Utils::hexStrToU64(nwid),ZeroTier::Utils::hexStrToU64(devID));
+    memcpy(addr, _6planeAddr.toIpString().c_str(), 40);
+}
+// Returns a RFC 4193 IPv6 address given a network ID and zerotier ID
+void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID)
+{
+    ZeroTier::InetAddress _6planeAddr = ZeroTier::InetAddress::makeIpv6rfc4193(ZeroTier::Utils::hexStrToU64(nwid),ZeroTier::Utils::hexStrToU64(devID));
+    memcpy(addr, _6planeAddr.toIpString().c_str(), 40);
+}
 
     // ------------------------------------------------------------------------------
     // ----------------------------- .NET Interop functions -------------------------

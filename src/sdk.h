@@ -55,37 +55,23 @@
 	#endif
 #endif
 
-<<<<<<< HEAD
 #include <sys/socket.h>
 #include <stdbool.h>
 
-#define SETSOCKOPT_SIG int fd, int level, int optname, const void *optval, socklen_t optlen
-#define GETSOCKOPT_SIG int fd, int level, int optname, void *optval, socklen_t *optlen
-
-=======
     // ------------------------------------------------------------------------------
     // -------------- Socket API function signatures for convenience ----------------
     // ------------------------------------------------------------------------------
 
 #define SETSOCKOPT_SIG int fd, int level, int optname, const void *optval, socklen_t optlen
 #define GETSOCKOPT_SIG int fd, int level, int optname, void *optval, socklen_t *optlen
->>>>>>> dev
 #define SENDMSG_SIG int fd, const struct msghdr *msg, int flags
 #define SENDTO_SIG int fd, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen
 #define RECV_SIG int fd, void *buf, size_t len, int flags
 #define RECVFROM_SIG int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen
 #define RECVMSG_SIG int fd, struct msghdr *msg,int flags
-<<<<<<< HEAD
-
 #define SEND_SIG int fd, const void *buf, size_t len, int flags
 #define WRITE_SIG int fd, const void *buf, size_t len
 #define READ_SIG int fd, void *buf, size_t len
-
-=======
-#define SEND_SIG int fd, const void *buf, size_t len, int flags
-#define WRITE_SIG int fd, const void *buf, size_t len
-#define READ_SIG int fd, void *buf, size_t len
->>>>>>> dev
 #define SOCKET_SIG int socket_family, int socket_type, int protocol
 #define CONNECT_SIG int fd, const struct sockaddr *addr, socklen_t addrlen
 #define BIND_SIG int fd, const struct sockaddr *addr, socklen_t addrlen

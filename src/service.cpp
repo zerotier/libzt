@@ -46,6 +46,7 @@
 #include "Utils.hpp"
 #include "OSUtils.hpp"
 #include "InetAddress.hpp"
+#include "ZeroTierOne.h"
 
 #include "tap.hpp"
 #include "sdk.h"
@@ -256,6 +257,27 @@ int zts_get_device_id_from_file(const char *filepath, char *devID) {
         return 0;
     }
     return -1;
+}
+// Get the IP address of a peer if a direct path is available
+int zts_get_peer_address(char *peer, const char *devID) {
+    if(zt1Service) {
+        ZT_PeerList *pl = zt1Service->getNode()->peers();
+        uint64_t addr;
+        for(int i=0; i<pl->peerCount; i++) {
+            ZT_Peer *p = &(pl->peers[i]);
+            // DEBUG_INFO("peer[%d] = %lx", i, p->address);
+        }
+        return pl->peerCount;
+    }
+    else
+        return -1;
+}
+// Return the number of peers on this network
+unsigned long zts_get_peer_count() {
+    if(zt1Service)
+        return zt1Service->getNode()->peers()->peerCount;
+    else
+        return 0;
 }
 // Return the home path for this instance of ZeroTier
 char *zts_get_homepath() {

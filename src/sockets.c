@@ -320,7 +320,6 @@ int (*realclose)(CLOSE_SIG);
                 
                 if(n>0) {
                     total_read += n;
-                    total_socket_rx += n;
                 }
                 else if (n < 0)
                     return n;
@@ -555,7 +554,6 @@ int (*realclose)(CLOSE_SIG);
     JNIEXPORT jint JNICALL Java_ZeroTier_ZTSDK_zt_1connect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
         struct sockaddr_in addr;
         const char *str = (*env)->GetStringUTFChars(env, addrstr, 0);
-        DEBUG_INFO("fd=%d, addr=%s, port=%d", fd, str, port);
         addr.sin_addr.s_addr = inet_addr(str);
         addr.sin_family = AF_INET;
         addr.sin_port = htons( port );
@@ -571,7 +569,6 @@ int (*realclose)(CLOSE_SIG);
 #endif
     {
         get_api_netpath();
-        //DEBUG_INFO("fd=%d", fd);
         struct connect_st rpc_st;
         rpc_st.fd = fd;
         memcpy(&rpc_st.addr, addr, sizeof(struct sockaddr_storage));

@@ -45,28 +45,28 @@
 #include "OneService.hpp"
 #include "Utils.hpp"
 #include "OSUtils.hpp"
+#include "InetAddress.hpp"
 
 #include "tap.hpp"
 #include "sdk.h"
 #include "debug.h"
 
-std::string service_path;
-pthread_t intercept_thread;
-int * intercept_thread_id;
-pthread_key_t thr_id_key;
-static ZeroTier::OneService *volatile zt1Service;
-
-std::string localHomeDir; // Local shortened path
-std::string givenHomeDir; // What the user/application provides as a suggestion
-std::string homeDir; // The resultant platform-specific dir we *must* use internally
-std::string netDir;
-std::string rpcNWID;
-
-bool rpcEnabled;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+static ZeroTier::OneService *zt1Service;
+
+std::string service_path;
+std::string localHomeDir; // Local shortened path
+std::string givenHomeDir; // What the user/application provides as a suggestion
+std::string homeDir;      // The resultant platform-specific dir we *must* use internally
+std::string netDir;       // Where network .conf files are to be written
+
+pthread_t intercept_thread;
+pthread_key_t thr_id_key;
+
+int * intercept_thread_id;
 
     // ------------------------------------------------------------------------------
     // --------------------------------- Base zts_* API -----------------------------
@@ -122,8 +122,8 @@ int zts_get_proxy_server_address(const char * nwid, struct sockaddr_storage * ad
 
 // Basic ZT service controls
 // Will also spin up a SOCKS5 proxy server if USE_SOCKS_PROXY is set
-void zts_join_network(const char * nwid) { 
-    DEBUG_INFO();
+void zts_join_network(const char * nwid) {
+    DEBUG_ERROR();
     std::string confFile = zt1Service->givenHomePath() + "/networks.d/" + nwid + ".conf";
     if(!ZeroTier::OSUtils::mkdir(netDir)) {
         DEBUG_ERROR("unable to create: %s", netDir.c_str());
@@ -140,26 +140,50 @@ void zts_join_network(const char * nwid) {
         zts_start_proxy_server(homeDir.c_str(), nwid, NULL); // NULL addr for default
     #endif
 }
-//
+// Just create the dir and conf file required, don't instruct the core to do anything
+void zts_join_network_soft(const char * filepath, const char * nwid) { 
+    std::string net_dir = std::string(filepath) + "/networks.d/";
+    std::string confFile = net_dir + std::string(nwid) + ".conf";
+    if(!ZeroTier::OSUtils::mkdir(net_dir)) {
+        DEBUG_ERROR("unable to create: %s", net_dir.c_str());
+    }
+    if(!ZeroTier::OSUtils::fileExists(confFile.c_str(),false)) {
+        if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), "")) {
+            DEBUG_ERROR("unable to write network conf file: %s", confFile.c_str());
+        }
+    }
+}
+// Prevent service from joining network upon startup
+void zts_leave_network_soft(const char * filepath, const char * nwid) {
+    std::string net_dir = std::string(filepath) + "/networks.d/";
+    ZeroTier::OSUtils::rm((net_dir + nwid + ".conf").c_str()); 
+}
+// Instruct the service to leave the network
 void zts_leave_network(const char * nwid) { 
     if(zt1Service)
-        zt1Service->leave(nwid); 
+        zt1Service->leave(nwid);
 }
-//
+// Check whether the service is running
 bool zts_service_is_running() { 
     return !zt1Service ? false : zt1Service->isRunning(); 
 }
-//
+// Stop the service
 void zts_stop_service() {
     if(zt1Service) 
         zt1Service->terminate(); 
+}
+// Stop the service, proxy server, stack, etc
+void zts_stop() {
+    DEBUG_INFO("Stopping STSDK");
+    zts_stop_service();
+    /* TODO: kill each proxy server as well
+    zts_stop_proxy_server(...); */
 }
 
 // FIXME: Re-implemented to make it play nicer with the C-linkage required for Xcode integrations
 // Now only returns first assigned address per network. Shouldn't normally be a problem.
 
 // Get IPV4 Address for this device on given network
-
 bool zts_has_address(const char *nwid)
 {
     char ipv4_addr[64], ipv6_addr[64];
@@ -172,8 +196,6 @@ bool zts_has_address(const char *nwid)
     }
     return true;
 }
-
-
 void zts_get_ipv4_address(const char *nwid, char *addrstr)
 {
     uint64_t nwid_int = strtoull(nwid, NULL, 16);
@@ -211,23 +233,46 @@ void zts_get_ipv6_address(const char *nwid, char *addrstr)
         memcpy(addrstr, "-1.-1.-1.-1/-1", 14);
     }
 }
-// Get device ID
-int zts_get_device_id() 
-{ 
-    // zt->node->status
-    /* TODO */ return 0; 
+// Get device ID (from running service)
+int zts_get_device_id(char *devID) { 
+    if(zt1Service) {
+        char id[10];
+        sprintf(id, "%lx",zt1Service->getNode()->address());
+        memcpy(devID, id, 10);
+        return 0;
+    }
+    else
+        return -1;
 }
-// 
-bool zts_is_relayed() {
-    // TODO
-    // zt1Service->getNode()->peers()
-    return false;
+// Get device ID (from file)
+int zts_get_device_id_from_file(const char *filepath, char *devID) {
+    std::string fname("identity.public");
+    std::string fpath(filepath);
+
+    if(ZeroTier::OSUtils::fileExists((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),false)) {
+        std::string oldid;
+        ZeroTier::OSUtils::readFile((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),oldid);
+        memcpy(devID, oldid.c_str(), 10); // first 10 bytes of file
+        return 0;
+    }
+    return -1;
 }
 // Return the home path for this instance of ZeroTier
 char *zts_get_homepath() {
     return (char*)givenHomeDir.c_str();
 }
-
+// Returns a 6PLANE IPv6 address given a network ID and zerotier ID
+void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID)
+{
+    ZeroTier::InetAddress _6planeAddr = ZeroTier::InetAddress::makeIpv66plane(ZeroTier::Utils::hexStrToU64(nwid),ZeroTier::Utils::hexStrToU64(devID));
+    memcpy(addr, _6planeAddr.toIpString().c_str(), 40);
+}
+// Returns a RFC 4193 IPv6 address given a network ID and zerotier ID
+void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID)
+{
+    ZeroTier::InetAddress _6planeAddr = ZeroTier::InetAddress::makeIpv6rfc4193(ZeroTier::Utils::hexStrToU64(nwid),ZeroTier::Utils::hexStrToU64(devID));
+    memcpy(addr, _6planeAddr.toIpString().c_str(), 40);
+}
 
     // ------------------------------------------------------------------------------
     // ----------------------------- .NET Interop functions -------------------------
@@ -288,7 +333,6 @@ void zts_start_service(const char *path)
     }
     
     //void init_service_and_rpc(int key, const char * path, const char * nwid) {
-    //   rpcEnabled = true;
     //    rpcNWID = nwid;
     //    init_service(key, path);
     //}
@@ -483,7 +527,7 @@ void *zts_start_core_service(void *thread_id) {
     
     // Construct path for network config and supporting service files
     if (homeDir.length()) {
-        std::vector<std::string> hpsp(ZeroTier::Utils::split(homeDir.c_str(),ZT_PATH_SEPARATOR_S,"",""));
+        std::vector<std::string> hpsp(ZeroTier::OSUtils::split(homeDir.c_str(),ZT_PATH_SEPARATOR_S,"",""));
         std::string ptmp;
         if (homeDir[0] == ZT_PATH_SEPARATOR)
             ptmp.push_back(ZT_PATH_SEPARATOR);
@@ -504,17 +548,7 @@ void *zts_start_core_service(void *thread_id) {
         return NULL;
     }
 
-    //chdir(current_dir); // Return to previous current working directory (at the request of Unity3D)
-    #if defined(__UNITY_3D__)
-        DEBUG_INFO("starting service...");
-    #endif
-            DEBUG_INFO("starting service...");
-
-    // Initialize RPC 
-    // TODO: remove?
-    if(rpcEnabled) {
-        zts_init_rpc(localHomeDir.c_str(), rpcNWID.c_str());
-    }
+    DEBUG_INFO("starting service...");
 
     // Generate random port for new service instance
     unsigned int randp = 0;

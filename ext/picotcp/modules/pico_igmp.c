@@ -922,7 +922,7 @@ igmp3_report:
         record->sources = short_be(sources);
         record->mcast_group = p->mcast_group.addr;
         if (IGMPFilter && !pico_tree_empty(IGMPFilter)) {
-            uint32_t *source_addr = (uint32_t *)((uint8_t *)record + sizeof(struct igmpv3_group_record));
+            uint32_t *source_addr = (uint32_t *)((void *)((uint8_t *)record + sizeof(struct igmpv3_group_record)));
             i = 0;
             pico_tree_foreach(index, IGMPFilter)
             {

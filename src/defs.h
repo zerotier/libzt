@@ -25,18 +25,15 @@
  * LLC. Start here: http://www.zerotier.com/
  */
 
-// --- lwIP
-#define APPLICATION_POLL_FREQ           2
-#define ZT_LWIP_TCP_TIMER_INTERVAL      50
-#define STATUS_TMR_INTERVAL             500 // How often we check connection statuses (in ms)
+#define SDK_MTU							1200//ZT_MAX_MTU // 2800, usually 
 
-// --- picoTCP 
+#define UNIX_SOCK_BUF_SIZE				1024*1024
+#define ZT_PHY_POLL_INTERVAL			50 // in ms
+
+// picoTCP 
 #define MAX_PICO_FRAME_RX_BUF_SZ        ZT_MAX_MTU * 128
 
-// --- jip
-
-// --- General
-
+// General
 // TCP Buffer sizes
 #define DEFAULT_TCP_TX_BUF_SZ           1024 * 1024
 #define DEFAULT_TCP_RX_BUF_SZ           1024 * 1024
@@ -49,4 +46,9 @@
 
 // UDP Buffer sizes (should be about the size of your MTU)
 #define DEFAULT_UDP_TX_BUF_SZ           ZT_MAX_MTU
-#define DEFAULT_UDP_RX_BUF_SZ           ZT_MAX_MTU * 128
+#define DEFAULT_UDP_RX_BUF_SZ           ZT_MAX_MTU * 10
+
+// lwIP
+#define APPLICATION_POLL_FREQ           2
+#define ZT_LWIP_TCP_TIMER_INTERVAL      50
+#define STATUS_TMR_INTERVAL             500 // How often we check connection statuses (in ms)

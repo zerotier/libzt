@@ -27,7 +27,7 @@ INCLUDES=
 DEFS=
 ARCH_FLAGS=-arch x86_64
 CFLAGS=
-CXXFLAGS=$(CFLAGS) -fno-rtti
+CXXFLAGS=$(CFLAGS) -fno-rtti -std=c++11 -DZT_SDK
 
 include objects.mk
 
@@ -91,18 +91,18 @@ CODESIGN_INSTALLER_CERT=
 # Debug output for ZeroTier service
 ifeq ($(ZT_DEBUG),1)
 	DEFS+=-DZT_TRACE
-	CFLAGS+=-Wall -g -pthread $(INCLUDES) $(DEFS)
-	CXXFLAGS+=-Wall -g -pthread $(INCLUDES) $(DEFS)
+	CFLAGS+=-Wall -Werror -g -pthread $(INCLUDES) $(DEFS)
+	CXXFLAGS+=-Wall -Werror -g -pthread $(INCLUDES) $(DEFS)
 	LDFLAGS=-ldl
 	STRIP?=echo
 	# The following line enables optimization for the crypto code, since
 	# C25519 in particular is almost UNUSABLE in -O0 even on a 3ghz box!
-ext/lz4/lz4.o node/Salsa20.o node/SHA512.o node/C25519.o node/Poly1305.o: CFLAGS = -Wall -O2 -g -pthread $(INCLUDES) $(DEFS)
+ext/lz4/lz4.o node/Salsa20.o node/SHA512.o node/C25519.o node/Poly1305.o: CFLAGS = -Wall -Werror -O2 -g -pthread $(INCLUDES) $(DEFS)
 else
 	CFLAGS?=-O3 -fstack-protector
-	CFLAGS+=-Wall -fPIE -fvisibility=hidden -pthread $(INCLUDES) -DNDEBUG $(DEFS)
+	CFLAGS+=-Wall -Werror -fPIE -fvisibility=hidden -pthread $(INCLUDES) -DNDEBUG $(DEFS)
 	CXXFLAGS?= -fstack-protector
-	CXXFLAGS+=-Wall -Wreorder -fPIE -fvisibility=hidden -fno-rtti -pthread $(INCLUDES) -DNDEBUG $(DEFS) -std=c++11
+	CXXFLAGS+=-Wall -Werror -Wreorder -fPIE -fvisibility=hidden -fno-rtti -pthread $(INCLUDES) -DNDEBUG $(DEFS) -std=c++11
 	LDFLAGS=-ldl -pie -Wl,-z,relro,-z,now
 	STRIP?=strip
 	STRIP+=--strip-all

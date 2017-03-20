@@ -3,6 +3,9 @@ ZeroTier SDK
 
 ZeroTier-enabled apps, devices, and services.
 
+ - For a convenient BSD socket-style API, follow the rest of this document.
+ - For information on the core ZT API, see [ZeroTierOne.h](zerotierone/include/ZeroTierOne.h)
+
 Secure virtual network access embedded directly into applications, games, and devices. Imagine starting an instance of your application or game and having it automatically be a member of your virtual network without having to rewrite your networking layer. Check out our [Integrations](integrations/) to learn how to integrate this into your application, device, or ecosystem.
 
 The general idea is this:

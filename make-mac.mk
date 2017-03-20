@@ -27,7 +27,7 @@ INCLUDES=
 DEFS=
 ARCH_FLAGS=-arch x86_64
 CFLAGS=
-CXXFLAGS=$(CFLAGS) -fno-rtti
+CXXFLAGS=$(CFLAGS) -fno-rtti -std=c++11 -DZT_SDK
 
 include objects.mk
 
@@ -80,7 +80,7 @@ INCLUDES+= -Iext \
 # --------------------------------- ZT Config ----------------------------------
 # ------------------------------------------------------------------------------
 
-ZTFLAGS:=-DSDK -DZT_ONE_NO_ROOT_CHECK
+ZTFLAGS:=-DZT_SDK -DZT_ONE_NO_ROOT_CHECK
 
 # Disable codesign since open source users will not have ZeroTier's certs
 CODESIGN=echo
@@ -254,14 +254,18 @@ osx_static_lib: lwip $(OBJS)
 else
 osx_static_lib: pico $(OBJS)
 	$(CXX) $(CXXFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED $(PICO_DRIVER_FILES) $(SDK_INTERCEPT_C_FILES) $(SDK_SERVICE_CPP_FILES) src/service.cpp -c 
+<<<<<<< HEAD
 	libtool -static -o build/libzt.a picotcp.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o OneService.o $(OBJS)
+=======
+	libtool -static -o build/libzt.a picotcp.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o $(OBJS)
+>>>>>>> dev
 endif
 
 # Builds zts_* library tests
 osx_static_lib_tests: 
 	mkdir -p $(TEST_OBJDIR)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.tcpserver4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.tcpserver4.out -Lbuild -lzt -ldl
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.tcpclient4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.tcpclient4.out -Lbuild -lzt -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.udpserver4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.udpserver4.out -Lbuild -lzt -ldl
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(STACK_FLAGS) $(DEFS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED -Isrc tests/shared_test/zts.udpclient4.c -o $(TEST_OBJDIR)/$(OSTYPE).zts.udpclient4.out -Lbuild -lzt -ldl
 
 # ------------------------------------------------------------------------------
 # ---------------------------------- Android -----------------------------------

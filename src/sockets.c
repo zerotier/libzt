@@ -195,7 +195,6 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_sendto(SENDTO_SIG) // Used as internal implementation 
     #endif
         {
-            //DEBUG_EXTRA("fd=%d", fd);
             if(len > ZT_UDP_DEFAULT_PAYLOAD_MTU) {
                 errno = EMSGSIZE; // Msg is too large
                 return -1;
@@ -318,17 +317,16 @@ int (*realclose)(CLOSE_SIG);
             // Read the entire SDK_MTU-sized chunk from the service socket
             while(total_read < SDK_MTU) {
                 n = read(fd, tmpbuf+total_read, SDK_MTU);
-                if(n>0)
+                
+                if(n>0) {
                     total_read += n;
-                else
+                    total_socket_rx += n;
+                }
+                else if (n < 0)
                     return n;
             }
 
-            if(n > 0) {
-                // No matter how much we read from the service, only copy 'read_chunk_sz'
-                // into the app's buffer
-                read_chunk_sz = len < SDK_MTU ? len : SDK_MTU;
-                
+            if(n > 0) {                
                 // TODO: case for address size mismatch?
                 memcpy(addr, tmpbuf, *addrlen);
                 memcpy(&tmpsz, tmpbuf + sizeof(struct sockaddr_storage), sizeof(tmpsz));
@@ -338,6 +336,11 @@ int (*realclose)(CLOSE_SIG);
                     return -1;
                 }
                 payload_offset = sizeof(int) + sizeof(struct sockaddr_storage);
+
+                // No matter how much we read from the service, only copy 'read_chunk_sz'
+                // into the app's buffer
+                read_chunk_sz = len < SDK_MTU ? len : SDK_MTU;
+                read_chunk_sz = tmpsz < read_chunk_sz ? tmpsz : read_chunk_sz; // FIXME
                 memcpy(buf, tmpbuf + payload_offset, read_chunk_sz);
             }
             else {

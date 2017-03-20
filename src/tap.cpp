@@ -62,8 +62,7 @@
 namespace ZeroTier {
 int NetconEthernetTap::sendReturnValue(int fd, int retval, int _errno)
 {
-	//#if !defined(USE_SOCKS_PROXY)
-	//DEBUG_EXTRA("fd=%d, retval=%d, errno=%d", fd, retval, _errno);
+	//DEBUG_INFO("fd=%d, retval=%d, errno=%d", fd, retval, _errno);
 	int sz = sizeof(char) + sizeof(retval) + sizeof(errno);
 	char retmsg[sz];
 	memset(&retmsg, 0, sizeof(retmsg));
@@ -71,13 +70,10 @@ int NetconEthernetTap::sendReturnValue(int fd, int retval, int _errno)
 	memcpy(&retmsg[1], &retval, sizeof(retval));
 	memcpy(&retmsg[1]+sizeof(retval), &_errno, sizeof(_errno));
 	return write(fd, &retmsg, sz);
-	//#else
-	//    return 1;
-	//#endif
 }
 // Unpacks the buffer from an RPC command
 void NetconEthernetTap::unloadRPC(void *data, pid_t &pid, pid_t &tid, 
-	char (timestamp[RPC_TIMESTAMP_SZ]), char (CANARY[sizeof(uint64_t)]), char &cmd, void* &payload)
+	char (timestamp[RPC_TIMESTAMP_SZ]), char (CANARY[sizeof(uint64_t)]), char &cmd, void* &payload) 
 	{
 	unsigned char *buf = (unsigned char*)data;
 	memcpy(&pid, &buf[IDX_PID], sizeof(pid_t));
@@ -296,7 +292,6 @@ Connection *NetconEthernetTap::getConnection(struct pico_socket *sock)
 
 void NetconEthernetTap::closeConnection(PhySocket *sock)
 {
-    DEBUG_EXTRA("physock=%p", sock);
 	Mutex::Lock _l(_close_m);
 	// Here we assume _tcpconns_m is already locked by caller
 	if(!sock) {
@@ -359,10 +354,11 @@ void NetconEthernetTap::phyOnUnixWritable(PhySocket *sock,void **uptr,bool lwip_
 
 void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
 {
-    //DEBUG_EXTRA("physock=%p, len=%d", sock, (int)len);
+    //DEBUG_INFO("physock=%p, len=%d", sock, (int)len);
 	uint64_t CANARY_num;
 	pid_t pid, tid;
 	ssize_t wlen = len;
+	char tmpbuf[SDK_MTU];
 	char cmd, timestamp[20], CANARY[CANARY_SZ], padding[] = {PADDING};
 	void *payload;
 	unsigned char *buf = (unsigned char*)data;
@@ -384,7 +380,7 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
 		// DEBUG_EXTRA(" RPC: physock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", sock, pid, tid, timestamp, cmd);
 
 		if(cmd == RPC_SOCKET) {				
-			//DEBUG_INFO("RPC_SOCKET, physock=%p", sock);
+			// DEBUG_INFO("RPC_SOCKET, physock=%p", sock);
 			// Create new lwip socket and associate it with this sock
 			struct socket_st socket_rpc;
 			memcpy(&socket_rpc, &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct socket_st));
@@ -393,9 +389,11 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
 				new_conn->pid = pid; // Merely kept to look up application path/names later, not strictly necessary
 			}
 		} else {
-			jobmap[CANARY_num] = std::pair<PhySocket*, void*>(sock, data);
+			memcpy(&tmpbuf,data,len);
+			jobmap[CANARY_num] = std::pair<PhySocket*, void*>(sock, tmpbuf);
+			
 		}
-		write(_phy.getDescriptor(sock), "z", 1); // RPC ACK byte to maintain order
+		int nwrit = write(_phy.getDescriptor(sock), "z", 1); // RPC ACK byte to maintain order
 	}
 	// STREAM
 	else {
@@ -417,7 +415,6 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
 					foundJob = true;
 			}
 		}
-
 		conn = getConnection(sock);
 		if(!conn)
 			return;
@@ -451,21 +448,9 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
 				}
 			}
 		}
+		
 		// Write data from stream
         if(wlen) {
-        	/*
-            if(conn->type == SOCK_STREAM) { // We only disable TCP "connections"
-                int softmax = conn->type == SOCK_STREAM ? DEFAULT_TCP_RX_BUF_SZ : DEFAULT_UDP_RX_BUF_SZ;
-                if(conn->txsz > softmax) {
-                    _phy.setNotifyReadable(sock, false);
-                    conn->disabled = true;
-                }
-                else if (conn->disabled) {
-                    conn->disabled = false;
-                    _phy.setNotifyReadable(sock, true);
-                }
-            }
-            */
             conn->txsz += wlen;
             handleWrite(conn);
         }
@@ -475,7 +460,7 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
         rpcSock = sockdata.first;
         buf = (unsigned char*)sockdata.second;
 		unloadRPC(buf, pid, tid, timestamp, CANARY, cmd, payload);
-		// DEBUG_EXTRA(" RPC: physock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", sock, pid, tid, timestamp, cmd);
+		//DEBUG_ERROR(" RPC: physock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", sock, pid, tid, timestamp, cmd);
 		switch(cmd) {
 			case RPC_BIND:
 				//DEBUG_INFO("RPC_BIND, physock=%p", sock);
@@ -509,12 +494,12 @@ void NetconEthernetTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, 
 			    jobmap.erase(CANARY_num);
 				return; // Keep open RPC, we'll use it once in nc_connected to send retval
 		  	default:
+		  		return;
 				break;
 		}
 		Mutex::Lock _l(_tcpconns_m);
 		closeConnection(sockdata.first); // close RPC after sending retval, no longer needed
 		jobmap.erase(CANARY_num);
-		return;
 	}
 }
 
@@ -552,7 +537,6 @@ void NetconEthernetTap::handleGetpeername(PhySocket *sock, PhySocket *rpcSock, v
     
 Connection * NetconEthernetTap::handleSocket(PhySocket *sock, void **uptr, struct socket_st* socket_rpc)
 {
-    DEBUG_ATTN("physock=%p, sock_type=%d", sock, socket_rpc->socket_type);
 	#if defined(SDK_PICOTCP)
 		return pico_handleSocket(sock, uptr, socket_rpc);
 	#endif
@@ -574,7 +558,6 @@ int NetconEthernetTap::handleConnectProxy(PhySocket *sock, struct sockaddr_in *r
 // Connect a stack's PCB/socket/Connection object to a remote host
 void NetconEthernetTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Connection *conn, struct connect_st* connect_rpc)
 {
-    //DEBUG_ATTN("physock=%p", sock);
 	Mutex::Lock _l(_tcpconns_m);
 	#if defined(SDK_PICOTCP)
 		pico_handleConnect(sock, rpcSock, conn, connect_rpc);		

@@ -33,7 +33,7 @@
 #ifndef _SDK_DEBUG_H_
 #define _SDK_DEBUG_H_
 
-#define DEBUG_LEVEL     1 // Set this to adjust what you'd like to see in the debug traces
+#define DEBUG_LEVEL     0 // Set this to adjust what you'd like to see in the debug traces
 
 #define MSG_ERROR       1 // Errors
 #define MSG_TRANSFER    2 // RX/TX specific statements

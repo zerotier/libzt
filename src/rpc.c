@@ -167,12 +167,14 @@ int rpc_send_command(char *path, int cmd, int forfd, void *data, int len)
   uint64_t canary_num;
   // ephemeral RPC socket used only for this command
   int rpc_sock = rpc_join(path);
+
   // Generate token
   int fdrand = open("/dev/urandom", O_RDONLY);
   if(read(fdrand, &CANARY, CANARY_SZ) < 0) {
     DEBUG_ERROR("unable to read from /dev/urandom for RPC canary data");
     return -1;  
   }
+
   close(fdrand);
   memcpy(&canary_num, CANARY, CANARY_SZ);  
   cmdbuf[CMD_ID_IDX] = cmd;
@@ -204,6 +206,7 @@ int rpc_send_command(char *path, int cmd, int forfd, void *data, int len)
   /* Combine command flag+payload with RPC metadata */
   memcpy(metabuf, RPC_PHRASE, RPC_PHRASE_SZ); // Write signal phrase
   memcpy(&metabuf[IDX_PAYLOAD], cmdbuf, len + 1 + CANARY_SZ);
+
   // Write RPC
   long n_write = write(rpc_sock, &metabuf, BUF_SZ);
   if(n_write < 0) {

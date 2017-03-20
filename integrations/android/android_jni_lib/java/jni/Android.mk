@@ -12,6 +12,7 @@ LOCAL_C_INCLUDES := $(LWIP)/include
 LOCAL_C_INCLUDES += $(LWIP)/include/lwip
 LOCAL_C_INCLUDES += $(LWIP)/include/lwip/priv
 
+LOCAL_C_INCLUDES += $(ZTSDK)
 LOCAL_C_INCLUDES += $(ZTSDK)/src
 LOCAL_C_INCLUDES += $(ZTSDK)/src/stack_drivers/lwip
 LOCAL_C_INCLUDES += $(ZTSDK)/src/stack_drivers
@@ -100,7 +101,6 @@ LOCAL_SRC_FILES += $(LWIP)/core/ipv4/autoip.c \
 #	$(LWIP)/core/ipv6/mld6.c \
 #	$(LWIP)/core/ipv6/nd6.c
 
-
 # lwIP netif files
 LOCAL_SRC_FILES += \
 	$(LWIP)/netif/ethernetif.c \
@@ -114,11 +114,5 @@ LOCAL_SRC_FILES += \
 	$(ZTSDK)/src/service.cpp \
 	$(ZTSDK)/src/tap.cpp \
 	$(ZTSDK)/src/stack_drivers/lwip/lwip.cpp
-
-# JNI Files
-#LOCAL_SRC_FILES += \
-#	com_zerotierone_sdk_Node.cpp \
-#	ZT_jniutils.cpp \
-#	ZT_jnilookup.cpp
 
 include $(BUILD_SHARED_LIBRARY)

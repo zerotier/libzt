@@ -73,6 +73,7 @@
 #include "sdk.h"
 #include "debug.h"
 #include "rpc.h"
+#include "defs.h"
         
 #include "Constants.hpp" // For Tap's MTU
     
@@ -100,16 +101,19 @@ int (*realclose)(CLOSE_SIG);
         // If no path, construct one or get it fron system env vars
         if(!api_netpath) {
             rpc_mutex_init();
+            // Provided by user
             #if defined(SDK_BUNDLED)
                 // Get the path/nwid from the user application
                 // netpath = [path + "/nc_" + nwid] 
                 char *fullpath = (char *)malloc(strlen(path)+strlen(nwid)+1+4);
                 if(fullpath) {
+                    zts_join_network_soft(path, nwid);
                     strcpy(fullpath, path);
                     strcat(fullpath, "/nc_");
                     strcat(fullpath, nwid);
                     api_netpath = fullpath;
                 }
+            // Provided by Env
             #else
                 // Get path/nwid from environment variables
                 if (!api_netpath) {
@@ -191,7 +195,7 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_sendto(SENDTO_SIG) // Used as internal implementation 
     #endif
         {
-            DEBUG_EXTRA("fd=%d", fd);
+            //DEBUG_EXTRA("fd=%d", fd);
             if(len > ZT_UDP_DEFAULT_PAYLOAD_MTU) {
                 errno = EMSGSIZE; // Msg is too large
                 return -1;
@@ -232,7 +236,7 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_sendmsg(SENDMSG_SIG)
     #endif
         {
-            DEBUG_EXTRA("fd=%d",fd);
+            //DEBUG_EXTRA("fd=%d",fd);
             char * p, * buf;
             size_t tot_len = 0;
             size_t err;
@@ -280,7 +284,7 @@ int (*realclose)(CLOSE_SIG);
     {
         struct sockaddr_in addr;
         jbyte *body = (*env)->GetByteArrayElements(env, buf, 0);
-        unsigned char buffer[ZT_MAX_MTU];
+        unsigned char buffer[SDK_MTU];
         int payload_offset = sizeof(int) + sizeof(struct sockaddr_storage);
         int rxbytes = zts_recvfrom(fd, &buffer, len, flags, &addr, sizeof(struct sockaddr_storage));
         if(rxbytes > 0)
@@ -304,19 +308,42 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_recvfrom(RECVFROM_SIG)
     #endif
         {
-            int payload_offset, tmpsz = 0; // payload size
-            char tmpbuf[ZT_MAX_MTU];
-            if(read(fd, tmpbuf, ZT_MAX_MTU) > 0) {
+            int read_chunk_sz = 0, payload_offset, tmpsz=0, pnum=0; // payload size
+            char tmpbuf[SDK_MTU];
+            memset(tmpbuf, 0, SDK_MTU);
+            
+            // Attempt to read SDK_MTU sized chunk
+            int total_read = 0, n=0;
+
+            // Read the entire SDK_MTU-sized chunk from the service socket
+            while(total_read < SDK_MTU) {
+                n = read(fd, tmpbuf+total_read, SDK_MTU);
+                if(n>0)
+                    total_read += n;
+                else
+                    return n;
+            }
+
+            if(n > 0) {
+                // No matter how much we read from the service, only copy 'read_chunk_sz'
+                // into the app's buffer
+                read_chunk_sz = len < SDK_MTU ? len : SDK_MTU;
+                
                 // TODO: case for address size mismatch?
                 memcpy(addr, tmpbuf, *addrlen);
                 memcpy(&tmpsz, tmpbuf + sizeof(struct sockaddr_storage), sizeof(tmpsz));
+                memcpy(&pnum, tmpbuf + sizeof(struct sockaddr_storage) + sizeof(int), sizeof(int));
+                if(tmpsz > SDK_MTU || tmpsz < 0) {
+                    DEBUG_ERROR("An error occured somewhere in the SDK, read=%d", n);
+                    return -1;
+                }
                 payload_offset = sizeof(int) + sizeof(struct sockaddr_storage);
-                memcpy(buf, tmpbuf + payload_offset, ZT_MAX_MTU-payload_offset);
+                memcpy(buf, tmpbuf + payload_offset, read_chunk_sz);
             }
             else {
-                perror("read:\n");
+                return -1;
             }
-            return tmpsz;
+            return read_chunk_sz;
         }
 //#endif
 
@@ -332,7 +359,7 @@ int (*realclose)(CLOSE_SIG);
         ssize_t zts_recvmsg(RECVMSG_SIG)
     #endif
         {
-            DEBUG_EXTRA("fd=%d", fd);
+            //DEBUG_EXTRA("fd=%d", fd);
             ssize_t err, n, tot_len = 0;
             char *buf, *p;
             struct iovec *iov = msg->msg_iov;
@@ -541,7 +568,7 @@ int (*realclose)(CLOSE_SIG);
 #endif
     {
         get_api_netpath();
-        DEBUG_INFO("fd=%d", fd);
+        //DEBUG_INFO("fd=%d", fd);
         struct connect_st rpc_st;
         rpc_st.fd = fd;
         memcpy(&rpc_st.addr, addr, sizeof(struct sockaddr_storage));

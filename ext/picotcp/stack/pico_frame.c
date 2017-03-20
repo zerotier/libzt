@@ -91,7 +91,7 @@ static struct pico_frame *pico_frame_do_alloc(uint32_t size, int zerocopy, int e
             return NULL;
         }
 
-        p->usage_count = (uint32_t *)(((uint8_t*)p->buffer) + frame_buffer_size);
+        p->usage_count = (uint32_t *)((void *)(((uint8_t*)p->buffer) + frame_buffer_size));
     } else {
         p->buffer = NULL;
         p->flags |= PICO_FRAME_FLAG_EXT_USAGE_COUNTER;
@@ -154,7 +154,7 @@ int pico_frame_grow(struct pico_frame *f, uint32_t size)
         return -1;
     }
 
-    f->usage_count = (uint32_t *)(((uint8_t*)f->buffer) + frame_buffer_size);
+    f->usage_count = (uint32_t *)((void *)(((uint8_t*)f->buffer) + frame_buffer_size));
     *f->usage_count = usage_count;
     f->buffer_len = size;
     memcpy(f->buffer, oldbuf, oldsize);
@@ -247,7 +247,7 @@ static inline uint32_t pico_checksum_adder(uint32_t sum, void *data, uint32_t le
 #endif
     }
 
-    stop = (uint16_t *)(((uint8_t *)data) + len);
+    stop = (uint16_t *)((void *)(((uint8_t *)data) + len));
 
     while (buf < stop) {
         sum += *buf++;

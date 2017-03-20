@@ -237,7 +237,7 @@ void zts_get_ipv6_address(const char *nwid, char *addrstr)
 int zts_get_device_id(char *devID) { 
     if(zt1Service) {
         char id[10];
-        sprintf(id, "%lx",zt1Service->getNode()->address());
+        sprintf(id, "%llx",zt1Service->getNode()->address());
         memcpy(devID, id, 10);
         return 0;
     }
@@ -473,7 +473,7 @@ void zts_start_service(const char *path)
 
 
     // ------------------------------------------------------------------------------
-    // ------------------------------- zts_start_service ----------------------------
+    // --------------------------- zts_start_core_service ---------------------------
     // ------------------------------------------------------------------------------
 
 
@@ -485,13 +485,12 @@ void *zts_start_core_service(void *thread_id) {
             homeDir = std::string((char*)thread_id);
     #endif
 
-    char current_dir[MAX_DIR_SZ];
-
     //#if defined(SDK_BUNDLED) && !defined(__ANDROID__)
     //    set_intercept_status(INTERCEPT_DISABLED); // Ignore network calls from ZT service
     //#endif
 
     #if defined(__IOS__)
+        char current_dir[MAX_DIR_SZ];
         // Go to the app's data directory so we can shorten the sun_path we bind to
         getcwd(current_dir, MAX_DIR_SZ);
         std::string targetDir = homeDir; // + "/../../";
@@ -500,6 +499,7 @@ void *zts_start_core_service(void *thread_id) {
     #endif
 
     #if defined(__UNITY_3D__)
+        char current_dir[MAX_DIR_SZ];
         getcwd(current_dir, MAX_DIR_SZ);
         chdir(service_path.c_str());
         homeDir = current_dir; // homeDir shall be current_dir

@@ -254,11 +254,7 @@ osx_static_lib: lwip $(OBJS)
 else
 osx_static_lib: pico $(OBJS)
 	$(CXX) $(CXXFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED $(PICO_DRIVER_FILES) $(SDK_INTERCEPT_C_FILES) $(SDK_SERVICE_CPP_FILES) src/service.cpp -c 
-<<<<<<< HEAD
-	libtool -static -o build/libzt.a picotcp.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o OneService.o $(OBJS)
-=======
 	libtool -static -o build/libzt.a picotcp.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o $(OBJS)
->>>>>>> dev
 endif
 
 # Builds zts_* library tests

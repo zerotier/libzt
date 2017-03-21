@@ -27,7 +27,7 @@ INCLUDES=
 DEFS=
 ARCH_FLAGS=-arch x86_64
 CFLAGS=
-CXXFLAGS=$(CFLAGS) -fno-rtti -std=c++11 -DZT_SDK
+CXXFLAGS=$(CFLAGS) -Wno-format -fno-rtti -std=c++11 -DZT_SDK
 
 include objects.mk
 
@@ -69,6 +69,7 @@ INCLUDES+= -Iext \
 	-I$(ZT1)/osdep \
 	-I$(ZT1)/node \
 	-I$(ZT1)/service \
+	-I$(ZT1)/include \
 	-I../$(ZT1)/osdep \
 	-I../$(ZT1)/node \
 	-I../$(ZT1)/service \

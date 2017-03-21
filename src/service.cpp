@@ -238,7 +238,7 @@ void zts_get_ipv6_address(const char *nwid, char *addrstr)
 int zts_get_device_id(char *devID) { 
     if(zt1Service) {
         char id[10];
-        sprintf(id, "%llx",zt1Service->getNode()->address());
+        sprintf(id, "%lx",zt1Service->getNode()->address());
         memcpy(devID, id, 10);
         return 0;
     }
@@ -262,9 +262,9 @@ int zts_get_device_id_from_file(const char *filepath, char *devID) {
 int zts_get_peer_address(char *peer, const char *devID) {
     if(zt1Service) {
         ZT_PeerList *pl = zt1Service->getNode()->peers();
-        uint64_t addr;
+        // uint64_t addr;
         for(int i=0; i<pl->peerCount; i++) {
-            ZT_Peer *p = &(pl->peers[i]);
+            // ZT_Peer *p = &(pl->peers[i]);
             // DEBUG_INFO("peer[%d] = %lx", i, p->address);
         }
         return pl->peerCount;

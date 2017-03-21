@@ -247,9 +247,13 @@ namespace ZeroTier {
             if(sz)
                 memmove(&conn->txbuf, (conn->txbuf+r), sz);
             conn->txsz -= r;
-            int max = conn->type == SOCK_STREAM ? DEFAULT_TCP_TX_BUF_SZ : DEFAULT_UDP_TX_BUF_SZ;
-            DEBUG_TRANS("[TCP TX] --->    :: {TX: %.3f%%, RX: %.3f%%, physock=%p} :: %d bytes",
-                (float)conn->txsz / (float)max, (float)conn->rxsz / max, conn->sock, r);
+
+            #if DEBUG_LEVEL >= MSG_TRANSFER
+            	int max = conn->type == SOCK_STREAM ? DEFAULT_TCP_TX_BUF_SZ : DEFAULT_UDP_TX_BUF_SZ;
+            	DEBUG_TRANS("[TCP TX] --->    :: {TX: %.3f%%, RX: %.3f%%, physock=%p} :: %d bytes",
+                	(float)conn->txsz / (float)max, (float)conn->rxsz / max, conn->sock, r);
+        	#endif
+
             return;
 		}
 	}
@@ -673,22 +677,19 @@ namespace ZeroTier {
             picotap->_tcpconns_m.lock();
             picotap->_rx_buf_m.lock(); 
         }
-
         int tot = 0, n = -1, write_attempts = 0;
 		
 		Connection *conn = picotap->getConnection(sock);
-		if(conn && conn->rxsz) {
-			float max = conn->type == SOCK_STREAM ? (float)DEFAULT_TCP_RX_BUF_SZ : (float)DEFAULT_UDP_RX_BUF_SZ;
-			
+		if(conn && conn->rxsz) {	
+
+			//	
 			if(conn->type==SOCK_DGRAM) {
-				//DEBUG_ERROR(" [ ZTSOCK <- RXBUF] attempting write, RXBUF(%d)", conn->rxsz);
 				// Try to write SDK_MTU-sized chunk to app socket
 				while(tot < SDK_MTU) {
 					write_attempts++;
 					n = picotap->_phy.streamSend(conn->sock, (conn->rxbuf)+tot, SDK_MTU);
 					tot += n;
-					//DEBUG_ERROR(" [ ZTSOCK <- RXBUF]   wrote = %d, total = %d, errno=%d", n, tot, errno);
-					
+					DEBUG_FLOW(" [ ZTSOCK <- RXBUF] wrote = %d, errno=%d", n, errno);
 					// If socket is unavailable, attempt to write N times before giving up
 					if(errno==35) {
 						if(write_attempts == 1024) {
@@ -696,9 +697,7 @@ namespace ZeroTier {
 							tot = SDK_MTU;
 						}
 					}
-					
 				}
-				// DEBUG_EXTRA("SOCK_DGRAM, conn=%p, physock=%p", conn, sock);
 				int payload_sz, addr_sz_offset = sizeof(struct sockaddr_storage);
 				memcpy(&payload_sz, conn->rxbuf + addr_sz_offset, sizeof(int));
 				struct sockaddr_storage addr;
@@ -713,17 +712,22 @@ namespace ZeroTier {
 				}
 			  	conn->rxsz -= SDK_MTU;
 			}
-			
+			//
 			if(conn->type==SOCK_STREAM) {
 				n = picotap->_phy.streamSend(conn->sock, conn->rxbuf, conn->rxsz);	
 				if(conn->rxsz-n > 0) // If more remains on buffer
 					memcpy(conn->rxbuf, conn->rxbuf+n, conn->rxsz - n);
 			  	conn->rxsz -= n;
 			}
+			// Notify ZT I/O loop that it has new buffer contents
 			if(n) {
 				if(conn->type==SOCK_STREAM) {
-	            	//DEBUG_TRANS("[TCP RX] <---    :: {TX: %.3f%%, RX: %.3f%%, physock=%p} :: %d bytes",
-	                //	(float)conn->txsz / max, (float)conn->rxsz / max, conn->sock, n);
+					
+					#if DEBUG_LEVEL >= MSG_TRANSFER
+						float max = conn->type == SOCK_STREAM ? (float)DEFAULT_TCP_RX_BUF_SZ : (float)DEFAULT_UDP_RX_BUF_SZ;
+		            	DEBUG_TRANS("[TCP RX] <---    :: {TX: %.3f%%, RX: %.3f%%, physock=%p} :: %d bytes",
+		                	(float)conn->txsz / max, (float)conn->rxsz / max, conn->sock, n);
+					#endif
 	        	}
 	        	if(conn->rxsz == 0) {
 					picotap->_phy.setNotifyWritable(sock, false);
@@ -740,7 +744,6 @@ namespace ZeroTier {
             picotap->_tcpconns_m.unlock();
             picotap->_rx_buf_m.unlock();
         }
-
         DEBUG_FLOW(" [ ZTSOCK <- RXBUF] Emitted (%d) from RXBUF(%d) to socket", tot, conn->rxsz);
     }
 

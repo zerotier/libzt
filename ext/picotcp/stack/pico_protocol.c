@@ -208,7 +208,7 @@ void pico_protocol_init(struct pico_protocol *p)
         proto_layer_rr_reset(&proto_rr_socket);
         break;
     }
-    dbg("Protocol %s registered (layer: %d).\n", p->name, p->layer);
+    //dbg("Protocol %s registered (layer: %d).\n", p->name, p->layer);
 
 }
 

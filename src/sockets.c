@@ -325,8 +325,11 @@ int (*realclose)(CLOSE_SIG);
                     return n;
             }
 
-            if(n > 0) {                
-                // TODO: case for address size mismatch?
+            if(n > 0) {             
+                // For cases where *addrlen is an unreasonable value
+                // FIXME: This should probably have some more thought put into it
+                *addrlen = *addrlen > SDK_MTU ? 0 : *addrlen; 
+
                 memcpy(addr, tmpbuf, *addrlen);
                 memcpy(&tmpsz, tmpbuf + sizeof(struct sockaddr_storage), sizeof(tmpsz));
                 memcpy(&pnum, tmpbuf + sizeof(struct sockaddr_storage) + sizeof(int), sizeof(int));

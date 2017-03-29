@@ -72,6 +72,7 @@
 
 #include "osdep/OSUtils.hpp"
 #include "osdep/Http.hpp"
+#include "osdep/Thread.hpp"
 
 #include "service/OneService.hpp"
 
@@ -84,7 +85,7 @@ using namespace ZeroTier;
 static OneService *volatile zt1Service = (OneService *)0;
 
 #define PROGRAM_NAME "ZeroTier One"
-#define COPYRIGHT_NOTICE "Copyright © 2011–2016 ZeroTier, Inc."
+#define COPYRIGHT_NOTICE "Copyright (c) 2011-2017 ZeroTier, Inc."
 #define LICENSE_GRANT \
 	"This is free software: you may copy, modify, and/or distribute this" ZT_EOL_S \
 	"work under the terms of the GNU General Public License, version 3 or" ZT_EOL_S \
@@ -100,9 +101,10 @@ static OneService *volatile zt1Service = (OneService *)0;
 static void cliPrintHelp(const char *pn,FILE *out)
 {
 	fprintf(out,
-		"%s version %d.%d.%d" ZT_EOL_S,
+		"%s version %d.%d.%d build %d (platform %d arch %d)" ZT_EOL_S,
 		PROGRAM_NAME,
-		ZEROTIER_ONE_VERSION_MAJOR, ZEROTIER_ONE_VERSION_MINOR, ZEROTIER_ONE_VERSION_REVISION);
+		ZEROTIER_ONE_VERSION_MAJOR, ZEROTIER_ONE_VERSION_MINOR, ZEROTIER_ONE_VERSION_REVISION, ZEROTIER_ONE_VERSION_BUILD,
+		ZT_BUILD_PLATFORM, ZT_BUILD_ARCHITECTURE);
 	fprintf(out,
 		COPYRIGHT_NOTICE ZT_EOL_S
 		LICENSE_GRANT ZT_EOL_S);
@@ -1208,6 +1210,52 @@ static void printHelp(const char *cn,FILE *out)
 	fprintf(out,"  -q                - Query API (zerotier-cli)" ZT_EOL_S);
 }
 
+class _OneServiceRunner
+{
+public:
+	_OneServiceRunner(const char *pn,const std::string &hd,unsigned int p) : progname(pn),returnValue(0),port(p),homeDir(hd) {}
+	void threadMain()
+		throw()
+	{
+		try {
+			for(;;) {
+				zt1Service = OneService::newInstance(homeDir.c_str(),port);
+				switch(zt1Service->run()) {
+					case OneService::ONE_STILL_RUNNING: // shouldn't happen, run() won't return until done
+					case OneService::ONE_NORMAL_TERMINATION:
+						break;
+					case OneService::ONE_UNRECOVERABLE_ERROR:
+						fprintf(stderr,"%s: fatal error: %s" ZT_EOL_S,progname,zt1Service->fatalErrorMessage().c_str());
+						returnValue = 1;
+						break;
+					case OneService::ONE_IDENTITY_COLLISION: {
+						delete zt1Service;
+						zt1Service = (OneService *)0;
+						std::string oldid;
+						OSUtils::readFile((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret").c_str(),oldid);
+						if (oldid.length()) {
+							OSUtils::writeFile((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret.saved_after_collision").c_str(),oldid);
+							OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret").c_str());
+							OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S + "identity.public").c_str());
+						}
+					}	continue; // restart!
+				}
+				break; // terminate loop -- normally we don't keep restarting
+			}
+
+			delete zt1Service;
+			zt1Service = (OneService *)0;
+		} catch ( ... ) {
+			fprintf(stderr,"%s: unexpected exception starting main OneService instance" ZT_EOL_S,progname);
+			returnValue = 1;
+		}
+	}
+	const char *progname;
+	unsigned int returnValue;
+	unsigned int port;
+	const std::string &homeDir;
+};
+
 #ifdef __WINDOWS__
 int _tmain(int argc, _TCHAR* argv[])
 #else
@@ -1420,8 +1468,8 @@ int main(int argc,char **argv)
 	} else {
 		// Running from service manager
 		_winPokeAHole();
-		ZeroTierOneService zt1Service;
-		if (CServiceBase::Run(zt1Service) == TRUE) {
+		ZeroTierOneService zt1WindowsService;
+		if (CServiceBase::Run(zt1WindowsService) == TRUE) {
 			return 0;
 		} else {
 			fprintf(stderr,"%s: unable to start service (try -h for help)" ZT_EOL_S,argv[0]);
@@ -1431,7 +1479,6 @@ int main(int argc,char **argv)
 #endif // __WINDOWS__
 
 #ifdef __UNIX_LIKE__
-
 #ifdef ZT_HAVE_DROP_PRIVILEGES
 	dropPrivileges(argv[0],homeDir);
 #endif
@@ -1447,35 +1494,13 @@ int main(int argc,char **argv)
 	}
 #endif // __UNIX_LIKE__
 
-	unsigned int returnValue = 0;
+	_OneServiceRunner thr(argv[0],homeDir,port);
+	thr.threadMain();
+	//Thread::join(Thread::start(&thr));
 
-	for(;;) {
-		zt1Service = OneService::newInstance(homeDir.c_str(),port);
-		switch(zt1Service->run()) {
-			case OneService::ONE_STILL_RUNNING: // shouldn't happen, run() won't return until done
-			case OneService::ONE_NORMAL_TERMINATION:
-				break;
-			case OneService::ONE_UNRECOVERABLE_ERROR:
-				fprintf(stderr,"%s: fatal error: %s" ZT_EOL_S,argv[0],zt1Service->fatalErrorMessage().c_str());
-				returnValue = 1;
-				break;
-			case OneService::ONE_IDENTITY_COLLISION: {
-				delete zt1Service;
-				zt1Service = (OneService *)0;
-				std::string oldid;
-				OSUtils::readFile((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret").c_str(),oldid);
-				if (oldid.length()) {
-					OSUtils::writeFile((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret.saved_after_collision").c_str(),oldid);
-					OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret").c_str());
-					OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S + "identity.public").c_str());
-				}
-			}	continue; // restart!
-		}
-		break; // terminate loop -- normally we don't keep restarting
-	}
+#ifdef __UNIX_LIKE__
+	OSUtils::rm(pidPath.c_str());
+#endif
 
-	delete zt1Service;
-	zt1Service = (OneService *)0;
-
-	return returnValue;
+	return thr.returnValue;
 }

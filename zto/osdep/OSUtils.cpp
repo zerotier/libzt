@@ -108,43 +108,6 @@ std::vector<std::string> OSUtils::listDirectory(const char *path)
 	return r;
 }
 
-std::map<std::string,char> OSUtils::listDirectoryFull(const char *path)
-{
-	std::map<std::string,char> r;
-
-#ifdef __WINDOWS__
-	HANDLE hFind;
-	WIN32_FIND_DATAA ffd;
-	if ((hFind = FindFirstFileA((std::string(path) + "\\*").c_str(),&ffd)) != INVALID_HANDLE_VALUE) {
-		do {
-			if ((strcmp(ffd.cFileName,"."))&&(strcmp(ffd.cFileName,".."))) {
-				r[ffd.cFileName] = ((ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) ? 'd' : 'f';
-			}
-		} while (FindNextFileA(hFind,&ffd));
-		FindClose(hFind);
-	}
-#else
-	struct dirent de;
-	struct dirent *dptr;
-	DIR *d = opendir(path);
-	if (!d)
-		return r;
-	dptr = (struct dirent *)0;
-	for(;;) {
-		if (readdir_r(d,&de,&dptr))
-			break;
-		if (dptr) {
-			if ((strcmp(dptr->d_name,"."))&&(strcmp(dptr->d_name,".."))) {
-				r[dptr->d_name] = (dptr->d_type == DT_DIR) ? 'd' : 'f';
-			}
-		} else break;
-	}
-	closedir(d);
-#endif
-
-	return r;
-}
-
 long OSUtils::cleanDirectory(const char *path,const uint64_t olderThan)
 {
 	long cleaned = 0;
@@ -162,7 +125,7 @@ long OSUtils::cleanDirectory(const char *path,const uint64_t olderThan)
 					date.LowPart = ffd.ftLastWriteTime.dwLowDateTime;
 					if (date.QuadPart > 0) {
 							date.QuadPart -= adjust.QuadPart;
-							if (((date.QuadPart / 10000000) * 1000) < olderThan) {
+							if ((uint64_t)((date.QuadPart / 10000000) * 1000) < olderThan) {
 									Utils::snprintf(tmp, sizeof(tmp), "%s\\%s", path, ffd.cFileName);
 									if (DeleteFileA(tmp))
 											++cleaned;

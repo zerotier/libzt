@@ -96,6 +96,18 @@ endif
 ifeq ($(CC_MACH),arm)
         ZT_ARCHITECTURE=3
 endif
+ifeq ($(CC_MACH),armel)
+        ZT_ARCHITECTURE=3
+endif
+ifeq ($(CC_MACH),armhf)
+        ZT_ARCHITECTURE=3
+endif
+ifeq ($(CC_MACH),armv6)
+        ZT_ARCHITECTURE=3
+endif
+ifeq ($(CC_MACH),armv7)
+        ZT_ARCHITECTURE=3
+endif
 ifeq ($(CC_MACH),arm64)
         ZT_ARCHITECTURE=4
 endif
@@ -103,6 +115,13 @@ ifeq ($(CC_MACH),aarch64)
         ZT_ARCHITECTURE=4
 endif
 DEFS+=-DZT_BUILD_PLATFORM=1 -DZT_BUILD_ARCHITECTURE=$(ZT_ARCHITECTURE) -DZT_SOFTWARE_UPDATE_DEFAULT="\"disable\""
+
+# Define some conservative CPU instruction set flags for arm32 since there's a ton of variation out there
+ifeq ($(ZT_ARCHITECTURE),3)
+	override CFLAGS+=-march=armv6zk -mcpu=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp
+	override CXXFLAGS+=-march=armv6zk -mcpu=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp
+	override DEFS+=-DZT_NO_TYPE_PUNNING
+endif
 
 # Define this to build a static binary, which is needed to make this runnable on a few ancient Linux distros
 ifeq ($(ZT_STATIC),1)

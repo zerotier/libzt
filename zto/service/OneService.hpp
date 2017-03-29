@@ -24,8 +24,8 @@
 
 #include "../node/InetAddress.hpp"
 #include "../node/Node.hpp"
-
- // Include the right tap device driver for this platform -- add new platforms here
+ 
+// Include the right tap device driver for this platform -- add new platforms here
 #ifdef ZT_SDK
 	// In network containers builds, use the virtual netcon endpoint instead of a tun/tap port driver
 	#include "../src/tap.hpp"
@@ -33,6 +33,7 @@
 #endif // not ZT_SDK so pick a tap driver
 
 namespace ZeroTier {
+
 
 /**
  * Local service for ZeroTier One as system VPN/NFV provider
@@ -171,7 +172,7 @@ public:
 	 */
 	virtual Node * getNode() = 0;
 #endif
-	
+
 	/**
 	 * Get local settings for a network
 	 *

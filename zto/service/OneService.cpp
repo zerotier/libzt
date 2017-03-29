@@ -291,21 +291,21 @@ static void _moonToJson(nlohmann::json &mj,const World &world)
 
 class OneServiceImpl;
 
-static int SnodeVirtualNetworkConfigFunction(ZT_Node *node,void *uptr,uint64_t nwid,void **nuptr,enum ZT_VirtualNetworkConfigOperation op,const ZT_VirtualNetworkConfig *nwconf);
-static void SnodeEventCallback(ZT_Node *node,void *uptr,enum ZT_Event event,const void *metaData);
-static long SnodeDataStoreGetFunction(ZT_Node *node,void *uptr,const char *name,void *buf,unsigned long bufSize,unsigned long readIndex,unsigned long *totalSize);
-static int SnodeDataStorePutFunction(ZT_Node *node,void *uptr,const char *name,const void *data,unsigned long len,int secure);
-static int SnodeWirePacketSendFunction(ZT_Node *node,void *uptr,const struct sockaddr_storage *localAddr,const struct sockaddr_storage *addr,const void *data,unsigned int len,unsigned int ttl);
-static void SnodeVirtualNetworkFrameFunction(ZT_Node *node,void *uptr,uint64_t nwid,void **nuptr,uint64_t sourceMac,uint64_t destMac,unsigned int etherType,unsigned int vlanId,const void *data,unsigned int len);
-static int SnodePathCheckFunction(ZT_Node *node,void *uptr,uint64_t ztaddr,const struct sockaddr_storage *localAddr,const struct sockaddr_storage *remoteAddr);
-static int SnodePathLookupFunction(ZT_Node *node,void *uptr,uint64_t ztaddr,int family,struct sockaddr_storage *result);
+static int SnodeVirtualNetworkConfigFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t nwid,void **nuptr,enum ZT_VirtualNetworkConfigOperation op,const ZT_VirtualNetworkConfig *nwconf);
+static void SnodeEventCallback(ZT_Node *node,void *uptr,void *tptr,enum ZT_Event event,const void *metaData);
+static long SnodeDataStoreGetFunction(ZT_Node *node,void *uptr,void *tptr,const char *name,void *buf,unsigned long bufSize,unsigned long readIndex,unsigned long *totalSize);
+static int SnodeDataStorePutFunction(ZT_Node *node,void *uptr,void *tptr,const char *name,const void *data,unsigned long len,int secure);
+static int SnodeWirePacketSendFunction(ZT_Node *node,void *uptr,void *tptr,const struct sockaddr_storage *localAddr,const struct sockaddr_storage *addr,const void *data,unsigned int len,unsigned int ttl);
+static void SnodeVirtualNetworkFrameFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t nwid,void **nuptr,uint64_t sourceMac,uint64_t destMac,unsigned int etherType,unsigned int vlanId,const void *data,unsigned int len);
+static int SnodePathCheckFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t ztaddr,const struct sockaddr_storage *localAddr,const struct sockaddr_storage *remoteAddr);
+static int SnodePathLookupFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t ztaddr,int family,struct sockaddr_storage *result);
 
 #ifdef ZT_ENABLE_CLUSTER
 static void SclusterSendFunction(void *uptr,unsigned int toMemberId,const void *data,unsigned int len);
 static int SclusterGeoIpFunction(void *uptr,const struct sockaddr_storage *addr,int *x,int *y,int *z);
 #endif
 
-static void StapFrameHandler(void *uptr,uint64_t nwid,const MAC &from,const MAC &to,unsigned int etherType,unsigned int vlanId,const void *data,unsigned int len);
+static void StapFrameHandler(void *uptr,void *tptr,uint64_t nwid,const MAC &from,const MAC &to,unsigned int etherType,unsigned int vlanId,const void *data,unsigned int len);
 
 static int ShttpOnMessageBegin(http_parser *parser);
 static int ShttpOnUrl(http_parser *parser,const char *ptr,size_t length);
@@ -488,6 +488,8 @@ public:
 		,_updater((SoftwareUpdater *)0)
 		,_updateAutoApply(false)
 		,_primaryPort(port)
+		,_v4TcpControlSocket((PhySocket *)0)
+		,_v6TcpControlSocket((PhySocket *)0)
 		,_lastDirectReceiveFromGlobal(0)
 #ifdef ZT_TCP_FALLBACK_RELAY
 		,_lastSendToGlobalV4(0)
@@ -571,7 +573,7 @@ public:
 				cb.eventCallback = SnodeEventCallback;
 				cb.pathCheckFunction = SnodePathCheckFunction;
 				cb.pathLookupFunction = SnodePathLookupFunction;
-				_node = new Node(this,&cb,OSUtils::now());
+				_node = new Node(this,(void *)0,&cb,OSUtils::now());
 			}
 
 			// Read local configuration
@@ -745,14 +747,6 @@ public:
 			for(int i=0;i<3;++i)
 				_portsBE[i] = Utils::hton((uint16_t)_ports[i]);
 
-			// Check for legacy controller.db and terminate if present to prevent nasty surprises for DIY controller folks
-			if (OSUtils::fileExists((_homePath + ZT_PATH_SEPARATOR_S "controller.db").c_str())) {
-				Mutex::Lock _l(_termReason_m);
-				_termReason = ONE_UNRECOVERABLE_ERROR;
-				_fatalErrorMessage = "controller.db is present in our home path! run migrate-sqlite to migrate to new controller.d format.";
-				return _termReason;
-			}
-
 			_controller = new EmbeddedNetworkController(_node,(_homePath + ZT_PATH_SEPARATOR_S ZT_CONTROLLER_DB_PATH).c_str());
 			_node->setNetconfMaster((void *)_controller);
 
@@ -810,7 +804,7 @@ public:
 				for(std::vector<std::string>::iterator f(networksDotD.begin());f!=networksDotD.end();++f) {
 					std::size_t dot = f->find_last_of('.');
 					if ((dot == 16)&&(f->substr(16) == ".conf"))
-						_node->join(Utils::hexStrToU64(f->substr(0,dot).c_str()),(void *)0);
+						_node->join(Utils::hexStrToU64(f->substr(0,dot).c_str()),(void *)0,(void *)0);
 				}
 			}
 			{ // Load existing moons
@@ -818,7 +812,7 @@ public:
 				for(std::vector<std::string>::iterator f(moonsDotD.begin());f!=moonsDotD.end();++f) {
 					std::size_t dot = f->find_last_of('.');
 					if ((dot == 16)&&(f->substr(16) == ".moon"))
-						_node->orbit(Utils::hexStrToU64(f->substr(0,dot).c_str()),0);
+						_node->orbit((void *)0,Utils::hexStrToU64(f->substr(0,dot).c_str()),0);
 				}
 			}
 
@@ -883,7 +877,7 @@ public:
 
 				uint64_t dl = _nextBackgroundTaskDeadline;
 				if (dl <= now) {
-					_node->processBackgroundTasks(now,&_nextBackgroundTaskDeadline);
+					_node->processBackgroundTasks((void *)0,now,&_nextBackgroundTaskDeadline);
 					dl = _nextBackgroundTaskDeadline;
 				}
 
@@ -898,7 +892,7 @@ public:
 							std::vector<MulticastGroup> added,removed;
 							n->second.tap->scanMulticastGroups(added,removed);
 							for(std::vector<MulticastGroup>::iterator m(added.begin());m!=added.end();++m)
-								_node->multicastSubscribe(n->first,m->mac().toInt(),m->adi());
+								_node->multicastSubscribe((void *)0,n->first,m->mac().toInt(),m->adi());
 							for(std::vector<MulticastGroup>::iterator m(removed.begin());m!=removed.end();++m)
 								_node->multicastUnsubscribe(n->first,m->mac().toInt(),m->adi());
 						}
@@ -989,12 +983,12 @@ public:
 #ifdef ZT_SDK
     virtual void leave(const char *hp)
     {
-        _node->leave(Utils::hexStrToU64(hp),NULL);
+        _node->leave(Utils::hexStrToU64(hp),NULL, NULL);
     }
 
 	virtual void join(const char *hp)
 	{
-		_node->join(Utils::hexStrToU64(hp),NULL);
+		_node->join(Utils::hexStrToU64(hp),NULL, NULL);
 	}
 
     virtual std::string givenHomePath()
@@ -1178,9 +1172,10 @@ public:
 #else
 					settings["portMappingEnabled"] = false; // not supported in build
 #endif
-					//settings["softwareUpdate"] = OSUtils::jsonString(settings["softwareUpdate"],ZT_SOFTWARE_UPDATE_DEFAULT);
-					//settings["softwareUpdateChannel"] = OSUtils::jsonString(settings["softwareUpdateChannel"],ZT_SOFTWARE_UPDATE_DEFAULT_CHANNEL);
-
+					/*
+					settings["softwareUpdate"] = OSUtils::jsonString(settings["softwareUpdate"],ZT_SOFTWARE_UPDATE_DEFAULT);
+					settings["softwareUpdateChannel"] = OSUtils::jsonString(settings["softwareUpdateChannel"],ZT_SOFTWARE_UPDATE_DEFAULT_CHANNEL);
+					*/
 					const World planet(_node->planet());
 					res["planetWorldId"] = planet.id();
 					res["planetWorldTimestamp"] = planet.timestamp();
@@ -1343,7 +1338,7 @@ public:
 							res["signature"] = json();
 							res["updatesMustBeSignedBy"] = json();
 							res["waiting"] = true;
-							_node->orbit(id,seed);
+							_node->orbit((void *)0,id,seed);
 							scode = 200;
 						}
 
@@ -1352,7 +1347,7 @@ public:
 					if (ps.size() == 2) {
 
 						uint64_t wantnw = Utils::hexStrToU64(ps[1].c_str());
-						_node->join(wantnw,(void *)0); // does nothing if we are a member
+						_node->join(wantnw,(void *)0,(void *)0); // does nothing if we are a member
 						ZT_VirtualNetworkList *nws = _node->networks();
 						if (nws) {
 							for(unsigned long i=0;i<nws->networkCount;++i) {
@@ -1397,7 +1392,7 @@ public:
 
 				if (ps[0] == "moon") {
 					if (ps.size() == 2) {
-						_node->deorbit(Utils::hexStrToU64(ps[1].c_str()));
+						_node->deorbit((void *)0,Utils::hexStrToU64(ps[1].c_str()));
 						res["result"] = true;
 						scode = 200;
 					} // else 404
@@ -1408,7 +1403,7 @@ public:
 							uint64_t wantnw = Utils::hexStrToU64(ps[1].c_str());
 							for(unsigned long i=0;i<nws->networkCount;++i) {
 								if (nws->networks[i].nwid == wantnw) {
-									_node->leave(wantnw,(void **)0);
+									_node->leave(wantnw,(void **)0,(void *)0);
 									res["result"] = true;
 									scode = 200;
 									break;
@@ -1730,6 +1725,7 @@ public:
 			_lastDirectReceiveFromGlobal = OSUtils::now();
 
 		const ZT_ResultCode rc = _node->processWirePacket(
+			(void *)0,
 			OSUtils::now(),
 			reinterpret_cast<const struct sockaddr_storage *>(localAddr),
 			(const struct sockaddr_storage *)from, // Phy<> uses sockaddr_storage, so it'll always be that big
@@ -1882,6 +1878,7 @@ public:
 							if (from) {
 								InetAddress fakeTcpLocalInterfaceAddress((uint32_t)0xffffffff,0xffff);
 								const ZT_ResultCode rc = _node->processWirePacket(
+									(void *)0,
 									OSUtils::now(),
 									reinterpret_cast<struct sockaddr_storage *>(&fakeTcpLocalInterfaceAddress),
 									reinterpret_cast<struct sockaddr_storage *>(&from),
@@ -1951,6 +1948,7 @@ public:
 					try {
 						char friendlyName[128];
 						Utils::snprintf(friendlyName,sizeof(friendlyName),"ZeroTier One [%.16llx]",nwid);
+
 						n.tap = new EthernetTap(
 							_homePath.c_str(),
 							MAC(nwc->mac),
@@ -2291,7 +2289,7 @@ public:
 
 	inline void tapFrameHandler(uint64_t nwid,const MAC &from,const MAC &to,unsigned int etherType,unsigned int vlanId,const void *data,unsigned int len)
 	{
-		_node->processVirtualNetworkFrame(OSUtils::now(),nwid,from.toInt(),to.toInt(),etherType,vlanId,data,len,&_nextBackgroundTaskDeadline);
+		_node->processVirtualNetworkFrame((void *)0,OSUtils::now(),nwid,from.toInt(),to.toInt(),etherType,vlanId,data,len,&_nextBackgroundTaskDeadline);
 	}
 
 	inline void onHttpRequestToServer(TcpConnection *tc)
@@ -2462,21 +2460,21 @@ public:
 	}
 };
 
-static int SnodeVirtualNetworkConfigFunction(ZT_Node *node,void *uptr,uint64_t nwid,void **nuptr,enum ZT_VirtualNetworkConfigOperation op,const ZT_VirtualNetworkConfig *nwconf)
+static int SnodeVirtualNetworkConfigFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t nwid,void **nuptr,enum ZT_VirtualNetworkConfigOperation op,const ZT_VirtualNetworkConfig *nwconf)
 { return reinterpret_cast<OneServiceImpl *>(uptr)->nodeVirtualNetworkConfigFunction(nwid,nuptr,op,nwconf); }
-static void SnodeEventCallback(ZT_Node *node,void *uptr,enum ZT_Event event,const void *metaData)
+static void SnodeEventCallback(ZT_Node *node,void *uptr,void *tptr,enum ZT_Event event,const void *metaData)
 { reinterpret_cast<OneServiceImpl *>(uptr)->nodeEventCallback(event,metaData); }
-static long SnodeDataStoreGetFunction(ZT_Node *node,void *uptr,const char *name,void *buf,unsigned long bufSize,unsigned long readIndex,unsigned long *totalSize)
+static long SnodeDataStoreGetFunction(ZT_Node *node,void *uptr,void *tptr,const char *name,void *buf,unsigned long bufSize,unsigned long readIndex,unsigned long *totalSize)
 { return reinterpret_cast<OneServiceImpl *>(uptr)->nodeDataStoreGetFunction(name,buf,bufSize,readIndex,totalSize); }
-static int SnodeDataStorePutFunction(ZT_Node *node,void *uptr,const char *name,const void *data,unsigned long len,int secure)
+static int SnodeDataStorePutFunction(ZT_Node *node,void *uptr,void *tptr,const char *name,const void *data,unsigned long len,int secure)
 { return reinterpret_cast<OneServiceImpl *>(uptr)->nodeDataStorePutFunction(name,data,len,secure); }
-static int SnodeWirePacketSendFunction(ZT_Node *node,void *uptr,const struct sockaddr_storage *localAddr,const struct sockaddr_storage *addr,const void *data,unsigned int len,unsigned int ttl)
+static int SnodeWirePacketSendFunction(ZT_Node *node,void *uptr,void *tptr,const struct sockaddr_storage *localAddr,const struct sockaddr_storage *addr,const void *data,unsigned int len,unsigned int ttl)
 { return reinterpret_cast<OneServiceImpl *>(uptr)->nodeWirePacketSendFunction(localAddr,addr,data,len,ttl); }
-static void SnodeVirtualNetworkFrameFunction(ZT_Node *node,void *uptr,uint64_t nwid,void **nuptr,uint64_t sourceMac,uint64_t destMac,unsigned int etherType,unsigned int vlanId,const void *data,unsigned int len)
+static void SnodeVirtualNetworkFrameFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t nwid,void **nuptr,uint64_t sourceMac,uint64_t destMac,unsigned int etherType,unsigned int vlanId,const void *data,unsigned int len)
 { reinterpret_cast<OneServiceImpl *>(uptr)->nodeVirtualNetworkFrameFunction(nwid,nuptr,sourceMac,destMac,etherType,vlanId,data,len); }
-static int SnodePathCheckFunction(ZT_Node *node,void *uptr,uint64_t ztaddr,const struct sockaddr_storage *localAddr,const struct sockaddr_storage *remoteAddr)
+static int SnodePathCheckFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t ztaddr,const struct sockaddr_storage *localAddr,const struct sockaddr_storage *remoteAddr)
 { return reinterpret_cast<OneServiceImpl *>(uptr)->nodePathCheckFunction(ztaddr,localAddr,remoteAddr); }
-static int SnodePathLookupFunction(ZT_Node *node,void *uptr,uint64_t ztaddr,int family,struct sockaddr_storage *result)
+static int SnodePathLookupFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t ztaddr,int family,struct sockaddr_storage *result)
 { return reinterpret_cast<OneServiceImpl *>(uptr)->nodePathLookupFunction(ztaddr,family,result); }
 
 #ifdef ZT_ENABLE_CLUSTER
@@ -2494,7 +2492,7 @@ static int SclusterGeoIpFunction(void *uptr,const struct sockaddr_storage *addr,
 }
 #endif
 
-static void StapFrameHandler(void *uptr,uint64_t nwid,const MAC &from,const MAC &to,unsigned int etherType,unsigned int vlanId,const void *data,unsigned int len)
+static void StapFrameHandler(void *uptr,void *tptr,uint64_t nwid,const MAC &from,const MAC &to,unsigned int etherType,unsigned int vlanId,const void *data,unsigned int len)
 { reinterpret_cast<OneServiceImpl *>(uptr)->tapFrameHandler(nwid,from,to,etherType,vlanId,data,len); }
 
 static int ShttpOnMessageBegin(http_parser *parser)

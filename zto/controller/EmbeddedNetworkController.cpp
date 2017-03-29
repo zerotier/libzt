@@ -61,9 +61,6 @@ using json = nlohmann::json;
 // Nodes are considered active if they've queried in less than this long
 #define ZT_NETCONF_NODE_ACTIVE_THRESHOLD (ZT_NETWORK_AUTOCONF_DELAY * 2)
 
-// Timeout for disk read cache (ms)
-#define ZT_NETCONF_DB_CACHE_TTL 60000
-
 namespace ZeroTier {
 
 static json _renderRule(ZT_VirtualNetworkRule &rule)
@@ -432,6 +429,7 @@ static bool _parseRule(json &r,ZT_VirtualNetworkRule &rule)
 }
 
 EmbeddedNetworkController::EmbeddedNetworkController(Node *node,const char *dbPath) :
+	_startTime(OSUtils::now()),
 	_threadsStarted(false),
 	_db(dbPath),
 	_node(node)
@@ -503,7 +501,7 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpGET(
 			json network;
 			{
 				Mutex::Lock _l(_db_m);
-				network = _db.get("network",nwids,ZT_NETCONF_DB_CACHE_TTL);
+				network = _db.get("network",nwids);
 			}
 			if (!network.size())
 				return 404;
@@ -518,7 +516,7 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpGET(
 						json member;
 						{
 							Mutex::Lock _l(_db_m);
-							member = _db.get("network",nwids,"member",Address(address).toString(),ZT_NETCONF_DB_CACHE_TTL);
+							member = _db.get("network",nwids,"member",Address(address).toString());
 						}
 						if (!member.size())
 							return 404;
@@ -533,11 +531,10 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpGET(
 						Mutex::Lock _l(_db_m);
 
 						responseBody = "{";
-						std::string pfx(std::string("network/") + nwids + "member/");
-						_db.filter(pfx,ZT_NETCONF_DB_CACHE_TTL,[&responseBody](const std::string &n,const json &member) {
-							if (member.size() > 0) {
+						_db.filter((std::string("network/") + nwids + "/member/"),[&responseBody](const std::string &n,const json &member) {
+							if ((member.is_object())&&(member.size() > 0)) {
 								responseBody.append((responseBody.length() == 1) ? "\"" : ",\"");
-								responseBody.append(OSUtils::jsonString(member["id"],""));
+								responseBody.append(OSUtils::jsonString(member["id"],"0"));
 								responseBody.append("\":");
 								responseBody.append(OSUtils::jsonString(member["revision"],"0"));
 							}
@@ -567,7 +564,7 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpGET(
 			std::set<std::string> networkIds;
 			{
 				Mutex::Lock _l(_db_m);
-				_db.filter("network/",120000,[&networkIds](const std::string &n,const json &obj) {
+				_db.filter("network/",[&networkIds](const std::string &n,const json &obj) {
 					if (n.length() == (16 + 8))
 						networkIds.insert(n.substr(8));
 					return true; // do not delete
@@ -642,7 +639,7 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpPOST(
 					json member;
 					{
 						Mutex::Lock _l(_db_m);
-						member = _db.get("network",nwids,"member",Address(address).toString(),ZT_NETCONF_DB_CACHE_TTL);
+						member = _db.get("network",nwids,"member",Address(address).toString());
 					}
 					json origMember(member); // for detecting changes
 					_initMember(member);
@@ -793,7 +790,7 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpPOST(
 					test->timestamp = OSUtils::now();
 
 					if (_node) {
-						_node->circuitTestBegin(test,&(EmbeddedNetworkController::_circuitTestCallback));
+						_node->circuitTestBegin((void *)0,test,&(EmbeddedNetworkController::_circuitTestCallback));
 					} else {
 						_tests.pop_back();
 						return 500;
@@ -825,7 +822,7 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpPOST(
 							uint64_t tryNwid = nwidPrefix | (nwidPostfix & 0xffffffULL);
 							if ((tryNwid & 0xffffffULL) == 0ULL) tryNwid |= 1ULL;
 							Utils::snprintf(nwids,sizeof(nwids),"%.16llx",(unsigned long long)tryNwid);
-							if (_db.get("network",nwids,ZT_NETCONF_DB_CACHE_TTL).size() <= 0) {
+							if (_db.get("network",nwids).size() <= 0) {
 								nwid = tryNwid;
 								break;
 							}
@@ -834,7 +831,7 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpPOST(
 							return 503;
 					}
 
-					network = _db.get("network",nwids,ZT_NETCONF_DB_CACHE_TTL);
+					network = _db.get("network",nwids);
 				}
 				json origNetwork(network); // for detecting changes
 				_initNetwork(network);
@@ -1054,7 +1051,7 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpPOST(
 					}
 
 					// Send an update to all members of the network
-					_db.filter((std::string("network/") + nwids + "/member/"),120000,[this,&now,&nwid](const std::string &n,const json &obj) {
+					_db.filter((std::string("network/") + nwids + "/member/"),[this,&now,&nwid](const std::string &n,const json &obj) {
 						_pushMemberUpdate(now,nwid,obj);
 						return true; // do not delete
 					});
@@ -1071,7 +1068,15 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpPOST(
 
 		} // else 404
 
-	} // else 404
+	} else if (path[0] == "dbtest") {
+
+		json testRec;
+		const uint64_t now = OSUtils::now();
+		testRec["clock"] = now;
+		testRec["uptime"] = (now - _startTime);
+		_db.put("dbtest",testRec);
+
+	}
 
 	return 404;
 }
@@ -1096,7 +1101,7 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpDELETE(
 			json network;
 			{
 				Mutex::Lock _l(_db_m);
-				network = _db.get("network",nwids,ZT_NETCONF_DB_CACHE_TTL);
+				network = _db.get("network",nwids);
 			}
 			if (!network.size())
 				return 404;
@@ -1107,7 +1112,7 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpDELETE(
 
 					Mutex::Lock _l(_db_m);
 
-					json member = _db.get("network",nwids,"member",Address(address).toString(),ZT_NETCONF_DB_CACHE_TTL);
+					json member = _db.get("network",nwids,"member",Address(address).toString());
 					_db.erase("network",nwids,"member",Address(address).toString());
 
 					if (!member.size())
@@ -1120,7 +1125,7 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpDELETE(
 				Mutex::Lock _l(_db_m);
 
 				std::string pfx("network/"); pfx.append(nwids);
-				_db.filter(pfx,120000,[](const std::string &n,const json &obj) {
+				_db.filter(pfx,[](const std::string &n,const json &obj) {
 					return false; // delete
 				});
 
@@ -1247,8 +1252,8 @@ void EmbeddedNetworkController::_request(
 	json member;
 	{
 		Mutex::Lock _l(_db_m);
-		network = _db.get("network",nwids,ZT_NETCONF_DB_CACHE_TTL);
-		member = _db.get("network",nwids,"member",identity.address().toString(),ZT_NETCONF_DB_CACHE_TTL);
+		network = _db.get("network",nwids);
+		member = _db.get("network",nwids,"member",identity.address().toString());
 	}
 
 	if (!network.size()) {
@@ -1773,7 +1778,7 @@ void EmbeddedNetworkController::_getNetworkMemberInfo(uint64_t now,uint64_t nwid
 
 	{
 		Mutex::Lock _l(_db_m);
-		_db.filter(pfx,120000,[&nmi,&now](const std::string &n,const json &member) {
+		_db.filter(pfx,[&nmi,&now](const std::string &n,const json &member) {
 			try {
 				if (OSUtils::jsonBool(member["authorized"],false)) {
 					++nmi.authorizedMemberCount;

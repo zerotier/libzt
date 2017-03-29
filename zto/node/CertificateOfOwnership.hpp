@@ -56,12 +56,9 @@ public:
 		THING_IPV6_ADDRESS = 3
 	};
 
-	CertificateOfOwnership() :
-		_networkId(0),
-		_ts(0),
-		_id(0),
-		_thingCount(0)
+	CertificateOfOwnership()
 	{
+		memset(this,0,sizeof(CertificateOfOwnership));
 	}
 
 	CertificateOfOwnership(const uint64_t nwid,const uint64_t ts,const Address &issuedTo,const uint32_t id) :
@@ -140,9 +137,10 @@ public:
 
 	/**
 	 * @param RR Runtime environment to allow identity lookup for signedBy
+	 * @param tPtr Thread pointer to be handed through to any callbacks called as a result of this call
 	 * @return 0 == OK, 1 == waiting for WHOIS, -1 == BAD signature
 	 */
-	int verify(const RuntimeEnvironment *RR) const;
+	int verify(const RuntimeEnvironment *RR,void *tPtr) const;
 
 	template<unsigned int C>
 	inline void serialize(Buffer<C> &b,const bool forSign = false) const

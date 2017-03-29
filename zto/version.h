@@ -32,7 +32,7 @@
 /**
  * Revision
  */
-#define ZEROTIER_ONE_VERSION_REVISION 0
+#define ZEROTIER_ONE_VERSION_REVISION 3
 
 /**
  * Build version
@@ -42,5 +42,12 @@
  * not part of the actual release version number.
  */
 #define ZEROTIER_ONE_VERSION_BUILD 0
+
+#ifndef ZT_BUILD_ARCHITECTURE
+#define ZT_BUILD_ARCHITECTURE 0
+#endif
+#ifndef ZT_BUILD_PLATFORM
+#define ZT_BUILD_PLATFORM 0
+#endif
 
 #endif

@@ -47,13 +47,6 @@
 
 #include "../osdep/OSUtils.hpp"
 
-#ifndef ZT_BUILD_ARCHITECTURE
-#define ZT_BUILD_ARCHITECTURE 0
-#endif
-#ifndef ZT_BUILD_PLATFORM
-#define ZT_BUILD_PLATFORM 0
-#endif
-
 namespace ZeroTier {
 
 SoftwareUpdater::SoftwareUpdater(Node &node,const std::string &homePath) :
@@ -65,30 +58,7 @@ SoftwareUpdater::SoftwareUpdater(Node &node,const std::string &homePath) :
 	_latestValid(false),
 	_downloadLength(0)
 {
-	// Check for a cached newer update. If there's a cached update that is not newer or looks bad, delete.
-	try {
-		std::string buf;
-		if (OSUtils::readFile((_homePath + ZT_PATH_SEPARATOR_S ZT_SOFTWARE_UPDATE_META_FILENAME).c_str(),buf)) {
-			nlohmann::json meta = OSUtils::jsonParse(buf);
-			buf = std::string();
-			const unsigned int rvMaj = (unsigned int)OSUtils::jsonInt(meta[ZT_SOFTWARE_UPDATE_JSON_VERSION_MAJOR],0);
-			const unsigned int rvMin = (unsigned int)OSUtils::jsonInt(meta[ZT_SOFTWARE_UPDATE_JSON_VERSION_MINOR],0);
-			const unsigned int rvRev = (unsigned int)OSUtils::jsonInt(meta[ZT_SOFTWARE_UPDATE_JSON_VERSION_REVISION],0);
-			const unsigned int rvBld = (unsigned int)OSUtils::jsonInt(meta[ZT_SOFTWARE_UPDATE_JSON_VERSION_BUILD],0);
-			if ((Utils::compareVersion(rvMaj,rvMin,rvRev,rvBld,ZEROTIER_ONE_VERSION_MAJOR,ZEROTIER_ONE_VERSION_MINOR,ZEROTIER_ONE_VERSION_REVISION,ZEROTIER_ONE_VERSION_BUILD) > 0)&&
-			    (OSUtils::readFile((_homePath + ZT_PATH_SEPARATOR_S ZT_SOFTWARE_UPDATE_BIN_FILENAME).c_str(),buf))) {
-				if ((uint64_t)buf.length() == OSUtils::jsonInt(meta[ZT_SOFTWARE_UPDATE_JSON_UPDATE_SIZE],0)) {
-					_latestMeta = meta;
-					_latestValid = true;
-					//printf("CACHED UPDATE IS NEWER AND LOOKS GOOD\n");
-				}
-			}
-		}
-	} catch ( ... ) {} // exceptions indicate invalid cached update
-	if (!_latestValid) {
-		OSUtils::rm((_homePath + ZT_PATH_SEPARATOR_S ZT_SOFTWARE_UPDATE_META_FILENAME).c_str());
-		OSUtils::rm((_homePath + ZT_PATH_SEPARATOR_S ZT_SOFTWARE_UPDATE_BIN_FILENAME).c_str());
-	}
+	OSUtils::rm((_homePath + ZT_PATH_SEPARATOR_S ZT_SOFTWARE_UPDATE_BIN_FILENAME).c_str());
 }
 
 SoftwareUpdater::~SoftwareUpdater()
@@ -173,8 +143,18 @@ void SoftwareUpdater::handleSoftwareUpdateUserMessage(uint64_t origin,const void
 							unsigned int bestVRev = rvRev;
 							unsigned int bestVBld = rvBld;
 							for(std::map< Array<uint8_t,16>,_D >::const_iterator d(_dist.begin());d!=_dist.end();++d) {
+								// The arch field in update description .json files can be an array for e.g. multi-arch update files
+								const nlohmann::json &dvArch2 = d->second.meta[ZT_SOFTWARE_UPDATE_JSON_ARCHITECTURE];
+								std::vector<unsigned int> dvArch;
+								if (dvArch2.is_array()) {
+									for(unsigned long i=0;i<dvArch2.size();++i)
+										dvArch.push_back((unsigned int)OSUtils::jsonInt(dvArch2[i],0));
+								} else {
+									dvArch.push_back((unsigned int)OSUtils::jsonInt(dvArch2,0));
+								}
+
 								if ((OSUtils::jsonInt(d->second.meta[ZT_SOFTWARE_UPDATE_JSON_PLATFORM],0) == rvPlatform)&&
-								    (OSUtils::jsonInt(d->second.meta[ZT_SOFTWARE_UPDATE_JSON_ARCHITECTURE],0) == rvArch)&&
+								    (std::find(dvArch.begin(),dvArch.end(),rvArch) != dvArch.end())&&
 								    (OSUtils::jsonInt(d->second.meta[ZT_SOFTWARE_UPDATE_JSON_VENDOR],0) == rvVendor)&&
 								    (OSUtils::jsonString(d->second.meta[ZT_SOFTWARE_UPDATE_JSON_CHANNEL],"") == rvChannel)&&
 								    (OSUtils::jsonString(d->second.meta[ZT_SOFTWARE_UPDATE_JSON_UPDATE_SIGNED_BY],"") == expectedSigner)) {
@@ -195,7 +175,7 @@ void SoftwareUpdater::handleSoftwareUpdateUserMessage(uint64_t origin,const void
 								std::string lj;
 								lj.push_back((char)VERB_LATEST);
 								lj.append(OSUtils::jsonDump(*latest));
-								_node.sendUserMessage(origin,ZT_SOFTWARE_UPDATE_USER_MESSAGE_TYPE,lj.data(),(unsigned int)lj.length());
+								_node.sendUserMessage((void *)0,origin,ZT_SOFTWARE_UPDATE_USER_MESSAGE_TYPE,lj.data(),(unsigned int)lj.length());
 								if (_distLog) {
 									fprintf(_distLog,"%.10llx GET_LATEST %u.%u.%u_%u platform %u arch %u vendor %u channel %s -> LATEST %u.%u.%u_%u" ZT_EOL_S,(unsigned long long)origin,rvMaj,rvMin,rvRev,rvBld,rvPlatform,rvArch,rvVendor,rvChannel.c_str(),bestVMaj,bestVMin,bestVRev,bestVBld);
 									fflush(_distLog);
@@ -214,10 +194,7 @@ void SoftwareUpdater::handleSoftwareUpdateUserMessage(uint64_t origin,const void
 								if (_latestMeta != req) {
 									_latestMeta = req;
 									_latestValid = false;
-
-									OSUtils::rm((_homePath + ZT_PATH_SEPARATOR_S ZT_SOFTWARE_UPDATE_META_FILENAME).c_str());
 									OSUtils::rm((_homePath + ZT_PATH_SEPARATOR_S ZT_SOFTWARE_UPDATE_BIN_FILENAME).c_str());
-
 									_download = std::string();
 									memcpy(_downloadHashPrefix.data,hash.data(),16);
 									_downloadLength = len;
@@ -228,7 +205,7 @@ void SoftwareUpdater::handleSoftwareUpdateUserMessage(uint64_t origin,const void
 									gd.append((uint8_t)VERB_GET_DATA);
 									gd.append(_downloadHashPrefix.data,16);
 									gd.append((uint32_t)_download.length());
-									_node.sendUserMessage(ZT_SOFTWARE_UPDATE_SERVICE,ZT_SOFTWARE_UPDATE_USER_MESSAGE_TYPE,gd.data(),gd.size());
+									_node.sendUserMessage((void *)0,ZT_SOFTWARE_UPDATE_SERVICE,ZT_SOFTWARE_UPDATE_USER_MESSAGE_TYPE,gd.data(),gd.size());
 									//printf(">> GET_DATA @%u\n",(unsigned int)_download.length());
 								}
 							}
@@ -252,7 +229,7 @@ void SoftwareUpdater::handleSoftwareUpdateUserMessage(uint64_t origin,const void
 						buf.append(reinterpret_cast<const uint8_t *>(data) + 1,16);
 						buf.append((uint32_t)idx);
 						buf.append(d->second.bin.data() + idx,std::min((unsigned long)ZT_SOFTWARE_UPDATE_CHUNK_SIZE,(unsigned long)(d->second.bin.length() - idx)));
-						_node.sendUserMessage(origin,ZT_SOFTWARE_UPDATE_USER_MESSAGE_TYPE,buf.data(),buf.size());
+						_node.sendUserMessage((void *)0,origin,ZT_SOFTWARE_UPDATE_USER_MESSAGE_TYPE,buf.data(),buf.size());
 						//printf(">> DATA @%u\n",(unsigned int)idx);
 					}
 				}
@@ -272,7 +249,7 @@ void SoftwareUpdater::handleSoftwareUpdateUserMessage(uint64_t origin,const void
 							gd.append((uint8_t)VERB_GET_DATA);
 							gd.append(_downloadHashPrefix.data,16);
 							gd.append((uint32_t)_download.length());
-							_node.sendUserMessage(ZT_SOFTWARE_UPDATE_SERVICE,ZT_SOFTWARE_UPDATE_USER_MESSAGE_TYPE,gd.data(),gd.size());
+							_node.sendUserMessage((void *)0,ZT_SOFTWARE_UPDATE_SERVICE,ZT_SOFTWARE_UPDATE_USER_MESSAGE_TYPE,gd.data(),gd.size());
 							//printf(">> GET_DATA @%u\n",(unsigned int)_download.length());
 						}
 					}
@@ -281,14 +258,14 @@ void SoftwareUpdater::handleSoftwareUpdateUserMessage(uint64_t origin,const void
 
 			default:
 				if (_distLog) {
-					fprintf(_distLog,"%.10llx WARNING: bad update message verb==%u length==%u (unrecognized verb)" ZT_EOL_S,origin,(unsigned int)v,len);
+					fprintf(_distLog,"%.10llx WARNING: bad update message verb==%u length==%u (unrecognized verb)" ZT_EOL_S,(unsigned long long)origin,(unsigned int)v,len);
 					fflush(_distLog);
 				}
 				break;
 		}
 	} catch ( ... ) {
 		if (_distLog) {
-			fprintf(_distLog,"%.10llx WARNING: bad update message verb==%u length==%u (unexpected exception, likely invalid JSON)" ZT_EOL_S,origin,(unsigned int)v,len);
+			fprintf(_distLog,"%.10llx WARNING: bad update message verb==%u length==%u (unexpected exception, likely invalid JSON)" ZT_EOL_S,(unsigned long long)origin,(unsigned int)v,len);
 			fflush(_distLog);
 		}
 	}
@@ -319,7 +296,7 @@ bool SoftwareUpdater::check(const uint64_t now)
 			ZT_BUILD_ARCHITECTURE,
 			(int)ZT_VENDOR_ZEROTIER,
 			_channel.c_str());
-		_node.sendUserMessage(ZT_SOFTWARE_UPDATE_SERVICE,ZT_SOFTWARE_UPDATE_USER_MESSAGE_TYPE,tmp,len);
+		_node.sendUserMessage((void *)0,ZT_SOFTWARE_UPDATE_SERVICE,ZT_SOFTWARE_UPDATE_USER_MESSAGE_TYPE,tmp,len);
 		//printf(">> GET_LATEST\n");
 	}
 
@@ -331,9 +308,7 @@ bool SoftwareUpdater::check(const uint64_t now)
 			// This is the very important security validation part that makes sure
 			// this software update doesn't have cooties.
 
-			const std::string metaPath(_homePath + ZT_PATH_SEPARATOR_S ZT_SOFTWARE_UPDATE_META_FILENAME);
 			const std::string binPath(_homePath + ZT_PATH_SEPARATOR_S ZT_SOFTWARE_UPDATE_BIN_FILENAME);
-
 			try {
 				// (1) Check the hash itself to make sure the image is basically okay
 				uint8_t sha512[ZT_SHA512_DIGEST_LEN];
@@ -343,8 +318,8 @@ bool SoftwareUpdater::check(const uint64_t now)
 					const std::string sig(OSUtils::jsonBinFromHex(_latestMeta[ZT_SOFTWARE_UPDATE_JSON_UPDATE_SIGNATURE]));
 					if (Identity(ZT_SOFTWARE_UPDATE_SIGNING_AUTHORITY).verify(_download.data(),(unsigned int)_download.length(),sig.data(),(unsigned int)sig.length())) {
 						// (3) Try to save file, and if so we are good.
-						if (OSUtils::writeFile(metaPath.c_str(),OSUtils::jsonDump(_latestMeta)) && OSUtils::writeFile(binPath.c_str(),_download)) {
-							OSUtils::lockDownFile(metaPath.c_str(),false);
+						OSUtils::rm(binPath.c_str());
+						if (OSUtils::writeFile(binPath.c_str(),_download)) {
 							OSUtils::lockDownFile(binPath.c_str(),false);
 							_latestValid = true;
 							//printf("VALID UPDATE\n%s\n",OSUtils::jsonDump(_latestMeta).c_str());
@@ -358,7 +333,6 @@ bool SoftwareUpdater::check(const uint64_t now)
 
 			// If we get here, checks failed.
 			//printf("INVALID UPDATE (!!!)\n%s\n",OSUtils::jsonDump(_latestMeta).c_str());
-			OSUtils::rm(metaPath.c_str());
 			OSUtils::rm(binPath.c_str());
 			_latestMeta = nlohmann::json();
 			_latestValid = false;
@@ -369,7 +343,7 @@ bool SoftwareUpdater::check(const uint64_t now)
 			gd.append((uint8_t)VERB_GET_DATA);
 			gd.append(_downloadHashPrefix.data,16);
 			gd.append((uint32_t)_download.length());
-			_node.sendUserMessage(ZT_SOFTWARE_UPDATE_SERVICE,ZT_SOFTWARE_UPDATE_USER_MESSAGE_TYPE,gd.data(),gd.size());
+			_node.sendUserMessage((void *)0,ZT_SOFTWARE_UPDATE_SERVICE,ZT_SOFTWARE_UPDATE_USER_MESSAGE_TYPE,gd.data(),gd.size());
 			//printf(">> GET_DATA @%u\n",(unsigned int)_download.length());
 		}
 	}

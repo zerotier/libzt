@@ -357,7 +357,7 @@ namespace ZeroTier {
         src_mac.setTo(ethhdr->saddr, 6);
         dest_mac.setTo(ethhdr->daddr, 6);
 
-        picotap->_handler(picotap->_arg,picotap->_nwid,src_mac,dest_mac,
+        picotap->_handler(picotap->_arg,NULL,picotap->_nwid,src_mac,dest_mac,
             Utils::ntoh((uint16_t)ethhdr->proto),0, ((char*)buf) + sizeof(struct pico_eth_hdr),len - sizeof(struct pico_eth_hdr));
         return len;
     }

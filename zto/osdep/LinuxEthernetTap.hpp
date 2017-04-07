@@ -1,0 +1,84 @@
+/*
+ * ZeroTier One - Network Virtualization Everywhere
+ * Copyright (C) 2011-2016  ZeroTier, Inc.  https://www.zerotier.com/
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#ifndef ZT_LINUXETHERNETTAP_HPP
+#define ZT_LINUXETHERNETTAP_HPP
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <string>
+#include <vector>
+#include <stdexcept>
+
+#include "../node/MulticastGroup.hpp"
+#include "Thread.hpp"
+
+namespace ZeroTier {
+
+/**
+ * Linux Ethernet tap using kernel tun/tap driver
+ */
+class LinuxEthernetTap
+{
+public:
+	LinuxEthernetTap(
+		const char *homePath,
+		const MAC &mac,
+		unsigned int mtu,
+		unsigned int metric,
+		uint64_t nwid,
+		const char *friendlyName,
+		void (*handler)(void *,void *,uint64_t,const MAC &,const MAC &,unsigned int,unsigned int,const void *,unsigned int),
+		void *arg);
+
+	~LinuxEthernetTap();
+
+	void setEnabled(bool en);
+	bool enabled() const;
+	bool addIp(const InetAddress &ip);
+#ifdef __SYNOLOGY__
+	bool addIpSyn(std::vector<InetAddress> ips);
+#endif
+	bool removeIp(const InetAddress &ip);
+	std::vector<InetAddress> ips() const;
+	void put(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
+	std::string deviceName() const;
+	void setFriendlyName(const char *friendlyName);
+	void scanMulticastGroups(std::vector<MulticastGroup> &added,std::vector<MulticastGroup> &removed);
+
+	void threadMain()
+		throw();
+
+private:
+	void (*_handler)(void *,void *,uint64_t,const MAC &,const MAC &,unsigned int,unsigned int,const void *,unsigned int);
+	void *_arg;
+	uint64_t _nwid;
+	Thread _thread;
+	std::string _homePath;
+	std::string _dev;
+	std::vector<MulticastGroup> _multicastGroups;
+	unsigned int _mtu;
+	int _fd;
+	int _shutdownSignalPipe[2];
+	volatile bool _enabled;
+};
+
+} // namespace ZeroTier
+
+#endif

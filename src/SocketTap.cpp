@@ -45,13 +45,14 @@
 #include "Constants.hpp"
 #include "Phy.hpp"
 
-
 namespace ZeroTier {
 
 // Ignore these
-void SocketTap::phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address, const struct sockaddr *from,void *data,unsigned long len) {}
+void SocketTap::phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address, 
+	const struct sockaddr *from,void *data,unsigned long len) {}
 void SocketTap::phyOnTcpConnect(PhySocket *sock,void **uptr,bool success) {}
-void SocketTap::phyOnTcpAccept(PhySocket *sockL,PhySocket *sockN,void **uptrL,void **uptrN,const struct sockaddr *from) {}
+void SocketTap::phyOnTcpAccept(PhySocket *sockL,PhySocket *sockN,void **uptrL,void **uptrN,
+	const struct sockaddr *from) {}
 void SocketTap::phyOnTcpClose(PhySocket *sock,void **uptr) {}
 void SocketTap::phyOnTcpData(PhySocket *sock,void **uptr,void *data,unsigned long len) {}
 void SocketTap::phyOnTcpWritable(PhySocket *sock,void **uptr, bool stack_invoked) {}
@@ -90,7 +91,8 @@ SocketTap::SocketTap(
 	unsigned int metric,
 	uint64_t nwid,
 	const char *friendlyName,
-	void (*handler)(void *,void*,uint64_t,const MAC &,const MAC &,unsigned int,unsigned int,const void *,unsigned int),
+	void (*handler)(void *,void*,uint64_t,const MAC &,const MAC &,
+		unsigned int,unsigned int,const void *,unsigned int),
 	void *arg) :
 		_homePath(homePath),
 		_mac(mac),
@@ -103,28 +105,34 @@ SocketTap::SocketTap(
 		_enabled(true),
 		_run(true)
 {
-    char sockPath[4096];
-    Utils::snprintf(sockPath,sizeof(sockPath),"%s%snc_%.16llx",homePath,ZT_PATH_SEPARATOR_S,_nwid,ZT_PATH_SEPARATOR_S,(unsigned long long)nwid);
-    _dev = sockPath; // in SDK mode, set device to be just the network ID
-	
-	_unixListenSocket = _phy.unixListen(sockPath,(void *)this);
-	chmod(sockPath, 0777); // To make the RPC socket available to all users
-	if (!_unixListenSocket)
-		DEBUG_ERROR("unable to bind to: path=%s", sockPath);
-	else
-		DEBUG_INFO("tap initialized on: path=%s", sockPath);
-	
-	picostack = new picoTCP();
-	pico_stack_init();
 
-     _thread = Thread::start(this);
+    char sockPath[4096];
+    Utils::snprintf(sockPath,sizeof(sockPath),"%s%s" ZT_SDK_RPC_DIR_PREFIX "/%.16llx",
+    	homePath,ZT_PATH_SEPARATOR_S,_nwid,ZT_PATH_SEPARATOR_S,(unsigned long long)nwid);
+    _dev = sockPath; 
+	_unixListenSocket = _phy.unixListen(sockPath,(void *)this);
+	chmod(sockPath, 0777); // make the RPC socket available to all users
+	if (!_unixListenSocket)
+		DEBUG_ERROR("unable to bind to: rpc = %s", sockPath);
+	else
+		DEBUG_INFO("rpc = %s", sockPath);
+
+	char ver[6];
+	zts_core_version(ver);
+	DEBUG_INFO("zts_core_version = %s", ver);
+	zts_sdk_version(ver);
+	DEBUG_INFO("zts_sdk_version = %s", ver);
+	char id[11];
+	zts_get_device_id(id);
+	DEBUG_INFO("id = %s", id);
+
+    _thread = Thread::start(this);
 }
 
 SocketTap::~SocketTap()
 {
 	_run = false;
 	_phy.whack();
-	_phy.whack(); // FIXME: Remove?
 	Thread::join(_thread);
 	_phy.close(_unixListenSocket,false);
 }
@@ -141,9 +149,9 @@ bool SocketTap::enabled() const
 
 bool SocketTap::addIp(const InetAddress &ip)
 {
-	// Initialize network stack's interface, assign addresses
     picotap = this;
 	picostack->pico_init_interface(this, ip);
+	_ips.push_back(ip);
 	return true;
 }
 
@@ -155,7 +163,7 @@ bool SocketTap::removeIp(const InetAddress &ip)
 		return false;
 	_ips.erase(i);
 	if (ip.isV4()) {
-		// TODO: De-register from network stacks
+		// FIXME: De-register from network stacks
 	}
 	return true;
 }
@@ -166,18 +174,11 @@ std::vector<InetAddress> SocketTap::ips() const
 	return _ips;
 }
 
-// Receive data from ZT tap service (virtual wire) and present it to network stack
-// -----------------------------------------
-// | TAP <-> MEM BUFFER <-> STACK <-> APP  |
-// | |--------------->|                    | RX
-// | APP <-> I/O BUFFER <-> STACK <-> TAP  |
-// |                                       | 
-// ----------------------------------------- 
-void SocketTap::put(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
+void SocketTap::put(const MAC &from,const MAC &to,unsigned int etherType,
+	const void *data,unsigned int len)
 {
-    // DEBUG_EXTRA("RX packet: len=%d, etherType=%d", len, etherType);
     // RX packet
-   		picostack->pico_rx(this, from,to,etherType,data,len);
+   	picostack->pico_rx(this, from,to,etherType,data,len);
 
 }
 
@@ -187,9 +188,11 @@ std::string SocketTap::deviceName() const
 }
 
 void SocketTap::setFriendlyName(const char *friendlyName) {
+	DEBUG_INFO();
 }
 
-void SocketTap::scanMulticastGroups(std::vector<MulticastGroup> &added,std::vector<MulticastGroup> &removed)
+void SocketTap::scanMulticastGroups(std::vector<MulticastGroup> &added,
+	std::vector<MulticastGroup> &removed)
 {
 	std::vector<MulticastGroup> newGroups;
 	Mutex::Lock _l(_multicastGroups_m);
@@ -215,9 +218,7 @@ void SocketTap::scanMulticastGroups(std::vector<MulticastGroup> &added,std::vect
 void SocketTap::threadMain()
 	throw()
 {
-	// Enter main thread loop for network stack
-		picostack->pico_loop(this);
-
+	picostack->pico_loop(this);
 }
 
 Connection *SocketTap::getConnection(PhySocket *sock)
@@ -266,16 +267,9 @@ void SocketTap::closeConnection(PhySocket *sock)
 void SocketTap::phyOnUnixClose(PhySocket *sock,void **uptr) {
 	//Mutex::Lock _l(_tcpconns_m);
     //closeConnection(sock);
+    // FIXME:
 }
 
-
-// Receive data from ZT tap service and present it to network stack
-// -----------------------------------------
-// | TAP <-> MEM BUFFER <-> STACK <-> APP  |
-// | |--------------->|                    | RX
-// | APP <-> I/O BUFFER <-> STACK <-> TAP  |
-// |                                       | 
-// ----------------------------------------- 
 void SocketTap::handleRead(PhySocket *sock,void **uptr,bool stack_invoked)
 {
 	picostack->pico_handleRead(sock, uptr, stack_invoked);
@@ -367,13 +361,15 @@ void SocketTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t 
 					memcpy((&conn->txbuf)+conn->txsz, buf+data_start, wlen);
 				}
 				// [DATA] + [CANARY]
-				if(len > CANARY_SZ+PADDING_SZ && canary_pos > 0 && canary_pos == len - CANARY_SZ+PADDING_SZ) {
+				if(len > CANARY_SZ+PADDING_SZ && canary_pos > 0 
+					&& canary_pos == len - CANARY_SZ+PADDING_SZ) {
 					wlen = len - CANARY_SZ+PADDING_SZ;
 					data_start = 0;
 					memcpy((&conn->txbuf)+conn->txsz, buf+data_start, wlen);												
 				}
 				// [DATA] + [CANARY] + [DATA]
-				if(len > CANARY_SZ+PADDING_SZ && canary_pos > 0 && len > (canary_pos + CANARY_SZ+PADDING_SZ)) {
+				if(len > CANARY_SZ+PADDING_SZ && canary_pos > 0 
+					&& len > (canary_pos + CANARY_SZ+PADDING_SZ)) {
 					wlen = len - CANARY_SZ+PADDING_SZ;
 					data_start = 0;
 					data_end = padding_pos-CANARY_SZ;
@@ -441,7 +437,8 @@ void SocketTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t 
 ----------------------------- RPC Handler functions ----------------------------
 ------------------------------------------------------------------------------*/
 
-void SocketTap::handleGetsockname(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct getsockname_st *getsockname_rpc)
+void SocketTap::handleGetsockname(PhySocket *sock, PhySocket *rpcSock, 
+	void **uptr, struct getsockname_st *getsockname_rpc)
 {
 	Mutex::Lock _l(_tcpconns_m);
 	Connection *conn = getConnection(sock);
@@ -455,7 +452,8 @@ void SocketTap::handleGetsockname(PhySocket *sock, PhySocket *rpcSock, void **up
 	write(_phy.getDescriptor(rpcSock), conn->local_addr, sizeof(struct sockaddr_storage));
 }
 
-void SocketTap::handleGetpeername(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct getsockname_st *getsockname_rpc)
+void SocketTap::handleGetpeername(PhySocket *sock, PhySocket *rpcSock, 
+	void **uptr, struct getsockname_st *getsockname_rpc)
 {
 	Mutex::Lock _l(_tcpconns_m);
 	Connection *conn = getConnection(sock);
@@ -469,24 +467,24 @@ void SocketTap::handleGetpeername(PhySocket *sock, PhySocket *rpcSock, void **up
 	write(_phy.getDescriptor(rpcSock), conn->peer_addr, sizeof(struct sockaddr_storage));
 }
     
-Connection * SocketTap::handleSocket(PhySocket *sock, void **uptr, struct socket_st* socket_rpc)
+Connection * SocketTap::handleSocket(PhySocket *sock, void **uptr, 
+	struct socket_st* socket_rpc)
 {
 	return picostack->pico_handleSocket(sock, uptr, socket_rpc);
 }
 
-
-// Connect a stack's PCB/socket/Connection object to a remote host
-void SocketTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Connection *conn, struct connect_st* connect_rpc)
+void SocketTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Connection *conn, 
+	struct connect_st* connect_rpc)
 {
 	Mutex::Lock _l(_tcpconns_m);
 	picostack->pico_handleConnect(sock, rpcSock, conn, connect_rpc);		
 }
 
-void SocketTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct bind_st *bind_rpc)
+void SocketTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **uptr, 
+	struct bind_st *bind_rpc)
 {
 	Mutex::Lock _l(_tcpconns_m);
 	if(!_ips.size()) {
-		// We haven't been given an address yet. Binding at this stage is premature
 		DEBUG_ERROR("cannot bind yet. ZT address hasn't been provided");
 		sendReturnValue(_phy.getDescriptor(rpcSock), -1, ENOMEM);
 		return;
@@ -494,7 +492,8 @@ void SocketTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **uptr, str
 	picostack->pico_handleBind(sock,rpcSock,uptr,bind_rpc);
 }
 
-void SocketTap::handleListen(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct listen_st *listen_rpc)
+void SocketTap::handleListen(PhySocket *sock, PhySocket *rpcSock, void **uptr, 
+	struct listen_st *listen_rpc)
 {
 	Mutex::Lock _l(_tcpconns_m);
   	picostack->pico_handleListen(sock, rpcSock, uptr, listen_rpc);

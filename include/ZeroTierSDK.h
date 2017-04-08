@@ -29,9 +29,9 @@
 /* Defines                                                                  */
 /****************************************************************************/
 
-#define SDK_MTU                       1200 //ZT_MAX_MTU // 2800, usually 
+#define SDK_MTU                       1200                             // FIXME: ZT_MAX_MTU, usually 
 #define UNIX_SOCK_BUF_SIZE            1024*1024
-#define ZT_PHY_POLL_INTERVAL          50 // in ms
+#define ZT_PHY_POLL_INTERVAL          50                               // in ms
 // picoTCP 
 #define MAX_PICO_FRAME_RX_BUF_SZ      ZT_MAX_MTU * 128
 // TCP
@@ -45,35 +45,46 @@
 #define DEFAULT_UDP_TX_BUF_SZ         ZT_MAX_MTU
 #define DEFAULT_UDP_RX_BUF_SZ         ZT_MAX_MTU * 10
 
+#define ZT_SDK_RPC_DIR_PREFIX         "rpc.d"
+
+#define ZT_SDK_VERSION_MAJOR          1
+#define ZT_SDK_VERSION_MINOR          0
+#define ZT_SDK_VERSION_REVISION       0
+
+#define ZT_MAX_IPADDR_LEN             64
+#define ZT_ID_LEN                     10
+#define ZT_VER_STR_LEN                6
+#define ZT_HOME_PATH_MAX_LEN          128
 
 /****************************************************************************/
 /* Socket API Signatures                                                    */
 /****************************************************************************/
 
-#define SETSOCKOPT_SIG int fd, int level, int optname, const void *optval, socklen_t optlen
-#define GETSOCKOPT_SIG int fd, int level, int optname, void *optval, socklen_t *optlen
-#define SENDMSG_SIG int fd, const struct msghdr *msg, int flags
-#define SENDTO_SIG int fd, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen
-#define RECV_SIG int fd, void *buf, size_t len, int flags
-#define RECVFROM_SIG int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen
-#define RECVMSG_SIG int fd, struct msghdr *msg,int flags
-#define SEND_SIG int fd, const void *buf, size_t len, int flags
-#define WRITE_SIG int fd, const void *buf, size_t len
-#define READ_SIG int fd, void *buf, size_t len
-#define SOCKET_SIG int socket_family, int socket_type, int protocol
-#define CONNECT_SIG int fd, const struct sockaddr *addr, socklen_t addrlen
-#define BIND_SIG int fd, const struct sockaddr *addr, socklen_t addrlen
-#define LISTEN_SIG int fd, int backlog
-#define ACCEPT4_SIG int fd, struct sockaddr *addr, socklen_t *addrlen, int flags
-#define ACCEPT_SIG int fd, struct sockaddr *addr, socklen_t *addrlen
-#define CLOSE_SIG int fd
-#define GETSOCKNAME_SIG int fd, struct sockaddr *addr, socklen_t *addrlen
-#define GETPEERNAME_SIG int fd, struct sockaddr *addr, socklen_t *addrlen
-#define FCNTL_SIG int fd, int cmd, int flags
-#define SYSCALL_SIG long number, ...
+#define ZT_SETSOCKOPT_SIG int fd, int level, int optname, const void *optval, socklen_t optlen
+#define ZT_GETSOCKOPT_SIG int fd, int level, int optname, void *optval, socklen_t *optlen
+#define ZT_SENDMSG_SIG int fd, const struct msghdr *msg, int flags
+#define ZT_SENDTO_SIG int fd, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen
+#define ZT_RECV_SIG int fd, void *buf, size_t len, int flags
+#define ZT_RECVFROM_SIG int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen
+#define ZT_RECVMSG_SIG int fd, struct msghdr *msg,int flags
+#define ZT_SEND_SIG int fd, const void *buf, size_t len, int flags
+#define ZT_WRITE_SIG int fd, const void *buf, size_t len
+#define ZT_READ_SIG int fd, void *buf, size_t len
+#define ZT_SOCKET_SIG int socket_family, int socket_type, int protocol
+#define ZT_CONNECT_SIG int fd, const struct sockaddr *addr, socklen_t addrlen
+#define ZT_BIND_SIG int fd, const struct sockaddr *addr, socklen_t addrlen
+#define ZT_LISTEN_SIG int fd, int backlog
+#define ZT_ACCEPT4_SIG int fd, struct sockaddr *addr, socklen_t *addrlen, int flags
+#define ZT_ACCEPT_SIG int fd, struct sockaddr *addr, socklen_t *addrlen
+#define ZT_CLOSE_SIG int fd
+#define ZT_GETSOCKNAME_SIG int fd, struct sockaddr *addr, socklen_t *addrlen
+#define ZT_GETPEERNAME_SIG int fd, struct sockaddr *addr, socklen_t *addrlen
+#define ZT_FCNTL_SIG int fd, int cmd, int flags
+#define ZT_SYSCALL_SIG long number, ...
 
 /****************************************************************************/
-/* SDK Socket API                                                           */
+/* SDK Socket API (ZeroTier Service Controls)                               */
+/* Implemented in SDKService.cpp                                            */ 
 /****************************************************************************/
 
 #ifdef __cplusplus
@@ -85,47 +96,255 @@ extern "C" {
  */
 void zts_start(const char *path);
 
-
-void *zts_start_core_service(void *thread_id);
-
-char *zts_core_version();
-void zts_stop_service();
+/**
+ * Stops the core ZeroTier service
+ */
 void zts_stop();
-int zts_service_is_running();
+
+/**
+ * Join a network
+ */
 void zts_join_network(const char * nwid);
+
+/**
+ * Join a network - Just create the dir and conf file required, don't instruct the core to do anything
+ */
 void zts_join_network_soft(const char * filepath, const char * nwid);
-void zts_leave_network_soft(const char * filepath, const char * nwid);
+
+/**
+ * Leave a network
+ */
 void zts_leave_network(const char * nwid);
-void zts_get_ipv4_address(const char *nwid, char *addrstr);
-void zts_get_ipv6_address(const char *nwid, char *addrstr);
-int zts_has_address(const char *nwid);
+
+/**
+ * Leave a network - Only delete the .conf file, this will prevent the service from joining upon next startup
+ */
+void zts_leave_network_soft(const char * filepath, const char * nwid);
+
+/**
+ * Return the home path for this instance of ZeroTier
+ * FIXME: double check this is correct on all platforms
+ */
+void zts_get_homepath(char *homePath, const int len);
+
+/**
+ * Provides core ZeroTier service version
+ */
+void zts_core_version(char *ver);
+
+/**
+ * Provides core SDK service version
+ */
+void zts_sdk_version(char *ver);
+
+/**
+ * Get device ID
+ * 10-digit hex + NULL byte
+ */
 int zts_get_device_id(char *devID);
-int zts_get_device_id_from_file(const char *filepath, char *devID);
-int zts_get_peer_address(char *peer, const char *devID);
-unsigned long zts_get_peer_count();
-//int zts_get_peer_list();
-char *zts_get_homepath();
+
+/**
+ * Check whether the service is running
+ */
+int zts_service_running();
+
+/**
+ * Returns whether any IPv6 address has been assigned to the SockTap for this network
+ * - This is used as an indicator of readiness for service for the ZeroTier core and stack
+ */
+int zts_has_ipv4_address(const char *nwid);
+
+/**
+ * Returns whether any IPv4 address has been assigned to the SockTap for this network
+ * - This is used as an indicator of readiness for service for the ZeroTier core and stack
+ */
+int zts_has_ipv6_address(const char *nwid);
+
+/**
+ * Returns whether any address has been assigned to the SockTap for this network
+ * - This is used as an indicator of readiness for service for the ZeroTier core and stack
+ */
+int zts_has_address(const char *nwid);
+
+/**
+ * Get IPV4 Address for this device on a given network
+ * FIXME: Only returns first address found for given protocol and network (should be enough for now)
+ */
+void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen);
+
+/**
+ * Get IPV6 Address for this device on a given network
+ * FIXME: Only returns first address found for given protocol and network (should be enough for now)
+ */
+void zts_get_ipv6_address(const char *nwid, char *addrstr, const int addrlen);
+
+/**
+ * Returns a 6PLANE IPv6 address given a network ID and zerotier ID
+ */
 void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID);
+
+/**
+ * Returns an RFC 4193 IPv6 address given a network ID and zerotier ID
+ */
 void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID);
-// BSD-like socket API
-int zts_socket(SOCKET_SIG);
-int zts_connect(CONNECT_SIG);
-int zts_bind(BIND_SIG);
+
+/**
+ * Return the number of peers on this network
+ */
+unsigned long zts_get_peer_count();
+
+/**
+ * Get the IP address of a peer if a direct path is available
+ */
+int zts_get_peer_address(char *peer, const char *devID);
+
+/**
+ * Enable HTTP control plane (traditionally used by zerotier-cli)
+ * - Allows one to control the ZeroTier core via HTTP requests
+ * FIXME: Implement
+ */
+void zts_enable_http_control_plane();
+
+/**
+ * Disable HTTP control plane (traditionally used by zerotier-cli)
+ * - Allows one to control the ZeroTier core via HTTP requests
+ * FIXME: Implement
+ */
+void zts_disable_http_control_plane();
+
+/****************************************************************************/
+/* SDK Socket API (Socket User Controls)                                    */
+/* - These functions are designed to work just like regular socket calls    */
+/*   but are provisioned and handled by ZeroTier                            */
+/* Implemented in Socket.c                                                  */ 
+/****************************************************************************/
+
+/**
+ * Creates a socket
+ */
+int zts_socket(ZT_SOCKET_SIG);
+
+ /**
+ * Connect a socket to a remote host
+ */
+int zts_connect(ZT_CONNECT_SIG);
+
+/**
+ * Bind a socket to a local address
+ */
+int zts_bind(ZT_BIND_SIG);
+
+/**
+ * Accept a connection
+ */
 #if defined(__linux__)
-	int zts_accept4(ACCEPT4_SIG);
+	int zts_accept4(ZT_ACCEPT4_SIG);
 #endif
-int zts_accept(ACCEPT_SIG);
-int zts_listen(LISTEN_SIG);
-int zts_setsockopt(SETSOCKOPT_SIG);
-int zts_getsockopt(GETSOCKOPT_SIG);
-int zts_getsockname(GETSOCKNAME_SIG);
-int zts_getpeername(GETPEERNAME_SIG);
-int zts_close(CLOSE_SIG);
-int zts_fcntl(FCNTL_SIG);
-ssize_t zts_sendto(SENDTO_SIG);
-ssize_t zts_sendmsg(SENDMSG_SIG);
-ssize_t zts_recvfrom(RECVFROM_SIG);
-ssize_t zts_recvmsg(RECVMSG_SIG);
+
+/**
+ * Accept a connection
+ */
+int zts_accept(ZT_ACCEPT_SIG);
+
+/**
+ * Listen for incoming connections
+ */
+int zts_listen(ZT_LISTEN_SIG);
+
+/**
+ * Set socket options
+ */
+int zts_setsockopt(ZT_SETSOCKOPT_SIG);
+
+/**
+ * Get socket options
+ */
+int zts_getsockopt(ZT_GETSOCKOPT_SIG);
+
+/**
+ * Get socket name
+ */
+int zts_getsockname(ZT_GETSOCKNAME_SIG);
+
+/**
+ * Get a peer name
+ */
+int zts_getpeername(ZT_GETPEERNAME_SIG);
+
+/**
+ * Close a socket
+ */
+int zts_close(ZT_CLOSE_SIG);
+
+/**
+ * Issue file control commands on a socket
+ */
+int zts_fcntl(ZT_FCNTL_SIG);
+
+/**
+ * Send data to a remote host
+ */
+ssize_t zts_sendto(ZT_SENDTO_SIG);
+
+/**
+ * Send a message to a remote host
+ */
+ssize_t zts_sendmsg(ZT_SENDMSG_SIG);
+
+/**
+ * Receive data from a remote host
+ */
+ssize_t zts_recvfrom(ZT_RECVFROM_SIG);
+
+/**
+ * Receive a message from a remote host
+ */
+ssize_t zts_recvmsg(ZT_RECVMSG_SIG);
+
+/****************************************************************************/
+/* SocketTap Multiplexer Functionality --- DONT CALL THESE DIRECTLY         */
+/* - This section of the API is used to implement the general socket        */
+/*   controls. Basically this is designed to handle socket provisioning     */
+/*   requests when no SocketTap is yet initialized, and as a way to         */
+/*   determine which SocketTap is to be used for a particular connect() or  */ 
+/*   bind() call                                                            */
+/****************************************************************************/
+
+namespace ZeroTier
+{
+    class picoTCP;
+    struct Connection;
+    extern ZeroTier::picoTCP *picostack;
+}
+
+/**
+ * Creates a new Connection objects and keeps it in UnassignedConnections
+ * until a connect() or bind() call is made, at which point it is assigned
+ * to the appropriate SocketTap.
+ */
+int zts_multiplex_new_socket(ZT_SOCKET_SIG);
+
+/**
+ * Given a file descriptor, looks up the relevant Connection object and then
+ * searches for a SocketTap with an appropriate route. Once found, the 
+ * Connection object will be assigned to that SocketTap and a connection 
+ * to the remote host will be attempted.
+ */
+int zts_multiplex_new_connect(ZT_CONNECT_SIG);
+
+/**
+ * 
+ */
+int zts_multiplex_new_bind(ZT_BIND_SIG);
+
+/****************************************************************************/
+/* SDK Socket API Helper functions --- DONT CALL THESE DIRECTLY             */
+/****************************************************************************/
+
+/**
+ * Don't call this directly, use 'zts_start()'
+ */
+void *_start_service(void *thread_id);
 
 /****************************************************************************/
 /* Debug                                                                    */
@@ -135,56 +354,55 @@ ssize_t zts_recvmsg(RECVMSG_SIG);
 #include <sys/syscall.h>
 #include <sys/types.h>
 
-#define DEBUG_LEVEL     5 // Set this to adjust what you'd like to see in the debug traces
+#define ZT_DEBUG_LEVEL     5 // Set this to adjust what you'd like to see in the debug traces
 
-#define MSG_ERROR       1 // Errors
-#define MSG_TRANSFER    2 // RX/TX specific statements
-#define MSG_INFO        3 // Information which is generally useful to any developer
-#define MSG_EXTRA       4 // If nothing in your world makes sense
-#define MSG_FLOW        5 // High-level flow messages
+#define ZT_MSG_ERROR       1 // Errors
+#define ZT_MSG_TRANSFER    2 // RX/TX specific statements
+#define ZT_MSG_INFO        3 // Information which is generally useful to any developer
+#define ZT_MSG_EXTRA       4 // If nothing in your world makes sense
+#define ZT_MSG_FLOW        5 // High-level flow messages
+#define ZT_FILENAMES       true
+#define ZT_COLOR           true
 
-#define __SHOW_FILENAMES__    true
-#define __SHOW_COLOR__        true
-
-// Colors
+// Debug output colors
 #if defined(__APPLE__)
     #include "TargetConditionals.h"
 #endif
-#if defined(__SHOW_COLOR__) && !defined(__ANDROID__) && !defined(TARGET_OS_IPHONE) && !defined(TARGET_IPHONE_SIMULATOR) && !defined(__APP_FRAMEWORK__)
-  #define RED   "\x1B[31m"
-  #define GRN   "\x1B[32m"
-  #define YEL   "\x1B[33m"
-  #define BLU   "\x1B[34m"
-  #define MAG   "\x1B[35m"
-  #define CYN   "\x1B[36m"
-  #define WHT   "\x1B[37m"
-  #define RESET "\x1B[0m"
+#if defined(ZT_COLOR) && !defined(__ANDROID__) && !defined(TARGET_OS_IPHONE) && !defined(TARGET_IPHONE_SIMULATOR) && !defined(__APP_FRAMEWORK__)
+  #define ZT_RED   "\x1B[31m"
+  #define ZT_GRN   "\x1B[32m"
+  #define ZT_YEL   "\x1B[33m"
+  #define ZT_BLU   "\x1B[34m"
+  #define ZT_MAG   "\x1B[35m"
+  #define ZT_CYN   "\x1B[36m"
+  #define ZT_WHT   "\x1B[37m"
+  #define ZT_RESET "\x1B[0m"
 #else
-  #define RED
-  #define GRN
-  #define YEL
-  #define BLU
-  #define MAG
-  #define CYN
-  #define WHT
-  #define RESET
+  #define ZT_RED
+  #define ZT_GRN
+  #define ZT_YEL
+  #define ZT_BLU
+  #define ZT_MAG
+  #define ZT_CYN
+  #define ZT_WHT
+  #define ZT_RESET
 #endif
 
 // filenames
-#if __SHOW_FILENAMES__
-  #if __SHOW_FULL_FILENAME_PATH__
-    #define __FILENAME__ __FILE__ // show the entire mess
+#if ZT_FILENAMES
+  #if ZT_FULL_FILENAME_PATH
+    #define ZT_FILENAME __FILE__ // show the entire mess
   #else
-    #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__) // shorten
+    #define ZT_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__) // short
   #endif
 #else
-  #define __FILENAME__ // omit filename
+  #define ZT_FILENAME // omit filename
 #endif
 
 #ifdef __linux__
-  #define THREAD_ID 0 /*(long)getpid()*/
+  #define ZT_THREAD_ID 0 // (long)getpid()
 #elif __APPLE__
-  #define THREAD_ID 0 /*(long)syscall(SYS_thread_selfid)*/
+  #define ZT_THREAD_ID 0 // (long)syscall(SYS_thread_selfid)
 #endif
 
 #if defined(__JNI_LIB__)
@@ -192,26 +410,35 @@ ssize_t zts_recvmsg(RECVMSG_SIG);
 #endif
 #if defined(__ANDROID__)
     #include <android/log.h>
-    #define LOG_TAG "ZTSDK"
+    #define ZT_LOG_TAG "ZTSDK"
 #endif
 
- #if DEBUG_LEVEL >= MSG_ERROR
-  #define DEBUG_ERROR(fmt, args...) fprintf(stderr, RED "ZT_ERROR[%ld] : %14s:%4d:%25s: " fmt "\n" RESET, THREAD_ID, __FILENAME__, __LINE__, __FUNCTION__, ##args)
+ #if ZT_DEBUG_LEVEL >= ZT_MSG_ERROR
+  #define DEBUG_ERROR(fmt, args...) fprintf(stderr, ZT_RED "ZT_ERROR[%ld] : %14s:%4d:%25s: " fmt   \
+    "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
  #else
   #define DEBUG_ERROR(fmt, args...)
  #endif
  
- #if DEBUG_LEVEL >= MSG_INFO
+ #if ZT_DEBUG_LEVEL >= ZT_MSG_INFO
   #if defined(__ANDROID__)
-    #define DEBUG_INFO(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, "ZT_INFO : %14s:%4d:%20s: " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args))
-    #define DEBUG_BLANK(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, "ZT_INFO : %14s:%4d:" fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args))
-    #define DEBUG_ATTN(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, "ZT_INFO : %14s:%4d:%25s: " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args))
-    #define DEBUG_STACK(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, "ZT_STACK: %14s:%4d:%25s: " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args))
+    #define DEBUG_INFO(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,   \
+      "ZT_INFO : %14s:%4d:%20s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+    #define DEBUG_BLANK(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,  \
+      "ZT_INFO : %14s:%4d:" fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+    #define DEBUG_ATTN(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,   \
+      "ZT_INFO : %14s:%4d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+    #define DEBUG_STACK(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,  \
+      "ZT_STACK: %14s:%4d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
   #else
-    #define DEBUG_INFO(fmt, args...) fprintf(stderr,      "ZT_INFO [%ld] : %14s:%4d:%25s: " fmt "\n", THREAD_ID, __FILENAME__, __LINE__, __FUNCTION__, ##args)
-    #define DEBUG_ATTN(fmt, args...) fprintf(stderr, CYN  "ZT_ATTN [%ld] : %14s:%4d:%25s: " fmt "\n" RESET, THREAD_ID, __FILENAME__, __LINE__, __FUNCTION__, ##args)
-    #define DEBUG_STACK(fmt, args...) fprintf(stderr, YEL "ZT_STACK[%ld] : %14s:%4d:%25s: " fmt "\n" RESET, THREAD_ID, __FILENAME__, __LINE__, __FUNCTION__, ##args)
-    #define DEBUG_BLANK(fmt, args...) fprintf(stderr,     "ZT_INFO [%ld] : %14s:%4d:" fmt "\n", THREAD_ID, __FILENAME__, __LINE__, ##args)
+    #define DEBUG_INFO(fmt, args...) fprintf(stderr,                                                                   \
+      "ZT_INFO [%ld] : %14s:%4d:%25s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+    #define DEBUG_ATTN(fmt, args...) fprintf(stderr, ZT_CYN                                                            \
+      "ZT_ATTN [%ld] : %14s:%4d:%25s: " fmt "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+    #define DEBUG_STACK(fmt, args...) fprintf(stderr, ZT_YEL                                                           \
+      "ZT_STACK[%ld] : %14s:%4d:%25s: " fmt "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+    #define DEBUG_BLANK(fmt, args...) fprintf(stderr,                                                                  \
+      "ZT_INFO [%ld] : %14s:%4d:" fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, ##args)
   #endif
  #else
   #define DEBUG_INFO(fmt, args...)
@@ -220,31 +447,37 @@ ssize_t zts_recvmsg(RECVMSG_SIG);
   #define DEBUG_STACK(fmt, args...)
  #endif
  
- #if DEBUG_LEVEL >= MSG_TRANSFER
+ #if ZT_DEBUG_LEVEL >= ZT_MSG_TRANSFER
   #if defined(__ANDROID__)
-    #define DEBUG_TRANS(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, "ZT_TRANS : %14s:%4d:%25s: " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args))
+    #define DEBUG_TRANS(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,  \
+      "ZT_TRANS : %14s:%4d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
   #else
-    #define DEBUG_TRANS(fmt, args...) fprintf(stderr, GRN "ZT_TRANS[%ld] : %14s:%4d:%25s: " fmt "\n" RESET, THREAD_ID, __FILENAME__, __LINE__, __FUNCTION__, ##args)
+    #define DEBUG_TRANS(fmt, args...) fprintf(stderr, ZT_GRN "ZT_TRANS[%ld] : %14s:%4d:%25s: " fmt \
+      "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
   #endif
  #else
   #define DEBUG_TRANS(fmt, args...)
  #endif
  
- #if DEBUG_LEVEL >= MSG_EXTRA
+ #if ZT_DEBUG_LEVEL >= ZT_MSG_EXTRA
    #if defined(__ANDROID__)
-    #define DEBUG_EXTRA(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, "ZT_EXTRA : %14s:%4d:%25s: " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args))
+    #define DEBUG_EXTRA(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
+      "ZT_EXTRA : %14s:%4d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
   #else
-    #define DEBUG_EXTRA(fmt, args...) fprintf(stderr, "ZT_EXTRA[%ld] : %14s:%4d:%25s: " fmt "\n", THREAD_ID, __FILENAME__, __LINE__, __FUNCTION__, ##args)
+    #define DEBUG_EXTRA(fmt, args...) fprintf(stderr, \
+      "ZT_EXTRA[%ld] : %14s:%4d:%25s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
   #endif
  #else
   #define DEBUG_EXTRA(fmt, args...)
  #endif
 
-#if DEBUG_LEVEL >= MSG_FLOW
+#if ZT_DEBUG_LEVEL >= ZT_MSG_FLOW
    #if defined(__ANDROID__)
-    #define DEBUG_FLOW(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, "ZT_FLOW : %14s:%4d:%25s: " fmt "\n", __FILENAME__, __LINE__, __FUNCTION__, ##args))
+    #define DEBUG_FLOW(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \ 
+      "ZT_FLOW : %14s:%4d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
   #else
-    #define DEBUG_FLOW(fmt, args...) fprintf(stderr, "ZT_FLOW [%ld] : %14s:%4d:%25s: " fmt "\n", THREAD_ID, __FILENAME__, __LINE__, __FUNCTION__, ##args)
+    #define DEBUG_FLOW(fmt, args...) fprintf(stderr, "ZT_FLOW [%ld] : %14s:%4d:%25s: " fmt "\n", \
+      ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
   #endif
  #else
   #define DEBUG_FLOW(fmt, args...)

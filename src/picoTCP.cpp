@@ -25,8 +25,6 @@
  * LLC. Start here: http://www.zerotier.com/
  */
 
-
-
 #include "pico_eth.h"
 #include "pico_stack.h"
 #include "pico_ipv4.h"
@@ -98,7 +96,6 @@ namespace ZeroTier {
     int pico_eth_send(struct pico_device *dev, void *buf, int len);
     int pico_eth_poll(struct pico_device *dev, int loop_score);
 
-    // Initialize network stack's interfaces and assign addresses
 	void picoTCP::pico_init_interface(SocketTap *tap, const InetAddress &ip)
 	{
 		if (std::find(tap->_ips.begin(),tap->_ips.end(),ip) == tap->_ips.end()) {
@@ -117,7 +114,7 @@ namespace ZeroTier {
 			    picodev.poll = pico_eth_poll; // rx
 			    picodev.mtu = tap->_mtu;
 			    if( 0 != pico_device_init(&(picodev), "p0", mac)) {
-			        DEBUG_ERROR("device init failed");
+			        DEBUG_ERROR("dev init failed");
 			        return;
 			    }
 			    pico_ipv4_link_add(&(picodev), ipaddr, netmask);
@@ -140,10 +137,10 @@ namespace ZeroTier {
 			    tap->_mac.copyTo(mac, PICO_SIZE_ETH);
 			    DEBUG_ATTN("mac = %s", tap->_mac.toString().c_str());
 			    if( 0 != pico_device_init(&(picodev), "p0", mac)) {
-			        DEBUG_ERROR("device init failed");
+			        DEBUG_ERROR("dev init failed");
 			        return;
 			    }
-			    DEBUG_ATTN("device initialized as ipv6_addr = %s", ipv6_str);
+			    DEBUG_ATTN("addr = %s", ipv6_str);
 			}
 		#endif
 		}
@@ -159,16 +156,6 @@ namespace ZeroTier {
 		}
 	}
 
-	// RX packets from [ZT->STACK] onto RXBUF
-	// Also notify the tap service that data can be read:
-	// [RXBUF -> (ZTSOCK->APP)]
-   	// -----------------------------------------
-	// | TAP <-> MEM BUFFER <-> STACK <-> APP  |
-    // |                                       | 
-    // | APP <-> I/O BUFFER <-> STACK <-> TAP  |
-    // |         |<-----------------|          | RX
-    // ----------------------------------------- 
-    // After this step, buffer will be emptied periodically by pico_handleRead()
 	void picoTCP::pico_cb_tcp_read(ZeroTier::SocketTap *tap, struct pico_socket *s)
 	{
 		Connection *conn = tap->getConnection(s);
@@ -179,12 +166,11 @@ namespace ZeroTier {
 		        struct pico_ip4 ip4;
 		        struct pico_ip6 ip6;
 		    } peer;
-
 			do {
 				int avail = DEFAULT_TCP_RX_BUF_SZ - conn->rxsz;
 				if(avail) {
-		            r = pico_socket_recvfrom(s, conn->rxbuf + (conn->rxsz), SDK_MTU, (void *)&peer.ip4.addr, &port);
-		            // DEBUG_ATTN("received packet (%d byte) from %08X:%u", r, long_be2(peer.ip4.addr), short_be(port));
+		            r = pico_socket_recvfrom(s, conn->rxbuf + (conn->rxsz), SDK_MTU, 
+		            	(void *)&peer.ip4.addr, &port);
 		            tap->_phy.setNotifyWritable(conn->sock, true);
 		            if (r > 0)
 		                conn->rxsz += r;
@@ -198,19 +184,6 @@ namespace ZeroTier {
 		DEBUG_ERROR("invalid connection");
 	}
 
-	// RX packets from the stack onto internal buffer
-	// Also notifies the tap service that data can be read
-   	// -----------------------------------------
-	// | TAP <-> MEM BUFFER <-> STACK <-> APP  |
-    // |                                       | 
-    // | APP <-> I/O BUFFER <-> STACK <-> TAP  |
-    // |         |<-----------------|          | RX
-    // ----------------------------------------- 
-    // After this step, buffer will be emptied periodically by pico_handleRead()
-    // Read payload is encapsulated as such:
-    //
-    // [addr|payload_len|payload]
-    //
 	void picoTCP::pico_cb_udp_read(SocketTap *tap, struct pico_socket *s)
 	{
 		Connection *conn = tap->getConnection(s);
@@ -272,7 +245,6 @@ namespace ZeroTier {
 		}
 	}
 
-	// TX packets from internal buffer to network
 	void picoTCP::pico_cb_tcp_write(SocketTap *tap, struct pico_socket *s)
 	{
 		Connection *conn = tap->getConnection(s);
@@ -293,7 +265,7 @@ namespace ZeroTier {
             conn->txsz -= r;
 
             #if DEBUG_LEVEL >= MSG_TRANSFER
-            	int max = conn->type == SOCK_STREAM ? DEFAULT_TCP_TX_BUF_SZ : DEFAULT_UDP_TX_BUF_SZ;
+            	int max = conn->socket_type == SOCK_STREAM ? DEFAULT_TCP_TX_BUF_SZ : DEFAULT_UDP_TX_BUF_SZ;
             	DEBUG_TRANS("[TCP TX] --->    :: {TX: %.3f%%, RX: %.3f%%, physock=%p} :: %d bytes",
                 	(float)conn->txsz / (float)max, (float)conn->rxsz / max, conn->sock, r);
         	#endif
@@ -302,7 +274,6 @@ namespace ZeroTier {
 		}
 	}
 
-	// Main callback for TCP connections
 	void picoTCP::pico_cb_socket_activity(uint16_t ev, struct pico_socket *s)
     {
     	int err;
@@ -311,7 +282,7 @@ namespace ZeroTier {
         if(!conn) {
         	DEBUG_ERROR("invalid connection");
         }
-        // Accept connection (analogous to lwip_nc_accept)
+        // accept()
         if (ev & PICO_SOCK_EV_CONN) {
             DEBUG_INFO("connection established with server, picosock=%p",(conn->picosock));
             uint32_t peer;
@@ -331,7 +302,7 @@ namespace ZeroTier {
 			}
 			Connection *newTcpConn = new Connection();
 			picotap->_Connections.push_back(newTcpConn);
-			newTcpConn->type = SOCK_STREAM;
+			newTcpConn->socket_type = SOCK_STREAM;
 			newTcpConn->sock = picotap->_phy.wrapSocket(fds[0], newTcpConn);
 			newTcpConn->picosock = client;
 			int fd = picotap->_phy.getDescriptor(conn->sock);
@@ -357,15 +328,14 @@ namespace ZeroTier {
         }
         // Read from picoTCP socket
         if (ev & PICO_SOCK_EV_RD) {
-        	if(conn->type==SOCK_STREAM)
+        	if(conn->socket_type==SOCK_STREAM)
             	pico_cb_tcp_read(picotap, s);
-        	if(conn->type==SOCK_DGRAM)
+        	if(conn->socket_type==SOCK_DGRAM)
         		pico_cb_udp_read(picotap, s);
         }
         // Write to picoTCP socket
-        if (ev & PICO_SOCK_EV_WR) {
+        if (ev & PICO_SOCK_EV_WR)
             pico_cb_tcp_write(picotap, s);
-        }
     }
 
     // Called when an incoming ping is received
@@ -383,38 +353,22 @@ namespace ZeroTier {
         }
     }
 	*/
-
-    // Called from the stack, sends data to the tap device (in our case, the ZeroTier service)
-   	// -----------------------------------------
-	// | TAP <-> MEM BUFFER <-> STACK <-> APP  |
-    // | |<-------------------------|          | TX 
-    // | APP <-> I/O BUFFER <-> STACK <-> TAP  |
-    // |                                       |
-    // -----------------------------------------     
+   
    	int pico_eth_send(struct pico_device *dev, void *buf, int len)
     {
         struct pico_eth_hdr *ethhdr;
         ethhdr = (struct pico_eth_hdr *)buf;
-
         MAC src_mac;
         MAC dest_mac;
         src_mac.setTo(ethhdr->saddr, 6);
         dest_mac.setTo(ethhdr->daddr, 6);
-
         picotap->_handler(picotap->_arg,NULL,picotap->_nwid,src_mac,dest_mac,
             Utils::ntoh((uint16_t)ethhdr->proto),0, ((char*)buf) + sizeof(struct pico_eth_hdr),len - sizeof(struct pico_eth_hdr));
         return len;
     }
 
-    // Receives data from the tap device and encapsulates it into a ZeroTier ethernet frame and places it in a locked memory buffer
-   	// -----------------------------------------
-	// | TAP <-> MEM BUFFER <-> STACK <-> APP  |
-    // | |--------------->|                    | RX 
-    // | APP <-> I/O BUFFER <-> STACK <-> TAP  |
-    // |                                       |
-    // ----------------------------------------- 
-    // It will then periodically be transfered into the network stack via pico_eth_poll()
-    void picoTCP::pico_rx(SocketTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
+    void picoTCP::pico_rx(SocketTap *tap, const MAC &from,const MAC &to,unsigned int etherType,
+    	const void *data,unsigned int len)
 	{
 		// Since picoTCP only allows the reception of frames from within the polling function, we
 		// must enqueue each frame into a memory structure shared by both threads. This structure will
@@ -447,14 +401,6 @@ namespace ZeroTier {
 		DEBUG_FLOW(" [ ZTWIRE -> FBUF ] Move FRAME(sz=%d) into FBUF(sz=%d), data_len=%d", newlen, picotap->pico_frame_rxbuf_tot, len);
 	}
 
-	// Called periodically by the stack, this removes data from the locked memory buffer (FBUF) and feeds it into the stack.
-	// A maximum of 'loop_score' frames can be processed in each call
-   	// -----------------------------------------
-	// | TAP <-> MEM BUFFER <-> STACK <-> APP  |
-    // |         |----------------->|          | RX 
-    // | APP <-> I/O BUFFER <-> STACK <-> TAP  |
-    // |                                       |
-    // ----------------------------------------- 
     int pico_eth_poll(struct pico_device *dev, int loop_score)
     {
         // OPTIMIZATION: The copy logic and/or buffer structure should be reworked for better performance after the BETA
@@ -475,7 +421,7 @@ namespace ZeroTier {
                 picotap->pico_frame_rxbuf_tot-=len;
             }
             else {
-            	DEBUG_ERROR("Skipping frame of size (%d)",len);
+            	DEBUG_ERROR("Invalid frame size (%d). Exiting.",len);
             	exit(0);
             }
             loop_score--;
@@ -483,8 +429,10 @@ namespace ZeroTier {
         return loop_score;
     }
 
-    // Creates a new pico_socket and Connection object to represent a new connection to be.
-    Connection *picoTCP::pico_handleSocket(PhySocket *sock, void **uptr, struct socket_st* socket_rpc)
+    // FIXME: This function's contents should be retired
+    // More or less duplicated in zts_multiplex_new_socket()
+    Connection *picoTCP::pico_handleSocket(PhySocket *sock, void **uptr, 
+    	struct socket_st* socket_rpc)
     {
     	struct pico_socket * psock;
     	int protocol, protocol_version;
@@ -507,27 +455,8 @@ namespace ZeroTier {
 			DEBUG_ATTN("physock=%p, picosock=%p", sock, psock);
 			Connection * newConn = new Connection();
 	        *uptr = newConn;
-	        newConn->type = socket_rpc->socket_type;
-	        newConn->sock = sock;
-			
-			/*
-			int res = 0;
-			int sendbuff = UNIX_SOCK_BUF_SIZE;
-			socklen_t optlen = sizeof(sendbuff);
-
-			res = setsockopt(picotap->_phy.getDescriptor(sock), SOL_SOCKET, SO_RCVBUF, &sendbuff, sizeof(sendbuff));
-			if(res == -1)
-				//DEBUG_ERROR("Error while setting RX buffer limits");
-			res = setsockopt(picotap->_phy.getDescriptor(sock), SOL_SOCKET, SO_SNDBUF, &sendbuff, sizeof(sendbuff));
-			if(res == -1)
-				//DEBUG_ERROR("Error while setting TX buffer limits");
-
-			// Get buffer size
-			// optlen = sizeof(sendbuff);
-			// res = getsockopt(picotap->_phy.getDescriptor(sock), SOL_SOCKET, SO_SNDBUF, &sendbuff, &optlen);
-			// DEBUG_INFO("buflen=%d", sendbuff);
-			*/
-			
+	        newConn->socket_type = socket_rpc->socket_type;
+	        newConn->sock = sock;	
 			newConn->local_addr = NULL;
 			newConn->picosock = psock;
 	        picotap->_Connections.push_back(newConn);
@@ -539,13 +468,6 @@ namespace ZeroTier {
 		return NULL;
     }
 
-    // Writes data from the I/O buffer to the network stack
-   	// -----------------------------------------
-	// | TAP <-> MEM BUFFER <-> STACK <-> APP  |
-    // |                                       | 
-    // | APP <-> I/O BUFFER <-> STACK <-> TAP  |
-    // |         |----------------->|          | TX
-    // ----------------------------------------- 
     void picoTCP::pico_handleWrite(Connection *conn)
     {
 		if(!conn || !conn->picosock) {
@@ -586,19 +508,18 @@ namespace ZeroTier {
 	   		memmove(&conn->txbuf, (conn->txbuf+r), sz);
 		conn->txsz -= r;
 	   	
-	   	if(conn->type == SOCK_STREAM) {
+	   	if(conn->socket_type == SOCK_STREAM) {
 	   		max = DEFAULT_TCP_TX_BUF_SZ;
 	    	DEBUG_TRANS("[TCP TX] --->    :: {TX: %.3f%%, RX: %.3f%%, physock=%p} :: %d bytes",
 	    		(float)conn->txsz / (float)max, (float)conn->rxsz / max, conn->sock, r);
 	    }
-	   	if(conn->type == SOCK_DGRAM) {
+	   	if(conn->socket_type == SOCK_DGRAM) {
 	   		max = DEFAULT_UDP_TX_BUF_SZ;
 	    	DEBUG_TRANS("[UDP TX] --->    :: {TX: %.3f%%, RX: %.3f%%, physock=%p} :: %d bytes",
 	    		(float)conn->txsz / (float)max, (float)conn->rxsz / max, conn->sock, r);
 	    }
     }
 
-    // Instructs the stack to connect to a remote host
     void picoTCP::pico_handleConnect(PhySocket *sock, PhySocket *rpcSock, Connection *conn, struct connect_st* connect_rpc)
     {
 		if(conn->picosock) {
@@ -631,12 +552,10 @@ namespace ZeroTier {
 				DEBUG_ERROR("PICO_ERR_EINVAL");
 			if(ret == PICO_ERR_EHOSTUNREACH)
 				DEBUG_ERROR("PICO_ERR_EHOSTUNREACH");
-
 	        picotap->sendReturnValue(picotap->_phy.getDescriptor(rpcSock), 0, ERR_OK);
 		}
     }
 
-    // Instructs the stack to bind to a given address
     void picoTCP::pico_handleBind(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct bind_st *bind_rpc)
     {
     	Connection *conn = picotap->getConnection(sock);
@@ -682,7 +601,6 @@ namespace ZeroTier {
 		picotap->sendReturnValue(picotap->_phy.getDescriptor(rpcSock), ERR_OK, ERR_OK); // success
     }
 
-    // Puts a pico_socket into a listening state to receive incoming connection requests
     void picoTCP::pico_handleListen(PhySocket *sock, PhySocket *rpcSock, void **uptr, struct listen_st *listen_rpc)
     {
     	Connection *conn = picotap->getConnection(sock);
@@ -706,14 +624,6 @@ namespace ZeroTier {
     	picotap->sendReturnValue(picotap->_phy.getDescriptor(rpcSock), ERR_OK, ERR_OK); // success
     }
 
-    // Feeds data into the local app socket from the I/O buffer associated with the "connection"
-    // [ (APP<-ZTSOCK) <- RXBUF ]
-   	// -----------------------------------------
-	// | TAP <-> MEM BUFFER <-> STACK <-> APP  |
-    // |                                       | 
-    // | APP <-> I/O BUFFER <-> STACK <-> TAP  |
-    // | |<---------------|                    | RX
-    // ----------------------------------------- 
     void picoTCP::pico_handleRead(PhySocket *sock,void **uptr,bool lwip_invoked)
     {
         if(!lwip_invoked) {
@@ -727,7 +637,7 @@ namespace ZeroTier {
 		if(conn && conn->rxsz) {	
 
 			//	
-			if(conn->type==SOCK_DGRAM) {
+			if(conn->socket_type==SOCK_DGRAM) {
 				// Try to write SDK_MTU-sized chunk to app socket
 				while(tot < SDK_MTU) {
 					write_attempts++;
@@ -757,7 +667,7 @@ namespace ZeroTier {
 			  	conn->rxsz -= SDK_MTU;
 			}
 			//
-			if(conn->type==SOCK_STREAM) {
+			if(conn->socket_type==SOCK_STREAM) {
 				n = picotap->_phy.streamSend(conn->sock, conn->rxbuf, conn->rxsz);	
 				if(conn->rxsz-n > 0) // If more remains on buffer
 					memcpy(conn->rxbuf, conn->rxbuf+n, conn->rxsz - n);
@@ -765,10 +675,10 @@ namespace ZeroTier {
 			}
 			// Notify ZT I/O loop that it has new buffer contents
 			if(n) {
-				if(conn->type==SOCK_STREAM) {
+				if(conn->socket_type==SOCK_STREAM) {
 					
 					#if DEBUG_LEVEL >= MSG_TRANSFER
-						float max = conn->type == SOCK_STREAM ? (float)DEFAULT_TCP_RX_BUF_SZ : (float)DEFAULT_UDP_RX_BUF_SZ;
+						float max = conn->socket_type == SOCK_STREAM ? (float)DEFAULT_TCP_RX_BUF_SZ : (float)DEFAULT_UDP_RX_BUF_SZ;
 		            	DEBUG_TRANS("[TCP RX] <---    :: {TX: %.3f%%, RX: %.3f%%, physock=%p} :: %d bytes",
 		                	(float)conn->txsz / max, (float)conn->rxsz / max, conn->sock, n);
 					#endif
@@ -791,7 +701,6 @@ namespace ZeroTier {
         DEBUG_FLOW(" [ ZTSOCK <- RXBUF] Emitted (%d) from RXBUF(%d) to socket", tot, conn->rxsz);
     }
 
-    // Closes a pico_socket
     void picoTCP::pico_handleClose(PhySocket *sock)
     {
     	/*

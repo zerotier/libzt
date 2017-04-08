@@ -74,12 +74,12 @@ namespace ZeroTier {
 	extern SocketTap *picotap;
 	
 	/*
-	 * TCP connection
+	 * Connection object
 	 */
 	struct Connection
 	{
 	  bool listening, probation, disabled;
-	  int pid, txsz, rxsz, type;
+	  int pid, txsz, rxsz;
 	  PhySocket *rpcSock, *sock;
 	  struct tcp_pcb *TCP_pcb;
 	  struct udp_pcb *UDP_pcb;
@@ -88,12 +88,14 @@ namespace ZeroTier {
 	  unsigned short port;
 	  unsigned char txbuf[DEFAULT_TCP_TX_BUF_SZ];
 	  unsigned char rxbuf[DEFAULT_TCP_RX_BUF_SZ];
-	  // pico
 	  struct pico_socket *picosock;
+
+	  int data_sock;
+	  int socket_family, socket_type;
 	};
 
 	/*
-	 * A helper for passing a reference to _phy to LWIP callbacks as a "state"
+	 * A helper for passing a reference to _phy to stackrpc callbacks as a "state"
 	 */
 	struct Larg
 	{
@@ -103,7 +105,7 @@ namespace ZeroTier {
 	};
 
 	/*
-	 * Network Containers instance -- emulates an Ethernet tap device as far as OneService knows
+	 * Socket Tap -- emulates an Ethernet tap device
 	 */
 	class SocketTap
 	{
@@ -124,19 +126,54 @@ namespace ZeroTier {
 
 		void setEnabled(bool en);
 		bool enabled() const;
+
+		/* 
+		 * 
+		 */
 		bool addIp(const InetAddress &ip);
+
+		/* 
+		 * 
+		 */
 		bool removeIp(const InetAddress &ip);
 		std::vector<InetAddress> ips() const;
 		std::vector<InetAddress> _ips;
+		
+		/* 
+		 * 
+		 */
+		void put(const MAC &from,const MAC &to,unsigned int etherType,const void *data,
+			unsigned int len);
 
-		void put(const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
+		/* 
+		 * 
+		 */
 		std::string deviceName() const;
+		
+		/* 
+		 * 
+		 */
 		void setFriendlyName(const char *friendlyName);
+		
+		/* 
+		 * 
+		 */
 		void scanMulticastGroups(std::vector<MulticastGroup> &added,std::vector<MulticastGroup> &removed);
-
+		
+		/* 
+		 * 
+		 */
 		int sendReturnValue(int fd, int retval, int _errno);	
-		void unloadRPC(void *data, pid_t &pid, pid_t &tid, char (timestamp[RPC_TIMESTAMP_SZ]), char (CANARY[sizeof(uint64_t)]), char &cmd, void* &payload);
-
+		
+		/* 
+		 * 
+		 */
+		void unloadRPC(void *data, pid_t &pid, pid_t &tid, char (timestamp[RPC_TIMESTAMP_SZ]), 
+			char (CANARY[sizeof(uint64_t)]), char &cmd, void* &payload);
+		
+		/* 
+		 * 
+		 */
 		void threadMain()
 			throw();
 
@@ -144,7 +181,13 @@ namespace ZeroTier {
 		MAC _mac;
 	  	unsigned int _mtu;
 	  	uint64_t _nwid;
-	  	void (*_handler)(void *,void *,uint64_t,const MAC &,const MAC &,unsigned int,unsigned int,const void *,unsigned int);
+		
+		/* 
+		 * 
+		 */
+	  	void (*_handler)(void *,void *,uint64_t,const MAC &,const MAC &,unsigned int,unsigned int,
+	  		const void *,unsigned int);
+
 	 	void *_arg;
 		Phy<SocketTap *> _phy;
 		PhySocket *_unixListenSocket;
@@ -157,11 +200,11 @@ namespace ZeroTier {
         Mutex _pico_frame_rxbuf_m;
 
 		void handleBind(PhySocket *sock, PhySocket *rpcsock, void **uptr, struct bind_st *bind_rpc);
-		void handleListen(PhySocket *sock, PhySocket *rpcsock, void **uptr, struct listen_st *listen_rpc);
+		void handleListen(PhySocket *sock, PhySocket *rpcsock, void **uptr, 
+			struct listen_st *listen_rpc);
 		Connection * handleSocket(PhySocket *sock, void **uptr, struct socket_st* socket_rpc);
-		void handleConnect(PhySocket *sock, PhySocket *rpcsock, Connection *conn, struct connect_st* connect_rpc);
-
-		// void handleIsConnected();
+		void handleConnect(PhySocket *sock, PhySocket *rpcsock, Connection *conn, 
+			struct connect_st* connect_rpc);
 
 		/* 
 		 * Return the address that the socket is bound to 
@@ -179,13 +222,18 @@ namespace ZeroTier {
 		void handleWrite(Connection *conn);
 
 		// Unused -- no UDP or TCP from this thread/Phy<>
-		void phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address, const struct sockaddr *from,void *data,unsigned long len);
+		void phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address, 
+			const struct sockaddr *from,void *data,unsigned long len);
 		void phyOnTcpConnect(PhySocket *sock,void **uptr,bool success);
-		void phyOnTcpAccept(PhySocket *sockL,PhySocket *sockN,void **uptrL,void **uptrN,const struct sockaddr *from);
+		void phyOnTcpAccept(PhySocket *sockL,PhySocket *sockN,void **uptrL,void **uptrN,
+			const struct sockaddr *from);
 		void phyOnTcpClose(PhySocket *sock,void **uptr);
 		void phyOnTcpData(PhySocket *sock,void **uptr,void *data,unsigned long len);
 		void phyOnTcpWritable(PhySocket *sock,void **uptr, bool stack_invoked);
 
+		/* 
+		 * 
+		 */
 		void handleRead(PhySocket *sock,void **uptr,bool stack_invoked);
 
 		/*
@@ -214,15 +262,10 @@ namespace ZeroTier {
 		Connection *getConnection(struct pico_socket *socket);
 
 		/*
-	 	 * Closes a TcpConnection, associated LWIP PCB strcuture, 
+	 	 * Closes a TcpConnection, associated connection strcuture, 
 	 	 * PhySocket, and underlying file descriptor
 	 	 */
 		void closeConnection(PhySocket *sock);
-
-
-
-		picoTCP *picostack;
-
 
 		std::vector<Connection*> _Connections;
 
@@ -236,9 +279,7 @@ namespace ZeroTier {
 		Mutex _multicastGroups_m;
 
 		Mutex _ips_m, _tcpconns_m, _rx_buf_m, _close_m;
-
 	};
-
 } // namespace ZeroTier
 
 #endif

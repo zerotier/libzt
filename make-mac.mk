@@ -132,7 +132,7 @@ picotcp:
 ##############################################################################
 
 static_lib: picotcp $(ZTO_OBJS)
-	$(CXX) $(CXXFLAGS) $(SDK_FLAGS) $(RPC_FILES) $(TAP_FILES) $(STACK_DRIVER_FILES) $(SOCKET_API_FILES) -c
+	$(CXX) $(CXXFLAGS) $(SDK_FLAGS) $(RPC_FILES) $(TAP_FILES) $(STACK_DRIVER_FILES) $(SOCKET_API_FILES) -c -DSDK_STATIC
 	libtool -static -o $(STATIC_LIB) $(ZTO_OBJS) $(SDK_OBJS) $(PICO_LIB)
 
 jni_static_lib: picotcp $(ZTO_OBJS)
@@ -162,7 +162,3 @@ check:
 	-./check.sh $(SDK_SERVICE)
 	-./check.sh $(STATIC_LIB)
 	
-
-#osx_static_lib: pico $(ZTO_OBJS)
-#	$(CXX) $(CXXFLAGS) $(STACK_FLAGS) $(DEFS) $(INCLUDES) $(ZTFLAGS) -DSDK_SERVICE -DSDK -DSDK_BUNDLED $(PICO_DRIVER_FILES) $(SDK_INTERCEPT_C_FILES) $(SDK_SERVICE_CPP_FILES) src/service.cpp -c 
-#	libtool -static -o build/libzt.a picotcp.o proxy.o tap.o one.o OneService.o service.o sockets.o rpc.o intercept.o $(ZTO_OBJS)

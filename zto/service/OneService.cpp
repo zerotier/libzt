@@ -998,9 +998,34 @@ public:
 		return n->second.tap;
     }
 
+    virtual EthernetTap *getTap(InetAddress &addr)
+    {
+    	Mutex::Lock _l(_nets_m);
+		std::map<uint64_t,NetworkState>::iterator it;
+	    for(it = _nets.begin(); it != _nets.end(); it++) {
+			if(it->second.tap) {
+				for(int j=0; j<it->second.tap->_ips.size(); j++) {
+					if(it->second.tap->_ips[j].containsAddress(addr)) {
+						return it->second.tap;
+					}
+				}
+			}
+	    }
+	    return NULL;
+    }
+
 	virtual Node * getNode()
 	{
 		return _node;
+	}
+
+	virtual void removeNets()
+	{
+		Mutex::Lock _l(_nets_m);
+		std::map<uint64_t,NetworkState>::iterator i;
+	    for(i = _nets.begin(); i != _nets.end(); i++) {
+	        delete i->second.tap;
+	    }
 	}
 #endif // ZT_SDK
 

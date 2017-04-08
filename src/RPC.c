@@ -42,13 +42,14 @@
 #include <dlfcn.h>
 #include <stdint.h>
 #include <strings.h>
+#include <stdlib.h>
 
 #include "ZeroTierSDK.h"
 #include "RPC.h"
 
 // externs common between SDK_Intercept and SDK_Socket from SDK.h
-int (*realsocket)(SOCKET_SIG);
-int (*realconnect)(CONNECT_SIG);
+int (*realsocket)(ZT_SOCKET_SIG);
+int (*realconnect)(ZT_CONNECT_SIG);
 
 #ifdef __cplusplus
 extern "C" {
@@ -117,7 +118,8 @@ int load_symbols_rpc()
 int rpc_join(char * sockname)
 {
   if(sockname == NULL) {
-    DEBUG_ERROR("warning, rpc netpath is NULL");
+    DEBUG_ERROR("warning, rpc netpath is NULL. Exiting.");
+    exit(0); 
   }
   if(!load_symbols_rpc())
     return -1;

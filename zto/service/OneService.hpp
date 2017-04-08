@@ -152,19 +152,28 @@ public:
 
     /**
      * Returns the homePath given by the client application
-     * - Used for SDK mode
      */
     virtual std::string givenHomePath() = 0;
 
 	/*
-	 *
+	 * Returns a SocketTap that is associated with the given nwid
 	 */
     virtual EthernetTap * getTap(uint64_t nwid) = 0;
 
 	/*
-	 *
+	 * Returns a SocketTap that cant function as a route to the specified host
+	 */
+    virtual EthernetTap * getTap(InetAddress &addr) = 0;
+
+	/*
+	 * Returns a pointer to the Node
 	 */
 	virtual Node * getNode() = 0;
+
+	/*
+	 * Delete all SocketTap interfaces
+	 */
+	virtual void removeNets() = 0;
 #endif
 	
 	/**

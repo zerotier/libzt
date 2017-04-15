@@ -1,6 +1,6 @@
 /*
- * ZeroTier One - Network Virtualization Everywhere
- * Copyright (C) 2011-2015  ZeroTier, Inc.
+ * ZeroTier SDK - Network Virtualization Everywhere
+ * Copyright (C) 2011-2016  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,15 +14,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * --
- *
- * ZeroTier may be used and distributed under the terms of the GPLv3, which
- * are available at: http://www.gnu.org/licenses/gpl-3.0.html
- *
- * If you would like to embed ZeroTier into a commercial application or
- * redistribute it in a modified binary form, please contact ZeroTier Networks
- * LLC. Start here: http://www.zerotier.com/
  */
 
 #include <algorithm>
@@ -37,7 +28,6 @@
 
 #include "SocketTap.hpp"
 #include "ZeroTierSDK.h"
-#include "RPC.h"
 #include "picoTCP.hpp"
 
 #include "Utils.hpp"
@@ -57,32 +47,11 @@ void SocketTap::phyOnTcpClose(PhySocket *sock,void **uptr) {}
 void SocketTap::phyOnTcpData(PhySocket *sock,void **uptr,void *data,unsigned long len) {}
 void SocketTap::phyOnTcpWritable(PhySocket *sock,void **uptr, bool stack_invoked) {}
 
-int SocketTap::sendReturnValue(int fd, int retval, int _errno)
-{
-	//DEBUG_INFO("fd=%d, retval=%d, errno=%d", fd, retval, _errno);
-	int sz = sizeof(char) + sizeof(retval) + sizeof(errno);
-	char retmsg[sz];
-	memset(&retmsg, 0, sizeof(retmsg));
-	retmsg[0]=RPC_RETVAL;
-	memcpy(&retmsg[1], &retval, sizeof(retval));
-	memcpy(&retmsg[1]+sizeof(retval), &_errno, sizeof(_errno));
-	return write(fd, &retmsg, sz);
-}
-// Unpacks the buffer from an RPC command
-void SocketTap::unloadRPC(void *data, pid_t &pid, pid_t &tid, 
-	char (timestamp[RPC_TIMESTAMP_SZ]), char (CANARY[sizeof(uint64_t)]), char &cmd, void* &payload) 
-	{
-	unsigned char *buf = (unsigned char*)data;
-	memcpy(&pid, &buf[IDX_PID], sizeof(pid_t));
-	memcpy(&tid, &buf[IDX_TID], sizeof(pid_t));
-	memcpy(timestamp, &buf[IDX_TIME], RPC_TIMESTAMP_SZ);
-	memcpy(&cmd, &buf[IDX_PAYLOAD], sizeof(char));
-	memcpy(CANARY, &buf[IDX_PAYLOAD+1], CANARY_SZ);
-}
-
-/*------------------------------------------------------------------------------
--------------------------------- Tap Service  ----------------------------------
-------------------------------------------------------------------------------*/
+/****************************************************************************/
+/* SocketTap Service                                                        */
+/* - For each joined network a SocketTap will be created to administer I/O  */
+/*   calls to the stack and the ZT virtual wire                             */
+/****************************************************************************/
 
 SocketTap::SocketTap(
 	const char *homePath,
@@ -105,7 +74,7 @@ SocketTap::SocketTap(
 		_enabled(true),
 		_run(true)
 {
-
+	/*
     char sockPath[4096];
     Utils::snprintf(sockPath,sizeof(sockPath),"%s%s" ZT_SDK_RPC_DIR_PREFIX "/%.16llx",
     	homePath,ZT_PATH_SEPARATOR_S,_nwid,ZT_PATH_SEPARATOR_S,(unsigned long long)nwid);
@@ -116,21 +85,13 @@ SocketTap::SocketTap(
 		DEBUG_ERROR("unable to bind to: rpc = %s", sockPath);
 	else
 		DEBUG_INFO("rpc = %s", sockPath);
-
-	char ver[6];
-	zts_core_version(ver);
-	DEBUG_INFO("zts_core_version = %s", ver);
-	zts_sdk_version(ver);
-	DEBUG_INFO("zts_sdk_version = %s", ver);
-	char id[11];
-	zts_get_device_id(id);
-	DEBUG_INFO("id = %s", id);
-
+    */
     _thread = Thread::start(this);
 }
 
 SocketTap::~SocketTap()
 {
+	// TODO: Verify deletion of all objects
 	_run = false;
 	_phy.whack();
 	Thread::join(_thread);
@@ -149,6 +110,7 @@ bool SocketTap::enabled() const
 
 bool SocketTap::addIp(const InetAddress &ip)
 {
+	DEBUG_INFO();
     picotap = this;
 	picostack->pico_init_interface(this, ip);
 	_ips.push_back(ip);
@@ -157,6 +119,7 @@ bool SocketTap::addIp(const InetAddress &ip)
 
 bool SocketTap::removeIp(const InetAddress &ip)
 {
+	DEBUG_INFO();
 	Mutex::Lock _l(_ips_m);
 	std::vector<InetAddress>::iterator i(std::find(_ips.begin(),_ips.end(),ip));
 	if (i == _ips.end())
@@ -177,6 +140,7 @@ std::vector<InetAddress> SocketTap::ips() const
 void SocketTap::put(const MAC &from,const MAC &to,unsigned int etherType,
 	const void *data,unsigned int len)
 {
+	DEBUG_INFO();
     // RX packet
    	picostack->pico_rx(this, from,to,etherType,data,len);
 
@@ -223,6 +187,7 @@ void SocketTap::threadMain()
 
 Connection *SocketTap::getConnection(PhySocket *sock)
 {
+	DEBUG_INFO();
 	for(size_t i=0;i<_Connections.size();++i) {
 		if(_Connections[i]->sock == sock)
 			return _Connections[i];
@@ -232,6 +197,7 @@ Connection *SocketTap::getConnection(PhySocket *sock)
 
 Connection *SocketTap::getConnection(struct pico_socket *sock)
 {
+	DEBUG_INFO();
 	for(size_t i=0;i<_Connections.size();++i) {
 		if(_Connections[i]->picosock == sock)
 			return _Connections[i];
@@ -241,6 +207,7 @@ Connection *SocketTap::getConnection(struct pico_socket *sock)
 
 void SocketTap::closeConnection(PhySocket *sock)
 {
+	DEBUG_INFO();
 	Mutex::Lock _l(_close_m);
 	// Here we assume _tcpconns_m is already locked by caller
 	if(!sock) {
@@ -265,6 +232,7 @@ void SocketTap::closeConnection(PhySocket *sock)
 }
 
 void SocketTap::phyOnUnixClose(PhySocket *sock,void **uptr) {
+	DEBUG_INFO();
 	//Mutex::Lock _l(_tcpconns_m);
     //closeConnection(sock);
     // FIXME:
@@ -272,166 +240,56 @@ void SocketTap::phyOnUnixClose(PhySocket *sock,void **uptr) {
 
 void SocketTap::handleRead(PhySocket *sock,void **uptr,bool stack_invoked)
 {
+	DEBUG_INFO();
 	picostack->pico_handleRead(sock, uptr, stack_invoked);
 }
 
 void SocketTap::phyOnUnixWritable(PhySocket *sock,void **uptr,bool stack_invoked)
 {
+	DEBUG_INFO();
 	handleRead(sock,uptr,stack_invoked);
 }
 
 void SocketTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
 {
-    //DEBUG_INFO("physock=%p, len=%d", sock, (int)len);
-	uint64_t CANARY_num;
-	pid_t pid, tid;
-	ssize_t wlen = len;
-	char tmpbuf[SDK_MTU];
-	char cmd, timestamp[20], CANARY[CANARY_SZ], padding[] = {PADDING};
-	void *payload;
-	unsigned char *buf = (unsigned char*)data;
-	std::pair<PhySocket*, void*> sockdata;
-	PhySocket *rpcSock;
-	bool foundJob = false, detected_rpc = false;
-	Connection *conn;
-	// RPC
-	char phrase[RPC_PHRASE_SZ];
-	memset(phrase, 0, RPC_PHRASE_SZ);
-	if(len == BUF_SZ) {
-		memcpy(phrase, buf, RPC_PHRASE_SZ);
-		if(strcmp(phrase, RPC_PHRASE) == 0)
-			detected_rpc = true;
-	}
-	if(detected_rpc) {
-		unloadRPC(data, pid, tid, timestamp, CANARY, cmd, payload);
-		memcpy(&CANARY_num, CANARY, CANARY_SZ);
-		// DEBUG_EXTRA(" RPC: physock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", sock, pid, tid, timestamp, cmd);
-
-		if(cmd == RPC_SOCKET) {				
-			// DEBUG_INFO("RPC_SOCKET, physock=%p", sock);
-			// Create new stack socket and associate it with this sock
-			struct socket_st socket_rpc;
-			memcpy(&socket_rpc, &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct socket_st));
-			Connection * new_conn;
-			if((new_conn = handleSocket(sock, uptr, &socket_rpc))) {
-				new_conn->pid = pid; // Merely kept to look up application path/names later, not strictly necessary
-			}
-		} else {
-			memcpy(&tmpbuf,data,len);
-			jobmap[CANARY_num] = std::pair<PhySocket*, void*>(sock, tmpbuf);
-			
-		}
-		write(_phy.getDescriptor(sock), "z", 1); // RPC ACK byte to maintain order
-	}
-	// STREAM
-	else {
-		int data_start = -1, data_end = -1, canary_pos = -1, padding_pos = -1;
-		// Look for padding
-		std::string padding_pattern(padding, padding+PADDING_SZ);
-		std::string buffer(buf, buf + len);
-		padding_pos = buffer.find(padding_pattern);
-		canary_pos = padding_pos-CANARY_SZ;
-		// Grab token, next we'll use it to look up an RPC job
-		if(canary_pos > -1) {
-			memcpy(&CANARY_num, buf+canary_pos, CANARY_SZ);
-			if(CANARY_num != 0) {
-				// Find job
-				sockdata = jobmap[CANARY_num];
-				if(!sockdata.first) {
-					return;
-				}  else
-					foundJob = true;
-			}
-		}
-		conn = getConnection(sock);
-		if(!conn)
-			return;
-
-		if(padding_pos == -1) { // [DATA]
-			memcpy(&conn->txbuf[conn->txsz], buf, wlen);
-		} else { // Padding found, implies a canary is present
-			// [CANARY]
-			if(len == CANARY_SZ+PADDING_SZ && canary_pos == 0) {
-				wlen = 0; // Nothing to write
-			} else {
-				// [CANARY] + [DATA]
-				if(len > CANARY_SZ+PADDING_SZ && canary_pos == 0) {
-					wlen = len - CANARY_SZ+PADDING_SZ;
-					data_start = padding_pos+PADDING_SZ;
-					memcpy((&conn->txbuf)+conn->txsz, buf+data_start, wlen);
-				}
-				// [DATA] + [CANARY]
-				if(len > CANARY_SZ+PADDING_SZ && canary_pos > 0 
-					&& canary_pos == len - CANARY_SZ+PADDING_SZ) {
-					wlen = len - CANARY_SZ+PADDING_SZ;
-					data_start = 0;
-					memcpy((&conn->txbuf)+conn->txsz, buf+data_start, wlen);												
-				}
-				// [DATA] + [CANARY] + [DATA]
-				if(len > CANARY_SZ+PADDING_SZ && canary_pos > 0 
-					&& len > (canary_pos + CANARY_SZ+PADDING_SZ)) {
-					wlen = len - CANARY_SZ+PADDING_SZ;
-					data_start = 0;
-					data_end = padding_pos-CANARY_SZ;
-					memcpy((&conn->txbuf)+conn->txsz, buf+data_start, (data_end-data_start)+1);
-					memcpy((&conn->txbuf)+conn->txsz, buf+(padding_pos+PADDING_SZ), len-(canary_pos+CANARY_SZ+PADDING_SZ));
-				}
-			}
-		}
-		
-		// Write data from stream
-        if(wlen) {
-            conn->txsz += wlen;
-            handleWrite(conn);
-        }
-	}
-	// Process RPC if we have a corresponding jobmap entry
-    if(foundJob) {
-        rpcSock = sockdata.first;
-        buf = (unsigned char*)sockdata.second;
-		unloadRPC(buf, pid, tid, timestamp, CANARY, cmd, payload);
-		//DEBUG_ERROR(" RPC: physock=%p, (pid=%d, tid=%d, timestamp=%s, cmd=%d)", sock, pid, tid, timestamp, cmd);
-		switch(cmd) {
-			case RPC_BIND:
-				//DEBUG_INFO("RPC_BIND, physock=%p", sock);
-			    struct bind_st bind_rpc;
-			    memcpy(&bind_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct bind_st));
-			    handleBind(sock, rpcSock, uptr, &bind_rpc);
-				break;
-		  	case RPC_LISTEN:
-		  		//DEBUG_INFO("RPC_LISTEN, physock=%p", sock);
-			    struct listen_st listen_rpc;
-			    memcpy(&listen_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct listen_st));
-			    handleListen(sock, rpcSock, uptr, &listen_rpc);
-				break;
-		  	case RPC_GETSOCKNAME:
-		  		//DEBUG_INFO("RPC_GETSOCKNAME, physock=%p", sock);
-		  		struct getsockname_st getsockname_rpc;
-		    	memcpy(&getsockname_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct getsockname_st));
-		  		handleGetsockname(sock, rpcSock, uptr, &getsockname_rpc);
-		  		break;
-			case RPC_GETPEERNAME:
-		  		//DEBUG_INFO("RPC_GETPEERNAME, physock=%p", sock);
-		  		struct getsockname_st getpeername_rpc;
-		    	memcpy(&getpeername_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct getsockname_st));
-		  		handleGetpeername(sock, rpcSock, uptr, &getpeername_rpc);
-		  		break;
-			case RPC_CONNECT:
-				//DEBUG_INFO("RPC_CONNECT, physock=%p", sock);
-			    struct connect_st connect_rpc;
-			    memcpy(&connect_rpc,  &buf[IDX_PAYLOAD+STRUCT_IDX], sizeof(struct connect_st));
-			    handleConnect(sock, rpcSock, conn, &connect_rpc);
-			    jobmap.erase(CANARY_num);
-				return; // Keep open RPC, we'll use it once in nc_connected to send retval
-		  	default:
-		  		return;
-				break;
-		}
-		Mutex::Lock _l(_tcpconns_m);
-		closeConnection(sockdata.first); // close RPC after sending retval, no longer needed
-		jobmap.erase(CANARY_num);
-	}
+	DEBUG_INFO();
+	Connection *conn = getConnection(sock);
+	if(!conn)
+		return;
+    if(len) {
+        conn->txsz += len;
+        handleWrite(conn);
+    }
+    return;
 }
+
+/****************************************************************************/
+/* SDK Socket API                                                           */
+/****************************************************************************/
+
+int SocketTap::Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen) {
+	Mutex::Lock _l(_tcpconns_m);
+	return picostack->pico_Connect(conn, fd, addr, addrlen);
+}
+
+int SocketTap::Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen) {
+	Mutex::Lock _l(_tcpconns_m);
+	return picostack->pico_Bind(conn, fd, addr, addrlen);
+}
+
+void SocketTap::Listen(Connection *conn, int fd, int backlog) {
+	Mutex::Lock _l(_tcpconns_m);
+	picostack->pico_Listen(conn, fd, backlog);
+}
+
+int SocketTap::Accept(Connection *conn) {
+	Mutex::Lock _l(_tcpconns_m);
+	return picostack->pico_Accept(conn);
+}
+
+
+
+
 
 /*------------------------------------------------------------------------------
 ----------------------------- RPC Handler functions ----------------------------
@@ -440,6 +298,7 @@ void SocketTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t 
 void SocketTap::handleGetsockname(PhySocket *sock, PhySocket *rpcSock, 
 	void **uptr, struct getsockname_st *getsockname_rpc)
 {
+	DEBUG_INFO();
 	Mutex::Lock _l(_tcpconns_m);
 	Connection *conn = getConnection(sock);
 	if(conn->local_addr == NULL){
@@ -455,6 +314,7 @@ void SocketTap::handleGetsockname(PhySocket *sock, PhySocket *rpcSock,
 void SocketTap::handleGetpeername(PhySocket *sock, PhySocket *rpcSock, 
 	void **uptr, struct getsockname_st *getsockname_rpc)
 {
+	DEBUG_INFO();
 	Mutex::Lock _l(_tcpconns_m);
 	Connection *conn = getConnection(sock);
 	if(conn->peer_addr == NULL){
@@ -466,42 +326,11 @@ void SocketTap::handleGetpeername(PhySocket *sock, PhySocket *rpcSock,
 	}
 	write(_phy.getDescriptor(rpcSock), conn->peer_addr, sizeof(struct sockaddr_storage));
 }
-    
-Connection * SocketTap::handleSocket(PhySocket *sock, void **uptr, 
-	struct socket_st* socket_rpc)
-{
-	return picostack->pico_handleSocket(sock, uptr, socket_rpc);
-}
-
-void SocketTap::handleConnect(PhySocket *sock, PhySocket *rpcSock, Connection *conn, 
-	struct connect_st* connect_rpc)
-{
-	Mutex::Lock _l(_tcpconns_m);
-	picostack->pico_handleConnect(sock, rpcSock, conn, connect_rpc);		
-}
-
-void SocketTap::handleBind(PhySocket *sock, PhySocket *rpcSock, void **uptr, 
-	struct bind_st *bind_rpc)
-{
-	Mutex::Lock _l(_tcpconns_m);
-	if(!_ips.size()) {
-		DEBUG_ERROR("cannot bind yet. ZT address hasn't been provided");
-		sendReturnValue(_phy.getDescriptor(rpcSock), -1, ENOMEM);
-		return;
-	}
-	picostack->pico_handleBind(sock,rpcSock,uptr,bind_rpc);
-}
-
-void SocketTap::handleListen(PhySocket *sock, PhySocket *rpcSock, void **uptr, 
-	struct listen_st *listen_rpc)
-{
-	Mutex::Lock _l(_tcpconns_m);
-  	picostack->pico_handleListen(sock, rpcSock, uptr, listen_rpc);
-}
 
 // Write to the network stack (and thus out onto the network)
 void SocketTap::handleWrite(Connection *conn)
 {
+	DEBUG_INFO();
 	picostack->pico_handleWrite(conn);
 }
 

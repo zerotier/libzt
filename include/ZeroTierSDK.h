@@ -1,5 +1,5 @@
 /*
- * ZeroTier One - Network Virtualization Everywhere
+ * ZeroTier SDK - Network Virtualization Everywhere
  * Copyright (C) 2011-2016  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,10 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * This defines the external C++ API for the ZeroTier SDK's service
- */
-
 #ifndef ZT_ZEROTIERSDK_H
 #define ZT_ZEROTIERSDK_H
 
@@ -29,21 +25,21 @@
 /* Defines                                                                  */
 /****************************************************************************/
 
-#define SDK_MTU                       1200                             // FIXME: ZT_MAX_MTU, usually 
-#define UNIX_SOCK_BUF_SIZE            1024*1024
-#define ZT_PHY_POLL_INTERVAL          50                               // in ms
+#define ZT_SDK_MTU                    ZT_MAX_MTU
+#define ZT_PHY_POLL_INTERVAL          50  // ms
+#define ZT_ACCEPT_RECHECK_DELAY       250 // ms (for blocking zts_accept() calls)
 // picoTCP 
 #define MAX_PICO_FRAME_RX_BUF_SZ      ZT_MAX_MTU * 128
 // TCP
-#define DEFAULT_TCP_TX_BUF_SZ         1024 * 1024
-#define DEFAULT_TCP_RX_BUF_SZ         1024 * 1024
-#define DEFAULT_TCP_TX_BUF_SOFTMAX    DEFAULT_TCP_TX_BUF_SZ * 0.80
-#define DEFAULT_TCP_TX_BUF_SOFTMIN    DEFAULT_TCP_TX_BUF_SZ * 0.20
-#define DEFAULT_TCP_RX_BUF_SOFTMAX    DEFAULT_TCP_RX_BUF_SZ * 0.80
-#define DEFAULT_TCP_RX_BUF_SOFTMIN    DEFAULT_TCP_RX_BUF_SZ * 0.20
+#define ZT_TCP_TX_BUF_SZ              1024 * 1024
+#define ZT_TCP_RX_BUF_SZ              1024 * 1024
+#define ZT_TCP_TX_BUF_SOFTMAX         ZT_TCP_TX_BUF_SZ * 0.80
+#define ZT_TCP_TX_BUF_SOFTMIN         ZT_TCP_TX_BUF_SZ * 0.20
+#define ZT_TCP_RX_BUF_SOFTMAX         ZT_TCP_RX_BUF_SZ * 0.80
+#define ZT_TCP_RX_BUF_SOFTMIN         ZT_TCP_RX_BUF_SZ * 0.20
 // UDP
-#define DEFAULT_UDP_TX_BUF_SZ         ZT_MAX_MTU
-#define DEFAULT_UDP_RX_BUF_SZ         ZT_MAX_MTU * 10
+#define ZT_UDP_TX_BUF_SZ              ZT_MAX_MTU
+#define ZT_UDP_RX_BUF_SZ              ZT_MAX_MTU * 10
 
 #define ZT_SDK_RPC_DIR_PREFIX         "rpc.d"
 
@@ -55,6 +51,8 @@
 #define ZT_ID_LEN                     10
 #define ZT_VER_STR_LEN                6
 #define ZT_HOME_PATH_MAX_LEN          128
+
+#define ZT_ERR_OK                     0
 
 /****************************************************************************/
 /* Socket API Signatures                                                    */
@@ -68,8 +66,8 @@
 #define ZT_RECVFROM_SIG int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen
 #define ZT_RECVMSG_SIG int fd, struct msghdr *msg,int flags
 #define ZT_SEND_SIG int fd, const void *buf, size_t len, int flags
-#define ZT_WRITE_SIG int fd, const void *buf, size_t len
 #define ZT_READ_SIG int fd, void *buf, size_t len
+#define ZT_WRITE_SIG int fd, const void *buf, size_t len
 #define ZT_SOCKET_SIG int socket_family, int socket_type, int protocol
 #define ZT_CONNECT_SIG int fd, const struct sockaddr *addr, socklen_t addrlen
 #define ZT_BIND_SIG int fd, const struct sockaddr *addr, socklen_t addrlen
@@ -230,16 +228,23 @@ int zts_socket(ZT_SOCKET_SIG);
 int zts_connect(ZT_CONNECT_SIG);
 
 /**
- * Bind a socket to a local address
+ * Binds a socket to a specific address
+ *  - To accept connections on a specific ZeroTier network you must
+ *    use this bind call with an address which is associated with that network
+ *
+ *  For instance, given the following networks:
+ *     - nwid = 97afaf1963cc6a90 (10.9.0.0/24)
+ *     - nwid = 23bfae5663c8b188 (192.168.0.0/24)
+ *
+ *  In order to accept a connection on 97afaf1963cc6a90, you 
+ *  should bind to 10.9.0.0
  */
 int zts_bind(ZT_BIND_SIG);
 
 /**
- * Accept a connection
+ * Listen for incoming connections
  */
-#if defined(__linux__)
-	int zts_accept4(ZT_ACCEPT4_SIG);
-#endif
+int zts_listen(ZT_LISTEN_SIG);
 
 /**
  * Accept a connection
@@ -247,9 +252,11 @@ int zts_bind(ZT_BIND_SIG);
 int zts_accept(ZT_ACCEPT_SIG);
 
 /**
- * Listen for incoming connections
+ * Accept a connection
  */
-int zts_listen(ZT_LISTEN_SIG);
+#if defined(__linux__)
+	int zts_accept4(ZT_ACCEPT4_SIG);
+#endif
 
 /**
  * Set socket options
@@ -301,45 +308,31 @@ ssize_t zts_recvfrom(ZT_RECVFROM_SIG);
  */
 ssize_t zts_recvmsg(ZT_RECVMSG_SIG);
 
+/**
+ * Read bytes from socket onto buffer
+ *  - Note, this function isn't strictly necessary, you can
+ *    use a regular read() call as long as the socket fd was
+ *    created via a zts_socket() call. 
+ */
+int zts_read(ZT_READ_SIG);
+
+/**
+ * Write bytes from buffer to socket
+ *  - Note, this function isn't strictly necessary, you can
+ *    use a regular write() call as long as the socket fd was
+ *    created via a zts_socket() call. 
+ */
+int zts_write(ZT_WRITE_SIG);
+
 /****************************************************************************/
-/* SocketTap Multiplexer Functionality --- DONT CALL THESE DIRECTLY         */
-/* - This section of the API is used to implement the general socket        */
-/*   controls. Basically this is designed to handle socket provisioning     */
-/*   requests when no SocketTap is yet initialized, and as a way to         */
-/*   determine which SocketTap is to be used for a particular connect() or  */ 
-/*   bind() call                                                            */
+/* SDK Socket API Helper functions/objects --- DONT CALL THESE DIRECTLY     */
 /****************************************************************************/
 
 namespace ZeroTier
 {
-    class picoTCP;
-    struct Connection;
-    extern ZeroTier::picoTCP *picostack;
+  class picoTCP;
+  extern ZeroTier::picoTCP *picostack;
 }
-
-/**
- * Creates a new Connection objects and keeps it in UnassignedConnections
- * until a connect() or bind() call is made, at which point it is assigned
- * to the appropriate SocketTap.
- */
-int zts_multiplex_new_socket(ZT_SOCKET_SIG);
-
-/**
- * Given a file descriptor, looks up the relevant Connection object and then
- * searches for a SocketTap with an appropriate route. Once found, the 
- * Connection object will be assigned to that SocketTap and a connection 
- * to the remote host will be attempted.
- */
-int zts_multiplex_new_connect(ZT_CONNECT_SIG);
-
-/**
- * 
- */
-int zts_multiplex_new_bind(ZT_BIND_SIG);
-
-/****************************************************************************/
-/* SDK Socket API Helper functions --- DONT CALL THESE DIRECTLY             */
-/****************************************************************************/
 
 /**
  * Don't call this directly, use 'zts_start()'
@@ -423,22 +416,22 @@ void *_start_service(void *thread_id);
  #if ZT_DEBUG_LEVEL >= ZT_MSG_INFO
   #if defined(__ANDROID__)
     #define DEBUG_INFO(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,   \
-      "ZT_INFO : %14s:%4d:%20s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+      "ZT_INFO : %16s:%4d:%20s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
     #define DEBUG_BLANK(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,  \
-      "ZT_INFO : %14s:%4d:" fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+      "ZT_INFO : %16s:%4d:" fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
     #define DEBUG_ATTN(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,   \
-      "ZT_INFO : %14s:%4d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+      "ZT_INFO : %16s:%4d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
     #define DEBUG_STACK(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,  \
-      "ZT_STACK: %14s:%4d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+      "ZT_STACK: %16s:%4d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
   #else
     #define DEBUG_INFO(fmt, args...) fprintf(stderr,                                                                   \
-      "ZT_INFO [%ld] : %14s:%4d:%25s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+      "ZT_INFO [%ld] : %16s:%4d:%25s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
     #define DEBUG_ATTN(fmt, args...) fprintf(stderr, ZT_CYN                                                            \
-      "ZT_ATTN [%ld] : %14s:%4d:%25s: " fmt "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+      "ZT_ATTN [%ld] : %16s:%4d:%25s: " fmt "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
     #define DEBUG_STACK(fmt, args...) fprintf(stderr, ZT_YEL                                                           \
-      "ZT_STACK[%ld] : %14s:%4d:%25s: " fmt "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+      "ZT_STACK[%ld] : %16s:%4d:%25s: " fmt "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
     #define DEBUG_BLANK(fmt, args...) fprintf(stderr,                                                                  \
-      "ZT_INFO [%ld] : %14s:%4d:" fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, ##args)
+      "ZT_INFO [%ld] : %16s:%4d:" fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, ##args)
   #endif
  #else
   #define DEBUG_INFO(fmt, args...)
@@ -450,9 +443,9 @@ void *_start_service(void *thread_id);
  #if ZT_DEBUG_LEVEL >= ZT_MSG_TRANSFER
   #if defined(__ANDROID__)
     #define DEBUG_TRANS(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,  \
-      "ZT_TRANS : %14s:%4d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+      "ZT_TRANS : %16s:%4d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
   #else
-    #define DEBUG_TRANS(fmt, args...) fprintf(stderr, ZT_GRN "ZT_TRANS[%ld] : %14s:%4d:%25s: " fmt \
+    #define DEBUG_TRANS(fmt, args...) fprintf(stderr, ZT_GRN "ZT_TRANS[%ld] : %16s:%4d:%25s: " fmt \
       "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
   #endif
  #else
@@ -462,10 +455,10 @@ void *_start_service(void *thread_id);
  #if ZT_DEBUG_LEVEL >= ZT_MSG_EXTRA
    #if defined(__ANDROID__)
     #define DEBUG_EXTRA(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
-      "ZT_EXTRA : %14s:%4d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+      "ZT_EXTRA : %16s:%4d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
   #else
     #define DEBUG_EXTRA(fmt, args...) fprintf(stderr, \
-      "ZT_EXTRA[%ld] : %14s:%4d:%25s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+      "ZT_EXTRA[%ld] : %16s:%4d:%25s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
   #endif
  #else
   #define DEBUG_EXTRA(fmt, args...)
@@ -474,9 +467,9 @@ void *_start_service(void *thread_id);
 #if ZT_DEBUG_LEVEL >= ZT_MSG_FLOW
    #if defined(__ANDROID__)
     #define DEBUG_FLOW(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \ 
-      "ZT_FLOW : %14s:%4d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+      "ZT_FLOW : %16s:%4d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
   #else
-    #define DEBUG_FLOW(fmt, args...) fprintf(stderr, "ZT_FLOW [%ld] : %14s:%4d:%25s: " fmt "\n", \
+    #define DEBUG_FLOW(fmt, args...) fprintf(stderr, "ZT_FLOW [%ld] : %16s:%4d:%25s: " fmt "\n", \
       ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
   #endif
  #else

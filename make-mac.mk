@@ -9,7 +9,7 @@ ifeq ($(origin CXX),default)
 endif
 
 ##############################################################################
-## General Configuration                                                    ##
+## VARIABLES                                                                ##
 ##############################################################################
 
 include objects.mk
@@ -26,6 +26,15 @@ SDK_INTERCEPT      = $(BUILD)/$(INTERCEPT_NAME)
 SDK_SERVICE        = $(BUILD)/$(SDK_SERVICE_NAME)
 ONE_SERVICE        = $(BUILD)/$(ONE_SERVICE_NAME)
 PICO_LIB           = ext/picotcp/build/lib/$(PICO_LIB_NAME)
+
+TEST_BUILD_DIR     = build/test
+UNIT_TEST_SRC_DIR  = test/unit
+DUMB_TEST_SRC_DIR  = test/dumb
+
+
+##############################################################################
+## General Configuration                                                    ##
+##############################################################################
 
 # Debug output for ZeroTier service
 ifeq ($(ZT_DEBUG),1)
@@ -98,27 +107,24 @@ endif
 
 STACK_DRIVER_FILES:=src/picoTCP.cpp
 TAP_FILES:=src/SocketTap.cpp \
-			src/SDKService.cpp
+	src/ZeroTierSDK.cpp \
 
-RPC_FILES:=src/RPC.c
-SOCKET_API_FILES:=src/Socket.c
-
-SDK_OBJS+= RPC.o \
-			SocketTap.o \
-			Socket.o \
-			picoTCP.o \
-			SDKService.o
+SDK_OBJS+= SocketTap.o \
+	picoTCP.o \
+	ZeroTierSDK.o
 
 PICO_OBJS+= ext/picotcp/build/lib/pico_device.o \
-ext/picotcp/build/lib/pico_frame.o \
-ext/picotcp/build/lib/pico_md5.o \
-ext/picotcp/build/lib/pico_protocol.o \
-ext/picotcp/build/lib/pico_socket_multicast.o \
-ext/picotcp/build/lib/pico_socket.o \
-ext/picotcp/build/lib/pico_stack.o \
-ext/picotcp/build/lib/pico_tree.o
+	ext/picotcp/build/lib/pico_frame.o \
+	ext/picotcp/build/lib/pico_md5.o \
+	ext/picotcp/build/lib/pico_protocol.o \
+	ext/picotcp/build/lib/pico_socket_multicast.o \
+	ext/picotcp/build/lib/pico_socket.o \
+	ext/picotcp/build/lib/pico_stack.o \
+	ext/picotcp/build/lib/pico_tree.o
 
 all: 
+
+tests: dumb_tests unit_tests
 
 ##############################################################################
 ## User-Space Stack                                                         ##
@@ -132,7 +138,7 @@ picotcp:
 ##############################################################################
 
 static_lib: picotcp $(ZTO_OBJS)
-	$(CXX) $(CXXFLAGS) $(SDK_FLAGS) $(RPC_FILES) $(TAP_FILES) $(STACK_DRIVER_FILES) $(SOCKET_API_FILES) -c -DSDK_STATIC
+	$(CXX) $(CXXFLAGS) $(SDK_FLAGS) $(TAP_FILES) $(STACK_DRIVER_FILES) -c -DSDK_STATIC
 	libtool -static -o $(STATIC_LIB) $(ZTO_OBJS) $(SDK_OBJS) $(PICO_LIB)
 
 jni_static_lib: picotcp $(ZTO_OBJS)
@@ -141,8 +147,31 @@ jni_static_lib: picotcp $(ZTO_OBJS)
 ## Unit Tests                                                               ##
 ##############################################################################
 
-static_lib_test:
-	$(CXX) -Iinclude tests/socket/simple.cpp -o build/simple.out -Lbuild -lzt
+UNIT_TEST_SRC_FILES:=$(wildcard $(UNIT_TEST_SRC_DIR)/*.cpp)
+UNIT_TEST_OBJ_FILES:=$(addprefix $(TEST_BUILD_DIR)/,$(notdir $(UNIT_TEST_SRC_FILES:.cpp=.out)))
+UNIT_TEST_INCLUDES:=-Iinclude
+UNIT_TEST_LIBS:=-Lbuild -lzt
+
+$(TEST_BUILD_DIR)/%.out: $(UNIT_TEST_SRC_DIR)/%.cpp
+	@mkdir -p $(TEST_BUILD_DIR)
+	@-$(CXX) $(UNIT_TEST_INCLUDES) -o $@ $< $(UNIT_TEST_LIBS)
+	@-./check.sh $@
+
+unit_tests: $(UNIT_TEST_OBJ_FILES)
+
+##############################################################################
+## Non-ZT Client/Server Tests                                               ##
+##############################################################################
+
+DUMB_TEST_SRC_FILES=$(wildcard $(DUMB_TEST_SRC_DIR)/*.c)
+DUMB_TEST_OBJ_FILES := $(addprefix $(TEST_BUILD_DIR)/,$(notdir $(DUMB_TEST_SRC_FILES:.c=.out)))
+
+$(TEST_BUILD_DIR)/%.out: $(DUMB_TEST_SRC_DIR)/%.c
+	@mkdir -p $(TEST_BUILD_DIR)
+	@-$(CC) -o $@ $<
+	@-./check.sh $@
+
+dumb_tests: $(DUMB_TEST_OBJ_FILES)
 
 ##############################################################################
 ## Misc                                                                     ##
@@ -161,4 +190,6 @@ check:
 	-./check.sh $(ONE_SERVICE)
 	-./check.sh $(SDK_SERVICE)
 	-./check.sh $(STATIC_LIB)
+	-./check.sh $(STATIC_LIB)
+
 	

@@ -14,7 +14,7 @@
 
 int main()
 {
-	char *nwid = "e5cd7a9e1c0fd272";
+	char *nwid = (char *)"e5cd7a9e1c0fd272";
 
 	// Get ZeroTier core version
 	char ver[ZT_VER_STR_LEN];
@@ -34,7 +34,7 @@ int main()
 	printf("id = %s\n", id);
 
 	// Get the home path of this ZeroTier instance, where we store identity keys, conf files, etc
-	char homePath[ZT_HOME_PATH_MAX_LEN];
+	char homePath[ZT_HOME_PATH_MAX_LEN+1];
 	zts_get_homepath(homePath, ZT_HOME_PATH_MAX_LEN);
 	printf("homePath = %s\n", homePath);
 
@@ -67,28 +67,54 @@ int main()
 			printf("sockfd = %d\n", sockfd);
 
 		// connect() IPv6
-		struct hostent *server = gethostbyname2("fde5:cd7a:9e1c:fd2:7299:932e:e35a:9a03",AF_INET6);
-    	struct sockaddr_in6 serv_addr;
-		memset((char *) &serv_addr, 0, sizeof(serv_addr));
-		serv_addr.sin6_flowinfo = 0;
-		serv_addr.sin6_family = AF_INET6;
-		memmove((char *) &serv_addr.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
-		serv_addr.sin6_port = htons( port );
-		
-		if((err = zts_connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr))) < 0)
-			printf("error connecting to remote host (%d)\n", err);
-		else
-			printf("connected\n");
-
+		if(false)
+		{
+			struct hostent *server = gethostbyname2("fde5:cd7a:9e1c:fd2:7299:932e:e35a:9a03",AF_INET6);
+	    	struct sockaddr_in6 serv_addr;
+			memset((char *) &serv_addr, 0, sizeof(serv_addr));
+			serv_addr.sin6_flowinfo = 0;
+			serv_addr.sin6_family = AF_INET6;
+			memmove((char *) &serv_addr.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
+			serv_addr.sin6_port = htons( port );
+			if((err = zts_connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr))) < 0) {
+				printf("error connecting to remote host (%d)\n", err);
+				return -1;
+			}
+		}
 		// connect() IPv4
-		addr.sin_addr.s_addr = inet_addr("10.9.9.4");
-    	addr.sin_family = AF_INET;
-    	addr.sin_port = htons( port );
-
-		if((err = zts_connect(sockfd, (const struct sockaddr *)&addr, sizeof(addr))) < 0)
-			printf("error connecting to remote host (%d)\n", err);
-		else
-			printf("connected\n");
+		if(true)
+		{
+			addr.sin_addr.s_addr = inet_addr("10.9.9.20");
+	    	addr.sin_family = AF_INET;
+	    	addr.sin_port = htons( port );
+			if((err = zts_connect(sockfd, (const struct sockaddr *)&addr, sizeof(addr))) < 0) {
+				printf("error connecting to remote host (%d)\n", err);
+				return -1;
+			}
+		}
+		// bind() ipv4
+		if(false)
+		{
+			//addr.sin_addr.s_addr = INADDR_ANY; // TODO: Requires significant socket multiplexer work
+			addr.sin_addr.s_addr = inet_addr("10.9.9.40");
+	    	addr.sin_family = AF_INET;
+	    	addr.sin_port = htons( port );
+			if((err = zts_bind(sockfd, (const struct sockaddr *)&addr, sizeof(addr))) < 0) {
+				printf("error binding to interface (%d)\n", err);
+				return -1;
+			}
+			zts_listen(sockfd, 1);
+			struct sockaddr_in client;
+			int c = sizeof(struct sockaddr_in);
+			
+			int accept_fd = zts_accept(sockfd, (struct sockaddr *)&client, (socklen_t*)&c);
+			
+			printf("reading from buffer\n");
+			char newbuf[32];
+			memset(newbuf, 0, 32);
+			read(accept_fd, newbuf, 20);
+			printf("newbuf = %s\n", newbuf);
+		}
 
 	// End Socket API calls
 
@@ -102,6 +128,13 @@ int main()
 	printf("ipv6 = %s\n", addr_str);
 
 	printf("peer_count = %lu\n", zts_get_peer_count());
+
+/*
+	while(1)
+	{
+		sleep(1);
+	}
+*/
 
 	// ---
 

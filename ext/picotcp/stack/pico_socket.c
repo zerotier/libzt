@@ -1568,7 +1568,7 @@ int pico_socket_bind(struct pico_socket *s, void *local_addr, uint16_t *port)
 }
 
 
-int pico_socket_connect(struct pico_socket *s, const void *remote_addr, uint16_t remote_port)
+extern int pico_socket_connect(struct pico_socket *s, const void *remote_addr, uint16_t remote_port)
 {
     int ret = -1;
     pico_err = PICO_ERR_EPROTONOSUPPORT;

@@ -1,6 +1,6 @@
 /*
- * ZeroTier One - Network Virtualization Everywhere
- * Copyright (C) 2011-2015  ZeroTier, Inc.
+ * ZeroTier SDK - Network Virtualization Everywhere
+ * Copyright (C) 2011-2016  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,20 +14,10 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * --
- *
- * ZeroTier may be used and distributed under the terms of the GPLv3, which
- * are available at: http://www.gnu.org/licenses/gpl-3.0.html
- *
- * If you would like to embed ZeroTier into a commercial application or
- * redistribute it in a modified binary form, please contact ZeroTier Networks
- * LLC. Start here: http://www.zerotier.com/
  */
 
 #ifndef ZT_PICOTCP_HPP
 #define ZT_PICOTCP_HPP
-
 
 #include "pico_eth.h"
 #include "pico_stack.h"
@@ -79,26 +69,50 @@ namespace ZeroTier
 	{		
 	public:
 
+		/*
+	 	 * Set up an interface in the network stack for the SocketTap
+	 	 */
 		void pico_init_interface(ZeroTier::SocketTap *tap, const ZeroTier::InetAddress &ip);
+
+		/*
+	 	 * Main stack loop
+	 	 */
 		void pico_loop(SocketTap *tap);
 
-		//int pico_eth_send(struct pico_device *dev, void *buf, int len);
-		//int pico_eth_poll(struct pico_device *dev, int loop_score);
+		/*
+	 	 * Read bytes from the stack to the RX buffer (prepare to be read by app)
+	 	 */
 		static void pico_cb_tcp_read(SocketTap *tap, struct pico_socket *s);
-		static void pico_cb_udp_read(SocketTap *tap, struct pico_socket *s);
-		static void pico_cb_tcp_write(SocketTap *tap, struct pico_socket *s);
-		static void pico_cb_socket_activity(uint16_t ev, struct pico_socket *s);
 
+		/*
+	 	 * Read bytes from the stack to the RX buffer (prepare to be read by app)
+	 	 */
+	 	static void pico_cb_udp_read(SocketTap *tap, struct pico_socket *s);
+
+	 	 /*
+	 	 * Write bytes from TX buffer to stack (prepare to be sent to ZT virtual wire)
+	 	 */
+		static void pico_cb_tcp_write(SocketTap *tap, struct pico_socket *s);
+
+		/*
+	 	 * Write bytes from TX buffer to stack (prepare to be sent to ZT virtual wire)
+	 	 */
+	 	static void pico_cb_socket_activity(uint16_t ev, struct pico_socket *s);
+
+		/*
+	 	 * Where packets enter the stack
+	 	 */
 		void pico_rx(SocketTap *tap, const ZeroTier::MAC &from,const ZeroTier::MAC &to,unsigned int etherType,const void *data,unsigned int len);
-		Connection *pico_handleSocket(ZeroTier::PhySocket *sock, void **uptr, struct socket_st* socket_rpc);
-		void pico_handleWrite(Connection *conn);
-		void pico_handleConnect(ZeroTier::PhySocket *sock, ZeroTier::PhySocket *rpcSock, Connection *conn, struct connect_st* connect_rpc);
-		void pico_handleBind(ZeroTier::PhySocket *sock, ZeroTier::PhySocket *rpcSock, void **uptr, struct bind_st *bind_rpc);
-		void pico_handleListen(ZeroTier::PhySocket *sock, ZeroTier::PhySocket *rpcSock, void **uptr, struct listen_st *listen_rpc);
+	
 		void pico_handleRead(ZeroTier::PhySocket *sock,void **uptr,bool lwip_invoked);
 		void pico_handleClose(ZeroTier::PhySocket *sock);
+		void pico_handleWrite(Connection *conn);
 
-
+		// common socket operations
+    	int pico_Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+    	int pico_Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+    	int pico_Listen(Connection *conn, int fd, int backlog);
+    	int pico_Accept(Connection *conn);
 	};
 }
 

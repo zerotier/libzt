@@ -1,6 +1,6 @@
 /*
- * ZeroTier One - Network Virtualization Everywhere
- * Copyright (C) 2011-2015  ZeroTier, Inc.
+ * ZeroTier SDK - Network Virtualization Everywhere
+ * Copyright (C) 2011-2016  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,24 +14,16 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * --
- *
- * ZeroTier may be used and distributed under the terms of the GPLv3, which
- * are available at: http://www.gnu.org/licenses/gpl-3.0.html
- *
- * If you would like to embed ZeroTier into a commercial application or
- * redistribute it in a modified binary form, please contact ZeroTier Networks
- * LLC. Start here: http://www.zerotier.com/
  */
 
-#ifndef ZT_SocketTap_HPP
-#define ZT_SocketTap_HPP
+#ifndef ZT_SOCKETTAP_HPP
+#define ZT_SOCKETTAP_HPP
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
 #include <vector>
+#include <queue>
 #include <utility>
 #include <stdexcept>
 #include <stdint.h>
@@ -44,8 +36,8 @@
 #include "Phy.hpp"
 
 #include "ZeroTierSDK.h"
-#include "RPC.h"
 #include "picoTCP.hpp"
+#include "Connection.hpp"
 
 #include "pico_protocol.h"
 #include "pico_stack.h"
@@ -69,31 +61,8 @@ struct pico_socket;
 
 namespace ZeroTier {
 
-	class SocketTap;
-
 	extern SocketTap *picotap;
 	
-	/*
-	 * Connection object
-	 */
-	struct Connection
-	{
-	  bool listening, probation, disabled;
-	  int pid, txsz, rxsz;
-	  PhySocket *rpcSock, *sock;
-	  struct tcp_pcb *TCP_pcb;
-	  struct udp_pcb *UDP_pcb;
-	  struct sockaddr_storage *local_addr; // Address we've bound to locally
-	  struct sockaddr_storage *peer_addr; // Address of connection call to remote host
-	  unsigned short port;
-	  unsigned char txbuf[DEFAULT_TCP_TX_BUF_SZ];
-	  unsigned char rxbuf[DEFAULT_TCP_RX_BUF_SZ];
-	  struct pico_socket *picosock;
-
-	  int data_sock;
-	  int socket_family, socket_type;
-	};
-
 	/*
 	 * A helper for passing a reference to _phy to stackrpc callbacks as a "state"
 	 */
@@ -159,18 +128,7 @@ namespace ZeroTier {
 		 * 
 		 */
 		void scanMulticastGroups(std::vector<MulticastGroup> &added,std::vector<MulticastGroup> &removed);
-		
-		/* 
-		 * 
-		 */
-		int sendReturnValue(int fd, int retval, int _errno);	
-		
-		/* 
-		 * 
-		 */
-		void unloadRPC(void *data, pid_t &pid, pid_t &tid, char (timestamp[RPC_TIMESTAMP_SZ]), 
-			char (CANARY[sizeof(uint64_t)]), char &cmd, void* &payload);
-		
+
 		/* 
 		 * 
 		 */
@@ -199,12 +157,20 @@ namespace ZeroTier {
         int pico_frame_rxbuf_tot;
         Mutex _pico_frame_rxbuf_m;
 
-		void handleBind(PhySocket *sock, PhySocket *rpcsock, void **uptr, struct bind_st *bind_rpc);
-		void handleListen(PhySocket *sock, PhySocket *rpcsock, void **uptr, 
-			struct listen_st *listen_rpc);
-		Connection * handleSocket(PhySocket *sock, void **uptr, struct socket_st* socket_rpc);
-		void handleConnect(PhySocket *sock, PhySocket *rpcsock, Connection *conn, 
-			struct connect_st* connect_rpc);
+
+
+
+		/****************************************************************************/
+		/* In these, we will call the stack's corresponding functions, this is      *
+		 * where one would put logic to select between different stacks             */
+		/****************************************************************************/
+
+		int Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+		int Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+		void Listen(Connection *conn, int fd, int backlog);
+		int Accept(Connection *conn);
+
+
 
 		/* 
 		 * Return the address that the socket is bound to 
@@ -269,15 +235,11 @@ namespace ZeroTier {
 
 		std::vector<Connection*> _Connections;
 
-		std::map<uint64_t, std::pair<PhySocket*, void*> > jobmap;
-		pid_t rpcCounter;
-
 		Thread _thread;
 		std::string _dev; // path to Unix domain socket
 
 		std::vector<MulticastGroup> _multicastGroups;
 		Mutex _multicastGroups_m;
-
 		Mutex _ips_m, _tcpconns_m, _rx_buf_m, _close_m;
 	};
 } // namespace ZeroTier

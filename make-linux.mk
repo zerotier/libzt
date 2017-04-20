@@ -107,12 +107,13 @@ endif
 
 STACK_DRIVER_FILES:=src/picoTCP.cpp
 TAP_FILES:=src/SocketTap.cpp \
-	src/ZeroTierSDK.cpp
-	
+	src/ZeroTierSDK.cpp \
+	src/Utils.cpp
+
 SDK_OBJS+= SocketTap.o \
-	Socket.o \
 	picoTCP.o \
-	ZeroTierSDK.o
+	ZeroTierSDK.o \
+	Utils.o
 
 PICO_OBJS+= ext/picotcp/build/lib/pico_device.o \
 	ext/picotcp/build/lib/pico_frame.o \
@@ -140,7 +141,7 @@ picotcp:
 
 static_lib: picotcp $(ZTO_OBJS)
 	$(CXX) $(CXXFLAGS) $(SDK_FLAGS) $(TAP_FILES) $(STACK_DRIVER_FILES) -c -DSDK_STATIC
-	libtool -static -o $(STATIC_LIB) $(ZTO_OBJS) $(SDK_OBJS) $(PICO_LIB)
+	libtool -o $(STATIC_LIB) $(ZTO_OBJS) $(SDK_OBJS) $(PICO_LIB)
 
 jni_static_lib: picotcp $(ZTO_OBJS)
 
@@ -149,7 +150,7 @@ jni_static_lib: picotcp $(ZTO_OBJS)
 ##############################################################################
 
 UNIT_TEST_SRC_FILES:=$(wildcard $(UNIT_TEST_SRC_DIR)/*.cpp)
-UNIT_TEST_OBJ_FILES:=$(addprefix $(TEST_BUILD_DIR)/,$(notdir $(UNIT_TEST_SRC_FILES:.cpp=.out)))
+UNIT_TEST_OBJ_FILES:=$(addprefix $(TEST_BUILD_DIR)/,$(notdir $(UNIT_TEST_SRC_FILES:.cpp=)))
 UNIT_TEST_INCLUDES:=-Iinclude
 UNIT_TEST_LIBS:=-Lbuild -lzt
 
@@ -164,10 +165,10 @@ unit_tests: $(UNIT_TEST_OBJ_FILES)
 ## Non-ZT Client/Server Tests                                               ##
 ##############################################################################
 
-DUMB_TEST_SRC_FILES=$(wildcard $(DUMB_TEST_SRC_DIR)/*.c)
-DUMB_TEST_OBJ_FILES := $(addprefix $(TEST_BUILD_DIR)/,$(notdir $(DUMB_TEST_SRC_FILES:.c=.out)))
+DUMB_TEST_SRC_FILES=$(wildcard $(DUMB_TEST_SRC_DIR)/*.cpp)
+DUMB_TEST_OBJ_FILES := $(addprefix $(TEST_BUILD_DIR)/,$(notdir $(DUMB_TEST_SRC_FILES:.cpp=.out)))
 
-$(TEST_BUILD_DIR)/%.out: $(DUMB_TEST_SRC_DIR)/%.c
+$(TEST_BUILD_DIR)/%.out: $(DUMB_TEST_SRC_DIR)/%.cpp
 	@mkdir -p $(TEST_BUILD_DIR)
 	@-$(CC) -o $@ $<
 	@-./check.sh $@
@@ -182,7 +183,7 @@ clean:
 	-rm -rf $(BUILD)/*
 	-rm -rf zerotier-cli zerotier-idtool
 	-find . -type f \( -name $(ONE_SERVICE_NAME) -o -name $(SDK_SERVICE_NAME) \) -delete
-	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
+	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.a' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
 
 # Check for the presence of built frameworks/bundles/libaries
 check:

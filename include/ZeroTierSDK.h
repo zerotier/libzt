@@ -27,17 +27,13 @@
 
 #define ZT_SDK_MTU                    ZT_MAX_MTU
 #define ZT_PHY_POLL_INTERVAL          50  // ms
-#define ZT_ACCEPT_RECHECK_DELAY       250 // ms (for blocking zts_accept() calls)
-// picoTCP 
+#define ZT_ACCEPT_RECHECK_DELAY       100 // ms (for blocking zts_accept() calls)
+#define ZT_CONNECT_RECHECK_DELAY      100 // ms (for blocking zts_connect() calls)
+
 #define MAX_PICO_FRAME_RX_BUF_SZ      ZT_MAX_MTU * 128
-// TCP
+
 #define ZT_TCP_TX_BUF_SZ              1024 * 1024
 #define ZT_TCP_RX_BUF_SZ              1024 * 1024
-#define ZT_TCP_TX_BUF_SOFTMAX         ZT_TCP_TX_BUF_SZ * 0.80
-#define ZT_TCP_TX_BUF_SOFTMIN         ZT_TCP_TX_BUF_SZ * 0.20
-#define ZT_TCP_RX_BUF_SOFTMAX         ZT_TCP_RX_BUF_SZ * 0.80
-#define ZT_TCP_RX_BUF_SOFTMIN         ZT_TCP_RX_BUF_SZ * 0.20
-// UDP
 #define ZT_UDP_TX_BUF_SZ              ZT_MAX_MTU
 #define ZT_UDP_RX_BUF_SZ              ZT_MAX_MTU * 10
 
@@ -47,12 +43,17 @@
 #define ZT_SDK_VERSION_MINOR          0
 #define ZT_SDK_VERSION_REVISION       0
 
-#define ZT_MAX_IPADDR_LEN             64
-#define ZT_ID_LEN                     10
-#define ZT_VER_STR_LEN                6
-#define ZT_HOME_PATH_MAX_LEN          128
+#define ZT_MAX_IPADDR_LEN                   64
+#define ZT_ID_LEN                           10
+#define ZT_VER_STR_LEN                      6
+#define ZT_HOME_PATH_MAX_LEN                128
 
-#define ZT_ERR_OK                     0
+#define ZT_ERR_OK                           0
+
+#define ZT_SOCK_STATE_NONE                  100
+#define ZT_SOCK_STATE_UNHANDLED_CONNECTED   101
+#define ZT_SOCK_STATE_CONNECTED             102
+#define ZT_SOCK_STATE_LISTENING             103
 
 /****************************************************************************/
 /* Socket API Signatures                                                    */
@@ -407,7 +408,7 @@ void *_start_service(void *thread_id);
 #endif
 
  #if ZT_DEBUG_LEVEL >= ZT_MSG_ERROR
-  #define DEBUG_ERROR(fmt, args...) fprintf(stderr, ZT_RED "ZT_ERROR[%ld] : %14s:%4d:%25s: " fmt   \
+  #define DEBUG_ERROR(fmt, args...) fprintf(stderr, ZT_RED "ZT_ERROR[%ld] : %16s:%4d:%25s: " fmt   \
     "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
  #else
   #define DEBUG_ERROR(fmt, args...)

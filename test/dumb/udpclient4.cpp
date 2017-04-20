@@ -41,12 +41,12 @@ int main(int argc, char **argv) {
     /* socket: create the socket */
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) 
-        error("ERROR opening socket");
+        printf("ERROR opening socket");
 
     /* gethostbyname: get the server's DNS entry */
     server = gethostbyname(hostname);
     if (server == NULL) {
-        fprintf(stderr,"ERROR, no such host as %s\n", hostname);
+        printf("ERROR, no such host as %s\n", hostname);
         exit(0);
     }
 
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
     serveraddr.sin_port = htons(portno);
 
     /* get a message from the user */
-    char *msg = "A message to the server!\0";
+    char *msg = (char*)"A message to the server!";
     fcntl(sock, F_SETFL, O_NONBLOCK); 
     long count = 0;
     while(1)

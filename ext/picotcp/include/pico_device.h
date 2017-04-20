@@ -19,6 +19,7 @@ struct pico_ethdev {
 };
 
 struct pico_device {
+    void *tap;
     char name[MAX_DEVICE_NAME];
     uint32_t hash;
     uint32_t overhead;

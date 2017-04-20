@@ -56,6 +56,7 @@ namespace ZeroTier {
 
 		std::queue<Connection*> _AcceptedConnections;
 		SocketTap *tap; // Reference to SocketTap  
+		int state; // See ZeroTierSDK.h for (ZT_SOCK_STATE_*)
 
 		Connection() {
 			ZT_PHY_SOCKFD_TYPE fdpair[2];
@@ -68,6 +69,16 @@ namespace ZeroTier {
 			sdk_fd = fdpair[0];
 			app_fd = fdpair[1];
 		}
+	};
+
+	/*
+	 * A helper object for passing SocketTaps and Connections through the stack
+	 */
+	struct ConnectionPair
+	{
+	  SocketTap *tap;
+	  Connection *conn;
+	  ConnectionPair(SocketTap *_tap, Connection *conn) : tap(_tap), conn(conn) {}
 	};
 }
 #endif

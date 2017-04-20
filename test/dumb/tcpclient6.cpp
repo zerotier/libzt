@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
     char buffer[256] = "This is a string from client!";
 
     if (argc < 3) {
-        fprintf(stderr, "Usage: %s  \n", argv[0]);
+        printf("Usage: %s  \n", argv[0]);
         exit(0);
     }
     portno = atoi(argv[2]);
@@ -30,12 +30,12 @@ int main(int argc, char *argv[]) {
     //Sockets Layer Call: socket()
     sockfd = socket(AF_INET6, SOCK_STREAM, 0);
     if (sockfd < 0)
-        error("ERROR opening socket");
+        printf("ERROR opening socket");
 
     //Sockets Layer Call: gethostbyname2()
     server = gethostbyname2(argv[1],AF_INET6);
     if (server == NULL) {
-        fprintf(stderr, "ERROR, no such host\n");
+        printf("ERROR, no such host\n");
         exit(0);
     }
 
@@ -47,13 +47,13 @@ int main(int argc, char *argv[]) {
 
     //Sockets Layer Call: connect()
     if (connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-        error("ERROR connecting");
+        printf("ERROR connecting");
 
     
     //Sockets Layer Call: send()
     n = send(sockfd,buffer, strlen(buffer)+1, 0);
     if (n < 0)
-        error("ERROR writing to socket");
+        printf("ERROR writing to socket");
 
     printf("sent %d bytes\n", n);
     memset(buffer, 0, 256);
@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
     printf("reading...\n");
     n = recv(sockfd, buffer, 255, 0);
     if (n < 0)
-        error("ERROR reading from socket");
+        printf("ERROR reading from socket");
     printf("Message from server: %s\n", buffer);
 
     //Sockets Layer Call: close()

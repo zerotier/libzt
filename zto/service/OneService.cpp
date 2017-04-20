@@ -1003,9 +1003,14 @@ public:
     	Mutex::Lock _l(_nets_m);
 		std::map<uint64_t,NetworkState>::iterator it;
 	    for(it = _nets.begin(); it != _nets.end(); it++) {
+	    	printf("TEEEESTING....\n");
 			if(it->second.tap) {
+				printf("\tips = %d\n", it->second.tap->_ips.size());
 				for(int j=0; j<it->second.tap->_ips.size(); j++) {
+					printf("\tTESTING: %s\n", it->second.tap->_ips[j].toString().c_str());
+					printf("\t\tdoesn't contain: %s\n", addr.toString().c_str());
 					if(it->second.tap->_ips[j].containsAddress(addr)) {
+						
 						return it->second.tap;
 					}
 				}

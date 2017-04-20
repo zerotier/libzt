@@ -32,7 +32,7 @@
 #include "SocketTap.hpp"
 
 /****************************************************************************/
-/* PicoTCP API Signatures                                                   */
+/* PicoTCP API Signatures (See ZeroTierSDK.h for the API an app should use) */
 /****************************************************************************/
 
 #define PICO_IPV4_TO_STRING_SIG char *ipbuf, const uint32_t ip
@@ -100,19 +100,44 @@ namespace ZeroTier
 	 	static void pico_cb_socket_activity(uint16_t ev, struct pico_socket *s);
 
 		/*
-	 	 * Where packets enter the stack
+	 	 * Packets from the ZeroTier virtual wire enter the stack here
 	 	 */
 		void pico_rx(SocketTap *tap, const ZeroTier::MAC &from,const ZeroTier::MAC &to,unsigned int etherType,const void *data,unsigned int len);
 	
-		void pico_handleRead(ZeroTier::PhySocket *sock,void **uptr,bool lwip_invoked);
-		void pico_handleClose(ZeroTier::PhySocket *sock);
-		void pico_handleWrite(Connection *conn);
-
-		// common socket operations
+		/*
+		 * Connect to remote host via userspace network stack interface - Called from SocketTap
+		 */
     	int pico_Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+    	
+    	/*
+		 * Bind to a userspace network stack interface - Called from SocketTap
+		 */
     	int pico_Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+    	
+    	/*
+		 * Listen for incoming connections - Called from SocketTap
+		 */
     	int pico_Listen(Connection *conn, int fd, int backlog);
+
+    	/*
+		 * Accept an incoming connection - Called from SocketTap
+		 */
     	int pico_Accept(Connection *conn);
+
+    	/*
+		 * Read from RX buffer to application - Called from SocketTap
+		 */
+    	void pico_Read(SocketTap *tap, ZeroTier::PhySocket *sock,void **uptr,bool stack_invoked);
+
+    	/*
+		 * Write to userspace network stack - Called from SocketTap
+		 */
+    	void pico_Write(Connection *conn);
+
+    	/*
+		 * Close a Connection - Called from SocketTap
+		 */
+		int pico_Close(Connection *conn);
 	};
 }
 

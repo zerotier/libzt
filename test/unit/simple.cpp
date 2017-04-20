@@ -52,12 +52,11 @@ int main()
 		printf("waiting for service to issue an address\n");
 		sleep(1);
 	}
-
 	// Begin Socket API calls
 
 		int err;
 		int sockfd;
-		int port = 5555;
+		int port = 7878;
 		struct sockaddr_in addr;
 
 		// socket()
@@ -69,7 +68,7 @@ int main()
 		// connect() IPv6
 		if(false)
 		{
-			struct hostent *server = gethostbyname2("fde5:cd7a:9e1c:fd2:7299:932e:e35a:9a03",AF_INET6);
+			struct hostent *server = gethostbyname2("fde5:cd7a:9e1c:0fd2:7299:9367:5993:3b86",AF_INET6);
 	    	struct sockaddr_in6 serv_addr;
 			memset((char *) &serv_addr, 0, sizeof(serv_addr));
 			serv_addr.sin6_flowinfo = 0;
@@ -91,6 +90,10 @@ int main()
 				printf("error connecting to remote host (%d)\n", err);
 				return -1;
 			}
+
+			zts_write(sockfd, "hello", 5);
+			sleep(3);
+			zts_close(sockfd);
 		}
 		// bind() ipv4
 		if(false)
@@ -129,12 +132,12 @@ int main()
 
 	printf("peer_count = %lu\n", zts_get_peer_count());
 
-/*
+
 	while(1)
 	{
 		sleep(1);
 	}
-*/
+
 
 	// ---
 

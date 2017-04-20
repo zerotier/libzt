@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
     char client_addr_ipv6[100];
 
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s \n", argv[0]);
+        printf("Usage: %s \n", argv[0]);
         exit(0);
     }
 
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     //Sockets Layer Call: socket()
     sockfd = socket(AF_INET6, SOCK_STREAM, 0);
     if (sockfd < 0)
-        error("ERROR opening socket");
+        printf("ERROR opening socket");
 
     bzero((char *) &serv_addr, sizeof(serv_addr));
     portno = atoi(argv[1]);
@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
     
     //Sockets Layer Call: bind()
     if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-        error("ERROR on binding");
+        printf("ERROR on binding");
 
     //Sockets Layer Call: listen()
     listen(sockfd, 5);
@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
     //Sockets Layer Call: accept()
     newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
     if (newsockfd < 0)
-        error("ERROR on accept");
+        printf("ERROR on accept");
 
     //Sockets Layer Call: inet_ntop()
     inet_ntop(AF_INET6, &(cli_addr.sin6_addr),client_addr_ipv6, 100);
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
     //Sockets Layer Call: recv()
     n = recv(newsockfd, buffer, 255, 0);
     if (n < 0)
-        error("ERROR reading from socket");
+        printf("ERROR reading from socket");
 
     printf("Message from client: %s\n", buffer);
 
@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
     printf("sending...\n");
     n = send(newsockfd, "Server got your message", 23+1, 0);
     if (n < 0)
-        error("ERROR writing to socket");
+        printf("ERROR writing to socket");
     
     //Sockets Layer Call: close()
     close(sockfd);

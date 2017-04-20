@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <stdlib.h>
  
 int atoi(const char *str);
 int close(int filedes);
@@ -14,7 +15,7 @@ int close(int filedes);
 int main(int argc , char *argv[])
 {
     if(argc < 3) {
-        printf("usage: client <addr> <port>\n");
+        printf("usage: client <addr> <port> <single|multiple> <n?>\n");
         return 1;
     }
    
@@ -37,7 +38,7 @@ int main(int argc , char *argv[])
     }
     printf("connected\n");
 
-    char *msg = "welcome to the machine!";
+    char *msg = (char*)"welcome to the machine!";
     
     while(1)
     {

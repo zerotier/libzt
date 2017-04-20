@@ -45,34 +45,11 @@
 #include "pico_icmp4.h"
 #include "pico_dev_tap.h"
 #include "pico_protocol.h"
-#include "pico_socket.h"
 #include "pico_device.h"
 #include "pico_ipv6.h"
 
-// ZT RPC structs
-struct socket_st;
-struct listen_st;
-struct bind_st;
-struct connect_st;
-struct getsockname_st;
-struct accept_st;
-
-struct pico_socket;
-
 namespace ZeroTier {
-
-	extern SocketTap *picotap;
 	
-	/*
-	 * A helper for passing a reference to _phy to stackrpc callbacks as a "state"
-	 */
-	struct Larg
-	{
-	  SocketTap *tap;
-	  Connection *conn;
-	  Larg(SocketTap *_tap, Connection *conn) : tap(_tap), conn(conn) {}
-	};
-
 	/*
 	 * Socket Tap -- emulates an Ethernet tap device
 	 */
@@ -97,19 +74,17 @@ namespace ZeroTier {
 		bool enabled() const;
 
 		/* 
-		 * 
+		 * Adds an address to the userspace stack interface associated with this SocketTap
 		 */
 		bool addIp(const InetAddress &ip);
 
 		/* 
-		 * 
+		 * Removes an address from the userspace stack interface associated with this SocketTap
 		 */
 		bool removeIp(const InetAddress &ip);
-		std::vector<InetAddress> ips() const;
-		std::vector<InetAddress> _ips;
 		
 		/* 
-		 * 
+		 * Presents data to the userspace stack
 		 */
 		void put(const MAC &from,const MAC &to,unsigned int etherType,const void *data,
 			unsigned int len);
@@ -135,72 +110,11 @@ namespace ZeroTier {
 		void threadMain()
 			throw();
 
-		std::string _homePath;
-		MAC _mac;
-	  	unsigned int _mtu;
-	  	uint64_t _nwid;
-		
 		/* 
-		 * 
+		 * For moving data onto the ZeroTier virtual wire
 		 */
 	  	void (*_handler)(void *,void *,uint64_t,const MAC &,const MAC &,unsigned int,unsigned int,
 	  		const void *,unsigned int);
-
-	 	void *_arg;
-		Phy<SocketTap *> _phy;
-		PhySocket *_unixListenSocket;
-		volatile bool _enabled;
-		volatile bool _run;	
-
-		// picoTCP
-        unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
-        int pico_frame_rxbuf_tot;
-        Mutex _pico_frame_rxbuf_m;
-
-
-
-
-		/****************************************************************************/
-		/* In these, we will call the stack's corresponding functions, this is      *
-		 * where one would put logic to select between different stacks             */
-		/****************************************************************************/
-
-		int Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
-		int Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
-		void Listen(Connection *conn, int fd, int backlog);
-		int Accept(Connection *conn);
-
-
-
-		/* 
-		 * Return the address that the socket is bound to 
-		 */
-		void handleGetsockname(PhySocket *sock, PhySocket *rpcsock, void **uptr, struct getsockname_st *getsockname_rpc);
-		
-		/* 
-		 * Return the address of the peer connected to this socket
-		 */
-		void handleGetpeername(PhySocket *sock, PhySocket *rpcsock, void **uptr, struct getsockname_st *getsockname_rpc);
-		
-		/* 
-	 	 * Writes data from the application's socket to the LWIP connection
-	 	 */
-		void handleWrite(Connection *conn);
-
-		// Unused -- no UDP or TCP from this thread/Phy<>
-		void phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address, 
-			const struct sockaddr *from,void *data,unsigned long len);
-		void phyOnTcpConnect(PhySocket *sock,void **uptr,bool success);
-		void phyOnTcpAccept(PhySocket *sockL,PhySocket *sockN,void **uptrL,void **uptrN,
-			const struct sockaddr *from);
-		void phyOnTcpClose(PhySocket *sock,void **uptr);
-		void phyOnTcpData(PhySocket *sock,void **uptr,void *data,unsigned long len);
-		void phyOnTcpWritable(PhySocket *sock,void **uptr, bool stack_invoked);
-
-		/* 
-		 * 
-		 */
-		void handleRead(PhySocket *sock,void **uptr,bool stack_invoked);
 
 		/*
 	 	 * Signals us to close the TcpConnection associated with this PhySocket
@@ -217,21 +131,22 @@ namespace ZeroTier {
 	 	 */
 		void phyOnUnixWritable(PhySocket *sock,void **uptr,bool lwip_invoked);
 
-		/*
-	 	 * Returns a pointer to a TcpConnection associated with a given PhySocket
-	 	 */
-		Connection *getConnection(PhySocket *sock);
+		/****************************************************************************/
+		/* Vars                                                                     */
+		/****************************************************************************/
 
-		/*
-	 	 * Returns a pointer to a TcpConnection associated with a given pico_socket
-	 	 */
-		Connection *getConnection(struct pico_socket *socket);
+		std::vector<InetAddress> ips() const;
+		std::vector<InetAddress> _ips;
 
-		/*
-	 	 * Closes a TcpConnection, associated connection strcuture, 
-	 	 * PhySocket, and underlying file descriptor
-	 	 */
-		void closeConnection(PhySocket *sock);
+		std::string _homePath;
+	 	void *_arg;
+		volatile bool _enabled;
+		volatile bool _run;	
+		MAC _mac;
+	  	unsigned int _mtu;
+	  	uint64_t _nwid;
+	  	PhySocket *_unixListenSocket;
+		Phy<SocketTap *> _phy;
 
 		std::vector<Connection*> _Connections;
 
@@ -241,7 +156,86 @@ namespace ZeroTier {
 		std::vector<MulticastGroup> _multicastGroups;
 		Mutex _multicastGroups_m;
 		Mutex _ips_m, _tcpconns_m, _rx_buf_m, _close_m;
+
+
+		/****************************************************************************/
+		/* Guarded RX Frame Buffer for picoTCP                                      */
+		/****************************************************************************/
+
+        unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
+        int pico_frame_rxbuf_tot;
+        Mutex _pico_frame_rxbuf_m;
+
+		/****************************************************************************/
+		/* In these, we will call the stack's corresponding functions, this is      */
+		/* where one would put logic to select between different stacks             */
+		/****************************************************************************/
+
+		/* 
+		 * Connect to a remote host via the userspace stack interface associated with this SocketTap
+		 */
+		int Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+	
+		/* 
+		 * Bind to the userspace stack interface associated with this SocketTap
+		 */
+		int Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+		
+		/* 
+		 * Listen for a Connection
+		 */
+		void Listen(Connection *conn, int fd, int backlog);
+		
+		/* 
+		 * Accepts an incoming Connection
+		 */
+		int Accept(Connection *conn);
+		
+		/* 
+		 * Move data from RX buffer to application's "socket"
+		 */
+		void Read(PhySocket *sock,void **uptr,bool stack_invoked);
+
+		/* 
+	 	 * Move data from application's "socket" into network stack
+	 	 */
+		void Write(Connection *conn);
+
+		/*
+		 * Closes a Connection
+		 */
+        void Close(Connection *conn);
+
+
+
+
+
+
+
+		/* 
+		 * Return the address that the socket is bound to 
+		 */
+		void handleGetsockname(PhySocket *sock, PhySocket *rpcsock, void **uptr, struct getsockname_st *getsockname_rpc);
+		
+		/* 
+		 * Return the address of the peer connected to this socket
+		 */
+		void handleGetpeername(PhySocket *sock, PhySocket *rpcsock, void **uptr, struct getsockname_st *getsockname_rpc);
+		
+		/****************************************************************************/
+		/* Not used in this implementation                                          */
+		/****************************************************************************/
+
+		void phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address, 
+			const struct sockaddr *from,void *data,unsigned long len);
+		void phyOnTcpConnect(PhySocket *sock,void **uptr,bool success);
+		void phyOnTcpAccept(PhySocket *sockL,PhySocket *sockN,void **uptrL,void **uptrN,
+			const struct sockaddr *from);
+		void phyOnTcpClose(PhySocket *sock,void **uptr);
+		void phyOnTcpData(PhySocket *sock,void **uptr,void *data,unsigned long len);
+		void phyOnTcpWritable(PhySocket *sock,void **uptr, bool stack_invoked);
 	};
+
 } // namespace ZeroTier
 
 #endif

@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// picoTCP
 #include <algorithm>
 #include <utility>
 #include <dlfcn.h>
@@ -26,10 +27,12 @@
 #include <sys/resource.h>
 #include <sys/syscall.h>
 
+// SDK
 #include "SocketTap.hpp"
 #include "ZeroTierSDK.h"
 #include "picoTCP.hpp"
 
+// ZT
 #include "Utils.hpp"
 #include "OSUtils.hpp"
 #include "Constants.hpp"
@@ -89,7 +92,6 @@ namespace ZeroTier {
 
 	bool SocketTap::addIp(const InetAddress &ip)
 	{
-		DEBUG_INFO();
 		picostack->pico_init_interface(this, ip);
 		_ips.push_back(ip);
 		return true;
@@ -171,6 +173,7 @@ namespace ZeroTier {
 	
 	void SocketTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
 	{
+		DEBUG_INFO();
 		Connection *conn = (Connection*)*uptr;
 		if(!conn)
 			return;
@@ -185,6 +188,7 @@ namespace ZeroTier {
 
 	void SocketTap::phyOnUnixWritable(PhySocket *sock,void **uptr,bool stack_invoked)
 	{
+		DEBUG_INFO();
 		Read(sock,uptr,stack_invoked);
 	}
 
@@ -202,9 +206,9 @@ namespace ZeroTier {
 		return picostack->pico_Bind(conn, fd, addr, addrlen);
 	}
 
-	void SocketTap::Listen(Connection *conn, int fd, int backlog) {
+	int SocketTap::Listen(Connection *conn, int fd, int backlog) {
 		Mutex::Lock _l(_tcpconns_m);
-		picostack->pico_Listen(conn, fd, backlog);
+		return picostack->pico_Listen(conn, fd, backlog);
 	}
 
 	int SocketTap::Accept(Connection *conn) {
@@ -213,7 +217,7 @@ namespace ZeroTier {
 	}
 
 	void SocketTap::Read(PhySocket *sock,void **uptr,bool stack_invoked) {
-		picostack->pico_Read(this, sock, uptr, stack_invoked);
+		picostack->pico_Read(this, sock, (Connection*)uptr, stack_invoked);
 	}
 
 	void SocketTap::Write(Connection *conn) {

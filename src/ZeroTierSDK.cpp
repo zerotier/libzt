@@ -29,12 +29,14 @@
 #include <sys/types.h>
 #include <pthread.h>
 
+// ZT
 #include "OneService.hpp"
 #include "Utils.hpp"
 #include "OSUtils.hpp"
 #include "InetAddress.hpp"
 #include "ZeroTierOne.h"
 
+// SDK
 #include "SocketTap.hpp"
 #include "ZeroTierSDK.h"
 
@@ -290,8 +292,18 @@ void zts_disable_http_control_plane()
 /*   bind() call. This enables multi-network support                        */
 /****************************************************************************/
 
+/*
+
+    socket fd = 0 (nwid=X)---\                            /--- SocketTap=A // e.x. 172.27.0.0/?
+                              \                          /
+    socket fd = 1 (nwid=Y)--------Multiplexed z* calls-------- SocketTap=B // e.x. 192.168.0.1/16
+                              /                          \
+    socket fd = 2 (nwid=Z)---/                            \--- SocketTap=C // e.x. 10.9.9.0/24
+
+*/
+
 int zts_socket(ZT_SOCKET_SIG) {
-    DEBUG_ERROR("UnassConn=%d, AssigFDs=%d", ZeroTier::UnassignedConnections.size(), ZeroTier::AssignedConnections.size());
+    DEBUG_INFO("UnassConn=%d, AssigFDs=%d", ZeroTier::UnassignedConnections.size(), ZeroTier::AssignedConnections.size());
     DEBUG_INFO();
     ZeroTier::_multiplexer_lock.lock();
     ZeroTier::Connection *conn = new ZeroTier::Connection();
@@ -367,8 +379,7 @@ int zts_connect(ZT_CONNECT_SIG) {
         else {
             // pointer to tap we use in callbacks from the stack
             conn->picosock->priv = new ZeroTier::ConnectionPair(tap, conn); 
-            DEBUG_INFO("found appropriate SocketTap");
-            // TODO: Perhaps move this connect call outside of the lock
+            // DEBUG_INFO("found appropriate SocketTap");
             // Semantically: tap->stack->connect
             err = tap->Connect(conn, fd, addr, addrlen); 
             if(err == 0) {
@@ -377,7 +388,9 @@ int zts_connect(ZT_CONNECT_SIG) {
             }
             // Wrap the socketpair we created earlier
             // For I/O loop participation and referencing the PhySocket's parent Connection in callbacks
-            conn->sock = tap->_phy.wrapSocket(conn->sdk_fd, conn);         
+            conn->sock = tap->_phy.wrapSocket(conn->sdk_fd, conn);     
+            DEBUG_INFO("wrapping conn->sdk_fd = %d", conn->sdk_fd);   
+            DEBUG_INFO("         conn->app_fd = %d", conn->app_fd);     
         }
     }
     else {
@@ -402,10 +415,13 @@ int zts_connect(ZT_CONNECT_SIG) {
         return -1;
     }
 
+    // FIXME: Double check that accept/connect queues in multithreaded apps don't get mixed up
     // blocking
     if(err == 0 && true) {
         while(true)
         {
+            // FIXME: locking and unlocking so often might cause a performance bottleneck while outgoing connections
+            // are being established (also applies to accept())
             usleep(ZT_CONNECT_RECHECK_DELAY * 1000);
             tap->_tcpconns_m.lock();
             for(int i=0; i<tap->_Connections.size(); i++)
@@ -443,12 +459,10 @@ int zts_bind(ZT_BIND_SIG) {
         ZeroTier::InetAddress iaddr;
 
         if(conn->socket_family == AF_INET) {
-            // FIXME: Fix this typecast mess
             inet_ntop(AF_INET, 
                 (const void *)&((struct sockaddr_in *)addr)->sin_addr.s_addr, ipstr, INET_ADDRSTRLEN);
         }
         if(conn->socket_family == AF_INET6) {
-            // FIXME: Fix this typecast mess
             inet_ntop(AF_INET6, 
                 (const void *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, ipstr, INET6_ADDRSTRLEN);
         }
@@ -466,10 +480,9 @@ int zts_bind(ZT_BIND_SIG) {
             err = -1;
         }
         else {
-            DEBUG_INFO("found appropriate SocketTap");
-            DEBUG_INFO("conn->picosock = %p", conn->picosock);
+            //DEBUG_INFO("found appropriate SocketTap");
+            //DEBUG_INFO("conn->picosock = %p", conn->picosock);
             conn->picosock->priv = new ZeroTier::ConnectionPair(tap, conn);
-            // TODO: Perhaps move this connect call outside of the lock
             tap->_Connections.push_back(conn); // Give this Connection to the tap we decided on
             err = tap->Bind(conn, fd, addr, addrlen); // Semantically: tap->stack->connect
             conn->tap = tap;
@@ -498,7 +511,6 @@ int zts_listen(ZT_LISTEN_SIG) {
         DEBUG_ERROR("unable to locate connection pair (did you zbind()?");
         return -1;
     }
-
     ZeroTier::Connection *conn = p->first;
     ZeroTier::SocketTap *tap = p->second;
     
@@ -506,24 +518,29 @@ int zts_listen(ZT_LISTEN_SIG) {
         DEBUG_ERROR("unable to locate tap interface for file descriptor");
         return -1;
     }
-    tap->Listen(conn, fd, backlog);
-    err = 0;
-    DEBUG_INFO("put conn=%p into LISTENING state", conn);
+    err = tap->Listen(conn, fd, backlog);
+    DEBUG_INFO("put conn=%p into LISTENING state (err=%d)", conn, err);
     ZeroTier::_multiplexer_lock.unlock();
     return err;
 }
 
 int zts_accept(ZT_ACCEPT_SIG) {
+    DEBUG_INFO();
     int err;    
-    ZeroTier::Connection *conn = ZeroTier::AssignedConnections[fd]->first;
-    ZeroTier::SocketTap *tap = ZeroTier::AssignedConnections[fd]->second;
+    std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::AssignedConnections[fd];
+    if(!p) {
+        DEBUG_ERROR("unable to locate connection pair (did you zbind()?");
+        return -1;
+    }
+    ZeroTier::Connection *conn = p->first;
+    ZeroTier::SocketTap *tap = p->second;
     // BLOCKING: loop and keep checking until we find a newly accepted connection
     if(true) {
         while(true) {
             usleep(ZT_ACCEPT_RECHECK_DELAY * 1000);
             err = tap->Accept(conn);
             if(err >= 0)
-                return err;
+                return err; // accepted fd
         }
     }
     // NON-BLOCKING: only check for a new connection once
@@ -535,6 +552,7 @@ int zts_accept(ZT_ACCEPT_SIG) {
 #if defined(__linux__)
     int zts_accept4(ZT_ACCEPT4_SIG)
     {
+        DEBUG_INFO();
         // TODO
         return 0;
     }
@@ -542,30 +560,35 @@ int zts_accept(ZT_ACCEPT_SIG) {
 
 int zts_setsockopt(ZT_SETSOCKOPT_SIG)
 {
+    DEBUG_INFO();
     // TODO
     return 0;
 }
 
 int zts_getsockopt(ZT_GETSOCKOPT_SIG)
 {
+    DEBUG_INFO();
     // TODO
     return 0;
 }
 
 int zts_getsockname(ZT_GETSOCKNAME_SIG)
 {
+    DEBUG_INFO();
     // TODO
     return 0;
 }
 
 int zts_getpeername(ZT_GETPEERNAME_SIG)
 {
+    DEBUG_INFO();
     // TODO
     return 0;
 }
 
 int zts_close(ZT_CLOSE_SIG)
 {
+    DEBUG_INFO();
     ZeroTier::_multiplexer_lock.lock();
     ZeroTier::Connection *conn = ZeroTier::AssignedConnections[fd]->first;
     ZeroTier::SocketTap *tap = ZeroTier::AssignedConnections[fd]->second;
@@ -579,39 +602,46 @@ int zts_close(ZT_CLOSE_SIG)
 
 int zts_fcntl(ZT_FCNTL_SIG)
 {
+    DEBUG_INFO();
     // TODO
     return 0;
 }
 
 ssize_t zts_sendto(ZT_SENDTO_SIG)
 {
+    DEBUG_INFO();
     // TODO
     return 0;
 }
 
 ssize_t zts_sendmsg(ZT_SENDMSG_SIG)
 {
+    DEBUG_INFO();
     // TODO
     return 0;
 }
 
 ssize_t zts_recvfrom(ZT_RECVFROM_SIG)
 {
+    DEBUG_INFO();
     // TODO
     return 0;
 }
 
 ssize_t zts_recvmsg(ZT_RECVMSG_SIG)
 {
+    DEBUG_INFO();
     // TODO
     return 0;
 }
 
 int zts_read(ZT_READ_SIG) {
+    DEBUG_INFO();
     return read(fd, buf, len);
 }
 
 int zts_write(ZT_WRITE_SIG) {
+    DEBUG_INFO();
     return write(fd, buf, len);
 }
 
@@ -744,7 +774,7 @@ void *_start_service(void *thread_id) {
     unsigned int randp = 0;
     ZeroTier::Utils::getSecureRandom(&randp,sizeof(randp));
     int servicePort = 9000 + (randp % 1000);
-    DEBUG_ERROR("servicePort = %d", servicePort);
+    DEBUG_INFO("servicePort = %d", servicePort);
 
     for(;;) {
         zt1Service = ZeroTier::OneService::newInstance(ZeroTier::homeDir.c_str(),servicePort);
@@ -782,3 +812,15 @@ void *_start_service(void *thread_id) {
 #ifdef __cplusplus
 }
 #endif
+
+
+
+
+
+/*
+*
+*
+*
+*
+*
+*/

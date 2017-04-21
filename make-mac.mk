@@ -14,20 +14,17 @@ endif
 
 include objects.mk
 
+OSTYPE = $(shell uname -s | tr '[A-Z]' '[a-z]')
+
 # Target output filenames
 STATIC_LIB_NAME    = libzt.a
-INTERCEPT_NAME     = libztintercept.so
-SDK_SERVICE_NAME   = zerotier-sdk-service
-ONE_SERVICE_NAME   = zerotier-one
 PICO_LIB_NAME      = libpicotcp.a
 #
 STATIC_LIB         = $(BUILD)/$(STATIC_LIB_NAME)
-SDK_INTERCEPT      = $(BUILD)/$(INTERCEPT_NAME)
-SDK_SERVICE        = $(BUILD)/$(SDK_SERVICE_NAME)
-ONE_SERVICE        = $(BUILD)/$(ONE_SERVICE_NAME)
-PICO_LIB           = ext/picotcp/build/lib/$(PICO_LIB_NAME)
-
-TEST_BUILD_DIR     = build/test
+PICO_DIR           = ext/picotcp
+PICO_LIB           = $(PICO_DIR)/build/lib/$(PICO_LIB_NAME)
+#
+TEST_BUILD_DIR     = $(BUILD)/test
 UNIT_TEST_SRC_DIR  = test/unit
 DUMB_TEST_SRC_DIR  = test/dumb
 
@@ -39,7 +36,6 @@ DUMB_TEST_SRC_DIR  = test/dumb
 # Debug output for ZeroTier service
 ifeq ($(ZT_DEBUG),1)
 	DEFS+=-DZT_TRACE
-	#CFLAGS+=-Wall -fPIE -fvisibility=hidden -pthread $(INCLUDES) $(DEFS)
 	CFLAGS+=-Wall -g -pthread $(INCLUDES) $(DEFS)
 	STRIP=echo
 	# The following line enables optimization for the crypto code, since
@@ -108,12 +104,12 @@ endif
 STACK_DRIVER_FILES:=src/picoTCP.cpp
 TAP_FILES:=src/SocketTap.cpp \
 	src/ZeroTierSDK.cpp \
-	src/Utils.cpp
+	src/Utilities.cpp
 
 SDK_OBJS+= SocketTap.o \
 	picoTCP.o \
 	ZeroTierSDK.o \
-	Utils.o
+	Utilities.o
 
 PICO_OBJS+= ext/picotcp/build/lib/pico_device.o \
 	ext/picotcp/build/lib/pico_frame.o \
@@ -133,13 +129,14 @@ tests: dumb_tests unit_tests
 ##############################################################################
 
 picotcp:
-	cd ext/picotcp; make lib ARCH=shared IPV4=1 IPV6=1
+	cd $(PICO_DIR); make lib ARCH=shared IPV4=1 IPV6=1
 
 ##############################################################################
 ## Static Libraries                                                         ##
 ##############################################################################
 
 static_lib: picotcp $(ZTO_OBJS)
+	@mkdir -p $(BUILD)
 	$(CXX) $(CXXFLAGS) $(SDK_FLAGS) $(TAP_FILES) $(STACK_DRIVER_FILES) -c -DSDK_STATIC
 	libtool -static -o $(STATIC_LIB) $(ZTO_OBJS) $(SDK_OBJS) $(PICO_LIB)
 
@@ -149,10 +146,10 @@ jni_static_lib: picotcp $(ZTO_OBJS)
 ## Unit Tests                                                               ##
 ##############################################################################
 
-UNIT_TEST_SRC_FILES:=$(wildcard $(UNIT_TEST_SRC_DIR)/*.cpp)
-UNIT_TEST_OBJ_FILES:=$(addprefix $(TEST_BUILD_DIR)/,$(notdir $(UNIT_TEST_SRC_FILES:.cpp=)))
-UNIT_TEST_INCLUDES:=-Iinclude
-UNIT_TEST_LIBS:=-Lbuild -lzt
+UNIT_TEST_SRC_FILES := $(wildcard  $(UNIT_TEST_SRC_DIR)/*.cpp)
+UNIT_TEST_OBJ_FILES := $(addprefix $(TEST_BUILD_DIR)/,$(notdir $(UNIT_TEST_SRC_FILES:.cpp=)))
+UNIT_TEST_INCLUDES  := -Iinclude
+UNIT_TEST_LIBS      := -L$(BUILD) -lzt
 
 $(TEST_BUILD_DIR)/%: $(UNIT_TEST_SRC_DIR)/%.cpp
 	@mkdir -p $(TEST_BUILD_DIR)
@@ -165,7 +162,7 @@ unit_tests: $(UNIT_TEST_OBJ_FILES)
 ## Non-ZT Client/Server Tests                                               ##
 ##############################################################################
 
-DUMB_TEST_SRC_FILES=$(wildcard $(DUMB_TEST_SRC_DIR)/*.cpp)
+DUMB_TEST_SRC_FILES := $(wildcard $(DUMB_TEST_SRC_DIR)/*.cpp)
 DUMB_TEST_OBJ_FILES := $(addprefix $(TEST_BUILD_DIR)/,$(notdir $(DUMB_TEST_SRC_FILES:.cpp=)))
 
 $(TEST_BUILD_DIR)/%: $(DUMB_TEST_SRC_DIR)/%.cpp
@@ -179,19 +176,19 @@ dumb_tests: $(DUMB_TEST_OBJ_FILES)
 ## Misc                                                                     ##
 ##############################################################################
 
+# Cleans only current $(OSTYPE)
 clean:
 	-rm -rf $(BUILD)/*
-	-rm -rf zerotier-cli zerotier-idtool
-	-find . -type f \( -name $(ONE_SERVICE_NAME) -o -name $(SDK_SERVICE_NAME) \) -delete
-	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.a' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
+	-find $(PICO_DIR) -type f \( -name '*.o' -o -name '*.so' -o -name '*.a' \) -delete
+	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
 
-# Check for the presence of built frameworks/bundles/libaries
+# Clean everything
+nuke:
+	-rm -rf $(BUILD)/*
+	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.a' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
+	
 check:
 	-./check.sh $(PICO_LIB)
-	-./check.sh $(SDK_INTERCEPT)
-	-./check.sh $(ONE_SERVICE)
-	-./check.sh $(SDK_SERVICE)
-	-./check.sh $(STATIC_LIB)
 	-./check.sh $(STATIC_LIB)
 
 	

@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SDK_UTILS_HPP
-#define SDK_UTILS_HPP
+#ifndef SDK_UTILITIES_HPP
+#define SDK_UTILITIES_HPP
 
 /*
  * Print a stacktrace

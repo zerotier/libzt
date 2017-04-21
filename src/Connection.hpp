@@ -21,10 +21,13 @@
 
 #include <sys/socket.h>
 
+// picoTCP
 #include "pico_socket.h"
 
+// ZT
 #include "Phy.hpp"
 
+// SDK
 #include "ZeroTierSDK.h"
 #include "SocketTap.hpp"
 
@@ -59,6 +62,7 @@ namespace ZeroTier {
 		int state; // See ZeroTierSDK.h for (ZT_SOCK_STATE_*)
 
 		Connection() {
+			// DEBUG_INFO("Connection() this = %p", this);
 			ZT_PHY_SOCKFD_TYPE fdpair[2];
 			if(socketpair(PF_LOCAL, SOCK_STREAM, 0, fdpair) < 0) {
 				if(errno < 0) {
@@ -68,6 +72,10 @@ namespace ZeroTier {
 			}
 			sdk_fd = fdpair[0];
 			app_fd = fdpair[1];
+		}
+		~Connection()
+		{
+			// DEBUG_INFO("~Connection() this = %p", this);
 		}
 	};
 

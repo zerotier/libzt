@@ -184,7 +184,7 @@ namespace ZeroTier {
 		/* 
 		 * Listen for a Connection
 		 */
-		void Listen(Connection *conn, int fd, int backlog);
+		int Listen(Connection *conn, int fd, int backlog);
 		
 		/* 
 		 * Accepts an incoming Connection

@@ -3,29 +3,28 @@ ZeroTier SDK
 
 [![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
 
+Embed ZeroTier directly into your app or service. Connect everything without worrying about how it's actually connected.
 ***
 
 ## Example
 
 ```
-	std::string str = "welcome to the machine";
-	zts_start(path);
-	while(!zts_service_running())
-		sleep(1);
-	zts_join_network(nwid);
-	int err, sockfd;
-	while(!zts_has_address(nwid))
-		sleep(1);
-	if((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		printf("error creating ZeroTier socket");
-		exit(0);
-	}
-	if((err = zts_connect(sockfd, (const struct sockaddr *)addr, sizeof(addr))) < 0) {
-		printf("error connecting to remote host (%d)\n", err);
-		exit(0);
-	}
-	int wrote = zts_write(sockfd, str.c_str(), str.length());
-	err = zts_close(sockfd);
+string str = "welcome to the machine";
+zts_start("./zt");
+while(!zts_service_running())
+	sleep(1);
+zts_join_network(nwid);
+int err, sockfd;
+while(!zts_has_address(nwid))
+	sleep(1);
+if((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+	printf("error creating ZeroTier socket");
+}
+if((err = zts_connect(fd, (const struct sockaddr *)addr, sizeof(addr))) < 0) {
+	printf("error connecting to remote host (%d)\n", err);
+}
+int wrote = zts_write(fd, str.c_str(), str.length());
+zts_close(fd);
 ```
 
 Bindings also exist for [many popular languages]().

@@ -62,6 +62,16 @@
 
 namespace ZeroTier
 {
+	/*
+	 * Send raw frames from the stack to the ZeroTier virtual wire
+	 */
+    int pico_eth_send(struct pico_device *dev, void *buf, int len);
+
+    /*
+	 * Read raw frames from RX frame buffer into the stack 
+	 */
+    int pico_eth_poll(struct pico_device *dev, int loop_score);
+
 	class SocketTap;
 	struct Connection;
 
@@ -127,7 +137,7 @@ namespace ZeroTier
     	/*
 		 * Read from RX buffer to application - Called from SocketTap
 		 */
-    	void pico_Read(SocketTap *tap, ZeroTier::PhySocket *sock,void **uptr,bool stack_invoked);
+    	void pico_Read(SocketTap *tap, ZeroTier::PhySocket *sock,Connection *conn,bool stack_invoked);
 
     	/*
 		 * Write to userspace network stack - Called from SocketTap

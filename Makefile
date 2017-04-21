@@ -1,10 +1,9 @@
 # Common makefile -- loads make rules for each platform
 
-BUILD=build
-INT=integrations
-ZTO=zto
-
 OSTYPE=$(shell uname -s)
+
+BUILD=build/$(OSTYPE)
+ZTO=zto
 
 ifeq ($(OSTYPE),Darwin)
 	include make-mac.mk

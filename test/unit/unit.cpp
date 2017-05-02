@@ -506,32 +506,12 @@ int do_test(std::string path, std::string nwid, int type, int protocol, int mode
 			}
 			// IPv6
 			if(protocol == 6) {
-
-    struct hostent *server;
-	server = gethostbyname2("fde5:cd7a:9e1c:0fd2:7299:9369:4d7b:feff",AF_INET6);
-	if (server == NULL) {
-        printf("ERROR, no such host\n");
-        exit(0);
-    }
-
-	memset((char *) &addr6, 0, sizeof(addr6));
-    addr6.sin6_flowinfo = 0;
-    addr6.sin6_family = AF_INET6;
-    memmove((char *) &addr6.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
-    addr6.sin6_port = htons(port);
-
-    /*
 				server = gethostbyname2(ipstr.c_str(),AF_INET6);
-    			memset((char *) &addr6, 0, sizeof(addr6));
-    			addr6.sin6_flowinfo = 0;
-    			addr6.sin6_family = AF_INET6;
-    			addr6.sin6_port = htons(port);
-				//addr6.sin6_addr = in6addr_any;
-    			memmove((char *) &addr6.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
-				//printf(" running (%d) test as ipv=%d\n", mode, protocol);
-				printf("ipstr = %s\n", ipstr.c_str());
-
-	*/
+				memset((char *) &addr6, 0, sizeof(addr6));
+			    addr6.sin6_flowinfo = 0;
+			    addr6.sin6_family = AF_INET6;
+			    memmove((char *) &addr6.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
+			    addr6.sin6_port = htons(port);
 				return ipv6_tcp_server_test(&addr6, port);
 			}
 		}
@@ -562,13 +542,12 @@ int do_test(std::string path, std::string nwid, int type, int protocol, int mode
 			// IPv6
 			if(protocol == 6) {
 				server = gethostbyname2(ipstr.c_str(),AF_INET6);
-    			memset((char *) &addr6, 0, sizeof(addr6));
-    			addr6.sin6_flowinfo = 0;
-    			addr6.sin6_family = AF_INET6;
-    			memmove((char *) &addr6.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
-    			addr6.sin6_port = htons(port);
-				//printf(" running (%d) test as ipv=%d\n", mode, protocol);
-				return ipv6_tcp_client_sustained_test(&addr6, port, operation, n_count, delay);
+				memset((char *) &addr6, 0, sizeof(addr6));
+			    addr6.sin6_flowinfo = 0;
+			    addr6.sin6_family = AF_INET6;
+			    memmove((char *) &addr6.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
+			    addr6.sin6_port = htons(port);
+				return ipv6_tcp_server_test(&addr6, port, operation, n_count, delay);
 			}
 		}
 

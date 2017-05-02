@@ -82,7 +82,7 @@ namespace ZeroTier
 		/*
 	 	 * Set up an interface in the network stack for the SocketTap
 	 	 */
-		void pico_init_interface(ZeroTier::SocketTap *tap, const ZeroTier::InetAddress &ip);
+		bool pico_init_interface(ZeroTier::SocketTap *tap, const ZeroTier::InetAddress &ip);
 
 		/*
 	 	 * Main stack loop
@@ -132,7 +132,7 @@ namespace ZeroTier
     	/*
 		 * Accept an incoming connection - Called from SocketTap
 		 */
-    	int pico_Accept(Connection *conn);
+    	Connection* pico_Accept(Connection *conn);
 
     	/*
 		 * Read from RX buffer to application - Called from SocketTap
@@ -142,7 +142,7 @@ namespace ZeroTier
     	/*
 		 * Write to userspace network stack - Called from SocketTap
 		 */
-    	void pico_Write(Connection *conn);
+    	void pico_Write(Connection *conn, void *data, ssize_t len);
 
     	/*
 		 * Close a Connection - Called from SocketTap

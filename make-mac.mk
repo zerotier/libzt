@@ -28,7 +28,6 @@ TEST_BUILD_DIR     = $(BUILD)/test
 UNIT_TEST_SRC_DIR  = test/unit
 DUMB_TEST_SRC_DIR  = test/dumb
 
-
 ##############################################################################
 ## General Configuration                                                    ##
 ##############################################################################
@@ -42,7 +41,7 @@ ifeq ($(ZT_DEBUG),1)
 	# C25519 in particular is almost UNUSABLE in heavy testing without it.
 #ext/lz4/lz4.o node/Salsa20.o node/SHA512.o node/C25519.o node/Poly1305.o: CFLAGS = -Wall -O2 -g -pthread $(INCLUDES) $(DEFS)
 else
-	CFLAGS?=-Ofast -fstack-protector
+	CFLAGS?=-O3 -fstack-protector
 	CFLAGS+=-Wall -fPIE -fvisibility=hidden -pthread $(INCLUDES) $(DEFS)
 	#CFLAGS+=$(ARCH_FLAGS) -Wall -flto -fPIC -pthread -mmacosx-version-min=10.7 -DNDEBUG -Wno-unused-private-field $(INCLUDES) $(DEFS)
 	STRIP=strip

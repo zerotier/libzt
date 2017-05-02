@@ -135,6 +135,9 @@ namespace ZeroTier {
 		/* Vars                                                                     */
 		/****************************************************************************/
 
+		struct pico_device picodev;
+		struct pico_device picodev6;
+
 		std::vector<InetAddress> ips() const;
 		std::vector<InetAddress> _ips;
 
@@ -189,7 +192,7 @@ namespace ZeroTier {
 		/* 
 		 * Accepts an incoming Connection
 		 */
-		int Accept(Connection *conn);
+		Connection* Accept(Connection *conn);
 		
 		/* 
 		 * Move data from RX buffer to application's "socket"
@@ -199,7 +202,7 @@ namespace ZeroTier {
 		/* 
 	 	 * Move data from application's "socket" into network stack
 	 	 */
-		void Write(Connection *conn);
+		void Write(Connection *conn, void *data, ssize_t len);
 
 		/*
 		 * Closes a Connection

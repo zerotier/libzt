@@ -92,9 +92,13 @@ namespace ZeroTier {
 
 	bool SocketTap::addIp(const InetAddress &ip)
 	{
-		picostack->pico_init_interface(this, ip);
-		_ips.push_back(ip);
-		return true;
+		if(picostack) {		
+			picostack->pico_init_interface(this, ip);
+			_ips.push_back(ip);
+			std::sort(_ips.begin(),_ips.end());
+			return true;
+		}
+		return false;
 	}
 
 	bool SocketTap::removeIp(const InetAddress &ip)
@@ -124,7 +128,8 @@ namespace ZeroTier {
 		const void *data,unsigned int len)
 	{
 	    // RX packet
-	   	picostack->pico_rx(this, from,to,etherType,data,len);
+	    if(picostack)
+	   		picostack->pico_rx(this, from,to,etherType,data,len);
 	}
 
 	std::string SocketTap::deviceName() const
@@ -163,12 +168,17 @@ namespace ZeroTier {
 	void SocketTap::threadMain()
 		throw()
 	{
-		picostack->pico_loop(this);
+		if(picostack)
+			picostack->pico_loop(this);
 	}
 
 	void SocketTap::phyOnUnixClose(PhySocket *sock,void **uptr) 
 	{
-		Close((Connection*)uptr);
+		if(sock) {
+			Connection *conn = (Connection*)uptr;
+			if(conn)
+				Close(conn);
+		}
 	}
 	
 	void SocketTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
@@ -177,19 +187,16 @@ namespace ZeroTier {
 		Connection *conn = (Connection*)*uptr;
 		if(!conn)
 			return;
-	    if(len) {
-	    	unsigned char *buf = (unsigned char*)data;
-	    	memcpy(conn->txbuf + conn->txsz, buf, len);
-	        conn->txsz += len;
-	        Write(conn);
-	    }
+	    if(len)
+	        Write(conn, data, len);
 	    return;
 	}
 
 	void SocketTap::phyOnUnixWritable(PhySocket *sock,void **uptr,bool stack_invoked)
 	{
 		DEBUG_INFO();
-		Read(sock,uptr,stack_invoked);
+		if(sock)
+			Read(sock,uptr,stack_invoked);
 	}
 
 	/****************************************************************************/
@@ -198,41 +205,59 @@ namespace ZeroTier {
 
 	int SocketTap::Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen) {
 		Mutex::Lock _l(_tcpconns_m);
-		return picostack->pico_Connect(conn, fd, addr, addrlen);
+		if(picostack)
+			return picostack->pico_Connect(conn, fd, addr, addrlen);
+		return ZT_ERR_GENERAL_FAILURE;
 	}
 
 	int SocketTap::Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen) {
 		Mutex::Lock _l(_tcpconns_m);
-		return picostack->pico_Bind(conn, fd, addr, addrlen);
+		if(picostack)
+			return picostack->pico_Bind(conn, fd, addr, addrlen);
+		return ZT_ERR_GENERAL_FAILURE;
 	}
 
 	int SocketTap::Listen(Connection *conn, int fd, int backlog) {
 		Mutex::Lock _l(_tcpconns_m);
-		return picostack->pico_Listen(conn, fd, backlog);
+		if(picostack)
+			return picostack->pico_Listen(conn, fd, backlog);
+		return ZT_ERR_GENERAL_FAILURE;
 	}
 
-	int SocketTap::Accept(Connection *conn) {
+	Connection* SocketTap::Accept(Connection *conn) {
 		Mutex::Lock _l(_tcpconns_m);
-		return picostack->pico_Accept(conn);
+		if(picostack)
+			return picostack->pico_Accept(conn);
+		return NULL;
 	}
 
 	void SocketTap::Read(PhySocket *sock,void **uptr,bool stack_invoked) {
-		picostack->pico_Read(this, sock, (Connection*)uptr, stack_invoked);
+		if(picostack)
+			picostack->pico_Read(this, sock, (Connection*)uptr, stack_invoked);
 	}
 
-	void SocketTap::Write(Connection *conn) {
-		picostack->pico_Write(conn);
+	void SocketTap::Write(Connection *conn, void *data, ssize_t len) {
+		if(picostack)
+			picostack->pico_Write(conn, data, len);
 	}
 
 	void SocketTap::Close(Connection *conn) {
 		Mutex::Lock _l(_close_m);
-		// Here we assume _tcpconns_m is already locked by caller
+		if(!conn) {
+			DEBUG_ERROR("invalid connection");
+			return;
+		}
 		if(!conn->sock) {
 			DEBUG_EXTRA("invalid PhySocket");
 			return;
 		}
-	    if(!conn)
-	        return;
+		picostack->pico_Close(conn);
+		// Here we assume _tcpconns_m is already locked by caller
+		// FIXME: is this assumption still valid
+		if(conn->sock)
+			_phy.close(conn->sock, false);
+
+		close(_phy.getDescriptor(conn->sock));
 		for(size_t i=0;i<_Connections.size();++i) {
 			if(_Connections[i] == conn){
 				_Connections.erase(_Connections.begin() + i);
@@ -240,10 +265,6 @@ namespace ZeroTier {
 				break;
 			}
 		}
-		if(!conn->sock)
-			return;
-		close(_phy.getDescriptor(conn->sock));
-		_phy.close(conn->sock, false);
 	}
 
 	/****************************************************************************/

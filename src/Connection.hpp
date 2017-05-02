@@ -30,6 +30,7 @@
 // SDK
 #include "ZeroTierSDK.h"
 #include "SocketTap.hpp"
+#include "RingBuffer.hpp"
 
 namespace ZeroTier {
 
@@ -38,6 +39,10 @@ namespace ZeroTier {
 	*/
 	struct Connection
 	{
+		//circular_buffer<char> crbuf = circular_buffer<char>(ZT_TCP_RX_BUF_SZ);
+		//circular_buffer<char> ctbuf = circular_buffer<char>(ZT_TCP_TX_BUF_SZ);
+
+
 		int pid;
 		PhySocket *sock;				
 		struct pico_socket *picosock;
@@ -72,6 +77,14 @@ namespace ZeroTier {
 			}
 			sdk_fd = fdpair[0];
 			app_fd = fdpair[1];
+			if(ZT_SOCK_BEHAVIOR_LINGER) {
+				struct linger so_linger;
+				so_linger.l_onoff = true;
+				so_linger.l_linger = ZT_SOCK_BEHAVIOR_LINGER_TIME;
+		        if(zts_setsockopt(app_fd, SOL_SOCKET, SO_LINGER, &so_linger, sizeof so_linger) < 0) {
+    				DEBUG_ERROR("error setsockopt (%d)", errno);
+		        }
+		    }
 		}
 		~Connection()
 		{

@@ -64,7 +64,7 @@ namespace ZeroTier {
     /*
      * For fast lookup of Connections and SocketTaps via given file descriptor
      */
-    std::map<int, std::pair<Connection*,SocketTap*>*> AssignedConnections;
+    std::map<int, std::pair<Connection*,SocketTap*>*> fdmap;
 
     ZeroTier::Mutex _multiplexer_lock;
     ZeroTier::Mutex _accepted_connection_lock;
@@ -302,19 +302,37 @@ void zts_disable_http_control_plane()
 
 */
 
+/*
+
+Darwin:
+
+    [  ] [EACCES]           Permission to create a socket of the specified type and/or protocol is denied.
+    [  ] [EAFNOSUPPORT]     The specified address family is not supported.
+    [  ] [EMFILE]           The per-process descriptor table is full.
+    [  ] [ENFILE]           The system file table is full.
+    [  ] [ENOBUFS]          Insufficient buffer space is available.  The socket cannot be created until sufficient resources are freed.
+    [  ] [ENOMEM]           Insufficient memory was available to fulfill the request.
+    [  ] [EPROTONOSUPPORT]  The protocol type or the specified protocol is not supported within this domain.
+    [  ] [EPROTOTYPE]       The socket type is not supported by the protocol.
+*/
+
+// int socket_family, int socket_type, int protocol
 int zts_socket(ZT_SOCKET_SIG) {
-    DEBUG_INFO("UnassConn=%d, AssigFDs=%d", ZeroTier::UnassignedConnections.size(), ZeroTier::AssignedConnections.size());
+    DEBUG_INFO("UnassConn=%d, fdmap=%d", ZeroTier::UnassignedConnections.size(), ZeroTier::fdmap.size());
     DEBUG_INFO();
     ZeroTier::_multiplexer_lock.lock();
     ZeroTier::Connection *conn = new ZeroTier::Connection();
     int err, protocol_version;
     // set up pico_socket
     struct pico_socket * psock;
+    
     #if defined(SDK_IPV4)
         protocol_version = PICO_PROTO_IPV4;
-    #elif defined(SDK_IPV6)
+    #endif
+    #if defined(SDK_IPV6)
         protocol_version = PICO_PROTO_IPV6;
     #endif
+    
     if(socket_type == SOCK_DGRAM) {
         psock = pico_socket_open(
             protocol_version, PICO_PROTO_UDP, &ZeroTier::picoTCP::pico_cb_socket_activity);
@@ -340,7 +358,35 @@ int zts_socket(ZT_SOCKET_SIG) {
     return err;
 }
 
+
+/*
+
+Darwin:
+
+    [  ] [EACCES]           The destination address is a broadcast address and the socket option SO_BROADCAST is not set.
+    [  ] [EADDRINUSE]       The address is already in use.
+    [  ] [EADDRNOTAVAIL]    The specified address is not available on this machine.
+    [  ] [EAFNOSUPPORT]     Addresses in the specified address family cannot be used with this socket.
+    [  ] [EALREADY]         The socket is non-blocking and a previous connection attempt has not yet been completed.
+    [  ] [EBADF]            socket is not a valid descriptor.
+    [  ] [ECONNREFUSED]     The attempt to connect was ignored (because the target is not listening for connections) or explicitly rejected.
+    [  ] [EFAULT]           The address parameter specifies an area outside the process address space.
+    [  ] [EHOSTUNREACH]     The target host cannot be reached (e.g., down, disconnected).
+    [  ] [EINPROGRESS]      The socket is non-blocking and the connection cannot be completed immediately.  It is possible to select(2) for completion by selecting the socket for writing.
+    [  ] [EINTR]            Its execution was interrupted by a signal.
+    [  ] [EINVAL]           An invalid argument was detected (e.g., address_len is not valid for the address family, the specified address family is invalid).
+    [  ] [EISCONN]          The socket is already connected.
+    [  ] [ENETDOWN]         The local network interface is not functioning.
+    [  ] [ENETUNREACH]      The network isn't reachable from this host.
+    [  ] [ENOBUFS]          The system call was unable to allocate a needed memory buffer.
+    [  ] [ENOTSOCK]         socket is not a file descriptor for a socket.
+    [  ] [EOPNOTSUPP]       Because socket is listening, no connection is allowed.
+    [  ] [EPROTOTYPE]       address has a different type than the socket that is bound to the specified peer address.
+    [  ] [ETIMEDOUT]        Connection establishment timed out without establishing a connection.
+    [  ] [ECONNRESET]       Remote host reset the connection request.
+*/
 int zts_connect(ZT_CONNECT_SIG) {
+    DEBUG_INFO("fd = %d", fd);
     if(!zt1Service) {
         DEBUG_ERROR("Service not started. Call zts_start(path) first");
         // errno = ?
@@ -367,8 +413,8 @@ int zts_connect(ZT_CONNECT_SIG) {
                 (const void *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, ipstr, INET6_ADDRSTRLEN);
         }
         iaddr.fromString(ipstr);
-        DEBUG_INFO("ipstr= %s", ipstr);
-        DEBUG_INFO("iaddr= %s", iaddr.toString().c_str());
+        //DEBUG_INFO("ipstr= %s", ipstr);
+        //DEBUG_INFO("iaddr= %s", iaddr.toString().c_str());
         tap = zt1Service->getTap(iaddr);
         if(!tap) {
             // TODO: More canonical error?
@@ -389,8 +435,8 @@ int zts_connect(ZT_CONNECT_SIG) {
             // Wrap the socketpair we created earlier
             // For I/O loop participation and referencing the PhySocket's parent Connection in callbacks
             conn->sock = tap->_phy.wrapSocket(conn->sdk_fd, conn);     
-            DEBUG_INFO("wrapping conn->sdk_fd = %d", conn->sdk_fd);   
-            DEBUG_INFO("         conn->app_fd = %d", conn->app_fd);     
+            //DEBUG_INFO("wrapping conn->sdk_fd = %d", conn->sdk_fd);   
+            //DEBUG_INFO("         conn->app_fd = %d", conn->app_fd);     
         }
     }
     else {
@@ -399,7 +445,7 @@ int zts_connect(ZT_CONNECT_SIG) {
         err = -1;
     }
     ZeroTier::UnassignedConnections.erase(fd);
-    ZeroTier::AssignedConnections[fd] = new std::pair<ZeroTier::Connection*,ZeroTier::SocketTap*>(conn, tap);
+    ZeroTier::fdmap[fd] = new std::pair<ZeroTier::Connection*,ZeroTier::SocketTap*>(conn, tap);
     ZeroTier::_multiplexer_lock.unlock();
 
     // NOTE: pico_socket_connect() will return 0 if no error happens immediately, but that doesn't indicate
@@ -409,15 +455,15 @@ int zts_connect(ZT_CONNECT_SIG) {
     // user application
 
     // non-blocking
-    if(err == 0 && false)
-    {
+    if(err == 0 && false) {
         errno = EINPROGRESS;
         return -1;
     }
 
-    // FIXME: Double check that accept/connect queues in multithreaded apps don't get mixed up
     // blocking
+    // FIXME: Double check that accept/connect queues in multithreaded apps don't get mixed up
     if(err == 0 && true) {
+        bool complete = false;
         while(true)
         {
             // FIXME: locking and unlocking so often might cause a performance bottleneck while outgoing connections
@@ -428,21 +474,40 @@ int zts_connect(ZT_CONNECT_SIG) {
             {
                 if(tap->_Connections[i]->state == PICO_ERR_ECONNRESET) {   
                     errno = ECONNRESET;
-                    return -1;
+                    err = -1;
                 }
                 if(tap->_Connections[i]->state == ZT_SOCK_STATE_UNHANDLED_CONNECTED) {
                     tap->_Connections[i]->state = ZT_SOCK_STATE_CONNECTED;
                     errno = 0;
-                    return 0; // complete
+                    err = 0; // complete
+                    complete = true;
                 }
             }
             tap->_tcpconns_m.unlock();
+            if(complete)
+                break;
         }
     }
     return err;
 }
 
+/*
+
+Darwin:
+
+    [  ] [EBADF]            S is not a valid descriptor.
+    [  ] [ENOTSOCK]         S is not a socket.
+    [  ] [EADDRNOTAVAIL]    The specified address is not available from the local
+                            machine.
+    [  ] [EADDRINUSE]       The specified address is already in use.
+    [  ] [EINVAL]           The socket is already bound to an address.
+    [  ] [EACCES]           The requested address is protected, and the current
+                            user has inadequate permission to access it.
+    [  ] [EFAULT]           The name parameter is not in a valid part of the user
+                            address space.
+*/
 int zts_bind(ZT_BIND_SIG) {
+    DEBUG_INFO("fd = %d", fd);
     if(!zt1Service) {
         DEBUG_ERROR("Service not started. Call zts_start(path) first");        
         // errno = ?
@@ -454,15 +519,17 @@ int zts_bind(ZT_BIND_SIG) {
     ZeroTier::SocketTap *tap;
     
     if(conn) {      
-        char ipstr[INET6_ADDRSTRLEN];//, nm_str[INET6_ADDRSTRLEN];
+        char ipstr[INET6_ADDRSTRLEN]; //, nm_str[INET6_ADDRSTRLEN];
         memset(ipstr, 0, INET6_ADDRSTRLEN);
         ZeroTier::InetAddress iaddr;
 
         if(conn->socket_family == AF_INET) {
+            printf("parsing ipv4 str\n");
             inet_ntop(AF_INET, 
                 (const void *)&((struct sockaddr_in *)addr)->sin_addr.s_addr, ipstr, INET_ADDRSTRLEN);
         }
         if(conn->socket_family == AF_INET6) {
+            printf("parsing ipv6 str\n");
             inet_ntop(AF_INET6, 
                 (const void *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, ipstr, INET6_ADDRSTRLEN);
         }
@@ -493,12 +560,24 @@ int zts_bind(ZT_BIND_SIG) {
         // errno = ?
         err = -1;
     }
-    ZeroTier::AssignedConnections[fd] = new std::pair<ZeroTier::Connection*,ZeroTier::SocketTap*>(conn, tap);
+    ZeroTier::fdmap[fd] = new std::pair<ZeroTier::Connection*,ZeroTier::SocketTap*>(conn, tap);
     ZeroTier::_multiplexer_lock.unlock();
     return err;
 }
 
+/*
+
+Darwin:
+
+    [  ] [EACCES]           The current process has insufficient privileges.
+    [  ] [EBADF]            The argument socket is not a valid file descriptor.
+    [  ] [EDESTADDRREQ]     The socket is not bound to a local address and the protocol does not support listening on an unbound socket.
+    [  ] [EINVAL]           socket is already connected.
+    [  ] [ENOTSOCK]         The argument socket does not reference a socket.
+    [  ] [EOPNOTSUPP]       The socket is not of a type that supports the operation listen().
+*/
 int zts_listen(ZT_LISTEN_SIG) {
+    DEBUG_INFO("fd = %d", fd);
     if(!zt1Service) {
         DEBUG_ERROR("Service not started. Call zts_start(path) first");
         // errno = ?
@@ -506,7 +585,7 @@ int zts_listen(ZT_LISTEN_SIG) {
     }
     int err;
     ZeroTier::_multiplexer_lock.lock();
-    std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::AssignedConnections[fd];
+    std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::fdmap[fd];
     if(!p) {
         DEBUG_ERROR("unable to locate connection pair (did you zbind()?");
         return -1;
@@ -519,129 +598,246 @@ int zts_listen(ZT_LISTEN_SIG) {
         return -1;
     }
     err = tap->Listen(conn, fd, backlog);
-    DEBUG_INFO("put conn=%p into LISTENING state (err=%d)", conn, err);
+    //DEBUG_INFO("put conn=%p into LISTENING state (err=%d)", conn, err);
     ZeroTier::_multiplexer_lock.unlock();
     return err;
 }
 
+/*
+
+Darwin:
+
+    [  ] [EBADF]            The descriptor is invalid.
+    [  ] [ENOTSOCK]         The descriptor references a file, not a socket.
+    [  ] [EOPNOTSUPP]       The referenced socket is not of type SOCK_STREAM.
+    [  ] [EFAULT]           The addr parameter is not in a writable part of the
+                            user address space.
+    [  ] [EWOULDBLOCK]      The socket is marked non-blocking and no connections
+                            are present to be accepted.
+    [  ] [EMFILE]           The per-process descriptor table is full.
+    [  ] [ENFILE]           The system file table is full.
+*/
 int zts_accept(ZT_ACCEPT_SIG) {
-    DEBUG_INFO();
-    int err;    
-    std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::AssignedConnections[fd];
+    DEBUG_INFO("fd = %d", fd);
+    ZeroTier::_multiplexer_lock.lock();
+    int err = -1;    
+    std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::fdmap[fd];
     if(!p) {
-        DEBUG_ERROR("unable to locate connection pair (did you zbind()?");
+        DEBUG_ERROR("unable to locate connection pair (did you zbind())?");
         return -1;
     }
     ZeroTier::Connection *conn = p->first;
     ZeroTier::SocketTap *tap = p->second;
+    ZeroTier::Connection *accepted_conn;
+
     // BLOCKING: loop and keep checking until we find a newly accepted connection
     if(true) {
         while(true) {
             usleep(ZT_ACCEPT_RECHECK_DELAY * 1000);
-            err = tap->Accept(conn);
-            if(err >= 0)
-                return err; // accepted fd
+            accepted_conn = tap->Accept(conn);
+            if(accepted_conn)
+                break; // accepted fd = err
         }
     }
     // NON-BLOCKING: only check for a new connection once
     else
-        err = tap->Accept(conn);
+        accepted_conn = tap->Accept(conn);
+
+    if(accepted_conn) {
+        ZeroTier::fdmap[accepted_conn->app_fd] = new std::pair<ZeroTier::Connection*,ZeroTier::SocketTap*>(accepted_conn, tap);
+        err = accepted_conn->app_fd;
+    }
+    ZeroTier::_multiplexer_lock.unlock();
     return err;
 }
 
+
+/*
+Linux accept() (and accept4()) passes already-pending network errors on the new socket as an error code from accept(). This behavior differs from other BSD socket implementations. For reliable operation the application should detect the network errors defined for the protocol after accept() and treat them like EAGAIN by retrying. In the case of TCP/IP, these are ENETDOWN, EPROTO, ENOPROTOOPT, EHOSTDOWN, ENONET, EHOSTUNREACH, EOPNOTSUPP, and ENETUNREACH.
+Errors
+
+EAGAIN or EWOULDBLOCK The socket is marked nonblocking and no connections are present to be accepted. POSIX.1-2001 allows either error to be returned for this case, and does not require these constants to have the same value, so a portable application should check for both possibilities.
+EBADF The descriptor is invalid.
+ECONNABORTED A connection has been aborted.
+EFAULT The addr argument is not in a writable part of the user address space.
+EINTR The system call was interrupted by a signal that was caught before a valid connection arrived; see signal(7).
+EINVAL Socket is not listening for connections, or addrlen is invalid (e.g., is negative).
+EINVAL (accept4()) invalid value in flags.
+EMFILE The per-process limit of open file descriptors has been reached.
+ENFILE The system limit on the total number of open files has been reached.
+ENOBUFS, ENOMEM Not enough free memory. This often means that the memory allocation is limited by the socket buffer limits, not by the system memory.
+ENOTSOCK The descriptor references a file, not a socket.
+EOPNOTSUPP The referenced socket is not of type SOCK_STREAM.
+EPROTO Protocol error.
+
+In addition, Linux accept() may fail if:
+
+EPERM Firewall rules forbid connection.
+*/
 #if defined(__linux__)
     int zts_accept4(ZT_ACCEPT4_SIG)
     {
-        DEBUG_INFO();
+        DEBUG_INFO("fd = %d", fd);
         // TODO
         return 0;
     }
 #endif
 
+
+/*
+    [  ] [EBADF]            The argument s is not a valid descriptor.
+    [  ] [ENOTSOCK]         The argument s is a file, not a socket.
+    [  ] [ENOPROTOOPT]      The option is unknown at the level indicated.
+    [  ] [EFAULT]           The address pointed to by optval is not in a valid
+                            part of the process address space.  For getsockopt(),
+                            this error may also be returned if optlen is not in a
+                            valid part of the process address space.
+    [  ] [EDOM]             The argument value is out of bounds.
+*/
 int zts_setsockopt(ZT_SETSOCKOPT_SIG)
 {
-    DEBUG_INFO();
-    // TODO
-    return 0;
+    DEBUG_INFO("fd = %d", fd);
+    int err = setsockopt(fd, level, optname, optval, optlen);
+    DEBUG_INFO("err = %d", err);
+    return err;
 }
 
+/*
+    [  ] [EBADF]            The argument s is not a valid descriptor.
+    [  ] [ENOTSOCK]         The argument s is a file, not a socket.
+    [  ] [ENOPROTOOPT]      The option is unknown at the level indicated.
+    [  ] [EFAULT]           The address pointed to by optval is not in a valid
+                            part of the process address space.  For getsockopt(),
+                            this error may also be returned if optlen is not in a
+                            valid part of the process address space.
+    [  ] [EDOM]             The argument value is out of bounds.
+
+*/
 int zts_getsockopt(ZT_GETSOCKOPT_SIG)
 {
-    DEBUG_INFO();
-    // TODO
-    return 0;
+    DEBUG_INFO("fd = %d", fd);    
+    return getsockopt(fd, level, optname, optval, optlen);
 }
 
+/*
+    [  ] [EBADF]            The argument s is not a valid descriptor.
+    [  ] [ENOTSOCK]         The argument s is a file, not a socket.
+    [  ] [ENOBUFS]          Insufficient resources were available in the system to
+                            perform the operation.
+    [  ] [EFAULT]           The name parameter points to memory not in a valid
+                            part of the process address space.
+*/
 int zts_getsockname(ZT_GETSOCKNAME_SIG)
 {
-    DEBUG_INFO();
+    DEBUG_INFO("fd = %d", fd);
     // TODO
     return 0;
 }
 
+/*
+    [  ] [EBADF]            The argument s is not a valid descriptor.
+    [  ] [ENOTSOCK]         The argument s is a file, not a socket.
+    [  ] [ENOTCONN]         The socket is not connected.
+    [  ] [ENOBUFS]          Insufficient resources were available in the system to
+                            perform the operation.
+    [  ] [EFAULT]           The name parameter points to memory not in a valid
+                            part of the process address space.
+*/
 int zts_getpeername(ZT_GETPEERNAME_SIG)
 {
-    DEBUG_INFO();
+    DEBUG_INFO("fd = %d", fd);
     // TODO
     return 0;
 }
 
+/*
+
+Linux:
+
+    See: http://yarchive.net/comp/linux/close_return_value.html
+
+Darwin:
+
+    [OK] [EBADF]            fildes is not a valid, active file descriptor.
+    [  ] [EINTR]            Its execution was interrupted by a signal.
+    [  ] [EIO]              A previously-uncommitted write(2) encountered an input/output error.
+*/
 int zts_close(ZT_CLOSE_SIG)
 {
-    DEBUG_INFO();
+    DEBUG_INFO("fd = %d", fd);
+    // TODO: Close should handle situations where data is still being
+    // processed by the SocketTap (such as a zwrite() call)
+    // check out SO_LINGER
     ZeroTier::_multiplexer_lock.lock();
-    ZeroTier::Connection *conn = ZeroTier::AssignedConnections[fd]->first;
-    ZeroTier::SocketTap *tap = ZeroTier::AssignedConnections[fd]->second;
+
+    std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::fdmap[fd];
+    if(!p) {
+        DEBUG_ERROR("unable to locate connection pair.?");
+        errno = EBADF;
+        return -1;
+    }
+    ZeroTier::Connection *conn = p->first;
+    ZeroTier::SocketTap *tap = p->second;
+
+    if(ZT_SOCK_BEHAVIOR_LINGER) {
+        socklen_t optlen;
+        struct linger so_linger;
+        zts_getsockopt(fd, SOL_SOCKET, SO_LINGER, &so_linger, &optlen);
+        if (so_linger.l_linger != 0) {
+            sleep(so_linger.l_linger); // do the linger!
+        }    
+    }
     // Tell the tap to stop monitoring this PhySocket
     tap->Close(conn);
-    // Tell the userspace stack to close this pico_socket
-    ZeroTier::picostack->pico_Close(conn);
+    // delete objects
+    // FIXME: double check this
+    delete p;
+    ZeroTier::fdmap[fd] = NULL; // erase?
     ZeroTier::_multiplexer_lock.unlock();
     return 0;
 }
 
 int zts_fcntl(ZT_FCNTL_SIG)
 {
-    DEBUG_INFO();
-    // TODO
-    return 0;
+    DEBUG_INFO("fd = %d", fd);
+    return fcntl(fd, cmd, flags);
 }
 
 ssize_t zts_sendto(ZT_SENDTO_SIG)
 {
-    DEBUG_INFO();
+    DEBUG_INFO("fd = %d", fd);
     // TODO
     return 0;
 }
 
 ssize_t zts_sendmsg(ZT_SENDMSG_SIG)
 {
-    DEBUG_INFO();
+    DEBUG_INFO("fd = %d", fd);
     // TODO
     return 0;
 }
 
 ssize_t zts_recvfrom(ZT_RECVFROM_SIG)
 {
-    DEBUG_INFO();
+    DEBUG_INFO("fd = %d", fd);
     // TODO
     return 0;
 }
 
 ssize_t zts_recvmsg(ZT_RECVMSG_SIG)
 {
-    DEBUG_INFO();
+    DEBUG_INFO("fd = %d", fd);
     // TODO
     return 0;
 }
 
 int zts_read(ZT_READ_SIG) {
-    DEBUG_INFO();
+    DEBUG_INFO("fd = %d", fd);
     return read(fd, buf, len);
 }
 
 int zts_write(ZT_WRITE_SIG) {
-    DEBUG_INFO();
+    DEBUG_INFO("fd = %d", fd);
     return write(fd, buf, len);
 }
 
@@ -773,8 +969,8 @@ void *_start_service(void *thread_id) {
     // Generate random port for new service instance
     unsigned int randp = 0;
     ZeroTier::Utils::getSecureRandom(&randp,sizeof(randp));
+    // TODO: Better port random range selection
     int servicePort = 9000 + (randp % 1000);
-    DEBUG_INFO("servicePort = %d", servicePort);
 
     for(;;) {
         zt1Service = ZeroTier::OneService::newInstance(ZeroTier::homeDir.c_str(),servicePort);
@@ -812,15 +1008,3 @@ void *_start_service(void *thread_id) {
 #ifdef __cplusplus
 }
 #endif
-
-
-
-
-
-/*
-*
-*
-*
-*
-*
-*/

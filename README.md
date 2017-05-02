@@ -36,13 +36,19 @@ Bindings also exist for [many popular languages]().
 ### Tests
  - `make tests`: Will output to `build/tests/`
 
-Then run the comprehensive test suite with whatever configuration you need. For instance:
+Then run the unit test suite with whatever configuration you need. For instance:
 
-To run a single-test IPv4 server on port 8787:
+To run a single-test IPv4 client/server test:
 
-  - Host 1: `./build/test/comprehensive c7cd7c9e1b0f52a2 simple 4 server 8787`
-  - Host 2: `./build/test/comprehensive c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787`
+  - Host 1: `./build/test/unit zt1 c7cd7c9e1b0f52a2 simple 4 server 8787`
+  - Host 2: `./build/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787`
 
+To run a multi-message IPv4 client/server test:
+  - Host 1: ./build/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 server 8787 n_bytes 100 50'
+  - Host 2: ./build/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787 n_bytes 100 50'
+
+  - For more unit test examples, see the [testing]() page  
+  
 ## Using Language Bindings
 `SDK_LANG_JAVA=1`
 `SDK_LANG_CSHARP=1`

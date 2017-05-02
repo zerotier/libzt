@@ -25,35 +25,44 @@
 /* Defines                                                                  */
 /****************************************************************************/
 
-#define ZT_SDK_MTU                    ZT_MAX_MTU
-#define ZT_PHY_POLL_INTERVAL          50  // ms
-#define ZT_ACCEPT_RECHECK_DELAY       100 // ms (for blocking zts_accept() calls)
-#define ZT_CONNECT_RECHECK_DELAY      100 // ms (for blocking zts_connect() calls)
+#define ZT_SDK_MTU                         ZT_MAX_MTU
+#define ZT_PHY_POLL_INTERVAL               10  // ms
+#define ZT_ACCEPT_RECHECK_DELAY            100 // ms (for blocking zts_accept() calls)
+#define ZT_CONNECT_RECHECK_DELAY           100 // ms (for blocking zts_connect() calls)
 
-#define MAX_PICO_FRAME_RX_BUF_SZ      ZT_MAX_MTU * 128
+#define MAX_PICO_FRAME_RX_BUF_SZ           ZT_MAX_MTU * 128
 
-#define ZT_TCP_TX_BUF_SZ              1024 * 1024
-#define ZT_TCP_RX_BUF_SZ              1024 * 1024
-#define ZT_UDP_TX_BUF_SZ              ZT_MAX_MTU
-#define ZT_UDP_RX_BUF_SZ              ZT_MAX_MTU * 10
+#define ZT_TCP_TX_BUF_SZ                   1024 * 1024
+#define ZT_TCP_RX_BUF_SZ                   1024 * 1024
+#define ZT_UDP_TX_BUF_SZ                   ZT_MAX_MTU
+#define ZT_UDP_RX_BUF_SZ                   ZT_MAX_MTU * 10
 
-#define ZT_SDK_RPC_DIR_PREFIX         "rpc.d"
+#define ZT_SDK_RPC_DIR_PREFIX              "rpc.d"
 
-#define ZT_SDK_VERSION_MAJOR          1
-#define ZT_SDK_VERSION_MINOR          0
-#define ZT_SDK_VERSION_REVISION       0
+#define ZT_SDK_VERSION_MAJOR               1
+#define ZT_SDK_VERSION_MINOR               0
+#define ZT_SDK_VERSION_REVISION            0
 
-#define ZT_MAX_IPADDR_LEN                   64
-#define ZT_ID_LEN                           10
-#define ZT_VER_STR_LEN                      6
-#define ZT_HOME_PATH_MAX_LEN                128
+#define ZT_MAX_IPADDR_LEN                  64
+#define ZT_ID_LEN                          10
+#define ZT_VER_STR_LEN                     6
+#define ZT_HOME_PATH_MAX_LEN               128
 
-#define ZT_ERR_OK                           0
+#define ZT_SOCK_STATE_NONE                 100
+#define ZT_SOCK_STATE_UNHANDLED_CONNECTED  101
+#define ZT_SOCK_STATE_CONNECTED            102
+#define ZT_SOCK_STATE_LISTENING            103
 
-#define ZT_SOCK_STATE_NONE                  100
-#define ZT_SOCK_STATE_UNHANDLED_CONNECTED   101
-#define ZT_SOCK_STATE_CONNECTED             102
-#define ZT_SOCK_STATE_LISTENING             103
+#define ZT_ERR_OK                          0
+#define ZT_ERR_GENERAL_FAILURE             -88
+
+// Since extra time is required to send a mesage via a socket through the
+// stack and ZT service, calling a zclose() immediately after a "successful"
+// zwrite() might cause data loss, for this reason, sockets will SO_LINGER for
+// a short period of time by default as a precaution.
+
+#define ZT_SOCK_BEHAVIOR_LINGER            true
+#define ZT_SOCK_BEHAVIOR_LINGER_TIME       2 // s
 
 /****************************************************************************/
 /* Socket API Signatures                                                    */
@@ -281,6 +290,8 @@ int zts_getpeername(ZT_GETPEERNAME_SIG);
 
 /**
  * Close a socket
+ * TODO: Check that closing a socket immediately after writing doesn't behave in 
+ * an undefined manner
  */
 int zts_close(ZT_CLOSE_SIG);
 

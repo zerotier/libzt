@@ -98,7 +98,7 @@ void zts_stop() {
     }
 }
 
-void zts_join_network(const char * nwid) {
+void zts_join(const char * nwid) {
     if(zt1Service) {
         std::string confFile = zt1Service->givenHomePath() + "/networks.d/" + nwid + ".conf";
         if(!ZeroTier::OSUtils::mkdir(ZeroTier::netDir))
@@ -109,7 +109,7 @@ void zts_join_network(const char * nwid) {
     }
 }
 
-void zts_join_network_soft(const char * filepath, const char * nwid) { 
+void zts_join_soft(const char * filepath, const char * nwid) { 
     std::string net_dir = std::string(filepath) + "/networks.d/";
     std::string confFile = net_dir + std::string(nwid) + ".conf";
     if(!ZeroTier::OSUtils::mkdir(net_dir)) {
@@ -122,12 +122,12 @@ void zts_join_network_soft(const char * filepath, const char * nwid) {
     }
 }
 
-void zts_leave_network(const char * nwid) { 
+void zts_leave(const char * nwid) { 
     if(zt1Service)
         zt1Service->leave(nwid);
 }
 
-void zts_leave_network_soft(const char * filepath, const char * nwid) {
+void zts_leave_soft(const char * filepath, const char * nwid) {
     std::string net_dir = std::string(filepath) + "/networks.d/";
     ZeroTier::OSUtils::rm((net_dir + nwid + ".conf").c_str()); 
 }
@@ -171,7 +171,7 @@ int zts_get_device_id(char *devID) {
     return -1;
 }
 
-int zts_service_running() { 
+int zts_running() { 
     return !zt1Service ? false : zt1Service->isRunning(); 
 }
 
@@ -322,10 +322,11 @@ int zts_socket(ZT_SOCKET_SIG) {
     DEBUG_INFO();
     ZeroTier::_multiplexer_lock.lock();
     ZeroTier::Connection *conn = new ZeroTier::Connection();
-    int err, protocol_version;
+    int err = 0, protocol_version = 0;
     // set up pico_socket
     struct pico_socket * psock;
     
+    // TODO: check ifdef logic here
     #if defined(SDK_IPV4)
         protocol_version = PICO_PROTO_IPV4;
     #endif
@@ -842,48 +843,68 @@ int zts_write(ZT_WRITE_SIG) {
 /* JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME             */
 /****************************************************************************/
 
-#if defined(__ANDROID__) || defined(__JNI_LIB__)
+
+#if defined(SDK_JNI)
+
+namespace ZeroTier {
+
+    #include <jni.h>
+
+    JNIEXPORT int JNICALL Java_zerotier_ZeroTier_ztjni_1start(JNIEnv *env, jobject thisObj, jstring path) {
+        if(path) {
+            homeDir = env->GetStringUTFChars(path, NULL);
+            zts_start(homeDir.c_str());
+        }
+    }
+    // Shuts down ZeroTier service and SOCKS5 Proxy server
+    JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1stop(JNIEnv *env, jobject thisObj) {
+        if(zt1Service)
+            zts_stop();
+    }
+
     // Returns whether the ZeroTier service is running
-    JNIEXPORT jboolean JNICALL Java_zerotier_ZeroTier_zt_1service_1is_1running(
+    JNIEXPORT jboolean JNICALL Java_zerotier_ZeroTier_ztjni_1running(
         JNIEnv *env, jobject thisObj) 
     {
-        return  zts_service_is_running();
+        return  zts_running();
     }
     // Returns path for ZT config/data files    
-    JNIEXPORT jstring JNICALL Java_zerotier_ZeroTier_zt_1get_1homepath(
+    JNIEXPORT jstring JNICALL Java_zerotier_ZeroTier_ztjni_1homepath(
         JNIEnv *env, jobject thisObj) 
     {
-        return (*env).NewStringUTF(zts_get_homepath());
+        // TODO: fix, should copy into given arg
+        // return (*env).NewStringUTF(zts_get_homepath());
+        return (*env).NewStringUTF("");
     }
     // Join a network
-    JNIEXPORT void JNICALL Java_zerotier_ZeroTier_zt_1join_1network(
+    JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1join(
         JNIEnv *env, jobject thisObj, jstring nwid) 
     {
         const char *nwidstr;
         if(nwid) {
             nwidstr = env->GetStringUTFChars(nwid, NULL);
-            zts_join_network(nwidstr);
+            zts_join(nwidstr);
         }
     }
     // Leave a network
-    JNIEXPORT void JNICALL Java_zerotier_ZeroTier_zt_1leave_1network(
+    JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1leave(
         JNIEnv *env, jobject thisObj, jstring nwid) 
     {
         const char *nwidstr;
         if(nwid) {
             nwidstr = env->GetStringUTFChars(nwid, NULL);
-            zts_leave_network(nwidstr);
+            zts_leave(nwidstr);
         }
     }
     // FIXME: Re-implemented to make it play nicer with the C-linkage required for Xcode integrations
     // Now only returns first assigned address per network. Shouldn't normally be a problem
-    JNIEXPORT jobject JNICALL Java_zerotier_ZeroTier_zt_1get_1ipv4_1address(
+    JNIEXPORT jobject JNICALL Java_zerotier_ZeroTier_ztjni_1get_1ipv4_1address(
         JNIEnv *env, jobject thisObj, jstring nwid) 
     {
         const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
         char address_string[32];
         memset(address_string, 0, 32);
-        zts_get_ipv4_address(nwid_str, address_string);
+        zts_get_ipv4_address(nwid_str, address_string, ZT_MAX_IPADDR_LEN);
         jclass clazz = (*env).FindClass("java/util/ArrayList");
         jobject addresses = (*env).NewObject(clazz, (*env).GetMethodID(clazz, "<init>", "()V"));        
         jstring _str = (*env).NewStringUTF(address_string);
@@ -891,13 +912,13 @@ int zts_write(ZT_WRITE_SIG) {
         return addresses;
 	}
 
-    JNIEXPORT jobject JNICALL Java_zerotier_ZeroTier_zt_1get_1ipv6_1address(
+    JNIEXPORT jobject JNICALL Java_zerotier_ZeroTier_ztjni_1get_1ipv6_1address(
         JNIEnv *env, jobject thisObj, jstring nwid) 
     {
         const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
         char address_string[32];
         memset(address_string, 0, 32);
-        zts_get_ipv6_address(nwid_str, address_string);
+        zts_get_ipv6_address(nwid_str, address_string, ZT_MAX_IPADDR_LEN);
         jclass clazz = (*env).FindClass("java/util/ArrayList");
         jobject addresses = (*env).NewObject(clazz, (*env).GetMethodID(clazz, "<init>", "()V"));        
         jstring _str = (*env).NewStringUTF(address_string);
@@ -906,17 +927,173 @@ int zts_write(ZT_WRITE_SIG) {
 	}
 
     // Returns the device is in integer form
-    JNIEXPORT jint Java_zerotier_ZeroTier_zt_1get_1device_1id() 
+    JNIEXPORT jint Java_zerotier_ZeroTier_ztjni_1get_1device_1id() 
     {
         return zts_get_device_id(NULL); // TODO
     }
-    // Returns whether the path to an endpoint is currently relayed by a root server
-    JNIEXPORT jboolean JNICALL Java_zerotier_ZeroTier_zt_1is_1relayed()
+
+    JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1send(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, int flags)
     {
-        return 0;
-        // TODO
-        // zts_is_relayed();
+        jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
+        char * bufp = (char *)malloc(sizeof(char)*len);
+        memcpy(bufp, body, len);
+        (*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);
+        int written_bytes = zts_write(fd, body, len);
+        return written_bytes;
     }
+
+    JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1sendto(
+        JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, jint flags, jobject ztaddr)
+    {
+        struct sockaddr_in addr;
+        jclass cls = (*env).GetObjectClass( ztaddr);
+        jfieldID f = (*env).GetFieldID( cls, "port", "I");
+        addr.sin_port = htons((*env).GetIntField( ztaddr, f));
+        f = (*env).GetFieldID( cls, "_rawAddr", "J");
+        addr.sin_addr.s_addr = (*env).GetLongField( ztaddr, f);
+        addr.sin_family = AF_INET;
+        //LOGV("zt_sendto(): fd = %d\naddr = %s\nport=%d", fd, inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+        // TODO: Optimize this
+        jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
+        char * bufp = (char *)malloc(sizeof(char)*len);
+        memcpy(bufp, body, len);
+        (*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);
+        // "connect" and send buffer contents
+        int sent_bytes = zts_sendto(fd, body, len, flags, (struct sockaddr *)&addr, sizeof(addr));
+        return sent_bytes;
+    }
+
+    JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1recvfrom(
+        JNIEnv *env, jobject thisObj, jint fd, jbyteArray buf, jint len, jint flags, jobject ztaddr)
+    {
+        struct sockaddr_in addr;
+        jbyte *body = (*env).GetByteArrayElements( buf, 0);
+        unsigned char buffer[ZT_SDK_MTU];
+        int payload_offset = sizeof(int) + sizeof(struct sockaddr_storage);
+        int rxbytes = zts_recvfrom(fd, &buffer, len, flags, (struct sockaddr *)&addr, (socklen_t *)sizeof(struct sockaddr_storage));
+        if(rxbytes > 0)
+            memcpy(body, (jbyte*)buffer + payload_offset, rxbytes);
+        (*env).ReleaseByteArrayElements( buf, body, 0);
+        // Update fields of Java ZTAddress object
+        jfieldID fid;
+        jclass cls = (*env).GetObjectClass( ztaddr);
+        fid = (*env).GetFieldID( cls, "port", "I");
+        (*env).SetIntField( ztaddr, fid, addr.sin_port);
+        fid = (*env).GetFieldID( cls,"_rawAddr", "J");
+        (*env).SetLongField( ztaddr, fid,addr.sin_addr.s_addr);        
+        return rxbytes;
+    }
+
+    JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1write(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len)
+    {
+        jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
+        char * bufp = (char *)malloc(sizeof(char)*len);
+        memcpy(bufp, body, len);
+        (*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);
+        int written_bytes = zts_write(fd, body, len);
+        return written_bytes;
+    }
+
+    JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1read(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len)
+    {
+        jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
+        int read_bytes = read(fd, body, len);
+        (*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);
+        return read_bytes;
+    }    
+
+    JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1setsockopt(
+        JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen) {
+        return zts_setsockopt(fd, level, optname, (const void*)optval, optlen);
+    }
+
+    JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1getsockopt(JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen) {
+        return zts_getsockopt(fd, level, optname, (void*)optval, (socklen_t *)optlen);
+    }
+
+    JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1socket(JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol) {
+        return zts_socket(family, type, protocol);
+    }
+    
+    JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1connect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
+        struct sockaddr_in addr;
+        const char *str = (*env).GetStringUTFChars( addrstr, 0);
+        addr.sin_addr.s_addr = inet_addr(str);
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons( port );
+        (*env).ReleaseStringUTFChars( addrstr, str);
+        return zts_connect(fd, (struct sockaddr *)&addr, sizeof(addr));
+    }
+
+    JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1bind(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
+        struct sockaddr_in addr;
+        const char *str = (*env).GetStringUTFChars( addrstr, 0);
+        DEBUG_INFO("fd=%d, addr=%s, port=%d", fd, str, port);
+        addr.sin_addr.s_addr = inet_addr(str);
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons( port );
+        (*env).ReleaseStringUTFChars( addrstr, str);
+        return zts_bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+    }
+
+#if defined(__linux__)
+     JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1accept4(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port, jint flags) {
+        struct sockaddr_in addr;
+        char *str;
+        // = env->GetStringUTFChars(addrstr, NULL);
+        (*env).ReleaseStringUTFChars( addrstr, str);
+        addr.sin_addr.s_addr = inet_addr(str);
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons( port );
+        return zts_accept4(fd, (struct sockaddr *)&addr, sizeof(addr), flags);
+    }
+#endif
+
+    JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1accept(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
+        struct sockaddr_in addr;
+        // TODO: Send addr info back to Javaland
+        addr.sin_addr.s_addr = inet_addr("");
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons( port );
+        return zts_accept(fd, (struct sockaddr *)&addr, (socklen_t *)sizeof(addr));    
+    }
+
+    JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1listen(JNIEnv *env, jobject thisObj, jint fd, int backlog) {
+        return zts_listen(fd, backlog);
+    }
+
+    JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1close(JNIEnv *env, jobject thisObj, jint fd) {
+        return zts_close(fd);
+    }
+
+    JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1getsockname(JNIEnv *env, jobject thisObj, jint fd, jobject ztaddr) {
+        struct sockaddr_in addr;
+        int err = zts_getsockname(fd, (struct sockaddr *)&addr, (socklen_t *)sizeof(struct sockaddr));
+        jfieldID fid;
+        jclass cls = (*env).GetObjectClass(ztaddr);
+        fid = (*env).GetFieldID( cls, "port", "I");
+        (*env).SetIntField( ztaddr, fid, addr.sin_port);
+        fid = (*env).GetFieldID( cls,"_rawAddr", "J");
+        (*env).SetLongField( ztaddr, fid,addr.sin_addr.s_addr);        
+        return err;    
+    }
+
+    JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1getpeername(JNIEnv *env, jobject thisObj, jint fd, jobject ztaddr) {
+        struct sockaddr_in addr;
+        int err = zts_getpeername(fd, (struct sockaddr *)&addr, (socklen_t *)sizeof(struct sockaddr));
+        jfieldID fid;
+        jclass cls = (*env).GetObjectClass( ztaddr);
+        fid = (*env).GetFieldID( cls, "port", "I");
+        (*env).SetIntField( ztaddr, fid, addr.sin_port);
+        fid = (*env).GetFieldID( cls,"_rawAddr", "J");
+        (*env).SetLongField( ztaddr, fid,addr.sin_addr.s_addr);        
+        return err;
+    }
+
+    JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1fcntl(JNIEnv *env, jobject thisObj, jint fd, jint cmd, jint flags) {
+        return zts_fcntl(fd,cmd,flags);
+    }
+}
 #endif
 
 /****************************************************************************/

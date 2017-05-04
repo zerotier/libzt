@@ -92,10 +92,23 @@ namespace ZeroTier {
 
 	bool SocketTap::addIp(const InetAddress &ip)
 	{
-		if(picostack) {	
-			DEBUG_INFO("addr = %s", ip.toString().c_str());	
-			picostack->pico_init_interface(this, ip);
-			_ips.push_back(ip);
+		if(picostack) {
+			if(ip.isV4())
+			{
+			#if defined(SDK_IPV4)
+				DEBUG_INFO("addr = %s", ip.toString().c_str());	
+				picostack->pico_init_interface(this, ip);
+				_ips.push_back(ip);
+			#endif
+			}
+			if(ip.isV6())
+			{
+			#if defined(SDK_IPV6)
+				DEBUG_INFO("addr = %s", ip.toString().c_str());	
+				picostack->pico_init_interface(this, ip);
+				_ips.push_back(ip);
+			#endif
+			}
 			std::sort(_ips.begin(),_ips.end());
 			return true;
 		}

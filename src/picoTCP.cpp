@@ -32,7 +32,7 @@
 #include "Utilities.hpp"
 #include "SocketTap.hpp"
 #include "picoTCP.hpp"
-#include "RingBuffer.hpp"
+//#include "RingBuffer.hpp"
 
 // ZT
 #include "Utils.hpp"
@@ -77,7 +77,8 @@ namespace ZeroTier {
 	{
 		DEBUG_INFO();
 		if (std::find(tap->_ips.begin(),tap->_ips.end(),ip) == tap->_ips.end()) {
-	#if defined(SDK_IPV4)
+			tap->_ips.push_back(ip);
+			std::sort(tap->_ips.begin(),tap->_ips.end());
 			if(ip.isV4())
 			{
 			    struct pico_ip4 ipaddr, netmask;
@@ -88,6 +89,7 @@ namespace ZeroTier {
 			    // DEBUG_ATTN("mac = %s", tap->_mac.toString().c_str());
 			    tap->picodev.send = pico_eth_send; // tx
 			    tap->picodev.poll = pico_eth_poll; // rx
+			    DEBUG_INFO("tap->picodev.poll = %p", tap->picodev.poll);
 			    tap->picodev.mtu = tap->_mtu;
 			    tap->picodev.tap = tap;
 			    if(pico_device_init(&(tap->picodev), "p4", mac) != 0) {
@@ -95,11 +97,9 @@ namespace ZeroTier {
 			        return false;
 			    }
 			    pico_ipv4_link_add(&(tap->picodev), ipaddr, netmask);
-			    DEBUG_ATTN("addr = %s", ip.toString().c_str());
+			    DEBUG_INFO("addr = %s", ip.toString().c_str());
 			    return true;
 			}
-	#endif
-	#if defined(SDK_IPV6)
 			if(ip.isV6())
 			{
 				struct pico_ip6 ipaddr, netmask;
@@ -123,10 +123,9 @@ namespace ZeroTier {
 			        DEBUG_ERROR("dev init failed");
 			        return false;
 			    }
-			    DEBUG_ATTN("addr6 = %s", ip.toString().c_str());		
+			    DEBUG_INFO("addr6 = %s", ip.toString().c_str());		
 			    return true;	    
 			}
-	#endif
 		}
 		return false;
 	}
@@ -261,6 +260,7 @@ namespace ZeroTier {
 
 	void picoTCP::pico_cb_socket_activity(uint16_t ev, struct pico_socket *s)
     {
+    	DEBUG_INFO();
     	if(!(SocketTap*)((ConnectionPair*)(s->priv)))
     		return;
     	SocketTap *tap = (SocketTap*)((ConnectionPair*)(s->priv))->tap;
@@ -353,6 +353,7 @@ namespace ZeroTier {
    
    	int pico_eth_send(struct pico_device *dev, void *buf, int len)
     {
+    	DEBUG_INFO();
     	SocketTap *tap = (SocketTap*)(dev->tap);
     	if(!tap) {
     		DEBUG_ERROR("invalid dev->tap");
@@ -373,6 +374,7 @@ namespace ZeroTier {
     void picoTCP::pico_rx(SocketTap *tap, const MAC &from,const MAC &to,unsigned int etherType,
     	const void *data,unsigned int len)
 	{
+		DEBUG_INFO();
 		if(!tap) {
     		DEBUG_ERROR("invalid tap");
     		return;
@@ -444,7 +446,7 @@ namespace ZeroTier {
     		DEBUG_ERROR("invalid conn or conn->picosock");
     		return ZT_ERR_GENERAL_FAILURE;
     	}
-		int err;
+		int err = 0;
 		#if defined(SDK_IPV4)
 			struct pico_ip4 zaddr;
 			struct sockaddr_in *in4 = (struct sockaddr_in*)addr;
@@ -483,7 +485,7 @@ namespace ZeroTier {
     		DEBUG_ERROR("invalid conn or conn->picosock");
     		return ZT_ERR_GENERAL_FAILURE;
     	}
-    	int err;
+    	int err = 0;
 		#if defined(SDK_IPV4)
 			struct pico_ip4 zaddr;
 			struct sockaddr_in *in4 = (struct sockaddr_in*)addr;

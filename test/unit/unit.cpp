@@ -91,7 +91,7 @@ int ipv6_tcp_client_test(struct sockaddr_in6 *addr, int port)
 {
 	int r, w, sockfd, err, len = strlen(str);
 	char rbuf[STR_SIZE];
-	if((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if((sockfd = zts_socket(AF_INET6, SOCK_STREAM, 0)) < 0) {
 		printf("error creating ZeroTier socket");
 	}
 	if((err = zts_connect(sockfd, (const struct sockaddr *)addr, sizeof(addr))) < 0) {
@@ -547,7 +547,7 @@ int do_test(std::string path, std::string nwid, int type, int protocol, int mode
 			    addr6.sin6_family = AF_INET6;
 			    memmove((char *) &addr6.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
 			    addr6.sin6_port = htons(port);
-				return ipv6_tcp_server_test(&addr6, port, operation, n_count, delay);
+				return ipv6_tcp_server_sustained_test(&addr6, port, operation, n_count, delay);
 			}
 		}
 

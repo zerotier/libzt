@@ -412,7 +412,7 @@ int zts_connect(ZT_CONNECT_SIG) {
             inet_ntop(AF_INET6, 
                 (const void *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, ipstr, INET6_ADDRSTRLEN);
         }
-        iaddr.fromString(ipstr);
+        iaddr.fromString(ipstr+std::string("/88"));
         //DEBUG_INFO("ipstr= %s", ipstr);
         //DEBUG_INFO("iaddr= %s", iaddr.toString().c_str());
         tap = zt1Service->getTap(iaddr);
@@ -524,20 +524,14 @@ int zts_bind(ZT_BIND_SIG) {
         ZeroTier::InetAddress iaddr;
 
         if(conn->socket_family == AF_INET) {
-            printf("parsing ipv4 str\n");
             inet_ntop(AF_INET, 
                 (const void *)&((struct sockaddr_in *)addr)->sin_addr.s_addr, ipstr, INET_ADDRSTRLEN);
         }
         if(conn->socket_family == AF_INET6) {
-            printf("parsing ipv6 str\n");
             inet_ntop(AF_INET6, 
                 (const void *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, ipstr, INET6_ADDRSTRLEN);
         }
         iaddr.fromString(ipstr);
-
-        DEBUG_INFO("ipstr= %s", ipstr);
-        DEBUG_INFO("iaddr= %s", iaddr.toString().c_str());
-
         tap = zt1Service->getTap(iaddr);
 
         if(!tap) {

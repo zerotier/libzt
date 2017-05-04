@@ -1,5 +1,5 @@
 /*
- * ZeroTier One - Network Virtualization Everywhere
+ * ZeroTier SDK - Network Virtualization Everywhere
  * Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify

@@ -106,6 +106,8 @@ namespace ZeroTier {
 				char ipv6_str[INET6_ADDRSTRLEN], nm_str[INET6_ADDRSTRLEN];
 				inet_ntop(AF_INET6, ip.rawIpData(), ipv6_str, INET6_ADDRSTRLEN);
 				inet_ntop(AF_INET6, ip.netmask().rawIpData(), nm_str, INET6_ADDRSTRLEN);
+				DEBUG_ERROR("ipv6_str = %s", ipv6_str);
+				DEBUG_ERROR("nm_str = %s", nm_str);
 		    	pico_string_to_ipv6(ipv6_str, ipaddr.addr);
 		    	pico_string_to_ipv6(nm_str, netmask.addr);
 			    pico_ipv6_link_add(&(tap->picodev6), ipaddr, netmask);
@@ -488,33 +490,22 @@ namespace ZeroTier {
 			char ipv4_str[INET_ADDRSTRLEN];
 			inet_ntop(AF_INET, (const void *)&in4->sin_addr.s_addr, ipv4_str, INET_ADDRSTRLEN);
 			pico_string_to_ipv4(ipv4_str, &(zaddr.addr));
-			
 			// DEBUG_ATTN("addr=%s: %d ntoh()=%d", ipv4_str, in4->sin_port, Utils::ntoh(in4->sin_port));
 			err = pico_socket_bind(conn->picosock, &zaddr, (uint16_t *)&(in4->sin_port));
 		#endif
 		#if defined(SDK_IPV6)
-
-/*
-
-			struct pico_ip6 zaddr;
-			struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&bind_rpc->addr;
+			struct pico_ip6 pip6;
+			struct sockaddr_in6 *in6 = (struct sockaddr_in6*)addr;
 			char ipv6_str[INET6_ADDRSTRLEN];
 			inet_ntop(AF_INET6, &(in6->sin6_addr), ipv6_str, INET6_ADDRSTRLEN);
-	    	picotap->picostack->__pico_string_to_ipv6(ipv6_str, zaddr.addr);
-	    	DEBUG_ATTN("addr=%s:%d, physock=%p, picosock=%p", ipv6_str, Utils::ntoh(addr->sin_port), sock, (conn->picosock));
-			ret = picotap->picostack->__pico_socket_bind(conn->picosock, &zaddr, (uint16_t*)&(addr->sin_port));
-*/
-
-			struct pico_ip6 zaddr;
-			struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&addr;
-			char ipv6_str[INET6_ADDRSTRLEN];
-			inet_ntop(AF_INET6, &(in6->sin6_addr), ipv6_str, INET6_ADDRSTRLEN);
-	    	pico_string_to_ipv6(ipv6_str, zaddr.addr);
-	    	DEBUG_ATTN("BIND addr=%s:%d", ipv6_str, Utils::ntoh(in6->sin6_port));
-			err = pico_socket_bind(conn->picosock, &zaddr, (uint16_t *)(in6->sin6_port));
-			DEBUG_ERROR("pico_err = %d", pico_err);
+			// TODO: This isn't proper
+	    	pico_string_to_ipv6("::", pip6.addr);
+       		//DEBUG_ATTN("addr=%s:%d, picosock=%p", ipv6_str, Utils::ntoh(in6->sin6_port), (conn->picosock));
+			err = pico_socket_bind(conn->picosock, &pip6, (uint16_t *)&(in6->sin6_port));
 		#endif
 		if(err < 0) {
+			if(pico_err < 0)
+				DEBUG_ERROR("pico_err = %d", pico_err);
 			DEBUG_ERROR("unable to bind pico_socket(%p), err=%d", (conn->picosock), err);
 			if(err == PICO_ERR_EINVAL) {
 				DEBUG_ERROR("PICO_ERR_EINVAL - invalid argument");

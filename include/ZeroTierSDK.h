@@ -112,22 +112,22 @@ void zts_stop();
 /**
  * Join a network
  */
-void zts_join_network(const char * nwid);
+void zts_join(const char * nwid);
 
 /**
  * Join a network - Just create the dir and conf file required, don't instruct the core to do anything
  */
-void zts_join_network_soft(const char * filepath, const char * nwid);
+void zts_join_soft(const char * filepath, const char * nwid);
 
 /**
  * Leave a network
  */
-void zts_leave_network(const char * nwid);
+void zts_leave(const char * nwid);
 
 /**
  * Leave a network - Only delete the .conf file, this will prevent the service from joining upon next startup
  */
-void zts_leave_network_soft(const char * filepath, const char * nwid);
+void zts_leave_soft(const char * filepath, const char * nwid);
 
 /**
  * Return the home path for this instance of ZeroTier
@@ -154,7 +154,7 @@ int zts_get_device_id(char *devID);
 /**
  * Check whether the service is running
  */
-int zts_service_running();
+int zts_running();
 
 /**
  * Returns whether any IPv6 address has been assigned to the SockTap for this network

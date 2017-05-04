@@ -16,15 +16,15 @@
 
 #include "ZeroTierSDK.h"
 
-#define PASSED         0
-#define FAILED        -1
+#define PASSED                0
+#define FAILED               -1
 
-#define ECHO_INTERVAL  100000 // us
-#define STR_SIZE       32
+#define ECHO_INTERVAL        100000 // us
+#define STR_SIZE             32
 
-#define TEST_OP_N_BYTES    10
-#define TEST_OP_N_SECONDS  11
-#define TEST_OP_N_TIMES    12
+#define TEST_OP_N_BYTES      10
+#define TEST_OP_N_SECONDS    11
+#define TEST_OP_N_TIMES      12
 
 #define TEST_MODE_CLIENT     20
 #define TEST_MODE_SERVER     21
@@ -618,10 +618,10 @@ int main(int argc , char *argv[])
 	if(stype == "simple" || stype == "sustained" || stype == "comprehensive") {
 		zts_start(path.c_str());
 		printf("waiting for service to start...\n");
-		while(!zts_service_running())
+		while(!zts_running())
 			sleep(1);
 		printf("joining network...\n");
-		zts_join_network(nwid.c_str());
+		zts_join(nwid.c_str());
 		printf("waiting for address assignment...\n");
 		while(!zts_has_address(nwid.c_str()))
 			sleep(1);

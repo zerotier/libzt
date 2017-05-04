@@ -30,7 +30,7 @@
 // SDK
 #include "ZeroTierSDK.h"
 #include "SocketTap.hpp"
-#include "RingBuffer.hpp"
+//#include "RingBuffer.hpp"
 
 namespace ZeroTier {
 
@@ -41,7 +41,6 @@ namespace ZeroTier {
 	{
 		//circular_buffer<char> crbuf = circular_buffer<char>(ZT_TCP_RX_BUF_SZ);
 		//circular_buffer<char> ctbuf = circular_buffer<char>(ZT_TCP_TX_BUF_SZ);
-
 
 		int pid;
 		PhySocket *sock;				

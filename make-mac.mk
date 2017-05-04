@@ -56,6 +56,7 @@ INCLUDES+= -Iext \
 	-I$(ZTO)/node \
 	-I$(ZTO)/service \
 	-I$(ZTO)/include \
+	-I$(ZTO)/controller \
 	-I../$(ZTO)/osdep \
 	-I../$(ZTO)/node \
 	-I../$(ZTO)/service \

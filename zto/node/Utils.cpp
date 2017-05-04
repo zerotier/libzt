@@ -1,6 +1,6 @@
 /*
  * ZeroTier One - Network Virtualization Everywhere
- * Copyright (C) 2011-2016  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,6 +14,14 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * --
+ *
+ * You can be released from the requirements of the license by purchasing
+ * a commercial license. Buying such a license is mandatory as soon as you
+ * develop commercial closed-source software that incorporates or links
+ * directly against ZeroTier software without disclosing the source code
+ * of your own application.
  */
 
 #include <stdio.h>
@@ -156,7 +164,7 @@ void Utils::getSecureRandom(void *buf,unsigned int bytes)
 		s20Key[1] = (uint64_t)buf; // address of buf
 		s20Key[2] = (uint64_t)s20Key; // address of s20Key[]
 		s20Key[3] = (uint64_t)&s20; // address of s20
-		s20.init(s20Key,256,s20Key);
+		s20.init(s20Key,s20Key);
 	}
 
 #ifdef __WINDOWS__
@@ -177,6 +185,7 @@ void Utils::getSecureRandom(void *buf,unsigned int bytes)
 			}
 			randomPtr = 0;
 			s20.crypt12(randomBuf,randomBuf,sizeof(randomBuf));
+			s20.init(randomBuf,randomBuf);
 		}
 		((uint8_t *)buf)[i] = randomBuf[randomPtr++];
 	}
@@ -209,6 +218,7 @@ void Utils::getSecureRandom(void *buf,unsigned int bytes)
 			}
 			randomPtr = 0;
 			s20.crypt12(randomBuf,randomBuf,sizeof(randomBuf));
+			s20.init(randomBuf,randomBuf);
 		}
 		((uint8_t *)buf)[i] = randomBuf[randomPtr++];
 	}

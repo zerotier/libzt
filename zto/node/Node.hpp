@@ -1,6 +1,6 @@
 /*
  * ZeroTier One - Network Virtualization Everywhere
- * Copyright (C) 2011-2016  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,6 +14,14 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * --
+ *
+ * You can be released from the requirements of the license by purchasing
+ * a commercial license. Buying such a license is mandatory as soon as you
+ * develop commercial closed-source software that incorporates or links
+ * directly against ZeroTier software without disclosing the source code
+ * of your own application.
  */
 
 #ifndef ZT_NODE_HPP
@@ -49,9 +57,6 @@
 // Bit mask for "expecting reply" hash
 #define ZT_EXPECTING_REPLIES_BUCKET_MASK1 255
 #define ZT_EXPECTING_REPLIES_BUCKET_MASK2 31
-
-// Size of PRNG stream buffer
-#define ZT_NODE_PRNG_BUF_SIZE 64
 
 namespace ZeroTier {
 
@@ -312,13 +317,10 @@ private:
 
 	Mutex _backgroundTasksLock;
 
-	unsigned int _prngStreamPtr;
-	Salsa20 _prng;
-	uint64_t _prngStream[ZT_NODE_PRNG_BUF_SIZE]; // repeatedly encrypted with _prng to yield a high-quality non-crypto PRNG stream
-
 	uint64_t _now;
 	uint64_t _lastPingCheck;
 	uint64_t _lastHousekeepingRun;
+	volatile uint64_t _prngState[2];
 	bool _online;
 };
 

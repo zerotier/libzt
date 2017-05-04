@@ -1,6 +1,6 @@
 /*
  * ZeroTier One - Network Virtualization Everywhere
- * Copyright (C) 2011-2016  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,6 +14,14 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * --
+ *
+ * You can be released from the requirements of the license by purchasing
+ * a commercial license. Buying such a license is mandatory as soon as you
+ * develop commercial closed-source software that incorporates or links
+ * directly against ZeroTier software without disclosing the source code
+ * of your own application.
  */
 
 #ifndef ZT_CERTIFICATEOFMEMBERSHIP_HPP
@@ -27,6 +35,7 @@
 #include <algorithm>
 
 #include "Constants.hpp"
+#include "Credential.hpp"
 #include "Buffer.hpp"
 #include "Address.hpp"
 #include "C25519.hpp"
@@ -68,9 +77,11 @@ class RuntimeEnvironment;
  * This is a memcpy()'able structure and is safe (in a crash sense) to modify
  * without locks.
  */
-class CertificateOfMembership
+class CertificateOfMembership : public Credential
 {
 public:
+	static inline Credential::Type credentialType() { return Credential::CREDENTIAL_TYPE_COM; }
+
 	/**
 	 * Reserved qualifier IDs
 	 *
@@ -155,18 +166,23 @@ public:
 	/**
 	 * @return True if there's something here
 	 */
-	inline operator bool() const throw() { return (_qualifierCount != 0); }
+	inline operator bool() const { return (_qualifierCount != 0); }
+
+	/**
+	 * @return Credential ID, always 0 for COMs
+	 */
+	inline uint32_t id() const { return 0; }
 
 	/**
 	 * @return Timestamp for this cert and maximum delta for timestamp
 	 */
-	inline std::pair<uint64_t,uint64_t> timestamp() const
+	inline uint64_t timestamp() const
 	{
 		for(unsigned int i=0;i<_qualifierCount;++i) {
 			if (_qualifiers[i].id == COM_RESERVED_ID_TIMESTAMP)
-				return std::pair<uint64_t,uint64_t>(_qualifiers[i].value,_qualifiers[i].maxDelta);
+				return _qualifiers[i].value;
 		}
-		return std::pair<uint64_t,uint64_t>(0ULL,0ULL);
+		return 0;
 	}
 
 	/**
@@ -258,12 +274,12 @@ public:
 	/**
 	 * @return True if signed
 	 */
-	inline bool isSigned() const throw() { return (_signedBy); }
+	inline bool isSigned() const { return (_signedBy); }
 
 	/**
 	 * @return Address that signed this certificate or null address if none
 	 */
-	inline const Address &signedBy() const throw() { return _signedBy; }
+	inline const Address &signedBy() const { return _signedBy; }
 
 	template<unsigned int C>
 	inline void serialize(Buffer<C> &b) const
@@ -321,7 +337,6 @@ public:
 	}
 
 	inline bool operator==(const CertificateOfMembership &c) const
-		throw()
 	{
 		if (_signedBy != c._signedBy)
 			return false;
@@ -335,7 +350,7 @@ public:
 		}
 		return (_signature == c._signature);
 	}
-	inline bool operator!=(const CertificateOfMembership &c) const throw() { return (!(*this == c)); }
+	inline bool operator!=(const CertificateOfMembership &c) const { return (!(*this == c)); }
 
 private:
 	struct _Qualifier

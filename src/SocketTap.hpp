@@ -135,8 +135,8 @@ namespace ZeroTier {
 		/* Vars                                                                     */
 		/****************************************************************************/
 
-		struct pico_device picodev;
-		struct pico_device picodev6;
+		struct pico_device *picodev;
+		struct pico_device *picodev6;
 
 		std::vector<InetAddress> ips() const;
 		std::vector<InetAddress> _ips;
@@ -236,7 +236,7 @@ namespace ZeroTier {
 			const struct sockaddr *from);
 		void phyOnTcpClose(PhySocket *sock,void **uptr);
 		void phyOnTcpData(PhySocket *sock,void **uptr,void *data,unsigned long len);
-		void phyOnTcpWritable(PhySocket *sock,void **uptr, bool stack_invoked);
+		void phyOnTcpWritable(PhySocket *sock,void **uptr);
 	};
 
 } // namespace ZeroTier

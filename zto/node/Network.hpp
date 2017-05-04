@@ -1,6 +1,6 @@
 /*
  * ZeroTier One - Network Virtualization Everywhere
- * Copyright (C) 2011-2016  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,6 +14,14 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * --
+ *
+ * You can be released from the requirements of the license by purchasing
+ * a commercial license. Buying such a license is mandatory as soon as you
+ * develop commercial closed-source software that incorporates or links
+ * directly against ZeroTier software without disclosing the source code
+ * of your own application.
  */
 
 #ifndef ZT_NETWORK_HPP
@@ -344,9 +352,8 @@ public:
 	/**
 	 * Destroy this network
 	 *
-	 * This causes the network to disable itself, destroy its tap device, and on
-	 * delete to delete all trace of itself on disk and remove any persistent tap
-	 * device instances. Call this when a network is being removed from the system.
+	 * This sets the network to completely remove itself on delete. This also prevents the
+	 * call of the normal port shutdown event on delete.
 	 */
 	void destroy();
 
@@ -364,7 +371,7 @@ public:
 	/**
 	 * @return Externally usable pointer-to-pointer exported via the core API
 	 */
-	inline void **userPtr() throw() { return &_uPtr; }
+	inline void **userPtr() { return &_uPtr; }
 
 private:
 	ZT_VirtualNetworkStatus _status() const;

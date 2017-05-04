@@ -292,7 +292,7 @@ namespace ZeroTier {
 		const struct sockaddr *from) {}
 	void SocketTap::phyOnTcpClose(PhySocket *sock,void **uptr) {}
 	void SocketTap::phyOnTcpData(PhySocket *sock,void **uptr,void *data,unsigned long len) {}
-	void SocketTap::phyOnTcpWritable(PhySocket *sock,void **uptr, bool stack_invoked) {}
+	void SocketTap::phyOnTcpWritable(PhySocket *sock,void **uptr) {}
 
 } // namespace ZeroTier
 

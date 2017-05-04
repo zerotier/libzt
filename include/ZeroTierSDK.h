@@ -39,6 +39,10 @@
 
 #define ZT_SDK_RPC_DIR_PREFIX              "rpc.d"
 
+#define ZT_CORE_VERSION_MAJOR              1
+#define ZT_CORE_VERSION_MINOR              2
+#define ZT_CORE_VERSION_REVISION           4
+
 #define ZT_SDK_VERSION_MAJOR               1
 #define ZT_SDK_VERSION_MINOR               0
 #define ZT_SDK_VERSION_REVISION            0

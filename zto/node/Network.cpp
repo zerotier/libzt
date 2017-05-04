@@ -1,6 +1,6 @@
 /*
  * ZeroTier One - Network Virtualization Everywhere
- * Copyright (C) 2011-2016  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,6 +14,14 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * --
+ *
+ * You can be released from the requirements of the license by purchasing
+ * a commercial license. Buying such a license is mandatory as soon as you
+ * develop commercial closed-source software that incorporates or links
+ * directly against ZeroTier software without disclosing the source code
+ * of your own application.
  */
 
 #include <stdio.h>
@@ -534,9 +542,9 @@ static _doZtFilterResult _doZtFilter(
 					}
 					if (inbound) {
 						if (membership) {
-							if ((src)&&(membership->hasCertificateOfOwnershipFor(nconf,src)))
+							if ((src)&&(membership->hasCertificateOfOwnershipFor<InetAddress>(nconf,src)))
 								ownershipVerificationMask |= ZT_RULE_PACKET_CHARACTERISTICS_SENDER_IP_AUTHENTICATED;
-							if (membership->hasCertificateOfOwnershipFor(nconf,macSource))
+							if (membership->hasCertificateOfOwnershipFor<MAC>(nconf,macSource))
 								ownershipVerificationMask |= ZT_RULE_PACKET_CHARACTERISTICS_SENDER_MAC_AUTHENTICATED;
 						}
 					} else {
@@ -729,7 +737,8 @@ Network::~Network()
 
 	char n[128];
 	if (_destroyed) {
-		RR->node->configureVirtualNetworkPort((void *)0,_id,&_uPtr,ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_DESTROY,&ctmp);
+		// This is done in Node::leave() so we can pass tPtr
+		//RR->node->configureVirtualNetworkPort((void *)0,_id,&_uPtr,ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_DESTROY,&ctmp);
 		Utils::snprintf(n,sizeof(n),"networks.d/%.16llx.conf",_id);
 		RR->node->dataStoreDelete((void *)0,n);
 	} else {
@@ -993,6 +1002,9 @@ void Network::multicastUnsubscribe(const MulticastGroup &mg)
 
 uint64_t Network::handleConfigChunk(void *tPtr,const uint64_t packetId,const Address &source,const Buffer<ZT_PROTO_MAX_PACKET_LENGTH> &chunk,unsigned int ptr)
 {
+	if (_destroyed)
+		return 0;
+
 	const unsigned int start = ptr;
 
 	ptr += 8; // skip network ID, which is already obviously known
@@ -1140,24 +1152,37 @@ uint64_t Network::handleConfigChunk(void *tPtr,const uint64_t packetId,const Add
 
 int Network::setConfiguration(void *tPtr,const NetworkConfig &nconf,bool saveToDisk)
 {
+	if (_destroyed)
+		return 0;
+
 	// _lock is NOT locked when this is called
 	try {
 		if ((nconf.issuedTo != RR->identity.address())||(nconf.networkId != _id))
-			return 0;
+			return 0; // invalid config that is not for us or not for this network
 		if (_config == nconf)
 			return 1; // OK config, but duplicate of what we already have
 
 		ZT_VirtualNetworkConfig ctmp;
 		bool oldPortInitialized;
-		{
+		{	// do things that require lock here, but unlock before calling callbacks
 			Mutex::Lock _l(_lock);
+
 			_config = nconf;
 			_lastConfigUpdate = RR->node->now();
 			_netconfFailure = NETCONF_FAILURE_NONE;
+
 			oldPortInitialized = _portInitialized;
 			_portInitialized = true;
+
 			_externalConfig(&ctmp);
+
+			Address *a = (Address *)0;
+			Membership *m = (Membership *)0;
+			Hashtable<Address,Membership>::Iterator i(_memberships);
+			while (i.next(a,m))
+				m->resetPushState();
 		}
+
 		_portError = RR->node->configureVirtualNetworkPort(tPtr,_id,&_uPtr,(oldPortInitialized) ? ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_CONFIG_UPDATE : ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_UP,&ctmp);
 
 		if (saveToDisk) {
@@ -1180,6 +1205,9 @@ int Network::setConfiguration(void *tPtr,const NetworkConfig &nconf,bool saveToD
 
 void Network::requestConfiguration(void *tPtr)
 {
+	if (_destroyed)
+		return;
+
 	/* ZeroTier addresses can't begin with 0xff, so this is used to mark controllerless
 	 * network IDs. Controllerless network IDs only support unicast IPv6 using the 6plane
 	 * addressing scheme and have the following format: 0xffSSSSEEEE000000 where SSSS
@@ -1299,10 +1327,9 @@ bool Network::gate(void *tPtr,const SharedPtr<Peer> &peer)
 			if ( (_config.isPublic()) || ((m)&&(m->isAllowedOnNetwork(_config))) ) {
 				if (!m)
 					m = &(_membership(peer->address()));
-				if (m->shouldLikeMulticasts(now)) {
+				if (m->multicastLikeGate(now)) {
 					m->pushCredentials(RR,tPtr,now,peer->address(),_config,-1,false);
 					_announceMulticastGroupsTo(tPtr,peer->address(),_allMulticastGroups());
-					m->likingMulticasts(now);
 				}
 				return true;
 			}
@@ -1338,6 +1365,7 @@ void Network::clean()
 		while (i.next(a,m)) {
 			if (!RR->topology->getPeerNoCache(*a))
 				_memberships.erase(*a);
+			else m->clean(now,_config);
 		}
 	}
 }
@@ -1546,8 +1574,7 @@ void Network::_sendUpdatesToMembers(void *tPtr,const MulticastGroup *const newMu
 	}
 
 	// Make sure that all "network anchors" have Membership records so we will
-	// push multicasts to them. Note that _membership() also does this but in a
-	// piecemeal on-demand fashion.
+	// push multicasts to them.
 	const std::vector<Address> anchors(_config.anchors());
 	for(std::vector<Address>::const_iterator a(anchors.begin());a!=anchors.end();++a)
 		_membership(*a);
@@ -1559,11 +1586,8 @@ void Network::_sendUpdatesToMembers(void *tPtr,const MulticastGroup *const newMu
 		Hashtable<Address,Membership>::Iterator i(_memberships);
 		while (i.next(a,m)) {
 			m->pushCredentials(RR,tPtr,now,*a,_config,-1,false);
-			if ( ((newMulticastGroup)||(m->shouldLikeMulticasts(now))) && (m->isAllowedOnNetwork(_config)) ) {
-				if (!newMulticastGroup)
-					m->likingMulticasts(now);
+			if ( ( m->multicastLikeGate(now) || (newMulticastGroup) ) && (m->isAllowedOnNetwork(_config)) )
 				_announceMulticastGroupsTo(tPtr,*a,groups);
-			}
 		}
 	}
 }

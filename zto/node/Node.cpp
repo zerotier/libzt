@@ -1,6 +1,6 @@
 /*
  * ZeroTier One - Network Virtualization Everywhere
- * Copyright (C) 2011-2016  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,6 +14,14 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * --
+ *
+ * You can be released from the requirements of the license by purchasing
+ * a commercial license. Buying such a license is mandatory as soon as you
+ * develop commercial closed-source software that incorporates or links
+ * directly against ZeroTier software without disclosing the source code
+ * of your own application.
  */
 
 #include <stdio.h>
@@ -50,7 +58,6 @@ Node::Node(void *uptr,void *tptr,const struct ZT_Node_Callbacks *callbacks,uint6
 	_RR(this),
 	RR(&_RR),
 	_uPtr(uptr),
-	_prngStreamPtr(0),
 	_now(now),
 	_lastPingCheck(0),
 	_lastHousekeepingRun(0)
@@ -59,18 +66,13 @@ Node::Node(void *uptr,void *tptr,const struct ZT_Node_Callbacks *callbacks,uint6
 		throw std::runtime_error("callbacks struct version mismatch");
 	memcpy(&_cb,callbacks,sizeof(ZT_Node_Callbacks));
 
+	Utils::getSecureRandom((void *)_prngState,sizeof(_prngState));
+
 	_online = false;
 
 	memset(_expectingRepliesToBucketPtr,0,sizeof(_expectingRepliesToBucketPtr));
 	memset(_expectingRepliesTo,0,sizeof(_expectingRepliesTo));
 	memset(_lastIdentityVerification,0,sizeof(_lastIdentityVerification));
-
-	// Use Salsa20 alone as a high-quality non-crypto PRNG
-	char foo[32];
-	Utils::getSecureRandom(foo,32);
-	_prng.init(foo,256,foo);
-	memset(_prngStream,0,sizeof(_prngStream));
-	_prng.crypt12(_prngStream,_prngStream,sizeof(_prngStream));
 
 	std::string idtmp(dataStoreGet(tptr,"identity.secret"));
 	if ((!idtmp.length())||(!RR->identity.fromString(idtmp))||(!RR->identity.hasPrivate())) {
@@ -305,26 +307,35 @@ ZT_ResultCode Node::join(uint64_t nwid,void *uptr,void *tptr)
 {
 	Mutex::Lock _l(_networks_m);
 	SharedPtr<Network> nw = _network(nwid);
-	if(!nw)
-		_networks.push_back(std::pair< uint64_t,SharedPtr<Network> >(nwid,SharedPtr<Network>(new Network(RR,tptr,nwid,uptr))));
-	std::sort(_networks.begin(),_networks.end()); // will sort by nwid since it's the first in a pair<>
+	if(!nw) {
+		const std::pair< uint64_t,SharedPtr<Network> > nn(nwid,SharedPtr<Network>(new Network(RR,tptr,nwid,uptr)));
+		_networks.insert(std::upper_bound(_networks.begin(),_networks.end(),nn),nn);
+	}
 	return ZT_RESULT_OK;
 }
 
 ZT_ResultCode Node::leave(uint64_t nwid,void **uptr,void *tptr)
 {
+	ZT_VirtualNetworkConfig ctmp;
 	std::vector< std::pair< uint64_t,SharedPtr<Network> > > newn;
+	void **nUserPtr = (void **)0;
 	Mutex::Lock _l(_networks_m);
+
 	for(std::vector< std::pair< uint64_t,SharedPtr<Network> > >::const_iterator n(_networks.begin());n!=_networks.end();++n) {
-		if (n->first != nwid)
+		if (n->first != nwid) {
 			newn.push_back(*n);
-		else {
+		} else {
 			if (uptr)
-				*uptr = n->second->userPtr();
+				*uptr = *n->second->userPtr();
 			n->second->destroy();
+			nUserPtr = n->second->userPtr();
 		}
 	}
 	_networks.swap(newn);
+ 
+	if (nUserPtr)
+		RR->node->configureVirtualNetworkPort(tptr,nwid,nUserPtr,ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_DESTROY,&ctmp);
+
 	return ZT_RESULT_OK;
 }
 
@@ -398,17 +409,17 @@ ZT_PeerList *Node::peers() const
 		p->latency = pi->second->latency();
 		p->role = RR->topology->role(pi->second->identity().address());
 
-		std::vector< std::pair< SharedPtr<Path>,bool > > paths(pi->second->paths(_now));
+		std::vector< SharedPtr<Path> > paths(pi->second->paths(_now));
 		SharedPtr<Path> bestp(pi->second->getBestPath(_now,false));
 		p->pathCount = 0;
-		for(std::vector< std::pair< SharedPtr<Path>,bool > >::iterator path(paths.begin());path!=paths.end();++path) {
-			memcpy(&(p->paths[p->pathCount].address),&(path->first->address()),sizeof(struct sockaddr_storage));
-			p->paths[p->pathCount].lastSend = path->first->lastOut();
-			p->paths[p->pathCount].lastReceive = path->first->lastIn();
-			p->paths[p->pathCount].trustedPathId = RR->topology->getOutboundPathTrust(path->first->address());
-			p->paths[p->pathCount].linkQuality = (int)path->first->linkQuality();
-			p->paths[p->pathCount].expired = path->second;
-			p->paths[p->pathCount].preferred = (path->first == bestp) ? 1 : 0;
+		for(std::vector< SharedPtr<Path> >::iterator path(paths.begin());path!=paths.end();++path) {
+			memcpy(&(p->paths[p->pathCount].address),&((*path)->address()),sizeof(struct sockaddr_storage));
+			p->paths[p->pathCount].lastSend = (*path)->lastOut();
+			p->paths[p->pathCount].lastReceive = (*path)->lastIn();
+			p->paths[p->pathCount].trustedPathId = RR->topology->getOutboundPathTrust((*path)->address());
+			p->paths[p->pathCount].linkQuality = (int)(*path)->linkQuality();
+			p->paths[p->pathCount].expired = 0;
+			p->paths[p->pathCount].preferred = ((*path) == bestp) ? 1 : 0;
 			++p->pathCount;
 		}
 	}
@@ -487,7 +498,8 @@ int Node::sendUserMessage(void *tptr,uint64_t dest,uint64_t typeId,const void *d
 void Node::setNetconfMaster(void *networkControllerInstance)
 {
 	RR->localNetworkController = reinterpret_cast<NetworkController *>(networkControllerInstance);
-	RR->localNetworkController->init(RR->identity,this);
+	if (networkControllerInstance)
+		RR->localNetworkController->init(RR->identity,this);
 }
 
 ZT_ResultCode Node::circuitTestBegin(void *tptr,ZT_CircuitTest *test,void (*reportCallback)(ZT_Node *,ZT_CircuitTest *,const ZT_CircuitTestReport *))
@@ -692,10 +704,14 @@ void Node::postTrace(const char *module,unsigned int line,const char *fmt,...)
 
 uint64_t Node::prng()
 {
-	unsigned int p = (++_prngStreamPtr % ZT_NODE_PRNG_BUF_SIZE);
-	if (!p)
-		_prng.crypt12(_prngStream,_prngStream,sizeof(_prngStream));
-	return _prngStream[p];
+	// https://en.wikipedia.org/wiki/Xorshift#xorshift.2B
+	uint64_t x = _prngState[0];
+	const uint64_t y = _prngState[1];
+	_prngState[0] = y;
+	x ^= x << 23;
+	const uint64_t z = x ^ y ^ (x >> 17) ^ (y >> 26);
+	_prngState[1] = z;
+	return z + y;
 }
 
 void Node::postCircuitTestReport(const ZT_CircuitTestReport *report)

@@ -1,6 +1,6 @@
 /*
  * ZeroTier One - Network Virtualization Everywhere
- * Copyright (C) 2011-2016  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,6 +14,14 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * --
+ *
+ * You can be released from the requirements of the license by purchasing
+ * a commercial license. Buying such a license is mandatory as soon as you
+ * develop commercial closed-source software that incorporates or links
+ * directly against ZeroTier software without disclosing the source code
+ * of your own application.
  */
 
 #include <stdio.h>
@@ -88,16 +96,21 @@ using json = nlohmann::json;
 //#define ZT_BREAK_UDP
 
 #include "../controller/EmbeddedNetworkController.hpp"
-#include "../node/Node.hpp"
 
-// Include the right tap device driver for this platform -- add new platforms here
+#ifdef ZT_USE_TEST_TAP
+
+#include "../osdep/TestEthernetTap.hpp"
+namespace ZeroTier { typedef TestEthernetTap EthernetTap; }
+
+#else
+
 #ifdef ZT_SDK
-
-// In network containers builds, use the virtual netcon endpoint instead of a tun/tap port driver
-#include "../src/SocketTap.hpp"
-namespace ZeroTier { typedef SocketTap EthernetTap; }
-
-#else // not ZT_SDK so pick a tap driver
+	#include "../controller/EmbeddedNetworkController.hpp"
+	#include "../node/Node.hpp"
+	// Use the virtual netcon endpoint instead of a tun/tap port driver
+	#include "../src/SocketTap.hpp"
+	namespace ZeroTier { typedef SocketTap EthernetTap; }
+#else
 
 #ifdef __APPLE__
 #include "../osdep/OSXEthernetTap.hpp"
@@ -122,9 +135,11 @@ namespace ZeroTier { typedef BSDEthernetTap EthernetTap; }
 
 #endif // ZT_SERVICE_NETCON
 
+#endif // ZT_USE_TEST_TAP
+
 // Sanity limits for HTTP
 #define ZT_MAX_HTTP_MESSAGE_SIZE (1024 * 1024 * 64)
-#define ZT_MAX_HTTP_CONNECTIONS 64
+#define ZT_MAX_HTTP_CONNECTIONS 65536
 
 // Interface metric for ZeroTier taps -- this ensures that if we are on WiFi and also
 // bridged via ZeroTier to the same LAN traffic will (if the OS is sane) prefer WiFi.
@@ -382,6 +397,7 @@ public:
 
 	const std::string _homePath;
 	std::string _authToken;
+	std::string _controllerDbPath;
 	EmbeddedNetworkController *_controller;
 	Phy<OneServiceImpl *> _phy;
 	Node *_node;
@@ -483,6 +499,7 @@ public:
 
 	OneServiceImpl(const char *hp,unsigned int port) :
 		_homePath((hp) ? hp : ".")
+		,_controllerDbPath(_homePath + ZT_PATH_SEPARATOR_S ZT_CONTROLLER_DB_PATH)
 		,_controller((EmbeddedNetworkController *)0)
 		,_phy(this,false,true)
 		,_node((Node *)0)
@@ -748,7 +765,7 @@ public:
 			for(int i=0;i<3;++i)
 				_portsBE[i] = Utils::hton((uint16_t)_ports[i]);
 
-			_controller = new EmbeddedNetworkController(_node,(_homePath + ZT_PATH_SEPARATOR_S ZT_CONTROLLER_DB_PATH).c_str());
+			_controller = new EmbeddedNetworkController(_node,_controllerDbPath.c_str());
 			_node->setNetconfMaster((void *)_controller);
 
 #ifdef ZT_ENABLE_CLUSTER
@@ -1005,8 +1022,7 @@ public:
 	    for(it = _nets.begin(); it != _nets.end(); it++) {
 			if(it->second.tap) {
 				for(int j=0; j<it->second.tap->_ips.size(); j++) {
-					if(it->second.tap->_ips[j].isEqualPrefix(addr) 
-						|| it->second.tap->_ips[j].ipsEqual(addr)) {
+					if(it->second.tap->_ips[j].isEqualPrefix(addr) || it->second.tap->_ips[j].ipsEqual(addr)) {
 						return it->second.tap;
 					}
 				}
@@ -1044,7 +1060,7 @@ public:
 		std::map<uint64_t,NetworkState>::const_iterator n(_nets.find(nwid));
 		if (n == _nets.end())
 			return false;
-		memcpy(&settings,&(n->second.settings),sizeof(NetworkSettings));
+		settings = n->second.settings;
 		return true;
 	}
 
@@ -1055,7 +1071,7 @@ public:
 		std::map<uint64_t,NetworkState>::iterator n(_nets.find(nwid));
 		if (n == _nets.end())
 			return false;
-		memcpy(&(n->second.settings),&settings,sizeof(NetworkSettings));
+		n->second.settings = settings;
 
 		char nlcpath[256];
 		Utils::snprintf(nlcpath,sizeof(nlcpath),"%s" ZT_PATH_SEPARATOR_S "networks.d" ZT_PATH_SEPARATOR_S "%.16llx.local.conf",_homePath.c_str(),nwid);
@@ -1199,9 +1215,11 @@ public:
 #else
 					settings["portMappingEnabled"] = false; // not supported in build
 #endif
-					//settings["softwareUpdate"] = OSUtils::jsonString(settings["softwareUpdate"],ZT_SOFTWARE_UPDATE_DEFAULT);
-					//settings["softwareUpdateChannel"] = OSUtils::jsonString(settings["softwareUpdateChannel"],ZT_SOFTWARE_UPDATE_DEFAULT_CHANNEL);
+#ifndef ZT_SDK
 
+					settings["softwareUpdate"] = OSUtils::jsonString(settings["softwareUpdate"],ZT_SOFTWARE_UPDATE_DEFAULT);
+					settings["softwareUpdateChannel"] = OSUtils::jsonString(settings["softwareUpdateChannel"],ZT_SOFTWARE_UPDATE_DEFAULT_CHANNEL);
+#endif
 					const World planet(_node->planet());
 					res["planetWorldId"] = planet.id();
 					res["planetWorldTimestamp"] = planet.timestamp();
@@ -1548,7 +1566,8 @@ public:
 
 		_primaryPort = (unsigned int)OSUtils::jsonInt(settings["primaryPort"],(uint64_t)_primaryPort) & 0xffff;
 		_portMappingEnabled = OSUtils::jsonBool(settings["portMappingEnabled"],true);
-/*
+
+#ifndef ZT_SDK
 		const std::string up(OSUtils::jsonString(settings["softwareUpdate"],ZT_SOFTWARE_UPDATE_DEFAULT));
 		const bool udist = OSUtils::jsonBool(settings["softwareUpdateDist"],false);
 		if (((up == "apply")||(up == "download"))||(udist)) {
@@ -1562,7 +1581,8 @@ public:
 			_updater = (SoftwareUpdater *)0;
 			_updateAutoApply = false;
 		}
-*/
+#endif
+
 		json &ignoreIfs = settings["interfacePrefixBlacklist"];
 		if (ignoreIfs.is_array()) {
 			for(unsigned long i=0;i<ignoreIfs.size();++i) {
@@ -1578,6 +1598,27 @@ public:
 				const InetAddress nw(OSUtils::jsonString(amf[i],""));
 				if (nw)
 					_allowManagementFrom.push_back(nw);
+			}
+		}
+
+		json &controllerDbHttpHost = settings["controllerDbHttpHost"];
+		json &controllerDbHttpPort = settings["controllerDbHttpPort"];
+		json &controllerDbHttpPath = settings["controllerDbHttpPath"];
+		if ((controllerDbHttpHost.is_string())&&(controllerDbHttpPort.is_number())) {
+			_controllerDbPath = "http://";
+			std::string h = controllerDbHttpHost;
+			_controllerDbPath.append(h);
+			char dbp[128];
+			Utils::snprintf(dbp,sizeof(dbp),"%d",(int)controllerDbHttpPort);
+			_controllerDbPath.push_back(':');
+			_controllerDbPath.append(dbp);
+			if (controllerDbHttpPath.is_string()) {
+				std::string p = controllerDbHttpPath;
+				if ((p.length() == 0)||(p[0] != '/'))
+					_controllerDbPath.push_back('/');
+				_controllerDbPath.append(p);
+			} else {
+				_controllerDbPath.push_back('/');
 			}
 		}
 	}
@@ -1934,7 +1975,7 @@ public:
 		}
 	}
 
-	inline void phyOnTcpWritable(PhySocket *sock,void **uptr, bool stack_invoked)
+	inline void phyOnTcpWritable(PhySocket *sock,void **uptr)
 	{
 		TcpConnection *tc = reinterpret_cast<TcpConnection *>(*uptr);
 		Mutex::Lock _l(tc->writeBuf_m);

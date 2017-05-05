@@ -39,13 +39,13 @@ int main()
 	printf("homePath = %s\n", homePath);
 
 	// Wait for ZeroTier service to start
-	while(!zts_service_running()) {
+	while(!zts_running()) {
 		printf("wating for service to start\n");
 		sleep(1);
 	}
 
 	// Join a network
-	zts_join_network(nwid);
+	zts_join(nwid);
 
 	// Wait for ZeroTier service to issue an address to the device on the given network
 	while(!zts_has_address("e5cd7a9e1c0fd272")) {

@@ -39,6 +39,7 @@
 #include <fcntl.h>
 
 #include <iostream>
+#include <vector>
 
 #include "ZeroTierSDK.h"
 
@@ -46,6 +47,7 @@
 #define FAILED               -1
 
 #define ECHO_INTERVAL        100000 // us
+#define SLAM_INTERVAL        50000
 #define STR_SIZE             32
 
 #define TEST_OP_N_BYTES      10
@@ -58,38 +60,46 @@
 #define TEST_TYPE_SIMPLE     30
 #define TEST_TYPE_SUSTAINED  31
 
+#define MIN_PORT             5000
+#define MAX_PORT             50000
+
 char str[STR_SIZE];
 
-// [] random
-// [OK] simple client ipv4
-// [OK] simple server ipv4
-// [?] simple client ipv6
-// [?] simple server ipv6
-// [OK] sustained client ipv4
-// [OK] sustained server ipv4
-// [?] sustained client ipv6
-// [?] sustained server ipv6
-// [] comprehensive client ipv4
-// [] comprehensive server ipv6
+/* Tests in this file:
 
-/* Performance Tests
- 
-Throughput
-Memory Usage
-Processor usage
+Basic RX/TX connect()/accept() Functionality:
 
-socket API semantics 
- - Proper socket closure
- - Proper handling of blocking/non-blocking behaviour
- - replicate specific errno conditions and verify correctness
-  
-Network semantics
-  - Multi-network handling
-  - Address handling
+[ ?]                      slam - perform thousands of the same call per second
+[  ]                    random - act like a monkey, press all the buttons
+[OK]        simple client ipv4 - connect, send one message and wait for an echo
+[OK]        simple server ipv4 - accept, read one message and echo it back
+[OK]        simple client ipv6 - connect, send one message and wait for an echo
+[OK]        simple server ipv6 - accept, read one message and echo it back
+[OK]     sustained client ipv4 - connect and rx/tx many messages
+[OK]     sustained server ipv4 - accept and echo messages
+[ ?]     sustained client ipv6 - connect and rx/tx many messages
+[ ?]     sustained server ipv6 - accept and echo messages
+[  ] comprehensive client ipv4 - test all ipv4/6 client simple/sustained modes
+[  ] comprehensive server ipv6 - test all ipv4/6 server simple/sustained modes
 
-ZeroTier-specific functionality
+Performance:
+
+[  ]                Throughput - Test maximum RX/TX speeds
+[  ]              Memory Usage - Test memory consumption profile
+[  ]                 CPU Usage - Test processor usage
+[  ]  Multithreaded Throughput - 
+[  ]   Multithreaded CPU Usage - 
+
+Correctness:
+
+[  ]           Block/Non-block - Test that blocking and non-blocking behaviour is consistent
+[  ]      Release of resources - Test that all destructor methods/blocks function properly
+[  ]    Multi-network handling - Test internal Tap multiplexing works for multiple networks
+[  ]          Address handling - Test that addresses are copied/parsed/returned properly
 
 */
+
+
 
 /****************************************************************************/
 /* SIMPLE CLIENT                                                            */
@@ -400,6 +410,207 @@ int ipv6_tcp_server_sustained_test(struct sockaddr_in6 *addr, int port, int oper
 
 
 /****************************************************************************/
+/* SLAM API (multiple of each api call and/or plausible call sequence)      */
+/****************************************************************************/
+
+#define SLAM_NUMBER 16
+#define SLAM_REPEAT 1
+
+int slam_api_test()
+{
+	int err = 0;
+
+	struct hostent *server;
+    struct sockaddr_in6 addr6;
+	struct sockaddr_in addr;
+
+	// TESTS:
+	// socket()
+	// close()
+	if(false)
+	{
+		// open and close SLAM_NUMBER*SLAM_REPEAT sockets
+		for(int j=0; j<SLAM_REPEAT; j++) {
+			std::cout << "slamming " << j << " time(s)" << std::endl;
+			usleep(SLAM_INTERVAL);
+			// create sockets
+			int fds[SLAM_NUMBER];
+			for(int i = 0; i<SLAM_NUMBER; i++) {
+				if((err = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+					std::cout << "error creating socket (errno = " << errno << ")" << std::endl;
+					if(errno == EMFILE)
+						break;
+					else
+						return -1;
+				}
+				else
+					fds[i] = err;
+				std::cout << "\tcreating " << i << " socket(s) fd = " << err << std::endl;
+
+			}
+			// close sockets
+			for(int i = 0; i<SLAM_NUMBER; i++) {
+				//std::cout << "\tclosing " << i << " socket(s)" << std::endl;
+				if((err = zts_close(fds[i])) < 0) {
+					std::cout << "error closing socket (errno = " << errno << ")" << std::endl;
+					//return -1;
+				}
+				else
+					fds[i] = -1;
+			}
+		}
+		if(zts_nsockets() == 0)
+			std::cout << "PASSED [slam open and close]" << std::endl;
+		else
+			std::cout << "FAILED [slam open and close] - sockets left unclosed" << std::endl;
+	}
+
+	// ---
+
+	// TESTS:
+	// socket()
+	// bind()
+	// listen()
+	// accept()
+	// close()
+	if(false) 
+	{
+		int sock = 0;
+		std::vector<int> used_ports;
+
+		for(int j=0; j<SLAM_REPEAT; j++) {
+			std::cout << "slamming " << j << " time(s)" << std::endl;
+			usleep(SLAM_INTERVAL);
+
+			for(int i = 0; i<SLAM_NUMBER; i++) {
+				if((sock = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+					std::cout << "error creating socket (errno = " << errno << ")" << std::endl;
+					if(errno == EMFILE)
+						break;
+					else
+						return -1;
+				}
+				std::cout << "socket() = " << sock << std::endl;
+				usleep(SLAM_INTERVAL);
+
+				int port;
+				while(!(std::find(used_ports.begin(),used_ports.end(),port) == used_ports.end())) {
+			    	port = MIN_PORT + (rand() % (int)(MAX_PORT - MIN_PORT + 1));
+			    }
+			    used_ports.push_back(port);
+			    std::cout << "port = " << port << std::endl;
+				
+				if(false) {
+					server = gethostbyname2("::",AF_INET6);
+	    			memset((char *) &addr6, 0, sizeof(addr6));
+	    			addr6.sin6_flowinfo = 0;
+	    			addr6.sin6_family = AF_INET6;
+	    			addr6.sin6_port = htons(port);
+					addr6.sin6_addr = in6addr_any;
+					err = zts_bind(sock, (struct sockaddr *)&addr6, (socklen_t)(sizeof addr6));
+				}
+
+				if(true) {
+					addr.sin_port = htons(port);
+					addr.sin_addr.s_addr = inet_addr("10.9.9.50");
+					//addr.sin_addr.s_addr = htons(INADDR_ANY);
+					addr.sin_family = AF_INET;
+					err = zts_bind(sock, (struct sockaddr *)&addr, (socklen_t)(sizeof addr));
+				}
+				if(err < 0) {
+					std::cout << "error binding socket (errno = " << errno << ")" << std::endl;
+					return -1;
+				}
+				
+				if(sock > 0) {
+					if((err = zts_close(sock)) < 0) {
+						std::cout << "error closing socket (errno = " << errno << ")" << std::endl;
+						//return -1;
+					}
+				}
+			}
+		}
+		used_ports.clear();
+		if(zts_nsockets() == 0)
+			std::cout << "PASSED [slam open, bind, listen, accept, close]" << std::endl;
+		else
+			std::cout << "FAILED [slam open, bind, listen, accept, close]" << std::endl;
+	}
+
+	// TESTS:
+	// (1) socket()
+	// (2) connect()
+	// (3) close()
+	if(true) 
+	{
+		// open, bind, listen, accept, close
+		int sock = 0;
+		for(int j=0; j<SLAM_REPEAT; j++) {
+			std::cout << "slamming " << j << " time(s)" << std::endl;
+			usleep(SLAM_INTERVAL);
+
+			for(int i = 0; i<SLAM_NUMBER; i++) {
+				if((sock = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+					std::cout << "error creating socket (errno = " << errno << ")" << std::endl;
+					if(errno == EMFILE)
+						break;
+					else
+						return -1;
+				}
+				std::cout << "socket() = " << sock << std::endl;
+				usleep(SLAM_INTERVAL);
+
+				int port = 4545;
+				
+				if((err = zts_fcntl(sock, F_SETFL, O_NONBLOCK) < 0)) {
+					std::cout << "error setting O_NONBLOCK on sock=" << sock << std::endl;
+				}
+
+				if(false) {
+					server = gethostbyname2("::",AF_INET6);
+	    			memset((char *) &addr6, 0, sizeof(addr6));
+	    			addr6.sin6_flowinfo = 0;
+	    			addr6.sin6_family = AF_INET6;
+	    			addr6.sin6_port = htons(port);
+					addr6.sin6_addr = in6addr_any;
+					err = zts_connect(sock, (struct sockaddr *)&addr6, (socklen_t)(sizeof addr6));
+				}
+
+				if(true) {
+					addr.sin_port = htons(port);
+					addr.sin_addr.s_addr = inet_addr("10.9.9.51");
+					//addr.sin_addr.s_addr = htons(INADDR_ANY);
+					addr.sin_family = AF_INET;
+					err = zts_connect(sock, (struct sockaddr *)&addr, (socklen_t)(sizeof addr));
+				}
+				if(err < 0) {
+					std::cout << "error connecting socket (errno = " << errno << ")" << std::endl;
+					if(errno == EINPROGRESS)
+						break;
+					else
+						return -1;
+				}
+				
+				if(sock > 0) {
+					if((err = zts_close(sock)) < 0) {
+						std::cout << "error closing socket (errno = " << errno << ")" << std::endl;
+						//return -1;
+					}
+				}
+			}
+		}
+		if(zts_nsockets() == 0)
+			std::cout << "PASSED [slam open, connect, close]" << std::endl;
+		else
+			std::cout << "FAILED [slam open, connect, close]" << std::endl;
+	}
+
+}
+
+
+
+
+/****************************************************************************/
 /* RANDOMIZED API TEST                                                      */
 /****************************************************************************/
 
@@ -573,7 +784,7 @@ int do_test(std::string path, std::string nwid, int type, int protocol, int mode
 			    addr6.sin6_family = AF_INET6;
 			    memmove((char *) &addr6.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
 			    addr6.sin6_port = htons(port);
-				return ipv6_tcp_server_sustained_test(&addr6, port, operation, n_count, delay);
+				return ipv6_tcp_client_sustained_test(&addr6, port, operation, n_count, delay);
 			}
 		}
 
@@ -653,6 +864,9 @@ int main(int argc , char *argv[])
 			sleep(1);
 		printf("complete\n");
 	}
+
+	slam_api_test();
+	return 0;
 
 	// SIMPLE
 	// performs a one-off test of a particular subset of the API

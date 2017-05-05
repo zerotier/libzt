@@ -75,7 +75,7 @@ namespace ZeroTier {
 			_unixListenSocket((PhySocket *)0),
 			_phy(this,false,true)
 	{
-	    _thread = Thread::start(this);
+		_thread = Thread::start(this);
 	}
 
 	SocketTap::~SocketTap()
@@ -98,7 +98,7 @@ namespace ZeroTier {
 		return _enabled;
 	}
 
-	bool SocketTap::addIp(const InetAddress &ip)
+	bool SocketTap::registerIpWithStack(const InetAddress &ip)
 	{
 		if(picostack) {
 			if(ip.isV4())
@@ -118,6 +118,17 @@ namespace ZeroTier {
 			#endif
 			}
 			std::sort(_ips.begin(),_ips.end());
+			return true;
+		}
+		return false;
+	}
+
+	bool SocketTap::addIp(const InetAddress &ip)
+	{
+		if(registerIpWithStack(ip))
+		{
+			// only start the stack if we successfully registered and initialized a device to 
+			// the given address
 			return true;
 		}
 		return false;
@@ -269,11 +280,11 @@ namespace ZeroTier {
 			DEBUG_ERROR("invalid connection");
 			return;
 		}
+		picostack->pico_Close(conn);
 		if(!conn->sock) {
 			DEBUG_EXTRA("invalid PhySocket");
 			return;
 		}
-		picostack->pico_Close(conn);
 		// Here we assume _tcpconns_m is already locked by caller
 		// FIXME: is this assumption still valid
 		if(conn->sock)

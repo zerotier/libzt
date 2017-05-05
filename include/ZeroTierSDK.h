@@ -73,7 +73,7 @@
 // zwrite() might cause data loss, for this reason, sockets will SO_LINGER for
 // a short period of time by default as a precaution.
 
-#define ZT_SOCK_BEHAVIOR_LINGER            true
+#define ZT_SOCK_BEHAVIOR_LINGER            false
 #define ZT_SOCK_BEHAVIOR_LINGER_TIME       2 // s
 
 /****************************************************************************/
@@ -359,9 +359,18 @@ namespace ZeroTier
 }
 
 /**
+ * Returns the number of sockets either already provisioned or waiting to be
+ * Some network stacks may have a limit on the number of sockets that they can
+ * safely handle due to timer construction, this is a way to check that we
+ * haven't passed that limit. Someday if multiple stacks are used simultaneously
+ * the logic for this function should change accordingly.
+ */
+int zts_nsockets();
+
+/**
  * Don't call this directly, use 'zts_start()'
  */
-void *_start_service(void *thread_id);
+void *zts_start_service(void *thread_id);
 
 /****************************************************************************/
 /* Debug                                                                    */

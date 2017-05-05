@@ -871,6 +871,11 @@ int32_t pico_seq_compare(uint32_t a, uint32_t b)
     return 0;
 }
 
+extern int pico_ntimers()
+{
+    return Timers->n;
+}
+
 static void pico_check_timers(void)
 {
     struct pico_timer *t;

@@ -11,10 +11,9 @@ Embed ZeroTier directly into your app or service. Connect everything without wor
 ```
 string str = "welcome to the machine";
 zts_start("./zt");
-while(!zts_service_running())
+while(!zts_running())
 	sleep(1);
-zts_join_network(nwid);
-int err, sockfd;
+zts_join("e5cd7a7b1c0fa971");
 while(!zts_has_address(nwid))
 	sleep(1);
 if((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -31,7 +30,7 @@ Bindings also exist for [many popular languages]().
 
 ## Build Targets
 ### Static Library
- - `make static_lib`: Will output to `build/`
+ - `make static_lib SDK_IPV4=1`: Will output to `build/`
 
 ### Tests
  - `make tests`: Will output to `build/tests/`
@@ -40,8 +39,8 @@ Then run the unit test suite with whatever configuration you need. For instance:
 
 To run a single-test IPv4 client/server test:
 
-  - Host 1: `./build/test/unit zt1 c7cd7c9e1b0f52a2 simple 4 server 8787`
-  - Host 2: `./build/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787`
+  - Host 1: `./build/selftest zt1 c7cd7c9e1b0f52a2 simple 4 server 8787`
+  - Host 2: `./build/selftest zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787`
 
 To run a multi-message IPv4 client/server test:
   - Host 1: ./build/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 server 8787 n_bytes 100 50'
@@ -49,8 +48,17 @@ To run a multi-message IPv4 client/server test:
 
   - For more unit test examples, see the [testing]() page  
   
+
+## IP version flags
+`SDK_IPV4=1`
+`SDK_IPV6=1`
+
 ## Using Language Bindings
-`SDK_LANG_JAVA=1`
+`SDK_LANG_JNI=1` - Enable JNI bindings for Java (produces a shared library)
 `SDK_LANG_CSHARP=1`
 `SDK_LANG_PYTHON=1`
 `SDK_LANG_GO=1`
+
+## Debugging flags
+`SDK_DEBUG=1` - Enable SDK library debugging
+`ZT_DEBUG=1` - Enable core ZeroTier service debugging

@@ -1,4 +1,29 @@
-
+#
+# ZeroTier SDK - Network Virtualization Everywhere
+# Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
+# 
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+# 
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+# 
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# 
+#  --
+# 
+#  You can be released from the requirements of the license by purchasing
+#  a commercial license. Buying such a license is mandatory as soon as you
+#  develop commercial closed-source software that incorporates or links
+#  directly against ZeroTier software without disclosing the source code
+#  of your own application.
+# 
+ 
 # Automagically pick clang or gcc, with preference for clang
 # This is only done if we have not overridden these with an environment or CLI variable
 ifeq ($(origin CC),default)
@@ -27,8 +52,7 @@ PICO_LIB           = $(PICO_DIR)/build/lib/$(PICO_LIB_NAME)
 SHARED_JNI_LIB     = $(BUILD)/$(JNI_LIB_NAME)
 #
 TEST_BUILD_DIR     = $(BUILD)/test
-UNIT_TEST_SRC_DIR  = test/unit
-DUMB_TEST_SRC_DIR  = test/dumb
+UNIT_TEST_SRC_DIR  = test
 
 ##############################################################################
 ## General Configuration                                                    ##
@@ -135,7 +159,7 @@ PICO_OBJS+= ext/picotcp/build/lib/pico_device.o \
 
 all: 
 
-tests: dumb_tests unit_tests
+tests: unit_tests
 
 ##############################################################################
 ## User-Space Stack                                                         ##
@@ -175,20 +199,6 @@ $(TEST_BUILD_DIR)/%: $(UNIT_TEST_SRC_DIR)/%.cpp
 	@-./check.sh $@
 
 unit_tests: $(UNIT_TEST_OBJ_FILES)
-
-##############################################################################
-## Non-ZT Client/Server Tests                                               ##
-##############################################################################
-
-DUMB_TEST_SRC_FILES := $(wildcard $(DUMB_TEST_SRC_DIR)/*.cpp)
-DUMB_TEST_OBJ_FILES := $(addprefix $(TEST_BUILD_DIR)/,$(notdir $(DUMB_TEST_SRC_FILES:.cpp=)))
-
-$(TEST_BUILD_DIR)/%: $(DUMB_TEST_SRC_DIR)/%.cpp
-	@mkdir -p $(TEST_BUILD_DIR)
-	@-$(CC) -o $@ $<
-	@-./check.sh $@
-
-dumb_tests: $(DUMB_TEST_OBJ_FILES)
 
 ##############################################################################
 ## Misc                                                                     ##

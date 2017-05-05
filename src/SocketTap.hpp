@@ -82,7 +82,13 @@ namespace ZeroTier {
 		bool enabled() const;
 
 		/* 
+		 * Registers a device with the given address
+		 */
+		bool registerIpWithStack(const InetAddress &ip);
+
+		/* 
 		 * Adds an address to the userspace stack interface associated with this SocketTap
+		 * - Starts SocketTap main thread ONLY if successful
 		 */
 		bool addIp(const InetAddress &ip);
 

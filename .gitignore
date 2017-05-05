@@ -11,6 +11,9 @@
 integrations/android/android_jni_lib/proj/local.properties
 integrations/android/example_app/local.properties
 
+# examples
+examples/java/ZeroTierHelloWorld/lib/libzt.jnilib
+
 # Unity
 *.meta
 integrations/Unity3D/Library

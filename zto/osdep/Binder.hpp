@@ -71,7 +71,12 @@
  *
  * OneService also does this on detected restarts.
  */
+
+#ifdef ZT_SDK
+#define ZT_BINDER_REFRESH_PERIOD 5000
+#else
 #define ZT_BINDER_REFRESH_PERIOD 30000
+#endif
 
 namespace ZeroTier {
 

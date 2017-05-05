@@ -9,7 +9,7 @@
 #include "pico_config.h"
 #include "pico_frame.h"
 
-#define PICO_MAX_TIMERS 20
+#define PICO_MAX_TIMERS 128
 
 #define PICO_ETH_MRU (1514u)
 #define PICO_IP_MRU (1500u)
@@ -77,6 +77,16 @@ int pico_notify_dest_unreachable(struct pico_frame *f);
 int pico_notify_ttl_expired(struct pico_frame *f);
 int pico_notify_frag_expired(struct pico_frame *f);
 int pico_notify_pkt_too_big(struct pico_frame *f);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int pico_ntimers();
+
+#ifdef __cplusplus
+}
+#endif
 
 /* Various. */
 int pico_source_is_local(struct pico_frame *f);

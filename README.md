@@ -4,9 +4,9 @@
 
 **ZeroTier** makes it easy to securely connect devices, servers, cloud VMs, containers, and apps everywhere and manage them at scale. Now, with the SDK you can bake this ability directly into your application or service using your preferred language. We provide a BSD socket-like API to make the integration simple.
 
-[![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
+<hr>
 
-<br>
+[![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
 
 ## Example
 

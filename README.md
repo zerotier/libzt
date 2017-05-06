@@ -1,9 +1,11 @@
-ZeroTier SDK
-======
+# ZeroTier SDK: Embed ZeroTier directly into your app or service
+
+<a href="https://d3js.org"><img src="https://github.com/zerotier/ZeroTierOne/raw/master/artwork/AppIcon_87x87.png" align="left" hspace="10" vspace="6"></a>
+
+**ZeroTier** makes it easy to securely connect devices, servers, cloud VMs, containers, and apps everywhere and manage them at scale.
 
 [![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
 
-Embed ZeroTier directly into your app or service. Connect everything without worrying about how it's actually connected.
 ***
 
 ## Example
@@ -50,15 +52,15 @@ To run a multi-message IPv4 client/server test:
   
 
 ## IP version flags
-`SDK_IPV4=1`
-`SDK_IPV6=1`
+ - `SDK_IPV4=1`
+ - `SDK_IPV6=1`
 
 ## Using Language Bindings
-`SDK_LANG_JNI=1` - Enable JNI bindings for Java (produces a shared library)
-`SDK_LANG_CSHARP=1`
-`SDK_LANG_PYTHON=1`
-`SDK_LANG_GO=1`
+ - `SDK_LANG_JNI=1`: Enable JNI bindings for Java (produces a shared library)
+ - `SDK_LANG_CSHARP=1`
+ - `SDK_LANG_PYTHON=1`
+ - `SDK_LANG_GO=1`
 
 ## Debugging flags
-`SDK_DEBUG=1` - Enable SDK library debugging
-`ZT_DEBUG=1` - Enable core ZeroTier service debugging
+ - `SDK_DEBUG=1` - Enable SDK library debugging
+ - `ZT_DEBUG=1` - Enable core ZeroTier service debugging

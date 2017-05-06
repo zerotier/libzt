@@ -2,7 +2,8 @@
 
 <a href="https://www.zerotier.com"><img src="https://github.com/zerotier/ZeroTierOne/raw/master/artwork/AppIcon_87x87.png" align="left" hspace="10" vspace="6"></a>
 
-**ZeroTier** makes it easy to securely connect devices, servers, cloud VMs, containers, and apps everywhere and manage them at scale. [![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
+**ZeroTier** makes it easy to securely connect devices, servers, cloud VMs, containers, and apps everywhere and manage them at scale. Now, with the SDK you can bake this ability directly into your application or service using your preferred language. We provide a BSD socket-like API to make the integration go as smoothly as possible.[![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
+
 <br>
 
 ## Example
@@ -42,8 +43,8 @@ To run a single-test IPv4 client/server test:
   - Host 2: `./build/selftest zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787`
 
 To run a multi-message IPv4 client/server test:
-  - Host 1: ./build/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 server 8787 n_bytes 100 50'
-  - Host 2: ./build/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787 n_bytes 100 50'
+  - Host 1: `./build/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 server 8787 n_bytes 100 50`
+  - Host 2: `./build/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787 n_bytes 100 50`
 
   - For more unit test examples, see the [testing]() page  
   

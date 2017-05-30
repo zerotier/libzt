@@ -1022,9 +1022,7 @@ public:
 	    for(it = _nets.begin(); it != _nets.end(); it++) {
 			if(it->second.tap) {
 				for(int j=0; j<it->second.tap->_ips.size(); j++) {
-					if(it->second.tap->_ips[j].isEqualPrefix(addr) 
-						|| it->second.tap->_ips[j].containsAddress(addr)
-						|| it->second.tap->_ips[j].ipsEqual(addr)) {
+					if(it->second.tap->_ips[j].isEqualPrefix(addr) || it->second.tap->_ips[j].ipsEqual(addr)) {
 						return it->second.tap;
 					}
 				}
@@ -2084,16 +2082,17 @@ public:
 				memcpy(&(n.config),nwc,sizeof(ZT_VirtualNetworkConfig));
 				if (n.tap) { // sanity check
 #ifdef __WINDOWS__
-                    // wait for up to 5 seconds for the WindowsEthernetTap to actually be initialized
-                    // 
-                    // without WindowsEthernetTap::isInitialized() returning true, the won't actually
-                    // be online yet and setting managed routes on it will fail.
-                    const int MAX_SLEEP_COUNT = 500;
-                    for (int i = 0; !n.tap->isInitialized() && i < MAX_SLEEP_COUNT; i++) {
-                        Sleep(10);
-                    }
+					// wait for up to 5 seconds for the WindowsEthernetTap to actually be initialized
+					// 
+					// without WindowsEthernetTap::isInitialized() returning true, the won't actually
+					// be online yet and setting managed routes on it will fail.
+					const int MAX_SLEEP_COUNT = 500;
+					for (int i = 0; !n.tap->isInitialized() && i < MAX_SLEEP_COUNT; i++) {
+						Sleep(10);
+					}
 #endif
 					syncManagedStuff(n,true,true);
+					n.tap->setMtu(nwc->mtu);
 				} else {
 					_nets.erase(nwid);
 					return -999; // tap init failed

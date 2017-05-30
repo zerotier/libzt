@@ -487,9 +487,6 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpGET(
 
 		if ((path.size() >= 2)&&(path[1].length() == 16)) {
 			const uint64_t nwid = Utils::hexStrToU64(path[1].c_str());
-			char nwids[24];
-			Utils::snprintf(nwids,sizeof(nwids),"%.16llx",(unsigned long long)nwid);
-
 			json network;
 			if (!_db.getNetwork(nwid,network))
 				return 404;
@@ -499,6 +496,8 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpGET(
 				if (path[2] == "member") {
 
 					if (path.size() >= 4) {
+						// Get member
+
 						const uint64_t address = Utils::hexStrToU64(path[3].c_str());
 						json member;
 						if (!_db.getNetworkMember(nwid,address,member))
@@ -506,24 +505,29 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpGET(
 						_addMemberNonPersistedFields(nwid,address,member,OSUtils::now());
 						responseBody = OSUtils::jsonDump(member);
 						responseContentType = "application/json";
+
 					} else {
+						// List members and their revisions
+
 						responseBody = "{";
+						responseBody.reserve((_db.memberCount(nwid) + 1) * 32);
 						_db.eachMember(nwid,[&responseBody](uint64_t networkId,uint64_t nodeId,const json &member) {
 							if ((member.is_object())&&(member.size() > 0)) {
-								responseBody.append((responseBody.length() == 1) ? "\"" : ",\"");
-								responseBody.append(OSUtils::jsonString(member["id"],"0"));
-								responseBody.append("\":");
-								responseBody.append(OSUtils::jsonString(member["revision"],"0"));
+								char tmp[128];
+								Utils::snprintf(tmp,sizeof(tmp),"%s%.10llx\":%llu",(responseBody.length() > 1) ? ",\"" : "\"",(unsigned long long)nodeId,(unsigned long long)OSUtils::jsonInt(member["revision"],0));
+								responseBody.append(tmp);
 							}
 						});
 						responseBody.push_back('}');
 						responseContentType = "application/json";
+
 					}
 					return 200;
 
 				} // else 404
 
 			} else {
+				// Get network
 
 				const uint64_t now = OSUtils::now();
 				JSONDB::NetworkSummaryInfo ns;
@@ -535,12 +539,12 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpGET(
 
 			}
 		} else if (path.size() == 1) {
+			// List networks
 
 			std::vector<uint64_t> networkIds(_db.networkIds());
-			std::sort(networkIds.begin(),networkIds.end());
-
 			char tmp[64];
-			responseBody.push_back('[');
+			responseBody = "[";
+			responseBody.reserve((networkIds.size() + 1) * 24);
 			for(std::vector<uint64_t>::const_iterator i(networkIds.begin());i!=networkIds.end();++i) {
 				if (responseBody.length() > 1)
 					responseBody.push_back(',');
@@ -555,6 +559,7 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpGET(
 		} // else 404
 
 	} else {
+		// Controller status
 
 		char tmp[4096];
 		Utils::snprintf(tmp,sizeof(tmp),"{\n\t\"controller\": true,\n\t\"apiVersion\": %d,\n\t\"clock\": %llu\n}\n",ZT_NETCONF_CONTROLLER_API_VERSION,(unsigned long long)OSUtils::now());
@@ -721,59 +726,6 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpPOST(
 					responseContentType = "application/json";
 
 					return 200;
-				} else if ((path.size() == 3)&&(path[2] == "test")) {
-
-					Mutex::Lock _l(_tests_m);
-
-					_tests.push_back(ZT_CircuitTest());
-					ZT_CircuitTest *const test = &(_tests.back());
-					memset(test,0,sizeof(ZT_CircuitTest));
-
-					Utils::getSecureRandom(&(test->testId),sizeof(test->testId));
-					test->credentialNetworkId = nwid;
-					test->ptr = (void *)this;
-					json hops = b["hops"];
-					if (hops.is_array()) {
-						for(unsigned long i=0;i<hops.size();++i) {
-							json &hops2 = hops[i];
-							if (hops2.is_array()) {
-								for(unsigned long j=0;j<hops2.size();++j) {
-									std::string s = hops2[j];
-									test->hops[test->hopCount].addresses[test->hops[test->hopCount].breadth++] = Utils::hexStrToU64(s.c_str()) & 0xffffffffffULL;
-								}
-								++test->hopCount;
-							} else if (hops2.is_string()) {
-								std::string s = hops2;
-								test->hops[test->hopCount].addresses[test->hops[test->hopCount].breadth++] = Utils::hexStrToU64(s.c_str()) & 0xffffffffffULL;
-								++test->hopCount;
-							}
-						}
-					}
-					test->reportAtEveryHop = (OSUtils::jsonBool(b["reportAtEveryHop"],true) ? 1 : 0);
-
-					if (!test->hopCount) {
-						_tests.pop_back();
-						responseBody = "{ \"message\": \"a test must contain at least one hop\" }";
-						responseContentType = "application/json";
-						return 400;
-					}
-
-					test->timestamp = OSUtils::now();
-
-					if (_node) {
-						_node->circuitTestBegin((void *)0,test,&(EmbeddedNetworkController::_circuitTestCallback));
-					} else {
-						_tests.pop_back();
-						return 500;
-					}
-
-					char json[512];
-					Utils::snprintf(json,sizeof(json),"{\"testId\":\"%.16llx\",\"timestamp\":%llu}",test->testId,test->timestamp);
-					responseBody = json;
-					responseContentType = "application/json";
-
-					return 200;
-
 				} // else 404
 
 			} else {
@@ -809,6 +761,7 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpPOST(
 					if (b.count("enableBroadcast")) network["enableBroadcast"] = OSUtils::jsonBool(b["enableBroadcast"],false);
 					if (b.count("allowPassiveBridging")) network["allowPassiveBridging"] = OSUtils::jsonBool(b["allowPassiveBridging"],false);
 					if (b.count("multicastLimit")) network["multicastLimit"] = OSUtils::jsonInt(b["multicastLimit"],32ULL);
+					if (b.count("mtu")) network["mtu"] = std::max(std::min((unsigned int)OSUtils::jsonInt(b["mtu"],ZT_DEFAULT_MTU),(unsigned int)ZT_MAX_MTU),(unsigned int)ZT_MIN_MTU);
 
 					if (b.count("v4AssignMode")) {
 						json nv4m;
@@ -1112,7 +1065,6 @@ unsigned int EmbeddedNetworkController::handleControlPlaneHttpDELETE(
 void EmbeddedNetworkController::threadMain()
 	throw()
 {
-	uint64_t lastCircuitTestCheck = 0;
 	_RQEntry *qe = (_RQEntry *)0;
 	while ((_running)&&(_queue.get(qe))) {
 		try {
@@ -1124,7 +1076,7 @@ void EmbeddedNetworkController::threadMain()
 				std::string pong("{\"memberStatus\":{");
 				{
 					Mutex::Lock _l(_memberStatus_m);
-					pong.reserve(64 * _memberStatus.size());
+					pong.reserve(48 * (_memberStatus.size() + 1));
 					_db.eachId([this,&pong,&now,&first](uint64_t networkId,uint64_t nodeId) {
 						char tmp[64];
 						uint64_t lrt = 0ULL;
@@ -1147,78 +1099,7 @@ void EmbeddedNetworkController::threadMain()
 			}
 		} catch ( ... ) {}
 		delete qe;
-
-		if (_running) {
-			uint64_t now = OSUtils::now();
-			if ((now - lastCircuitTestCheck) > ZT_EMBEDDEDNETWORKCONTROLLER_CIRCUIT_TEST_EXPIRATION) {
-				lastCircuitTestCheck = now;
-				Mutex::Lock _l(_tests_m);
-				for(std::list< ZT_CircuitTest >::iterator i(_tests.begin());i!=_tests.end();) {
-					if ((now - i->timestamp) > ZT_EMBEDDEDNETWORKCONTROLLER_CIRCUIT_TEST_EXPIRATION) {
-						_node->circuitTestEnd(&(*i));
-						_tests.erase(i++);
-					} else ++i;
-				}
-			}
-		}
 	}
-}
-
-void EmbeddedNetworkController::_circuitTestCallback(ZT_Node *node,ZT_CircuitTest *test,const ZT_CircuitTestReport *report)
-{
-	char tmp[2048],id[128];
-	EmbeddedNetworkController *const self = reinterpret_cast<EmbeddedNetworkController *>(test->ptr);
-
-	if ((!test)||(!report)||(!test->credentialNetworkId)) return; // sanity check
-
-	const uint64_t now = OSUtils::now();
-	Utils::snprintf(id,sizeof(id),"network/%.16llx/test/%.16llx-%.16llx-%.10llx-%.10llx",test->credentialNetworkId,test->testId,now,report->upstream,report->current);
-	Utils::snprintf(tmp,sizeof(tmp),
-		"{\"id\": \"%s\","
-		"\"objtype\": \"circuit_test\","
-		"\"timestamp\": %llu,"
-		"\"networkId\": \"%.16llx\","
-		"\"testId\": \"%.16llx\","
-		"\"upstream\": \"%.10llx\","
-		"\"current\": \"%.10llx\","
-		"\"receivedTimestamp\": %llu,"
-		"\"sourcePacketId\": \"%.16llx\","
-		"\"flags\": %llu,"
-		"\"sourcePacketHopCount\": %u,"
-		"\"errorCode\": %u,"
-		"\"vendor\": %d,"
-		"\"protocolVersion\": %u,"
-		"\"majorVersion\": %u,"
-		"\"minorVersion\": %u,"
-		"\"revision\": %u,"
-		"\"platform\": %d,"
-		"\"architecture\": %d,"
-		"\"receivedOnLocalAddress\": \"%s\","
-		"\"receivedFromRemoteAddress\": \"%s\","
-		"\"receivedFromLinkQuality\": %f}",
-		id + 30, // last bit only, not leading path
-		(unsigned long long)test->timestamp,
-		(unsigned long long)test->credentialNetworkId,
-		(unsigned long long)test->testId,
-		(unsigned long long)report->upstream,
-		(unsigned long long)report->current,
-		(unsigned long long)now,
-		(unsigned long long)report->sourcePacketId,
-		(unsigned long long)report->flags,
-		report->sourcePacketHopCount,
-		report->errorCode,
-		(int)report->vendor,
-		report->protocolVersion,
-		report->majorVersion,
-		report->minorVersion,
-		report->revision,
-		(int)report->platform,
-		(int)report->architecture,
-		reinterpret_cast<const InetAddress *>(&(report->receivedOnLocalAddress))->toString().c_str(),
-		reinterpret_cast<const InetAddress *>(&(report->receivedFromRemoteAddress))->toString().c_str(),
-		((double)report->receivedFromLinkQuality / (double)ZT_PATH_LINK_QUALITY_MAX));
-
-	self->_db.writeRaw(id,std::string(tmp));
 }
 
 void EmbeddedNetworkController::_request(
@@ -1424,6 +1305,7 @@ void EmbeddedNetworkController::_request(
 	if (OSUtils::jsonBool(network["enableBroadcast"],true)) nc->flags |= ZT_NETWORKCONFIG_FLAG_ENABLE_BROADCAST;
 	if (OSUtils::jsonBool(network["allowPassiveBridging"],false)) nc->flags |= ZT_NETWORKCONFIG_FLAG_ALLOW_PASSIVE_BRIDGING;
 	Utils::scopy(nc->name,sizeof(nc->name),OSUtils::jsonString(network["name"],"").c_str());
+	nc->mtu = std::max(std::min((unsigned int)OSUtils::jsonInt(network["mtu"],ZT_DEFAULT_MTU),(unsigned int)ZT_MAX_MTU),(unsigned int)ZT_MIN_MTU);
 	nc->multicastLimit = (unsigned int)OSUtils::jsonInt(network["multicastLimit"],32ULL);
 
 	for(std::vector<Address>::const_iterator ab(ns.activeBridges.begin());ab!=ns.activeBridges.end();++ab)

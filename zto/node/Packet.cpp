@@ -320,6 +320,7 @@ union LZ4_streamDecode_u {
 #define FORCE_INLINE static inline
 #endif
 
+#if 0
 #if (defined(__GNUC__) && (__GNUC__ >= 3)) || (defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 800)) || defined(__clang__)
 #  define expect(expr,value)    (__builtin_expect ((expr),(value)) )
 #else
@@ -328,6 +329,7 @@ union LZ4_streamDecode_u {
 
 #define likely(expr)     expect((expr) != 0, 1)
 #define unlikely(expr)   expect((expr) != 0, 0)
+#endif
 
 /*-************************************
 *  Memory routines
@@ -1080,8 +1082,6 @@ const char *Packet::verbString(Verb v)
 		case VERB_MULTICAST_GATHER: return "MULTICAST_GATHER";
 		case VERB_MULTICAST_FRAME: return "MULTICAST_FRAME";
 		case VERB_PUSH_DIRECT_PATHS: return "PUSH_DIRECT_PATHS";
-		case VERB_CIRCUIT_TEST: return "CIRCUIT_TEST";
-		case VERB_CIRCUIT_TEST_REPORT: return "CIRCUIT_TEST_REPORT";
 		case VERB_USER_MESSAGE: return "USER_MESSAGE";
 	}
 	return "(unknown)";

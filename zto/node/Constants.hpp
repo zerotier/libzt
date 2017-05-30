@@ -60,6 +60,8 @@
 #endif
 
 #ifdef __APPLE__
+#define likely(x) __builtin_expect((x),1)
+#define unlikely(x) __builtin_expect((x),0)
 #include <TargetConditionals.h>
 #ifndef __UNIX_LIKE__
 #define __UNIX_LIKE__
@@ -132,6 +134,22 @@
 #include <endian.h>
 #endif
 
+#if (defined(__GNUC__) && (__GNUC__ >= 3)) || (defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 800)) || defined(__clang__)
+#ifndef likely
+#define likely(x) __builtin_expect((x),1)
+#endif
+#ifndef unlikely
+#define unlikely(x) __builtin_expect((x),0)
+#endif
+#else
+#ifndef likely
+#define likely(x) (x)
+#endif
+#ifndef unlikely
+#define unlikely(x) (x)
+#endif
+#endif
+
 /**
  * Length of a ZeroTier address in bytes
  */
@@ -159,15 +177,12 @@
 /**
  * Default MTU used for Ethernet tap device
  */
-#define ZT_IF_MTU ZT_MAX_MTU
+#define ZT_DEFAULT_MTU 2800
 
 /**
- * Maximum number of packet fragments we'll support
- *
- * The actual spec allows 16, but this is the most we'll support right
- * now. Packets with more than this many fragments are dropped.
+ * Maximum number of packet fragments we'll support (protocol max: 16)
  */
-#define ZT_MAX_PACKET_FRAGMENTS 4
+#define ZT_MAX_PACKET_FRAGMENTS 7
 
 /**
  * Size of RX queue
@@ -372,7 +387,7 @@
 /**
  * Time horizon for push direct paths cutoff
  */
-#define ZT_PUSH_DIRECT_PATHS_CUTOFF_TIME 60000
+#define ZT_PUSH_DIRECT_PATHS_CUTOFF_TIME 30000
 
 /**
  * Maximum number of direct path pushes within cutoff time
@@ -381,12 +396,12 @@
  * per CUTOFF_TIME milliseconds per peer to prevent this from being
  * useful for DOS amplification attacks.
  */
-#define ZT_PUSH_DIRECT_PATHS_CUTOFF_LIMIT 5
+#define ZT_PUSH_DIRECT_PATHS_CUTOFF_LIMIT 8
 
 /**
  * Maximum number of paths per IP scope (e.g. global, link-local) and family (e.g. v4/v6)
  */
-#define ZT_PUSH_DIRECT_PATHS_MAX_PER_SCOPE_AND_FAMILY 4
+#define ZT_PUSH_DIRECT_PATHS_MAX_PER_SCOPE_AND_FAMILY 8
 
 /**
  * Time horizon for VERB_NETWORK_CREDENTIALS cutoff

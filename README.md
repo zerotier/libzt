@@ -8,6 +8,8 @@
 
 [![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
 
+Pre-Built Binaries/Packages Here: [zerotier.com/download.shtml](https://zerotier.com/download.shtml?pk_campaign=github_ZeroTierNAS)
+
 ## Example
 
 ```
@@ -34,19 +36,21 @@ Bindings also exist for [many popular languages]().
 ### Static Library
  - `make static_lib SDK_IPV4=1`: Will output to `build/`
 
-### Tests
+***
+
+### Tests (After building a static library)
  - `make tests`: Will output to `build/tests/`
 
 Then run the unit test suite with whatever configuration you need. For instance:
 
-To run a single-test IPv4 client/server test:
+To run a single-test IPv4 client/server test. Where `$PLATFORM` is `linux`, `darwin` or `win`:
 
-  - Host 1: `./build/selftest zt1 c7cd7c9e1b0f52a2 simple 4 server 8787`
-  - Host 2: `./build/selftest zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787`
+  - Host 1: `./build/$PLATFORM/test/selftest zt1 c7cd7c9e1b0f52a2 simple 4 server 10.9.9.40 8787`
+  - Host 2: `./build/$PLATFORM/test/selftest zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787`
 
 To run a multi-message IPv4 client/server test:
-  - Host 1: `./build/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 server 8787 n_bytes 100 50`
-  - Host 2: `./build/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787 n_bytes 100 50`
+  - Host 1: `./build/$PLATFORM/test/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 server 10.9.9.40 8787 n_bytes 100 50`
+  - Host 2: `./build/$PLATFORM/test/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787 n_bytes 100 50`
 
   - For more unit test examples, see the [testing]() page  
   

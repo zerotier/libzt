@@ -1551,7 +1551,7 @@ static void pico_ipv6_nd_dad(pico_time now, void *arg)
     }
     else {
         if (l->dup_detect_retrans-- == 0) {
-            dbg("IPv6: DAD verified valid address.\n");
+            //dbg("IPv6: DAD verified valid address.\n");
             l->istentative = 0;
         } else {
             /* Duplicate Address Detection */

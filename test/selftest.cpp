@@ -37,9 +37,13 @@
 #include <stdlib.h>
 #include <string>
 #include <fcntl.h>
+#include <errno.h>
 
 #include <iostream>
 #include <vector>
+#include <algorithm>
+#include <fstream>
+#include <map>
 
 #include "ZeroTierSDK.h"
 
@@ -47,7 +51,7 @@
 #define FAILED               -1
 
 #define ECHO_INTERVAL        100000 // us
-#define SLAM_INTERVAL        50000
+#define SLAM_INTERVAL        500000
 #define STR_SIZE             32
 
 #define TEST_OP_N_BYTES      10
@@ -64,6 +68,8 @@
 #define MAX_PORT             50000
 
 char str[STR_SIZE];
+
+std::map<std::string, std::string> testConf;
 
 /* Tests in this file:
 
@@ -99,6 +105,30 @@ Correctness:
 
 */
 
+void displayResults(int *results, int size)
+{
+	int success = 0, failure = 0;
+	for(int i=0; i<size; i++) {
+		if(results[i] == 0)
+			success++;
+		else
+			failure++;
+	}
+	std::cout << "tials: " << size << std::endl;
+	std::cout << " - success = " << (float)success / (float)size << std::endl;
+	std::cout << " - failure = " << (float)failure / (float)size << std::endl;
+}
+
+void loadTestConfigFile(std::string filepath)
+{
+	std::string key;
+	std::string value;
+	std::ifstream testFile;
+	testFile.open(filepath.c_str());
+	while (testFile >> key >> value)
+	    testConf[key] = value;
+	testFile.close();
+}
 
 
 /****************************************************************************/
@@ -419,10 +449,13 @@ int ipv6_tcp_server_sustained_test(struct sockaddr_in6 *addr, int port, int oper
 int slam_api_test()
 {
 	int err = 0;
+	int results[SLAM_NUMBER*SLAM_REPEAT];
 
 	struct hostent *server;
     struct sockaddr_in6 addr6;
 	struct sockaddr_in addr;
+
+	int start_stack_timer_count = pico_ntimers(); // number of picoTCP timers allocated
 
 	// TESTS:
 	// socket()
@@ -541,70 +574,72 @@ int slam_api_test()
 	// (1) socket()
 	// (2) connect()
 	// (3) close()
+	int num_times = zts_maxsockets();
+	std::cout << "socket/connect/close - " << num_times << " times" << std::endl;
+	for(int i=0;i<(SLAM_NUMBER*SLAM_REPEAT); i++) { results[i] = 0; }
 	if(true) 
 	{
+		int port = 4545;
+		
 		// open, bind, listen, accept, close
-		int sock = 0;
-		for(int j=0; j<SLAM_REPEAT; j++) {
-			std::cout << "slamming " << j << " time(s)" << std::endl;
+		for(int j=0; j<num_times; j++) {
+			int sock = 0;
+			errno = 0;
+
 			usleep(SLAM_INTERVAL);
 
-			for(int i = 0; i<SLAM_NUMBER; i++) {
-				if((sock = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-					std::cout << "error creating socket (errno = " << errno << ")" << std::endl;
-					if(errno == EMFILE)
-						break;
-					else
-						return -1;
-				}
-				std::cout << "socket() = " << sock << std::endl;
-				usleep(SLAM_INTERVAL);
+			// socket()
+			printf("creating socket... (%d)\n", j);
+			if((sock = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
+				std::cout << "error creating socket (errno = " << errno << ")" << std::endl;
+			results[j] = std::min(results[j], sock);
+			
+			// set O_NONBLOCK
+			if((err = zts_fcntl(sock, F_SETFL, O_NONBLOCK) < 0))
+				std::cout << "error setting O_NONBLOCK (errno=" << errno << ")" << std::endl;
+			results[j] = std::min(results[j], err);
 
-				int port = 4545;
-				
-				if((err = zts_fcntl(sock, F_SETFL, O_NONBLOCK) < 0)) {
-					std::cout << "error setting O_NONBLOCK on sock=" << sock << std::endl;
-				}
-
-				if(false) {
-					server = gethostbyname2("::",AF_INET6);
-	    			memset((char *) &addr6, 0, sizeof(addr6));
-	    			addr6.sin6_flowinfo = 0;
-	    			addr6.sin6_family = AF_INET6;
-	    			addr6.sin6_port = htons(port);
-					addr6.sin6_addr = in6addr_any;
-					err = zts_connect(sock, (struct sockaddr *)&addr6, (socklen_t)(sizeof addr6));
-				}
-
-				if(true) {
-					addr.sin_port = htons(port);
-					addr.sin_addr.s_addr = inet_addr("10.9.9.51");
-					//addr.sin_addr.s_addr = htons(INADDR_ANY);
-					addr.sin_family = AF_INET;
-					err = zts_connect(sock, (struct sockaddr *)&addr, (socklen_t)(sizeof addr));
-				}
-				if(err < 0) {
-					std::cout << "error connecting socket (errno = " << errno << ")" << std::endl;
-					if(errno == EINPROGRESS)
-						break;
-					else
-						return -1;
-				}
-				
-				if(sock > 0) {
-					if((err = zts_close(sock)) < 0) {
-						std::cout << "error closing socket (errno = " << errno << ")" << std::endl;
-						//return -1;
-					}
-				}
+			// connect()
+			if(false) {
+				server = gethostbyname2("::",AF_INET6);
+    			memset((char *) &addr6, 0, sizeof(addr6));
+    			addr6.sin6_flowinfo = 0;
+    			addr6.sin6_family = AF_INET6;
+    			addr6.sin6_port = htons(port);
+				addr6.sin6_addr = in6addr_any;
+				err = zts_connect(sock, (struct sockaddr *)&addr6, (socklen_t)(sizeof addr6));
 			}
+			if(true) {
+				addr.sin_port = htons(port);
+				addr.sin_addr.s_addr = inet_addr("10.9.9.51");
+				//addr.sin_addr.s_addr = htons(INADDR_ANY);
+				addr.sin_family = AF_INET;
+				err = zts_connect(sock, (struct sockaddr *)&addr, (socklen_t)(sizeof addr));
+			}
+
+			if(errno != EINPROGRESS) { // acceptable error for non-block mode
+				if(err < 0)
+					std::cout << "error connecting socket (errno = " << errno << ")" << std::endl;
+				results[j] = std::min(results[j], err);
+			}
+
+			// close()
+			if((err = zts_close(sock)) < 0)
+				std::cout << "error closing socket (errno = " << errno << ")" << std::endl;
+			results[j] = std::min(results[j], err);
 		}
+
+		//while(pico_ntimers() > start_stack_timer_count) {
+		//	sleep(10);
+		//	printf("timers = %d\n", pico_ntimers());
+		//}
+
+		displayResults(results, num_times);
 		if(zts_nsockets() == 0)
 			std::cout << "PASSED [slam open, connect, close]" << std::endl;
 		else
 			std::cout << "FAILED [slam open, connect, close]" << std::endl;
 	}
-
 }
 
 
@@ -829,8 +864,9 @@ int do_test(std::string path, std::string nwid, int type, int protocol, int mode
 
 int main(int argc , char *argv[])
 {
-    if(argc < 3) {
-        printf("usage: ./unit <path> <nwid> <simple|sustained|random> <4|6> <client|server> <port> <operation> <count> <delay>\n");     
+    if(argc < 1) {
+        printf("usage(1): ./unit <path> <nwid> <simple|sustained|random> <4|6> <client|server> <port> <operation> <count> <delay>\n");     
+        printf("usage(2): selftest.conf\n");  
         return 1;
     }
 
@@ -839,40 +875,96 @@ int main(int argc , char *argv[])
     int protocol  = 0;
     int mode      = 0;
     int port      = 0;
+    int local_port  = 0;
+    int remote_port = 0;
     int operation = 0;
 	int n_count   = 0;
 	int delay     = 0;
 
 	std::string path  = argv[1];
-	std::string nwid  = argv[2];
-	std::string stype = argv[3];
-	std::string ipstr, ipstr6;
+	std::string nwid;
+	std::string stype;
+	std::string ipstr, ipstr6, local_ipstr, local_ipstr6, remote_ipstr, remote_ipstr6;
 
 	memcpy(str, "welcome to the machine", 22);
 
+	// if a test config file was specified:
+	// load addresses/path, perform comprehensive test
+	if(path.find(".conf") != std::string::npos) 
+	{
+		loadTestConfigFile(path);
+		nwid   = testConf["nwid"];
+		path   = testConf["local_path"];
+		stype  = "comprehensive";
+		local_ipstr   = testConf["local_ipv4"];
+		local_ipstr6  = testConf["local_ipv6"];
+		remote_ipstr  = testConf["remote_ipv4"];
+		remote_ipstr6 = testConf["remote_ipv6"];
+		std::string smode   = testConf["mode"];
+
+		if(strcmp(smode.c_str(), "server") == 0)
+			mode = TEST_MODE_SERVER;
+		else
+			mode = TEST_MODE_CLIENT;
+
+		local_port = atoi(testConf["local_port"].c_str());
+		remote_port = atoi(testConf["remote_port"].c_str());
+
+		fprintf(stderr, "local_ipstr       = %s\n", local_ipstr.c_str());
+		fprintf(stderr, "local_ipstr6      = %s\n", local_ipstr6.c_str());
+		fprintf(stderr, "remote_ipstr      = %s\n", remote_ipstr.c_str());
+		fprintf(stderr, "remote_ipstr6     = %s\n", remote_ipstr6.c_str());
+		
+		fprintf(stderr, "remote_port       = %d\n", remote_port);
+		fprintf(stderr, "local_port        = %d\n", local_port);
+	}
+	else
+	{
+		nwid  = argv[2];
+		stype = argv[3];
+	}
+
+	fprintf(stderr, "path        = %s\n", path.c_str());
+	fprintf(stderr, "nwid        = %s\n", nwid.c_str());
+	fprintf(stderr, "type        = %s\n", stype.c_str());
+
 	// If we're performing a non-random test, join the network we want to test on
-	// and wait until the service initializes the SocketTap and provides an address
-	if(stype == "simple" || stype == "sustained" || stype == "comprehensive") {
-		zts_start(path.c_str());
-		printf("waiting for service to start...\n");
-		while(!zts_running())
-			sleep(1);
-		printf("joining network...\n");
-		zts_join(nwid.c_str());
-		printf("waiting for address assignment...\n");
-		while(!zts_has_address(nwid.c_str()))
-			sleep(1);
+	// and wait until the service initializes and provides an address
+
+	if(stype == "simple") {
+
+		printf("waiting for libzt to come online\n");
+		zts_simple_start(path.c_str(), nwid.c_str());
+
+		// What follows is a long-form of zts_simple_start()
+
+		// zts_start(path.c_str());
+		// printf("waiting for service to start...\n");
+		// while(!zts_running())
+		//	sleep(1);
+		// printf("joining network...\n");
+		// zts_join(nwid.c_str());
+		// printf("waiting for address assignment...\n");
+		// while(!zts_has_address(nwid.c_str()))
+		//	sleep(1);
+
 		printf("complete\n");
 	}
 
-	slam_api_test();
-	return 0;
+	// SLAM
+	// Perform thsouands of repetitions of the same plausible API sequences to detect faults
+	if(stype == "slam")
+	{
+		slam_api_test();
+		return 0;
+	}
 
 	// SIMPLE
 	// performs a one-off test of a particular subset of the API
 	// For instance (ipv4 client, ipv6 server, etc)
 	if(stype == "simple")
 	{
+		printf("performing SIMPLE test\n");
 		// Parse args
 		type     = TEST_TYPE_SIMPLE;
 		protocol = atoi(argv[4]);
@@ -895,6 +987,7 @@ int main(int argc , char *argv[])
 	// Performs a stress test for benchmarking performance
 	if(stype == "sustained")
 	{
+		printf("performing SUSTAINED test\n");
 		type     = TEST_TYPE_SUSTAINED;
 		protocol = atoi(argv[4]);
 		if(!strcmp(argv[5],"client"))
@@ -935,7 +1028,9 @@ int main(int argc , char *argv[])
 	// Tests ALL API calls
 	if(stype == "comprehensive")
 	{	
+		printf("performing COMPREHENSIVE test\n");
 		// Parse args
+		/*
 		type     = TEST_TYPE_SIMPLE;
 		if(!strcmp(argv[4],"client"))
 			mode = TEST_MODE_CLIENT;
@@ -944,47 +1039,61 @@ int main(int argc , char *argv[])
 		ipstr = argv[5];
 		ipstr6 = argv[6];
 		port = atoi(argv[7]);
+		*/
 
 		/* Each host must operate as the counterpoint to the other, thus, each mode 
 		 * will call the same test helper functions in different orders
 		 * Additionally, the test will use the preset paremeters below for the test:
 		 */
 
-		 int test = 0;
-		 printf("comprehensive\n");
-		 printf("test = %d\n", test);
-		 test = !test;
-		 printf("test = %d\n", test);
-
 		delay     =  0;
 		n_count   = 10;
 		type      = TEST_TYPE_SIMPLE;
 		operation = TEST_OP_N_TIMES;
 
-		// IPV4
-		protocol = 4;
-		// perform first test arrangement
-		do_test(path, nwid, type, protocol, mode, ipstr, port, operation, n_count, delay);
-		sleep(1);
-		do_test(path, nwid, type, protocol, mode, ipstr, port, operation, n_count, delay);
-		sleep(1);
-		// swtich modes
-		if(mode == TEST_MODE_SERVER)
-			mode = TEST_MODE_CLIENT;
-		else if(mode == TEST_MODE_CLIENT)
-			mode = TEST_MODE_SERVER;
-		// perform second test arrangement
-		do_test(path, nwid, type, protocol, mode, ipstr, port, operation, n_count, delay);
-		sleep(1);
-		do_test(path, nwid, type, protocol, mode, ipstr, port, operation, n_count, delay);
+		if(mode == TEST_MODE_SERVER) {
+			printf("starting comprehensive test as SERVER\n");
+			port  = local_port;
+			ipstr = local_ipstr;
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			printf("starting comprehensive test as CLIENT\n");
+			sleep(10); // give the server some time to come online before beginning test
+			port  = remote_port;
+			ipstr = remote_ipstr;
+		}
 
+		// IPV4 (first test)
+		protocol = 4;
+		do_test(path, nwid, type, protocol, mode, ipstr, port, operation, n_count, delay);
+		sleep(3);
+
+		// swtich modes (client/server)
+		if(mode == TEST_MODE_SERVER) {
+			printf("switching from SERVER to CLIENT mode\n");
+			port  = remote_port;
+			ipstr = remote_ipstr;
+			mode  = TEST_MODE_CLIENT;
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			printf("switching from CLIENT to SERVER mode\n");
+			port  = local_port;
+			ipstr = local_ipstr;
+			mode  = TEST_MODE_SERVER;
+		}
+		
+		// IPV4 (second test)
+		do_test(path, nwid, type, protocol, mode, ipstr, port, operation, n_count, delay);
+		sleep(3);
+
+		/*
 		// IPV6
 		protocol = 6;
 		// perform first test arrangement
 		do_test(path, nwid, type, protocol, mode, ipstr6, port, operation, n_count, delay);
 		sleep(1);
-		do_test(path, nwid, type, protocol, mode, ipstr6, port, operation, n_count, delay);
-		sleep(1);
+		//do_test(path, nwid, type, protocol, mode, ipstr6, port, operation, n_count, delay);
+		//sleep(1);
 		// swtich modes
 		if(mode == TEST_MODE_SERVER)
 			mode = TEST_MODE_CLIENT;
@@ -992,9 +1101,9 @@ int main(int argc , char *argv[])
 			mode = TEST_MODE_SERVER;
 		// perform second test arrangement
 		do_test(path, nwid, type, protocol, mode, ipstr6, port, operation, n_count, delay);
-		sleep(1);
-		do_test(path, nwid, type, protocol, mode, ipstr6, port, operation, n_count, delay);
-
+		//sleep(1);
+		//do_test(path, nwid, type, protocol, mode, ipstr6, port, operation, n_count, delay);
+		*/
 
 		/*
 		ipv4_tcp_client_test

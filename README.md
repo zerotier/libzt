@@ -8,18 +8,15 @@
 
 [![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
 
-Pre-Built Binaries/Packages Here: [zerotier.com/download.shtml](https://zerotier.com/download.shtml?pk_campaign=github_ZeroTierNAS)
+Pre-Built Binaries/Packages Here: [zerotier.com/download.shtml](https://zerotier.com/download.shtml?pk_campaign=github_ZeroTierNAS).
 
 ## Example
 
 ```
-string str = "welcome to the machine";
-zts_start("./zt");
-while(!zts_running())
-	sleep(1);
-zts_join("e5cd7a7b1c0fa971");
-while(!zts_has_address(nwid))
-	sleep(1);
+char *str = "welcome to the machine";
+char *nwid = "c7cd7c9e1b0f52a2";
+
+zts_simple_start("./zt", nwid);
 if((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 	printf("error creating ZeroTier socket");
 }

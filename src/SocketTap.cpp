@@ -198,6 +198,13 @@ namespace ZeroTier {
 		_multicastGroups.swap(newGroups);
 	}
 
+	void SocketTap::setMtu(unsigned int mtu)
+	{
+		if (_mtu != mtu) {
+			_mtu = mtu;
+		}
+	}
+
 	void SocketTap::threadMain()
 		throw()
 	{

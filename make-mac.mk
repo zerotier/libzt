@@ -178,6 +178,22 @@ static_lib: picotcp $(ZTO_OBJS)
 	libtool -static -o $(STATIC_LIB) $(ZTO_OBJS) $(SDK_OBJS) $(PICO_LIB)
 
 ##############################################################################
+## iOS/macOS App Frameworks                                                 ##
+##############################################################################
+
+ios_app_framework:
+	cd examples/apple/ZeroTierSDK_Apple; xcodebuild -configuration Release -scheme ZeroTierSDK_iOS build SYMROOT="../../../$(BUILD)/ios_app_framework"
+	cd examples/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug -scheme ZeroTierSDK_iOS build SYMROOT="../../../$(BUILD)/ios_app_framework"
+
+macos_app_framework:
+	cd examples/apple/ZeroTierSDK_Apple; xcodebuild -configuration Release -scheme ZeroTierSDK_OSX build SYMROOT="../../../$(BUILD)/macos_app_framework"
+	cd examples/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug -scheme ZeroTierSDK_OSX build SYMROOT="../../../$(BUILD)/macos_app_framework"
+
+##############################################################################
+## Static Libraries                                                         ##
+##############################################################################
+
+##############################################################################
 ## Java JNI                                                                 ##
 ##############################################################################
 

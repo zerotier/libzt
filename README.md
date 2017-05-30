@@ -21,13 +21,13 @@ if((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 	printf("error creating ZeroTier socket");
 }
 if((err = zts_connect(fd, (const struct sockaddr *)addr, sizeof(addr))) < 0) {
-	printf("error connecting to remote host (%d)\n", err);
+	printf("error (%d) connecting to remote host\n", err);
 }
-int wrote = zts_write(fd, str.c_str(), str.length());
+int wrote = zts_write(fd, str, strlen(str));
 zts_close(fd);
 ```
 
-Bindings also exist for [many popular languages]().
+Bindings also exist for [many popular languages](examples).
 
 ## Build Targets
 ### Static Library

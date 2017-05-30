@@ -1,0 +1,338 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		7C74DAD31D3C485800A6C0B9 /* ZeroTierSDK_OSX.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */; };
+		7C74DAD41D3C485800A6C0B9 /* ZeroTierSDK_OSX.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		7C7D529B1DBEAED300896C93 /* XcodeWrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D52981DBEAED300896C93 /* XcodeWrapper.cpp */; };
+		7C7D529C1DBEAED300896C93 /* ztsdk.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D529A1DBEAED300896C93 /* ztsdk.swift */; };
+		7C7D529E1DBEAF0000896C93 /* Apple-Bridging-Header.h in Sources */ = {isa = PBXBuildFile; fileRef = 7C7D529D1DBEAEE500896C93 /* Apple-Bridging-Header.h */; };
+		7CFCB4311D1AFEE800D3E66C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CFCB4301D1AFEE800D3E66C /* AppDelegate.swift */; };
+		7CFCB4331D1AFEE800D3E66C /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CFCB4321D1AFEE800D3E66C /* ViewController.swift */; };
+		7CFCB4351D1AFEE800D3E66C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7CFCB4341D1AFEE800D3E66C /* Assets.xcassets */; };
+		7CFCB4381D1AFEE800D3E66C /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 7CFCB4361D1AFEE800D3E66C /* Main.storyboard */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		7CA571071D1B0DA100720883 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				7C74DAD41D3C485800A6C0B9 /* ZeroTierSDK_OSX.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ZeroTierSDK_OSX.framework; path = ../../../../build/osx_app_framework/Debug/ZeroTierSDK_OSX.framework; sourceTree = "<group>"; };
+		7C7D52981DBEAED300896C93 /* XcodeWrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = XcodeWrapper.cpp; path = ../../../../../src/wrappers/swift/XcodeWrapper.cpp; sourceTree = "<group>"; };
+		7C7D52991DBEAED300896C93 /* XcodeWrapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = XcodeWrapper.hpp; path = ../../../../../src/wrappers/swift/XcodeWrapper.hpp; sourceTree = "<group>"; };
+		7C7D529A1DBEAED300896C93 /* ztsdk.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ztsdk.swift; path = ../../../../../src/wrappers/swift/ztsdk.swift; sourceTree = "<group>"; };
+		7C7D529D1DBEAEE500896C93 /* Apple-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "Apple-Bridging-Header.h"; path = "../../../../../src/wrappers/swift/Apple-Bridging-Header.h"; sourceTree = "<group>"; };
+		7CFCB42D1D1AFEE800D3E66C /* Example_OSX_App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Example_OSX_App.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7CFCB4301D1AFEE800D3E66C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		7CFCB4321D1AFEE800D3E66C /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		7CFCB4341D1AFEE800D3E66C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		7CFCB4371D1AFEE800D3E66C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		7CFCB4391D1AFEE800D3E66C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		7CFCB42A1D1AFEE800D3E66C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7C74DAD31D3C485800A6C0B9 /* ZeroTierSDK_OSX.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		7CFCB4241D1AFEE800D3E66C = {
+			isa = PBXGroup;
+			children = (
+				7C74DAD01D3C472C00A6C0B9 /* ZeroTierSDK_OSX.framework */,
+				7CFCB42F1D1AFEE800D3E66C /* Example_OSX_App */,
+				7CFCB42E1D1AFEE800D3E66C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		7CFCB42E1D1AFEE800D3E66C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				7CFCB42D1D1AFEE800D3E66C /* Example_OSX_App.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7CFCB42F1D1AFEE800D3E66C /* Example_OSX_App */ = {
+			isa = PBXGroup;
+			children = (
+				7C7D529D1DBEAEE500896C93 /* Apple-Bridging-Header.h */,
+				7C7D52981DBEAED300896C93 /* XcodeWrapper.cpp */,
+				7C7D52991DBEAED300896C93 /* XcodeWrapper.hpp */,
+				7C7D529A1DBEAED300896C93 /* ztsdk.swift */,
+				7CFCB4301D1AFEE800D3E66C /* AppDelegate.swift */,
+				7CFCB4321D1AFEE800D3E66C /* ViewController.swift */,
+				7CFCB4341D1AFEE800D3E66C /* Assets.xcassets */,
+				7CFCB4361D1AFEE800D3E66C /* Main.storyboard */,
+				7CFCB4391D1AFEE800D3E66C /* Info.plist */,
+			);
+			path = Example_OSX_App;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		7CFCB42C1D1AFEE800D3E66C /* Example_OSX_App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7CFCB43C1D1AFEE800D3E66C /* Build configuration list for PBXNativeTarget "Example_OSX_App" */;
+			buildPhases = (
+				7CFCB4291D1AFEE800D3E66C /* Sources */,
+				7CFCB42A1D1AFEE800D3E66C /* Frameworks */,
+				7CFCB42B1D1AFEE800D3E66C /* Resources */,
+				7CA571071D1B0DA100720883 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Example_OSX_App;
+			productName = Example_OSX_App;
+			productReference = 7CFCB42D1D1AFEE800D3E66C /* Example_OSX_App.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		7CFCB4251D1AFEE800D3E66C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 0730;
+				LastUpgradeCheck = 0730;
+				ORGANIZATIONNAME = "ZeroTier Inc.";
+				TargetAttributes = {
+					7CFCB42C1D1AFEE800D3E66C = {
+						CreatedOnToolsVersion = 7.3;
+						LastSwiftMigration = 0810;
+					};
+				};
+			};
+			buildConfigurationList = 7CFCB4281D1AFEE800D3E66C /* Build configuration list for PBXProject "Example_OSX_App" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 7CFCB4241D1AFEE800D3E66C;
+			productRefGroup = 7CFCB42E1D1AFEE800D3E66C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				7CFCB42C1D1AFEE800D3E66C /* Example_OSX_App */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		7CFCB42B1D1AFEE800D3E66C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7CFCB4351D1AFEE800D3E66C /* Assets.xcassets in Resources */,
+				7CFCB4381D1AFEE800D3E66C /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		7CFCB4291D1AFEE800D3E66C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7C7D529E1DBEAF0000896C93 /* Apple-Bridging-Header.h in Sources */,
+				7C7D529B1DBEAED300896C93 /* XcodeWrapper.cpp in Sources */,
+				7CFCB4331D1AFEE800D3E66C /* ViewController.swift in Sources */,
+				7C7D529C1DBEAED300896C93 /* ztsdk.swift in Sources */,
+				7CFCB4311D1AFEE800D3E66C /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		7CFCB4361D1AFEE800D3E66C /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				7CFCB4371D1AFEE800D3E66C /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		7CFCB43A1D1AFEE800D3E66C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/../../../build/OSX_app_framework/Debug";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		7CFCB43B1D1AFEE800D3E66C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/../../../build/OSX_app_framework/Debug";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		7CFCB43D1D1AFEE800D3E66C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/../../../../build/OSX_app_framework/Release";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../../../../src",
+					"$(SRCROOT)/../../../../src/wrappers/swift",
+				);
+				INFOPLIST_FILE = Example_OSX_App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.Example-OSX-App";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/../../../../src/wrappers/swift/Apple-Bridging-Header.h";
+				"SWIFT_OBJC_BRIDGING_HEADER[arch=*]" = "$(PROJECT_DIR)/../../../../src/wrappers/swift/Apple-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 2.3;
+			};
+			name = Debug;
+		};
+		7CFCB43E1D1AFEE800D3E66C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/../../../../build/OSX_app_framework/Release";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../../../../src",
+					"$(SRCROOT)/../../../../src/wrappers/swift",
+				);
+				INFOPLIST_FILE = Example_OSX_App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "zerotier.Example-OSX-App";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/../../../../src/wrappers/swift/Apple-Bridging-Header.h";
+				SWIFT_VERSION = 2.3;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7CFCB4281D1AFEE800D3E66C /* Build configuration list for PBXProject "Example_OSX_App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7CFCB43A1D1AFEE800D3E66C /* Debug */,
+				7CFCB43B1D1AFEE800D3E66C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7CFCB43C1D1AFEE800D3E66C /* Build configuration list for PBXNativeTarget "Example_OSX_App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7CFCB43D1D1AFEE800D3E66C /* Debug */,
+				7CFCB43E1D1AFEE800D3E66C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 7CFCB4251D1AFEE800D3E66C /* Project object */;
+}

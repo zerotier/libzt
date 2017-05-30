@@ -45,9 +45,6 @@
 
 #include "JSONDB.hpp"
 
-// TTL for circuit tests
-#define ZT_EMBEDDEDNETWORKCONTROLLER_CIRCUIT_TEST_EXPIRATION 120000
-
 namespace ZeroTier {
 
 class Node;
@@ -110,7 +107,6 @@ private:
 		} type;
 	};
 
-	static void _circuitTestCallback(ZT_Node *node,ZT_CircuitTest *test,const ZT_CircuitTestReport *report);
 	void _request(uint64_t nwid,const InetAddress &fromAddr,uint64_t requestPacketId,const Identity &identity,const Dictionary<ZT_NETWORKCONFIG_METADATA_DICT_CAPACITY> &metaData);
 
 	inline void _startThreads()
@@ -162,6 +158,7 @@ private:
 		if (!network.count("tags")) network["tags"] = nlohmann::json::array();
 		if (!network.count("routes")) network["routes"] = nlohmann::json::array();
 		if (!network.count("ipAssignmentPools")) network["ipAssignmentPools"] = nlohmann::json::array();
+		if (!network.count("mtu")) network["mtu"] = ZT_DEFAULT_MTU;
 		if (!network.count("rules")) {
 			// If unspecified, rules are set to allow anything and behave like a flat L2 segment
 			network["rules"] = {{
@@ -217,9 +214,6 @@ private:
 
 	NetworkController::Sender *_sender;
 	Identity _signingId;
-
-	std::list< ZT_CircuitTest > _tests;
-	Mutex _tests_m;
 
 	struct _MemberStatusKey
 	{

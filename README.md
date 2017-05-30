@@ -10,7 +10,7 @@
 
 Pre-Built Binaries/Packages Here: [zerotier.com/download.shtml](https://zerotier.com/download.shtml?pk_campaign=github_ZeroTierNAS).
 
-## Example
+### Example
 
 ```
 char *str = "welcome to the machine";
@@ -27,11 +27,18 @@ int wrote = zts_write(fd, str, strlen(str));
 zts_close(fd);
 ```
 
-Bindings also exist for [many popular languages](examples).
+Bindings also exist for [many popular languages and platforms](examples).
 
-## Build Targets
+***
+
 ### Static Library
  - `make static_lib SDK_IPV4=1`: Will output to `build/`
+
+### iOS App Framework
+ - `make ios_app_framework SDK_IPV4=1`: Will output to `build/`
+
+### macOS App Framework
+ - `make macos_app_framework SDK_IPV4=1`: Will output to `build/`
 
 ***
 

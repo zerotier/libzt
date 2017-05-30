@@ -37,6 +37,7 @@
 #define ZT_PHY_POLL_INTERVAL               10  // ms
 #define ZT_ACCEPT_RECHECK_DELAY            100 // ms (for blocking zts_accept() calls)
 #define ZT_CONNECT_RECHECK_DELAY           100 // ms (for blocking zts_connect() calls)
+#define ZT_API_CHECK_INTERVAL              500 // ms
 
 #define MAX_PICO_FRAME_RX_BUF_SZ           ZT_MAX_MTU * 128
 
@@ -115,6 +116,11 @@ extern "C" {
  * Start core ZeroTier service (generates identity)
  */
 void zts_start(const char *path);
+
+/**
+ * Convenience function: Starts, waits for service, joins one network, waits for address, returns
+ */
+void zts_simple_start(const char *path, const char *nwid);
 
 /**
  * Stops the core ZeroTier service
@@ -367,6 +373,12 @@ namespace ZeroTier
  */
 int zts_nsockets();
 
+/*
+ * Returns maximum number of sockets allowed by network stack
+ */
+int zts_maxsockets();
+
+int pico_ntimers();
 /**
  * Don't call this directly, use 'zts_start()'
  */

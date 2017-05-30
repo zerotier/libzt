@@ -353,7 +353,7 @@ namespace ZeroTier {
    
    	int pico_eth_send(struct pico_device *dev, void *buf, int len)
     {
-    	DEBUG_INFO();
+    	//DEBUG_INFO();
     	SocketTap *tap = (SocketTap*)(dev->tap);
     	if(!tap) {
     		DEBUG_ERROR("invalid dev->tap");
@@ -367,7 +367,7 @@ namespace ZeroTier {
         dest_mac.setTo(ethhdr->daddr, 6);
         tap->_handler(tap->_arg,NULL,tap->_nwid,src_mac,dest_mac,
             Utils::ntoh((uint16_t)ethhdr->proto),0, ((char*)buf) + sizeof(struct pico_eth_hdr),len - sizeof(struct pico_eth_hdr));
-        DEBUG_INFO("len = %d", len);
+        //DEBUG_INFO("len = %d", len);
         return len;
     }
 
@@ -453,9 +453,9 @@ namespace ZeroTier {
 			char ipv4_str[INET_ADDRSTRLEN];
 			inet_ntop(AF_INET, (const void *)&in4->sin_addr.s_addr, ipv4_str, INET_ADDRSTRLEN);
 			pico_string_to_ipv4(ipv4_str, &(zaddr.addr));
-			DEBUG_ATTN("addr=%s:%d", ipv4_str, Utils::ntoh( in4->sin_port ));
+			//DEBUG_ATTN("addr=%s:%d", ipv4_str, Utils::ntoh( in4->sin_port ));
 			err = pico_socket_connect(conn->picosock, &zaddr, in4->sin_port);
-			DEBUG_INFO("connect_err = %d", err);
+			//DEBUG_INFO("connect_err = %d", err);
 		
 		#elif defined(SDK_IPV6)
 			struct pico_ip6 zaddr;
@@ -463,7 +463,7 @@ namespace ZeroTier {
 			char ipv6_str[INET6_ADDRSTRLEN];
 			inet_ntop(AF_INET6, &(in6->sin6_addr), ipv6_str, INET6_ADDRSTRLEN);
 	    	pico_string_to_ipv6(ipv6_str, zaddr.addr);
-	    	DEBUG_ATTN("addr=%s:%d", ipv6_str, Utils::ntoh(in6->sin6_port));
+	    	//DEBUG_ATTN("addr=%s:%d", ipv6_str, Utils::ntoh(in6->sin6_port));
 			err = pico_socket_connect(conn->picosock, &zaddr, in6->sin6_port);
 		#endif
 		
@@ -687,7 +687,7 @@ namespace ZeroTier {
 
     int picoTCP::pico_Close(Connection *conn)
     {
-    	DEBUG_INFO();
+    	//DEBUG_INFO();
     	if(!conn || !conn->picosock)
     		return ZT_ERR_GENERAL_FAILURE;
     	int err;

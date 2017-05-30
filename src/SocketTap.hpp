@@ -121,6 +121,11 @@ namespace ZeroTier {
 		/* 
 		 * 
 		 */
+		void setMtu(unsigned int mtu);
+
+		/* 
+		 * 
+		 */
 		void threadMain()
 			throw();
 

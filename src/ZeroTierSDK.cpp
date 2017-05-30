@@ -101,6 +101,16 @@ void zts_start(const char *path)
     pthread_create(&service_thread, NULL, zts_start_service, (void *)(path));
 }
 
+void zts_simple_start(const char *path, const char *nwid)
+{
+    zts_start(path);
+    while(!zts_running())
+        usleep(ZT_API_CHECK_INTERVAL * 1000);
+    zts_join(nwid);
+    while(!zts_has_address(nwid))
+        usleep(ZT_API_CHECK_INTERVAL * 1000);
+}
+
 void zts_stop() {
     if(zt1Service) { 
         zt1Service->terminate();
@@ -337,7 +347,7 @@ int zts_socket(ZT_SOCKET_SIG) {
     else {
         ZeroTier::_multiplexer_lock.lock();
         //DEBUG_INFO("unmap=%d, fdmap=%d", ZeroTier::unmap.size(), ZeroTier::fdmap.size());
-        DEBUG_INFO("timers = %d, max = %d", pico_ntimers(), PICO_MAX_TIMERS);
+        //DEBUG_INFO("timers = %d, max = %d", pico_ntimers(), PICO_MAX_TIMERS);
         if(pico_ntimers() >= PICO_MAX_TIMERS) {
             DEBUG_ERROR("cannot provision additional socket due to limitation of PICO_MAX_TIMERS. current = %d", pico_ntimers());
             errno = EMFILE;
@@ -413,7 +423,7 @@ Darwin:
     [  ] [ECONNRESET]       Remote host reset the connection request.
 */
 int zts_connect(ZT_CONNECT_SIG) {
-    DEBUG_INFO("fd = %d", fd);
+    //DEBUG_INFO("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
@@ -490,7 +500,6 @@ int zts_connect(ZT_CONNECT_SIG) {
 
     // non-blocking
     if(err == 0 && !blocking) {
-        DEBUG_INFO("NONBLOCKING!");
         errno = EINPROGRESS;
         err = -1;
     }
@@ -498,7 +507,6 @@ int zts_connect(ZT_CONNECT_SIG) {
     {
         // FIXME: Double check that accept/connect queues in multithreaded apps don't get mixed up
         if(err == 0 && blocking) {
-            DEBUG_INFO("BLOCKING!");
             bool complete = false;
             while(true)
             {
@@ -627,7 +635,7 @@ int zts_listen(ZT_LISTEN_SIG) {
     ZeroTier::_multiplexer_lock.lock();
     std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::fdmap[fd];
     if(!p) {
-        DEBUG_ERROR("unable to locate connection pair (did you zbind()?");
+        DEBUG_ERROR("unable to locate connection pair. did you bind?");
         return -1;
     }
     ZeroTier::Connection *conn = p->first;
@@ -752,7 +760,7 @@ EPERM Firewall rules forbid connection.
 */
 int zts_setsockopt(ZT_SETSOCKOPT_SIG)
 {
-    DEBUG_INFO("fd = %d", fd);
+    //DEBUG_INFO("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
@@ -776,7 +784,7 @@ int zts_setsockopt(ZT_SETSOCKOPT_SIG)
 */
 int zts_getsockopt(ZT_GETSOCKOPT_SIG)
 {
-    DEBUG_INFO("fd = %d", fd);    
+    //DEBUG_INFO("fd = %d", fd);    
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
@@ -919,7 +927,7 @@ int zts_close(ZT_CLOSE_SIG)
 
 int zts_fcntl(ZT_FCNTL_SIG)
 {
-    DEBUG_INFO("fd = %d", fd);
+    //DEBUG_INFO("fd = %d", fd);
     int err;
     if(fd < 0) {
         errno = EBADF;
@@ -1242,7 +1250,7 @@ namespace ZeroTier {
 #endif
 
 /****************************************************************************/
-/* SDK Socket API Helper functions --- DONT CALL THESE DIRECTLY             */
+/* SDK Socket API Helper functions --- DON'T CALL THESE DIRECTLY            */
 /****************************************************************************/
 
 int zts_nsockets()
@@ -1251,6 +1259,12 @@ int zts_nsockets()
     int num = ZeroTier::unmap.size() + ZeroTier::fdmap.size();
     ZeroTier::_multiplexer_lock.unlock(); 
     return num;
+}
+
+int zts_maxsockets()
+{
+    // TODO: This is only an approximation
+    return PICO_MAX_TIMERS - 10;
 }
 
 // Starts a ZeroTier service in the background

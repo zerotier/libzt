@@ -1,5 +1,26 @@
-# Xcode/OSX
+# ZeroTier 
+identity.public
+identity.secret
+iddb.d
+planet
+authtoken.secret
+devicemap
+controller.d
+launch.sh
+networks.d
+tap.kext
+uninstall.sh
+zerotier-cli
+zerotier-one
+zerotier-idtool
+zerotier-one.pid
+zerotier-one.port
+
+
+# Xcode
 *.xcuserstate
+
+# macOS
 *.DS_Store
 
 # VS Code
@@ -23,9 +44,6 @@ integrations/Unity3D/Plugins
 
 # Docker test
 *.tmp
-
-# ZeroTierOne source
-zerotierone
 
 # Other
 .depend

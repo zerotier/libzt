@@ -70,12 +70,12 @@
 #define ZT_ERR_GENERAL_FAILURE             -88
 
 // Since extra time is required to send a mesage via a socket through the
-// stack and ZT service, calling a zclose() immediately after a "successful"
-// zwrite() might cause data loss, for this reason, sockets will SO_LINGER for
+// stack and ZT service, calling a zts_close() immediately after a "successful"
+// zts_write() might cause data loss, for this reason, sockets will SO_LINGER for
 // a short period of time by default as a precaution.
 
-#define ZT_SOCK_BEHAVIOR_LINGER            false
-#define ZT_SOCK_BEHAVIOR_LINGER_TIME       2 // s
+#define ZT_SOCK_BEHAVIOR_LINGER            true
+#define ZT_SOCK_BEHAVIOR_LINGER_TIME       1 // s
 
 /****************************************************************************/
 /* Socket API Signatures                                                    */

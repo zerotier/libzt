@@ -439,7 +439,7 @@ int zts_connect(ZT_CONNECT_SIG) {
     ZeroTier::SocketTap *tap;
 
     if(conn) {      
-        char ipstr[INET6_ADDRSTRLEN];//, nm_str[INET6_ADDRSTRLEN];
+        char ipstr[INET6_ADDRSTRLEN];
         memset(ipstr, 0, INET6_ADDRSTRLEN);
         ZeroTier::InetAddress iaddr;
 
@@ -933,10 +933,13 @@ int zts_fcntl(ZT_FCNTL_SIG)
         errno = EBADF;
         err = -1;
     }
-    err = fcntl(fd, cmd, flags);
+    else {
+        err = fcntl(fd, cmd, flags);
+    }
     return err;
 }
 
+// TODO
 ssize_t zts_sendto(ZT_SENDTO_SIG)
 {
     DEBUG_INFO("fd = %d", fd);
@@ -945,9 +948,13 @@ ssize_t zts_sendto(ZT_SENDTO_SIG)
         errno = EBADF;
         err = -1;
     }
+    else {
+        err = sendto(fd, buf, len, flags, addr, addrlen);
+    }
     return err;
 }
 
+// TODO
 ssize_t zts_sendmsg(ZT_SENDMSG_SIG)
 {
     DEBUG_INFO("fd = %d", fd);
@@ -956,9 +963,13 @@ ssize_t zts_sendmsg(ZT_SENDMSG_SIG)
         errno = EBADF;
         err = -1;
     }
+    else {
+        err = sendmsg(fd, msg, flags);
+    }
     return err;
 }
 
+// TODO
 ssize_t zts_recvfrom(ZT_RECVFROM_SIG)
 {
     DEBUG_INFO("fd = %d", fd);
@@ -967,9 +978,13 @@ ssize_t zts_recvfrom(ZT_RECVFROM_SIG)
         errno = EBADF;
         err = -1;
     }
+    else {
+        err = recvfrom(fd, buf, len, flags, addr, addrlen);
+    }
     return err;
 }
 
+// TODO
 ssize_t zts_recvmsg(ZT_RECVMSG_SIG)
 {
     DEBUG_INFO("fd = %d", fd);
@@ -977,6 +992,9 @@ ssize_t zts_recvmsg(ZT_RECVMSG_SIG)
     if(fd < 0) {
         errno = EBADF;
         err = -1;
+    }
+    else {
+        err = recvmsg(fd, msg, flags);
     }
     return err;
 }

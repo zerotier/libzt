@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    .
 
@@ -153,7 +153,7 @@ uint8_t pico_dhcp_opt_paramlist(void *ptr)
 {
     struct pico_dhcp_opt *opt = (struct pico_dhcp_opt *)ptr;
     uint8_t *param_code = &(opt->ext.param_list.code[0]);
-    
+
     /* option: parameter list */
     opt->code = PICO_DHCP_OPT_PARAMLIST;
     opt->len = PICO_DHCP_OPTLEN_PARAMLIST - PICO_DHCP_OPTLEN_HDR;

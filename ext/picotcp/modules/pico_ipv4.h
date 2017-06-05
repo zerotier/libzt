@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    .
 
@@ -10,7 +10,6 @@
 #include "pico_addressing.h"
 #include "pico_protocol.h"
 #include "pico_tree.h"
-#include "pico_device.h"
 
 #define PICO_IPV4_INADDR_ANY 0x00000000U
 
@@ -68,14 +67,6 @@ struct pico_ipv4_link
 #endif
 };
 
-#ifdef PICO_SUPPORT_MCAST
-struct pico_mcast_group {
-    uint8_t filter_mode;
-    uint16_t reference_count;
-    struct pico_ip4 mcast_addr;
-    struct pico_tree MCASTSources;
-};
-#endif
 
 struct pico_ipv4_route
 {
@@ -87,6 +78,7 @@ struct pico_ipv4_route
 };
 
 extern struct pico_tree Routes;
+
 
 int pico_ipv4_compare(struct pico_ip4 *a, struct pico_ip4 *b);
 int pico_ipv4_to_string(char *ipbuf, const uint32_t ip);
@@ -100,11 +92,12 @@ int pico_ipv4_is_valid_src(uint32_t addr, struct pico_device *dev);
 #ifdef __cplusplus
 extern "C" { 
 #endif
-int pico_string_to_ipv4(const char *ipstr, uint32_t *ip);
 int pico_ipv4_link_add(struct pico_device *dev, struct pico_ip4 address, struct pico_ip4 netmask);
+int pico_string_to_ipv4(const char *ipstr, uint32_t *ip);
 #ifdef __cplusplus
 }
 #endif
+
 int pico_ipv4_link_del(struct pico_device *dev, struct pico_ip4 address);
 int pico_ipv4_rebound(struct pico_frame *f);
 

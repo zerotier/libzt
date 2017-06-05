@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    Authors: Daniele Lacamera
  *********************************************************************/
@@ -39,7 +39,7 @@ static int pico_null_poll(struct pico_device *dev, int loop_score)
 /* Public interface: create/destroy. */
 
 
-struct pico_device *pico_null_create(char *name)
+struct pico_device *pico_null_create(const char *name)
 {
     struct pico_device_null *null = PICO_ZALLOC(sizeof(struct pico_device_null));
 

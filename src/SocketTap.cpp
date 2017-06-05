@@ -80,7 +80,8 @@ namespace ZeroTier {
 
 	SocketTap::~SocketTap()
 	{
-		// TODO: Verify deletion of all objects
+		// TODO: Verify that stack is fully stopped before 
+		// deleting Connection objects
 		_run = false;
 		_phy.whack();
 		Thread::join(_thread);
@@ -104,7 +105,7 @@ namespace ZeroTier {
 			if(ip.isV4())
 			{
 			#if defined(SDK_IPV4)
-				DEBUG_INFO("addr = %s", ip.toString().c_str());	
+				//DEBUG_INFO("addr = %s", ip.toString().c_str());	
 				picostack->pico_init_interface(this, ip);
 				_ips.push_back(ip);
 			#endif
@@ -112,7 +113,7 @@ namespace ZeroTier {
 			if(ip.isV6())
 			{
 			#if defined(SDK_IPV6)
-				DEBUG_INFO("addr = %s", ip.toString().c_str());	
+				//DEBUG_INFO("addr = %s", ip.toString().c_str());	
 				picostack->pico_init_interface(this, ip);
 				_ips.push_back(ip);
 			#endif
@@ -223,7 +224,7 @@ namespace ZeroTier {
 	
 	void SocketTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
 	{
-		DEBUG_INFO();
+		//DEBUG_INFO();
 		Connection *conn = (Connection*)*uptr;
 		if(!conn)
 			return;
@@ -282,7 +283,6 @@ namespace ZeroTier {
 	}
 
 	void SocketTap::Close(Connection *conn) {
-		Mutex::Lock _l(_close_m);
 		if(!conn) {
 			DEBUG_ERROR("invalid connection");
 			return;
@@ -300,10 +300,28 @@ namespace ZeroTier {
 		close(_phy.getDescriptor(conn->sock));
 		for(size_t i=0;i<_Connections.size();++i) {
 			if(_Connections[i] == conn){
-				_Connections.erase(_Connections.begin() + i);
-				delete conn;
+				// FIXME: double free issue exists here (potentially)
+				// _Connections.erase(_Connections.begin() + i);
+				//delete conn;
 				break;
 			}
+		}
+	}
+
+	void SocketTap::Housekeeping()
+	{
+		Mutex::Lock _l(_tcpconns_m);
+		std::time_t current_ts = std::time(nullptr);
+		if(current_ts > last_housekeeping_ts + ZT_HOUSEKEEPING_INTERVAL) {
+			// Clean up old Connection objects
+			for(size_t i=0;i<_Connections.size();++i) {
+				if(_Connections[i]->closure_ts != -1 && (current_ts > _Connections[i]->closure_ts + ZT_CONNECTION_DELETE_WAIT_TIME)) {
+					// DEBUG_ERROR("deleting %p object, _Connections.size() = %d", _Connections[i], _Connections.size());
+					delete _Connections[i];
+					_Connections.erase(_Connections.begin() + i);
+				}			
+			}
+			last_housekeeping_ts = std::time(nullptr);
 		}
 	}
 

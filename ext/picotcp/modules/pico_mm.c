@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    Authors: Gustav Janssens, Jonas Van Nieuwenberg, Sam Van Den Berge
  *********************************************************************/
@@ -11,11 +11,19 @@
 #include "pico_config.h"
 #include "pico_protocol.h" /* For pico_err */
 
-#define DBG_MM(x, args ...) /* dbg("[%s:%s:%i] "x" \n",__FILE__,__func__,__LINE__ ,##args ) */
-#define DBG_MM_RED(x, args ...) /* dbg("\033[31m[%s:%s:%i] "x" \033[0m\n",__FILE__,__func__,__LINE__ ,##args ) */
-#define DBG_MM_GREEN(x, args ...) /* dbg("\033[32m[%s:%s:%i] "x" \033[0m\n",__FILE__,__func__,__LINE__ ,##args ) */
-#define DBG_MM_YELLOW(x, args ...) /* dbg("\033[33m[%s:%s:%i] "x" \033[0m\n",__FILE__,__func__,__LINE__ ,##args ) */
-#define DBG_MM_BLUE(x, args ...) /* dbg("\033[34m[%s:%s:%i] "x" \033[0m\n",__FILE__,__func__,__LINE__ ,##args ) */
+#ifdef DEBUG_MM
+#define DBG_MM(x, args ...)        dbg("[%s:%s:%i] "x" \n",__FILE__,__func__,__LINE__ ,##args )
+#define DBG_MM_RED(x, args ...)    dbg("\033[31m[%s:%s:%i] "x" \033[0m\n",__FILE__,__func__,__LINE__ ,##args )
+#define DBG_MM_GREEN(x, args ...)  dbg("\033[32m[%s:%s:%i] "x" \033[0m\n",__FILE__,__func__,__LINE__ ,##args )
+#define DBG_MM_YELLOW(x, args ...) dbg("\033[33m[%s:%s:%i] "x" \033[0m\n",__FILE__,__func__,__LINE__ ,##args )
+#define DBG_MM_BLUE(x, args ...)   dbg("\033[34m[%s:%s:%i] "x" \033[0m\n",__FILE__,__func__,__LINE__ ,##args )
+#else
+#define DBG_MM(x, args ...)        do {} while(0)
+#define DBG_MM_RED(x, args ...)    do {} while(0)
+#define DBG_MM_GREEN(x, args ...)  do {} while(0)
+#define DBG_MM_YELLOW(x, args ...) do {} while(0)
+#define DBG_MM_BLUE(x, args ...)   do {} while(0)
+#endif
 
 /* The memory manager also uses the pico_tree to keep track of all the different slab sizes it has.
  * These nodes should be placed in the manager page which is in a different memory region then the nodes
@@ -973,8 +981,9 @@ void pico_mem_free(void*ptr)
 {
     struct pico_mem_block*generic_block;
     struct pico_mem_page*page;
-    /*Uncomment i for debugging!*/
-    /*uint16_t i = 0;*/
+#ifdef DEBUG_MM
+    uint16_t i = 0;
+#endif
 
     DBG_MM_YELLOW("Free called on %p", ptr);
 
@@ -1229,8 +1238,9 @@ void pico_mem_page0_free(void*ptr)
 {
     struct pico_mem_block*node = ptr;
     struct pico_mem_manager_extra*heap_page;
-    /* Uncomment for debugging! */
-    /* int i = 0; */
+#ifdef DEBUG_MM
+    uint16_t i = 0;
+#endif
 
     /* TODO: should be able to merge free neighbouring blocks (??) */
     DBG_MM_YELLOW("page0_free called");

@@ -1,6 +1,6 @@
 /*********************************************************************
-    PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-    See LICENSE and COPYING for usage.
+    PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+    See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
     Author: Toon Stegen
  *********************************************************************/
@@ -17,6 +17,7 @@ struct pico_timeval
 };
 
 int pico_sntp_sync(const char *sntp_server, void (*cb_synced)(pico_err_t status));
+int pico_sntp_sync_ip(union pico_address *sntp_addr, void (*cb_synced)(pico_err_t status));
 int pico_sntp_gettimeofday(struct pico_timeval *tv);
 
 #endif /* _INCLUDE_PICO_SNTP_CLIENT */

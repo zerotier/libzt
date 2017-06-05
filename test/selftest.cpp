@@ -146,8 +146,14 @@ int ipv4_tcp_client_test(struct sockaddr_in *addr, int port)
 	if((err = zts_connect(sockfd, (const struct sockaddr *)addr, sizeof(addr))) < 0) {
 		printf("error connecting to remote host (%d)\n", err);
 	}
+		//printf("WRITE!\n");
+
 	w = zts_write(sockfd, str, len);
+		//printf("READ!\n");
+
 	r = zts_read(sockfd, rbuf, len);
+		//printf("CLOSE!\n");
+
 	err = zts_close(sockfd);
 	return (w == len && r == len && !err) && !strcmp(rbuf, str) ? PASSED : FAILED;
 }
@@ -179,6 +185,7 @@ int ipv6_tcp_client_test(struct sockaddr_in6 *addr, int port)
 //
 int ipv4_tcp_server_test(struct sockaddr_in *addr, int port)
 {
+	printf("ipv4_tcp_server_test\n");
 	int w=0, r=0, sockfd, accfd, err, len = strlen(str);
 	char rbuf[STR_SIZE];
 	if((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -194,9 +201,14 @@ int ipv4_tcp_server_test(struct sockaddr_in *addr, int port)
 	if((accfd = zts_accept(sockfd, (struct sockaddr *)&addr, (socklen_t *)sizeof(addr))) < 0) {
 		printf("error accepting connection (%d)\n", err);
 	}
+	//printf("READ!\n");
 	r = zts_read(accfd, rbuf, sizeof rbuf);
+	//printf("WRITE!\n");
 	w = zts_write(accfd, rbuf, len);
+	//printf("CLOSE sockfd!\n");
 	zts_close(sockfd);
+	//printf("CLOSE accfd!\n");
+
 	zts_close(accfd);
 	return (w == len && r == len && !err) && !strcmp(rbuf, str) ? PASSED : FAILED;
 }
@@ -640,6 +652,7 @@ int slam_api_test()
 		else
 			std::cout << "FAILED [slam open, connect, close]" << std::endl;
 	}
+	return 0;
 }
 
 
@@ -870,20 +883,18 @@ int main(int argc , char *argv[])
         return 1;
     }
 
-    int err       = 0;
-	int type      = 0;
-    int protocol  = 0;
-    int mode      = 0;
-    int port      = 0;
+    int err         = 0;
+	int type        = 0;
+    int protocol    = 0;
+    int mode        = 0;
+    int port        = 0;
     int local_port  = 0;
     int remote_port = 0;
-    int operation = 0;
-	int n_count   = 0;
-	int delay     = 0;
+    int operation   = 0;
+	int n_count     = 0;
+	int delay       = 0;
 
-	std::string path  = argv[1];
-	std::string nwid;
-	std::string stype;
+	std::string nwid, stype, path = argv[1];
 	std::string ipstr, ipstr6, local_ipstr, local_ipstr6, remote_ipstr, remote_ipstr6;
 
 	memcpy(str, "welcome to the machine", 22);
@@ -928,16 +939,10 @@ int main(int argc , char *argv[])
 	fprintf(stderr, "nwid        = %s\n", nwid.c_str());
 	fprintf(stderr, "type        = %s\n", stype.c_str());
 
-	// If we're performing a non-random test, join the network we want to test on
-	// and wait until the service initializes and provides an address
 
-	if(stype == "simple") {
-
-		printf("waiting for libzt to come online\n");
-		zts_simple_start(path.c_str(), nwid.c_str());
-
-		// What follows is a long-form of zts_simple_start()
-
+	printf("waiting for libzt to come online\n");
+	zts_simple_start(path.c_str(), nwid.c_str());
+	// What follows is a long-form of zts_simple_start():
 		// zts_start(path.c_str());
 		// printf("waiting for service to start...\n");
 		// while(!zts_running())
@@ -947,9 +952,6 @@ int main(int argc , char *argv[])
 		// printf("waiting for address assignment...\n");
 		// while(!zts_has_address(nwid.c_str()))
 		//	sleep(1);
-
-		printf("complete\n");
-	}
 
 	// SLAM
 	// Perform thsouands of repetitions of the same plausible API sequences to detect faults
@@ -1021,27 +1023,16 @@ int main(int argc , char *argv[])
 	/* COMPREHENSIVE                                                            */
 	/****************************************************************************/
 
-	// ./unit zt2 c7cd7c9e1b0f52a2 comprehensive client ipv4 ipv6 9009
-	// ./unit zt2 c7cd7c9e1b0f52a2 comprehensive server ipv4 ipv6 9009
+	// Use test/*.conf files to specify test setup
+	// More information can be found in TESTING.md
 
 	// COMPREHENSIVE
 	// Tests ALL API calls
 	if(stype == "comprehensive")
 	{	
-		printf("performing COMPREHENSIVE test\n");
-		// Parse args
-		/*
-		type     = TEST_TYPE_SIMPLE;
-		if(!strcmp(argv[4],"client"))
-			mode = TEST_MODE_CLIENT;
-		if(!strcmp(argv[4],"server"))
-			mode = TEST_MODE_SERVER;
-		ipstr = argv[5];
-		ipstr6 = argv[6];
-		port = atoi(argv[7]);
-		*/
 
-		/* Each host must operate as the counterpoint to the other, thus, each mode 
+		//printf("performing COMPREHENSIVE ipv4 test\n");
+		/* Each host must operate as the counterpart to the other, thus, each mode 
 		 * will call the same test helper functions in different orders
 		 * Additionally, the test will use the preset paremeters below for the test:
 		 */
@@ -1050,27 +1041,27 @@ int main(int argc , char *argv[])
 		n_count   = 10;
 		type      = TEST_TYPE_SIMPLE;
 		operation = TEST_OP_N_TIMES;
-
+		protocol  = 4;
+		
 		if(mode == TEST_MODE_SERVER) {
 			printf("starting comprehensive test as SERVER\n");
 			port  = local_port;
 			ipstr = local_ipstr;
 		}
 		else if(mode == TEST_MODE_CLIENT) {
-			printf("starting comprehensive test as CLIENT\n");
+			printf("starting comprehensive test as CLIENT (waiting, giving server time to start)\n");
 			sleep(10); // give the server some time to come online before beginning test
 			port  = remote_port;
 			ipstr = remote_ipstr;
 		}
 
 		// IPV4 (first test)
-		protocol = 4;
+		
 		do_test(path, nwid, type, protocol, mode, ipstr, port, operation, n_count, delay);
-		sleep(3);
 
 		// swtich modes (client/server)
 		if(mode == TEST_MODE_SERVER) {
-			printf("switching from SERVER to CLIENT mode\n");
+			printf("\nswitching from SERVER to CLIENT mode\n");
 			port  = remote_port;
 			ipstr = remote_ipstr;
 			mode  = TEST_MODE_CLIENT;
@@ -1086,35 +1077,57 @@ int main(int argc , char *argv[])
 		do_test(path, nwid, type, protocol, mode, ipstr, port, operation, n_count, delay);
 		sleep(3);
 
-		/*
-		// IPV6
-		protocol = 6;
-		// perform first test arrangement
-		do_test(path, nwid, type, protocol, mode, ipstr6, port, operation, n_count, delay);
-		sleep(1);
-		//do_test(path, nwid, type, protocol, mode, ipstr6, port, operation, n_count, delay);
-		//sleep(1);
-		// swtich modes
-		if(mode == TEST_MODE_SERVER)
-			mode = TEST_MODE_CLIENT;
-		else if(mode == TEST_MODE_CLIENT)
-			mode = TEST_MODE_SERVER;
-		// perform second test arrangement
-		do_test(path, nwid, type, protocol, mode, ipstr6, port, operation, n_count, delay);
-		//sleep(1);
-		//do_test(path, nwid, type, protocol, mode, ipstr6, port, operation, n_count, delay);
-		*/
 
-		/*
-		ipv4_tcp_client_test
-		ipv6_tcp_client_test
-		ipv4_tcp_server_test
-		ipv6_tcp_server_test
-		ipv4_tcp_client_sustained_test
-		ipv6_tcp_client_sustained_test
-		ipv4_tcp_server_sustained_test
-		ipv6_tcp_server_sustained_test
-		*/
+// IPV6
+
+
+		printf("performing COMPREHENSIVE ipv6 test\n");
+		/* Each host must operate as the counterpart to the other, thus, each mode 
+		 * will call the same test helper functions in different orders
+		 * Additionally, the test will use the preset paremeters below for the test:
+		 */
+/*
+		delay     =  0;
+		n_count   = 10;
+		type      = TEST_TYPE_SIMPLE;
+		operation = TEST_OP_N_TIMES;
+		protocol  = 6;
+		
+		if(mode == TEST_MODE_SERVER) {
+			printf("starting comprehensive test as SERVER\n");
+			port  = local_port;
+			ipstr6 = local_ipstr6;
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			printf("starting comprehensive test as CLIENT (waiting, giving server time to start)\n");
+			sleep(10); // give the server some time to come online before beginning test
+			port  = remote_port;
+			ipstr6 = remote_ipstr6;
+		}
+
+		// IPV4 (first test)
+		
+		do_test(path, nwid, type, protocol, mode, ipstr6, port, operation, n_count, delay);
+
+		// swtich modes (client/server)
+		if(mode == TEST_MODE_SERVER) {
+			printf("\nswitching from SERVER to CLIENT mode\n");
+			port  = remote_port;
+			ipstr6 = remote_ipstr6;
+			mode  = TEST_MODE_CLIENT;
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			printf("switching from CLIENT to SERVER mode\n");
+			port  = local_port;
+			ipstr6 = local_ipstr6;
+			mode  = TEST_MODE_SERVER;
+		}
+		
+		// IPV4 (second test)
+		do_test(path, nwid, type, protocol, mode, ipstr6, port, operation, n_count, delay);
+		sleep(3);
+	*/
+
 	}
 
 

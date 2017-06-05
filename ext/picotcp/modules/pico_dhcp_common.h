@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    .
 
@@ -16,7 +16,7 @@
 #define PICO_DHCP_HTYPE_ETH 1
 
 /* Macro to get DHCP option field */
-#define DHCP_OPT(hdr,off)              ((struct pico_dhcp_opt *)(((uint8_t *)hdr)+sizeof(struct pico_dhcp_hdr) + off))
+#define DHCP_OPT(hdr, off)              ((struct pico_dhcp_opt *)(((uint8_t *)hdr) + sizeof(struct pico_dhcp_hdr) + off))
 
 /* flags */
 #define PICO_DHCP_FLAG_BROADCAST        0x8000

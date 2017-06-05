@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    Authors: Frederik Van Slycken
  *********************************************************************/
@@ -13,6 +13,9 @@
 
 #define PICO_HOTPLUG_INTERVAL 100
 
+/* register your callback to be notified of hotplug events on a certain device.
+ * Note that each callback will be called at least once, shortly after adding, for initialization.
+ */
 int pico_hotplug_register(struct pico_device *dev, void (*cb)(struct pico_device *dev, int event));
 int pico_hotplug_deregister(struct pico_device *dev, void (*cb)(struct pico_device *dev, int event));
 

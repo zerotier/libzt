@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
  *********************************************************************/
 #ifndef INCLUDE_PICO_CONST
@@ -12,6 +12,8 @@
 #define PICO_SIZE_IP6   16
 #define PICO_SIZE_ETH    6
 #define PICO_SIZE_TRANS  8
+#define PICO_SIZE_IEEE802154_EXT (8u)
+#define PICO_SIZE_IEEE802154_SHORT (2u)
 
 /** Endian-dependant constants **/
 typedef uint64_t pico_time;
@@ -32,6 +34,8 @@ extern volatile uint64_t pico_tick;
 /* Add well-known host numbers here. (bigendian constants only beyond this point) */
 #define PICO_IP4_ANY (0x00000000U)
 #define PICO_IP4_BCAST (0xffffffffU)
+
+#define PICO_IEEE802154_BCAST (0xffffu)
 
 /* defined in modules/pico_ipv6.c */
 #ifdef PICO_SUPPORT_IPV6

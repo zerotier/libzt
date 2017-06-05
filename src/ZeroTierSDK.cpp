@@ -360,12 +360,18 @@ int zts_socket(ZT_SOCKET_SIG) {
             struct pico_socket *psock;
             
             // TODO: check ifdef logic here
-            #if defined(SDK_IPV4)
+            //#if defined(SDK_IPV4)
+            if(socket_family == AF_INET){
+                // DEBUG_ERROR("AF_INET");
                 protocol_version = PICO_PROTO_IPV4;
-            #endif
-            #if defined(SDK_IPV6)
+            }
+            //#endif
+            //#if defined(SDK_IPV6)
+            if(socket_family == AF_INET6) {
+                // DEBUG_ERROR("AF_INET6");
                 protocol_version = PICO_PROTO_IPV6;
-            #endif
+            }
+            //#endif
             
             if(socket_type == SOCK_DGRAM) {
                 psock = pico_socket_open(
@@ -672,42 +678,45 @@ int zts_accept(ZT_ACCEPT_SIG) {
         errno = EBADF;
         err = -1;
     }
-    // +1 since we'll be creating a new pico_socket when we accept the connection
-    if(pico_ntimers()+1 >= PICO_MAX_TIMERS) {
-        DEBUG_ERROR("cannot provision additional socket due to limitation of PICO_MAX_TIMERS.");
-        errno = EMFILE;
-        err = -1;
-    }
-    ZeroTier::_multiplexer_lock.lock();
-    std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::fdmap[fd];
-    if(!p) {
-        DEBUG_ERROR("unable to locate connection pair (did you zts_bind())?");
-        errno = EBADF;
-        err = -1;
-    }
-    else {
-        ZeroTier::Connection *conn = p->first;
-        ZeroTier::SocketTap *tap = p->second;
-        ZeroTier::Connection *accepted_conn;
-        // BLOCKING: loop and keep checking until we find a newly accepted connection
-        if(true) {
-            while(true) {
-                usleep(ZT_ACCEPT_RECHECK_DELAY * 1000);
+    else
+    {
+        // +1 since we'll be creating a new pico_socket when we accept the connection
+        if(pico_ntimers()+1 >= PICO_MAX_TIMERS) {
+            DEBUG_ERROR("cannot provision additional socket due to limitation of PICO_MAX_TIMERS.");
+            errno = EMFILE;
+            err = -1;
+        }
+        ZeroTier::_multiplexer_lock.lock();
+        std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::fdmap[fd];
+        if(!p) {
+            DEBUG_ERROR("unable to locate connection pair (did you zts_bind())?");
+            errno = EBADF;
+            err = -1;
+        }
+        else {
+            ZeroTier::Connection *conn = p->first;
+            ZeroTier::SocketTap *tap = p->second;
+            ZeroTier::Connection *accepted_conn;
+            // BLOCKING: loop and keep checking until we find a newly accepted connection
+            if(true) {
+                while(true) {
+                    usleep(ZT_ACCEPT_RECHECK_DELAY * 1000);
+                    accepted_conn = tap->Accept(conn);
+                    if(accepted_conn)
+                        break; // accepted fd = err
+                }
+            }
+            // NON-BLOCKING: only check for a new connection once
+            else
                 accepted_conn = tap->Accept(conn);
-                if(accepted_conn)
-                    break; // accepted fd = err
+
+            if(accepted_conn) {
+                ZeroTier::fdmap[accepted_conn->app_fd] = new std::pair<ZeroTier::Connection*,ZeroTier::SocketTap*>(accepted_conn, tap);
+                err = accepted_conn->app_fd;
             }
         }
-        // NON-BLOCKING: only check for a new connection once
-        else
-            accepted_conn = tap->Accept(conn);
-
-        if(accepted_conn) {
-            ZeroTier::fdmap[accepted_conn->app_fd] = new std::pair<ZeroTier::Connection*,ZeroTier::SocketTap*>(accepted_conn, tap);
-            err = accepted_conn->app_fd;
-        }
+        ZeroTier::_multiplexer_lock.unlock();
     }
-    ZeroTier::_multiplexer_lock.unlock();
     return err;
 }
 
@@ -767,7 +776,7 @@ int zts_setsockopt(ZT_SETSOCKOPT_SIG)
         err = -1;
     }
     err = setsockopt(fd, level, optname, optval, optlen);
-    DEBUG_INFO("err = %d", err);
+    //DEBUG_INFO("err = %d", err);
     return err;
 }
 
@@ -858,69 +867,76 @@ int zts_close(ZT_CLOSE_SIG)
         errno = EBADF;
         err = -1;
     }
-    if(!zt1Service) {
-        DEBUG_ERROR("cannot close socket. service not started. call zts_start(path) first");
-        errno = EBADF;
-        err = -1;
-    }
     else
     {
-        ZeroTier::_multiplexer_lock.lock();
-        //DEBUG_INFO("unmap=%d, fdmap=%d", ZeroTier::unmap.size(), ZeroTier::fdmap.size());
-
-        // First, look for for unassigned connections
-        ZeroTier::Connection *conn = ZeroTier::unmap[fd];
-
-        // Since we found an unassigned connection, we don't need to consult the stack or tap
-        // during closure - it isn't yet stitched into the clockwork
-        if(conn) // unassigned
-        {
-            if((err = pico_socket_close(conn->picosock)) < 0)
-                DEBUG_ERROR("error calling pico_socket_close()");
-            if((err = close(conn->app_fd)) < 0)
-                DEBUG_ERROR("error closing app_fd");
-            if((err = close(conn->sdk_fd)) < 0)
-                DEBUG_ERROR("error closing sdk_fd");            
-            delete conn;
-            ZeroTier::unmap.erase(fd);
+        if(!zt1Service) {
+            DEBUG_ERROR("cannot close socket. service not started. call zts_start(path) first");
+            errno = EBADF;
+            err = -1;
         }
-        else // assigned
+        else
         {
-            std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::fdmap[fd];
-            if(!p) 
-            {
-                //DEBUG_ERROR("unable to locate connection pair.");
-                errno = EBADF;
-                err = -1;
-            }
-            else
-            {
-                conn = p->first;
-                ZeroTier::SocketTap *tap = p->second;
+            ZeroTier::_multiplexer_lock.lock();
+            //DEBUG_INFO("unmap=%d, fdmap=%d", ZeroTier::unmap.size(), ZeroTier::fdmap.size());
 
-                // For cases where data might still need to pass through the library
-                // before socket closure
-                if(ZT_SOCK_BEHAVIOR_LINGER) {
-                    socklen_t optlen;
-                    struct linger so_linger;
-                    zts_getsockopt(fd, SOL_SOCKET, SO_LINGER, &so_linger, &optlen);
-                    if (so_linger.l_linger != 0) {
-                        sleep(so_linger.l_linger); // do the linger!
-                    }    
+            // First, look for for unassigned connections
+            ZeroTier::Connection *conn = ZeroTier::unmap[fd];
+
+            // Since we found an unassigned connection, we don't need to consult the stack or tap
+            // during closure - it isn't yet stitched into the clockwork
+            if(conn) // unassigned
+            {
+                DEBUG_ERROR("unassigned closure");
+                if((err = pico_socket_close(conn->picosock)) < 0)
+                    DEBUG_ERROR("error calling pico_socket_close()");
+                if((err = close(conn->app_fd)) < 0)
+                    DEBUG_ERROR("error closing app_fd");
+                if((err = close(conn->sdk_fd)) < 0)
+                    DEBUG_ERROR("error closing sdk_fd");            
+                delete conn;
+                ZeroTier::unmap.erase(fd);
+            }
+            else // assigned
+            {
+                std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::fdmap[fd];
+                if(!p) 
+                {
+                    DEBUG_ERROR("unable to locate connection pair.");
+                    errno = EBADF;
+                    err = -1;
                 }
-                // Tell the tap to stop monitoring this PhySocket
-                //if((err = pico_socket_close(conn->picosock)) < 0)
-                //   DEBUG_ERROR("error calling pico_socket_close()");
-                tap->Close(conn);
-                // delete objects
-                // FIXME: double check this
-                delete p;
-                ZeroTier::fdmap.erase(fd);
-                err = 0;
+                else
+                {
+
+                    conn = p->first;
+                    ZeroTier::SocketTap *tap = p->second;
+
+                    DEBUG_ERROR("close...., conn = %p, fd = %d", conn, fd);
+
+                    // For cases where data might still need to pass through the library
+                    // before socket closure
+                    if(ZT_SOCK_BEHAVIOR_LINGER) {
+                        socklen_t optlen;
+                        struct linger so_linger;
+                        zts_getsockopt(fd, SOL_SOCKET, SO_LINGER, &so_linger, &optlen);
+                        if (so_linger.l_linger != 0) {
+                            sleep(so_linger.l_linger); // do the linger!
+                        }    
+                    }
+                    // Tell the tap to stop monitoring this PhySocket
+                    //if((err = pico_socket_close(conn->picosock)) < 0)
+                    //   DEBUG_ERROR("error calling pico_socket_close()");
+                    tap->Close(conn);
+                    // delete objects
+                    // FIXME: double check this
+                    //delete p;
+                    ZeroTier::fdmap.erase(fd);
+                    err = 0;
+                }
             }
+            //DEBUG_INFO(" unmap=%d, fdmap=%d", ZeroTier::unmap.size(), ZeroTier::fdmap.size());
+            ZeroTier::_multiplexer_lock.unlock();
         }
-        //DEBUG_INFO(" unmap=%d, fdmap=%d", ZeroTier::unmap.size(), ZeroTier::fdmap.size());
-        ZeroTier::_multiplexer_lock.unlock();
     }
     return err;
 }

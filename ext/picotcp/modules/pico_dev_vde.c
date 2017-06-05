@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    Authors: Daniele Lacamera
  *********************************************************************/
@@ -25,6 +25,13 @@ struct pico_device_vde {
 };
 
 #define VDE_MTU 65536
+
+/* Mockables */
+#if defined UNIT_TEST
+#   define MOCKABLE __attribute__((weak))
+#else
+#   define MOCKABLE
+#endif
 
 static int pico_vde_send(struct pico_device *dev, void *buf, int len)
 {
@@ -80,7 +87,7 @@ void pico_vde_set_packetloss(struct pico_device *dev, uint32_t in_pct, uint32_t 
 
 
 
-struct pico_device *pico_vde_create(char *sock, char *name, uint8_t *mac)
+struct pico_device *MOCKABLE pico_vde_create(char *sock, char *name, uint8_t *mac)
 {
     struct pico_device_vde *vde = PICO_ZALLOC(sizeof(struct pico_device_vde));
     struct vde_open_args open_args = {

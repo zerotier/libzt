@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2015 Altran ISY BeNeLux. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2015-2017 Altran ISY BeNeLux. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
 
 
@@ -36,7 +36,7 @@ int pico_strncasecmp(const char *const str1, const char *const str2, size_t n)
         if ((!ch1) && (!ch2))
             return 0;
     }
-    return 1;
+    return 0;
 }
 
 size_t pico_strnlen(const char *str, size_t n)

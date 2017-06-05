@@ -27,6 +27,7 @@
 #ifndef ZT_CONNECTION_HPP
 #define ZT_CONNECTION_HPP
 
+#include <ctime>
 #include <sys/socket.h>
 
 // picoTCP
@@ -73,7 +74,11 @@ namespace ZeroTier {
 		SocketTap *tap; // Reference to SocketTap  
 		int state; // See ZeroTierSDK.h for (ZT_SOCK_STATE_*)
 
+		// timestamp for closure event
+		std::time_t closure_ts;
+
 		Connection() {
+			closure_ts = -1;
 			// DEBUG_INFO("Connection() this = %p", this);
 			ZT_PHY_SOCKFD_TYPE fdpair[2];
 			if(socketpair(PF_LOCAL, SOCK_STREAM, 0, fdpair) < 0) {

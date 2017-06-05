@@ -42,23 +42,6 @@ Bindings also exist for [many popular languages and platforms](examples).
 
 ***
 
-### Tests (After building a static library)
- - `make tests`: Will output to `build/tests/`
-
-Then run the unit test suite with whatever configuration you need. For instance:
-
-To run a single-test IPv4 client/server test. Where `$PLATFORM` is `linux`, `darwin` or `win`:
-
-  - Host 1: `./build/$PLATFORM/test/selftest zt1 c7cd7c9e1b0f52a2 simple 4 server 10.9.9.40 8787`
-  - Host 2: `./build/$PLATFORM/test/selftest zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787`
-
-To run a multi-message IPv4 client/server test:
-  - Host 1: `./build/$PLATFORM/test/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 server 10.9.9.40 8787 n_bytes 100 50`
-  - Host 2: `./build/$PLATFORM/test/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787 n_bytes 100 50`
-
-  - For more unit test examples, see the [testing]() page  
-  
-
 ## IP version flags
  - `SDK_IPV4=1`
  - `SDK_IPV6=1`
@@ -72,3 +55,6 @@ To run a multi-message IPv4 client/server test:
 ## Debugging flags
  - `SDK_DEBUG=1` - Enable SDK library debugging
  - `ZT_DEBUG=1` - Enable core ZeroTier service debugging
+
+### Tests 
+ - See [TESTING.md](TESTING.md)

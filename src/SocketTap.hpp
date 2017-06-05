@@ -179,7 +179,12 @@ namespace ZeroTier {
 		Mutex _multicastGroups_m;
 		Mutex _ips_m, _tcpconns_m, _rx_buf_m, _close_m;
 
-
+		/*
+		 * Timestamp of last run of housekeeping 
+		 * SEE: ZT_HOUSEKEEPING_INTERVAL in ZeroTierSDK.h
+		 */
+		std::time_t last_housekeeping_ts;
+		
 		/****************************************************************************/
 		/* Guarded RX Frame Buffer for picoTCP                                      */
 		/****************************************************************************/
@@ -228,11 +233,10 @@ namespace ZeroTier {
 		 */
         void Close(Connection *conn);
 
-
-
-
-
-
+		/*
+		 * Disposes of previously-closed Connections
+		 */
+		void Housekeeping();
 
 		/* 
 		 * Return the address that the socket is bound to 

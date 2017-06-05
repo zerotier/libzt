@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    .
 
@@ -10,6 +10,7 @@
 
 #include "pico_protocol.h"
 #include "pico_tree.h"
+#include "../../../include/Debug.hpp"
 
 struct pico_proto_rr
 {
@@ -30,10 +31,10 @@ static int pico_proto_cmp(void *ka, void *kb)
     return 0;
 }
 
-PICO_TREE_DECLARE(Datalink_proto_tree, pico_proto_cmp);
-PICO_TREE_DECLARE(Network_proto_tree, pico_proto_cmp);
-PICO_TREE_DECLARE(Transport_proto_tree, pico_proto_cmp);
-PICO_TREE_DECLARE(Socket_proto_tree, pico_proto_cmp);
+static PICO_TREE_DECLARE(Datalink_proto_tree, pico_proto_cmp);
+static PICO_TREE_DECLARE(Network_proto_tree, pico_proto_cmp);
+static PICO_TREE_DECLARE(Transport_proto_tree, pico_proto_cmp);
+static PICO_TREE_DECLARE(Socket_proto_tree, pico_proto_cmp);
 
 /* Static variables to keep track of the round robin loop */
 static struct pico_proto_rr proto_rr_datalink   = {
@@ -186,29 +187,41 @@ static void proto_layer_rr_reset(struct pico_proto_rr *rr)
 
 void pico_protocol_init(struct pico_protocol *p)
 {
+    struct pico_tree *tree = NULL;
+    struct pico_proto_rr *proto = NULL;
+
     if (!p)
         return;
 
     p->hash = pico_hash(p->name, (uint32_t)strlen(p->name));
     switch (p->layer) {
-    case PICO_LAYER_DATALINK:
-        pico_tree_insert(&Datalink_proto_tree, p);
-        proto_layer_rr_reset(&proto_rr_datalink);
-        break;
-    case PICO_LAYER_NETWORK:
-        pico_tree_insert(&Network_proto_tree, p);
-        proto_layer_rr_reset(&proto_rr_network);
-        break;
-    case PICO_LAYER_TRANSPORT:
-        pico_tree_insert(&Transport_proto_tree, p);
-        proto_layer_rr_reset(&proto_rr_transport);
-        break;
-    case PICO_LAYER_SOCKET:
-        pico_tree_insert(&Socket_proto_tree, p);
-        proto_layer_rr_reset(&proto_rr_socket);
-        break;
+        case PICO_LAYER_DATALINK:
+            tree = &Datalink_proto_tree;
+            proto = &proto_rr_datalink;
+            break;
+        case PICO_LAYER_NETWORK:
+            tree = &Network_proto_tree;
+            proto = &proto_rr_network;
+            break;
+        case PICO_LAYER_TRANSPORT:
+            tree = &Transport_proto_tree;
+            proto = &proto_rr_transport;
+            break;
+        case PICO_LAYER_SOCKET:
+            tree = &Socket_proto_tree;
+            proto = &proto_rr_socket;
+            break;
+        default:
+            DEBUG_EXTRA("Unknown protocol: %s (layer: %d)", p->name, p->layer);
+            return;
     }
-    //dbg("Protocol %s registered (layer: %d).\n", p->name, p->layer);
 
+    if (pico_tree_insert(tree, p)) {
+        DEBUG_EXTRA("Failed to insert protocol %s", p->name);
+        return;
+    }
+
+    proto_layer_rr_reset(proto);
+    DEBUG_EXTRA("Protocol %s registered (layer: %d).", p->name, p->layer);
 }
 

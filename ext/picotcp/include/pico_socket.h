@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
  *********************************************************************/
 #ifndef INCLUDE_PICO_SOCKET
@@ -70,7 +70,7 @@ struct pico_socket {
     struct pico_tree *MCASTListen;
 #ifdef PICO_SUPPORT_IPV6
     struct pico_tree *MCASTListen_ipv6;
-#endif 
+#endif
 #endif
     uint16_t ev_pending;
 
@@ -202,9 +202,7 @@ int pico_socket_getname(struct pico_socket *s, void *local_addr, uint16_t *port,
 int pico_socket_getpeername(struct pico_socket *s, void *remote_addr, uint16_t *port, uint16_t *proto);
 
 int pico_socket_connect(struct pico_socket *s, const void *srv_addr, uint16_t remote_port);
-
 int pico_socket_listen(struct pico_socket *s, const int backlog);
-
 struct pico_socket *pico_socket_accept(struct pico_socket *s, void *orig, uint16_t *port);
 int8_t pico_socket_del(struct pico_socket *s);
 
@@ -218,7 +216,9 @@ int pico_socket_close(struct pico_socket *s);
 }
 #endif
 
-struct pico_frame *pico_socket_frame_alloc(struct pico_socket *s, uint16_t len);
+struct pico_frame *pico_socket_frame_alloc(struct pico_socket *s, struct pico_device *dev, uint16_t len);
+struct pico_device *get_sock_dev(struct pico_socket *s);
+
 
 #ifdef PICO_SUPPORT_IPV4
 # define is_sock_ipv4(x) (x->net == &pico_proto_ipv4)

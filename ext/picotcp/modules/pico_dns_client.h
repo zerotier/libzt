@@ -1,6 +1,6 @@
 /*********************************************************************
    PicoTCP. Copyright (c) 2012 TASS Belgium NV. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    .
 
@@ -32,6 +32,10 @@
 /* Default nameservers + port */
 #define PICO_DNS_NS_DEFAULT "208.67.222.222"
 #define PICO_DNS_NS_PORT 53
+
+/* RDLENGTH for A and AAAA RR's */
+#define PICO_DNS_RR_A_RDLENGTH 4
+#define PICO_DNS_RR_AAAA_RDLENGTH 16
 
 int pico_dns_client_init(void);
 /* flag is PICO_DNS_NS_DEL or PICO_DNS_NS_ADD */

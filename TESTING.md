@@ -1,4 +1,4 @@
-## Testing (using src/selftest.cpp)
+## Testing via [selftest.cpp](src/selftest.cpp)
 
 After building the static library, you can run:
 
@@ -6,7 +6,7 @@ After building the static library, you can run:
 
  This will output `selftest` to `build/$PLATFORM/`. Using this, you can run the tests below. Note, the following examples assume your testing environment is `linux`, you'll see this in the build output path. If this is not true, change it to `darwin`, or `win` depending on what you're running.
 
- It is probably easiet to add out your `host-1` and `host-2` address, port, and network information to `test/alice.conf` and `test/bob.conf`, this way you can use the selftest shorthand shown below.
+ It is probably easiest to add out your `host-1` and `host-2` address, port, and network information to `test/alice.conf` and `test/bob.conf`, this way you can use the selftest shorthand shown below.
 
 Build outputs are as follows:
 

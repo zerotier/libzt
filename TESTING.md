@@ -1,7 +1,12 @@
 ## Testing (using src/selftest.cpp)
 
-After building a static library
- - `make tests`: Will output to `build/tests/selftest`
+After you build the static library, you can run:
+
+ - `make tests`: 
+
+ This will output `selftest` to `build/tests/`.
+
+ Using this, you can run the following tests:
 
 ***
 

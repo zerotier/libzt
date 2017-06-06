@@ -30,6 +30,12 @@ Slam tests will test the library's ability to handle many repeated API calls or 
 
 A comprehensive test will test each aspect of the library one time.
 
+On `host-1`, run: 
+ - `./build/test/linux/selftest test/bob.conf`
+
+On `host-2`, run:
+ - `./build/test/linux/selftest test/alice.conf`
+
 ### Random Tests
 
 Makes random API calls with random (or plausible arguments/data) to test for proper error handling

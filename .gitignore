@@ -15,7 +15,8 @@ zerotier-one
 zerotier-idtool
 zerotier-one.pid
 zerotier-one.port
-
+zt1
+zt2
 
 # Xcode
 *.xcuserstate

@@ -883,16 +883,18 @@ int main(int argc , char *argv[])
         return 1;
     }
 
-    int err         = 0;
-	int type        = 0;
-    int protocol    = 0;
-    int mode        = 0;
-    int port        = 0;
-    int local_port  = 0;
-    int remote_port = 0;
-    int operation   = 0;
-	int n_count     = 0;
-	int delay       = 0;
+    int err          = 0;
+	int type         = 0;
+    int protocol     = 0;
+    int mode         = 0;
+    int port         = 0;
+    int local_port   = 0;
+    int remote_port  = 0;
+    int local_port6  = 0;
+    int remote_port6 = 0;
+    int operation    = 0;
+	int n_count      = 0;
+	int delay        = 0;
 
 	std::string nwid, stype, path = argv[1];
 	std::string ipstr, ipstr6, local_ipstr, local_ipstr6, remote_ipstr, remote_ipstr6;
@@ -921,13 +923,18 @@ int main(int argc , char *argv[])
 		local_port = atoi(testConf["local_port"].c_str());
 		remote_port = atoi(testConf["remote_port"].c_str());
 
+		local_port6 = atoi(testConf["local_port6"].c_str());
+		remote_port6 = atoi(testConf["remote_port6"].c_str());
+
 		fprintf(stderr, "local_ipstr       = %s\n", local_ipstr.c_str());
 		fprintf(stderr, "local_ipstr6      = %s\n", local_ipstr6.c_str());
 		fprintf(stderr, "remote_ipstr      = %s\n", remote_ipstr.c_str());
 		fprintf(stderr, "remote_ipstr6     = %s\n", remote_ipstr6.c_str());
 		
 		fprintf(stderr, "remote_port       = %d\n", remote_port);
+		fprintf(stderr, "remote_port6      = %d\n", remote_port6);
 		fprintf(stderr, "local_port        = %d\n", local_port);
+		fprintf(stderr, "local_port6       = %d\n", local_port6);
 	}
 	else
 	{
@@ -1077,16 +1084,14 @@ int main(int argc , char *argv[])
 		do_test(path, nwid, type, protocol, mode, ipstr, port, operation, n_count, delay);
 		sleep(3);
 
-
 // IPV6
-
 
 		printf("performing COMPREHENSIVE ipv6 test\n");
 		/* Each host must operate as the counterpart to the other, thus, each mode 
 		 * will call the same test helper functions in different orders
 		 * Additionally, the test will use the preset paremeters below for the test:
 		 */
-/*
+
 		delay     =  0;
 		n_count   = 10;
 		type      = TEST_TYPE_SIMPLE;
@@ -1095,13 +1100,13 @@ int main(int argc , char *argv[])
 		
 		if(mode == TEST_MODE_SERVER) {
 			printf("starting comprehensive test as SERVER\n");
-			port  = local_port;
+			port  = local_port6;
 			ipstr6 = local_ipstr6;
 		}
 		else if(mode == TEST_MODE_CLIENT) {
 			printf("starting comprehensive test as CLIENT (waiting, giving server time to start)\n");
 			sleep(10); // give the server some time to come online before beginning test
-			port  = remote_port;
+			port  = remote_port6;
 			ipstr6 = remote_ipstr6;
 		}
 
@@ -1112,13 +1117,13 @@ int main(int argc , char *argv[])
 		// swtich modes (client/server)
 		if(mode == TEST_MODE_SERVER) {
 			printf("\nswitching from SERVER to CLIENT mode\n");
-			port  = remote_port;
+			port  = remote_port6;
 			ipstr6 = remote_ipstr6;
 			mode  = TEST_MODE_CLIENT;
 		}
 		else if(mode == TEST_MODE_CLIENT) {
 			printf("switching from CLIENT to SERVER mode\n");
-			port  = local_port;
+			port  = local_port6;
 			ipstr6 = local_ipstr6;
 			mode  = TEST_MODE_SERVER;
 		}
@@ -1126,7 +1131,6 @@ int main(int argc , char *argv[])
 		// IPV4 (second test)
 		do_test(path, nwid, type, protocol, mode, ipstr6, port, operation, n_count, delay);
 		sleep(3);
-	*/
 
 	}
 

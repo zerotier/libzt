@@ -429,7 +429,7 @@ Darwin:
     [  ] [ECONNRESET]       Remote host reset the connection request.
 */
 int zts_connect(ZT_CONNECT_SIG) {
-    //DEBUG_INFO("fd = %d", fd);
+    DEBUG_INFO("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
@@ -460,8 +460,8 @@ int zts_connect(ZT_CONNECT_SIG) {
             // TODO: This is a hack, determine a proper way to do this
             iaddr.fromString(ipstr + std::string("/88"));
         }
-        // DEBUG_INFO("ipstr= %s", ipstr);
-        // DEBUG_INFO("iaddr= %s", iaddr.toString().c_str());
+         DEBUG_INFO("ipstr= %s", ipstr);
+         DEBUG_INFO("iaddr= %s", iaddr.toString().c_str());
         tap = zt1Service->getTap(iaddr);
         if(!tap) {
             DEBUG_ERROR("no route to host");
@@ -471,7 +471,7 @@ int zts_connect(ZT_CONNECT_SIG) {
         else {
             // pointer to tap we use in callbacks from the stack
             conn->picosock->priv = new ZeroTier::ConnectionPair(tap, conn); 
-            // DEBUG_INFO("found appropriate SocketTap");
+             DEBUG_INFO("found appropriate SocketTap");
             // Semantically: tap->stack->connect
             err = tap->Connect(conn, fd, addr, addrlen); 
             if(err == 0) {
@@ -558,7 +558,7 @@ Darwin:
                             address space.
 */
 int zts_bind(ZT_BIND_SIG) {
-    DEBUG_INFO("fd = %d", fd);
+    //DEBUG_EXTRA("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
@@ -627,7 +627,7 @@ Darwin:
     [  ] [EOPNOTSUPP]       The socket is not of a type that supports the operation listen().
 */
 int zts_listen(ZT_LISTEN_SIG) {
-    DEBUG_INFO("fd = %d", fd);
+    DEBUG_EXTRA("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
@@ -672,7 +672,7 @@ Darwin:
     [  ] [ENFILE]           The system file table is full.
 */
 int zts_accept(ZT_ACCEPT_SIG) {
-    DEBUG_INFO("fd = %d", fd);
+    DEBUG_EXTRA("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
@@ -861,7 +861,7 @@ Darwin:
 
 int zts_close(ZT_CLOSE_SIG)
 {
-    //DEBUG_INFO("fd = %d", fd);
+    //DEBUG_EXTRA("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
@@ -911,7 +911,7 @@ int zts_close(ZT_CLOSE_SIG)
                     conn = p->first;
                     ZeroTier::SocketTap *tap = p->second;
 
-                    DEBUG_ERROR("close...., conn = %p, fd = %d", conn, fd);
+                    //DEBUG_ERROR("close...., conn = %p, fd = %d", conn, fd);
 
                     // For cases where data might still need to pass through the library
                     // before socket closure
@@ -1016,12 +1016,12 @@ ssize_t zts_recvmsg(ZT_RECVMSG_SIG)
 }
 
 int zts_read(ZT_READ_SIG) {
-    DEBUG_INFO("fd = %d", fd);
+    //DEBUG_EXTRA("fd = %d", fd);
     return read(fd, buf, len);
 }
 
 int zts_write(ZT_WRITE_SIG) {
-    DEBUG_INFO("fd = %d", fd);
+    //DEBUG_EXTRA("fd = %d", fd);
     return write(fd, buf, len);
 }
 

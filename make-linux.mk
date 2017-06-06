@@ -51,7 +51,7 @@ PICO_DIR           = ext/picotcp
 PICO_LIB           = $(PICO_DIR)/build/lib/$(PICO_LIB_NAME)
 SHARED_JNI_LIB     = $(BUILD)/$(JNI_LIB_NAME)
 #
-TEST_BUILD_DIR     = $(BUILD)/test
+TEST_BUILD_DIR     = $(BUILD)
 UNIT_TEST_SRC_DIR  = test
 
 ##############################################################################

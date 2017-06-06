@@ -1,4 +1,4 @@
-## Testing via [selftest.cpp](src/selftest.cpp)
+## Testing via [selftest.cpp](test/selftest.cpp)
 
 After building the static library, you can run:
 
@@ -21,8 +21,6 @@ build
     |-libzt.a
     |-selftest
 ```
-
-***
 
 ### Simple Tests
 

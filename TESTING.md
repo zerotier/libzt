@@ -1,12 +1,24 @@
 ## Testing (using src/selftest.cpp)
 
-After you build the static library, you can run:
+After building the static library, you can run:
 
- - `make tests`: 
+ - `make tests`
 
- This will output `selftest` to `build/tests/`.
+ This will output `selftest` to `build/tests/`. Using this, you can run the tests below. Note, the following examples assume your testing environment is `linux`, you'll see this in the build output path. If this is not true, change it to `darwin`, or `win` depending on what you're running.
 
- Using this, you can run the following tests:
+Build outputs are as follows:
+
+```
+build
+ |
+ |--darwin
+ |  |-libzt.a
+ |  |-selftest
+ |
+ |--linux
+    |-libzt.a
+    |-selftest
+```
 
 ***
 
@@ -16,12 +28,12 @@ Simple tests merely test one aspect of the library. For instance, it's role as a
 
 To run a single-test IPv4 client/server test. Where `$PLATFORM` is `linux`, `darwin` or `win`:
 
-  - Host 1: `./build/$PLATFORM/test/selftest zt1 c7cd7c9e1b0f52a2 simple 4 server 10.9.9.40 8787`
-  - Host 2: `./build/$PLATFORM/test/selftest zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787`
+  - Host 1: `./build/linux/selftest zt1 c7cd7c9e1b0f52a2 simple 4 server 10.9.9.40 8787`
+  - Host 2: `./build/linux/selftest zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787`
 
 To run a multi-message IPv4 client/server test:
-  - Host 1: `./build/$PLATFORM/test/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 server 10.9.9.40 8787 n_bytes 100 50`
-  - Host 2: `./build/$PLATFORM/test/test/unit zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787 n_bytes 100 50`
+  - Host 1: `./build/linux/selftest zt2 c7cd7c9e1b0f52a2 simple 4 server 10.9.9.40 8787 n_bytes 100 50`
+  - Host 2: `./build/linux/selftest zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787 n_bytes 100 50`
 
 ### Sustained Tests
 
@@ -36,10 +48,10 @@ Slam tests will test the library's ability to handle many repeated API calls or 
 A comprehensive test will test each aspect of the library one time.
 
 On `host-1`, run: 
- - `./build/test/linux/selftest test/bob.conf`
+ - `./build/linux/selftest test/bob.conf`
 
 On `host-2`, run:
- - `./build/test/linux/selftest test/alice.conf`
+ - `./build/linux/selftest test/alice.conf`
 
 ### Random Tests
 

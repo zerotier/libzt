@@ -184,6 +184,11 @@ namespace ZeroTier {
 		 * SEE: ZT_HOUSEKEEPING_INTERVAL in ZeroTierSDK.h
 		 */
 		std::time_t last_housekeeping_ts;
+
+		/*
+		 * Whether our picoTCP device has been initialized
+		 */
+		bool picodev_initialized = false;
 		
 		/****************************************************************************/
 		/* Guarded RX Frame Buffer for picoTCP                                      */

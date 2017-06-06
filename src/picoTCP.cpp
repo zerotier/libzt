@@ -83,64 +83,40 @@ struct pico_socket * pico_socket_accept(PICO_SOCKET_ACCEPT_SIG);
 
 namespace ZeroTier {
 
-	// FIXME: Determine why stack interrupt code fails when picodev is a mmember of a SocketTap
-
+	// TODO: Determine why stack interrupt code fails when picodev is a mmember of a SocketTap
 	struct pico_device picodev;
 
 	bool picoTCP::pico_init_interface(SocketTap *tap, const InetAddress &ip)
 	{
-		//DEBUG_INFO();
 		if (std::find(tap->_ips.begin(),tap->_ips.end(),ip) == tap->_ips.end()) {
 			tap->_ips.push_back(ip);
 			std::sort(tap->_ips.begin(),tap->_ips.end());
-			if(ip.isV4())
+			
+			if(!tap->picodev_initialized)
 			{
-				//tap->picodev = new struct pico_device;
-			    struct pico_ip4 ipaddr, netmask;
-			    ipaddr.addr = *((uint32_t *)ip.rawIpData());
-			    netmask.addr = *((uint32_t *)ip.netmask().rawIpData());
-			    picodev.send = pico_eth_send; // tx
+				picodev.send = pico_eth_send; // tx
 			    picodev.poll = pico_eth_poll; // rx
 			    picodev.mtu = tap->_mtu;
 			    picodev.tap = tap;
 			    uint8_t mac[PICO_SIZE_ETH];
 			    tap->_mac.copyTo(mac, PICO_SIZE_ETH);
-			    if(pico_device_init(&picodev, "p4", mac) != 0) {
+			    if(pico_device_init(&picodev, "pz", mac) != 0) {
 			        DEBUG_ERROR("dev init failed");
-			        delete &picodev;
 			        return false;
 			    }
+				tap->picodev_initialized = true;
+			}
+			if(ip.isV4())
+			{
+			    struct pico_ip4 ipaddr, netmask;
+			    ipaddr.addr = *((uint32_t *)ip.rawIpData());
+			    netmask.addr = *((uint32_t *)ip.netmask().rawIpData());
 			    pico_ipv4_link_add(&picodev, ipaddr, netmask);
-			    DEBUG_INFO("addr = %s", ip.toString().c_str());
+			    DEBUG_INFO("addr  = %s", ip.toString().c_str());
 			    return true;
 			}
 			if(ip.isV6())
 			{
-				/*
-				char ipv6_str[INET6_ADDRSTRLEN], nm_str[INET6_ADDRSTRLEN];
-				inet_ntop(AF_INET6, ip.rawIpData(), ipv6_str, INET6_ADDRSTRLEN);
-				inet_ntop(AF_INET6, ip.netmask().rawIpData(), nm_str, INET6_ADDRSTRLEN);
-
-				//tap->picodev6 = new struct pico_device;
-				struct pico_ip6 ipaddr, netmask;
-		    	pico_string_to_ipv6(ipv6_str, ipaddr.addr);
-		    	pico_string_to_ipv6(nm_str, netmask.addr);
-			    picodev6.send = pico_eth_send; // tx
-			    picodev6.poll = pico_eth_poll; // rx
-			    picodev6.mtu  = tap->_mtu;
-			    picodev6.tap  = tap;
-			    uint8_t mac[PICO_SIZE_ETH];
-			    tap->_mac.copyTo(mac, PICO_SIZE_ETH);
-			    if(pico_device_init(&picodev6, "p6", mac) != 0) {
-			        DEBUG_ERROR("dev init failed");
-			        delete &picodev6;
-			        return false;
-			    }
-			    pico_ipv6_link_add(&picodev6, ipaddr, netmask);
-			    DEBUG_INFO("addr6 = %s", ip.toString().c_str());		
-			    return true;	
-			    */
-
 				char ipv6_str[INET6_ADDRSTRLEN], nm_str[INET6_ADDRSTRLEN];
 				inet_ntop(AF_INET6, ip.rawIpData(), ipv6_str, INET6_ADDRSTRLEN);
 				inet_ntop(AF_INET6, ip.netmask().rawIpData(), nm_str, INET6_ADDRSTRLEN);
@@ -148,7 +124,8 @@ namespace ZeroTier {
 			    pico_string_to_ipv6(ipv6_str, ipaddr.addr);
 		    	pico_string_to_ipv6(nm_str, netmask.addr);
 			    pico_ipv6_link_add(&picodev, ipaddr, netmask);
-			    return true;    
+			    DEBUG_INFO("addr6 = %s", ipv6_str);
+			   	return true;    
 			}
 		}
 		return false;
@@ -343,11 +320,11 @@ namespace ZeroTier {
         		DEBUG_ERROR("PICO_ERR_ECONNRESET");
         		conn->state = PICO_ERR_ECONNRESET;
         	}
-            DEBUG_INFO("PICO_SOCK_EV_ERR (socket error received) err=%d, picosock=%p", pico_err, s);
+            //DEBUG_INFO("PICO_SOCK_EV_ERR (socket error received) err=%d, picosock=%p", pico_err, s);
         }
         if (ev & PICO_SOCK_EV_CLOSE) {
             err = pico_socket_close(s);
-            DEBUG_INFO("PICO_SOCK_EV_CLOSE (socket closure) err = %d, picosock=%p, conn=%p", err, s, conn);
+            //DEBUG_INFO("PICO_SOCK_EV_CLOSE (socket closure) err = %d, picosock=%p, conn=%p", err, s, conn);
             conn->closure_ts = std::time(nullptr);	
             return;
         }
@@ -365,7 +342,7 @@ namespace ZeroTier {
    
    	int pico_eth_send(struct pico_device *dev, void *buf, int len)
     {
-    	//DEBUG_INFO();
+    	DEBUG_INFO("len = %d", len);
     	SocketTap *tap = (SocketTap*)(dev->tap);
     	if(!tap) {
     		DEBUG_ERROR("invalid dev->tap");
@@ -379,14 +356,13 @@ namespace ZeroTier {
         dest_mac.setTo(ethhdr->daddr, 6);
         tap->_handler(tap->_arg,NULL,tap->_nwid,src_mac,dest_mac,
             Utils::ntoh((uint16_t)ethhdr->proto),0, ((char*)buf) + sizeof(struct pico_eth_hdr),len - sizeof(struct pico_eth_hdr));
-        //DEBUG_INFO("len = %d", len);
         return len;
     }
 
     void picoTCP::pico_rx(SocketTap *tap, const MAC &from,const MAC &to,unsigned int etherType,
     	const void *data,unsigned int len)
 	{
-		//DEBUG_INFO();
+		DEBUG_INFO("len = %d", len);
 		if(!tap) {
     		DEBUG_ERROR("invalid tap");
     		return;
@@ -459,7 +435,7 @@ namespace ZeroTier {
     		return ZT_ERR_GENERAL_FAILURE;
     	}
 		int err = 0;
-		#if defined(SDK_IPV4)
+		if(conn->socket_family == AF_INET) {
 			struct pico_ip4 zaddr;
 			struct sockaddr_in *in4 = (struct sockaddr_in*)addr;
 			char ipv4_str[INET_ADDRSTRLEN];
@@ -468,8 +444,8 @@ namespace ZeroTier {
 			//DEBUG_ATTN("addr=%s:%d", ipv4_str, Utils::ntoh( in4->sin_port ));
 			err = pico_socket_connect(conn->picosock, &zaddr, in4->sin_port);
 			//DEBUG_INFO("connect_err = %d", err);
-		
-		#elif defined(SDK_IPV6)
+		}
+		if(conn->socket_family == AF_INET6) {
 			struct pico_ip6 zaddr;
 			struct sockaddr_in6 *in6 = (struct sockaddr_in6*)addr;
 			char ipv6_str[INET6_ADDRSTRLEN];
@@ -477,7 +453,7 @@ namespace ZeroTier {
 	    	pico_string_to_ipv6(ipv6_str, zaddr.addr);
 	    	//DEBUG_ATTN("addr=%s:%d", ipv6_str, Utils::ntoh(in6->sin6_port));
 			err = pico_socket_connect(conn->picosock, &zaddr, in6->sin6_port);
-		#endif
+		}
 		
 		memcpy(&(conn->peer_addr), &addr, sizeof(struct sockaddr_storage));
 
@@ -498,7 +474,7 @@ namespace ZeroTier {
     		return ZT_ERR_GENERAL_FAILURE;
     	}
     	int err = 0;
-		#if defined(SDK_IPV4)
+		if(conn->socket_family == AF_INET) { 
 			struct pico_ip4 zaddr;
 			struct sockaddr_in *in4 = (struct sockaddr_in*)addr;
 			char ipv4_str[INET_ADDRSTRLEN];
@@ -506,17 +482,17 @@ namespace ZeroTier {
 			pico_string_to_ipv4(ipv4_str, &(zaddr.addr));
 			// DEBUG_ATTN("addr=%s: %d ntoh()=%d", ipv4_str, in4->sin_port, Utils::ntoh(in4->sin_port));
 			err = pico_socket_bind(conn->picosock, &zaddr, (uint16_t *)&(in4->sin_port));
-		#endif
-		#if defined(SDK_IPV6)
+		}
+		if(conn->socket_family == AF_INET6) { 
 			struct pico_ip6 pip6;
 			struct sockaddr_in6 *in6 = (struct sockaddr_in6*)addr;
 			char ipv6_str[INET6_ADDRSTRLEN];
 			inet_ntop(AF_INET6, &(in6->sin6_addr), ipv6_str, INET6_ADDRSTRLEN);
 			// TODO: This isn't proper
 	    	pico_string_to_ipv6("::", pip6.addr);
-       		//DEBUG_ATTN("addr=%s:%d, picosock=%p", ipv6_str, Utils::ntoh(in6->sin6_port), (conn->picosock));
+       		DEBUG_ATTN("addr=%s:%d", ipv6_str, Utils::ntoh(in6->sin6_port));
 			err = pico_socket_bind(conn->picosock, &pip6, (uint16_t *)&(in6->sin6_port));
-		#endif
+		}
 		if(err < 0) {
 			if(pico_err < 0)
 				DEBUG_ERROR("pico_err = %d", pico_err);
@@ -703,7 +679,7 @@ namespace ZeroTier {
 
     int picoTCP::pico_Close(Connection *conn)
     {
-    	DEBUG_INFO("conn = %p, picosock=%p, fd = %d", conn, conn->picosock, conn->app_fd);
+    	//DEBUG_INFO("conn = %p, picosock=%p, fd = %d", conn, conn->picosock, conn->app_fd);
     	if(!conn || !conn->picosock)
     		return ZT_ERR_GENERAL_FAILURE;
     	int err;

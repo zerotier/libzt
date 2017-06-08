@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+/*
 void zt_dump_stacktrace(int sig) {
   void *array[16];
   size_t size;
@@ -40,6 +41,7 @@ void zt_dump_stacktrace(int sig) {
   backtrace_symbols_fd(array, size, STDERR_FILENO);
   exit(1);
 }
+*/
 
 /*
 char *beautify_pico_error(int err)

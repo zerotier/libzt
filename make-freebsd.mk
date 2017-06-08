@@ -167,7 +167,7 @@ tests: unit_tests
 ##############################################################################
 
 picotcp:
-	cd $(PICO_DIR); make lib ARCH=shared IPV4=1 IPV6=1
+	cd $(PICO_DIR); gmake lib ARCH=shared IPV4=1 IPV6=1
 
 ##############################################################################
 ## Static Libraries                                                         ##
@@ -176,7 +176,7 @@ picotcp:
 static_lib: picotcp $(ZTO_OBJS)
 	@mkdir -p $(BUILD)
 	$(CXX) $(CXXFLAGS) $(TAP_FILES) $(STACK_DRIVER_FILES) -c -DSDK_STATIC
-	ar rcs -o $(STATIC_LIB) ext/picotcp/build/modules/*.o $(PICO_OBJS) $(ZTO_OBJS) $(SDK_OBJS) 
+	ar rcs $(STATIC_LIB) ext/picotcp/build/modules/*.o $(PICO_OBJS) $(ZTO_OBJS) $(SDK_OBJS) 
 
 ##############################################################################
 ## Java JNI                                                                 ##

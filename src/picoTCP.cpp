@@ -419,10 +419,8 @@ namespace ZeroTier {
             	//DEBUG_INFO("recv = %d", err);
                 tap->pico_frame_rxbuf_tot-=len;
             }
-            else {
+            else
             	DEBUG_ERROR("Invalid frame size (%d). Exiting.",len);
-            	zt_dump_stacktrace(0);
-            }
             loop_score--;
         }
         return loop_score;

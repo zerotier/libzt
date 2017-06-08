@@ -67,11 +67,17 @@
 
 #define ZT_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__) // short
 
+/*
 #ifdef __linux__
+  #define ZT_THREAD_ID 0 // (long)getpid()
+#elif __FreeBSD__
   #define ZT_THREAD_ID 0 // (long)getpid()
 #elif __APPLE__
   #define ZT_THREAD_ID 0 // (long)syscall(SYS_thread_selfid)
 #endif
+*/
+
+#define ZT_THREAD_ID 0
 
 #if defined(__JNI_LIB__)
       #include <jni.h>

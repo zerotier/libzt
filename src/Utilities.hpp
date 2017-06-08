@@ -30,6 +30,6 @@
 /*
  * Print a stacktrace
  */
-void zt_dump_stacktrace(int sig);
+// void zt_dump_stacktrace(int sig);
 
 #endif

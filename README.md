@@ -31,14 +31,17 @@ Bindings also exist for [many popular languages and platforms](examples).
 
 ***
 
+All build targets will output to `build/`.
+
 ### Static Library
- - `make static_lib SDK_IPV4=1`: Will output to `build/`
+
+ - `make static_lib SDK_IPV4=1`
 
 ### iOS App Framework
- - `make ios_app_framework SDK_IPV4=1`: Will output to `build/`
+ - `make ios_app_framework SDK_IPV4=1`
 
 ### macOS App Framework
- - `make macos_app_framework SDK_IPV4=1`: Will output to `build/`
+ - `make macos_app_framework SDK_IPV4=1`
 
 ***
 

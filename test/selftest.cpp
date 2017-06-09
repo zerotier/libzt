@@ -85,8 +85,8 @@ Basic RX/TX connect()/accept() Functionality:
 [OK]     sustained server ipv4 - accept and echo messages
 [ ?]     sustained client ipv6 - connect and rx/tx many messages
 [ ?]     sustained server ipv6 - accept and echo messages
-[  ] comprehensive client ipv4 - test all ipv4/6 client simple/sustained modes
-[  ] comprehensive server ipv6 - test all ipv4/6 server simple/sustained modes
+[OK] comprehensive client ipv4 - test all ipv4/6 client simple/sustained modes
+[OK] comprehensive server ipv6 - test all ipv4/6 server simple/sustained modes
 
 Performance:
 
@@ -146,14 +146,8 @@ int ipv4_tcp_client_test(struct sockaddr_in *addr, int port)
 	if((err = zts_connect(sockfd, (const struct sockaddr *)addr, sizeof(addr))) < 0) {
 		printf("error connecting to remote host (%d)\n", err);
 	}
-		//printf("WRITE!\n");
-
 	w = zts_write(sockfd, str, len);
-		//printf("READ!\n");
-
 	r = zts_read(sockfd, rbuf, len);
-		//printf("CLOSE!\n");
-
 	err = zts_close(sockfd);
 	return (w == len && r == len && !err) && !strcmp(rbuf, str) ? PASSED : FAILED;
 }
@@ -201,14 +195,9 @@ int ipv4_tcp_server_test(struct sockaddr_in *addr, int port)
 	if((accfd = zts_accept(sockfd, (struct sockaddr *)&addr, (socklen_t *)sizeof(addr))) < 0) {
 		printf("error accepting connection (%d)\n", err);
 	}
-	//printf("READ!\n");
 	r = zts_read(accfd, rbuf, sizeof rbuf);
-	//printf("WRITE!\n");
 	w = zts_write(accfd, rbuf, len);
-	//printf("CLOSE sockfd!\n");
 	zts_close(sockfd);
-	//printf("CLOSE accfd!\n");
-
 	zts_close(accfd);
 	return (w == len && r == len && !err) && !strcmp(rbuf, str) ? PASSED : FAILED;
 }
@@ -728,22 +717,26 @@ zts_close()
 * delay     = delay between each operation
 *
 */
-int do_test(std::string path, std::string nwid, int type, int protocol, int mode, std::string ipstr, int port, int operation, int n_count, int delay)
+int do_test(char *name, std::string path, std::string nwid, int type, int protocol, int mode, std::string ipstr, int port, int operation, int n_count, int delay)
 {
 	struct hostent *server;
     struct sockaddr_in6 addr6;
 	struct sockaddr_in addr;
 
-	printf("\npath      = %s\n", path.c_str());
-	printf("nwid      = %s\n", nwid.c_str());
-	printf("type      = %d\n", type);
-	printf("protocol  = %d\n", protocol);
-	printf("mode      = %d\n", mode);
-	printf("ipstr     = %s\n", ipstr.c_str());
-	printf("port      = %d\n", port);
-	printf("operation = %d\n", operation);
-	printf("n_count   = %d\n", n_count);
-	printf("delay     = %d\n\n", delay);
+	printf("\n\nNEXT TEST parameters:\n");
+	printf("\tname      = %s\n", name);
+	printf("\tpath      = %s\n", path.c_str());
+	printf("\tnwid      = %s\n", nwid.c_str());
+	printf("\ttype      = %d\n", type);
+	printf("\tprotocol  = %d\n", protocol);
+	printf("\tmode      = %d\n", mode);
+	printf("\tipstr     = %s\n", ipstr.c_str());
+	printf("\tport      = %d\n", port);
+	printf("\toperation = %d\n", operation);
+	printf("\tn_count   = %d\n", n_count);
+	printf("\tdelay     = %d\n\n", delay);
+
+	int err = 0;
 
 	/****************************************************************************/
 	/* SIMPLE                                                                   */
@@ -762,7 +755,7 @@ int do_test(std::string path, std::string nwid, int type, int protocol, int mode
 				addr.sin_family = AF_INET;
 				addr.sin_port = htons(port);
 				//printf(" running (%d) test as ipv=%d\n", mode, protocol);
-				return ipv4_tcp_client_test(&addr, port);
+				err = ipv4_tcp_client_test(&addr, port);
 			}
 			// IPv6
 			if(protocol == 6) {
@@ -773,7 +766,7 @@ int do_test(std::string path, std::string nwid, int type, int protocol, int mode
     			memmove((char *) &addr6.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
     			addr6.sin6_port = htons(port);
 				//printf(" running (%d) test as ipv=%d\n", mode, protocol);
-				return ipv6_tcp_client_test(&addr6, port);
+				err = ipv6_tcp_client_test(&addr6, port);
 			}
 		}
 
@@ -787,7 +780,7 @@ int do_test(std::string path, std::string nwid, int type, int protocol, int mode
 				// addr.sin_addr.s_addr = htons(INADDR_ANY);
 				addr.sin_family = AF_INET;
 				//printf(" running (%d) test as ipv=%d\n", mode, protocol);
-				return ipv4_tcp_server_test(&addr, port);
+				err = ipv4_tcp_server_test(&addr, port);
 			}
 			// IPv6
 			if(protocol == 6) {
@@ -797,7 +790,7 @@ int do_test(std::string path, std::string nwid, int type, int protocol, int mode
 			    addr6.sin6_family = AF_INET6;
 			    memmove((char *) &addr6.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
 			    addr6.sin6_port = htons(port);
-				return ipv6_tcp_server_test(&addr6, port);
+				err = ipv6_tcp_server_test(&addr6, port);
 			}
 		}
 	}
@@ -822,7 +815,7 @@ int do_test(std::string path, std::string nwid, int type, int protocol, int mode
 				addr.sin_addr.s_addr = inet_addr(ipstr.c_str());
 				addr.sin_family = AF_INET;
 				//printf(" running (%d) test as ipv=%d\n", mode, protocol);
-				return ipv4_tcp_client_sustained_test(&addr, port, operation, n_count, delay);
+				err = ipv4_tcp_client_sustained_test(&addr, port, operation, n_count, delay);
 			}
 			// IPv6
 			if(protocol == 6) {
@@ -832,7 +825,7 @@ int do_test(std::string path, std::string nwid, int type, int protocol, int mode
 			    addr6.sin6_family = AF_INET6;
 			    memmove((char *) &addr6.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
 			    addr6.sin6_port = htons(port);
-				return ipv6_tcp_client_sustained_test(&addr6, port, operation, n_count, delay);
+				err = ipv6_tcp_client_sustained_test(&addr6, port, operation, n_count, delay);
 			}
 		}
 
@@ -846,7 +839,7 @@ int do_test(std::string path, std::string nwid, int type, int protocol, int mode
 				// addr.sin_addr.s_addr = htons(INADDR_ANY);
 				addr.sin_family = AF_INET;
 				//printf(" running (%d) test as ipv=%d\n", mode, protocol);
-				return ipv4_tcp_server_sustained_test(&addr, port, operation, n_count, delay);
+				err = ipv4_tcp_server_sustained_test(&addr, port, operation, n_count, delay);
 			}
 			// IPv6
 			if(protocol == 6) {
@@ -858,11 +851,15 @@ int do_test(std::string path, std::string nwid, int type, int protocol, int mode
 				addr6.sin6_addr = in6addr_any;
     			//memmove((char *) &addr6.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
 				//printf(" running (%d) test as ipv=%d\n", mode, protocol);
-				return ipv6_tcp_server_sustained_test(&addr6, port, operation, n_count, delay);
+				err = ipv6_tcp_server_sustained_test(&addr6, port, operation, n_count, delay);
 			}
 		}
 	}
-	return 0;
+	if(err == PASSED)
+		printf("PASSED\n");
+	else
+		printf("FAILED\n");
+	return err;
 }
 
 
@@ -905,10 +902,11 @@ int main(int argc , char *argv[])
 	// load addresses/path, perform comprehensive test
 	if(path.find(".conf") != std::string::npos) 
 	{
+		printf("\nTest config file contents:\n");
 		loadTestConfigFile(path);
 		nwid   = testConf["nwid"];
 		path   = testConf["local_path"];
-		stype  = "comprehensive";
+		stype  = testConf["test"];
 		local_ipstr   = testConf["local_ipv4"];
 		local_ipstr6  = testConf["local_ipv6"];
 		remote_ipstr  = testConf["remote_ipv4"];
@@ -926,15 +924,15 @@ int main(int argc , char *argv[])
 		local_port6 = atoi(testConf["local_port6"].c_str());
 		remote_port6 = atoi(testConf["remote_port6"].c_str());
 
-		fprintf(stderr, "local_ipstr       = %s\n", local_ipstr.c_str());
-		fprintf(stderr, "local_ipstr6      = %s\n", local_ipstr6.c_str());
-		fprintf(stderr, "remote_ipstr      = %s\n", remote_ipstr.c_str());
-		fprintf(stderr, "remote_ipstr6     = %s\n", remote_ipstr6.c_str());
+		fprintf(stderr, "local_ipstr   = %s\n", local_ipstr.c_str());
+		fprintf(stderr, "local_ipstr6  = %s\n", local_ipstr6.c_str());
+		fprintf(stderr, "remote_ipstr  = %s\n", remote_ipstr.c_str());
+		fprintf(stderr, "remote_ipstr6 = %s\n", remote_ipstr6.c_str());
 		
-		fprintf(stderr, "remote_port       = %d\n", remote_port);
-		fprintf(stderr, "remote_port6      = %d\n", remote_port6);
-		fprintf(stderr, "local_port        = %d\n", local_port);
-		fprintf(stderr, "local_port6       = %d\n", local_port6);
+		fprintf(stderr, "remote_port   = %d\n", remote_port);
+		fprintf(stderr, "remote_port6  = %d\n", remote_port6);
+		fprintf(stderr, "local_port    = %d\n", local_port);
+		fprintf(stderr, "local_port6   = %d\n", local_port6);
 	}
 	else
 	{
@@ -942,9 +940,9 @@ int main(int argc , char *argv[])
 		stype = argv[3];
 	}
 
-	fprintf(stderr, "path        = %s\n", path.c_str());
-	fprintf(stderr, "nwid        = %s\n", nwid.c_str());
-	fprintf(stderr, "type        = %s\n", stype.c_str());
+	fprintf(stderr, "path          = %s\n", path.c_str());
+	fprintf(stderr, "nwid          = %s\n", nwid.c_str());
+	fprintf(stderr, "type          = %s\n\n", stype.c_str());
 
 
 	printf("waiting for libzt to come online\n");
@@ -985,11 +983,7 @@ int main(int argc , char *argv[])
 		port = atoi(argv[7]);
 		
 		// Perform test
-	    if((err = do_test(path, nwid, type, protocol, mode, ipstr, port, operation, n_count, delay)) == PASSED)
-	    	fprintf(stderr, "PASSED\n");
-	    else
-	    	fprintf(stderr, "FAILED\n");
-	    return err;
+	    return do_test(argv[5], path, nwid, type, protocol, mode, ipstr, port, operation, n_count, delay);
 	}
 
 	// SUSTAINED
@@ -1019,11 +1013,7 @@ int main(int argc , char *argv[])
 			operation = TEST_OP_N_SECONDS;
 
 		// Perform test
-	    if((err = do_test(path, nwid, type, protocol, mode, ipstr, port, operation, n_count, delay)) == PASSED)
-	    	fprintf(stderr, "PASSED\n");
-	    else
-	    	fprintf(stderr, "FAILED\n");
-	    return err;
+	    return do_test(argv[5], path, nwid, type, protocol, mode, ipstr, port, operation, n_count, delay);
 	}
 
 	/****************************************************************************/
@@ -1044,94 +1034,80 @@ int main(int argc , char *argv[])
 		 * Additionally, the test will use the preset paremeters below for the test:
 		 */
 
+// Establish initial IPV4 connection between Alice and Bob
+
 		delay     =  0;
 		n_count   = 10;
-		type      = TEST_TYPE_SIMPLE;
 		operation = TEST_OP_N_TIMES;
-		protocol  = 4;
 		
 		if(mode == TEST_MODE_SERVER) {
-			printf("starting comprehensive test as SERVER\n");
 			port  = local_port;
 			ipstr = local_ipstr;
 		}
 		else if(mode == TEST_MODE_CLIENT) {
-			printf("starting comprehensive test as CLIENT (waiting, giving server time to start)\n");
 			sleep(10); // give the server some time to come online before beginning test
 			port  = remote_port;
 			ipstr = remote_ipstr;
 		}
-
 		// IPV4 (first test)
-		
-		do_test(path, nwid, type, protocol, mode, ipstr, port, operation, n_count, delay);
+		err += do_test("ipv4", path, nwid, TEST_TYPE_SIMPLE, 4, mode, ipstr, port, operation, n_count, delay);
+
+// Perform sustained transfer
+
+		err += do_test("ipv4_sustained", path, nwid, TEST_TYPE_SUSTAINED, 4, mode, ipstr, port, operation, n_count, delay);
 
 		// swtich modes (client/server)
 		if(mode == TEST_MODE_SERVER) {
-			printf("\nswitching from SERVER to CLIENT mode\n");
 			port  = remote_port;
 			ipstr = remote_ipstr;
 			mode  = TEST_MODE_CLIENT;
 		}
 		else if(mode == TEST_MODE_CLIENT) {
-			printf("switching from CLIENT to SERVER mode\n");
 			port  = local_port;
 			ipstr = local_ipstr;
 			mode  = TEST_MODE_SERVER;
 		}
-		
 		// IPV4 (second test)
-		do_test(path, nwid, type, protocol, mode, ipstr, port, operation, n_count, delay);
-		sleep(3);
+		err += do_test("ipv4", path, nwid, TEST_TYPE_SIMPLE, 4, mode, ipstr, port, operation, n_count, delay);
 
 // IPV6
 
-		printf("performing COMPREHENSIVE ipv6 test\n");
 		/* Each host must operate as the counterpart to the other, thus, each mode 
 		 * will call the same test helper functions in different orders
 		 * Additionally, the test will use the preset paremeters below for the test:
 		 */
-
-		delay     =  0;
-		n_count   = 10;
-		type      = TEST_TYPE_SIMPLE;
-		operation = TEST_OP_N_TIMES;
-		protocol  = 6;
 		
 		if(mode == TEST_MODE_SERVER) {
-			printf("starting comprehensive test as SERVER\n");
 			port  = local_port6;
 			ipstr6 = local_ipstr6;
 		}
 		else if(mode == TEST_MODE_CLIENT) {
-			printf("starting comprehensive test as CLIENT (waiting, giving server time to start)\n");
 			sleep(10); // give the server some time to come online before beginning test
 			port  = remote_port6;
 			ipstr6 = remote_ipstr6;
 		}
-
 		// IPV4 (first test)
-		
-		do_test(path, nwid, type, protocol, mode, ipstr6, port, operation, n_count, delay);
+		err += do_test("ipv6", path, nwid, TEST_TYPE_SIMPLE, 6, mode, ipstr6, port, operation, n_count, delay);
+
+// Perform sustained transfer
+
+		err += do_test("ipv6_sustained", path, nwid, TEST_TYPE_SUSTAINED, 6, mode, ipstr, port, operation, n_count, delay);
 
 		// swtich modes (client/server)
 		if(mode == TEST_MODE_SERVER) {
-			printf("\nswitching from SERVER to CLIENT mode\n");
 			port  = remote_port6;
 			ipstr6 = remote_ipstr6;
 			mode  = TEST_MODE_CLIENT;
 		}
 		else if(mode == TEST_MODE_CLIENT) {
-			printf("switching from CLIENT to SERVER mode\n");
 			port  = local_port6;
 			ipstr6 = local_ipstr6;
 			mode  = TEST_MODE_SERVER;
 		}
-		
 		// IPV4 (second test)
-		do_test(path, nwid, type, protocol, mode, ipstr6, port, operation, n_count, delay);
-		sleep(3);
+		err += do_test("ipv6", path, nwid, TEST_TYPE_SIMPLE, 6, mode, ipstr6, port, operation, n_count, delay);
 
+		return err;
 	}
 
 

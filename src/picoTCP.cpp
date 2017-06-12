@@ -143,7 +143,7 @@ namespace ZeroTier {
 
 	void picoTCP::pico_cb_tcp_read(ZeroTier::SocketTap *tap, struct pico_socket *s)
 	{
-		//DEBUG_INFO();
+		DEBUG_INFO();
 		Connection *conn = (Connection*)((ConnectionPair*)(s->priv))->conn;
 		if(conn) {
 			int r;				
@@ -227,7 +227,7 @@ namespace ZeroTier {
 
 	void picoTCP::pico_cb_tcp_write(SocketTap *tap, struct pico_socket *s)
 	{
-		//DEBUG_INFO();
+		DEBUG_INFO();
 		Connection *conn = (Connection*)((ConnectionPair*)(s->priv))->conn;
 		if(!conn) {
 			DEBUG_ERROR("invalid connection");
@@ -259,7 +259,7 @@ namespace ZeroTier {
 
 	void picoTCP::pico_cb_socket_activity(uint16_t ev, struct pico_socket *s)
     {
-    	//DEBUG_INFO();
+    	DEBUG_INFO();
     	if(!(SocketTap*)((ConnectionPair*)(s->priv)))
     		return;
     	SocketTap *tap = (SocketTap*)((ConnectionPair*)(s->priv))->tap;
@@ -312,7 +312,7 @@ namespace ZeroTier {
 			}
         }
         if (ev & PICO_SOCK_EV_FIN) {
-            DEBUG_INFO("PICO_SOCK_EV_FIN (socket closed), picosock=%p, conn=%p", s, conn);
+            // DEBUG_EXTRA("PICO_SOCK_EV_FIN (socket closed), picosock=%p, conn=%p", s, conn);
             conn->closure_ts = std::time(nullptr);	
         }
         if (ev & PICO_SOCK_EV_ERR) {
@@ -488,7 +488,7 @@ namespace ZeroTier {
 			inet_ntop(AF_INET6, &(in6->sin6_addr), ipv6_str, INET6_ADDRSTRLEN);
 			// TODO: This isn't proper
 	    	pico_string_to_ipv6("::", pip6.addr);
-       		DEBUG_ATTN("addr=%s:%d", ipv6_str, Utils::ntoh(in6->sin6_port));
+       		DEBUG_INFO("addr=%s:%d", ipv6_str, Utils::ntoh(in6->sin6_port));
 			err = pico_socket_bind(conn->picosock, &pip6, (uint16_t *)&(in6->sin6_port));
 		}
 		if(err < 0) {
@@ -635,6 +635,7 @@ namespace ZeroTier {
 
     void picoTCP::pico_Write(Connection *conn, void *data, ssize_t len)
     {
+    	DEBUG_INFO();
     	if(conn->picosock->state & PICO_SOCKET_STATE_CLOSED){
     		DEBUG_ERROR("socket is CLOSED, this write() will fail");
     		return;
@@ -677,7 +678,7 @@ namespace ZeroTier {
 
     int picoTCP::pico_Close(Connection *conn)
     {
-    	//DEBUG_INFO("conn = %p, picosock=%p, fd = %d", conn, conn->picosock, conn->app_fd);
+    	DEBUG_INFO("conn = %p, picosock=%p, fd = %d", conn, conn->picosock, conn->app_fd);
     	if(!conn || !conn->picosock)
     		return ZT_ERR_GENERAL_FAILURE;
     	int err;

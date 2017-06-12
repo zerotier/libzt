@@ -211,7 +211,7 @@ UNIT_TEST_LIBS      := -L$(BUILD) -lzt
 
 $(TEST_BUILD_DIR)/%: $(UNIT_TEST_SRC_DIR)/%.cpp
 	@mkdir -p $(TEST_BUILD_DIR)
-	@-$(CXX) $(UNIT_TEST_INCLUDES) -o $@ $< $(UNIT_TEST_LIBS)
+	@-$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) $(INCLUDES) -o $@ $< $(UNIT_TEST_LIBS)
 	@-./check.sh $@
 
 unit_tests: $(UNIT_TEST_OBJ_FILES)

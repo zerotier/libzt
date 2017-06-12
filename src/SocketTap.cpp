@@ -289,7 +289,7 @@ namespace ZeroTier {
 		}
 		picostack->pico_Close(conn);
 		if(!conn->sock) {
-			DEBUG_EXTRA("invalid PhySocket");
+			// DEBUG_EXTRA("invalid PhySocket");
 			return;
 		}
 		// Here we assume _tcpconns_m is already locked by caller

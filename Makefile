@@ -14,8 +14,8 @@ ifeq ($(OSTYPE),Linux)
 endif
 
 ifeq ($(OSTYPE),FreeBSD)
-	include make-freebsd.mk
+	include make-bsd.mk
 endif
 ifeq ($(OSTYPE),OpenBSD)
-	include make-freebsd.mk
+	include make-bsd.mk
 endif

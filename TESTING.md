@@ -4,9 +4,9 @@ After building the static library, you can run:
 
  - `make tests`
 
- This will output `selftest` to `build/$PLATFORM/`. Using this, you can run the tests below. Note, the following examples assume your testing environment is `linux`, you'll see this in the build output path. If this is not true, change it to `darwin`, or `win` depending on what you're running.
+ This will output `selftest` to `build/$PLATFORM/`. Using this, you can run the tests below. Note, the following examples assume your testing environment is `linux`, you'll see this in the build output path. If this is not true, change it to `darwin`, `freebsd`, or `win` depending on what you're running.
 
- It is probably easiest to add out your `host-1` and `host-2` address, port, and network information to `test/alice.conf` and `test/bob.conf`, this way you can use the selftest shorthand shown below.
+ Simply add your `host-1` and `host-2` address, port, and network information to `test/alice.conf` and `test/bob.conf`, this way you can use the selftest shorthand shown below. The file contain examples of what you should do.
 
 Build outputs are as follows:
 

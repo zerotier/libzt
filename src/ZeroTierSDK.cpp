@@ -429,10 +429,11 @@ Darwin:
     [  ] [ECONNRESET]       Remote host reset the connection request.
 */
 int zts_connect(ZT_CONNECT_SIG) {
-    DEBUG_INFO("fd = %d", fd);
+    // DEBUG_INFO("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
+        DEBUG_ERROR("EBADF");
         err = -1;
     }
     if(!zt1Service) {
@@ -460,8 +461,8 @@ int zts_connect(ZT_CONNECT_SIG) {
             // TODO: This is a hack, determine a proper way to do this
             iaddr.fromString(ipstr + std::string("/88"));
         }
-         DEBUG_INFO("ipstr= %s", ipstr);
-         DEBUG_INFO("iaddr= %s", iaddr.toString().c_str());
+        //DEBUG_INFO("ipstr= %s", ipstr);
+        //DEBUG_INFO("iaddr= %s", iaddr.toString().c_str());
         tap = zt1Service->getTap(iaddr);
         if(!tap) {
             DEBUG_ERROR("no route to host");
@@ -471,7 +472,7 @@ int zts_connect(ZT_CONNECT_SIG) {
         else {
             // pointer to tap we use in callbacks from the stack
             conn->picosock->priv = new ZeroTier::ConnectionPair(tap, conn); 
-             DEBUG_INFO("found appropriate SocketTap");
+            //DEBUG_INFO("found appropriate SocketTap");
             // Semantically: tap->stack->connect
             err = tap->Connect(conn, fd, addr, addrlen); 
             if(err == 0) {
@@ -500,12 +501,18 @@ int zts_connect(ZT_CONNECT_SIG) {
     // to the multiplexer logic that this connection is complete and a success value can be sent to the
     // user application
 
-    socklen_t optlen;
-    socklen_t blocking;
-    zts_getsockopt(fd, SOL_SOCKET, O_NONBLOCK, &blocking, &optlen);
+    int f_err, blocking = 1;
+    if ((f_err = fcntl(fd, F_GETFL, 0)) < 0) {
+        DEBUG_ERROR("fcntl error, err = %s, errno = %d", f_err, errno);
+        err = -1;
+    } 
+    else {
+        blocking = !(f_err & O_NONBLOCK);
+    }
 
     // non-blocking
     if(err == 0 && !blocking) {
+        DEBUG_EXTRA("EINPROGRESS, not a real error, assuming non-blocking mode");
         errno = EINPROGRESS;
         err = -1;
     }
@@ -524,6 +531,7 @@ int zts_connect(ZT_CONNECT_SIG) {
                 {
                     if(tap->_Connections[i]->state == PICO_ERR_ECONNRESET) {   
                         errno = ECONNRESET;
+                        DEBUG_ERROR("ECONNRESET");
                         err = -1;
                     }
                     if(tap->_Connections[i]->state == ZT_SOCK_STATE_UNHANDLED_CONNECTED) {
@@ -666,7 +674,7 @@ Darwin:
     [  ] [EOPNOTSUPP]       The referenced socket is not of type SOCK_STREAM.
     [  ] [EFAULT]           The addr parameter is not in a writable part of the
                             user address space.
-    [  ] [EWOULDBLOCK]      The socket is marked non-blocking and no connections
+    [--] [EWOULDBLOCK]      The socket is marked non-blocking and no connections
                             are present to be accepted.
     [--] [EMFILE]           The per-process descriptor table is full.
     [  ] [ENFILE]           The system file table is full.
@@ -697,19 +705,31 @@ int zts_accept(ZT_ACCEPT_SIG) {
             ZeroTier::Connection *conn = p->first;
             ZeroTier::SocketTap *tap = p->second;
             ZeroTier::Connection *accepted_conn;
+
             // BLOCKING: loop and keep checking until we find a newly accepted connection
-            if(true) {
+            int f_err, blocking = 1;
+            if ((f_err = fcntl(fd, F_GETFL, 0)) < 0) {
+                DEBUG_ERROR("fcntl error, err = %s, errno = %d", f_err, errno);
+                err = -1;
+            } 
+            else {
+                blocking = !(f_err & O_NONBLOCK);
+            }
+            if(!err && !blocking) { // non-blocking
+                DEBUG_EXTRA("EWOULDBLOCK, not a real error, assuming non-blocking mode");
+                errno = EWOULDBLOCK;
+                err = -1;
+                accepted_conn = tap->Accept(conn);
+            }
+            else if (!err && blocking) { // blocking
                 while(true) {
+                    DEBUG_EXTRA("checking...");
                     usleep(ZT_ACCEPT_RECHECK_DELAY * 1000);
                     accepted_conn = tap->Accept(conn);
                     if(accepted_conn)
                         break; // accepted fd = err
                 }
             }
-            // NON-BLOCKING: only check for a new connection once
-            else
-                accepted_conn = tap->Accept(conn);
-
             if(accepted_conn) {
                 ZeroTier::fdmap[accepted_conn->app_fd] = new std::pair<ZeroTier::Connection*,ZeroTier::SocketTap*>(accepted_conn, tap);
                 err = accepted_conn->app_fd;

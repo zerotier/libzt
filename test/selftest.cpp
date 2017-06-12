@@ -138,6 +138,7 @@ void loadTestConfigFile(std::string filepath)
 // 
 int ipv4_tcp_client_test(struct sockaddr_in *addr, int port)
 {
+	printf("ipv4_tcp_client_test\n");
 	int r, w, sockfd, err, len = strlen(str);
 	char rbuf[STR_SIZE];
 	if((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -155,6 +156,7 @@ int ipv4_tcp_client_test(struct sockaddr_in *addr, int port)
 // 
 int ipv6_tcp_client_test(struct sockaddr_in6 *addr, int port)
 {
+	printf("ipv6_tcp_client_test\n");
 	int r, w, sockfd, err, len = strlen(str);
 	char rbuf[STR_SIZE];
 	if((sockfd = zts_socket(AF_INET6, SOCK_STREAM, 0)) < 0) {
@@ -205,6 +207,7 @@ int ipv4_tcp_server_test(struct sockaddr_in *addr, int port)
 //
 int ipv6_tcp_server_test(struct sockaddr_in6 *addr, int port)
 {
+	printf("ipv6_tcp_server_test\n");
 	int w=0, r=0, sockfd, accfd, err, len = strlen(str);
 	char rbuf[STR_SIZE];
 	if((sockfd = zts_socket(AF_INET6, SOCK_STREAM, 0)) < 0) {
@@ -238,6 +241,7 @@ int ipv6_tcp_server_test(struct sockaddr_in6 *addr, int port)
 // Maintain transfer for n_count OR n_count
 int ipv4_tcp_client_sustained_test(struct sockaddr_in *addr, int port, int operation, int n_count, int delay)
 {
+	printf("ipv4_tcp_client_sustained_test\n");
 	int w=0, r=0, sockfd, accfd, err, len = strlen(str);
 	int tot, n=0;
 	char rbuf[STR_SIZE];
@@ -260,6 +264,7 @@ int ipv4_tcp_client_sustained_test(struct sockaddr_in *addr, int port, int opera
 				r += n;
 		}
 		err = zts_close(sockfd);
+		printf("n_count = %d", n_count);
 		return (r == tot && w == tot && !err) && !strcmp(rbuf, str) ? PASSED : FAILED;
 	}
 	if(operation == TEST_OP_N_BYTES) {
@@ -276,6 +281,7 @@ int ipv4_tcp_client_sustained_test(struct sockaddr_in *addr, int port, int opera
 				r += n;
 		}
 		err = zts_close(sockfd);
+		printf("n_count = %d", n_count);
 		return (r == tot && w == tot && !err) ? PASSED : FAILED;
 	}
 	return FAILED;
@@ -284,6 +290,7 @@ int ipv4_tcp_client_sustained_test(struct sockaddr_in *addr, int port, int opera
 // Maintain transfer for n_count OR n_count
 int ipv6_tcp_client_sustained_test(struct sockaddr_in6 *addr, int port, int operation, int n_count, int delay) 
 {
+	printf("ipv6_tcp_client_sustained_test\n");
 	int w=0, r=0, sockfd, accfd, err, len = strlen(str);
 	int tot, n=0;
 	char rbuf[STR_SIZE];
@@ -306,6 +313,7 @@ int ipv6_tcp_client_sustained_test(struct sockaddr_in6 *addr, int port, int oper
 				r += n;
 		}
 		err = zts_close(sockfd);
+		printf("n_count = %d", n_count);
 		return (r == tot && w == tot && !err) && !strcmp(rbuf, str) ? PASSED : FAILED;
 	}
 	if(operation == TEST_OP_N_BYTES) {
@@ -322,6 +330,7 @@ int ipv6_tcp_client_sustained_test(struct sockaddr_in6 *addr, int port, int oper
 				r += n;
 		}
 		err = zts_close(sockfd);
+		printf("n_count = %d", n_count);
 		return (r == tot && w == tot && !err) ? PASSED : FAILED;
 	}
 	return FAILED;
@@ -338,6 +347,7 @@ int ipv6_tcp_client_sustained_test(struct sockaddr_in6 *addr, int port, int oper
 // Maintain transfer for n_count OR n_count
 int ipv4_tcp_server_sustained_test(struct sockaddr_in *addr, int port, int operation, int n_count, int delay)
 {
+	printf("ipv4_tcp_server_sustained_test\n");
 	int w=0, r=0, sockfd, accfd, err, len = strlen(str);
 	int tot, n=0;
 	char rbuf[STR_SIZE];
@@ -364,6 +374,7 @@ int ipv4_tcp_server_sustained_test(struct sockaddr_in *addr, int port, int opera
 		}
 		zts_close(sockfd);
 		zts_close(accfd);
+		printf("n_count = %d", n_count);
 		return (r == tot && w == tot && !err) && !strcmp(rbuf, str) ? PASSED : FAILED;
 	}
 	if(operation == TEST_OP_N_BYTES) {
@@ -381,6 +392,7 @@ int ipv4_tcp_server_sustained_test(struct sockaddr_in *addr, int port, int opera
 		}
 		zts_close(sockfd);
 		zts_close(accfd);
+		printf("n_count = %d", n_count);
 		return (r == tot && w == tot && !err) ? PASSED : FAILED;
 	}
 	return FAILED;
@@ -389,6 +401,7 @@ int ipv4_tcp_server_sustained_test(struct sockaddr_in *addr, int port, int opera
 // Maintain transfer for n_count OR n_count
 int ipv6_tcp_server_sustained_test(struct sockaddr_in6 *addr, int port, int operation, int n_count, int delay)
 {
+	printf("ipv6_tcp_server_sustained_test\n");
 	int w=0, r=0, sockfd, accfd, err, len = strlen(str);
 	int tot, n=0;
 	char rbuf[STR_SIZE];
@@ -415,6 +428,7 @@ int ipv6_tcp_server_sustained_test(struct sockaddr_in6 *addr, int port, int oper
 		}
 		zts_close(sockfd);
 		zts_close(accfd);
+		printf("n_count = %d", n_count);
 		return (r == tot && w == tot && !err) && !strcmp(rbuf, str) ? PASSED : FAILED;
 	}
 	if(operation == TEST_OP_N_BYTES) {
@@ -432,6 +446,7 @@ int ipv6_tcp_server_sustained_test(struct sockaddr_in6 *addr, int port, int oper
 		}
 		zts_close(sockfd);
 		zts_close(accfd);
+		printf("n_count = %d", n_count);
 		return (r == tot && w == tot && !err) ? PASSED : FAILED;
 	}
 	return FAILED;}
@@ -723,7 +738,8 @@ int do_test(char *name, std::string path, std::string nwid, int type, int protoc
     struct sockaddr_in6 addr6;
 	struct sockaddr_in addr;
 
-	printf("\n\nNEXT TEST parameters:\n");
+	printf("\n\n\n\n\n--------------------------------------------------------------------------------\n");
+	printf("TEST parameters:\n");
 	printf("\tname      = %s\n", name);
 	printf("\tpath      = %s\n", path.c_str());
 	printf("\tnwid      = %s\n", nwid.c_str());
@@ -734,7 +750,7 @@ int do_test(char *name, std::string path, std::string nwid, int type, int protoc
 	printf("\tport      = %d\n", port);
 	printf("\toperation = %d\n", operation);
 	printf("\tn_count   = %d\n", n_count);
-	printf("\tdelay     = %d\n\n", delay);
+	printf("\tdelay     = %d\n", delay);
 
 	int err = 0;
 
@@ -747,7 +763,6 @@ int do_test(char *name, std::string path, std::string nwid, int type, int protoc
 	// For instance (ipv4 client, ipv6 server, etc)
 	if(type == TEST_TYPE_SIMPLE) {		
 		if(mode == TEST_MODE_CLIENT) {
-
 			std::cout << "connecting to " << ipstr << " on port " << port << std::endl;
 			// IPv4
 			if(protocol == 4) {
@@ -771,8 +786,7 @@ int do_test(char *name, std::string path, std::string nwid, int type, int protoc
 		}
 
 		if(mode == TEST_MODE_SERVER) {
-
-			//printf("serving on port %s\n", port);
+			std::cout << "binding on " << ipstr << " : " << port << std::endl;
 			// IPv4
 			if(protocol == 4) {
 				addr.sin_port = htons(port);
@@ -807,8 +821,7 @@ int do_test(char *name, std::string path, std::string nwid, int type, int protoc
 	// Performs a stress test for benchmarking performance
 	if(type == TEST_TYPE_SUSTAINED) {
 		if(mode == TEST_MODE_CLIENT) {
-
-			//printf("connecting to %s on port %d\n", ipstr, port);
+			std::cout << "connecting to " << ipstr << " on port " << port << std::endl;
 			// IPv4
 			if(protocol == 4) {
 				addr.sin_port = htons(port);
@@ -831,7 +844,7 @@ int do_test(char *name, std::string path, std::string nwid, int type, int protoc
 
 		if(mode == TEST_MODE_SERVER)
 		{
-			//printf("serving on port %d\n", port);
+			std::cout << "binding on " << ipstr << " : " << port << std::endl;
 			// IPv4
 			if(protocol == 4) {
 				addr.sin_port = htons(port);
@@ -855,10 +868,12 @@ int do_test(char *name, std::string path, std::string nwid, int type, int protoc
 			}
 		}
 	}
+
+	printf("--------------------------------------------------------------------------------\n");
 	if(err == PASSED)
-		printf("PASSED\n");
+		printf("Result: PASSED\n");
 	else
-		printf("FAILED\n");
+		printf("Result: FAILED\n");
 	return err;
 }
 
@@ -1028,16 +1043,10 @@ int main(int argc , char *argv[])
 	if(stype == "comprehensive")
 	{	
 
-		//printf("performing COMPREHENSIVE ipv4 test\n");
-		/* Each host must operate as the counterpart to the other, thus, each mode 
-		 * will call the same test helper functions in different orders
-		 * Additionally, the test will use the preset paremeters below for the test:
-		 */
-
 // Establish initial IPV4 connection between Alice and Bob
 
 		delay     =  0;
-		n_count   = 10;
+		n_count   = 100;
 		operation = TEST_OP_N_TIMES;
 		
 		if(mode == TEST_MODE_SERVER) {
@@ -1072,11 +1081,6 @@ int main(int argc , char *argv[])
 
 // IPV6
 
-		/* Each host must operate as the counterpart to the other, thus, each mode 
-		 * will call the same test helper functions in different orders
-		 * Additionally, the test will use the preset paremeters below for the test:
-		 */
-		
 		if(mode == TEST_MODE_SERVER) {
 			port  = local_port6;
 			ipstr6 = local_ipstr6;
@@ -1091,7 +1095,7 @@ int main(int argc , char *argv[])
 
 // Perform sustained transfer
 
-		err += do_test("ipv6_sustained", path, nwid, TEST_TYPE_SUSTAINED, 6, mode, ipstr, port, operation, n_count, delay);
+		err += do_test("ipv6_sustained", path, nwid, TEST_TYPE_SUSTAINED, 6, mode, ipstr6, port, operation, n_count, delay);
 
 		// swtich modes (client/server)
 		if(mode == TEST_MODE_SERVER) {

@@ -60,7 +60,7 @@ namespace ZeroTier {
 		struct sockaddr_storage *peer_addr; // Address of connection call to remote host
 
 		// RX/TX buffers
-		int txsz, rxsz;
+		int txsz = 0, rxsz = 0;
 		unsigned char txbuf[ZT_TCP_TX_BUF_SZ];
 		unsigned char rxbuf[ZT_TCP_RX_BUF_SZ];
 
@@ -89,6 +89,7 @@ namespace ZeroTier {
 			}
 			sdk_fd = fdpair[0];
 			app_fd = fdpair[1];
+
 			if(ZT_SOCK_BEHAVIOR_LINGER) {
 				struct linger so_linger;
 				so_linger.l_onoff = true;

@@ -10,7 +10,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#include "ZeroTierSDK.h"
+#include "libzt.h"
 
 int main()
 {
@@ -121,7 +121,6 @@ int main()
 
 	// End Socket API calls
 
-
 	// Get the ipv4 address assigned for this network
 	char addr_str[ZT_MAX_IPADDR_LEN];
 	zts_get_ipv4_address(nwid, addr_str, ZT_MAX_IPADDR_LEN);
@@ -132,52 +131,9 @@ int main()
 
 	printf("peer_count = %lu\n", zts_get_peer_count());
 
-
-	while(1)
-	{
+	while(1) {
 		sleep(1);
 	}
-
-
-	// ---
-
-	/*
-
-	"Tap Multiplexer"
-	  - socket() [BEFORE JOIN]: take requests for new sockets
-	    - Create them, and store them in a temporary holding space until we find out where we should assign them
-
-	  - connect(): 
-	    - Search SocketTaps for tap with a relevant route
-	      - None? -> ENETUNREACH
-	      - Found?
-	      	- Assign previously-held socket to this tap 
-	    	- Attempt connection
-
-	  - bind():
-	    - bind on all Interfaces?
-
-
-	Join Semantics
-	 - Create  : SocketTap
-	 - Create  : rpc.d/nwid unix domain socket (if intercept mode?)
-	 - Create  : Stack Interface
-	 - Provide : IPs to Interface
-
-
-           /--- int0:  10. 9.0.0
-	stack ----  int1: 172.27.0.0
-		   \--- int2: ?
-	*/
-
-	// zts_join("other_network"); // 10.9.0.0
-	// zts_join("whatever"); // 172.27.0.0
-
-	//zts_socket(AF, STREAM, 0);
-	//zts_connect("10.9.9.5");
-
-
-	// ---
 
 	// Stop service, delete tap interfaces, and network stack
 	zts_stop();

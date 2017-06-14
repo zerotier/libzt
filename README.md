@@ -1,8 +1,8 @@
-## **ZeroTier SDK**: Embed ZeroTier directly into your app
+## **libzt**: Embed ZeroTier directly into your app
 
-<a href="https://www.zerotier.com"><img src="https://github.com/zerotier/ZeroTierOne/raw/master/artwork/AppIcon_87x87.png" align="left" hspace="20" vspace="6"></a>
+<a href="https://www.zerotier.com"><img src="https://github.com/zerotier/ZeroTierOne/raw/master/artwork/ztapp100.png" align="left" hspace="20" vspace="6"></a>
 
-**ZeroTier** makes it easy to securely connect devices, servers, cloud VMs, containers, and apps everywhere and manage them at scale. Now, with the SDK you can bake this ability directly into your application or service using your preferred language. We provide a BSD socket-like API to make the integration simple.
+**ZeroTier** makes it easy to securely connect devices, servers, cloud VMs, containers, and apps everywhere and manage them at scale. Now, with *libzt* you can bake this ability directly into your app or service using your preferred language or framework. We provide a BSD socket-like API to make the integration simple.
 
 <hr>
 
@@ -13,6 +13,8 @@ Pre-Built Binaries Here: [zerotier.com/download.shtml](https://zerotier.com/down
 ### Example
 
 ```
+#include "libzt.h"
+
 char *str = "welcome to the machine";
 char *nwid = "c7cd7c9e1b0f52a2";
 
@@ -35,19 +37,15 @@ All build targets will output to `build/`.
 
 ### Static Library
 
- - `make static_lib SDK_IPV4=1`
+ - `make static_lib`
 
 ### iOS App Framework
- - `make ios_app_framework SDK_IPV4=1`
+ - `make ios_app_framework`
 
 ### macOS App Framework
- - `make macos_app_framework SDK_IPV4=1`
+ - `make macos_app_framework`
 
 ***
-
-## IP version flags
- - `SDK_IPV4=1`
- - `SDK_IPV6=1`
 
 ## Using Language Bindings
  - `SDK_LANG_JNI=1`: Enable JNI bindings for Java (produces a shared library)

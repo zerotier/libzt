@@ -24,9 +24,6 @@
  * of your own application.
  */
 
-#include "ztproxy.hpp"
-#include "ZeroTierSDK.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <string.h>
@@ -48,6 +45,9 @@
 #include <algorithm>
 #include <fstream>
 #include <map>
+
+#include "ztproxy.hpp"
+#include "libzt.h"
 
 namespace ZeroTier {
 
@@ -242,7 +242,7 @@ namespace ZeroTier {
 
 	void ZTProxy::phyOnTcpAccept(PhySocket *sockL,PhySocket *sockN,void **uptrL,void **uptrN,const struct sockaddr *from)
 	{
-		DEBUG_INFO("phyOnTcpAccept, sockL=%d, sockN=%d", sockL, sockN);
+		DEBUG_INFO("phyOnTcpAccept, sockL=%p, sockN=%p", sockL, sockN);
 		TcpConnection *conn;
 		// try to recycle TcpConnection objects instead of allocating new ones
 		if(cqueue.size()) {
@@ -292,13 +292,13 @@ namespace ZeroTier {
 	}
 	void ZTProxy::phyOnUnixWritable(PhySocket *sock,void **uptr,bool lwip_invoked)
 	{
-		DEBUG_INFO("phyOnUnixWritable, sock=%d", sock);
+		DEBUG_INFO("phyOnUnixWritable, sock=%p", sock);
 		exit(0);
 	}
 
 	void ZTProxy::phyOnTcpClose(PhySocket *sock,void **uptr) 
 	{		
-		DEBUG_INFO("phyOnTcpClose, sock=%d", sock);
+		DEBUG_INFO("phyOnTcpClose, sock=%p", sock);
 
 		TcpConnection *conn = cmap[sock];
 		if(conn)

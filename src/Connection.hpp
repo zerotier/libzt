@@ -37,7 +37,7 @@
 #include "Phy.hpp"
 
 // SDK
-#include "ZeroTierSDK.h"
+#include "libzt.h"
 #include "SocketTap.hpp"
 //#include "RingBuffer.hpp"
 
@@ -72,7 +72,7 @@ namespace ZeroTier {
 
 		std::queue<Connection*> _AcceptedConnections;
 		SocketTap *tap; // Reference to SocketTap  
-		int state; // See ZeroTierSDK.h for (ZT_SOCK_STATE_*)
+		int state; // See libzt.h for (ZT_SOCK_STATE_*)
 
 		// timestamp for closure event
 		std::time_t closure_ts;

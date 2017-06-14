@@ -37,7 +37,7 @@
 
 // SDK
 #include "SocketTap.hpp"
-#include "ZeroTierSDK.h"
+#include "libzt.h"
 #include "picoTCP.hpp"
 
 // ZT

@@ -40,7 +40,7 @@
 #include "SocketTap.hpp"
 
 /****************************************************************************/
-/* PicoTCP API Signatures (See ZeroTierSDK.h for the API an app should use) */
+/* PicoTCP API Signatures (See libzt.h for the API an app should use) */
 /****************************************************************************/
 
 #define PICO_IPV4_TO_STRING_SIG char *ipbuf, const uint32_t ip

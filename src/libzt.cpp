@@ -49,7 +49,7 @@
 
 // SDK
 #include "SocketTap.hpp"
-#include "ZeroTierSDK.h"
+#include "libzt.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -434,7 +434,7 @@ int zts_connect(ZT_CONNECT_SIG) {
     if(fd < 0) {
         errno = EBADF;
         DEBUG_ERROR("EBADF");
-        err = -1;
+        return -1;
     }
     if(!zt1Service) {
         DEBUG_ERROR("Service not started. Call zts_start(path) first");

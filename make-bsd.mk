@@ -137,12 +137,12 @@ CXXFLAGS+=-DSDK_IPV6
 
 STACK_DRIVER_FILES:=src/picoTCP.cpp
 TAP_FILES:=src/SocketTap.cpp \
-	src/ZeroTierSDK.cpp \
+	src/libzt.cpp \
 	src/Utilities.cpp
 
 SDK_OBJS+= SocketTap.o \
 	picoTCP.o \
-	ZeroTierSDK.o \
+	libzt.o \
 	Utilities.o
 
 PICO_OBJS+= ext/picotcp/build/lib/pico_device.o \

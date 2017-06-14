@@ -38,7 +38,7 @@
 #include "pico_ipv6.h"
 
 // SDK
-#include "ZeroTierSDK.h"
+#include "libzt.h"
 #include "Utilities.hpp"
 #include "SocketTap.hpp"
 #include "picoTCP.hpp"
@@ -692,4 +692,55 @@ namespace ZeroTier {
     	}
     	return err;
     }
+
+	int beautify_pico_error(int err)
+	{
+		return 0;
+		/*
+		switch(err){
+			PICO_ERR_NOERR = 0,
+	    PICO_ERR_EPERM = 1,
+	    PICO_ERR_ENOENT = 2,
+	    
+	    PICO_ERR_EINTR = 4,
+	    PICO_ERR_EIO = 5,
+	    PICO_ERR_ENXIO = 6,
+	    
+	    PICO_ERR_EAGAIN = 11,
+	    PICO_ERR_ENOMEM = 12,
+	    PICO_ERR_EACCESS = 13,
+	    PICO_ERR_EFAULT = 14,
+	   
+	    PICO_ERR_EBUSY = 16,
+	    PICO_ERR_EEXIST = 17,
+	   
+	    PICO_ERR_EINVAL = 22,
+
+	    PICO_ERR_ENONET = 64,
+
+	    PICO_ERR_EPROTO = 71,
+
+	    PICO_ERR_ENOPROTOOPT = 92,
+	    PICO_ERR_EPROTONOSUPPORT = 93,
+
+	    PICO_ERR_EOPNOTSUPP = 95,
+	    PICO_ERR_EADDRINUSE = 98,
+	    PICO_ERR_EADDRNOTAVAIL = 99,
+	    PICO_ERR_ENETDOWN = 100,
+	    PICO_ERR_ENETUNREACH = 101,
+
+	    PICO_ERR_ECONNRESET = 104,
+
+	    PICO_ERR_EISCONN = 106,
+	    PICO_ERR_ENOTCONN = 107,
+	    PICO_ERR_ESHUTDOWN = 108,
+
+	    PICO_ERR_ETIMEDOUT = 110,
+	    PICO_ERR_ECONNREFUSED = 111,
+	    PICO_ERR_EHOSTDOWN = 112,
+	    PICO_ERR_EHOSTUNREACH = 113,
+		}
+		return err_text;
+		*/
+	}
 }

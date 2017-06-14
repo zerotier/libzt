@@ -45,7 +45,7 @@
 #include <fstream>
 #include <map>
 
-#include "ZeroTierSDK.h"
+#include "libzt.h"
 
 #define PASSED                0
 #define FAILED               -1

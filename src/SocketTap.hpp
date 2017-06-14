@@ -43,7 +43,7 @@
 #include "Thread.hpp"
 #include "Phy.hpp"
 
-#include "ZeroTierSDK.h"
+#include "libzt.h"
 #include "picoTCP.hpp"
 #include "Connection.hpp"
 
@@ -181,7 +181,7 @@ namespace ZeroTier {
 
 		/*
 		 * Timestamp of last run of housekeeping 
-		 * SEE: ZT_HOUSEKEEPING_INTERVAL in ZeroTierSDK.h
+		 * SEE: ZT_HOUSEKEEPING_INTERVAL in libzt.h
 		 */
 		std::time_t last_housekeeping_ts;
 

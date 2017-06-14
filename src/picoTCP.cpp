@@ -137,13 +137,13 @@ namespace ZeroTier {
 		{
 			tap->_phy.poll(ZT_PHY_POLL_INTERVAL);
 	        pico_stack_tick();
-	        tap->Housekeeping();
+	        //tap->Housekeeping();
 		}
 	}
 
 	void picoTCP::pico_cb_tcp_read(ZeroTier::SocketTap *tap, struct pico_socket *s)
 	{
-		DEBUG_INFO();
+		//DEBUG_INFO();
 		Connection *conn = (Connection*)((ConnectionPair*)(s->priv))->conn;
 		if(conn) {
 			int r;				
@@ -227,7 +227,7 @@ namespace ZeroTier {
 
 	void picoTCP::pico_cb_tcp_write(SocketTap *tap, struct pico_socket *s)
 	{
-		DEBUG_INFO();
+		//DEBUG_INFO();
 		Connection *conn = (Connection*)((ConnectionPair*)(s->priv))->conn;
 		if(!conn) {
 			DEBUG_ERROR("invalid connection");
@@ -259,7 +259,7 @@ namespace ZeroTier {
 
 	void picoTCP::pico_cb_socket_activity(uint16_t ev, struct pico_socket *s)
     {
-    	DEBUG_INFO();
+    	//DEBUG_INFO();
     	if(!(SocketTap*)((ConnectionPair*)(s->priv)))
     		return;
     	SocketTap *tap = (SocketTap*)((ConnectionPair*)(s->priv))->tap;
@@ -342,7 +342,7 @@ namespace ZeroTier {
    
    	int pico_eth_send(struct pico_device *dev, void *buf, int len)
     {
-    	DEBUG_INFO("len = %d", len);
+    	//DEBUG_INFO("len = %d", len);
     	SocketTap *tap = (SocketTap*)(dev->tap);
     	if(!tap) {
     		DEBUG_ERROR("invalid dev->tap");
@@ -635,7 +635,7 @@ namespace ZeroTier {
 
     void picoTCP::pico_Write(Connection *conn, void *data, ssize_t len)
     {
-    	DEBUG_INFO();
+    	//DEBUG_INFO();
     	if(conn->picosock->state & PICO_SOCKET_STATE_CLOSED){
     		DEBUG_ERROR("socket is CLOSED, this write() will fail");
     		return;

@@ -65,11 +65,9 @@ namespace ZeroTier {
 	{
 		// Start ZeroTier Node
 		// Join Network which contains resources we need to proxy
-		printf("waiting for libzt to come online\n");
+		DEBUG_INFO("waiting for libzt to come online");
 		zts_simple_start(path.c_str(), nwid.c_str());
-
 		// Set up TCP listen sockets
-
 		// IPv4
 		struct sockaddr_in in4;
 		memset(&in4,0,sizeof(in4));
@@ -77,7 +75,6 @@ namespace ZeroTier {
 		in4.sin_addr.s_addr = Utils::hton((uint32_t)(0x7f000001)); // right now we just listen for TCP @127.0.0.1
 		in4.sin_port = Utils::hton((uint16_t)proxy_listen_port);
 		_tcpListenSocket = _phy.tcpListen((const struct sockaddr *)&in4,this);
-
 		// IPv6
 		struct sockaddr_in6 in6;
 		memset((void *)&in6,0,sizeof(in6));
@@ -88,9 +85,9 @@ namespace ZeroTier {
 		_tcpListenSocket6 = _phy.tcpListen((const struct sockaddr *)&in6,this);
 
 		if(!_tcpListenSocket)
-			printf("Error binding on port %d for IPv4 HTTP listen socket\n", proxy_listen_port);
+			DEBUG_ERROR("Error binding on port %d for IPv4 HTTP listen socket", proxy_listen_port);
 		if(!_tcpListenSocket6)
-			printf("Error binding on port %d for IPv6 HTTP listen socket\n", proxy_listen_port);
+			DEBUG_ERROR("Error binding on port %d for IPv6 HTTP listen socket", proxy_listen_port);
 
 		_thread = Thread::start(this);
 	} 
@@ -108,14 +105,13 @@ namespace ZeroTier {
 		throw()
 	{
 		while(_run) {
-			_phy.poll(10); // in ms
+			_phy.poll(10);
 		}
 	}
 
 	void ZTProxy::phyOnTcpData(PhySocket *sock,void **uptr,void *data,unsigned long len)
 	{
-		printf("phyOnTcpData(sock=%p, len=%lu)\n", sock, len);
-		//printf("cq=%d, cmap=%d, dmap=%d\n", cqueue.size(), cmap.size(), dmap.size());
+		DEBUG_INFO("phyOnTcpData(sock=%p, len=%lu)", sock, len);
 		unsigned char *buf = (unsigned char*)data;
 		std::string host = _internal_addr;
 
@@ -124,14 +120,12 @@ namespace ZeroTier {
 		if(conn == NULL) {
 			conn = cmap[dmap[sock]];
 			if(conn == NULL) {	
-			printf("no connection object\n");	
+				DEBUG_ERROR("no connection object");	
 				return; // Nothing
 			}
 		}
 
 		if(!conn->destination_sock) { // no connection yet
-			printf("!conn->destination_sock\n");	
-			// If HOST was parsed correctly, establish remote connection
 			if(host != "")
 			{
 				uint16_t dest_port, ipv;
@@ -156,23 +150,22 @@ namespace ZeroTier {
 				bool connected;
 				if(ipv == 4)
 				{
-					printf("ipv4, %s -> %s:%d\n", host.c_str(), host.c_str(), dest_port);
+					// Connect to proxied host via libzt
+					DEBUG_INFO("ipv4, %s -> %s:%d", host.c_str(), host.c_str(), dest_port);
 					struct sockaddr_in in4;
 					memset(&in4,0,sizeof(in4));
 					in4.sin_family = AF_INET;
 					in4.sin_addr.s_addr = inet_addr(host.c_str());
-					in4.sin_port = Utils::hton(dest_port);
-					
-					// conn->destination_sock = _phy.tcpConnect((const struct sockaddr *)&in4, connected, this);
-					// 
-				
+					in4.sin_port = Utils::hton(dest_port);				
 					int sockfd = zts_socket(AF_INET, SOCK_STREAM, 0);
 					if(zts_connect(sockfd, (const struct sockaddr *)&in4, sizeof(in4)) < 0) {
-						printf("error while connecting to remote host\n");
+						DEBUG_ERROR("error while connecting to remote host");
 					}
 					else {
 						conn->destination_sock = _phy.wrapSocket(sockfd);
-
+						conn->origin_sock = sock;
+						cmap[conn->destination_sock] = conn;						
+						// Once connection through libzt is established, write data we received from the local host
 						conn->tcp_client_m.lock();
 						int n = 0, tot = conn->client_buf_len;
 						while(tot > 0) {
@@ -180,7 +173,6 @@ namespace ZeroTier {
 								tot -= n;
 								if(n < conn->client_buf_len) { // If we couldn't write the entire buffer
 									memmove(conn->client_buf, conn->client_buf+n, BUF_SZ-n);
-									// printf("n = %d, memmove(%d)\n", n, BUF_SZ-n);
 									conn->client_buf_len-=n;
 								}
 								else {
@@ -188,15 +180,14 @@ namespace ZeroTier {
 								}
 							}
 							else
-								printf(" an error occured while writing to the destination_sock\n");
+								DEBUG_ERROR(" an error occured while writing to the destination_sock");
 						}
 						conn->tcp_client_m.unlock();
-
 					}
 				}
 				if(ipv == 6)
 				{
-					printf("ipv6, %s -> [%s]:%d\n", host.c_str(), host.c_str(), dest_port);
+					DEBUG_INFO("ipv6, %s -> [%s]:%d\n", host.c_str(), host.c_str(), dest_port);
 					struct sockaddr_in6 in6;
 					memset(&in6,0,sizeof(in6));
 					in6.sin6_family = AF_INET;
@@ -208,89 +199,50 @@ namespace ZeroTier {
 				}
 				dmap[conn->destination_sock] = conn->origin_sock; // for reverse lookup from callbacks
 				if(!conn->destination_sock) {
-					printf(" there was an error connecting to the remote host\n");
+					DEBUG_ERROR(" there was an error connecting to the remote host");
 					return;
 				}
 			}
+		}
+		else {
+			// Read data from localhost socket and send it into libzt
+			conn->tcp_client_m.lock();
+			int n = 0, tot = len;
+			while(tot > 0) {
+				if((n = _phy.streamSend(conn->destination_sock, buf, tot)) > 0) {
+					tot -= n;
+					printf("sent %d into libzt", n);
+				}		
+			}
+			conn->tcp_client_m.unlock();
 		}
 	}
 
 	void ZTProxy::phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *localAddr,const struct sockaddr *from,void *data,unsigned long len)
 	{
-		printf("phyOnDatagram\n");
-
+		DEBUG_INFO("phyOnDatagram");
+		exit(0);
 	}
-
 	void ZTProxy::phyOnTcpWritable(PhySocket *sock,void **uptr)
 	{
-		printf("phyOnTcpWritable\n");
-
-		TcpConnection *conn = cmap[sock];
-	 	bool to_client = true;
-		if(conn == NULL) {
-			conn = cmap[dmap[sock]];
-			if(conn == NULL) {		
-				printf("phyOnTcpWritable(%p): no connection found\n", sock);
-				return; // Nothing
-			}
-			to_client = false;
-		}
-		// To Client
-		if(to_client) { 
-			conn->tcp_client_m.lock();
-			int n = 0, tot = conn->client_buf_len;
-			while(tot > 0) {
-				if((n = _phy.streamSend(sock, conn->client_buf, conn->client_buf_len)) > 0) {
-					tot -= n;
-					if(n < conn->client_buf_len) { // If we couldn't write the entire buffer
-						memmove(conn->client_buf, conn->client_buf+n, BUF_SZ-n);
-						// printf("n = %d, memmove(%d)\n", n, BUF_SZ-n);
-						conn->client_buf_len-=n;
-					}
-					else {
-						conn->client_buf_len = 0;
-					}
-				}		
-			}
-			if(!tot)
-				_phy.setNotifyWritable(sock, false);
-			conn->tcp_client_m.unlock();
-		}
-		// To Server
-		else {
-			conn->tcp_server_m.lock();
-			int n = 0, tot = conn->server_buf_len;
-			while(tot > 0) {
-				if((n = _phy.streamSend(sock, conn->server_buf, conn->server_buf_len)) > 0) {
-					tot -= n;
-					if(n < conn->server_buf_len) { // If we couldn't write the entire buffer
-						memmove(conn->server_buf, conn->server_buf+n, BUF_SZ-n);
-						// printf("n = %d, memmove(%d)\n", n, BUF_SZ-n);
-						conn->server_buf_len-=n;
-					}
-					else {
-						conn->server_buf_len = 0;
-					}
-				}		
-			}
-			if(!tot)
-				_phy.setNotifyWritable(sock, false);
-			conn->tcp_server_m.unlock();		
-		}
+		DEBUG_INFO("phyOnTcpWritable");
+		exit(0);
 	}
 	void ZTProxy::phyOnFileDescriptorActivity(PhySocket *sock,void **uptr,bool readable,bool writable)
 	{
-		printf("phyOnFileDescriptorActivity\n");
+		DEBUG_INFO("phyOnFileDescriptorActivity, sock=%p", sock);
+		exit(0);
 	}
-
 	void ZTProxy::phyOnTcpConnect(PhySocket *sock,void **uptr,bool success)
 	{
 		// Not used, connections are handled via user space network stack and SocketTap subsystem
+		DEBUG_INFO("phyOnTcpConnect, sock=%p", sock);
+		exit(0);
 	}
 
 	void ZTProxy::phyOnTcpAccept(PhySocket *sockL,PhySocket *sockN,void **uptrL,void **uptrN,const struct sockaddr *from)
 	{
-		printf("phyOnTcpAccept\n");
+		DEBUG_INFO("phyOnTcpAccept, sockL=%d, sockN=%d", sockL, sockN);
 		TcpConnection *conn;
 		// try to recycle TcpConnection objects instead of allocating new ones
 		if(cqueue.size()) {
@@ -306,26 +258,21 @@ namespace ZeroTier {
 
 	void ZTProxy::phyOnUnixClose(PhySocket *sock,void **uptr) 
 	{
-		printf("phyOnUnixClose\n");
-
+		DEBUG_INFO("phyOnUnixClose, sock=%p", sock);
+		exit(0);
 	}
 	void ZTProxy::phyOnUnixData(PhySocket *sock,void **uptr,void *data,ssize_t len)
 	{
-		printf("phyOnUnixData(sock=%p, len=%lu)\n", sock, len);
+		DEBUG_INFO("phyOnUnixData(sock=%p, len=%lu)", sock, len);
 		unsigned char *buf = (unsigned char*)data;
-		
 		// Get the TcpConnection object 
 		TcpConnection *conn = cmap[sock];
 		if(conn == NULL) {
 			conn = cmap[dmap[sock]];
 			if(conn == NULL) {	
-				printf("no connection object\n");	
+				DEBUG_ERROR("no connection object");	
 				return; // Nothing
 			}
-		}
-
-		if(!conn->destination_sock) { // no connection yet
-			printf("!conn->destination_sock\n");	
 		}
 		else // If connection to host already established, just forward the data in the correct direction
 		{
@@ -341,28 +288,17 @@ namespace ZeroTier {
 				}
 				conn->tcp_client_m.unlock();
 			}
-			if(sock == conn->origin_sock) { // TX
-				conn->tcp_server_m.lock();
-				if(!conn->server_buf_len)
-					n = _phy.streamSend(conn->destination_sock, buf, len);
-				if(n < len) {
-					memcpy(conn->server_buf+conn->server_buf_len, buf+n, len-n);
-					conn->server_buf_len += len-n;
-					_phy.setNotifyWritable(conn->destination_sock, true);
-				}
-				conn->tcp_server_m.unlock();
-			}
 		}
-
 	}
 	void ZTProxy::phyOnUnixWritable(PhySocket *sock,void **uptr,bool lwip_invoked)
 	{
-		printf("phyOnUnixWritable\n");
+		DEBUG_INFO("phyOnUnixWritable, sock=%d", sock);
+		exit(0);
 	}
 
 	void ZTProxy::phyOnTcpClose(PhySocket *sock,void **uptr) 
 	{		
-		printf("phyOnTcpClose\n");
+		DEBUG_INFO("phyOnTcpClose, sock=%d", sock);
 
 		TcpConnection *conn = cmap[sock];
 		if(conn)
@@ -385,7 +321,6 @@ int main(int argc, char **argv)
 		printf("ztproxy [local port] [network ID]/[ZT internal IP]/port\n");
 		exit(0);
 	}
-
 	std::string path          = argv[1];
 	int proxy_listen_port     = atoi(argv[2]);
 	std::string nwid          = argv[3];

@@ -127,13 +127,9 @@ ifeq ($(SDK_PICOTCP),1)
 		-I$(PICOTCP_DIR)/build/include \
 		-Isrc/stack_drivers/picotcp
 endif
-ifeq ($(SDK_IPV4),1)
-	CXXFLAGS+=-DSDK_IPV4
-endif
-ifeq ($(SDK_IPV6),1)
-	CXXFLAGS+=-DSDK_IPV6
-endif
 
+CXXFLAGS+=-DSDK_IPV4
+CXXFLAGS+=-DSDK_IPV6
 
 ##############################################################################
 ## Files                                                                    ##

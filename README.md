@@ -1,8 +1,10 @@
-## **libzt**: Embed ZeroTier directly into your app
+# libzt
+*Embed ZeroTier directly into your app*
+***
 
 <a href="https://www.zerotier.com"><img src="https://github.com/zerotier/ZeroTierOne/raw/master/artwork/ztapp100.png" align="left" hspace="20" vspace="6"></a>
 
-**ZeroTier** makes it easy to securely connect devices, servers, cloud VMs, containers, and apps everywhere and manage them at scale. Now, with *libzt* you can bake this ability directly into your app or service using your preferred language or framework. We provide a BSD socket-like API to make the integration simple.
+**ZeroTier** makes it easy to securely connect devices, servers, cloud VMs, containers, and apps everywhere and manage them at scale. Now, with **libzt** you can bake this ability directly into your app or service using your preferred language or framework. We provide a BSD socket-like API to make the integration simple.
 
 <hr>
 

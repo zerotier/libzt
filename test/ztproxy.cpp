@@ -134,7 +134,7 @@ namespace ZeroTier {
 			// If HOST was parsed correctly, establish remote connection
 			if(host != "")
 			{
-				uint16_t dest_port, ipv;x
+				uint16_t dest_port, ipv;
 				dest_port = _internal_port;
 
 				// Save buffer to TcpConnection's write buffer, we'll forward 

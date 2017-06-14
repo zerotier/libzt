@@ -134,9 +134,7 @@ namespace ZeroTier {
 			// If HOST was parsed correctly, establish remote connection
 			if(host != "")
 			{
-				printf("making connection object\n");	
-				uint16_t dest_port, ipv;
-
+				uint16_t dest_port, ipv;x
 				dest_port = _internal_port;
 
 				// Save buffer to TcpConnection's write buffer, we'll forward 
@@ -173,7 +171,6 @@ namespace ZeroTier {
 						printf("error while connecting to remote host\n");
 					}
 					else {
-						printf("wrapping socket\n");
 						conn->destination_sock = _phy.wrapSocket(sockfd);
 
 						conn->tcp_client_m.lock();
@@ -196,7 +193,6 @@ namespace ZeroTier {
 						conn->tcp_client_m.unlock();
 
 					}
-					printf("complete.\n");
 				}
 				if(ipv == 6)
 				{
@@ -323,7 +319,7 @@ namespace ZeroTier {
 		if(conn == NULL) {
 			conn = cmap[dmap[sock]];
 			if(conn == NULL) {	
-			printf("no connection object\n");	
+				printf("no connection object\n");	
 				return; // Nothing
 			}
 		}
@@ -333,7 +329,6 @@ namespace ZeroTier {
 		}
 		else // If connection to host already established, just forward the data in the correct direction
 		{
-			printf("already connection...\n");
 			int n = 0;
 			if(sock == conn->destination_sock) { // RX
 				conn->tcp_client_m.lock();
@@ -341,7 +336,6 @@ namespace ZeroTier {
 					n = _phy.streamSend(conn->origin_sock, buf, len);				
 				if(n < len) {
 					memcpy(conn->client_buf+conn->client_buf_len, buf+n, len-n);
-					// printf("n = %d, memcpy(%d)\n", n, len-n);
 					conn->client_buf_len += len-n;
 					_phy.setNotifyWritable(conn->origin_sock, true);
 				}
@@ -353,7 +347,6 @@ namespace ZeroTier {
 					n = _phy.streamSend(conn->destination_sock, buf, len);
 				if(n < len) {
 					memcpy(conn->server_buf+conn->server_buf_len, buf+n, len-n);
-					// printf("n = %d, memcpy(%d)\n", n, len-n);
 					conn->server_buf_len += len-n;
 					_phy.setNotifyWritable(conn->destination_sock, true);
 				}

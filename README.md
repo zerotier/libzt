@@ -23,24 +23,21 @@ char *str = "welcome to the machine";
 char *nwid = "c7cd7c9e1b0f52a2";
 
 zts_simple_start("./zt", nwid);
-if((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-	printf("error creating ZeroTier socket");
-}
-if((err = zts_connect(fd, (const struct sockaddr *)addr, sizeof(addr))) < 0) {
-	printf("error (%d) connecting to remote host\n", err);
-}
-int wrote = zts_write(fd, str, strlen(str));
+fd = zts_socket(AF_INET, SOCK_STREAM, 0);
+zts_connect(fd, (const struct sockaddr *)addr, sizeof(addr));
+zts_write(fd, str, strlen(str));
 zts_close(fd);
 ```
 
-Bindings also exist for [many popular languages and platforms](examples).
+Bindings for [other languages and platforms](examples).
 
 ***
+
+### Building
 
 All build targets will output to `build/`.
 
 ### Static Library
-
  - `make static_lib`
 
 ### iOS App Framework
@@ -51,15 +48,15 @@ All build targets will output to `build/`.
 
 ***
 
-## Using Language Bindings
+### Using Language Bindings
  - `SDK_LANG_JNI=1`: Enable JNI bindings for Java (produces a shared library)
  - `SDK_LANG_CSHARP=1`
  - `SDK_LANG_PYTHON=1`
  - `SDK_LANG_GO=1`
 
-## Debugging flags
- - `SDK_DEBUG=1` - Enable SDK library debugging
- - `ZT_DEBUG=1` - Enable core ZeroTier service debugging
+### Debugging flags
+ - `SDK_DEBUG=1` - For debugging libzt
+ - `ZT_DEBUG=1` - For debugging the ZeroTier core protocol
 
 ### Tests 
  - See [TESTING.md](TESTING.md)

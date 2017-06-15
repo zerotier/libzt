@@ -1,8 +1,9 @@
 ## Testing via [selftest.cpp](test/selftest.cpp)
 
 ### Enabling debug output
- - `SDK_DEBUG=1` - For debugging libzt
- - `ZT_DEBUG=1` - For debugging the ZeroTier core protocol
+
+ - `SDK_DEBUG=1`: For debugging libzt
+ - `ZT_DEBUG=1`: For debugging the ZeroTier core protocol
 
 After building the static library, you can run:
 

@@ -1,4 +1,4 @@
-ZeroTier SDK API
+libzt API
 ======
 
-This is the externally facing C++ API for the SDK. It provides a platform-agnostic interface to the ZeroTier network virtualization service.
+This is the C++ API for libzt. It provides a platform-agnostic interface to the ZeroTier network virtualization service. All other [language bindings](../examples) are written in terms of this.

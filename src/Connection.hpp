@@ -39,7 +39,6 @@
 // SDK
 #include "libzt.h"
 #include "SocketTap.hpp"
-//#include "RingBuffer.hpp"
 
 namespace ZeroTier {
 
@@ -48,8 +47,7 @@ namespace ZeroTier {
 	*/
 	struct Connection
 	{
-		//circular_buffer<char> crbuf = circular_buffer<char>(ZT_TCP_RX_BUF_SZ);
-		//circular_buffer<char> ctbuf = circular_buffer<char>(ZT_TCP_TX_BUF_SZ);
+		Mutex _tx_m, _rx_m;
 
 		int pid;
 		PhySocket *sock;				
@@ -57,7 +55,7 @@ namespace ZeroTier {
 
 		// TODO: For getsockname, etc
 		struct sockaddr_storage *local_addr; // Address we've bound to locally
-		struct sockaddr_storage *peer_addr; // Address of connection call to remote host
+		struct sockaddr_storage *peer_addr;  // Address of connection call to remote host
 
 		// RX/TX buffers
 		int txsz = 0, rxsz = 0;
@@ -72,14 +70,13 @@ namespace ZeroTier {
 
 		std::queue<Connection*> _AcceptedConnections;
 		SocketTap *tap; // Reference to SocketTap  
-		int state; // See libzt.h for (ZT_SOCK_STATE_*)
+		int state;      // See libzt.h for (ZT_SOCK_STATE_*)
 
 		// timestamp for closure event
 		std::time_t closure_ts;
 
 		Connection() {
 			closure_ts = -1;
-			// DEBUG_INFO("Connection() this = %p", this);
 			ZT_PHY_SOCKFD_TYPE fdpair[2];
 			if(socketpair(PF_LOCAL, SOCK_STREAM, 0, fdpair) < 0) {
 				if(errno < 0) {

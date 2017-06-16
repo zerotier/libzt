@@ -24,21 +24,19 @@
  * of your own application.
  */
 
-/****************************************************************************/
-/* Debug                                                                    */
-/****************************************************************************/
-
 #include <pthread.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 
-#define ZT_DEBUG_LEVEL     5 // Set this to adjust what you'd like to see in the debug traces
+#define ZT_DEBUG_LEVEL     6 // Set this to adjust what you'd like to see in the debug traces
 
-#define ZT_MSG_ERROR       1 // Errors
-#define ZT_MSG_TRANSFER    2 // RX/TX specific statements
+#define ZT_MSG_TEST        1 // For use in selftest
+#define ZT_MSG_ERROR       2 // Errors
 #define ZT_MSG_INFO        3 // Information which is generally useful to any developer
 #define ZT_MSG_EXTRA       4 // If nothing in your world makes sense
-#define ZT_MSG_FLOW        5 // High-level flow messages
+#define ZT_MSG_TRANSFER    5 // RX/TX specific statements
+#define ZT_MSG_FLOW        6 // High-level flow messages
+
 #define ZT_COLOR           true
 
 // Debug output colors
@@ -87,8 +85,15 @@
     #define ZT_LOG_TAG "ZTSDK"
 #endif
 
+ #if ZT_DEBUG_LEVEL >= ZT_MSG_TEST
+  #define DEBUG_TEST(fmt, args...) fprintf(stderr, ZT_CYN "ZT_TEST [%d] : %16s:%5d:%25s: " fmt   \
+    "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+ #else
+  #define DEBUG_ERROR(fmt, args...)
+ #endif
+
  #if ZT_DEBUG_LEVEL >= ZT_MSG_ERROR
-  #define DEBUG_ERROR(fmt, args...) fprintf(stderr, ZT_RED "ZT_ERROR[%ld] : %16s:%5d:%25s: " fmt   \
+  #define DEBUG_ERROR(fmt, args...) fprintf(stderr, ZT_RED "ZT_ERROR[%d] : %16s:%5d:%25s: " fmt   \
     "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
  #else
   #define DEBUG_ERROR(fmt, args...)
@@ -106,13 +111,13 @@
       "ZT_STACK: %16s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
   #else
     #define DEBUG_INFO(fmt, args...) fprintf(stderr,                                                                   \
-      "ZT_INFO [%ld] : %16s:%5d:%25s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+      "ZT_INFO [%d] : %16s:%5d:%25s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
     #define DEBUG_ATTN(fmt, args...) fprintf(stderr, ZT_CYN                                                            \
-      "ZT_ATTN [%ld] : %16s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+      "ZT_ATTN [%d] : %16s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
     #define DEBUG_STACK(fmt, args...) fprintf(stderr, ZT_YEL                                                           \
-      "ZT_STACK[%ld] : %16s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+      "ZT_STACK[%d] : %16s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
     #define DEBUG_BLANK(fmt, args...) fprintf(stderr,                                                                  \
-      "ZT_INFO [%ld] : %16s:%5d:" fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, ##args)
+      "ZT_INFO [%d] : %16s:%5d:" fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, ##args)
   #endif
  #else
   #define DEBUG_INFO(fmt, args...)
@@ -139,7 +144,7 @@
       "ZT_EXTRA : %16s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
   #else
     #define DEBUG_EXTRA(fmt, args...) fprintf(stderr, \
-      "ZT_EXTRA[%ld] : %16s:%5d:%25s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+      "ZT_EXTRA[%d] : %16s:%5d:%25s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
   #endif
  #else
   #define DEBUG_EXTRA(fmt, args...)

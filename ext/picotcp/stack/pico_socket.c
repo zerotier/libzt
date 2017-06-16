@@ -1996,7 +1996,7 @@ int pico_transport_process_in(struct pico_protocol *self, struct pico_frame *f)
         return ret;
 
     if (!IS_BCAST(f)) {
-        dbg("Socket not found... \n");
+        DEBUG_EXTRA("Socket not found...");
         pico_notify_socket_unreachable(f);
         ret = -1;
         pico_err = PICO_ERR_ENOENT;

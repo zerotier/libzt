@@ -80,6 +80,7 @@ INCLUDES+= -Iext \
 	-I$(ZTO)/node \
 	-I$(ZTO)/service \
 	-I$(ZTO)/include \
+	-I$(ZTO)/controller \
 	-I../$(ZTO)/osdep \
 	-I../$(ZTO)/node \
 	-I../$(ZTO)/service \
@@ -187,12 +188,12 @@ shared_jni_lib: picotcp $(ZTO_OBJS)
 
 UNIT_TEST_SRC_FILES := $(wildcard  $(UNIT_TEST_SRC_DIR)/*.cpp)
 UNIT_TEST_OBJ_FILES := $(addprefix $(TEST_BUILD_DIR)/,$(notdir $(UNIT_TEST_SRC_FILES:.cpp=)))
-UNIT_TEST_INCLUDES  := -Iinclude
+UNIT_TEST_INCLUDES  := -Iinclude 
 UNIT_TEST_LIBS      := -L$(BUILD) -lzt $(COMMON_LIBS)
 
 $(TEST_BUILD_DIR)/%: $(UNIT_TEST_SRC_DIR)/%.cpp
 	@mkdir -p $(TEST_BUILD_DIR)
-	@-$(CXX) $(UNIT_TEST_INCLUDES) -o $@ $< $(UNIT_TEST_LIBS)
+	@-$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) $(INCLUDES) -o $@ $< $(UNIT_TEST_LIBS)
 	@-./check.sh $@
 
 unit_tests: $(UNIT_TEST_OBJ_FILES)

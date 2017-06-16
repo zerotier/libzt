@@ -21,13 +21,14 @@ Pre-Built Binaries Here: [zerotier.com/download.shtml](https://zerotier.com/down
 
 char *str = "welcome to the machine"; // test msg 
 char *nwid = "c7cd7c9e1b0f52a2";      // network to join
-char *pasth = "zt1";                  // path where this node's keys and configs will be stored
-char *ip = "10.8.8.42";               // resource on ZeroTier network
+char *path = "zt1";                   // path where this node's keys and configs will be stored
+char *ip = "10.8.8.42";               // host on ZeroTier network
+int port = 8080;                      // resource's port
 
 struct sockaddr_in addr;
 addr.sin_family = AF_INET;
 addr.sin_addr.s_addr = inet_addr(ip);
-addr.sin_port = hton(8080);	
+addr.sin_port = hton(port);	
 
 zts_simple_start(path, nwid);
 int fd = zts_socket(AF_INET, SOCK_STREAM, 0);
@@ -42,7 +43,7 @@ Bindings for various [languages](examples)
 
 ### Building (linux, macos, bsd, win, ios)
 
- All build targets will output to `build/`. Complete instructions [here](BUILDING.md).
+ All targets will output to `build/`. Complete instructions [here](BUILDING.md)
 
  - Static Library (linux, mac, win, bsd): `make static_lib`
  - iOS App Framework: `make ios_app_framework`

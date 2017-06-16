@@ -55,13 +55,13 @@ namespace ZeroTier {
 
 	ZTProxy::ZTProxy(int proxy_listen_port, std::string nwid, std::string path, std::string internal_addr, int internal_port) 
 		:
-			_phy(this,false,true),
 			_enabled(true),
 			_run(true),
 			_proxy_listen_port(proxy_listen_port),
 			_internal_port(internal_port),
 			_nwid(nwid),
-			_internal_addr(internal_addr)
+			_internal_addr(internal_addr),
+			_phy(this,false,true)
 	{
 		// Start ZeroTier Node
 		// Join Network which contains resources we need to proxy
@@ -220,16 +220,19 @@ namespace ZeroTier {
 
 	void ZTProxy::phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *localAddr,const struct sockaddr *from,void *data,unsigned long len)
 	{
+		// Not used, connections are handled via user space network stack and SocketTap subsystem
 		DEBUG_INFO("phyOnDatagram");
 		exit(0);
 	}
 	void ZTProxy::phyOnTcpWritable(PhySocket *sock,void **uptr)
 	{
+		// Not used, connections are handled via user space network stack and SocketTap subsystem
 		DEBUG_INFO("phyOnTcpWritable");
 		exit(0);
 	}
 	void ZTProxy::phyOnFileDescriptorActivity(PhySocket *sock,void **uptr,bool readable,bool writable)
 	{
+		// Not used, connections are handled via user space network stack and SocketTap subsystem
 		DEBUG_INFO("phyOnFileDescriptorActivity, sock=%p", sock);
 		exit(0);
 	}
@@ -237,6 +240,12 @@ namespace ZeroTier {
 	{
 		// Not used, connections are handled via user space network stack and SocketTap subsystem
 		DEBUG_INFO("phyOnTcpConnect, sock=%p", sock);
+		exit(0);
+	}
+	void ZTProxy::phyOnUnixClose(PhySocket *sock,void **uptr) 
+	{
+		// Not used, connections are handled via user space network stack and SocketTap subsystem
+		DEBUG_INFO("phyOnUnixClose, sock=%p", sock);
 		exit(0);
 	}
 
@@ -256,11 +265,6 @@ namespace ZeroTier {
 		cmap[sockN]=conn; // add new connection
 	}
 
-	void ZTProxy::phyOnUnixClose(PhySocket *sock,void **uptr) 
-	{
-		DEBUG_INFO("phyOnUnixClose, sock=%p", sock);
-		exit(0);
-	}
 	void ZTProxy::phyOnUnixData(PhySocket *sock,void **uptr,void *data,ssize_t len)
 	{
 		DEBUG_INFO("phyOnUnixData(sock=%p, len=%lu)", sock, len);
@@ -318,7 +322,7 @@ int main(int argc, char **argv)
 {
 	if(argc != 6) {
 		printf("\nZeroTier TCP Proxy Service\n");
-		printf("ztproxy [local port] [network ID]/[ZT internal IP]/port\n");
+		printf("ztproxy [config_file_path] [local_listen_port] [nwid] [zt_host_addr] [zt_resource_port]\n");
 		exit(0);
 	}
 	std::string path          = argv[1];
@@ -330,9 +334,9 @@ int main(int argc, char **argv)
 	ZeroTier::ZTProxy *proxy = new ZeroTier::ZTProxy(proxy_listen_port, nwid, path, internal_addr, internal_port);
 	
 	if(proxy) {
-		printf("ZTProxy started. Listening on %d\n", proxy_listen_port);
+		printf("\nZTProxy started. Listening on %d\n", proxy_listen_port);
 		printf("Traffic will be proxied to and from %s:%d on network %s\n", internal_addr.c_str(), internal_port, nwid.c_str());
-		printf("Proxy Node config files and key stored in: %s/\n", path.c_str());
+		printf("Proxy Node config files and key stored in: %s/\n\n", path.c_str());
 		while(1) {
 			sleep(1);
 		}

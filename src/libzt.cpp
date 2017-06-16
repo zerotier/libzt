@@ -24,8 +24,14 @@
  * of your own application.
  */
 
-#include <dlfcn.h>
+
+/* This file implements the libzt library API, it talks to the network
+stack driver and core ZeroTier service to create a socket-like interface
+for applications to use. See also: include/libzt.h */
+
 #include <sys/socket.h>
+//#include <sys/ioctl.h>
+//#include <stropts.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -165,8 +171,8 @@ void zts_core_version(char *ver) {
     sprintf(ver, "%d.%d.%d", major, minor, revision);
 }
 
-void zts_sdk_version(char *ver) {
-    sprintf(ver, "%d.%d.%d", ZT_SDK_VERSION_MAJOR, ZT_SDK_VERSION_MINOR, ZT_SDK_VERSION_REVISION);
+void zts_lib_version(char *ver) {
+    sprintf(ver, "%d.%d.%d", ZT_LIB_VERSION_MAJOR, ZT_LIB_VERSION_MINOR, ZT_LIB_VERSION_REVISION);
 }
 
 int zts_get_device_id(char *devID) { 
@@ -314,11 +320,11 @@ void zts_disable_http_control_plane()
 
 /*
 
-    socket fd = 0 (nwid=X)---\                            /--- SocketTap=A // e.x. 172.27.0.0/?
+    socket fd = 0 (nwid=X)---\                            /--- SocketTap=A // e.x.  172.27.0.0 / 16
                               \                          /
-    socket fd = 1 (nwid=Y)--------Multiplexed z* calls-------- SocketTap=B // e.x. 192.168.0.1/16
+    socket fd = 1 (nwid=Y)--------Multiplexed z* calls-------- SocketTap=B // e.x. 192.168.0.1 / 16
                               /                          \
-    socket fd = 2 (nwid=Z)---/                            \--- SocketTap=C // e.x. 10.9.9.0/24
+    socket fd = 2 (nwid=Z)---/                            \--- SocketTap=C // e.x.    10.9.9.0 / 24
 
 */
 
@@ -332,72 +338,65 @@ Darwin:
     [NA] [ENFILE]           The system file table is full.
     [  ] [ENOBUFS]          Insufficient buffer space is available.  The socket cannot be created until sufficient resources are freed.
     [  ] [ENOMEM]           Insufficient memory was available to fulfill the request.
-    [  ] [EPROTONOSUPPORT]  The protocol type or the specified protocol is not supported within this domain.
+    [--] [EPROTONOSUPPORT]  The protocol type or the specified protocol is not supported within this domain.
     [  ] [EPROTOTYPE]       The socket type is not supported by the protocol.
 */
 
 // int socket_family, int socket_type, int protocol
 int zts_socket(ZT_SOCKET_SIG) {
+    DEBUG_INFO();
     int err = 0;
     if(!zt1Service) {
         DEBUG_ERROR("cannot create socket, no service running. call zts_start() first.");
         errno = EMFILE; // could also be ENFILE
+        return -1;
+    }
+    if(socket_type == SOCK_SEQPACKET) {
+        DEBUG_ERROR("SOCK_SEQPACKET not yet supported.");
+        errno = EPROTONOSUPPORT; // seemingly closest match
+        return -1;
+    }
+
+    ZeroTier::_multiplexer_lock.lock();
+    if(pico_ntimers() >= PICO_MAX_TIMERS) {
+        DEBUG_ERROR("cannot provision additional socket due to limitation of PICO_MAX_TIMERS. current = %d", pico_ntimers());
+        errno = EMFILE;
         err = -1;
     }
-    else {
-        ZeroTier::_multiplexer_lock.lock();
-        //DEBUG_INFO("unmap=%d, fdmap=%d", ZeroTier::unmap.size(), ZeroTier::fdmap.size());
-        //DEBUG_INFO("timers = %d, max = %d", pico_ntimers(), PICO_MAX_TIMERS);
-        if(pico_ntimers() >= PICO_MAX_TIMERS) {
-            DEBUG_ERROR("cannot provision additional socket due to limitation of PICO_MAX_TIMERS. current = %d", pico_ntimers());
-            errno = EMFILE;
+    else
+    {
+        ZeroTier::Connection *conn = new ZeroTier::Connection();
+        int protocol_version = 0;
+        struct pico_socket *psock;
+        
+        if(socket_family == AF_INET)
+            protocol_version = PICO_PROTO_IPV4;
+        if(socket_family == AF_INET6)
+            protocol_version = PICO_PROTO_IPV6;
+        
+        if(socket_type == SOCK_DGRAM) {
+            psock = pico_socket_open(
+                protocol_version, PICO_PROTO_UDP, &ZeroTier::picoTCP::pico_cb_socket_activity);
+        }
+        if(socket_type == SOCK_STREAM) {
+            psock = pico_socket_open(
+                protocol_version, PICO_PROTO_TCP, &ZeroTier::picoTCP::pico_cb_socket_activity);
+        }
+        // set up Unix Domain socketpair (used for data later on)
+        if(psock) {     
+            conn->socket_family = socket_family;
+            conn->socket_type = socket_type;
+            conn->picosock = psock;
+            memset(conn->rxbuf, 0, ZT_UDP_RX_BUF_SZ);
+            ZeroTier::unmap[conn->app_fd] = conn;
+            err = conn->app_fd; // return one end of the socketpair
+        }
+        else {
+            DEBUG_ERROR("failed to create pico_socket");
             err = -1;
         }
-        else
-        {
-            ZeroTier::Connection *conn = new ZeroTier::Connection();
-            int protocol_version = 0;
-            struct pico_socket *psock;
-            
-            // TODO: check ifdef logic here
-            //#if defined(SDK_IPV4)
-            if(socket_family == AF_INET){
-                // DEBUG_ERROR("AF_INET");
-                protocol_version = PICO_PROTO_IPV4;
-            }
-            //#endif
-            //#if defined(SDK_IPV6)
-            if(socket_family == AF_INET6) {
-                // DEBUG_ERROR("AF_INET6");
-                protocol_version = PICO_PROTO_IPV6;
-            }
-            //#endif
-            
-            if(socket_type == SOCK_DGRAM) {
-                psock = pico_socket_open(
-                    protocol_version, PICO_PROTO_UDP, &ZeroTier::picoTCP::pico_cb_socket_activity);
-            }
-            if(socket_type == SOCK_STREAM) {
-                psock = pico_socket_open(
-                    protocol_version, PICO_PROTO_TCP, &ZeroTier::picoTCP::pico_cb_socket_activity);
-            }
-            // set up Unix Domain socketpair (used for data later on)
-            if(psock) {     
-                conn->socket_family = socket_family;
-                conn->socket_type = socket_type;
-                conn->picosock = psock;
-                memset(conn->rxbuf, 0, ZT_UDP_RX_BUF_SZ);
-                ZeroTier::unmap[conn->app_fd] = conn;
-                err = conn->app_fd; // return one end of the socketpair
-            }
-            else {
-                DEBUG_ERROR("failed to create pico_socket");
-                err = -1;
-            }
-        }
-        //DEBUG_INFO(" unmap=%d, fdmap=%d", ZeroTier::unmap.size(), ZeroTier::fdmap.size());
-        ZeroTier::_multiplexer_lock.unlock();
     }
+    ZeroTier::_multiplexer_lock.unlock();
     return err;
 }
 
@@ -415,7 +414,8 @@ Darwin:
     [  ] [ECONNREFUSED]     The attempt to connect was ignored (because the target is not listening for connections) or explicitly rejected.
     [  ] [EFAULT]           The address parameter specifies an area outside the process address space.
     [  ] [EHOSTUNREACH]     The target host cannot be reached (e.g., down, disconnected).
-    [--] [EINPROGRESS]      The socket is non-blocking and the connection cannot be completed immediately.  It is possible to select(2) for completion by selecting the socket for writing.
+    [--] [EINPROGRESS]      The socket is non-blocking and the connection cannot be completed immediately.  
+                            It is possible to select(2) for completion by selecting the socket for writing.
     [NA] [EINTR]            Its execution was interrupted by a signal.
     [  ] [EINVAL]           An invalid argument was detected (e.g., address_len is not valid for the address family, the specified address family is invalid).
     [  ] [EISCONN]          The socket is already connected.
@@ -427,9 +427,35 @@ Darwin:
     [  ] [EPROTOTYPE]       address has a different type than the socket that is bound to the specified peer address.
     [  ] [ETIMEDOUT]        Connection establishment timed out without establishing a connection.
     [  ] [ECONNRESET]       Remote host reset the connection request.
+
+Linux:
+
+    [  ] [EACCES]           For UNIX domain sockets, which are identified by pathname: Write permission is denied on the socket file, 
+                            or search permission is denied for one of the directories in the path prefix. (See also path_resolution(7).)
+    [  ] [EACCES, EPERM]    The user tried to connect to a broadcast address without having the socket broadcast flag enabled or the 
+                            connection request failed because of a local firewall rule.
+    [  ] [EADDRINUSE]       Local address is already in use.
+    [  ] [EAFNOSUPPORT]     The passed address didn't have the correct address family in its sa_family field.
+    [  ] [EAGAIN]           No more free local ports or insufficient entries in the routing cache. For AF_INET see the description 
+                            of /proc/sys/net/ipv4/ip_local_port_range ip(7) for information on how to increase the number of local ports.
+    [  ] [EALREADY]         The socket is nonblocking and a previous connection attempt has not yet been completed.
+    [  ] [EBADF]            The file descriptor is not a valid index in the descriptor table.
+    [  ] [ECONNREFUSED]     No-one listening on the remote address.
+    [  ] [EFAULT]           The socket structure address is outside the user's address space.
+    [  ] [EINPROGRESS]      The socket is nonblocking and the connection cannot be completed immediately. It is possible to select(2) or 
+                            poll(2) for completion by selecting the socket for writing. After select(2) indicates writability, use getsockopt(2) 
+                            to read the SO_ERROR option at level SOL_SOCKET to determine whether connect() completed successfully (SO_ERROR is zero) 
+                            or unsuccessfully (SO_ERROR is one of the usual error codes listed here, explaining the reason for the failure).
+    [  ] [EINTR]            The system call was interrupted by a signal that was caught; see signal(7).
+    [  ] [EISCONN]          The socket is already connected.
+    [  ] [ENETUNREACH]      Network is unreachable.
+    [  ] [ENOTSOCK]         The file descriptor is not associated with a socket.
+    [  ] [ETIMEDOUT]        Timeout while attempting connection. The server may be too busy to accept new connections. Note that for 
+                            IP sockets the timeout may be very long when syncookies are enabled on the server.
+
 */
 int zts_connect(ZT_CONNECT_SIG) {
-    // DEBUG_INFO("fd = %d", fd);
+    DEBUG_INFO("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
@@ -566,16 +592,16 @@ Darwin:
                             address space.
 */
 int zts_bind(ZT_BIND_SIG) {
-    //DEBUG_EXTRA("fd = %d", fd);
+    DEBUG_EXTRA("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
-        err = -1;
+        return -1;
     }
     if(!zt1Service) {
         DEBUG_ERROR("Service not started. Call zts_start(path) first");        
         errno = EBADF;
-        err = -1;
+        return -1;
     }
     ZeroTier::_multiplexer_lock.lock();
     ZeroTier::Connection *conn = ZeroTier::unmap[fd];
@@ -618,7 +644,6 @@ int zts_bind(ZT_BIND_SIG) {
         errno = EBADF;
         err = -1;
     }
-    
     ZeroTier::_multiplexer_lock.unlock();
     return err;
 }
@@ -629,17 +654,24 @@ Darwin:
 
     [--] [EACCES]           The current process has insufficient privileges.
     [--] [EBADF]            The argument socket is not a valid file descriptor.
-    [  ] [EDESTADDRREQ]     The socket is not bound to a local address and the protocol does not support listening on an unbound socket.
+    [--] [EDESTADDRREQ]     The socket is not bound to a local address and the protocol does not support listening on an unbound socket.
     [  ] [EINVAL]           socket is already connected.
     [  ] [ENOTSOCK]         The argument socket does not reference a socket.
     [  ] [EOPNOTSUPP]       The socket is not of a type that supports the operation listen().
+
+Linux:
+
+    [  ] [EADDRINUSE]       Another socket is already listening on the same port.
+    [--] [EBADF]            The argument sockfd is not a valid descriptor.
+    [  ] [ENOTSOCK]         The argument sockfd is not a socket.
+    [  ] [EOPNOTSUPP]       The socket is not of a type that supports the listen() operation.
 */
 int zts_listen(ZT_LISTEN_SIG) {
     DEBUG_EXTRA("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
-        err = -1;
+        return -1;
     }
     if(!zt1Service) {
         DEBUG_ERROR("service not started. call zts_start(path) first");
@@ -650,18 +682,21 @@ int zts_listen(ZT_LISTEN_SIG) {
     std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::fdmap[fd];
     if(!p) {
         DEBUG_ERROR("unable to locate connection pair. did you bind?");
+        errno = EDESTADDRREQ;
         return -1;
     }
     ZeroTier::Connection *conn = p->first;
     ZeroTier::SocketTap *tap = p->second;
-    
     if(!tap || !conn) {
         DEBUG_ERROR("unable to locate tap interface for file descriptor");
+        errno = EBADF;
         return -1;
     }
-    err = tap->Listen(conn, fd, backlog);
-    //DEBUG_INFO("put conn=%p into LISTENING state (err=%d)", conn, err);
-    ZeroTier::_multiplexer_lock.unlock();
+    if(!err) {
+        backlog = backlog > 128 ? 128 : backlog; // See: /proc/sys/net/core/somaxconn
+        err = tap->Listen(conn, fd, backlog);
+        ZeroTier::_multiplexer_lock.unlock();
+    }
     return err;
 }
 
@@ -684,7 +719,7 @@ int zts_accept(ZT_ACCEPT_SIG) {
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
-        err = -1;
+        return -1;
     }
     else
     {
@@ -704,7 +739,6 @@ int zts_accept(ZT_ACCEPT_SIG) {
         else {
             ZeroTier::Connection *conn = p->first;
             ZeroTier::SocketTap *tap = p->second;
-            ZeroTier::Connection *accepted_conn;
 
             // BLOCKING: loop and keep checking until we find a newly accepted connection
             int f_err, blocking = 1;
@@ -715,24 +749,26 @@ int zts_accept(ZT_ACCEPT_SIG) {
             else {
                 blocking = !(f_err & O_NONBLOCK);
             }
-            if(!err && !blocking) { // non-blocking
-                DEBUG_EXTRA("EWOULDBLOCK, not a real error, assuming non-blocking mode");
-                errno = EWOULDBLOCK;
-                err = -1;
-                accepted_conn = tap->Accept(conn);
-            }
-            else if (!err && blocking) { // blocking
-                while(true) {
-                    DEBUG_EXTRA("checking...");
-                    usleep(ZT_ACCEPT_RECHECK_DELAY * 1000);
+            if(!err) {
+                ZeroTier::Connection *accepted_conn;
+                if(!blocking) { // non-blocking
+                    DEBUG_EXTRA("EWOULDBLOCK, not a real error, assuming non-blocking mode");
+                    errno = EWOULDBLOCK;
+                    err = -1;
                     accepted_conn = tap->Accept(conn);
-                    if(accepted_conn)
-                        break; // accepted fd = err
                 }
-            }
-            if(accepted_conn) {
-                ZeroTier::fdmap[accepted_conn->app_fd] = new std::pair<ZeroTier::Connection*,ZeroTier::SocketTap*>(accepted_conn, tap);
-                err = accepted_conn->app_fd;
+                else { // blocking
+                    while(true) {
+                        usleep(ZT_ACCEPT_RECHECK_DELAY * 1000);
+                        accepted_conn = tap->Accept(conn);
+                        if(accepted_conn)
+                            break; // accepted fd = err
+                    }
+                }
+                if(accepted_conn) {
+                    ZeroTier::fdmap[accepted_conn->app_fd] = new std::pair<ZeroTier::Connection*,ZeroTier::SocketTap*>(accepted_conn, tap);
+                    err = accepted_conn->app_fd;
+                }
             }
         }
         ZeroTier::_multiplexer_lock.unlock();
@@ -745,19 +781,19 @@ int zts_accept(ZT_ACCEPT_SIG) {
 Linux accept() (and accept4()) passes already-pending network errors on the new socket as an error code from accept(). This behavior differs from other BSD socket implementations. For reliable operation the application should detect the network errors defined for the protocol after accept() and treat them like EAGAIN by retrying. In the case of TCP/IP, these are ENETDOWN, EPROTO, ENOPROTOOPT, EHOSTDOWN, ENONET, EHOSTUNREACH, EOPNOTSUPP, and ENETUNREACH.
 Errors
 
-    [  ] EAGAIN or EWOULDBLOCK The socket is marked nonblocking and no connections are present to be accepted. POSIX.1-2001 allows either error to be returned for this case, and does not require these constants to have the same value, so a portable application should check for both possibilities.
-    [--] EBADF The descriptor is invalid.
-    [  ] ECONNABORTED A connection has been aborted.
-    [  ] EFAULT The addr argument is not in a writable part of the user address space.
-    [NA] EINTR The system call was interrupted by a signal that was caught before a valid connection arrived; see signal(7).
-    [  ] EINVAL Socket is not listening for connections, or addrlen is invalid (e.g., is negative).
-    [  ] EINVAL (accept4()) invalid value in flags.
-    [  ] EMFILE The per-process limit of open file descriptors has been reached.
-    [  ] ENFILE The system limit on the total number of open files has been reached.
-    [  ] ENOBUFS, ENOMEM Not enough free memory. This often means that the memory allocation is limited by the socket buffer limits, not by the system memory.
-    [  ] ENOTSOCK The descriptor references a file, not a socket.
-    [  ] EOPNOTSUPP The referenced socket is not of type SOCK_STREAM.
-    [  ] EPROTO Protocol error.
+    [  ] [EAGAIN or EWOULDBLOCK]   The socket is marked nonblocking and no connections are present to be accepted. POSIX.1-2001 allows either error to be returned for this case, and does not require these constants to have the same value, so a portable application should check for both possibilities.
+    [--] [EBADF]                   The descriptor is invalid.
+    [  ] [ECONNABORTED]            A connection has been aborted.
+    [  ] [EFAULT]                  The addr argument is not in a writable part of the user address space.
+    [NA] [EINTR]                   The system call was interrupted by a signal that was caught before a valid connection arrived; see signal(7).
+    [  ] [EINVAL]                  Socket is not listening for connections, or addrlen is invalid (e.g., is negative).
+    [  ] [EINVAL]                  (accept4()) invalid value in flags.
+    [  ] [EMFILE]                  The per-process limit of open file descriptors has been reached.
+    [  ] [ENFILE]                  The system limit on the total number of open files has been reached.
+    [  ] [ENOBUFS, ENOMEM]         Not enough free memory. This often means that the memory allocation is limited by the socket buffer limits, not by the system memory.
+    [  ] [ENOTSOCK]                The descriptor references a file, not a socket.
+    [  ] [EOPNOTSUPP]              The referenced socket is not of type SOCK_STREAM.
+    [  ] [EPROTO]                  Protocol error.
 
 In addition, Linux accept() may fail if:
 
@@ -870,7 +906,7 @@ Linux:
 
     See: http://yarchive.net/comp/linux/close_return_value.html
 
-Darwin:
+Linux / Darwin:
 
     [--] [EBADF]            fildes is not a valid, active file descriptor.
     [NA] [EINTR]            Its execution was interrupted by a signal.
@@ -881,7 +917,7 @@ Darwin:
 
 int zts_close(ZT_CLOSE_SIG)
 {
-    //DEBUG_EXTRA("fd = %d", fd);
+    DEBUG_EXTRA("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
@@ -898,7 +934,6 @@ int zts_close(ZT_CLOSE_SIG)
         {
             ZeroTier::_multiplexer_lock.lock();
             //DEBUG_INFO("unmap=%d, fdmap=%d", ZeroTier::unmap.size(), ZeroTier::fdmap.size());
-
             // First, look for for unassigned connections
             ZeroTier::Connection *conn = ZeroTier::unmap[fd];
 
@@ -925,31 +960,44 @@ int zts_close(ZT_CLOSE_SIG)
                     errno = EBADF;
                     err = -1;
                 }
-                else
+                else // found everything, begin closure
                 {
-
                     conn = p->first;
                     ZeroTier::SocketTap *tap = p->second;
 
-                    //DEBUG_ERROR("close...., conn = %p, fd = %d", conn, fd);
+                    // check if socket is blocking
+                    int f_err, blocking = 1;
+                    if ((f_err = fcntl(fd, F_GETFL, 0)) < 0) {
+                        DEBUG_ERROR("fcntl error, err = %s, errno = %d", f_err, errno);
+                        err = -1;
+                    } 
+                    else {
+                        blocking = !(f_err & O_NONBLOCK);
+                    }
+
+                    if(blocking) {
+                        DEBUG_INFO("socket is blocking, waiting for write operations before closure");
+                        for(int i=0; i<ZT_SDK_CLTIME; i++) {
+                            if(conn->txsz == 0)
+                                break;
+                            sleep(1);
+                        }
+                    }
 
                     // For cases where data might still need to pass through the library
                     // before socket closure
                     if(ZT_SOCK_BEHAVIOR_LINGER) {
                         socklen_t optlen;
                         struct linger so_linger;
+                        so_linger.l_linger = 0;                        
                         zts_getsockopt(fd, SOL_SOCKET, SO_LINGER, &so_linger, &optlen);
                         if (so_linger.l_linger != 0) {
+                            DEBUG_EXTRA("lingering before closure for (%d) seconds...", so_linger.l_linger);
                             sleep(so_linger.l_linger); // do the linger!
                         }    
+
                     }
-                    // Tell the tap to stop monitoring this PhySocket
-                    //if((err = pico_socket_close(conn->picosock)) < 0)
-                    //   DEBUG_ERROR("error calling pico_socket_close()");
                     tap->Close(conn);
-                    // delete objects
-                    // FIXME: double check this
-                    //delete p;
                     ZeroTier::fdmap.erase(fd);
                     err = 0;
                 }
@@ -964,7 +1012,7 @@ int zts_close(ZT_CLOSE_SIG)
 int zts_fcntl(ZT_FCNTL_SIG)
 {
     //DEBUG_INFO("fd = %d", fd);
-    int err;
+    int err = 0;
     if(fd < 0) {
         errno = EBADF;
         err = -1;
@@ -979,7 +1027,7 @@ int zts_fcntl(ZT_FCNTL_SIG)
 ssize_t zts_sendto(ZT_SENDTO_SIG)
 {
     DEBUG_INFO("fd = %d", fd);
-    int err;
+    int err = 0;
     if(fd < 0) {
         errno = EBADF;
         err = -1;
@@ -994,7 +1042,7 @@ ssize_t zts_sendto(ZT_SENDTO_SIG)
 ssize_t zts_sendmsg(ZT_SENDMSG_SIG)
 {
     DEBUG_INFO("fd = %d", fd);
-    int err;
+    int err = 0;
     if(fd < 0) {
         errno = EBADF;
         err = -1;
@@ -1009,7 +1057,7 @@ ssize_t zts_sendmsg(ZT_SENDMSG_SIG)
 ssize_t zts_recvfrom(ZT_RECVFROM_SIG)
 {
     DEBUG_INFO("fd = %d", fd);
-    int err;
+    int err = 0;
     if(fd < 0) {
         errno = EBADF;
         err = -1;
@@ -1024,7 +1072,7 @@ ssize_t zts_recvfrom(ZT_RECVFROM_SIG)
 ssize_t zts_recvmsg(ZT_RECVMSG_SIG)
 {
     DEBUG_INFO("fd = %d", fd);
-    int err;
+    int err = 0;
     if(fd < 0) {
         errno = EBADF;
         err = -1;
@@ -1353,10 +1401,10 @@ void *zts_start_service(void *thread_id) {
         return NULL;
     }
     // rpc dir
-    if(!ZeroTier::OSUtils::mkdir(ZeroTier::homeDir + "/" + ZT_SDK_RPC_DIR_PREFIX)) {
-        DEBUG_ERROR("unable to create dir: " ZT_SDK_RPC_DIR_PREFIX);
-        return NULL;
-    }
+    // if(!ZeroTier::OSUtils::mkdir(ZeroTier::homeDir + "/" + ZT_SDK_RPC_DIR_PREFIX)) {
+    //   DEBUG_ERROR("unable to create dir: " ZT_SDK_RPC_DIR_PREFIX);
+    //    return NULL;
+    //}
 
     // Generate random port for new service instance
     unsigned int randp = 0;

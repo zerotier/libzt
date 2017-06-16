@@ -7,7 +7,11 @@
 ### 2017-06-30 -- Version 1.1.5
 
  - Improvements in API consistency and coverage
+ - Additional safety checks
  - Various bug fixes for socket abstraction layer
+ - Rework of Connection lock scheme
+ - IPv4 and IPv6 enabled by default
+ - Performance (RX and TX) upgrades
 
 *** 
 

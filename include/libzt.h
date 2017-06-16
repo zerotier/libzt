@@ -41,8 +41,8 @@
 
 #define MAX_PICO_FRAME_RX_BUF_SZ           ZT_MAX_MTU * 128
 
-#define ZT_TCP_TX_BUF_SZ                   1024 * 1024
-#define ZT_TCP_RX_BUF_SZ                   1024 * 1024
+#define ZT_TCP_TX_BUF_SZ                   1024 * 1024 * 5
+#define ZT_TCP_RX_BUF_SZ                   1024 * 1024 * 5
 #define ZT_UDP_TX_BUF_SZ                   ZT_MAX_MTU
 #define ZT_UDP_RX_BUF_SZ                   ZT_MAX_MTU * 10
 
@@ -50,11 +50,11 @@
 
 #define ZT_CORE_VERSION_MAJOR              1
 #define ZT_CORE_VERSION_MINOR              2
-#define ZT_CORE_VERSION_REVISION           4
+#define ZT_CORE_VERSION_REVISION           5
 
-#define ZT_SDK_VERSION_MAJOR               1
-#define ZT_SDK_VERSION_MINOR               0
-#define ZT_SDK_VERSION_REVISION            0
+#define ZT_LIB_VERSION_MAJOR               1
+#define ZT_LIB_VERSION_MINOR               1
+#define ZT_LIB_VERSION_REVISION            4
 
 #define ZT_MAX_IPADDR_LEN                  64
 #define ZT_ID_LEN                          10
@@ -76,6 +76,9 @@
 
 #define ZT_SOCK_BEHAVIOR_LINGER            true
 #define ZT_SOCK_BEHAVIOR_LINGER_TIME       3  // s
+
+// Wait time for socket closure if data is still present in the write queue
+#define ZT_SDK_CLTIME                      60
 
 // After closing a pico_socket, other threads might still try to use the 
 // Connection object for remaining data I/O, as a safety measure we will wait to 
@@ -115,7 +118,7 @@
 
 /****************************************************************************/
 /* SDK Socket API (ZeroTier Service Controls)                               */
-/* Implemented in SDKService.cpp                                            */ 
+/* Implemented in libzt.cpp                                                 */ 
 /****************************************************************************/
 
 #ifdef __cplusplus
@@ -169,9 +172,9 @@ void zts_get_homepath(char *homePath, const int len);
 void zts_core_version(char *ver);
 
 /**
- * Provides core SDK service version
+ * Provides core libzt service version
  */
-void zts_sdk_version(char *ver);
+void zts_lib_version(char *ver);
 
 /**
  * Get device ID

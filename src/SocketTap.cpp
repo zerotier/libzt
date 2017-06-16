@@ -27,13 +27,10 @@
 // picoTCP
 #include <algorithm>
 #include <utility>
-#include <dlfcn.h>
 #include <sys/poll.h>
 #include <stdint.h>
 #include <utility>
 #include <string>
-#include <sys/resource.h>
-#include <sys/syscall.h>
 
 // SDK
 #include "SocketTap.hpp"

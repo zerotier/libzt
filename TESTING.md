@@ -21,66 +21,59 @@ build
  |--darwin
  |  |-libzt.a
  |  |-selftest
+ |  |-echotest
  |
  |--linux
+ |  |-libzt.a
+ |  |-selftest
+ |  |-echotest
+ |
+ |--freebsd
+ |  |-libzt.a
+ |  |-selftest
+ |  |-echotest
+ |
+ |--win
     |-libzt.a
     |-selftest
+    |-echotest
 ```
 
-### Simple Tests
+The self test will be performed over the network in the following configuration (addresses and ports are subject to change depending on what you define in your `test/*.conf` files):
+![Image](docs/test_diagram.png)
 
-Simple tests merely test one aspect of the library. For instance, its role as an IPv4 server, or IPv6 client.
+### Test sets:
+ 
+ - Test set A: Tests for correctness, error handling, blocking behaviour, on-system performance, etc
+ - Test set B: Tests RX performance (from non-libzt app)
+ - Test set C: Tests TX performance (to non-libzt app)
 
-To run a single-test IPv4 client/server test:
+### Types of tests (defined in `selftest.cpp`)
 
-  - host-1: `./build/linux/selftest zt1 c7cd7c9e1b0f52a2 simple 4 server 10.9.9.40 8787`
-  - host-2: `./build/linux/selftest zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787`
+#### Simple Tests:
 
-To run a multi-message IPv4 client/server test:
+ - Simple tests merely test one aspect of the library. For instance, its role as an IPv4 server, or IPv6 client.
 
-  - host-1: `./build/linux/selftest zt1 c7cd7c9e1b0f52a2 simple 4 server 10.9.9.40 8787 n_bytes 100 50`
-  - host-2: `./build/linux/selftest zt2 c7cd7c9e1b0f52a2 simple 4 client 10.9.9.40 8787 n_bytes 100 50`
+#### Sustained Tests
 
-### Sustained Tests
+ - Sustained tests will test the library's ability to support long-duration connections and data transfers.
 
-Sustained tests will test the library's ability to support long-duration connections and data transfers.
+#### Slam Tests
 
- - host-1: `./build/linux/selftest sustained test/bob.conf`
- - host-2: `./build/linux/selftest sustained test/alice.conf`
+ - Slam tests will test the library's ability to handle many repeated API calls or repeated common sequences of API calls that a typical application may make. For instance, it will try to create as many sockets as possible, or try to create a socket, bind to an address, listen, and accept over and over. This is useful for detecting memory leaks and architectural limitations in the stack drivers.
 
-### Slam Tests
+#### Comprehensive Tests
 
-Slam tests will test the library's ability to handle many repeated API calls or repeated common sequences of API calls that a typical application may make. For instance, it will try to create as many sockets as possible, or try to create a socket, bind to an address, listen, and accept over and over. This is useful for detecting memory leaks and architectural limitations in the stack drivers.
+ - A comprehensive test will test each aspect of the library one time.
 
- - host-1: `./build/linux/selftest slam test/bob.conf`
- - host-2: `./build/linux/selftest slam test/alice.conf`
+#### Random Tests
 
-### Comprehensive Tests
+ - Makes random API calls with random (or plausible arguments/data) to test for proper error handling
 
-A comprehensive test will test each aspect of the library one time.
+#### Performance Tests
 
- - host-1: `./build/linux/selftest comprehensive test/bob.conf`
- - host-2: `./build/linux/selftest comprehensive test/alice.conf`
+ - Test's the library's performance characteristics
 
-### Random Tests
-
-Makes random API calls with random (or plausible arguments/data) to test for proper error handling
-
- - host-1: `./build/linux/selftest random test/bob.conf`
-
-### Performance Tests
-
-Test's the library's performance characteristics
-
- - host-1: `./build/linux/selftest performance test/bob.conf`
- - host-2: `./build/linux/selftest performance test/alice.conf`
-
-### Correctness Tests
-
-Tests's the library's error handling, address treatment, and blocking/non-blocking behaviour.
-
- - host-1: `./build/linux/selftest correctness test/bob.conf`
- - host-2: `./build/linux/selftest correctness test/alice.conf`
-
-
-
+#### Correctness Tests
+ 
+ - Tests's the library's error handling, address treatment, and blocking/non-blocking behaviour.

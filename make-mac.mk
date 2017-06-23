@@ -142,7 +142,7 @@ TAP_FILES:=src/SocketTap.cpp \
 SDK_OBJS+= SocketTap.o \
 	picoTCP.o \
 	libzt.o \
-	Utilities.o
+	Utilities.o 
 
 PICO_OBJS+= ext/picotcp/build/lib/pico_device.o \
 	ext/picotcp/build/lib/pico_frame.o \

@@ -18,6 +18,10 @@ zerotier-one.port
 zt1
 zt2
 
+*.bob
+*.alice
+*.pid
+
 # Xcode
 *.xcuserstate
 

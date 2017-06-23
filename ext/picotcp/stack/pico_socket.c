@@ -586,7 +586,7 @@ static int pico_socket_deliver(struct pico_protocol *p, struct pico_frame *f, ui
 
     sp = pico_get_sockport(p->proto_number, localport);
     if (!sp) {
-        DEBUG_EXTRA("No such port %d", short_be(localport));
+        // DEBUG_EXTRA("No such port %d", short_be(localport));
         return -1;
     }
 
@@ -1996,7 +1996,7 @@ int pico_transport_process_in(struct pico_protocol *self, struct pico_frame *f)
         return ret;
 
     if (!IS_BCAST(f)) {
-        DEBUG_EXTRA("Socket not found...");
+        //DEBUG_EXTRA("Socket not found...");
         pico_notify_socket_unreachable(f);
         ret = -1;
         pico_err = PICO_ERR_ENOENT;

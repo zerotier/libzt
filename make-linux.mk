@@ -73,7 +73,7 @@ else
 	STRIP=strip
 endif
 
-CXXFLAGS=$(CFLAGS) -Wno-format -fno-rtti -std=c++11
+CXXFLAGS=$(CFLAGS) -Wno-format -fno-rtti -std=c++11 -DZT_SOFTWARE_UPDATE_DEFAULT="\"disable\""
 
 INCLUDES+= -Iext \
 	-I$(ZTO)/osdep \

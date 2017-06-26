@@ -17,6 +17,10 @@ zerotier-one.pid
 zerotier-one.port
 zt1
 zt2
+zt3
+zt4
+zt5
+zt6
 
 *.bob
 *.alice

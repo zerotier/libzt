@@ -221,18 +221,21 @@ namespace ZeroTier {
 	
 	void SocketTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
 	{
-		//DEBUG_INFO();
+		//DEBUG_ATTN("sock->fd=%d", _phy.getDescriptor(sock));
 		Connection *conn = (Connection*)*uptr;
 		if(!conn)
 			return;
-	    if(len)
+	    if(len){
+
 	        Write(conn, data, len);
+	    }
 	    return;
 	}
 
 	void SocketTap::phyOnUnixWritable(PhySocket *sock,void **uptr,bool stack_invoked)
 	{
 		DEBUG_INFO();
+		//exit(0);
 		if(sock)
 			Read(sock,uptr,stack_invoked);
 	}
@@ -270,11 +273,13 @@ namespace ZeroTier {
 	}
 
 	void SocketTap::Read(PhySocket *sock,void **uptr,bool stack_invoked) {
+		DEBUG_INFO();
 		if(picostack)
 			picostack->pico_Read(this, sock, (Connection*)uptr, stack_invoked);
 	}
 
 	void SocketTap::Write(Connection *conn, void *data, ssize_t len) {
+		//DEBUG_INFO();
 		if(picostack)
 			picostack->pico_Write(conn, data, len);
 	}
@@ -284,6 +289,7 @@ namespace ZeroTier {
 			DEBUG_ERROR("invalid connection");
 			return;
 		}
+		//DEBUG_INFO("A");
 		picostack->pico_Close(conn);
 		if(!conn->sock) {
 			// DEBUG_EXTRA("invalid PhySocket");
@@ -291,10 +297,22 @@ namespace ZeroTier {
 		}
 		// Here we assume _tcpconns_m is already locked by caller
 		// FIXME: is this assumption still valid
-		if(conn->sock)
-			_phy.close(conn->sock, false);
-
+		if(conn->state==ZT_SOCK_STATE_LISTENING)
+		{
+			//DEBUG_INFO("B");
+			// since we never wrapped this socket
+			DEBUG_INFO("in LISTENING state, no need to close in PhyIO");
+			return;
+		}
+		else
+		{
+			//DEBUG_INFO("C");
+			if(conn->sock)
+				_phy.close(conn->sock, false);
+		}
 		close(_phy.getDescriptor(conn->sock));
+
+		//DEBUG_INFO("D");
 		for(size_t i=0;i<_Connections.size();++i) {
 			if(_Connections[i] == conn){
 				// FIXME: double free issue exists here (potentially)

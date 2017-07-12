@@ -30,8 +30,6 @@ stack driver and core ZeroTier service to create a socket-like interface
 for applications to use. See also: include/libzt.h */
 
 #include <sys/socket.h>
-//#include <sys/ioctl.h>
-//#include <stropts.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -100,7 +98,7 @@ void zts_start(const char *path)
     ZeroTier::picostack = new ZeroTier::picoTCP();
     pico_stack_init();
 
-    DEBUG_INFO("path=%s", path);
+    //DEBUG_INFO("path=%s", path);
     if(path)
         ZeroTier::homeDir = path;
     pthread_t service_thread;
@@ -127,10 +125,14 @@ void zts_stop() {
 void zts_join(const char * nwid) {
     if(zt1Service) {
         std::string confFile = zt1Service->givenHomePath() + "/networks.d/" + nwid + ".conf";
-        if(!ZeroTier::OSUtils::mkdir(ZeroTier::netDir))
+        if(!ZeroTier::OSUtils::mkdir(ZeroTier::netDir)) {
             DEBUG_ERROR("unable to create: %s", ZeroTier::netDir.c_str());
-        if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), ""))
+            handle_general_failure();
+        }
+        if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), "")) {
             DEBUG_ERROR("unable to write network conf file: %s", confFile.c_str());
+            handle_general_failure();
+        }
         zt1Service->join(nwid);
     }
 }
@@ -140,10 +142,12 @@ void zts_join_soft(const char * filepath, const char * nwid) {
     std::string confFile = net_dir + std::string(nwid) + ".conf";
     if(!ZeroTier::OSUtils::mkdir(net_dir)) {
         DEBUG_ERROR("unable to create: %s", net_dir.c_str());
+        handle_general_failure();
     }
     if(!ZeroTier::OSUtils::fileExists(confFile.c_str(),false)) {
         if(!ZeroTier::OSUtils::writeFile(confFile.c_str(), "")) {
             DEBUG_ERROR("unable to write network conf file: %s", confFile.c_str());
+            handle_general_failure();
         }
     }
 }
@@ -344,7 +348,12 @@ Darwin:
 
 // int socket_family, int socket_type, int protocol
 int zts_socket(ZT_SOCKET_SIG) {
-    DEBUG_INFO();
+    errno = 0;
+    if(socket_family < 0 || socket_type < 0 || protocol < 0) {
+        errno = EINVAL;
+        return -1;
+    }
+    //DEBUG_INFO();
     int err = 0;
     if(!zt1Service) {
         DEBUG_ERROR("cannot create socket, no service running. call zts_start() first.");
@@ -377,22 +386,43 @@ int zts_socket(ZT_SOCKET_SIG) {
         if(socket_type == SOCK_DGRAM) {
             psock = pico_socket_open(
                 protocol_version, PICO_PROTO_UDP, &ZeroTier::picoTCP::pico_cb_socket_activity);
+            if(psock) { // configure size of UDP SND/RCV buffers
+                // TODO
+            }
         }
         if(socket_type == SOCK_STREAM) {
             psock = pico_socket_open(
                 protocol_version, PICO_PROTO_TCP, &ZeroTier::picoTCP::pico_cb_socket_activity);
+            if(psock) { // configure size of TCP SND/RCV buffers
+                int tx_buf_sz = ZT_STACK_TCP_SOCKET_TX_SZ;
+                int rx_buf_sz = ZT_STACK_TCP_SOCKET_RX_SZ;
+                int t_err = 0;
+
+                int value = 1;
+                pico_socket_setoption(psock, PICO_TCP_NODELAY, &value);
+
+
+                if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_SNDBUF, &tx_buf_sz)) < 0)
+                    DEBUG_ERROR("unable to set SNDBUF size, err = %d, pico_err = %d", t_err, pico_err);
+                if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_RCVBUF, &rx_buf_sz)) < 0)
+                    DEBUG_ERROR("unable to set RCVBUF size, err = %d, pico_err = %d", t_err, pico_err);
+               
+                if(ZT_SOCK_BEHAVIOR_LINGER) {
+                    int linger_time_ms = ZT_SOCK_BEHAVIOR_LINGER_TIME;
+                    if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_LINGER, &linger_time_ms)) < 0)
+                        DEBUG_ERROR("unable to set LINGER, err = %d, pico_err = %d", t_err, pico_err);
+                }
+            }
         }
-        // set up Unix Domain socketpair (used for data later on)
-        if(psock) {     
+        if(psock) {
             conn->socket_family = socket_family;
             conn->socket_type = socket_type;
             conn->picosock = psock;
-            memset(conn->rxbuf, 0, ZT_UDP_RX_BUF_SZ);
             ZeroTier::unmap[conn->app_fd] = conn;
             err = conn->app_fd; // return one end of the socketpair
         }
         else {
-            DEBUG_ERROR("failed to create pico_socket");
+            //DEBUG_ERROR("failed to create pico_socket");
             err = -1;
         }
     }
@@ -455,7 +485,7 @@ Linux:
 
 */
 int zts_connect(ZT_CONNECT_SIG) {
-    DEBUG_INFO("fd = %d", fd);
+    //DEBUG_INFO("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
@@ -475,20 +505,22 @@ int zts_connect(ZT_CONNECT_SIG) {
         char ipstr[INET6_ADDRSTRLEN];
         memset(ipstr, 0, INET6_ADDRSTRLEN);
         ZeroTier::InetAddress iaddr;
+        int port = 0;
 
         if(conn->socket_family == AF_INET) {
             inet_ntop(AF_INET, 
                 (const void *)&((struct sockaddr_in *)addr)->sin_addr.s_addr, ipstr, INET_ADDRSTRLEN);
             iaddr.fromString(ipstr);
+            port = ((struct sockaddr_in*)addr)->sin_port;
         }
         if(conn->socket_family == AF_INET6) {
             inet_ntop(AF_INET6, 
                 (const void *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, ipstr, INET6_ADDRSTRLEN);
             // TODO: This is a hack, determine a proper way to do this
             iaddr.fromString(ipstr + std::string("/88"));
+            port = ((struct sockaddr_in6*)addr)->sin6_port;
         }
-        //DEBUG_INFO("ipstr= %s", ipstr);
-        //DEBUG_INFO("iaddr= %s", iaddr.toString().c_str());
+        DEBUG_EXTRA("fd = %d, %s : %d", fd, ipstr, ntohs(port));
         tap = zt1Service->getTap(iaddr);
         if(!tap) {
             DEBUG_ERROR("no route to host");
@@ -498,8 +530,6 @@ int zts_connect(ZT_CONNECT_SIG) {
         else {
             // pointer to tap we use in callbacks from the stack
             conn->picosock->priv = new ZeroTier::ConnectionPair(tap, conn); 
-            //DEBUG_INFO("found appropriate SocketTap");
-            // Semantically: tap->stack->connect
             err = tap->Connect(conn, fd, addr, addrlen); 
             if(err == 0) {
                 tap->_Connections.push_back(conn); // Give this Connection to the tap we decided on
@@ -507,9 +537,8 @@ int zts_connect(ZT_CONNECT_SIG) {
             }
             // Wrap the socketpair we created earlier
             // For I/O loop participation and referencing the PhySocket's parent Connection in callbacks
-            conn->sock = tap->_phy.wrapSocket(conn->sdk_fd, conn);     
-            //DEBUG_INFO("wrapping conn->sdk_fd = %d", conn->sdk_fd);   
-            //DEBUG_INFO("         conn->app_fd = %d", conn->app_fd);     
+            conn->sock = tap->_phy.wrapSocket(conn->sdk_fd, conn);  
+            //DEBUG_ERROR("sock->fd = %d", tap->_phy.getDescriptor(conn->sock));      
         }
     }
     else {
@@ -552,6 +581,7 @@ int zts_connect(ZT_CONNECT_SIG) {
                 // FIXME: locking and unlocking so often might cause a performance bottleneck while outgoing connections
                 // are being established (also applies to accept())
                 usleep(ZT_CONNECT_RECHECK_DELAY * 1000);
+                //DEBUG_ERROR("waiting to connect...\n");
                 tap->_tcpconns_m.lock();
                 for(int i=0; i<tap->_Connections.size(); i++)
                 {
@@ -592,7 +622,6 @@ Darwin:
                             address space.
 */
 int zts_bind(ZT_BIND_SIG) {
-    DEBUG_EXTRA("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
@@ -612,14 +641,19 @@ int zts_bind(ZT_BIND_SIG) {
         memset(ipstr, 0, INET6_ADDRSTRLEN);
         ZeroTier::InetAddress iaddr;
 
+        int port = 0;
+
         if(conn->socket_family == AF_INET) {
             inet_ntop(AF_INET, 
                 (const void *)&((struct sockaddr_in *)addr)->sin_addr.s_addr, ipstr, INET_ADDRSTRLEN);
+            port = ((struct sockaddr_in*)addr)->sin_port;
         }
         if(conn->socket_family == AF_INET6) {
             inet_ntop(AF_INET6, 
                 (const void *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, ipstr, INET6_ADDRSTRLEN);
+            port = ((struct sockaddr_in6*)addr)->sin6_port;
         }
+        DEBUG_EXTRA("fd = %d, %s : %d", fd, ipstr, ntohs(port));
         iaddr.fromString(ipstr);
         tap = zt1Service->getTap(iaddr);
 
@@ -695,6 +729,7 @@ int zts_listen(ZT_LISTEN_SIG) {
     if(!err) {
         backlog = backlog > 128 ? 128 : backlog; // See: /proc/sys/net/core/somaxconn
         err = tap->Listen(conn, fd, backlog);
+        conn->state = ZT_SOCK_STATE_LISTENING;
         ZeroTier::_multiplexer_lock.unlock();
     }
     return err;
@@ -816,7 +851,7 @@ EPERM Firewall rules forbid connection.
 /*
     [--] [EBADF]            The argument s is not a valid descriptor.
     [  ] [ENOTSOCK]         The argument s is a file, not a socket.
-    [  ] [ENOPROTOOPT]      The option is unknown at the level indicated.
+    [--] [ENOPROTOOPT]      The option is unknown at the level indicated.
     [  ] [EFAULT]           The address pointed to by optval is not in a valid
                             part of the process address space.  For getsockopt(),
                             this error may also be returned if optlen is not in a
@@ -825,14 +860,28 @@ EPERM Firewall rules forbid connection.
 */
 int zts_setsockopt(ZT_SETSOCKOPT_SIG)
 {
-    //DEBUG_INFO("fd = %d", fd);
+    DEBUG_INFO("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
         err = -1;
     }
+
+    // Disable Nagle's algorithm
+    struct pico_socket *p;
+    err = zts_get_pico_socket(fd, p);
+    if(p) {
+        int value = 1;
+        if((err = pico_socket_setoption(p, PICO_TCP_NODELAY, &value)) < 0) {
+            if(err == PICO_ERR_EINVAL) {
+                DEBUG_ERROR("error while disabling Nagle's algorithm");
+                errno = ENOPROTOOPT;
+                return -1;
+            }
+        }
+
+    }
     err = setsockopt(fd, level, optname, optval, optlen);
-    //DEBUG_INFO("err = %d", err);
     return err;
 }
 
@@ -976,27 +1025,36 @@ int zts_close(ZT_CLOSE_SIG)
                     }
 
                     if(blocking) {
-                        DEBUG_INFO("socket is blocking, waiting for write operations before closure");
+                        DEBUG_INFO("blocking, waiting for write operations before closure...");
                         for(int i=0; i<ZT_SDK_CLTIME; i++) {
-                            if(conn->txsz == 0)
+                            if(conn->TXbuf->count() == 0)
                                 break;
-                            sleep(1);
+                            usleep(ZT_API_CHECK_INTERVAL * 1000);
                         }
                     }
 
                     // For cases where data might still need to pass through the library
                     // before socket closure
+                    
+                    /*
                     if(ZT_SOCK_BEHAVIOR_LINGER) {
                         socklen_t optlen;
                         struct linger so_linger;
                         so_linger.l_linger = 0;                        
                         zts_getsockopt(fd, SOL_SOCKET, SO_LINGER, &so_linger, &optlen);
-                        if (so_linger.l_linger != 0) {
+                        //DEBUG_ERROR("fd = %d, value = %d", fd, so_linger.l_linger);
+                       // if (so_linger.l_linger != 0) {
                             DEBUG_EXTRA("lingering before closure for (%d) seconds...", so_linger.l_linger);
-                            sleep(so_linger.l_linger); // do the linger!
-                        }    
-
+                            sleep(3); // do the linger!
+                       // }    
                     }
+                    else
+                    {
+                        DEBUG_ERROR("LINGER NOT enabled");
+                    }
+                    */
+
+                    //DEBUG_INFO("s->state = %s", ZeroTier::picoTCP::beautify_pico_state(conn->picosock->state));
                     tap->Close(conn);
                     ZeroTier::fdmap.erase(fd);
                     err = 0;
@@ -1007,6 +1065,19 @@ int zts_close(ZT_CLOSE_SIG)
         }
     }
     return err;
+}
+
+//#define ZT_POLL_SIG struct pollfd *fds, nfds_t nfds, int timeout
+//#define ZT_SELECT_SIG int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout
+
+int zts_poll(ZT_POLL_SIG)
+{
+    return 0;
+}
+
+int zts_select(ZT_SELECT_SIG)
+{
+    return 0;
 }
 
 int zts_fcntl(ZT_FCNTL_SIG)
@@ -1084,13 +1155,93 @@ ssize_t zts_recvmsg(ZT_RECVMSG_SIG)
 }
 
 int zts_read(ZT_READ_SIG) {
-    //DEBUG_EXTRA("fd = %d", fd);
+    //DEBUG_INFO("fd = %d", fd);
     return read(fd, buf, len);
 }
 
 int zts_write(ZT_WRITE_SIG) {
-    //DEBUG_EXTRA("fd = %d", fd);
+    //DEBUG_INFO("fd = %d", fd);
     return write(fd, buf, len);
+}
+
+int zts_shutdown(ZT_SHUTDOWN_SIG)
+{
+    DEBUG_INFO("fd = %d", fd);
+ 
+    int err = 0, mode = 0;
+    if(how == SHUT_RD) mode = PICO_SHUT_RD;
+    if(how == SHUT_WR) mode = PICO_SHUT_WR;
+    if(how == SHUT_RDWR) mode = PICO_SHUT_RDWR;
+
+    if(fd < 0) {
+        errno = EBADF;
+        err = -1;
+    }
+    else
+    {
+        if(!zt1Service) {
+            DEBUG_ERROR("cannot shutdown socket. service not started. call zts_start(path) first");
+            errno = EBADF;
+            err = -1;
+        }
+        else
+        {
+            ZeroTier::_multiplexer_lock.lock();
+            // First, look for for unassigned connections
+            ZeroTier::Connection *conn = ZeroTier::unmap[fd];
+            // Since we found an unassigned connection, we don't need to consult the stack or tap
+            // during closure - it isn't yet stitched into the clockwork
+            if(conn) // unassigned
+            {
+                DEBUG_ERROR("unassigned shutdown");
+                /*
+                   PICO_SHUT_RD
+                   PICO_SHUT_WR
+                   PICO_SHUT_RDWR
+                */
+                if((err = pico_socket_shutdown(conn->picosock, mode)) < 0)
+                    DEBUG_ERROR("error calling pico_socket_shutdown()");
+                delete conn;
+                ZeroTier::unmap.erase(fd);
+                // FIXME: Is deleting this correct behaviour?
+            }
+            else // assigned
+            {
+                std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::fdmap[fd];
+                if(!p) 
+                {
+                    DEBUG_ERROR("unable to locate connection pair.");
+                    errno = EBADF;
+                    err = -1;
+                }
+                else // found everything, begin closure
+                {
+                    conn = p->first;
+                    int f_err, blocking = 1;
+                    if ((f_err = fcntl(fd, F_GETFL, 0)) < 0) {
+                        DEBUG_ERROR("fcntl error, err = %s, errno = %d", f_err, errno);
+                        err = -1;
+                    } 
+                    else {
+                        blocking = !(f_err & O_NONBLOCK);
+                    }
+                    if(blocking) {
+                        DEBUG_INFO("blocking, waiting for write operations before shutdown...");
+                        for(int i=0; i<ZT_SDK_CLTIME; i++) {
+                            if(conn->TXbuf->count() == 0)
+                                break;
+                            usleep(ZT_API_CHECK_INTERVAL * 1000);
+                        }
+                    }
+
+                    if((err = pico_socket_shutdown(conn->picosock, mode)) < 0)
+                        DEBUG_ERROR("error calling pico_socket_shutdown()");
+                }
+            }
+            ZeroTier::_multiplexer_lock.unlock();
+        }
+    }
+    return err;
 }
 
 /****************************************************************************/
@@ -1355,6 +1506,46 @@ namespace ZeroTier {
 /* SDK Socket API Helper functions --- DON'T CALL THESE DIRECTLY            */
 /****************************************************************************/
 
+int zts_get_pico_socket(int fd, struct pico_socket *s)
+{
+    int err = 0;
+    if(!zt1Service) {
+        DEBUG_ERROR("cannot shutdown socket. service not started. call zts_start(path) first");
+        errno = EBADF;
+        err = -1;
+    }
+    else
+    {
+        ZeroTier::_multiplexer_lock.lock();
+        // First, look for for unassigned connections
+        ZeroTier::Connection *conn = ZeroTier::unmap[fd];
+        // Since we found an unassigned connection, we don't need to consult the stack or tap
+        // during closure - it isn't yet stitched into the clockwork
+        if(conn)
+        {
+            s = conn->picosock;
+            return 1; // unassigned
+        }
+        else // assigned
+        {
+            std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::fdmap[fd];
+            if(!p) 
+            {
+                DEBUG_ERROR("unable to locate connection pair.");
+                errno = EBADF;
+                err = -1;
+            }
+            else // found everything, begin closure
+            {
+                s = p->first->picosock;
+                return 0;
+            }
+        }
+        ZeroTier::_multiplexer_lock.unlock();
+    }
+    return err;
+}
+
 int zts_nsockets()
 {
     ZeroTier::_multiplexer_lock.unlock();
@@ -1391,6 +1582,7 @@ void *zts_start_service(void *thread_id) {
             if ((*pi != ".")&&(*pi != "..")) {
                 if (!ZeroTier::OSUtils::mkdir(ptmp)) {
                     DEBUG_ERROR("home path does not exist, and could not create");
+                    handle_general_failure();
                     perror("error\n");
                 }
             }
@@ -1398,13 +1590,9 @@ void *zts_start_service(void *thread_id) {
     }
     else {
         DEBUG_ERROR("homeDir is empty, could not construct path");
+        handle_general_failure();
         return NULL;
     }
-    // rpc dir
-    // if(!ZeroTier::OSUtils::mkdir(ZeroTier::homeDir + "/" + ZT_SDK_RPC_DIR_PREFIX)) {
-    //   DEBUG_ERROR("unable to create dir: " ZT_SDK_RPC_DIR_PREFIX);
-    //    return NULL;
-    //}
 
     // Generate random port for new service instance
     unsigned int randp = 0;
@@ -1443,6 +1631,13 @@ void *zts_start_service(void *thread_id) {
     delete zt1Service;
     zt1Service = (ZeroTier::OneService *)0;
     return NULL;
+}
+
+void handle_general_failure() {
+#ifdef ZT_EXIT_ON_GENERAL_FAIL
+    DEBUG_ERROR("exiting (ZT_EXIT_ON_GENERAL_FAIL==1)");
+    //exit(-1);
+#endif
 }
 
 #ifdef __cplusplus

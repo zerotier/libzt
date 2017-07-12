@@ -86,14 +86,14 @@
 #endif
 
  #if ZT_DEBUG_LEVEL >= ZT_MSG_TEST
-  #define DEBUG_TEST(fmt, args...) fprintf(stderr, ZT_CYN "ZT_TEST [%d] : %16s:%5d:%25s: " fmt   \
+  #define DEBUG_TEST(fmt, args...) fprintf(stderr, ZT_CYN "TEST [%d] : %16s:%5d:%25s: " fmt   \
     "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
  #else
   #define DEBUG_ERROR(fmt, args...)
  #endif
 
  #if ZT_DEBUG_LEVEL >= ZT_MSG_ERROR
-  #define DEBUG_ERROR(fmt, args...) fprintf(stderr, ZT_RED "ZT_ERROR[%d] : %16s:%5d:%25s: " fmt   \
+  #define DEBUG_ERROR(fmt, args...) fprintf(stderr, ZT_RED "ERROR[%d] : %16s:%5d:%25s: " fmt   \
     "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
  #else
   #define DEBUG_ERROR(fmt, args...)
@@ -102,22 +102,22 @@
  #if ZT_DEBUG_LEVEL >= ZT_MSG_INFO
   #if defined(__ANDROID__)
     #define DEBUG_INFO(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,   \
-      "ZT_INFO : %16s:%5d:%20s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+      "INFO : %16s:%5d:%20s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
     #define DEBUG_BLANK(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,  \
-      "ZT_INFO : %16s:%5d:" fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+      "INFO : %16s:%5d:" fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
     #define DEBUG_ATTN(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,   \
-      "ZT_INFO : %16s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+      "INFO : %16s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
     #define DEBUG_STACK(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,  \
-      "ZT_STACK: %16s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+      "STACK: %16s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
   #else
     #define DEBUG_INFO(fmt, args...) fprintf(stderr,                                                                   \
-      "ZT_INFO [%d] : %16s:%5d:%25s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+      "INFO [%d] : %16s:%5d:%25s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
     #define DEBUG_ATTN(fmt, args...) fprintf(stderr, ZT_CYN                                                            \
-      "ZT_ATTN [%d] : %16s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+      "ATTN [%d] : %16s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
     #define DEBUG_STACK(fmt, args...) fprintf(stderr, ZT_YEL                                                           \
-      "ZT_STACK[%d] : %16s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+      "STACK[%d] : %16s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
     #define DEBUG_BLANK(fmt, args...) fprintf(stderr,                                                                  \
-      "ZT_INFO [%d] : %16s:%5d:" fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, ##args)
+      "INFO [%d] : %16s:%5d:" fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, ##args)
   #endif
  #else
   #define DEBUG_INFO(fmt, args...)
@@ -129,9 +129,9 @@
  #if ZT_DEBUG_LEVEL >= ZT_MSG_TRANSFER
   #if defined(__ANDROID__)
     #define DEBUG_TRANS(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,  \
-      "ZT_TRANS : %16s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+      "TRANS : %16s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
   #else
-    #define DEBUG_TRANS(fmt, args...) fprintf(stderr, ZT_GRN "ZT_TRANS[%ld] : %16s:%5d:%25s: " fmt \
+    #define DEBUG_TRANS(fmt, args...) fprintf(stderr, ZT_GRN "TRANS[%ld] : %16s:%5d:%25s: " fmt \
       "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
   #endif
  #else
@@ -141,10 +141,10 @@
  #if ZT_DEBUG_LEVEL >= ZT_MSG_EXTRA
    #if defined(__ANDROID__)
     #define DEBUG_EXTRA(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
-      "ZT_EXTRA : %16s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+      "EXTRA : %16s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
   #else
     #define DEBUG_EXTRA(fmt, args...) fprintf(stderr, \
-      "ZT_EXTRA[%d] : %16s:%5d:%25s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+      "EXTRA[%d] : %16s:%5d:%25s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
   #endif
  #else
   #define DEBUG_EXTRA(fmt, args...)
@@ -153,9 +153,9 @@
 #if ZT_DEBUG_LEVEL >= ZT_MSG_FLOW
    #if defined(__ANDROID__)
     #define DEBUG_FLOW(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \ 
-      "ZT_FLOW : %16s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+      "FLOW : %16s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
   #else
-    #define DEBUG_FLOW(fmt, args...) fprintf(stderr, "ZT_FLOW [%ld] : %16s:%5d:%25s: " fmt "\n", \
+    #define DEBUG_FLOW(fmt, args...) fprintf(stderr, "FLOW [%ld] : %16s:%5d:%25s: " fmt "\n", \
       ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
   #endif
  #else

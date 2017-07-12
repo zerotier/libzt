@@ -39,6 +39,7 @@
 // SDK
 #include "libzt.h"
 #include "SocketTap.hpp"
+#include "RingBuffer.hpp"
 
 namespace ZeroTier {
 
@@ -47,9 +48,12 @@ namespace ZeroTier {
 	*/
 	struct Connection
 	{
+		int tot = 0;
+		RingBuffer<unsigned char> *TXbuf;
+		RingBuffer<unsigned char> *RXbuf;
+
 		Mutex _tx_m, _rx_m;
 
-		int pid;
 		PhySocket *sock;				
 		struct pico_socket *picosock;
 
@@ -57,12 +61,6 @@ namespace ZeroTier {
 		struct sockaddr_storage *local_addr; // Address we've bound to locally
 		struct sockaddr_storage *peer_addr;  // Address of connection call to remote host
 
-		// RX/TX buffers
-		int txsz = 0, rxsz = 0;
-		unsigned char txbuf[ZT_TCP_TX_BUF_SZ];
-		unsigned char rxbuf[ZT_TCP_RX_BUF_SZ];
-
-		int data_sock;
 		int socket_family, socket_type;
 
 		int app_fd; // provided to app for I/O
@@ -76,6 +74,10 @@ namespace ZeroTier {
 		std::time_t closure_ts;
 
 		Connection() {
+
+			TXbuf = new RingBuffer<unsigned char>(ZT_TCP_TX_BUF_SZ);
+			RXbuf = new RingBuffer<unsigned char>(ZT_TCP_RX_BUF_SZ);
+
 			closure_ts = -1;
 			ZT_PHY_SOCKFD_TYPE fdpair[2];
 			if(socketpair(PF_LOCAL, SOCK_STREAM, 0, fdpair) < 0) {
@@ -86,15 +88,18 @@ namespace ZeroTier {
 			}
 			sdk_fd = fdpair[0];
 			app_fd = fdpair[1];
+			//DEBUG_ERROR("sdk_fd = %d, app_fd = %d", sdk_fd, app_fd);
 
+/*
 			if(ZT_SOCK_BEHAVIOR_LINGER) {
 				struct linger so_linger;
 				so_linger.l_onoff = true;
 				so_linger.l_linger = ZT_SOCK_BEHAVIOR_LINGER_TIME;
-		        if(zts_setsockopt(app_fd, SOL_SOCKET, SO_LINGER, &so_linger, sizeof so_linger) < 0) {
+		        if(setsockopt(app_fd, SOL_SOCKET, SO_LINGER, &so_linger, sizeof so_linger) < 0) {
     				DEBUG_ERROR("error setsockopt (%d)", errno);
 		        }
 		    }
+*/
 		}
 		~Connection()
 		{

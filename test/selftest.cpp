@@ -32,6 +32,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,6 +57,11 @@
 
 #define ECHO_INTERVAL          1000000 // us
 #define SLAM_INTERVAL          500000
+
+#define WAIT_FOR_SERVER_TO_COME_ONLINE    2
+#define WAIT_FOR_TEST_TO_CONCLUDE         15
+#define WAIT_FOR_TRANSMISSION_TO_COMPLETE 5
+
 #define STR_SIZE               32
 
 #define TEST_OP_N_BYTES        10
@@ -86,6 +92,8 @@
 
 #define ONE_MEGABYTE           1024 * 1024
 
+#define DETAILS_STR_LEN        128
+
 char str[STR_SIZE];
 
 std::map<std::string, std::string> testConf;
@@ -103,10 +111,10 @@ std::map<std::string, std::string> testConf;
 	[OK]        simple server ipv4 - accept, read one message and echo it back
 	[OK]        simple client ipv6 - connect, send one message and wait for an echo
 	[OK]        simple server ipv6 - accept, read one message and echo it back
-	[OK]     sustained client ipv4 - connect and rx/tx many messages
-	[OK]     sustained server ipv4 - accept and echo messages
-	[ ?]     sustained client ipv6 - connect and rx/tx many messages
-	[ ?]     sustained server ipv6 - accept and echo messages
+	[OK]     sustained client ipv4 - connect and rx/tx many messages, VERIFIES data integrity
+	[OK]     sustained server ipv4 - accept and echo messages, VERIFIES data integrity
+	[OK]     sustained client ipv6 - connect and rx/tx many messages, VERIFIES data integrity
+	[OK]     sustained server ipv6 - accept and echo messages, VERIFIES data integrity
 	[OK] comprehensive client ipv4 - test all ipv4/6 client simple/sustained modes
 	[OK] comprehensive server ipv6 - test all ipv4/6 server simple/sustained modes
 
@@ -127,6 +135,14 @@ std::map<std::string, std::string> testConf;
 
 */
 
+
+
+
+
+/****************************************************************************/
+/* Helper Functions                                                         */
+/****************************************************************************/
+
 void displayResults(int *results, int size)
 {
 	int success = 0, failure = 0;
@@ -143,13 +159,18 @@ void displayResults(int *results, int size)
 
 void loadTestConfigFile(std::string filepath)
 {
-	std::string key;
-	std::string value;
+	std::string key, value, prefix;
 	std::ifstream testFile;
 	testFile.open(filepath.c_str());
 	while (testFile >> key >> value) {
-		if(key[0] != '#')
-	    	testConf[key] = value;
+		if(key == "name") {
+			prefix = value;
+		}
+		if(key[0] != '#' && key[0] != ';') {
+	    	testConf[prefix + "." + key] = value;
+	        fprintf(stderr, "%s.%s = %s\n", prefix.c_str(), key.c_str(), testConf[prefix + "." + key].c_str());
+	    }
+
 	}
 	testFile.close();
 }
@@ -161,6 +182,62 @@ long int get_now_ts()
 	return tp.tv_sec * 1000 + tp.tv_usec / 1000;
 }
 
+void generate_random_data(void *buf, size_t n)
+{
+	char *b = (char*)buf;
+	int min = 0, max = 9;
+	srand((unsigned)time(0));
+	for(int i=0; i<n; i++) {
+		b[i] = min + (rand() % static_cast<int>(max - min + 1));
+	}
+}
+
+void create_addr(std::string ipstr, int port, int ipv, struct sockaddr *saddr)
+{
+	struct hostent *server;
+	if(ipv == 4) {
+		struct sockaddr_in *in4 = (struct sockaddr_in*)saddr;
+		in4->sin_port = htons(port);
+		in4->sin_addr.s_addr = inet_addr(ipstr.c_str());
+		in4->sin_family = AF_INET;
+	}
+	if(ipv == 6) {
+		struct sockaddr_in6 *in6 = (struct sockaddr_in6*)saddr;
+		server = gethostbyname2(ipstr.c_str(),AF_INET6);
+		memset((char *) in6, 0, sizeof(struct sockaddr_in6));
+		in6->sin6_flowinfo = 0;
+		in6->sin6_family = AF_INET6;
+		memmove((char *) in6->sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
+		in6->sin6_port = htons(port);
+	}
+}
+
+
+void RECORD_RESULTS(int *test_number, bool passed, char *details, std::vector<std::string> *results)
+{
+	(*test_number) = 0;
+	char *ok_str   = (char*)"[  OK  ]";
+	char *fail_str = (char*)"[ FAIL ]";
+
+	if(passed == PASSED) {
+		DEBUG_TEST("[%d]%s", *test_number, ok_str);
+		results->push_back(std::string(ok_str) + " " + std::string(details));
+	}
+	else {
+		DEBUG_ERROR("[%d]%s", *test_number, fail_str);		
+		results->push_back(std::string(fail_str) + " " + std::string(details));
+	}
+	if(EXIT_ON_FAIL && !passed) {
+		fprintf(stderr, "%s\n", results->at(results->size()-1).c_str());
+		exit(0);
+	}
+	memset(details, 0, DETAILS_STR_LEN);
+}
+
+
+
+
+
 /****************************************************************************/
 /* SIMPLE                                                                   */
 /****************************************************************************/
@@ -168,7 +245,7 @@ long int get_now_ts()
 // 
 void tcp_client_4(UNIT_TEST_SIG_4)
 {
-	DEBUG_TEST("\n");
+	fprintf(stderr, "\n\n\ntcp_client_4\n");
 	int r, w, sockfd, err, len = strlen(str);
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
@@ -180,35 +257,16 @@ void tcp_client_4(UNIT_TEST_SIG_4)
 	r = zts_read(sockfd, rbuf, len);
 	DEBUG_TEST("Sent     : %s", str);
 	DEBUG_TEST("Received : %s", rbuf);
+	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 	err = zts_close(sockfd);
-	sprintf(details, "count=%d, err=%d, r=%d, w=%d", count, err, r, w);
-	*passed = (w == len && r == len && !err) && !strcmp(rbuf, str);
-}
-
-// 
-void tcp_client_6(UNIT_TEST_SIG_6)
-{
-	DEBUG_TEST("\n");
-	int r, w, sockfd, err, len = strlen(str);
-	char rbuf[STR_SIZE];
-	memset(rbuf, 0, sizeof rbuf);
-	if((sockfd = zts_socket(AF_INET6, SOCK_STREAM, 0)) < 0)
-		DEBUG_ERROR("error creating ZeroTier socket");
-	if((err = zts_connect(sockfd, (const struct sockaddr *)addr, sizeof(addr))) < 0)
-		DEBUG_ERROR("error connecting to remote host (%d)", err);
-	w = zts_write(sockfd, str, len);
-	r = zts_read(sockfd, rbuf, len);
-	err = zts_close(sockfd);
-	sprintf(details, "count=%d, err=%d, r=%d, w=%d", count, err, r, w);
-	DEBUG_TEST("Sent     : %s", str);
-	DEBUG_TEST("Received : %s", rbuf);
+	sprintf(details, "tcp_client_4, n=%d, err=%d, r=%d, w=%d", count, err, r, w);
 	*passed = (w == len && r == len && !err) && !strcmp(rbuf, str);
 }
 
 //
 void tcp_server_4(UNIT_TEST_SIG_4)
 {
-	DEBUG_TEST("\n");
+	fprintf(stderr, "\n\n\ntcp_server_4\n");
 	int w=0, r=0, sockfd, accfd, err, len = strlen(str);
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
@@ -223,16 +281,38 @@ void tcp_server_4(UNIT_TEST_SIG_4)
 	r = zts_read(accfd, rbuf, sizeof rbuf);
 	w = zts_write(accfd, rbuf, len);
 	DEBUG_TEST("Received : %s", rbuf);
-	zts_close(sockfd);
-	zts_close(accfd);
-	sprintf(details, "count=%d, err=%d, r=%d, w=%d", count, err, r, w);
+	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
+	err = zts_close(sockfd);
+	err = zts_close(accfd);
+	sprintf(details, "tcp_server_4, n=%d, err=%d, r=%d, w=%d", count, err, r, w);
+	*passed = (w == len && r == len && !err) && !strcmp(rbuf, str);
+}
+
+// 
+void tcp_client_6(UNIT_TEST_SIG_6)
+{
+	fprintf(stderr, "\n\n\ntcp_client_6\n");
+	int r, w, sockfd, err, len = strlen(str);
+	char rbuf[STR_SIZE];
+	memset(rbuf, 0, sizeof rbuf);
+	if((sockfd = zts_socket(AF_INET6, SOCK_STREAM, 0)) < 0)
+		DEBUG_ERROR("error creating ZeroTier socket");
+	if((err = zts_connect(sockfd, (const struct sockaddr *)addr, sizeof(addr))) < 0)
+		DEBUG_ERROR("error connecting to remote host (%d)", err);
+	w = zts_write(sockfd, str, len);
+	r = zts_read(sockfd, rbuf, len);
+	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
+	err = zts_close(sockfd);
+	sprintf(details, "tcp_client_6, n=%d, err=%d, r=%d, w=%d", count, err, r, w);
+	DEBUG_TEST("Sent     : %s", str);
+	DEBUG_TEST("Received : %s", rbuf);
 	*passed = (w == len && r == len && !err) && !strcmp(rbuf, str);
 }
 
 //
 void tcp_server_6(UNIT_TEST_SIG_6)
 {
-	DEBUG_TEST("\n");
+	fprintf(stderr, "\n\n\ntcp_server_6\n");
 	int w=0, r=0, sockfd, accfd, err, len = strlen(str);
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
@@ -247,9 +327,10 @@ void tcp_server_6(UNIT_TEST_SIG_6)
 	r = zts_read(accfd, rbuf, sizeof rbuf);
 	w = zts_write(accfd, rbuf, len);
 	DEBUG_TEST("Received : %s", rbuf);
-	zts_close(sockfd);
-	zts_close(accfd);
-	sprintf(details, "count=%d, err=%d, r=%d, w=%d", count, err, r, w);
+	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
+	err = zts_close(sockfd);
+	err = zts_close(accfd);
+	sprintf(details, "tcp_server_6, n=%d, err=%d, r=%d, w=%d", count, err, r, w);
 	*passed = (w == len && r == len && !err) && !strcmp(rbuf, str);
 }
 
@@ -264,172 +345,162 @@ void tcp_server_6(UNIT_TEST_SIG_6)
 // Maintain transfer for count OR count
 void tcp_client_sustained_4(UNIT_TEST_SIG_4)
 {
-	DEBUG_TEST("\n");
-	int tot=0, n=0, w=0, r=0, sockfd, err, len = strlen(str);
-
-	char *rxbuf;
-	rxbuf = (char*)malloc(count*sizeof(char));
-	memset(rxbuf, 0, count);
-
-	char *txbuf;
-	txbuf = (char*)malloc(count*sizeof(char));
-	memset(txbuf, 0, count);
-
-	long int rx_checksum = 0;
-	long int tx_checksum = 0;
-
-	// generate random data and calculate checksum
-	srand((unsigned)time(0));
-	int min = 0, max = 9, range = (max - min);
-	DEBUG_TEST("preparing random data for buffer...");
-	for(int i=0; i<count; i++) {
-		txbuf[i] = min + (rand() % static_cast<int>(max - min + 1));
-	}
-	DEBUG_TEST("calculating checksum before transfer (txbuf)...");
-	for(int i=0; i<count; i++) {
-		tx_checksum+=txbuf[i];
-		fprintf(stderr, "%d ", txbuf[i]);
-	}
-	fprintf(stderr, "\n");
+	fprintf(stderr, "\n\n\ntcp_client_sustained_4\n");
+	int n=0, w=0, r=0, sockfd, err;	
+	char *rxbuf = (char*)malloc(count*sizeof(char));
+	char *txbuf = (char*)malloc(count*sizeof(char));
+	generate_random_data(txbuf, count);
 
 	if((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		DEBUG_ERROR("error creating ZeroTier socket");
 	if((err = zts_connect(sockfd, (const struct sockaddr *)addr, sizeof(addr))) < 0)
 		DEBUG_ERROR("error connecting to remote host (%d)", err);
-	if(operation == TEST_OP_N_TIMES) {
-		tot = len*count;
-		std::time_t start_time = std::time(nullptr);
-		for(int i=0; i<count; i++) {
-			n = zts_write(sockfd, txbuf, len);
-			if (n > 0)
-				w += n;
-			n = zts_read(sockfd, rxbuf, len);
-			if (n > 0)
-				r += n;
-		}
-		std::time_t end_time = std::time(nullptr);
-		sleep(2);
-		err = zts_close(sockfd);
-		time_t ts_delta = end_time - start_time;
-		sprintf(details, "count=%d, dt=%d, r=%d, w=%d", count, ts_delta, r, w);
-		*passed = (r == tot && w == tot && !err) && !strcmp(rxbuf, txbuf);
-	}
+
 	if(operation == TEST_OP_N_BYTES) {
-		
-		//zts_fcntl(sockfd, F_SETFL, O_NONBLOCK);
+		int wrem = count, rrem = count;
 
-		int wrem = count;
-		int rrem = count;
-
-		std::time_t start_time = std::time(nullptr);
-
-		while(wrem) 
-		{
-			int next_write = std::min(1024, wrem);
-			DEBUG_ERROR("wrem = %d", wrem);
+		// TX
+		long int tx_ti = get_now_ts();	
+		while(wrem) {
+			int next_write = std::min(4096, wrem);
 			n = zts_write(sockfd, &txbuf[w], next_write);
 			if (n > 0)
 			{
 				w += n;
 				wrem -= n;
+				err = n;
 			}
 		}
-
-		while(rrem) 
-		{
-			int next_read = std::min(1024, rrem);
-			DEBUG_ERROR("rrem = %d", rrem);
-			n = zts_read(sockfd, &rxbuf[r], next_read);
+		long int tx_tf = get_now_ts();	
+		DEBUG_TEST("wrote=%d", w);
+		// RX
+		long int rx_ti = 0;	
+		while(rrem) {
+			n = zts_read(sockfd, &rxbuf[r], rrem);
+			if(!rx_ti) { // wait for first message
+				rx_ti = get_now_ts();	
+			}
 			if (n > 0)
 			{
 				r += n;
 				rrem -= n;
+				err = n;
+			}
+		}
+		long int rx_tf = get_now_ts();	
+		DEBUG_TEST("read=%d", r);
+		sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
+		err = zts_close(sockfd);
+
+		// Compare RX and TX buffer and detect mismatches
+		bool match = true;
+		for(int i=0; i<count; i++) {
+			if(rxbuf[i] != txbuf[i]) {
+				DEBUG_ERROR("buffer mismatch found at idx=%d", i);
+				match=false;
 			}
 		}
 
-		std::time_t end_time = std::time(nullptr);
-		time_t ts_delta = end_time - start_time;
+		// Compute time deltas and transfer rates
+		float tx_dt = (tx_tf - tx_ti) / (float)1000;
+		float rx_dt = (rx_tf - rx_ti) / (float)1000;
+		float tx_rate = (float)count / (float)tx_dt;
+		float rx_rate = (float)count / (float)rx_dt;
 
-		err = zts_close(sockfd);
-		DEBUG_TEST("calculating checksum after transfer (rxbuf)...");
-		for(int i=0; i<count; i++) {
-			rx_checksum+=rxbuf[i];
-		}
-		for(int i=0; i<count; i++) {
-			tx_checksum+=txbuf[i];
-		}
+		sprintf(details, "tcp_client_sustained_4, match=%d, n=%d, tx_dt=%.2f, rx_dt=%.2f, r=%d, w=%d, tx_rate=%.2f MB/s, rx_rate=%.2f MB/s", 
+			match, count, tx_dt, rx_dt, r, w, (tx_rate / float(ONE_MEGABYTE) ), (rx_rate / float(ONE_MEGABYTE) ));	
 
-		sprintf(details, "tx_checksum=%x, rx_checksum=%x, count=%d, dt=%d, r=%d, w=%d", tx_checksum, rx_checksum, count, ts_delta, r, w);
-		*passed = (r == tot && w == tot && !err);
+		*passed = (r == count && w == count && match && err>=0);
 	}
-	fprintf(stderr, "%s\n", details);
-	exit(0);
+	free(rxbuf);
+	free(txbuf);
 }
+
+
 
 // Maintain transfer for count OR count
 void tcp_client_sustained_6(UNIT_TEST_SIG_6)
 {
-	DEBUG_TEST("\n");
-	int tot=0, n=0, w=0, r=0, sockfd, err, len = strlen(str);
-	char rbuf[STR_SIZE];
+	fprintf(stderr, "\n\n\ntcp_client_sustained_6\n");
+	int n=0, w=0, r=0, sockfd, err;	
+	char *rxbuf = (char*)malloc(count*sizeof(char));
+	char *txbuf = (char*)malloc(count*sizeof(char));
+	generate_random_data(txbuf, count);
+
 	if((sockfd = zts_socket(AF_INET6, SOCK_STREAM, 0)) < 0)
 		DEBUG_ERROR("error creating ZeroTier socket");
 	if((err = zts_connect(sockfd, (const struct sockaddr *)addr, sizeof(addr))) < 0)
 		DEBUG_ERROR("error connecting to remote host (%d)", err);
-	//zts_fcntl(sockfd, F_SETFL, O_NONBLOCK);
-	if(operation == TEST_OP_N_TIMES) {
-		std::time_t start_time = std::time(nullptr);
-		tot = len*count;
-		for(int i=0; i<count; i++) {
-			//usleep(delay * 1000);
-			n = zts_write(sockfd, str, len);
-			if (n > 0)
-				w += n;
-			n = zts_read(sockfd, rbuf, len);
-			if (n > 0)
-				r += n;
-		}
-		std::time_t end_time = std::time(nullptr);
-		err = zts_close(sockfd);
-		time_t ts_delta = end_time - start_time;
-		sprintf(details, "count=%d, ts_delta=%d, r=%d, w=%d", count, ts_delta, r, w);
-		*passed = (r == tot && w == tot && !err) && !strcmp(rbuf, str);
-	}
+
 	if(operation == TEST_OP_N_BYTES) {
-		tot = count;
-		while(r < tot || w < tot) {
-			//usleep(delay * 1000);
-			if (w < tot)
-				n = zts_write(sockfd, str, count);
+		int wrem = count, rrem = count;
+
+		// TX
+		long int tx_ti = get_now_ts();	
+		while(wrem) {
+			int next_write = std::min(4096, wrem);
+			n = zts_write(sockfd, &txbuf[w], next_write);
 			if (n > 0)
+			{
 				w += n;
-			if (r < tot)
-				n = zts_read(sockfd, rbuf, count);
-			if (n > 0)
-				r += n;
+				wrem -= n;
+				err = n;
+			}
 		}
+		long int tx_tf = get_now_ts();	
+		DEBUG_TEST("wrote=%d", w);
+		// RX
+		long int rx_ti = 0;	
+		while(rrem) {
+			n = zts_read(sockfd, &rxbuf[r], rrem);
+			if(!rx_ti) { // wait for first message
+				rx_ti = get_now_ts();	
+			}
+			if (n > 0)
+			{
+				r += n;
+				rrem -= n;
+				err = n;
+			}
+		}
+		long int rx_tf = get_now_ts();	
+		DEBUG_TEST("read=%d", r);
+
+		sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 		err = zts_close(sockfd);
-		sprintf(details, "count=%d\n", count);
-		*passed = (r == tot && w == tot && !err);
+
+		// Compare RX and TX buffer and detect mismatches
+		bool match = true;
+		for(int i=0; i<count; i++) {
+			if(rxbuf[i] != txbuf[i]) {
+				DEBUG_ERROR("buffer mismatch found at idx=%d", i);
+				match=false;
+			}
+		}
+
+		// Compute time deltas and transfer rates
+		float tx_dt = (tx_tf - tx_ti) / (float)1000;
+		float rx_dt = (rx_tf - rx_ti) / (float)1000;
+		float tx_rate = (float)count / (float)tx_dt;
+		float rx_rate = (float)count / (float)rx_dt;
+
+		sprintf(details, "tcp_client_sustained_6, match=%d, n=%d, tx_dt=%.2f, rx_dt=%.2f, r=%d, w=%d, tx_rate=%.2f MB/s, rx_rate=%.2f MB/s", 
+			match, count, tx_dt, rx_dt, r, w, (tx_rate / float(ONE_MEGABYTE) ), (rx_rate / float(ONE_MEGABYTE) ));	
+
+		*passed = (r == count && w == count && match && err>=0);
 	}
+	free(rxbuf);
+	free(txbuf);
 }
+
 
 // Maintain transfer for count OR count
 void tcp_server_sustained_4(UNIT_TEST_SIG_4)
 {
-	DEBUG_TEST("\n");
-	int tot=0, n=0, w=0, r=0, sockfd, accfd, err, len = strlen(str);
-	
-	char *rxbuf;
-	rxbuf = (char*)malloc(count*sizeof(char));
+	fprintf(stderr, "\n\n\ntcp_server_sustained_4\n");
+	int n=0, w=0, r=0, sockfd, accfd, err;
+	char *rxbuf = (char*)malloc(count*sizeof(char));
 	memset(rxbuf, 0, count);
-
-	char *txbuf;
-	txbuf = (char*)malloc(count*sizeof(char));
-	memset(txbuf, 0, count);
-
-	long int rx_checksum = 0;
-	long int tx_checksum = 0;
 
 	if((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		DEBUG_ERROR("error creating ZeroTier socket");
@@ -439,81 +510,64 @@ void tcp_server_sustained_4(UNIT_TEST_SIG_4)
 		DEBUG_ERROR("error placing socket in LISTENING state (%d)", err);
 	if((accfd = zts_accept(sockfd, (struct sockaddr *)&addr, (socklen_t *)sizeof(addr))) < 0)
 		DEBUG_ERROR("error accepting connection (%d)", err);
-	//zts_fcntl(accfd, F_SETFL, O_NONBLOCK);
-	if(operation == TEST_OP_N_TIMES) {
-		tot = len*count;
-		std::time_t start_time = std::time(nullptr);
-		for(int i=0; i<count; i++) {
-			//usleep(delay * 1000);
-			r += zts_read(accfd, rxbuf, len);
-			w += zts_write(accfd, txbuf, len);		
-		}
-		std::time_t end_time = std::time(nullptr);
-		zts_close(sockfd);
-		zts_close(accfd);
-		time_t ts_delta = end_time - start_time;
-		sprintf(details, "count=%d, ts_delta=%d, r=%d, w=%d", count, ts_delta, r, w);
-		*passed = (r == tot && w == tot && !err) && !strcmp(rxbuf, txbuf);
-	}
 	if(operation == TEST_OP_N_BYTES) {
-
-		int wrem = count;
-		int rrem = count;
-
-		std::time_t start_time = std::time(nullptr);
-
-
-		//zts_fcntl(sockfd, F_SETFL, O_NONBLOCK);
-
-
-		while(rrem) 
-		{
-			int next_read = std::min(1024, rrem);
-			DEBUG_ERROR("rrem = %d", rrem);
-			n = zts_read(accfd, &rxbuf[r], next_read);
+		int wrem = count, rrem = count;
+		long int rx_ti = 0;
+		while(rrem) {
+			n = zts_read(accfd, &rxbuf[r], rrem);
 			if (n > 0)
 			{
+				if(!rx_ti) { // wait for first message
+					rx_ti = get_now_ts();	
+				}
 				r += n;
 				rrem -= n;
+				err = n;
 			}
 		}
-
-		while(wrem) 
-		{
+		long int rx_tf = get_now_ts();	
+		DEBUG_TEST("read=%d", r);
+		
+		long int tx_ti = get_now_ts();	
+		while(wrem) {
 			int next_write = std::min(1024, wrem);
-			DEBUG_ERROR("wrem = %d", wrem);
-			n = zts_write(accfd, &txbuf[w], next_write);
+			n = zts_write(accfd, &rxbuf[w], next_write);
 			if (n > 0)
-			{
+			{	
 				w += n;
 				wrem -= n;
+				err = n;
 			}
 		}
+		long int tx_tf = get_now_ts();	
+		DEBUG_TEST("wrote=%d", w);
 
-		std::time_t end_time = std::time(nullptr);
-		time_t ts_delta = end_time - start_time;
-
+		sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 		err = zts_close(sockfd);
-		DEBUG_TEST("calculating checksum after transfer (rxbuf)...");
-		for(int i=0; i<count; i++) {
-			rx_checksum+=rxbuf[i];
-			fprintf(stderr, " %d", rxbuf[i]);
-		}
-		fprintf(stderr, "\n");
 
-		sprintf(details, "tx_checksum=%x, rx_checksum=%x, count=%d, dt=%d, r=%d, w=%d", tx_checksum, rx_checksum, count, ts_delta, r, w);
-		*passed = (r == tot && w == tot && !err);
+		// Compute time deltas and transfer rates
+		float tx_dt = (tx_tf - tx_ti) / (float)1000;
+		float rx_dt = (rx_tf - rx_ti) / (float)1000;
+		float tx_rate = (float)count / (float)tx_dt;
+		float rx_rate = (float)count / (float)rx_dt;
+
+		sprintf(details, "tcp_server_sustained_4, n=%d, tx_dt=%.2f, rx_dt=%.2f, r=%d, w=%d, tx_rate=%.2f MB/s, rx_rate=%.2f MB/s", 
+			count, tx_dt, rx_dt, r, w, (tx_rate / float(ONE_MEGABYTE) ), (rx_rate / float(ONE_MEGABYTE) ));
+
+		*passed = (r == count && w == count && err>=0);
 	}
-	fprintf(stderr, "%s\n", details);
-	exit(0);
+	free(rxbuf);
 }
+
 
 // Maintain transfer for count OR count
 void tcp_server_sustained_6(UNIT_TEST_SIG_6)
 {
-	DEBUG_TEST("\n");
-	int tot=0, n=0, w=0, r=0, sockfd, accfd, err, len = strlen(str);
-	char rbuf[STR_SIZE];
+	fprintf(stderr, "\n\n\ntcp_server_sustained_6\n");
+	int n=0, w=0, r=0, sockfd, accfd, err;
+	char *rxbuf = (char*)malloc(count*sizeof(char));
+	memset(rxbuf, 0, count);
+
 	if((sockfd = zts_socket(AF_INET6, SOCK_STREAM, 0)) < 0)
 		DEBUG_ERROR("error creating ZeroTier socket");
 	if((err = zts_bind(sockfd, (struct sockaddr *)addr, (socklen_t)sizeof(struct sockaddr_in)) < 0))
@@ -522,42 +576,52 @@ void tcp_server_sustained_6(UNIT_TEST_SIG_6)
 		DEBUG_ERROR("error placing socket in LISTENING state (%d)", err);
 	if((accfd = zts_accept(sockfd, (struct sockaddr *)&addr, (socklen_t *)sizeof(addr))) < 0)
 		DEBUG_ERROR("error accepting connection (%d)", err);
-	//zts_fcntl(accfd, F_SETFL, O_NONBLOCK);
-	if(operation == TEST_OP_N_TIMES) {
-		tot = len*count;
-		std::time_t start_time = std::time(nullptr);
-		for(int i=0; i<count; i++) {
-			usleep(delay * 1000);
-			r += zts_read(accfd, rbuf, len);
-			w += zts_write(accfd, rbuf, len);		
-		}
-		std::time_t end_time = std::time(nullptr);
-		zts_close(sockfd);
-		zts_close(accfd);
-		time_t ts_delta = end_time - start_time;
-		sprintf(details, "count=%d, ts_delta=%d, r=%d, w=%d", count, ts_delta, r, w);
-		*passed = (r == tot && w == tot && !err) && !strcmp(rbuf, str);
-	}
 	if(operation == TEST_OP_N_BYTES) {
-		tot = count;
-		while(r < tot || w < tot) {
-			usleep(delay * 1000);
-			if (r < tot)
-				n = zts_read(accfd, rbuf, count);
+		int wrem = count, rrem = count;
+		long int rx_ti = 0;
+		while(rrem) {
+			n = zts_read(accfd, &rxbuf[r], rrem);
 			if (n > 0)
+			{
+				if(!rx_ti) { // wait for first message
+					rx_ti = get_now_ts();	
+				}
 				r += n;
-			if (w < tot)
-				n = zts_write(accfd, str, count);
-			if (n > 0)
-				w += n;
+				rrem -= n;
+				err = n;
+			}
 		}
-		zts_close(sockfd);
-		zts_close(accfd);
-		sprintf(details, "count=%d", count);
-		*passed = (r == tot && w == tot && !err);
-	}
-}
+		long int rx_tf = get_now_ts();	
+		DEBUG_TEST("read=%d", r);
+		long int tx_ti = get_now_ts();	
+		while(wrem) {
+			int next_write = std::min(1024, wrem);
+			n = zts_write(accfd, &rxbuf[w], next_write);
+			if (n > 0)
+			{	
+				w += n;
+				wrem -= n;
+				err = n;
+			}
+		}
+		long int tx_tf = get_now_ts();	
+		DEBUG_TEST("wrote=%d", w);
+		sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
+		err = zts_close(sockfd);
 
+		// Compute time deltas and transfer rates
+		float tx_dt = (tx_tf - tx_ti) / (float)1000;
+		float rx_dt = (rx_tf - rx_ti) / (float)1000;
+		float tx_rate = (float)count / (float)tx_dt;
+		float rx_rate = (float)count / (float)rx_dt;
+
+		sprintf(details, "tcp_server_sustained_6, n=%d, tx_dt=%.2f, rx_dt=%.2f, r=%d, w=%d, tx_rate=%.2f MB/s, rx_rate=%.2f MB/s", 
+			count, tx_dt, rx_dt, r, w, (tx_rate / float(ONE_MEGABYTE) ), (rx_rate / float(ONE_MEGABYTE) ));
+
+		*passed = (r == count && w == count && err>=0);
+	}
+	free(rxbuf);
+}
 
 
 /****************************************************************************/
@@ -567,7 +631,8 @@ void tcp_server_sustained_6(UNIT_TEST_SIG_6)
 // Maintain transfer for count OR count
 void tcp_client_perf_4(UNIT_TEST_SIG_4)
 {
-	DEBUG_TEST("\n");
+	fprintf(stderr, "\n\n\ntcp_client_perf_4\n");
+	/*
 	int w=0, sockfd, err;
 	int total_test_sz          = count;
 	int arbitrary_chunk_sz_max = MAX_RX_BUF_SZ;
@@ -599,12 +664,14 @@ void tcp_client_perf_4(UNIT_TEST_SIG_4)
 		zts_close(sockfd);		
 	}	
 	*passed = (w == total_test_sz && !err) ? PASSED : FAILED;
+	*/
 }
 
 // Maintain transfer for count OR count
 void tcp_server_perf_4(UNIT_TEST_SIG_4)
 {
-	DEBUG_TEST("\n");
+	fprintf(stderr, "\n\n\ntcp_server_perf_4\n");
+	/*
 	int r=0, sockfd, accfd, err;
 	int total_test_sz          = count;
 	int arbitrary_chunk_sz_max = MAX_RX_BUF_SZ;
@@ -613,6 +680,7 @@ void tcp_server_perf_4(UNIT_TEST_SIG_4)
 	char rbuf[arbitrary_chunk_sz_max];
 
 	for (int i=arbitrary_chunk_sz_min; (i*2) < arbitrary_chunk_sz_max; i*=2) {
+		DEBUG_ERROR("TESTING chunk size = %d", i);
 		if((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
 			DEBUG_ERROR("error creating ZeroTier socket");
 		if((err = zts_bind(sockfd, (struct sockaddr *)addr, (socklen_t)sizeof(struct sockaddr_in)) < 0))
@@ -643,7 +711,12 @@ void tcp_server_perf_4(UNIT_TEST_SIG_4)
 		zts_close(accfd);
 	}
 	*passed = (r == total_test_sz && !err) ? PASSED : FAILED;
+	*/
 }
+
+
+
+
 
 /****************************************************************************/
 /* PERFORMANCE (between library and native)                                 */
@@ -651,7 +724,7 @@ void tcp_server_perf_4(UNIT_TEST_SIG_4)
 
 void tcp_perf_tx_echo_4(UNIT_TEST_SIG_4)
 {
-	DEBUG_TEST("\n");
+	fprintf(stderr, "\n\n\ntcp_perf_tx_echo_4\n");
 
 	int err   = 0;
 	int tot   = 0;
@@ -692,7 +765,7 @@ void tcp_perf_tx_echo_4(UNIT_TEST_SIG_4)
 			return;
 		}
 		tot += w;
-		//DEBUG_TEST("tot=%d, sent=%d", tot, w);
+		DEBUG_TEST("tot=%d, sent=%d", tot, w);
 	}
 	// read results
 	memset(pbuf, 0, sizeof pbuf);
@@ -709,15 +782,17 @@ void tcp_perf_tx_echo_4(UNIT_TEST_SIG_4)
 
 	float ts_delta = (end_time - start_time) / (float)1000;
 	float rate = (float)tot / (float)ts_delta;
-	sprintf(details, "tot=%d, dt=%.2f, rate=%.2f MB/s", tot, ts_delta, (rate / float(ONE_MEGABYTE) ));
+	sprintf(details, "tcp_perf_tx_echo_4, tot=%d, dt=%.2f, rate=%.2f MB/s", tot, ts_delta, (rate / float(ONE_MEGABYTE) ));
 
+	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
+	err = zts_close(sockfd);
 	*passed = (tot == count && !err) ? PASSED : FAILED;
 }
 
 
 void tcp_perf_rx_echo_4(UNIT_TEST_SIG_4)
 {
-	DEBUG_TEST("\n");
+	fprintf(stderr, "\n\n\ntcp_perf_rx_echo_4\n");
 
 	int err   = 0;
 	int mode  = 0;
@@ -769,34 +844,17 @@ void tcp_perf_rx_echo_4(UNIT_TEST_SIG_4)
 			return;
 		}
 		tot += r;
-		//DEBUG_TEST("r=%d, tot=%d", r, tot);
+		DEBUG_TEST("r=%d, tot=%d", r, tot);
 	}
 	long int end_time = get_now_ts();	
 	float ts_delta = (end_time - start_time) / (float)1000;
 	float rate = (float)tot / (float)ts_delta;
-	sprintf(details, "tot=%d, dt=%.2f, rate=%.2f MB/s", tot, ts_delta, (rate / float(ONE_MEGABYTE) ));		
+	sprintf(details, "tcp_perf_rx_echo_4, tot=%d, dt=%.2f, rate=%.2f MB/s", tot, ts_delta, (rate / float(ONE_MEGABYTE) ));		
 	
+	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
+	err = zts_close(sockfd);
 	*passed = (tot == count && !err) ? PASSED : FAILED;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1001,7 +1059,20 @@ int slam_api_test()
 	return 0;
 }
 
+/****************************************************************************/
+/* OBSCURE API CALL TESTS                                                   */
+/****************************************************************************/
 
+int obscure_api_test()
+{
+	// Disable Nagle's Algorithm on a socket
+	int sock = zts_socket(AF_INET, SOCK_STREAM, 0);
+	int flag = 1;
+	int err = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(int));
+	 if (err < 0) {
+	 	DEBUG_ERROR("error while disabling Nagle's algorithm on socket");
+	 }
+}
 
 
 /****************************************************************************/
@@ -1079,122 +1150,122 @@ int test_driver(std::string name, std::string path, std::string nwid,
 	int delay, 
 	std::vector<std::string> *results)
 {
-	struct hostent *server;
-    struct sockaddr_in6 addr6;
-	struct sockaddr_in addr;
-	char details[80];
-	char result_str[80];
-	memset(&details, 0, sizeof details);
-	bool passed = 0; 
-	char *ok_str   = (char*)"[  OK  ]";
-	char *fail_str = (char*)"[ FAIL ]";
-
-	// Create sockadder_in objects for test calls
-	if(ipv == 4) {
-		addr.sin_port = htons(port);
-		addr.sin_addr.s_addr = inet_addr(ipstr.c_str());
-		addr.sin_family = AF_INET;
-	}
-	if(ipv == 6) {
-		server = gethostbyname2(ipstr.c_str(),AF_INET6);
-		memset((char *) &addr6, 0, sizeof(addr6));
-		addr6.sin6_flowinfo = 0;
-		addr6.sin6_family = AF_INET6;
-		memmove((char *) &addr6.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
-		addr6.sin6_port = htons(port);
-	}
-
-	/****************************************************************************/
-	/* SIMPLE                                                                   */
-	/****************************************************************************/
-
-	// performs a one-off test of a particular subset of the API
-	// For instance (ipv4 client, ipv6 server, etc)
-	if(type == TEST_TYPE_SIMPLE) {		
-		if(mode == TEST_MODE_CLIENT) {
-			sprintf(result_str, "tcp_client_%d, %s : %d, ", ipv, ipstr.c_str(), port);			
-			if(ipv == 4)
-				tcp_client_4(&addr, operation, count, delay, details, &passed);
-			if(ipv == 6)
-				tcp_client_6(&addr6, operation, count, delay, details, &passed);
-		}
-
-		if(mode == TEST_MODE_SERVER) {
-			sprintf(result_str, "tcp_server_%d, %s : %d, ", ipv, ipstr.c_str(), port);			
-			if(ipv == 4)
-				tcp_server_4(&addr, operation, count, delay, details, &passed);
-			if(ipv == 6)
-				tcp_server_6(&addr6, operation, count, delay, details, &passed);
-		}
-	}
-
-	/****************************************************************************/
-	/* SUSTAINED                                                                */
-	/****************************************************************************/
-
-	// Performs a stress test for benchmarking performance
-	if(type == TEST_TYPE_SUSTAINED) {
-		if(mode == TEST_MODE_CLIENT) {
-			sprintf(result_str, "tcp_client_sustained_%d, %s : %d, ", ipv, ipstr.c_str(), port);			
-			if(ipv == 4)
-				tcp_client_sustained_4(&addr, operation, count, delay, details, &passed);
-			if(ipv == 6)
-				tcp_client_sustained_6(&addr6, operation, count, delay, details, &passed);
-		}
-
-		if(mode == TEST_MODE_SERVER)
-		{
-			sprintf(result_str, "tcp_server_sustained_%d, %s : %d, ", ipv, ipstr.c_str(), port);			
-			if(ipv == 4)				
-				tcp_server_sustained_4(&addr, operation, count, delay, details, &passed);
-			if(ipv == 6)
-				tcp_server_sustained_6(&addr6, operation, count, delay, details, &passed);
-		}
-	}
-	//
-	if(type == TEST_TYPE_PERF) {
-		if(mode == TEST_MODE_CLIENT) {
-			sprintf(result_str, "tcp_client_perf_%d, %s : %d, ", ipv, ipstr.c_str(), port);
-			if(ipv == 4)
-				tcp_client_perf_4(&addr, operation, count, delay, details, &passed);
-		}
-
-		if(mode == TEST_MODE_SERVER) {
-			sprintf(result_str, "tcp_server_perf_%d, %s : %d, ", ipv, ipstr.c_str(), port);
-			if(ipv == 4)
-				tcp_server_perf_4(&addr, operation, count, delay, details, &passed);
-		}
-	}
-	//
-	if(type == TEST_TYPE_PERF_TO_ECHO) {
-		// Will only operate in client mode
-		if(mode == TEST_MODE_CLIENT) {
-			sprintf(result_str, "tcp_perf_tx_echo_%d, %s : %d, ", ipv, ipstr.c_str(), port);
-			if(ipv == 4)
-				tcp_perf_tx_echo_4(&addr, operation, count, delay, details, &passed);
-		}
-		if(mode == TEST_MODE_SERVER) {
-			sprintf(result_str, "tcp_perf_rx_echo_%d, %s : %d, ", ipv, ipstr.c_str(), port);
-			if(ipv == 4)
-				tcp_perf_rx_echo_4(&addr, operation, count, delay, details, &passed);
-		}
-	}
-	if(passed == PASSED) {
-		DEBUG_TEST("%s",ok_str);
-		results->push_back(std::string(ok_str) + " " + std::string(result_str) + " " + std::string(details));
-	}
-	else {
-		DEBUG_ERROR("%s",fail_str);		
-		results->push_back(std::string(fail_str) + " " + std::string(result_str) + " " + std::string(details));
-	}
-	if(EXIT_ON_FAIL && !passed) {
-		fprintf(stderr, "%s\n", results->at(results->size()-1).c_str());
-		exit(0);
-	}
-	return passed;
+    return 0;
 }
 
 
+
+/*
+ For each API call, test the following:
+  - All possible combinations of plausible system-defined arguments
+  - Common values in innappropriate locations {-1, 0, 1}
+  - Check for specific errno values for each function
+
+*/
+void test_bad_args()
+{
+// Protocol Family test set
+	int proto_families[] = {
+		AF_UNIX, 
+		AF_LOCAL,
+		AF_INET,
+		AF_INET6,
+		AF_IPX,
+		PF_LOCAL,
+		PF_UNIX,
+		PF_INET,
+		PF_ROUTE,
+		PF_KEY,
+		PF_INET6,
+#if !defined(__linux__)
+		PF_SYSTEM,
+		PF_NDRV,
+#endif
+#if !defined(__APPLE__)
+		AF_NETLINK,
+		AF_X25,
+		AF_AX25,
+		AF_ATMPVC,
+		AF_ALG,
+		AF_PACKET,
+#endif
+		AF_APPLETALK
+	};
+	int num_proto_families = sizeof(proto_families) / sizeof(int);
+
+// Socket Type test set
+	int socket_types[] = {
+		SOCK_STREAM,
+		SOCK_DGRAM,
+		SOCK_RAW
+	};
+	int num_socket_types = 3;
+
+
+// Protocol test set
+
+	// int min = -1;
+	int max =  2;
+	int err =  0;
+
+	int min_protocol_family_value = 0;
+	int max_protocol_family_value = 0;
+
+	int min_socket_type_value = 0;
+	int max_socket_type_value = 0;
+
+	int min_protocol_value = 0;
+	int max_protocol_value = 0;
+
+	// socket()
+	DEBUG_TEST("testing bad arguments for socket()");
+
+	// Try all plausible argument combinations
+	for(int i=0; i<num_proto_families; i++) {
+		for(int j=0; j<num_socket_types; j++) {
+			for(int k=0; k<max; k++) {
+
+				int protocol_family = proto_families[i];
+				int socket_type = socket_types[j];
+				int protocol = -1;
+
+				min_protocol_family_value = std::min(protocol_family, min_protocol_family_value); 
+				max_protocol_family_value = std::max(protocol_family, max_protocol_family_value); 
+
+				min_socket_type_value = std::min(socket_type, min_socket_type_value); 
+				max_socket_type_value = std::max(socket_type, max_socket_type_value); 
+
+				min_protocol_value = std::min(protocol, min_protocol_value); 
+				max_protocol_value = std::max(protocol, max_protocol_value); 
+
+				err = zts_socket(protocol_family, socket_type, protocol);
+				usleep(100000);
+				if(err < 0) {
+					DEBUG_ERROR("zts_socket(%d, %d, %d) = %d, errno=%d (%s)", protocol_family, socket_type, protocol, err, errno, strerror(errno));
+				}
+				else {
+					DEBUG_TEST("zts_socket(%d, %d, %d) = %d, errno=%d (%s)", protocol_family, socket_type, protocol, err, errno, strerror(errno));
+				}
+			}	
+		}
+	}
+
+	DEBUG_TEST("min_protocol_family_value=%d",min_protocol_family_value);
+	DEBUG_TEST("max_protocol_family_value=%d",max_protocol_family_value);
+
+	DEBUG_TEST("min_socket_type_value=%d",min_socket_type_value);
+	DEBUG_TEST("max_socket_type_value=%d",max_socket_type_value);
+
+	DEBUG_TEST("min_protocol_value=%d",min_protocol_value);
+	DEBUG_TEST("max_protocol_value=%d",max_protocol_value);
+
+
+	DEBUG_TEST("AF_INET = %d", AF_INET);
+	DEBUG_TEST("AF_INET6 = %d", AF_INET6);
+	DEBUG_TEST("SOCK_STREAM = %d", SOCK_STREAM);
+	DEBUG_TEST("SOCK_DGRAM = %d", SOCK_DGRAM);
+
+}
 
 
 /****************************************************************************/
@@ -1203,71 +1274,77 @@ int test_driver(std::string name, std::string path, std::string nwid,
 
 int main(int argc , char *argv[])
 {
-    if(argc < 1) {
-        fprintf(stderr, "usage: selftest <alice|bob>.conf\n");
-        fprintf(stderr, " - Define your test environment in *.conf files.\n");     
+    if(argc < 5) {
+        fprintf(stderr, "usage: selftest <selftest.conf> <alice|bob|ted|carol> to <bob|alice|ted|carol>\n");
+        fprintf(stderr, "e.g. : selftest test/selftest.conf alice to bob\n");
         return 1;
     }
+
+	std::string from = argv[2];
+	std::string   to = argv[4];
+	std::string   me = from;
 
     std::vector<std::string> results;
 
     int err          = 0;
-	int type         = 0;
-    int ipv          = 0;
     int mode         = 0;
     int port         = 0;
     int operation    = 0;
     int start_port   = 0;
     int port_offset  = 0;
-	int count      = 0;
+	int count        = 0;
 	int delay        = 0;
 
-	std::string remote_echo_ipv4;
-
+	std::string remote_echo_ipv4, smode;
 	std::string nwid, stype, path = argv[1];
 	std::string ipstr, ipstr6, local_ipstr, local_ipstr6, remote_ipstr, remote_ipstr6;
 	memcpy(str, "welcome to the machine", 22);
 
-	// if a test config file was specified:
-	if(path.find(".conf") != std::string::npos) {
-		//printf("\nTest config file contents:\n");
-		loadTestConfigFile(path);
-		nwid   = testConf["nwid"];
-		path   = testConf["local_path"];
-		stype  = testConf["test"];
-		start_port = atoi(testConf["start_port"].c_str());
-		port_offset = atoi(testConf["port_offset"].c_str());
-		local_ipstr   = testConf["local_ipv4"];
-		local_ipstr6  = testConf["local_ipv6"];
-		remote_ipstr  = testConf["remote_ipv4"];
-		remote_ipstr6 = testConf["remote_ipv6"];
-
-		remote_echo_ipv4 = testConf["remote_echo_ipv4"];
-
-		std::string smode   = testConf["mode"];
-
-		if(strcmp(smode.c_str(), "server") == 0)
-			mode = TEST_MODE_SERVER;
-		else
-			mode = TEST_MODE_CLIENT;
-
-/*
-		fprintf(stderr, "\tlocal_ipstr  =%s\n", local_ipstr.c_str());
-		fprintf(stderr, "\tlocal_ipstr6 =%s\n", local_ipstr6.c_str());
-		fprintf(stderr, "\tremote_ipstr =%s\n", remote_ipstr.c_str());
-		fprintf(stderr, "\tremote_ipstr6=%s\n", remote_ipstr6.c_str());
-		
-		fprintf(stderr, "\tstart_port =%d\n", start_port);
-*/
+	// loaf config file
+	if(path.find(".conf") == std::string::npos) {
+		fprintf(stderr, "Possibly invalid conf file. Exiting...\n");
+		exit(0);
 	}
-/*
-	fprintf(stderr, "\tpath         =%s\n", path.c_str());
-	fprintf(stderr, "\tnwid         =%s\n", nwid.c_str());
-	fprintf(stderr, "\ttype         =%s\n\n", stype.c_str());
-*/
+	loadTestConfigFile(path);
+
+	// get origin details
+	local_ipstr = testConf[me + ".ipv4"];
+	local_ipstr6 = testConf[me + ".ipv6"];
+	nwid = testConf[me + ".nwid"];
+	path = testConf[me + ".path"];
+	stype = testConf[me + ".test"];
+	smode = testConf[me + ".mode"];
+	start_port = atoi(testConf[me + ".port"].c_str());
+	port_offset = 100;
+
+	// get destination details
+	remote_echo_ipv4 = testConf[to + ".echo_ipv4"];
+	remote_ipstr  = testConf[to + ".ipv4"];
+	remote_ipstr6 = testConf[to + ".ipv6"];
+
+	if(strcmp(smode.c_str(), "server") == 0)
+		mode = TEST_MODE_SERVER;
+	else
+		mode = TEST_MODE_CLIENT;
+
+	fprintf(stderr, "ORIGIN:\n\n");
+	fprintf(stderr, "\tlocal_ipstr      = %s\n", local_ipstr.c_str());
+	fprintf(stderr, "\tlocal_ipstr6     = %s\n", local_ipstr6.c_str());
+	fprintf(stderr, "\tstart_port       = %d\n", start_port);
+	fprintf(stderr, "\tpath             = %s\n", path.c_str());
+	fprintf(stderr, "\tnwid             = %s\n", nwid.c_str());
+	fprintf(stderr, "\ttype             = %s\n\n", stype.c_str());
+
+	fprintf(stderr, "DESTINATION:\n\n");
+	fprintf(stderr, "\tremote_ipstr     = %s\n", remote_ipstr.c_str());
+	fprintf(stderr, "\tremote_ipstr6    = %s\n", remote_ipstr6.c_str());
+	fprintf(stderr, "\tremote_echo_ipv4 = %s\n", remote_echo_ipv4.c_str());
 
 	DEBUG_TEST("Waiting for libzt to come online...\n");
 	zts_simple_start(path.c_str(), nwid.c_str());
+	char device_id[11];
+	zts_get_device_id(device_id);
+	DEBUG_TEST("I am %s, %s", device_id, me.c_str());
 	if(mode == TEST_MODE_SERVER)
 		DEBUG_TEST("Ready. You should start selftest program on second host now...\n\n");
 	if(mode == TEST_MODE_CLIENT)
@@ -1292,185 +1369,168 @@ int main(int argc , char *argv[])
 		return 0;
 	}
 
-	// SIMPLE
-	// performs a one-off test of a particular subset of the API
-	// For instance (ipv4 client, ipv6 server, etc)
-/*
-	if(stype == "simple")
-	{
-		DEBUG_TEST("performing SIMPLE test\n");
-		// Parse args
-		type     = TEST_TYPE_SIMPLE;
-		ipv = atoi(argv[4]);
-		if(!strcmp(argv[5],"client"))
-			mode = TEST_MODE_CLIENT;
-		if(!strcmp(argv[5],"server"))
-			mode = TEST_MODE_SERVER;
-		ipstr = argv[6];
-		port = atoi(argv[7]);
-		
-		// Perform test
-	    return test_driver(argv[5], path, nwid, type, ipv, mode, ipstr, port, operation, count, delay, &results);
-	}
-
-	// SUSTAINED
-	// Performs a stress test for benchmarking performance
-	if(stype == "sustained")
-	{
-		DEBUG_TEST("performing SUSTAINED test\n");
-		type     = TEST_TYPE_SUSTAINED;
-		ipv = atoi(argv[4]);
-		if(!strcmp(argv[5],"client"))
-			mode = TEST_MODE_CLIENT;
-		if(!strcmp(argv[5],"server"))
-			mode = TEST_MODE_SERVER;
-		ipstr = argv[6];
-		port = atoi(argv[7]);
-
-
-		std::string s_operation = argv[ 8];  // count, count, count
-		count  = atoi(argv[ 9]); // 10, 100, 1000, ...
-		delay    = atoi(argv[10]); // 100 (in ms)
-		
-		if(s_operation == "n_times")
-			operation = TEST_OP_N_TIMES;
-		if(s_operation == "n_bytes")
-			operation = TEST_OP_N_BYTES;
-		if(s_operation == "n_seconds")
-			operation = TEST_OP_N_SECONDS;
-
-		// Perform test
-	    return test_driver(argv[5], path, nwid, type, ipv, mode, ipstr, port, operation, count, delay, &results);
-	}
-*/
-
 	/****************************************************************************/
 	/* COMPREHENSIVE                                                            */
 	/****************************************************************************/
 
-	// Use test/*.conf files to specify test setup
-	// More information can be found in TESTING.md
+	// More info can be found in TESTING.md
 
-	// COMPREHENSIVE
+	// test purpposefully bad arguments
+
+	//test_bad_args();
+	//exit(0);
+
+
+	int test_number = 0;
+	int ipv;
+	struct sockaddr addr;
+	char details[128];
+	memset(&details, 0, sizeof details);
+	bool passed = 0; 
+
 	// Tests ALL API calls
 	if(stype == "comprehensive")
 	{	
 
-// Establish initial IPV4 connection between Alice and Bob
-
 		port      = start_port;
 		delay     = 0;
-		count     = 128;
-		operation = TEST_OP_N_BYTES;
-	
-		if(mode == TEST_MODE_SERVER)
-			ipstr = local_ipstr;
-		else if(mode == TEST_MODE_CLIENT) {
-			sleep(3); // give the server some time to come online before beginning test
-			ipstr = remote_ipstr;
-		}
-		err += test_driver("ipv4", path, nwid, TEST_TYPE_SIMPLE, 4, mode, ipstr, port, operation, count, delay, &results);
-
-// Perform sustained transfer
-
-		port++;
-		err += test_driver("ipv4_sustained", path, nwid, TEST_TYPE_SUSTAINED, 4, mode, ipstr, port, operation, count, delay, &results);
-
-		// swtich modes (client/server)
-		if(mode == TEST_MODE_SERVER) {
-			ipstr = remote_ipstr;
-			mode  = TEST_MODE_CLIENT;
-		}
-		else if(mode == TEST_MODE_CLIENT) {
-			ipstr = local_ipstr;
-			mode  = TEST_MODE_SERVER;
-		}
-
-		port++;
-		err += test_driver("ipv4", path, nwid, TEST_TYPE_SIMPLE, 4, mode, ipstr, port, operation, count, delay, &results);
-
-// IPV6
-
-		if(mode == TEST_MODE_SERVER) {
-			ipstr6 = local_ipstr6;
-		}
-		else if(mode == TEST_MODE_CLIENT) {
-			sleep(3); // give the server some time to come online before beginning test
-			ipstr6 = remote_ipstr6;
-		}
-
-		port++;
-		err += test_driver("ipv6", path, nwid, TEST_TYPE_SIMPLE, 6, mode, ipstr6, port, operation, count, delay, &results);
-
-// Perform sustained transfer
-
-		port++;
-		err += test_driver("ipv6_sustained", path, nwid, TEST_TYPE_SUSTAINED, 6, mode, ipstr6, port, operation, count, delay, &results);
-
-		// swtich modes (client/server)
-		if(mode == TEST_MODE_SERVER) {
-			ipstr6 = remote_ipstr6;
-			mode  = TEST_MODE_CLIENT;
-		}
-		else if(mode == TEST_MODE_CLIENT) {
-			ipstr6 = local_ipstr6;
-			mode  = TEST_MODE_SERVER;
-		}
-
-		port++;
-		err += test_driver("ipv6", path, nwid, TEST_TYPE_SIMPLE, 6, mode, ipstr6, port, operation, count, delay, &results);
-
-
-// PERFORMANCE (between library instances)
-		
-		count   = 1024*16;
+		count     = 1024*128;
 		operation = TEST_OP_N_BYTES;
 
+
+// ipv4 client/server
+		ipv = 4;
 		if(mode == TEST_MODE_SERVER) {
-			ipstr = remote_ipstr;
-			mode  = TEST_MODE_CLIENT;
+			create_addr(local_ipstr, port, ipv, (struct sockaddr *)&addr);
+			tcp_server_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_server_4
 		}
 		else if(mode == TEST_MODE_CLIENT) {
-			ipstr = local_ipstr;
-			mode  = TEST_MODE_SERVER;
+			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+			create_addr(remote_ipstr, port, ipv, (struct sockaddr *)&addr);
+			tcp_client_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_client_4
 		}
-
+		RECORD_RESULTS(&test_number, passed, details, &results);
+		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+		port++; // move up one port
+		if(mode == TEST_MODE_SERVER) {
+			create_addr(local_ipstr, port, ipv, (struct sockaddr *)&addr);
+			tcp_server_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_server_4
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+			create_addr(remote_ipstr, port, ipv, (struct sockaddr *)&addr);
+			tcp_client_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_client_4
+		}
+		RECORD_RESULTS(&test_number, passed, details, &results);
 		port++;
-		err += test_driver("ipv4_perf", path, nwid, TEST_TYPE_PERF, 4, mode, ipstr, port, operation, count, delay, &results);		
+
+
+// ipv4 sustained transfer	
+		ipv = 4;	
+		if(mode == TEST_MODE_SERVER) {
+			create_addr(local_ipstr, port, ipv, (struct sockaddr *)&addr);
+			tcp_server_sustained_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_server_sustained_4
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+			create_addr(remote_ipstr, port, ipv, (struct sockaddr *)&addr);
+			tcp_client_sustained_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_client_sustained_4
+		}
+		RECORD_RESULTS(&test_number, passed, details, &results); // swtich roles
+		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+		port++;
+		if(mode == TEST_MODE_SERVER) {
+			create_addr(local_ipstr, port, ipv, (struct sockaddr *)&addr);
+			tcp_server_sustained_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_server_sustained_4
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+			create_addr(remote_ipstr, port, ipv, (struct sockaddr *)&addr);
+			tcp_client_sustained_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_client_sustained_4
+		}
+		RECORD_RESULTS(&test_number, passed, details, &results);
+		port++;
+
+
+// ipv6 client/server
+		ipv = 6;
+		if(mode == TEST_MODE_SERVER) {
+			create_addr(local_ipstr6, port, ipv, (struct sockaddr *)&addr);
+			tcp_server_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_server_6
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			DEBUG_TEST("waiting (15s) for other selftest to complete before continuing...");
+			sleep(WAIT_FOR_TEST_TO_CONCLUDE);
+			create_addr(remote_ipstr6, port, ipv, (struct sockaddr *)&addr);
+			tcp_client_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_client_6
+		}
+		RECORD_RESULTS(&test_number, passed, details, &results);
+		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+		port++; // move up one port
+		if(mode == TEST_MODE_SERVER) {
+			create_addr(local_ipstr6, port, ipv, (struct sockaddr *)&addr);
+			tcp_server_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_server_6
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+			create_addr(remote_ipstr6, port, ipv, (struct sockaddr *)&addr);
+			tcp_client_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_client_6
+		}
+		RECORD_RESULTS(&test_number, passed, details, &results);
+		port++;
+
+
+// ipv6 sustained transfer
+		ipv = 6;		
+		if(mode == TEST_MODE_SERVER) {
+			create_addr(local_ipstr6, port, ipv, (struct sockaddr *)&addr);
+			tcp_server_sustained_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_server_sustained_4
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+			create_addr(remote_ipstr6, port, ipv, (struct sockaddr *)&addr);
+			tcp_client_sustained_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_client_sustained_4
+		}
+		RECORD_RESULTS(&test_number, passed, details, &results); // swtich roles
+		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+		port++;
+		if(mode == TEST_MODE_SERVER) {
+			create_addr(local_ipstr6, port, ipv, (struct sockaddr *)&addr);
+			tcp_server_sustained_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_server_sustained_4
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+			create_addr(remote_ipstr6, port, ipv, (struct sockaddr *)&addr);
+			tcp_client_sustained_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_client_sustained_4
+		}
+		RECORD_RESULTS(&test_number, passed, details, &results);
+		port++;
 
 // PERFORMANCE (between this library instance and a native non library instance (echo) )
 // Client/Server mode isn't being tested here, so it isn't important, we'll just set it to client
 
-		count   = 1024*1024*16;
-		operation = TEST_OP_N_BYTES;
-
-		//mode = TEST_MODE_CLIENT;
-		ipstr = remote_echo_ipv4;
-
-		int echo_connect_port = 0;
-
-		if(strcmp(testConf["name"].c_str(), "alice") == 0)
-			echo_connect_port = start_port+port_offset+1;
-		else if(strcmp(testConf["name"].c_str(), "bob") == 0)
-		{
-			echo_connect_port = start_port+port_offset;
-			// since we're testing throughput (possibly on the same machine), we want to make
-			// sure the other host's test is completed first.
-			DEBUG_TEST("waiting for other host's test to conclude");
-			sleep(25);
+// ipv4 echo test
+		ipv = 4;	
+		if(me == "alice" || me == "ted") {
+			port=start_port+100; // e.g. 7100
+			create_addr(remote_echo_ipv4, port, ipv, (struct sockaddr *)&addr);
+			tcp_perf_tx_echo_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_perf_tx_echo_4
+			RECORD_RESULTS(&test_number, passed, details, &results);
+			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+			tcp_perf_rx_echo_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_perf_rx_echo_4
+			RECORD_RESULTS(&test_number, passed, details, &results);
 		}
-
-		err += test_driver("ipv4_perf_to_echo", path, nwid, TEST_TYPE_PERF_TO_ECHO, 4, mode, ipstr, echo_connect_port, operation, count, delay, &results);	
-
-		if(mode == TEST_MODE_SERVER) {
-			mode  = TEST_MODE_CLIENT;
+		if(me == "bob" || me == "carol") {
+			DEBUG_TEST("waiting (15s) for other selftest to complete before continuing...");
+			sleep(WAIT_FOR_TEST_TO_CONCLUDE);			
+			port=start_port+101; // e.g. 7101
+			create_addr(remote_echo_ipv4, port, ipv, (struct sockaddr *)&addr);
+			tcp_perf_rx_echo_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_perf_tx_echo_4
+			RECORD_RESULTS(&test_number, passed, details, &results);
+			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+			tcp_perf_tx_echo_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_perf_rx_echo_4
+			RECORD_RESULTS(&test_number, passed, details, &results);
 		}
-		else if(mode == TEST_MODE_CLIENT) {
-			mode  = TEST_MODE_SERVER;
-		}
-
-		err += test_driver("ipv4_perf_to_echo", path, nwid, TEST_TYPE_PERF_TO_ECHO, 4, mode, ipstr, echo_connect_port, operation, count, delay, &results);	
-
 	}
 
 
@@ -1489,6 +1549,7 @@ int main(int argc , char *argv[])
 	for(int i=0;i<results.size(); i++) {
 		fprintf(stderr, "%s\n", results[i].c_str());
 	}
-
 	return err;
 }
+
+// zts_fcntl(accfd, F_SETFL, O_NONBLOCK);

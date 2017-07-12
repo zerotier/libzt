@@ -37,7 +37,7 @@
 #define ZT_PHY_POLL_INTERVAL               10  // ms
 #define ZT_ACCEPT_RECHECK_DELAY            100 // ms (for blocking zts_accept() calls)
 #define ZT_CONNECT_RECHECK_DELAY           100 // ms (for blocking zts_connect() calls)
-#define ZT_API_CHECK_INTERVAL              500 // ms
+#define ZT_API_CHECK_INTERVAL              100 // ms
 
 #define MAX_PICO_FRAME_RX_BUF_SZ           ZT_MAX_MTU * 128
 
@@ -46,7 +46,11 @@
 #define ZT_UDP_TX_BUF_SZ                   ZT_MAX_MTU
 #define ZT_UDP_RX_BUF_SZ                   ZT_MAX_MTU * 10
 
-#define ZT_SDK_RPC_DIR_PREFIX              "rpc.d"
+#define ZT_STACK_TCP_SOCKET_TX_SZ          2048
+#define ZT_STACK_TCP_SOCKET_RX_SZ          2048
+
+#define ZT_STACK_SOCKET_RD_MAX             2048
+#define ZT_STACK_SOCKET_WR_MAX             2048
 
 #define ZT_CORE_VERSION_MAJOR              1
 #define ZT_CORE_VERSION_MINOR              2
@@ -75,7 +79,7 @@
 // a short period of time by default as a precaution.
 
 #define ZT_SOCK_BEHAVIOR_LINGER            true
-#define ZT_SOCK_BEHAVIOR_LINGER_TIME       3  // s
+#define ZT_SOCK_BEHAVIOR_LINGER_TIME       10000 // ms
 
 // Wait time for socket closure if data is still present in the write queue
 #define ZT_SDK_CLTIME                      60
@@ -104,6 +108,7 @@
 #define ZT_SEND_SIG int fd, const void *buf, size_t len, int flags
 #define ZT_READ_SIG int fd, void *buf, size_t len
 #define ZT_WRITE_SIG int fd, const void *buf, size_t len
+#define ZT_SHUTDOWN_SIG int fd, int how
 #define ZT_SOCKET_SIG int socket_family, int socket_type, int protocol
 #define ZT_CONNECT_SIG int fd, const struct sockaddr *addr, socklen_t addrlen
 #define ZT_BIND_SIG int fd, const struct sockaddr *addr, socklen_t addrlen
@@ -111,6 +116,8 @@
 #define ZT_ACCEPT4_SIG int fd, struct sockaddr *addr, socklen_t *addrlen, int flags
 #define ZT_ACCEPT_SIG int fd, struct sockaddr *addr, socklen_t *addrlen
 #define ZT_CLOSE_SIG int fd
+#define ZT_POLL_SIG struct pollfd *fds, nfds_t nfds, int timeout
+#define ZT_SELECT_SIG int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout
 #define ZT_GETSOCKNAME_SIG int fd, struct sockaddr *addr, socklen_t *addrlen
 #define ZT_GETPEERNAME_SIG int fd, struct sockaddr *addr, socklen_t *addrlen
 #define ZT_FCNTL_SIG int fd, int cmd, int flags
@@ -327,6 +334,16 @@ int zts_getpeername(ZT_GETPEERNAME_SIG);
 int zts_close(ZT_CLOSE_SIG);
 
 /**
+ * waits for one of a set of file descriptors to become ready to perform I/O.
+ */
+int zts_poll(ZT_POLL_SIG);
+
+/**
+ * monitor multiple file descriptors, waiting until one or more of the file descriptors become "ready"
+ */
+int zts_select(ZT_SELECT_SIG);
+
+/**
  * Issue file control commands on a socket
  */
 int zts_fcntl(ZT_FCNTL_SIG);
@@ -367,6 +384,11 @@ int zts_read(ZT_READ_SIG);
  */
 int zts_write(ZT_WRITE_SIG);
 
+/*
+ * Sends a FIN segment 
+ */
+int zts_shutdown(ZT_SHUTDOWN_SIG);
+
 /****************************************************************************/
 /* SDK Socket API Helper functions/objects --- DONT CALL THESE DIRECTLY     */
 /****************************************************************************/
@@ -376,6 +398,11 @@ namespace ZeroTier
   class picoTCP;
   extern ZeroTier::picoTCP *picostack;
 }
+
+/*
+ * Gets a pointer to a pico_socket given a file descriptor
+ */
+int zts_get_pico_socket(int fd, struct pico_socket *s);
 
 /**
  * Returns the number of sockets either already provisioned or waiting to be
@@ -396,6 +423,11 @@ int pico_ntimers();
  * Don't call this directly, use 'zts_start()'
  */
 void *zts_start_service(void *thread_id);
+
+/*
+ *
+ */
+void handle_general_failure();
 
 #include "Debug.hpp"
 

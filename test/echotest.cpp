@@ -59,13 +59,18 @@ std::map<std::string, std::string> testConf;
 
 void loadTestConfigFile(std::string filepath)
 {
-	std::string key;
-	std::string value;
+	std::string key, value, prefix;
 	std::ifstream testFile;
 	testFile.open(filepath.c_str());
 	while (testFile >> key >> value) {
-		if(key[0] != '#')
-	    	testConf[key] = value;
+		if(key == "name") {
+			prefix = value;
+		}
+		if(key[0] != '#' && key[0] != ';') {
+	    	testConf[prefix + "." + key] = value; // format: alice.ipv4 172.30.30.1
+	        //fprintf(stderr, "%s.%s = %s\n", prefix.c_str(), key.c_str(), testConf[prefix + "." + key].c_str());
+	    }
+
 	}
 	testFile.close();
 }
@@ -108,16 +113,16 @@ void start_echo_mode(std::string ipstr, int listen_port)
 			DEBUG_ERROR("error accepting connection (err=%d, errno=%s)", accfd, strerror(errno));
 			return;
 		}
-		DEBUG_TEST("connection accepted! (fd=%d)", accfd);
+		DEBUG_TEST("\n\nconnection accepted! (fd=%d)", accfd);
 
 		// Read initial test parameters from other host
-		int err = 0;
-		int mode = 0; // rx/tx
+		int err   = 0;
+		int mode  = 0; // rx/tx
 		int count = 0; // of incoming byte stream, or requested outgoing
+		int len   = sizeof mode + sizeof count;
+		int tot   = 0; // total bytes read from remote test stream (selftest)
 		char pbuf[64]; // test parameter buffer
 		char rbuf[MAX_RX_BUF_SZ];
-		int len = sizeof mode + sizeof count;
-		int tot = 0; // total bytes read from remote test stream (selftest)
 
 		memset(pbuf, 0, sizeof pbuf);
 
@@ -166,10 +171,10 @@ void start_echo_mode(std::string ipstr, int listen_port)
 				tot += err;
 				totKB = (float)tot / (float)1024;
 				totMB = (float)tot / (float)(1024*1024);
-				//DEBUG_TEST("read = %d, totB = %d, totKB = %3f, totMB = %3f", err, tot, totKB, totMB);
+				DEBUG_TEST("read = %d, totB = %d, totKB = %3f, totMB = %3f", err, tot, totKB, totMB);
 
 			}
-			//DEBUG_TEST("total received = %d (%d MB)", tot);
+			DEBUG_TEST("total received = %d (%d MB)", tot);
 			long int end_time = get_now_ts();	
 			DEBUG_TEST("read last byte (tot=%d). stopping timer. sending test data back to remote selftest", tot);
 
@@ -182,7 +187,7 @@ void start_echo_mode(std::string ipstr, int listen_port)
 				DEBUG_ERROR("error while sending test data to remote selftest host (err=%d, errno=%s)", err, strerror(errno));
 				return;
 			}
-			DEBUG_TEST("sleeping before closing socket and accepting further selftest connections\n\n");
+			DEBUG_TEST("sleeping before closing socket and accepting further selftest connections");
 			sleep(3);
 		}
 
@@ -206,7 +211,7 @@ void start_echo_mode(std::string ipstr, int listen_port)
 				tot += err;
 				totKB = (float)tot / (float)1024;
 				totMB = (float)tot / (float)(1024*1024);
-				//DEBUG_TEST("read = %d, totB = %d, totKB = %3f, totMB = %3f", err, tot, totKB, totMB);
+				DEBUG_TEST("wrote = %d, totB = %d, totKB = %3f, totMB = %3f", err, tot, totKB, totMB);
 			}
 			DEBUG_TEST("sleeping before closing socket and accepting further selftest connections");
 			sleep(3);
@@ -216,13 +221,18 @@ void start_echo_mode(std::string ipstr, int listen_port)
 	close(sockfd);
 }
 
+
 int main(int argc , char *argv[])
 {
-    if(argc < 1) {
-        fprintf(stderr, "usage: echo <alice|bob>.conf\n");
-        fprintf(stderr, " - Define your test environment in *.conf files.\n");     
+    if(argc < 5) {
+        fprintf(stderr, "usage: echotest <selftest.conf> <alice|bob|ted|carol> to <bob|alice|ted|carol>\n");
+        fprintf(stderr, "e.g. : echotest test/selftest.conf bob to alice\n");   
         return 1;
     }
+
+	std::string from = argv[2];
+	std::string   to = argv[4];
+	std::string   me = from;
 
     int start_port       = 0;
     int port_offset      = 0;
@@ -233,29 +243,44 @@ int main(int argc , char *argv[])
 	std::string nwid, stype, path = argv[1];
 	std::string ipstr, ipstr6, local_ipstr, local_ipstr6, remote_ipstr, remote_ipstr6;
 
-	// if a test config file was specified:
-	if(path.find(".conf") != std::string::npos) {
-		loadTestConfigFile(path);
-		start_port = atoi(testConf["start_port"].c_str());
-		port_offset = atoi(testConf["port_offset"].c_str());
-		local_ipstr   = testConf["local_ipv4"];
-		local_ipstr6  = testConf["local_ipv6"];
-		local_echo_ipv4 = testConf["local_echo_ipv4"];
-		remote_ipstr  = testConf["remote_ipv4"];
-		remote_ipstr6 = testConf["remote_ipv6"];
-
-		if(strcmp(testConf["name"].c_str(), "alice") == 0)
-			echo_listen_port = start_port+port_offset;
-		else if(strcmp(testConf["name"].c_str(), "bob") == 0)
-			echo_listen_port = start_port+port_offset+1;
-
-		fprintf(stderr, "\tlocal_ipstr     = %s\n", local_ipstr.c_str());
-		fprintf(stderr, "\tremote_ipstr    = %s\n", remote_ipstr.c_str());		
-		fprintf(stderr, "\tstart_port      = %d\n", start_port);
-		fprintf(stderr, "\tport_offset     = %d\n", port_offset);
-		fprintf(stderr, "\tlocal_echo_ipv4 = %s\n", local_echo_ipv4.c_str());
+	// loaf config file
+	if(path.find(".conf") == std::string::npos) {
+		fprintf(stderr, "Possibly invalid conf file. Exiting...\n");
+		exit(0);
 	}
+	loadTestConfigFile(path);
+
+	// get echo details
+	local_echo_ipv4 = testConf[me + ".echo_ipv4"];
+	nwid = testConf[me + ".nwid"];
+	start_port = atoi(testConf[me + ".port"].c_str());
+	port_offset = 100;
+
+	// get destination details
+	remote_ipstr  = testConf[to + ".ipv4"];
+	remote_ipstr6 = testConf[to + ".ipv6"];
+
+	if(me == "alice" || me == "ted") {
+		echo_listen_port = start_port + port_offset + 1;
+	}
+	if(me == "bob" || me == "carol") {
+		echo_listen_port = start_port + port_offset;
+	}
+
+	fprintf(stderr, "Test Parameters:\n\n");
+
+	fprintf(stderr, "ORIGIN:\n\n");
+	fprintf(stderr, "\tlocal_ipstr      = %s\n", local_ipstr.c_str());
+	fprintf(stderr, "\tlocal_ipstr6     = %s\n", local_ipstr6.c_str());
+	fprintf(stderr, "\tstart_port       = %d\n", start_port);
+	fprintf(stderr, "\tnwid             = %s\n", nwid.c_str());
+	fprintf(stderr, "\ttype             = %s\n\n", stype.c_str());
+
+	fprintf(stderr, "DESTINATION:\n\n");
+	fprintf(stderr, "\tremote_ipstr     = %s\n", remote_ipstr.c_str());
+	fprintf(stderr, "\tremote_ipstr6    = %s\n", remote_ipstr6.c_str());
 	
+	fprintf(stderr, "I am %s\n", me.c_str());
 	DEBUG_TEST("Starting echo mode... %s : %d", local_echo_ipv4.c_str(), echo_listen_port);
 	start_echo_mode(local_echo_ipv4, echo_listen_port);
 	return 1;

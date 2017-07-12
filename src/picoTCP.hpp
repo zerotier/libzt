@@ -156,6 +156,16 @@ namespace ZeroTier
 		 * Close a Connection - Called from SocketTap
 		 */
 		int pico_Close(Connection *conn);
+
+    	/*
+		 * Converts error code to pretty string
+		 */
+		static char *beautify_pico_error(int err);
+
+		/*
+		 *
+		 */
+		static char *beautify_pico_state(int state);
 	};
 }
 

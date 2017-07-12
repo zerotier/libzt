@@ -67,7 +67,7 @@ ifeq ($(ZT_DEBUG),1)
 	# C25519 in particular is almost UNUSABLE in heavy testing without it.
 #ext/lz4/lz4.o node/Salsa20.o node/SHA512.o node/C25519.o node/Poly1305.o: CFLAGS = -Wall -O2 -g -pthread $(INCLUDES) $(DEFS)
 else
-	CFLAGS?=-O2 -fstack-protector
+	CFLAGS?=-Ofast -g -fstack-protector
 	CFLAGS+=-Wall -fPIE -fvisibility=hidden -pthread $(INCLUDES) $(DEFS)
 	#CFLAGS+=$(ARCH_FLAGS) -Wall -flto -fPIC -pthread -mmacosx-version-min=10.7 -DNDEBUG -Wno-unused-private-field $(INCLUDES) $(DEFS)
 	STRIP=strip
@@ -188,7 +188,7 @@ shared_jni_lib: picotcp $(ZTO_OBJS)
 
 UNIT_TEST_SRC_FILES := $(wildcard  $(UNIT_TEST_SRC_DIR)/*.cpp)
 UNIT_TEST_OBJ_FILES := $(addprefix $(TEST_BUILD_DIR)/,$(notdir $(UNIT_TEST_SRC_FILES:.cpp=)))
-UNIT_TEST_INCLUDES  := -Iinclude 
+UNIT_TEST_INCLUDES  := -Iinclude
 UNIT_TEST_LIBS      := -L$(BUILD) -lzt $(COMMON_LIBS)
 
 $(TEST_BUILD_DIR)/%: $(UNIT_TEST_SRC_DIR)/%.cpp

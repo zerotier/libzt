@@ -401,7 +401,6 @@ int zts_socket(ZT_SOCKET_SIG) {
                 int value = 1;
                 pico_socket_setoption(psock, PICO_TCP_NODELAY, &value);
 
-
                 if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_SNDBUF, &tx_buf_sz)) < 0)
                     DEBUG_ERROR("unable to set SNDBUF size, err = %d, pico_err = %d", t_err, pico_err);
                 if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_RCVBUF, &rx_buf_sz)) < 0)
@@ -962,8 +961,6 @@ Linux / Darwin:
     [  ] [EIO]              A previously-uncommitted write(2) encountered an input/output error.
 */
 
-// FIXME: See pico_socket_setoption's LINGER functionality
-
 int zts_close(ZT_CLOSE_SIG)
 {
     DEBUG_EXTRA("fd = %d", fd);
@@ -1067,16 +1064,15 @@ int zts_close(ZT_CLOSE_SIG)
     return err;
 }
 
-//#define ZT_POLL_SIG struct pollfd *fds, nfds_t nfds, int timeout
-//#define ZT_SELECT_SIG int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout
-
 int zts_poll(ZT_POLL_SIG)
 {
+    // struct pollfd *fds, nfds_t nfds, int timeout
     return 0;
 }
 
 int zts_select(ZT_SELECT_SIG)
 {
+    // int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout
     return 0;
 }
 

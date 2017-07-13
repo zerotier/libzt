@@ -1124,37 +1124,6 @@ int random_api_test()
 }
 
 
-/****************************************************************************/
-/* test driver, called from main()                                          */
-/****************************************************************************/
-/*
-	path      = place where ZT keys, and config files will be stored 
-	nwid      = network for app to join
-	type      = simple, sustained
-	ipv  = 4, 6
-	mode      = client, server
-	addr      = ip address string
-	port      = integer
-	operation = n_times, n_seconds, n_bytes, etc
-	count   = number of operations of type
-	delay     = delay between each operation
-*/
-int test_driver(std::string name, std::string path, std::string nwid, 
-	int type, 
-	int ipv, 
-	int mode, 
-	std::string ipstr, 
-	int port, 
-	int operation, 
-	int count, 
-	int delay, 
-	std::vector<std::string> *results)
-{
-    return 0;
-}
-
-
-
 /*
  For each API call, test the following:
   - All possible combinations of plausible system-defined arguments
@@ -1334,7 +1303,6 @@ int main(int argc , char *argv[])
 	fprintf(stderr, "\tpath             = %s\n", path.c_str());
 	fprintf(stderr, "\tnwid             = %s\n", nwid.c_str());
 	fprintf(stderr, "\ttype             = %s\n\n", stype.c_str());
-
 	fprintf(stderr, "DESTINATION:\n\n");
 	fprintf(stderr, "\tremote_ipstr     = %s\n", remote_ipstr.c_str());
 	fprintf(stderr, "\tremote_ipstr6    = %s\n", remote_ipstr6.c_str());
@@ -1351,200 +1319,182 @@ int main(int argc , char *argv[])
 		DEBUG_TEST("Ready. Contacting selftest program on first host.\n\n");
 
 	// What follows is a long-form of zts_simple_start():
-		// zts_start(path.c_str());
-		// printf("waiting for service to start...\n");
-		// while(!zts_running())
-		//	sleep(1);
-		// printf("joining network...\n");
-		// zts_join(nwid.c_str());
-		// printf("waiting for address assignment...\n");
-		// while(!zts_has_address(nwid.c_str()))
-		//	sleep(1);
-
-	// SLAM
-	// Perform thsouands of repetitions of the same plausible API sequences to detect faults
-	if(stype == "slam")
-	{
-		slam_api_test();
-		return 0;
-	}
+	/*
+	 zts_start(path.c_str());
+	 printf("waiting for service to start...\n");
+	 while(!zts_running())
+		sleep(1);
+	 printf("joining network...\n");
+	 zts_join(nwid.c_str());
+	 printf("waiting for address assignment...\n");
+	 while(!zts_has_address(nwid.c_str()))
+		sleep(1);
+	*/
 
 	/****************************************************************************/
 	/* COMPREHENSIVE                                                            */
 	/****************************************************************************/
 
-	// More info can be found in TESTING.md
-
-	// test purpposefully bad arguments
-
-	//test_bad_args();
-	//exit(0);
-
-
-	int test_number = 0;
-	int ipv;
+	int test_number = 0, ipv;
 	struct sockaddr addr;
 	char details[128];
 	memset(&details, 0, sizeof details);
 	bool passed = 0; 
 
-	// Tests ALL API calls
-	if(stype == "comprehensive")
-	{	
-
-		port      = start_port;
-		delay     = 0;
-		count     = 1024*128;
-		operation = TEST_OP_N_BYTES;
+	port      = start_port;
+	delay     = 0;
+	count     = 1024*128;
+	operation = TEST_OP_N_BYTES;
 
 
 // ipv4 client/server
-		ipv = 4;
-		if(mode == TEST_MODE_SERVER) {
-			create_addr(local_ipstr, port, ipv, (struct sockaddr *)&addr);
-			tcp_server_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_server_4
-		}
-		else if(mode == TEST_MODE_CLIENT) {
-			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
-			create_addr(remote_ipstr, port, ipv, (struct sockaddr *)&addr);
-			tcp_client_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_client_4
-		}
-		RECORD_RESULTS(&test_number, passed, details, &results);
-		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
-		port++; // move up one port
-		if(mode == TEST_MODE_SERVER) {
-			create_addr(local_ipstr, port, ipv, (struct sockaddr *)&addr);
-			tcp_server_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_server_4
-		}
-		else if(mode == TEST_MODE_CLIENT) {
-			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
-			create_addr(remote_ipstr, port, ipv, (struct sockaddr *)&addr);
-			tcp_client_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_client_4
-		}
-		RECORD_RESULTS(&test_number, passed, details, &results);
-		port++;
+	ipv = 4;
+	if(mode == TEST_MODE_SERVER) {
+		create_addr(local_ipstr, port, ipv, (struct sockaddr *)&addr);
+		tcp_server_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_server_4
+	}
+	else if(mode == TEST_MODE_CLIENT) {
+		sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+		create_addr(remote_ipstr, port, ipv, (struct sockaddr *)&addr);
+		tcp_client_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_client_4
+	}
+	RECORD_RESULTS(&test_number, passed, details, &results);
+	mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+	port++; // move up one port
+	if(mode == TEST_MODE_SERVER) {
+		create_addr(local_ipstr, port, ipv, (struct sockaddr *)&addr);
+		tcp_server_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_server_4
+	}
+	else if(mode == TEST_MODE_CLIENT) {
+		sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+		create_addr(remote_ipstr, port, ipv, (struct sockaddr *)&addr);
+		tcp_client_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_client_4
+	}
+	RECORD_RESULTS(&test_number, passed, details, &results);
+	port++;
 
 
 // ipv4 sustained transfer	
-		ipv = 4;	
-		if(mode == TEST_MODE_SERVER) {
-			create_addr(local_ipstr, port, ipv, (struct sockaddr *)&addr);
-			tcp_server_sustained_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_server_sustained_4
-		}
-		else if(mode == TEST_MODE_CLIENT) {
-			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
-			create_addr(remote_ipstr, port, ipv, (struct sockaddr *)&addr);
-			tcp_client_sustained_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_client_sustained_4
-		}
-		RECORD_RESULTS(&test_number, passed, details, &results); // swtich roles
-		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
-		port++;
-		if(mode == TEST_MODE_SERVER) {
-			create_addr(local_ipstr, port, ipv, (struct sockaddr *)&addr);
-			tcp_server_sustained_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_server_sustained_4
-		}
-		else if(mode == TEST_MODE_CLIENT) {
-			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
-			create_addr(remote_ipstr, port, ipv, (struct sockaddr *)&addr);
-			tcp_client_sustained_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_client_sustained_4
-		}
-		RECORD_RESULTS(&test_number, passed, details, &results);
-		port++;
+	ipv = 4;	
+	if(mode == TEST_MODE_SERVER) {
+		create_addr(local_ipstr, port, ipv, (struct sockaddr *)&addr);
+		tcp_server_sustained_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_server_sustained_4
+	}
+	else if(mode == TEST_MODE_CLIENT) {
+		sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+		create_addr(remote_ipstr, port, ipv, (struct sockaddr *)&addr);
+		tcp_client_sustained_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_client_sustained_4
+	}
+	RECORD_RESULTS(&test_number, passed, details, &results); // swtich roles
+	mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+	port++;
+	if(mode == TEST_MODE_SERVER) {
+		create_addr(local_ipstr, port, ipv, (struct sockaddr *)&addr);
+		tcp_server_sustained_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_server_sustained_4
+	}
+	else if(mode == TEST_MODE_CLIENT) {
+		sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+		create_addr(remote_ipstr, port, ipv, (struct sockaddr *)&addr);
+		tcp_client_sustained_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_client_sustained_4
+	}
+	RECORD_RESULTS(&test_number, passed, details, &results);
+	port++;
 
 
 // ipv6 client/server
-		ipv = 6;
-		if(mode == TEST_MODE_SERVER) {
-			create_addr(local_ipstr6, port, ipv, (struct sockaddr *)&addr);
-			tcp_server_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_server_6
-		}
-		else if(mode == TEST_MODE_CLIENT) {
-			DEBUG_TEST("waiting (15s) for other selftest to complete before continuing...");
-			sleep(WAIT_FOR_TEST_TO_CONCLUDE);
-			create_addr(remote_ipstr6, port, ipv, (struct sockaddr *)&addr);
-			tcp_client_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_client_6
-		}
-		RECORD_RESULTS(&test_number, passed, details, &results);
-		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
-		port++; // move up one port
-		if(mode == TEST_MODE_SERVER) {
-			create_addr(local_ipstr6, port, ipv, (struct sockaddr *)&addr);
-			tcp_server_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_server_6
-		}
-		else if(mode == TEST_MODE_CLIENT) {
-			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
-			create_addr(remote_ipstr6, port, ipv, (struct sockaddr *)&addr);
-			tcp_client_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_client_6
-		}
-		RECORD_RESULTS(&test_number, passed, details, &results);
-		port++;
+	ipv = 6;
+	if(mode == TEST_MODE_SERVER) {
+		create_addr(local_ipstr6, port, ipv, (struct sockaddr *)&addr);
+		tcp_server_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_server_6
+	}
+	else if(mode == TEST_MODE_CLIENT) {
+		DEBUG_TEST("waiting (15s) for other selftest to complete before continuing...");
+		sleep(WAIT_FOR_TEST_TO_CONCLUDE);
+		create_addr(remote_ipstr6, port, ipv, (struct sockaddr *)&addr);
+		tcp_client_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_client_6
+	}
+	RECORD_RESULTS(&test_number, passed, details, &results);
+	mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+	port++; // move up one port
+	if(mode == TEST_MODE_SERVER) {
+		create_addr(local_ipstr6, port, ipv, (struct sockaddr *)&addr);
+		tcp_server_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_server_6
+	}
+	else if(mode == TEST_MODE_CLIENT) {
+		sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+		create_addr(remote_ipstr6, port, ipv, (struct sockaddr *)&addr);
+		tcp_client_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_client_6
+	}
+	RECORD_RESULTS(&test_number, passed, details, &results);
+	port++;
 
 
 // ipv6 sustained transfer
-		ipv = 6;		
-		if(mode == TEST_MODE_SERVER) {
-			create_addr(local_ipstr6, port, ipv, (struct sockaddr *)&addr);
-			tcp_server_sustained_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_server_sustained_4
-		}
-		else if(mode == TEST_MODE_CLIENT) {
-			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
-			create_addr(remote_ipstr6, port, ipv, (struct sockaddr *)&addr);
-			tcp_client_sustained_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_client_sustained_4
-		}
-		RECORD_RESULTS(&test_number, passed, details, &results); // swtich roles
-		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
-		port++;
-		if(mode == TEST_MODE_SERVER) {
-			create_addr(local_ipstr6, port, ipv, (struct sockaddr *)&addr);
-			tcp_server_sustained_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_server_sustained_4
-		}
-		else if(mode == TEST_MODE_CLIENT) {
-			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
-			create_addr(remote_ipstr6, port, ipv, (struct sockaddr *)&addr);
-			tcp_client_sustained_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_client_sustained_4
-		}
-		RECORD_RESULTS(&test_number, passed, details, &results);
-		port++;
+	ipv = 6;		
+	if(mode == TEST_MODE_SERVER) {
+		create_addr(local_ipstr6, port, ipv, (struct sockaddr *)&addr);
+		tcp_server_sustained_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_server_sustained_4
+	}
+	else if(mode == TEST_MODE_CLIENT) {
+		sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+		create_addr(remote_ipstr6, port, ipv, (struct sockaddr *)&addr);
+		tcp_client_sustained_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_client_sustained_4
+	}
+	RECORD_RESULTS(&test_number, passed, details, &results); // swtich roles
+	mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+	port++;
+	if(mode == TEST_MODE_SERVER) {
+		create_addr(local_ipstr6, port, ipv, (struct sockaddr *)&addr);
+		tcp_server_sustained_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_server_sustained_4
+	}
+	else if(mode == TEST_MODE_CLIENT) {
+		sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+		create_addr(remote_ipstr6, port, ipv, (struct sockaddr *)&addr);
+		tcp_client_sustained_6((struct sockaddr_in6 *)&addr, operation, count, delay, details, &passed); // tcp_client_sustained_4
+	}
+	RECORD_RESULTS(&test_number, passed, details, &results);
+	port++;
 
 // PERFORMANCE (between this library instance and a native non library instance (echo) )
 // Client/Server mode isn't being tested here, so it isn't important, we'll just set it to client
 
 // ipv4 echo test
-		ipv = 4;	
-		if(me == "alice" || me == "ted") {
-			port=start_port+100; // e.g. 7100
-			create_addr(remote_echo_ipv4, port, ipv, (struct sockaddr *)&addr);
-			tcp_perf_tx_echo_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_perf_tx_echo_4
-			RECORD_RESULTS(&test_number, passed, details, &results);
-			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
-			tcp_perf_rx_echo_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_perf_rx_echo_4
-			RECORD_RESULTS(&test_number, passed, details, &results);
-		}
-		if(me == "bob" || me == "carol") {
-			DEBUG_TEST("waiting (15s) for other selftest to complete before continuing...");
-			sleep(WAIT_FOR_TEST_TO_CONCLUDE);			
-			port=start_port+101; // e.g. 7101
-			create_addr(remote_echo_ipv4, port, ipv, (struct sockaddr *)&addr);
-			tcp_perf_rx_echo_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_perf_tx_echo_4
-			RECORD_RESULTS(&test_number, passed, details, &results);
-			sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
-			tcp_perf_tx_echo_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_perf_rx_echo_4
-			RECORD_RESULTS(&test_number, passed, details, &results);
-		}
+	ipv = 4;	
+	if(me == "alice" || me == "ted") {
+		port=start_port+100; // e.g. 7100
+		create_addr(remote_echo_ipv4, port, ipv, (struct sockaddr *)&addr);
+		tcp_perf_tx_echo_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_perf_tx_echo_4
+		RECORD_RESULTS(&test_number, passed, details, &results);
+		sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+		tcp_perf_rx_echo_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_perf_rx_echo_4
+		RECORD_RESULTS(&test_number, passed, details, &results);
+	}
+	if(me == "bob" || me == "carol") {
+		DEBUG_TEST("waiting (15s) for other selftest to complete before continuing...");
+		sleep(WAIT_FOR_TEST_TO_CONCLUDE);			
+		port=start_port+101; // e.g. 7101
+		create_addr(remote_echo_ipv4, port, ipv, (struct sockaddr *)&addr);
+		tcp_perf_rx_echo_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_perf_tx_echo_4
+		RECORD_RESULTS(&test_number, passed, details, &results);
+		sleep(WAIT_FOR_SERVER_TO_COME_ONLINE);
+		tcp_perf_tx_echo_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_perf_rx_echo_4
+		RECORD_RESULTS(&test_number, passed, details, &results);
 	}
 
+// RANDOM API TEST
+		//random_api_test();
 
-	/****************************************************************************/
-	/* RANDOM                                                                   */
-	/****************************************************************************/
+// SLAM API TEST
+		//slam_api_test();
 
-	// RANDOM
-	// performs random API calls with plausible (and random) arguments/data
-	if(stype == "random")
-	{
-		random_api_test();
-	}
+// BAD ARGS API TEST
+		//test_bad_args();
 
+// OBSCURE API TEST
+		//obscure_api_test();
+
+
+	// Print results of all tests
 	printf("--------------------------------------------------------------------------------\n");
 	for(int i=0;i<results.size(); i++) {
 		fprintf(stderr, "%s\n", results[i].c_str());

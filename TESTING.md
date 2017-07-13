@@ -1,17 +1,61 @@
 ## Testing via [selftest.cpp](test/selftest.cpp)
 
-### Enabling debug output
+### Step 1. Enabling debug output
 
- - `SDK_DEBUG=1`: For debugging libzt
- - `ZT_DEBUG=1`: For debugging the ZeroTier core protocol
+ - `make static_lib SDK_DEBUG=1`: For debugging libzt
+ - `make static_lib ZT_DEBUG=1`: For debugging the ZeroTier core protocol (you usually won't need this)
 
-After building the static library, you can run:
+### Step 2. Build the test programs:
 
  - `make tests`
 
- This will output `selftest` to `build/$PLATFORM/`. Using this, you can run the tests below. Note, the following examples assume your testing environment is `linux`, you'll see this in the build output path. If this is not true, change it to `darwin`, `freebsd`, or `win` depending on what you're running.
+ This will output `selftest` and `echotest` to `build/$PLATFORM/`
 
- Simply add your `host-1` and `host-2` address, port, and network information to `test/alice.conf` and `test/bob.conf`, this way you can use the selftest shorthand shown below. The file contain examples of what you should do.
+ *Note, the following examples assume your testing environment is `linux`, you'll see this in the build output path. If this is not true, change it to `darwin`, `freebsd`, or `win` depending on what you're running.*
+
+
+### Step 3. Define your test configuration in `test/selftest.conf`:
+
+This is essentially just a listing of libzt-based app identities and host machine identities. We will be conducting `library-to-remote-library`, `library-to-remote-host`, and `remote-host-to-library` tests over the network. For this reason we need to define who should be talking to who.
+
+A simple test configutation might look like the following. This will create an `alice` and `bob` test personality, that is, we will run one instance of the library as a server (alice), and one instance of the `echotest` on the same host machine. `echotest` is merely a program to record timings for transmitted data and also generate data for the library to receive). Additionally we will be running a library as a client `bob` on another remote host as well as another instance of `echotest` on that same machine. In this configuration the following will happen:
+
+ - `alice` libzt will tx/rx to/from `bob` libzt
+ - `alice` libzt will send X bytes to `bob`'s `echotest` to test maximum TX rate
+ - `alice` libzt will request X bytes from `bob`'s `echotest` to test maximum RX rate
+ - `bob` libzt will send X bytes to `alice`'s `echotest` to test maximum TX rate
+ - `bob` libzt will request X bytes from `alice`'s `echotest` to test maximum RX rate
+
+```
+# Tests will use ports starting from 'port' to 'port+n' where 'n' is the number of tests
+
+
+# Alice
+name alice
+mode server
+nwid 17d7094b2c2c7319
+test comprehensive
+port 7000
+path test/alice
+ipv4 172.30.30.10
+ipv6 fd12:d719:4b6c:6c53:f799:13c4:07e0:abb8
+echo_ipv4 172.30.30.1
+echo_ipv6 fd11:d759:136e:2b53:6791:9328:31ce:618a
+;
+
+# Bob
+name bob
+mode client
+nwid 17d7094b2c2c7319
+test comprehensive
+port 7000
+path test/bob
+ipv4 172.30.30.20
+ipv6 fd11:d759:136e:2b53:6791:9328:31ce:618a
+echo_ipv4 172.30.30.2
+echo_ipv6 fd12:d719:4b6c:6c53:f799:13c4:07e0:abb8
+```
+
 
 Build outputs are as follows:
 

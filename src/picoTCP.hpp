@@ -158,12 +158,12 @@ namespace ZeroTier
 		int pico_Close(Connection *conn);
 
     	/*
-		 * Converts error code to pretty string
+		 * Converts picoTCP error codes to pretty string
 		 */
 		static char *beautify_pico_error(int err);
 
 		/*
-		 *
+		 * Converts picoTCP socket states into pretty string
 		 */
 		static char *beautify_pico_state(int state);
 	};

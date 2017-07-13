@@ -24,8 +24,8 @@
  * of your own application.
  */
 
-#ifndef ZT_ZEROTIERSDK_H
-#define ZT_ZEROTIERSDK_H
+#ifndef ZT_LIBZT_H
+#define ZT_LIBZT_H
 
 #include <sys/socket.h>
 
@@ -34,23 +34,30 @@
 /****************************************************************************/
 
 #define ZT_SDK_MTU                         ZT_MAX_MTU
-#define ZT_PHY_POLL_INTERVAL               10  // ms
+#define ZT_PHY_POLL_INTERVAL               2 // ms
 #define ZT_ACCEPT_RECHECK_DELAY            100 // ms (for blocking zts_accept() calls)
 #define ZT_CONNECT_RECHECK_DELAY           100 // ms (for blocking zts_connect() calls)
-#define ZT_API_CHECK_INTERVAL              100 // ms
+#define ZT_API_CHECK_INTERVAL              500 // ms
 
 #define MAX_PICO_FRAME_RX_BUF_SZ           ZT_MAX_MTU * 128
 
-#define ZT_TCP_TX_BUF_SZ                   1024 * 1024 * 5
-#define ZT_TCP_RX_BUF_SZ                   1024 * 1024 * 5
+#define ZT_TCP_TX_BUF_SZ                   1024 * 1024 * 128
+#define ZT_TCP_RX_BUF_SZ                   1024 * 1024 * 128
 #define ZT_UDP_TX_BUF_SZ                   ZT_MAX_MTU
 #define ZT_UDP_RX_BUF_SZ                   ZT_MAX_MTU * 10
 
-#define ZT_STACK_TCP_SOCKET_TX_SZ          2048
-#define ZT_STACK_TCP_SOCKET_RX_SZ          2048
+// Send and Receive buffer sizes for the network stack
+// By default picoTCP sets them to 16834, this is good for embedded-scale
+// stuff but you might want to consider higher values for desktop and mobile
+// applications.
+#define ZT_STACK_TCP_SOCKET_TX_SZ          ZT_TCP_TX_BUF_SZ
+#define ZT_STACK_TCP_SOCKET_RX_SZ          ZT_TCP_RX_BUF_SZ
 
-#define ZT_STACK_SOCKET_RD_MAX             2048
-#define ZT_STACK_SOCKET_WR_MAX             2048
+// Maximum size we're allowed to read or write from a stack socket
+// This is put in place because picoTCP seems to fail at higher values.
+// If you use another stack you can probably bump this up a bit.
+#define ZT_STACK_SOCKET_WR_MAX             4096
+#define ZT_STACK_SOCKET_RD_MAX             4096*4
 
 #define ZT_CORE_VERSION_MAJOR              1
 #define ZT_CORE_VERSION_MINOR              2
@@ -79,7 +86,7 @@
 // a short period of time by default as a precaution.
 
 #define ZT_SOCK_BEHAVIOR_LINGER            true
-#define ZT_SOCK_BEHAVIOR_LINGER_TIME       10000 // ms
+#define ZT_SOCK_BEHAVIOR_LINGER_TIME       3  // s
 
 // Wait time for socket closure if data is still present in the write queue
 #define ZT_SDK_CLTIME                      60
@@ -93,6 +100,9 @@
 
 // Interval for performing cleanup tasks on Tap/Stack objects
 #define ZT_HOUSEKEEPING_INTERVAL           10 // s 
+
+// Whether or not we want libzt to shit its pants
+#define ZT_EXIT_ON_GENERAL_FAIL            false
 
 /****************************************************************************/
 /* Socket API Signatures                                                    */
@@ -385,7 +395,7 @@ int zts_read(ZT_READ_SIG);
 int zts_write(ZT_WRITE_SIG);
 
 /*
- * Sends a FIN segment 
+ * Sends a FIN segment
  */
 int zts_shutdown(ZT_SHUTDOWN_SIG);
 

@@ -39,7 +39,7 @@
 #include <string>
 #include <fcntl.h>
 #include <errno.h>
-
+#include <poll.h>
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -1069,9 +1069,10 @@ int obscure_api_test()
 	int sock = zts_socket(AF_INET, SOCK_STREAM, 0);
 	int flag = 1;
 	int err = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(int));
-	 if (err < 0) {
-	 	DEBUG_ERROR("error while disabling Nagle's algorithm on socket");
-	 }
+	if (err < 0) {
+		DEBUG_ERROR("error while disabling Nagle's algorithm on socket");
+	}
+	return err;
 }
 
 

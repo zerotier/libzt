@@ -40,6 +40,7 @@ for applications to use. See also: include/libzt.h */
 #include <fcntl.h>
 #include <sys/types.h>
 #include <pthread.h>
+#include <poll.h>
 
 // stack
 #include "pico_stack.h"
@@ -1066,14 +1067,12 @@ int zts_close(ZT_CLOSE_SIG)
 
 int zts_poll(ZT_POLL_SIG)
 {
-    // struct pollfd *fds, nfds_t nfds, int timeout
-    return 0;
+    return poll(fds, nfds, timeout);
 }
 
 int zts_select(ZT_SELECT_SIG)
 {
-    // int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout
-    return 0;
+    return select(nfds, readfds, writefds, exceptfds, timeout);
 }
 
 int zts_fcntl(ZT_FCNTL_SIG)

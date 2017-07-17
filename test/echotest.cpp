@@ -38,6 +38,7 @@
 #include <string>
 #include <fcntl.h>
 #include <errno.h>
+#include <poll.h>
 
 #include <iostream>
 #include <vector>

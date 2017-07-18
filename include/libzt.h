@@ -28,6 +28,7 @@
 #define ZT_LIBZT_H
 
 #include <sys/socket.h>
+#include <poll.h>
 
 /****************************************************************************/
 /* Defines                                                                  */

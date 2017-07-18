@@ -10,7 +10,7 @@
 
 [![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
 
-Pre-Built Binaries Here: [zerotier.com/download.shtml?pk_campaign=github_libzt](https://zerotier.com/download.shtml?pk_campaign=github_libzt).
+Pre-Built Binaries Here: [zerotier.com/download.shtml](https://zerotier.com/download.shtml?pk_campaign=github_libzt).
 
 *** 
 

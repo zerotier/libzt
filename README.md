@@ -43,10 +43,12 @@ Bindings for various [languages](examples)
 
 ### Building (linux, macos, bsd, win, ios)
 
- `git submodule init`
- `git submodule update`
- `make static_lib`
-
+ ```
+ git submodule init
+ git submodule update
+ make static_lib
+ ```
+ 
  All targets will output to `build/`. Complete instructions [here](BUILDING.md)
 
 ***

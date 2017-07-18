@@ -2,7 +2,7 @@
 *Embed ZeroTier directly into your app*
 ***
 
-<a href="https://www.zerotier.com"><img src="https://github.com/zerotier/ZeroTierOne/raw/master/artwork/AppIcon_87x87.png" align="left" hspace="20" vspace="6"></a>
+<a href="https://www.zerotier.com?pk_campaign=github_libzt"><img src="https://github.com/zerotier/ZeroTierOne/raw/master/artwork/AppIcon_87x87.png" align="left" hspace="20" vspace="6"></a>
 
 **ZeroTier** makes it easy to securely connect devices, servers, cloud VMs, containers, and apps everywhere and manage them at scale. Now, with **libzt** you can bake this ability directly into your app or service using your preferred language or framework. We provide a BSD socket-like API to make the integration simple and there's no longer any need for system-wide virtual interfaces. This connection is exclusive to your app.
 
@@ -10,7 +10,7 @@
 
 [![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
 
-Pre-Built Binaries Here: [zerotier.com/download.shtml](https://zerotier.com/download.shtml?pk_campaign=github_ZeroTierSDK).
+Pre-Built Binaries Here: [zerotier.com/download.shtml?pk_campaign=github_libzt](https://zerotier.com/download.shtml?pk_campaign=github_libzt).
 
 *** 
 

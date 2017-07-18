@@ -43,11 +43,11 @@ Bindings for various [languages](examples)
 
 ### Building (linux, macos, bsd, win, ios)
 
- All targets will output to `build/`. Complete instructions [here](BUILDING.md)
+ `git submodule init`
+ `git submodule update`
+ `make static_lib`
 
- - Static Library (linux, mac, win, bsd): `make static_lib`
- - iOS App Framework: `make ios_app_framework`
- - macOS App Framework: `make macos_app_framework`
+ All targets will output to `build/`. Complete instructions [here](BUILDING.md)
 
 ***
 

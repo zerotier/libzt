@@ -868,8 +868,8 @@ int zts_setsockopt(ZT_SETSOCKOPT_SIG)
     }
 
     // Disable Nagle's algorithm
-    struct pico_socket *p;
-    err = zts_get_pico_socket(fd, p);
+    struct pico_socket *p = NULL;
+    err = zts_get_pico_socket(fd, &p);
     if(p) {
         int value = 1;
         if((err = pico_socket_setoption(p, PICO_TCP_NODELAY, &value)) < 0) {
@@ -1501,7 +1501,7 @@ namespace ZeroTier {
 /* SDK Socket API Helper functions --- DON'T CALL THESE DIRECTLY            */
 /****************************************************************************/
 
-int zts_get_pico_socket(int fd, struct pico_socket *s)
+int zts_get_pico_socket(int fd, struct pico_socket **s)
 {
     int err = 0;
     if(!zt1Service) {
@@ -1518,7 +1518,7 @@ int zts_get_pico_socket(int fd, struct pico_socket *s)
         // during closure - it isn't yet stitched into the clockwork
         if(conn)
         {
-            s = conn->picosock;
+            *s = conn->picosock;
             return 1; // unassigned
         }
         else // assigned
@@ -1532,7 +1532,7 @@ int zts_get_pico_socket(int fd, struct pico_socket *s)
             }
             else // found everything, begin closure
             {
-                s = p->first->picosock;
+                *s = p->first->picosock;
                 return 0;
             }
         }

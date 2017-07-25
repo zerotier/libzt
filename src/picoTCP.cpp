@@ -746,6 +746,11 @@ namespace ZeroTier {
     	}
 
 	    int buf_w = conn->TXbuf->write((const unsigned char*)data, len);
+            if (buf_w != len) {
+		// because we checked ZT_TCP_TX_BUF_SZ above, this should not happen
+    		DEBUG_ERROR("TX wrote only %d but expected to write %d", buf_w, len);
+    		exit(0);
+	    }
 	    //DEBUG_INFO("TXbuf->count() = %d", conn->TXbuf->count());
 	   	int txsz = conn->TXbuf->count();
 

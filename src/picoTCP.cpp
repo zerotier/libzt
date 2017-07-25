@@ -859,7 +859,7 @@ namespace ZeroTier {
 */
 	char *picoTCP::beautify_pico_state(int state)
 	{
-		char state_str[512];
+		static char state_str[512];
 		char *str_ptr = state_str;
 
 		if(state & PICO_SOCKET_STATE_UNDEFINED) {

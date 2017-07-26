@@ -27,11 +27,6 @@
 #ifndef UTILITIES_HPP
 #define UTILITIES_HPP
 
-/*
- * Print a stacktrace
- */
-// void zt_dump_stacktrace(int sig);
-
 #if defined(STACK_LWIP) && defined(LIBZT_IPV4)
 
 #include "lwip/ip_addr.h"
@@ -53,6 +48,6 @@ inline ip_addr_t convert_ip(struct sockaddr_in * addr)
   return conn_addr;
 }
 
-#endif
+#endif // STACK_LWIP && LIBZT_IPV4
 
-#endif
+#endif // UTILITIES_HPP

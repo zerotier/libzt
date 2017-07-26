@@ -29,8 +29,8 @@
 #include "libzt.h"
 #include "SocketTap.hpp"
 #include "Utilities.hpp"
-
 #include "lwIP.hpp"
+
 #include "netif/ethernet.h"
 #include "lwip/etharp.h"
 

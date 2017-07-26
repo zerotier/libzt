@@ -24,21 +24,4 @@
  * of your own application.
  */
 
-#include <stdio.h>
-#include <execinfo.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <errno.h>
-
-/*
-void zt_dump_stacktrace(int sig) {
-  void *array[16];
-  size_t size;
-  size = backtrace(array, 16);
-  fprintf(stderr, "Error: signal %d:\n", sig);
-  backtrace_symbols_fd(array, size, STDERR_FILENO);
-  exit(1);
-}
-*/
+// Intentionally left blank

@@ -26,7 +26,6 @@
 
 #include <ctime>
 
-// picoTCP
 #include "pico_eth.h"
 #include "pico_stack.h"
 #include "pico_ipv4.h"
@@ -37,14 +36,12 @@
 #include "pico_device.h"
 #include "pico_ipv6.h"
 
-// SDK
 #include "libzt.h"
 #include "Utilities.hpp"
 #include "SocketTap.hpp"
 #include "picoTCP.hpp"
 #include "RingBuffer.hpp"
 
-// ZT
 #include "Utils.hpp"
 #include "OSUtils.hpp"
 #include "Mutex.hpp"

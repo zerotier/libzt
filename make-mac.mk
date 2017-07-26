@@ -108,19 +108,38 @@ endif
 ## Stack Configuration                                                      ##
 ##############################################################################
 
-PROTOCOL_VERSION_DEFINED=0
-# Stack config flags
+# default stack (picoTCP)
+STACK_PICO=1
+ifeq ($(NO_STACK)$(STACK_LWIP),1)
+STACK_PICO=0
+endif
+
+# picoTCP default protocol versions
+ifeq ($(STACK_PICO),1)
+ifeq ($(LIBZT_IPV4)$(LIBZT_IPV6),1)
 ifeq ($(LIBZT_IPV4),1)
-	CXXFLAGS+=-DLIBZT_IPV4
-	PROTOCOL_VERSION_DEFINED=1
+CXXFLAGS+=-DLIBZT_IPV4
 endif
 ifeq ($(LIBZT_IPV6),1)
-	CXXFLAGS+=-DLIBZT_IPV6
-	PROTOCOL_VERSION_DEFINED=1
+CXXFLAGS+=-DLIBZT_IPV6
 endif
-# if no proto version, define both
-ifeq ($(PROTOCOL_VERSION_DEFINED),0)
-	CXXFLAGS+=-DLIBZT_IPV4 -DLIBZT_IPV6
+else
+CXXFLAGS+=-DLIBZT_IPV4 -DLIBZT_IPV6
+endif
+endif
+
+# lwIP default protocol versions
+ifeq ($(STACK_LWIP),1)
+ifeq ($(LIBZT_IPV4)$(LIBZT_IPV6),1)
+ifeq ($(LIBZT_IPV4),1)
+CXXFLAGS+=-DLIBZT_IPV4
+endif
+ifeq ($(LIBZT_IPV6),1)
+CXXFLAGS+=-DLIBZT_IPV6
+endif
+else
+CXXFLAGS+=-DLIBZT_IPV4
+endif
 endif
 
 LIBZT_FILES:=src/SocketTap.cpp src/libzt.cpp src/Utilities.cpp

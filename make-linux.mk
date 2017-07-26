@@ -168,6 +168,10 @@ INCLUDES+=-Iext/lwip/src/include/lwip \
 	-Iext
 endif
 
+ifeq ($(NO_STACK),1)
+CXXFLAGS+=-DNO_STACK
+endif
+
 all: 
 
 ##############################################################################

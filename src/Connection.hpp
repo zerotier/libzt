@@ -32,15 +32,12 @@
 #include <ctime>
 #include <sys/socket.h>
 
-// picoTCP
 #if defined(STACK_PICO)
-	#include "pico_socket.h"
+#include "pico_socket.h"
 #endif
 
-// ZT
 #include "Phy.hpp"
 
-// SDK
 #include "libzt.h"
 #include "SocketTap.hpp"
 #include "RingBuffer.hpp"
@@ -82,7 +79,6 @@ namespace ZeroTier {
 		std::time_t closure_ts;
 
 		Connection() {
-
 			TXbuf = new RingBuffer<unsigned char>(ZT_TCP_TX_BUF_SZ);
 			RXbuf = new RingBuffer<unsigned char>(ZT_TCP_RX_BUF_SZ);
 
@@ -96,27 +92,12 @@ namespace ZeroTier {
 			}
 			sdk_fd = fdpair[0];
 			app_fd = fdpair[1];
-			//DEBUG_ERROR("sdk_fd = %d, app_fd = %d", sdk_fd, app_fd);
-
-/*
-			if(ZT_SOCK_BEHAVIOR_LINGER) {
-				struct linger so_linger;
-				so_linger.l_onoff = true;
-				so_linger.l_linger = ZT_SOCK_BEHAVIOR_LINGER_TIME;
-		        if(setsockopt(app_fd, SOL_SOCKET, SO_LINGER, &so_linger, sizeof so_linger) < 0) {
-    				DEBUG_ERROR("error setsockopt (%d)", errno);
-		        }
-		    }
-*/
 		}
-		~Connection()
-		{
-			// DEBUG_INFO("~Connection() this = %p", this);
-		}
+		~Connection() { }
 	};
 
 	/*
-	 * A helper object for passing SocketTaps and Connections through the stack
+	 * A helper object for passing SocketTap(s) and Connection(s) through the stack
 	 */
 	struct ConnectionPair
 	{

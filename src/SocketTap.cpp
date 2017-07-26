@@ -24,7 +24,6 @@
  * of your own application.
  */
 
-// picoTCP
 #include <algorithm>
 #include <utility>
 #include <sys/poll.h>
@@ -32,19 +31,16 @@
 #include <utility>
 #include <string>
 
-// SDK
 #include "SocketTap.hpp"
 #include "libzt.h"
 
-// stack drivers
 #if defined(STACK_PICO)
-	#include "picoTCP.hpp"
+#include "picoTCP.hpp"
 #endif
 #if defined(STACK_LWIP)
-	#include "lwIP.hpp"
+#include "lwIP.hpp"
 #endif
 
-// ZT
 #include "Utils.hpp"
 #include "OSUtils.hpp"
 #include "Constants.hpp"
@@ -84,8 +80,6 @@ namespace ZeroTier {
 
 	SocketTap::~SocketTap()
 	{
-		// TODO: Verify that stack is fully stopped before 
-		// deleting Connection objects
 		_run = false;
 		_phy.whack();
 		Thread::join(_thread);
@@ -108,16 +102,12 @@ namespace ZeroTier {
 #if defined(STACK_PICO)
 		if(picostack){
 			picostack->pico_init_interface(this, ip);
-			_ips.push_back(ip);
-			std::sort(_ips.begin(),_ips.end());
 			return true;
 		}
 #endif
 #if defined(STACK_LWIP)
 		if(lwipstack){
 			lwipstack->lwip_init_interface(this, ip);
-			_ips.push_back(ip);
-			std::sort(_ips.begin(),_ips.end());
 			return true;
 		}
 #endif
@@ -126,10 +116,18 @@ namespace ZeroTier {
 
 	bool SocketTap::addIp(const InetAddress &ip)
 	{
+#if defined(NO_STACK)
+		DEBUG_INFO("addIp (%s)", ip.toString().c_str());
+		_ips.push_back(ip);
+		std::sort(_ips.begin(),_ips.end());
+		return true;
+#endif
 		if(registerIpWithStack(ip))
 		{
 			// only start the stack if we successfully registered and initialized a device to 
 			// the given address
+			_ips.push_back(ip);
+			std::sort(_ips.begin(),_ips.end());
 			return true;
 		}
 		return false;
@@ -137,7 +135,6 @@ namespace ZeroTier {
 
 	bool SocketTap::removeIp(const InetAddress &ip)
 	{
-		DEBUG_INFO();
 		Mutex::Lock _l(_ips_m);
 		std::vector<InetAddress>::iterator i(std::find(_ips.begin(),_ips.end(),ip));
 		if (i == _ips.end())
@@ -176,8 +173,9 @@ namespace ZeroTier {
 		return _dev;
 	}
 
-	void SocketTap::setFriendlyName(const char *friendlyName) {
-		DEBUG_INFO();
+	void SocketTap::setFriendlyName(const char *friendlyName) 
+	{
+		// Someday
 	}
 
 	void SocketTap::scanMulticastGroups(std::vector<MulticastGroup> &added,
@@ -235,7 +233,7 @@ namespace ZeroTier {
 	
 	void SocketTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
 	{
-		//DEBUG_ATTN("sock->fd=%d", _phy.getDescriptor(sock));
+		DEBUG_ATTN("sock->fd=%d", _phy.getDescriptor(sock));
 		Connection *conn = (Connection*)*uptr;
 		if(!conn)
 			return;
@@ -248,7 +246,6 @@ namespace ZeroTier {
 
 	void SocketTap::phyOnUnixWritable(PhySocket *sock,void **uptr,bool stack_invoked)
 	{
-		DEBUG_INFO();
 		if(sock)
 			Read(sock,uptr,stack_invoked);
 	}

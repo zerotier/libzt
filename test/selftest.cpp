@@ -98,9 +98,6 @@ char str[STR_SIZE];
 
 std::map<std::string, std::string> testConf;
 
-
-// TODO: check for correct byte order in sustained and performance tests
-
 /* Tests in this file:
 
 	Basic RX/TX connect()/accept() Functionality:

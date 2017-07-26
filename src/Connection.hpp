@@ -24,6 +24,8 @@
  * of your own application.
  */
 
+// General connection object used by SocketTap and network stack drivers
+
 #ifndef ZT_CONNECTION_HPP
 #define ZT_CONNECTION_HPP
 
@@ -31,7 +33,9 @@
 #include <sys/socket.h>
 
 // picoTCP
-#include "pico_socket.h"
+#if defined(STACK_PICO)
+	#include "pico_socket.h"
+#endif
 
 // ZT
 #include "Phy.hpp"
@@ -42,10 +46,9 @@
 #include "RingBuffer.hpp"
 
 namespace ZeroTier {
+	
+	class SocketTap;
 
-	/*
-	* Connection object
-	*/
 	struct Connection
 	{
 		int tot = 0;
@@ -54,20 +57,25 @@ namespace ZeroTier {
 
 		Mutex _tx_m, _rx_m;
 
-		PhySocket *sock;				
-		struct pico_socket *picosock;
+		PhySocket *sock;	
 
+#if defined(STACK_PICO)			
+		struct pico_socket *picosock;
+#endif
+#if defined(STACK_LWIP)
+		void *pcb;
+#endif
 		// TODO: For getsockname, etc
 		struct sockaddr_storage *local_addr; // Address we've bound to locally
 		struct sockaddr_storage *peer_addr;  // Address of connection call to remote host
 
 		int socket_family, socket_type;
 
-		int app_fd; // provided to app for I/O
-		int sdk_fd; // provided to SDK for I/O
+		int app_fd; // used by app for I/O
+		int sdk_fd; // used by lib for I/O
 
 		std::queue<Connection*> _AcceptedConnections;
-		SocketTap *tap; // Reference to SocketTap  
+		SocketTap *tap;
 		int state;      // See libzt.h for (ZT_SOCK_STATE_*)
 
 		// timestamp for closure event

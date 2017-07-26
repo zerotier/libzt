@@ -31,6 +31,14 @@
 #include <poll.h>
 
 /****************************************************************************/
+/* LWIP                                                                     */
+/****************************************************************************/
+
+#define LWIP_APPLICATION_POLL_FREQ         2
+#define LWIP_TCP_TIMER_INTERVAL            50
+#define LWIP_STATUS_TMR_INTERVAL           500 // How often we check connection statuses (in ms)
+
+/****************************************************************************/
 /* Defines                                                                  */
 /****************************************************************************/
 
@@ -408,12 +416,17 @@ namespace ZeroTier
 {
   class picoTCP;
   extern ZeroTier::picoTCP *picostack;
+
+  class lwIP;
+  extern ZeroTier::lwIP *lwipstack;
 }
 
 /*
  * Gets a pointer to a pico_socket given a file descriptor
  */
+#if defined(STACK_PICO)
 int zts_get_pico_socket(int fd, struct pico_socket **s);
+#endif
 
 /**
  * Returns the number of sockets either already provisioned or waiting to be

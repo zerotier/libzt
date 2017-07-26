@@ -35,7 +35,14 @@
 // SDK
 #include "SocketTap.hpp"
 #include "libzt.h"
-#include "picoTCP.hpp"
+
+// stack drivers
+#if defined(STACK_PICO)
+	#include "picoTCP.hpp"
+#endif
+#if defined(STACK_LWIP)
+	#include "lwIP.hpp"
+#endif
 
 // ZT
 #include "Utils.hpp"
@@ -98,26 +105,22 @@ namespace ZeroTier {
 
 	bool SocketTap::registerIpWithStack(const InetAddress &ip)
 	{
-		if(picostack) {
-			if(ip.isV4())
-			{
-			#if defined(SDK_IPV4)
-				//DEBUG_INFO("addr = %s", ip.toString().c_str());	
-				picostack->pico_init_interface(this, ip);
-				_ips.push_back(ip);
-			#endif
-			}
-			if(ip.isV6())
-			{
-			#if defined(SDK_IPV6)
-				//DEBUG_INFO("addr = %s", ip.toString().c_str());	
-				picostack->pico_init_interface(this, ip);
-				_ips.push_back(ip);
-			#endif
-			}
+#if defined(STACK_PICO)
+		if(picostack){
+			picostack->pico_init_interface(this, ip);
+			_ips.push_back(ip);
 			std::sort(_ips.begin(),_ips.end());
 			return true;
 		}
+#endif
+#if defined(STACK_LWIP)
+		if(lwipstack){
+			lwipstack->lwip_init_interface(this, ip);
+			_ips.push_back(ip);
+			std::sort(_ips.begin(),_ips.end());
+			return true;
+		}
+#endif
 		return false;
 	}
 
@@ -158,9 +161,14 @@ namespace ZeroTier {
 	void SocketTap::put(const MAC &from,const MAC &to,unsigned int etherType,
 		const void *data,unsigned int len)
 	{
-	    // RX packet
+#if defined(STACK_PICO)
 	    if(picostack)
-	   		picostack->pico_rx(this, from,to,etherType,data,len);
+	   		picostack->pico_rx(this,from,to,etherType,data,len);
+#endif
+#if defined(STACK_LWIP)
+	    if(lwipstack)
+	   		lwipstack->lwip_rx(this,from,to,etherType,data,len);
+#endif  
 	}
 
 	std::string SocketTap::deviceName() const
@@ -206,8 +214,14 @@ namespace ZeroTier {
 	void SocketTap::threadMain()
 		throw()
 	{
+#if defined(STACK_PICO)
 		if(picostack)
 			picostack->pico_loop(this);
+#endif
+#if defined(STACK_LWIP)
+		if(lwipstack)
+			lwipstack->lwip_loop(this);
+#endif
 	}
 
 	void SocketTap::phyOnUnixClose(PhySocket *sock,void **uptr) 
@@ -235,7 +249,6 @@ namespace ZeroTier {
 	void SocketTap::phyOnUnixWritable(PhySocket *sock,void **uptr,bool stack_invoked)
 	{
 		DEBUG_INFO();
-		//exit(0);
 		if(sock)
 			Read(sock,uptr,stack_invoked);
 	}
@@ -246,45 +259,68 @@ namespace ZeroTier {
 
 	int SocketTap::Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen) {
 		Mutex::Lock _l(_tcpconns_m);
+#if defined(STACK_PICO)
 		if(picostack)
 			return picostack->pico_Connect(conn, fd, addr, addrlen);
+#endif
+#if defined(STACK_LWIP)
+		if(lwipstack)
+			return lwipstack->lwip_Connect(conn, fd, addr, addrlen);
+#endif
 		return ZT_ERR_GENERAL_FAILURE;
 	}
 
 	int SocketTap::Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen) {
 		Mutex::Lock _l(_tcpconns_m);
+#if defined(STACK_PICO)
 		if(picostack)
 			return picostack->pico_Bind(conn, fd, addr, addrlen);
+#endif
+#if defined(STACK_LWIP)
+		if(lwipstack)
+			return lwipstack->lwip_Bind(this, conn, fd, addr, addrlen);
+#endif	
 		return ZT_ERR_GENERAL_FAILURE;
 	}
 
 	int SocketTap::Listen(Connection *conn, int fd, int backlog) {
+#if defined(STACK_PICO)
 		Mutex::Lock _l(_tcpconns_m);
 		if(picostack)
 			return picostack->pico_Listen(conn, fd, backlog);
 		return ZT_ERR_GENERAL_FAILURE;
+#endif
+		return ZT_ERR_GENERAL_FAILURE;
 	}
 
 	Connection* SocketTap::Accept(Connection *conn) {
+#if defined(STACK_PICO)
 		Mutex::Lock _l(_tcpconns_m);
 		if(picostack)
 			return picostack->pico_Accept(conn);
 		return NULL;
+#endif
+		return NULL;
 	}
 
 	void SocketTap::Read(PhySocket *sock,void **uptr,bool stack_invoked) {
+#if defined(STACK_PICO)
 		DEBUG_INFO();
 		if(picostack)
 			picostack->pico_Read(this, sock, (Connection*)uptr, stack_invoked);
+#endif
 	}
 
 	void SocketTap::Write(Connection *conn, void *data, ssize_t len) {
+#if defined(STACK_PICO)
 		//DEBUG_INFO();
 		if(picostack)
 			picostack->pico_Write(conn, data, len);
+#endif
 	}
 
 	void SocketTap::Close(Connection *conn) {
+#if defined(STACK_PICO)
 		if(!conn) {
 			DEBUG_ERROR("invalid connection");
 			return;
@@ -321,10 +357,12 @@ namespace ZeroTier {
 				break;
 			}
 		}
+#endif
 	}
 
 	void SocketTap::Housekeeping()
 	{
+#if defined(STACK_PICO)
 		Mutex::Lock _l(_tcpconns_m);
 		std::time_t current_ts = std::time(nullptr);
 		if(current_ts > last_housekeeping_ts + ZT_HOUSEKEEPING_INTERVAL) {
@@ -338,6 +376,7 @@ namespace ZeroTier {
 			}
 			last_housekeeping_ts = std::time(nullptr);
 		}
+#endif
 	}
 
 	/****************************************************************************/

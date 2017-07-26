@@ -24,7 +24,6 @@
  * of your own application.
  */
 
-
 /* This file implements the libzt library API, it talks to the network
 stack driver and core ZeroTier service to create a socket-like interface
 for applications to use. See also: include/libzt.h */
@@ -42,22 +41,19 @@ for applications to use. See also: include/libzt.h */
 #include <pthread.h>
 #include <poll.h>
 
-// stack
 #if defined(STACK_PICO)
-    #include "pico_stack.h"
+#include "pico_stack.h"
 #endif
 #if defined(STACK_LWIP)
-    #include "lwIP.hpp"
+#include "lwIP.hpp"
 #endif
 
-// ZT
 #include "OneService.hpp"
 #include "Utils.hpp"
 #include "OSUtils.hpp"
 #include "InetAddress.hpp"
 #include "ZeroTierOne.h"
 
-// SDK
 #include "SocketTap.hpp"
 #include "libzt.h"
 
@@ -68,12 +64,9 @@ extern "C" {
 static ZeroTier::OneService *zt1Service;
 
 namespace ZeroTier {
-    std::string homeDir; // The resultant platform-specific dir we *must* use internally
+    std::string homeDir; // Platform-specific dir we *must* use internally
     std::string netDir;  // Where network .conf files are to be written
 
-    /*
-     * Global reference to stack
-     */
 #if defined(STACK_PICO)
     picoTCP *picostack = NULL;
 #endif
@@ -338,16 +331,6 @@ void zts_disable_http_control_plane()
 
 /*
 
-    socket fd = 0 (nwid=X)---\                            /--- SocketTap=A // e.x.  172.27.0.0 / 16
-                              \                          /
-    socket fd = 1 (nwid=Y)--------Multiplexed z* calls-------- SocketTap=B // e.x. 192.168.0.1 / 16
-                              /                          \
-    socket fd = 2 (nwid=Z)---/                            \--- SocketTap=C // e.x.    10.9.9.0 / 24
-
-*/
-
-/*
-
 Darwin:
 
     [  ] [EACCES]           Permission to create a socket of the specified type and/or protocol is denied.
@@ -377,6 +360,13 @@ int zts_socket(ZT_SOCKET_SIG) {
         DEBUG_ERROR("SOCK_SEQPACKET not yet supported.");
         errno = EPROTONOSUPPORT; // seemingly closest match
         return -1;
+    }
+    if(socket_type == SOCK_RAW)
+    {
+        // TODO: 
+        //  - create Connection object, handle as you please
+        //  - we will need to hook this up to SocketTap::put and SocketTap::_handler at some point 
+        return -1;  
     }
     ZeroTier::_multiplexer_lock.lock();
 

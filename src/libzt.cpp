@@ -43,7 +43,12 @@ for applications to use. See also: include/libzt.h */
 #include <poll.h>
 
 // stack
-#include "pico_stack.h"
+#if defined(STACK_PICO)
+    #include "pico_stack.h"
+#endif
+#if defined(STACK_LWIP)
+    #include "lwIP.hpp"
+#endif
 
 // ZT
 #include "OneService.hpp"
@@ -69,7 +74,12 @@ namespace ZeroTier {
     /*
      * Global reference to stack
      */
+#if defined(STACK_PICO)
     picoTCP *picostack = NULL;
+#endif
+#if defined(STACK_LWIP)
+    lwIP *lwipstack = NULL;
+#endif
 
     /*
      * "sockets" that have been created but not bound to a SocketTap interface yet
@@ -93,13 +103,16 @@ void zts_start(const char *path)
 {
     if(zt1Service)
         return;
+#if defined(STACK_PICO)
     if(ZeroTier::picostack)
         return;
-    
     ZeroTier::picostack = new ZeroTier::picoTCP();
     pico_stack_init();
-
-    //DEBUG_INFO("path=%s", path);
+#endif
+#if defined(STACK_LWIP)
+    ZeroTier::lwipstack = new ZeroTier::lwIP();
+    lwip_init();
+#endif
     if(path)
         ZeroTier::homeDir = path;
     pthread_t service_thread;
@@ -354,7 +367,6 @@ int zts_socket(ZT_SOCKET_SIG) {
         errno = EINVAL;
         return -1;
     }
-    //DEBUG_INFO();
     int err = 0;
     if(!zt1Service) {
         DEBUG_ERROR("cannot create socket, no service running. call zts_start() first.");
@@ -366,66 +378,44 @@ int zts_socket(ZT_SOCKET_SIG) {
         errno = EPROTONOSUPPORT; // seemingly closest match
         return -1;
     }
-
     ZeroTier::_multiplexer_lock.lock();
-    if(pico_ntimers() >= PICO_MAX_TIMERS) {
-        DEBUG_ERROR("cannot provision additional socket due to limitation of PICO_MAX_TIMERS. current = %d", pico_ntimers());
-        errno = EMFILE;
+
+#if defined(STACK_PICO)
+    struct pico_socket *p;
+    err = ZeroTier::picostack->pico_Socket(&p, socket_family, socket_type, protocol);
+    if(p) {
+        ZeroTier::Connection *conn = new ZeroTier::Connection();
+        conn->socket_family = socket_family;
+        conn->socket_type = socket_type;
+        conn->picosock = p;
+        ZeroTier::unmap[conn->app_fd] = conn;
+        err = conn->app_fd; // return one end of the socketpair
+    }
+    else {
+        DEBUG_ERROR("failed to create pico_socket");
         err = -1;
     }
-    else
-    {
+#endif
+
+#if defined(STACK_LWIP)
+    // TODO: check for max lwIP timers/sockets
+    ZeroTier::Connection *conn = new ZeroTier::Connection();
+    void *pcb;
+    err = ZeroTier::lwipstack->lwip_Socket(&pcb, socket_family, socket_type, protocol);
+    if(pcb) {
         ZeroTier::Connection *conn = new ZeroTier::Connection();
-        int protocol_version = 0;
-        struct pico_socket *psock;
-        
-        if(socket_family == AF_INET)
-            protocol_version = PICO_PROTO_IPV4;
-        if(socket_family == AF_INET6)
-            protocol_version = PICO_PROTO_IPV6;
-        
-        if(socket_type == SOCK_DGRAM) {
-            psock = pico_socket_open(
-                protocol_version, PICO_PROTO_UDP, &ZeroTier::picoTCP::pico_cb_socket_activity);
-            if(psock) { // configure size of UDP SND/RCV buffers
-                // TODO
-            }
-        }
-        if(socket_type == SOCK_STREAM) {
-            psock = pico_socket_open(
-                protocol_version, PICO_PROTO_TCP, &ZeroTier::picoTCP::pico_cb_socket_activity);
-            if(psock) { // configure size of TCP SND/RCV buffers
-                int tx_buf_sz = ZT_STACK_TCP_SOCKET_TX_SZ;
-                int rx_buf_sz = ZT_STACK_TCP_SOCKET_RX_SZ;
-                int t_err = 0;
-
-                int value = 1;
-                pico_socket_setoption(psock, PICO_TCP_NODELAY, &value);
-
-                if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_SNDBUF, &tx_buf_sz)) < 0)
-                    DEBUG_ERROR("unable to set SNDBUF size, err = %d, pico_err = %d", t_err, pico_err);
-                if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_RCVBUF, &rx_buf_sz)) < 0)
-                    DEBUG_ERROR("unable to set RCVBUF size, err = %d, pico_err = %d", t_err, pico_err);
-               
-                if(ZT_SOCK_BEHAVIOR_LINGER) {
-                    int linger_time_ms = ZT_SOCK_BEHAVIOR_LINGER_TIME;
-                    if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_LINGER, &linger_time_ms)) < 0)
-                        DEBUG_ERROR("unable to set LINGER, err = %d, pico_err = %d", t_err, pico_err);
-                }
-            }
-        }
-        if(psock) {
-            conn->socket_family = socket_family;
-            conn->socket_type = socket_type;
-            conn->picosock = psock;
-            ZeroTier::unmap[conn->app_fd] = conn;
-            err = conn->app_fd; // return one end of the socketpair
-        }
-        else {
-            //DEBUG_ERROR("failed to create pico_socket");
-            err = -1;
-        }
+        conn->socket_family = socket_family;
+        conn->socket_type = socket_type;
+        conn->pcb = pcb;
+        ZeroTier::unmap[conn->app_fd] = conn;
+        err = conn->app_fd; // return one end of the socketpair
     }
+    else {
+        DEBUG_ERROR("failed to create lwip pcb");
+        err = -1;
+    }
+#endif
+
     ZeroTier::_multiplexer_lock.unlock();
     return err;
 }
@@ -485,6 +475,7 @@ Linux:
 
 */
 int zts_connect(ZT_CONNECT_SIG) {
+#if defined(STACK_PICO)
     //DEBUG_INFO("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
@@ -604,6 +595,8 @@ int zts_connect(ZT_CONNECT_SIG) {
         }
     }
     return err;
+#endif
+    return 0;
 }
 
 /*
@@ -636,13 +629,11 @@ int zts_bind(ZT_BIND_SIG) {
     ZeroTier::Connection *conn = ZeroTier::unmap[fd];
     ZeroTier::SocketTap *tap;
     
-    if(conn) {      
-        char ipstr[INET6_ADDRSTRLEN]; //, nm_str[INET6_ADDRSTRLEN];
+    if(conn) {     
+        char ipstr[INET6_ADDRSTRLEN];
         memset(ipstr, 0, INET6_ADDRSTRLEN);
         ZeroTier::InetAddress iaddr;
-
         int port = 0;
-
         if(conn->socket_family == AF_INET) {
             inet_ntop(AF_INET, 
                 (const void *)&((struct sockaddr_in *)addr)->sin_addr.s_addr, ipstr, INET_ADDRSTRLEN);
@@ -662,16 +653,28 @@ int zts_bind(ZT_BIND_SIG) {
             errno = EADDRNOTAVAIL;
             err = -1;
         }
+#if defined(STACK_PICO) 
         else {
             conn->picosock->priv = new ZeroTier::ConnectionPair(tap, conn);
             tap->_Connections.push_back(conn); // Give this Connection to the tap we decided on
-            err = tap->Bind(conn, fd, addr, addrlen); // Semantically: tap->stack->connect
+            err = tap->Bind(conn, fd, addr, addrlen);
             conn->tap = tap;
             if(err == 0) { // success
                 ZeroTier::unmap.erase(fd);
                 ZeroTier::fdmap[fd] = new std::pair<ZeroTier::Connection*,ZeroTier::SocketTap*>(conn, tap);
             }
         }
+#endif
+#if defined(STACK_LWIP)
+        else {
+            tap->_Connections.push_back(conn);
+            err = tap->Bind(conn, fd, addr, addrlen);
+            if(err == 0) { // success
+                ZeroTier::unmap.erase(fd);
+                ZeroTier::fdmap[fd] = new std::pair<ZeroTier::Connection*,ZeroTier::SocketTap*>(conn, tap);
+            }
+        }
+#endif
     }
     else {
         DEBUG_ERROR("unable to locate connection");
@@ -701,6 +704,7 @@ Linux:
     [  ] [EOPNOTSUPP]       The socket is not of a type that supports the listen() operation.
 */
 int zts_listen(ZT_LISTEN_SIG) {
+#if defined(STACK_PICO)
     DEBUG_EXTRA("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
@@ -733,6 +737,8 @@ int zts_listen(ZT_LISTEN_SIG) {
         ZeroTier::_multiplexer_lock.unlock();
     }
     return err;
+#endif
+    return 0;
 }
 
 /*
@@ -750,6 +756,7 @@ Darwin:
     [  ] [ENFILE]           The system file table is full.
 */
 int zts_accept(ZT_ACCEPT_SIG) {
+#if defined(STACK_PICO)
     DEBUG_EXTRA("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
@@ -809,6 +816,8 @@ int zts_accept(ZT_ACCEPT_SIG) {
         ZeroTier::_multiplexer_lock.unlock();
     }
     return err;
+#endif
+    return 0;
 }
 
 
@@ -860,6 +869,7 @@ EPERM Firewall rules forbid connection.
 */
 int zts_setsockopt(ZT_SETSOCKOPT_SIG)
 {
+#if defined(STACK_PICO)
     DEBUG_INFO("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
@@ -883,6 +893,8 @@ int zts_setsockopt(ZT_SETSOCKOPT_SIG)
     }
     err = setsockopt(fd, level, optname, optval, optlen);
     return err;
+#endif
+    return 0;
 }
 
 /*
@@ -964,6 +976,7 @@ Linux / Darwin:
 
 int zts_close(ZT_CLOSE_SIG)
 {
+#if defined(STACK_PICO)
     DEBUG_EXTRA("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
@@ -1063,6 +1076,8 @@ int zts_close(ZT_CLOSE_SIG)
         }
     }
     return err;
+#endif
+    return 0;
 }
 
 int zts_poll(ZT_POLL_SIG)
@@ -1161,6 +1176,7 @@ int zts_write(ZT_WRITE_SIG) {
 
 int zts_shutdown(ZT_SHUTDOWN_SIG)
 {
+#if defined(STACK_PICO)
     DEBUG_INFO("fd = %d", fd);
  
     int err = 0, mode = 0;
@@ -1237,6 +1253,8 @@ int zts_shutdown(ZT_SHUTDOWN_SIG)
         }
     }
     return err;
+#endif
+    return 0;
 }
 
 /****************************************************************************/
@@ -1311,7 +1329,7 @@ namespace ZeroTier {
         jstring _str = (*env).NewStringUTF(address_string);
         env->CallBooleanMethod(addresses, env->GetMethodID(clazz, "add", "(Ljava/lang/Object;)Z"), _str);
         return addresses;
-	}
+    }
 
     JNIEXPORT jobject JNICALL Java_zerotier_ZeroTier_ztjni_1get_1ipv6_1address(
         JNIEnv *env, jobject thisObj, jstring nwid) 
@@ -1325,7 +1343,7 @@ namespace ZeroTier {
         jstring _str = (*env).NewStringUTF(address_string);
         env->CallBooleanMethod(addresses, env->GetMethodID(clazz, "add", "(Ljava/lang/Object;)Z"), _str);
         return addresses;
-	}
+    }
 
     // Returns the device is in integer form
     JNIEXPORT jint Java_zerotier_ZeroTier_ztjni_1get_1device_1id() 
@@ -1501,11 +1519,12 @@ namespace ZeroTier {
 /* SDK Socket API Helper functions --- DON'T CALL THESE DIRECTLY            */
 /****************************************************************************/
 
-int zts_get_pico_socket(int fd, struct pico_socket **s)
+#if defined(STACK_PICO)
+int zts_get_pico_socket(int fd, struct pico_socket *s)
 {
     int err = 0;
     if(!zt1Service) {
-        DEBUG_ERROR("cannot shutdown socket. service not started. call zts_start(path) first");
+        DEBUG_ERROR("cannot locate socket. service not started. call zts_start(path) first");
         errno = EBADF;
         err = -1;
     }
@@ -1514,14 +1533,12 @@ int zts_get_pico_socket(int fd, struct pico_socket **s)
         ZeroTier::_multiplexer_lock.lock();
         // First, look for for unassigned connections
         ZeroTier::Connection *conn = ZeroTier::unmap[fd];
-        // Since we found an unassigned connection, we don't need to consult the stack or tap
-        // during closure - it isn't yet stitched into the clockwork
         if(conn)
         {
             *s = conn->picosock;
-            return 1; // unassigned
+            err = 1; // unassigned
         }
-        else // assigned
+        else
         {
             std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::fdmap[fd];
             if(!p) 
@@ -1530,16 +1547,17 @@ int zts_get_pico_socket(int fd, struct pico_socket **s)
                 errno = EBADF;
                 err = -1;
             }
-            else // found everything, begin closure
+            else
             {
                 *s = p->first->picosock;
-                return 0;
+                err = 0; // assigned
             }
         }
         ZeroTier::_multiplexer_lock.unlock();
     }
     return err;
 }
+#endif
 
 int zts_nsockets()
 {
@@ -1551,8 +1569,11 @@ int zts_nsockets()
 
 int zts_maxsockets()
 {
+#if defined(STACK_PICO)
     // TODO: This is only an approximation
     return PICO_MAX_TIMERS - 10;
+#endif
+    return 32;
 }
 
 // Starts a ZeroTier service in the background
@@ -1618,7 +1639,7 @@ void *zts_start_service(void *thread_id) {
                     ZeroTier::OSUtils::rm((ZeroTier::homeDir + ZT_PATH_SEPARATOR_S 
                         + "identity.public").c_str());
                 }
-            }	
+            }   
             continue; // restart!
         }
         break; // terminate loop -- normally we don't keep restarting

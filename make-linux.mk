@@ -43,14 +43,9 @@ OSTYPE = $(shell uname -s | tr '[A-Z]' '[a-z]')
 
 # Target output filenames
 STATIC_LIB_NAME    = libzt.a
-PICO_LIB_NAME      = libpicotcp.a
 JNI_LIB_NAME       = libzt.jnilib
-#
 STATIC_LIB         = $(BUILD)/$(STATIC_LIB_NAME)
-PICO_DIR           = ext/picotcp
-PICO_LIB           = $(PICO_DIR)/build/lib/$(PICO_LIB_NAME)
 SHARED_JNI_LIB     = $(BUILD)/$(JNI_LIB_NAME)
-#
 TEST_BUILD_DIR     = $(BUILD)
 UNIT_TEST_SRC_DIR  = test
 
@@ -87,8 +82,6 @@ INCLUDES+= -Iext \
 	-I. \
 	-Isrc \
 	-Iinclude \
-	-Iext/picotcp/include \
-	-Iext/picotcp/build/include
 
 COMMON_LIBS = -lpthread
 
@@ -101,11 +94,7 @@ CXXFLAGS+=-DZT_SDK
 # Debug option, prints filenames, lines, functions, arguments, etc
 # Also enables debug symbols for debugging with tools like gdb, etc
 ifeq ($(SDK_DEBUG),1)
-	CXXFLAGS+=-DSDK_PICOTCP
 	CXXFLAGS+=-g
-	INCLUDES+= -I$(PICOTCP_DIR)/include \
-		-I$(PICOTCP_DIR)/build/include \
-		-Isrc/stack_drivers/picotcp
 endif
 
 # JNI (Java Native Interface)
@@ -121,59 +110,99 @@ endif
 ## Stack Configuration                                                      ##
 ##############################################################################
 
+PROTOCOL_VERSION_DEFINED=0
 # Stack config flags
-ifeq ($(SDK_PICOTCP),1)
-	CXXFLAGS+=-DSDK_PICOTCP
-	INCLUDES+= -I$(PICOTCP_DIR)/include \
-		-I$(PICOTCP_DIR)/build/include \
-		-Isrc/stack_drivers/picotcp
+ifeq ($(LIBZT_IPV4),1)
+	CXXFLAGS+=-DLIBZT_IPV4
+	PROTOCOL_VERSION_DEFINED=1
+endif
+ifeq ($(LIBZT_IPV6),1)
+	CXXFLAGS+=-DLIBZT_IPV6
+	PROTOCOL_VERSION_DEFINED=1
+endif
+# if no proto version, define both
+ifeq ($(PROTOCOL_VERSION_DEFINED),0)
+	CXXFLAGS+=-DLIBZT_IPV4 -DLIBZT_IPV6
 endif
 
-CXXFLAGS+=-DSDK_IPV4
-CXXFLAGS+=-DSDK_IPV6
+LIBZT_FILES:=src/SocketTap.cpp src/libzt.cpp src/Utilities.cpp
+LIBZT_OBJS+=SocketTap.o libzt.o Utilities.o 
 
-##############################################################################
-## Files                                                                    ##
-##############################################################################
-
+ifeq ($(STACK_PICO),1)
+CXXFLAGS+=-DSTACK_PICO
+STACK_LIB:=libpicotcp.a
+STACK_DIR:=ext/picotcp
+STACK_LIB:=$(STACK_DIR)/build/lib/$(STACK_LIB)
 STACK_DRIVER_FILES:=src/picoTCP.cpp
-TAP_FILES:=src/SocketTap.cpp \
-	src/libzt.cpp \
-	src/Utilities.cpp
-
-SDK_OBJS+= SocketTap.o \
-	picoTCP.o \
-	libzt.o \
-	Utilities.o
-
-PICO_OBJS+= ext/picotcp/build/lib/pico_device.o \
+STACK_DRIVER_OBJS+=picoTCP.o
+STACK_OBJS+= ext/picotcp/build/lib/pico_device.o \
 	ext/picotcp/build/lib/pico_frame.o \
 	ext/picotcp/build/lib/pico_md5.o \
 	ext/picotcp/build/lib/pico_protocol.o \
 	ext/picotcp/build/lib/pico_socket_multicast.o \
 	ext/picotcp/build/lib/pico_socket.o \
 	ext/picotcp/build/lib/pico_stack.o \
-	ext/picotcp/build/lib/pico_tree.o
+	ext/picotcp/build/lib/pico_tree.o \
+	ext/picotcp/build/modules/*.o
+INCLUDES+=-Iext/picotcp/include -Iext/picotcp/build/include
+endif
+
+ifeq ($(STACK_LWIP),1)
+STACK_FLAGS+=-DLWIP_PREFIX_BYTEORDER_FUNCS
+CXXFLAGS+=-DSTACK_LWIP
+STACK_DRIVER_FILES:=src/lwIP.cpp
+STACK_DRIVER_OBJS+=lwIP.o
+STACK_OBJS+= init.o def.o dns.o inet_chksum.o ip.o mem.o \
+			memp.o netif.o pbuf.o raw.o stats.o sys.o tcp.o \
+			tcp_in.o tcp_out.o timeouts.o udp.o autoip.o \
+			dhcp.o etharp.o icmp.o igmp.o ip4_frag.o ip4.o \
+			ip4_addr.o api_lib.o api_msg.o err.o netbuf.o \
+			netdb.o netifapi.o sockets.o tcpip.o ethernet.o
+LWIPARCH=$(CONTRIBDIR)/ports/unix
+LWIPDIR=ext/lwip/src
+INCLUDES+=-Iext/lwip/src/include/lwip \
+	-I$(LWIPDIR)/include \
+	-I$(LWIPARCH)/include \
+	-I$(LWIPDIR)/include/ipv4 \
+	-I$(LWIPDIR) \
+	-Iext
+endif
 
 all: 
-
-tests: unit_tests
 
 ##############################################################################
 ## User-Space Stack                                                         ##
 ##############################################################################
 
 picotcp:
-	cd $(PICO_DIR); make lib ARCH=shared IPV4=1 IPV6=1
+	cd $(STACK_DIR); make lib ARCH=shared IPV4=1 IPV6=1
+
+lwip:
+	-make -f make-liblwip.mk liblwip.a
 
 ##############################################################################
 ## Static Libraries                                                         ##
 ##############################################################################
 
+ifeq ($(STACK_PICO),1)
 static_lib: picotcp $(ZTO_OBJS)
 	@mkdir -p $(BUILD)
-	$(CXX) $(CXXFLAGS) $(TAP_FILES) $(STACK_DRIVER_FILES) -c -DSDK_STATIC
-	ar rcs -o $(STATIC_LIB) ext/picotcp/build/modules/*.o $(PICO_OBJS) $(ZTO_OBJS) $(SDK_OBJS) 
+	$(CXX) $(CXXFLAGS) $(LIBZT_FILES) $(STACK_DRIVER_FILES) -c
+	ar rcs -o $(STATIC_LIB) $(ZTO_OBJS) $(STACK_DRIVER_OBJS) $(STACK_OBJS) $(LIBZT_OBJS) $(STACK_LIB)
+endif
+ifeq ($(STACK_LWIP),1)
+static_lib: lwip $(ZTO_OBJS)
+	@mkdir -p $(BUILD)
+	$(CXX) $(CXXFLAGS) $(STACK_FLAGS) $(STACK_INCLUDES) $(LIBZT_FILES) $(STACK_DRIVER_FILES) -c
+	ar rcs -o $(STATIC_LIB) $(ZTO_OBJS) $(STACK_DRIVER_OBJS) $(STACK_OBJS) $(LIBZT_OBJS) $(STACK_LIB)
+endif
+# for layer-2 only (this will omit all userspace network stack code)
+ifeq ($(NO_STACK),1)
+static_lib: $(ZTO_OBJS)
+	@mkdir -p $(BUILD)
+	$(CXX) $(CXXFLAGS) $(LIBZT_FILES) -c
+	ar rcs -o $(STATIC_LIB) $(ZTO_OBJS) $(LIBZT_OBJS)
+endif
 
 ##############################################################################
 ## Java JNI                                                                 ##
@@ -196,7 +225,7 @@ $(TEST_BUILD_DIR)/%: $(UNIT_TEST_SRC_DIR)/%.cpp
 	@-$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) $(INCLUDES) -o $@ $< $(UNIT_TEST_LIBS)
 	@-./check.sh $@
 
-unit_tests: $(UNIT_TEST_OBJ_FILES)
+tests: $(UNIT_TEST_OBJ_FILES)
 
 ##############################################################################
 ## Misc                                                                     ##
@@ -205,7 +234,7 @@ unit_tests: $(UNIT_TEST_OBJ_FILES)
 # Cleans only current $(OSTYPE)
 clean:
 	-rm -rf $(BUILD)/*
-	-find $(PICO_DIR) -type f \( -name '*.o' -o -name '*.so' -o -name '*.a' \) -delete
+	-find 'ext/picotcp' -type f \( -name '*.o' -o -name '*.so' -o -name '*.a' \) -delete
 	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
 
 # Clean everything

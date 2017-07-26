@@ -121,7 +121,12 @@ namespace ZeroTier
 	 	 * Packets from the ZeroTier virtual wire enter the stack here
 	 	 */
 		void pico_rx(SocketTap *tap, const ZeroTier::MAC &from,const ZeroTier::MAC &to,unsigned int etherType,const void *data,unsigned int len);
-	
+		
+		/*
+		 * Creates a stack-specific "socket" or "connection object"
+		 */
+		int pico_Socket(struct pico_socket **p, int socket_family, int socket_type, int protocol);
+
 		/*
 		 * Connect to remote host via userspace network stack interface - Called from SocketTap
 		 */

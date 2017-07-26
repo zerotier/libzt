@@ -425,7 +425,7 @@ namespace ZeroTier
  * Gets a pointer to a pico_socket given a file descriptor
  */
 #if defined(STACK_PICO)
-	int zts_get_pico_socket(int fd, struct pico_socket *s);
+int zts_get_pico_socket(int fd, struct pico_socket **s);
 #endif
 
 /**

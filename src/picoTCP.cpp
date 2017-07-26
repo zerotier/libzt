@@ -604,11 +604,13 @@ namespace ZeroTier {
     	int err = 0;
 		if(conn->socket_family == AF_INET) { 
 			struct pico_ip4 zaddr;
+			uint32_t tempaddr;
 			memset(&zaddr, 0, sizeof (struct pico_ip4));
 			struct sockaddr_in *in4 = (struct sockaddr_in*)addr;
 			char ipv4_str[INET_ADDRSTRLEN];
 			inet_ntop(AF_INET, (const void *)&in4->sin_addr.s_addr, ipv4_str, INET_ADDRSTRLEN);
-			pico_string_to_ipv4(ipv4_str, &(zaddr.addr));
+			pico_string_to_ipv4(ipv4_str, &tempaddr);
+			zaddr.addr = tempaddr;
 			//DEBUG_EXTRA("addr=%s:%d", ipv4_str, Utils::ntoh(in4->sin_port));
 			err = pico_socket_bind(conn->picosock, &zaddr, (uint16_t *)&(in4->sin_port));
 		}
@@ -798,6 +800,11 @@ namespace ZeroTier {
     	}
 
 	    int buf_w = conn->TXbuf->write((const unsigned char*)data, len);
+            if (buf_w != len) {
+		// because we checked ZT_TCP_TX_BUF_SZ above, this should not happen
+    		DEBUG_ERROR("TX wrote only %d but expected to write %d", buf_w, len);
+    		exit(0);
+	    }
 	    //DEBUG_INFO("TXbuf->count() = %d", conn->TXbuf->count());
 	   	int txsz = conn->TXbuf->count();
 
@@ -911,7 +918,7 @@ namespace ZeroTier {
 */
 	char *picoTCP::beautify_pico_state(int state)
 	{
-		char state_str[512];
+		static char state_str[512];
 		char *str_ptr = state_str;
 
 		if(state & PICO_SOCKET_STATE_UNDEFINED) {

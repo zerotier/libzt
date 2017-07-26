@@ -878,8 +878,8 @@ int zts_setsockopt(ZT_SETSOCKOPT_SIG)
     }
 
     // Disable Nagle's algorithm
-    struct pico_socket *p;
-    err = zts_get_pico_socket(fd, p);
+    struct pico_socket *p = NULL;
+    err = zts_get_pico_socket(fd, &p);
     if(p) {
         int value = 1;
         if((err = pico_socket_setoption(p, PICO_TCP_NODELAY, &value)) < 0) {
@@ -1520,45 +1520,43 @@ namespace ZeroTier {
 /****************************************************************************/
 
 #if defined(STACK_PICO)
-    int zts_get_pico_socket(int fd, struct pico_socket *s)
+int zts_get_pico_socket(int fd, struct pico_socket *s)
+{
+    int err = 0;
+    if(!zt1Service) {
+        DEBUG_ERROR("cannot locate socket. service not started. call zts_start(path) first");
+        errno = EBADF;
+        err = -1;
+    }
+    else
     {
-        int err = 0;
-        if(!zt1Service) {
-            DEBUG_ERROR("cannot shutdown socket. service not started. call zts_start(path) first");
-            errno = EBADF;
-            err = -1;
+        ZeroTier::_multiplexer_lock.lock();
+        // First, look for for unassigned connections
+        ZeroTier::Connection *conn = ZeroTier::unmap[fd];
+        if(conn)
+        {
+            *s = conn->picosock;
+            err = 1; // unassigned
         }
         else
         {
-            ZeroTier::_multiplexer_lock.lock();
-            // First, look for for unassigned connections
-            ZeroTier::Connection *conn = ZeroTier::unmap[fd];
-            // Since we found an unassigned connection, we don't need to consult the stack or tap
-            // during closure - it isn't yet stitched into the clockwork
-            if(conn)
+            std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::fdmap[fd];
+            if(!p) 
             {
-                s = conn->picosock;
-                return 1; // unassigned
+                DEBUG_ERROR("unable to locate connection pair.");
+                errno = EBADF;
+                err = -1;
             }
-            else // assigned
+            else
             {
-                std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::fdmap[fd];
-                if(!p) 
-                {
-                    DEBUG_ERROR("unable to locate connection pair.");
-                    errno = EBADF;
-                    err = -1;
-                }
-                else // found everything, begin closure
-                {
-                    s = p->first->picosock;
-                    return 0;
-                }
+                *s = p->first->picosock;
+                err = 0; // assigned
             }
-            ZeroTier::_multiplexer_lock.unlock();
         }
-        return err;
+        ZeroTier::_multiplexer_lock.unlock();
     }
+    return err;
+}
 #endif
 
 int zts_nsockets()

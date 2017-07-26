@@ -24,12 +24,35 @@
  * of your own application.
  */
 
-#ifndef SDK_UTILITIES_HPP
-#define SDK_UTILITIES_HPP
+#ifndef UTILITIES_HPP
+#define UTILITIES_HPP
 
 /*
  * Print a stacktrace
  */
 // void zt_dump_stacktrace(int sig);
+
+#if defined(STACK_LWIP) && defined(LIBZT_IPV4)
+
+#include "lwip/ip_addr.h"
+#include <netinet/in.h>
+
+#define ip4_addr1b(ipaddr) (((u8_t*)(ipaddr))[0])
+#define ip4_addr2b(ipaddr) (((u8_t*)(ipaddr))[1])
+#define ip4_addr3b(ipaddr) (((u8_t*)(ipaddr))[2])
+#define ip4_addr4b(ipaddr) (((u8_t*)(ipaddr))[3])
+inline ip_addr_t convert_ip(struct sockaddr_in * addr)
+{
+  ip_addr_t conn_addr;
+  struct sockaddr_in *ipv4 = addr;
+  short a = ip4_addr1b(&(ipv4->sin_addr));
+  short b = ip4_addr2b(&(ipv4->sin_addr));
+  short c = ip4_addr3b(&(ipv4->sin_addr));
+  short d = ip4_addr4b(&(ipv4->sin_addr));
+  IP4_ADDR(&conn_addr, a,b,c,d);
+  return conn_addr;
+}
+
+#endif
 
 #endif

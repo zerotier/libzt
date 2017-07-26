@@ -502,6 +502,58 @@ namespace ZeroTier {
         }
         return loop_score;
     }
+    
+    int picoTCP::pico_Socket(struct pico_socket **p, int socket_family, int socket_type, int protocol)
+    {
+    	int err = 0;
+		if(pico_ntimers() >= PICO_MAX_TIMERS) {
+		    DEBUG_ERROR("cannot create additional socket, see PICO_MAX_TIMERS. current = %d", pico_ntimers());
+		    errno = EMFILE;
+		    err = -1;
+		}
+		else
+		{
+		    int protocol_version = 0;
+		    struct pico_socket *psock;
+		    if(socket_family == AF_INET)
+		        protocol_version = PICO_PROTO_IPV4;
+		    if(socket_family == AF_INET6)
+		        protocol_version = PICO_PROTO_IPV6;
+		    
+		    if(socket_type == SOCK_DGRAM) {
+		    	DEBUG_ERROR("SOCK_DGRAM");
+		        psock = pico_socket_open(
+		            protocol_version, PICO_PROTO_UDP, &ZeroTier::picoTCP::pico_cb_socket_activity);
+		        if(psock) { // configure size of UDP SND/RCV buffers
+		            // TODO
+		        }
+		    }
+		    if(socket_type == SOCK_STREAM) {		    	
+		        psock = pico_socket_open(
+		            protocol_version, PICO_PROTO_TCP, &ZeroTier::picoTCP::pico_cb_socket_activity);
+		        if(psock) { // configure size of TCP SND/RCV buffers
+		            int tx_buf_sz = ZT_STACK_TCP_SOCKET_TX_SZ;
+		            int rx_buf_sz = ZT_STACK_TCP_SOCKET_RX_SZ;
+		            int t_err = 0;
+		            int value = 1;
+		            pico_socket_setoption(psock, PICO_TCP_NODELAY, &value);
+
+		            if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_SNDBUF, &tx_buf_sz)) < 0)
+		                DEBUG_ERROR("unable to set SNDBUF size, err = %d, pico_err = %d", t_err, pico_err);
+		            if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_RCVBUF, &rx_buf_sz)) < 0)
+		                DEBUG_ERROR("unable to set RCVBUF size, err = %d, pico_err = %d", t_err, pico_err);
+		           
+		            if(ZT_SOCK_BEHAVIOR_LINGER) {
+		                int linger_time_ms = ZT_SOCK_BEHAVIOR_LINGER_TIME;
+		                if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_LINGER, &linger_time_ms)) < 0)
+		                    DEBUG_ERROR("unable to set LINGER, err = %d, pico_err = %d", t_err, pico_err);
+		            }
+		        }
+		    }
+		    *p = psock;
+		}
+		return err;
+    }
 
     int picoTCP::pico_Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen)
     {		

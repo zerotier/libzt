@@ -44,9 +44,10 @@
 #include "Phy.hpp"
 
 #include "libzt.h"
-#include "picoTCP.hpp"
 #include "Connection.hpp"
 
+#if defined(STACK_PICO)
+#include "picoTCP.hpp"
 #include "pico_protocol.h"
 #include "pico_stack.h"
 #include "pico_ipv4.h"
@@ -55,6 +56,10 @@
 #include "pico_protocol.h"
 #include "pico_device.h"
 #include "pico_ipv6.h"
+#endif
+#if defined(STACK_LWIP)
+#include "lwIP.hpp"
+#endif
 
 namespace ZeroTier {
 	
@@ -154,8 +159,29 @@ namespace ZeroTier {
 		/* Vars                                                                     */
 		/****************************************************************************/
 
+#if defined(STACK_PICO)
+
+		/*
+		 * Whether our picoTCP device has been initialized
+		 */
+		bool picodev_initialized = false;
+
 		struct pico_device *picodev;
 		struct pico_device *picodev6;
+
+		/****************************************************************************/
+		/* Guarded RX Frame Buffer for picoTCP                                      */
+		/****************************************************************************/
+
+        unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
+        int pico_frame_rxbuf_tot;
+        Mutex _pico_frame_rxbuf_m;
+#endif
+
+#if defined(STACK_LWIP)
+        netif lwipdev;
+        netif lwipdev6;
+#endif
 
 		std::vector<InetAddress> ips() const;
 		std::vector<InetAddress> _ips;
@@ -184,19 +210,6 @@ namespace ZeroTier {
 		 * SEE: ZT_HOUSEKEEPING_INTERVAL in libzt.h
 		 */
 		std::time_t last_housekeeping_ts;
-
-		/*
-		 * Whether our picoTCP device has been initialized
-		 */
-		bool picodev_initialized = false;
-		
-		/****************************************************************************/
-		/* Guarded RX Frame Buffer for picoTCP                                      */
-		/****************************************************************************/
-
-        unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
-        int pico_frame_rxbuf_tot;
-        Mutex _pico_frame_rxbuf_m;
 
 		/****************************************************************************/
 		/* In these, we will call the stack's corresponding functions, this is      */

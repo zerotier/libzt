@@ -2,7 +2,7 @@
 *Embed ZeroTier directly into your app*
 ***
 
-<a href="https://www.zerotier.com?pk_campaign=github_libzt"><img src="https://github.com/zerotier/ZeroTierOne/raw/master/artwork/AppIcon_87x87.png" align="left" hspace="20" vspace="9"></a>
+<a href="https://www.zerotier.com/?pk_campaign=github_libzt"><img src="https://github.com/zerotier/ZeroTierOne/raw/master/artwork/" width="128" height="128" align="left" hspace="20" vspace="9"></a>
 
 **ZeroTier** makes it easy to securely connect devices, servers, cloud VMs, containers, and apps everywhere and manage them at scale. Now, with **libzt** you can bake this ability directly into your app or service using your preferred language or framework. We provide a BSD socket-like API supporting `SOCK_STREAM`, `SOCK_DGRAM`, and `SOCK_RAW` to make the integration simple. There's also no longer any need for system-wide virtual interfaces. This connection is exclusive to your app and fully encrypted via the [Salsa20](https://en.wikipedia.org/wiki/Salsa20) cipher.
 
@@ -39,7 +39,7 @@ zts_close(fd);
 
 Bindings for various [languages](examples)
 
-For an example using only the [Virtual Layer 2](https://www.zerotier.com/manual.shtml#2_2), see [test/layer2.cpp](test/layer2.cpp)
+For an example using only the [Virtual Layer 2](https://www.zerotier.com/manual.shtml#2_2?pk_campaign=github_libzt), see [test/layer2.cpp](test/layer2.cpp)
 
 ***
 

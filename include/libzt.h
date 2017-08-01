@@ -29,6 +29,18 @@
 
 #include <sys/socket.h>
 #include <poll.h>
+#include <net/if.h>
+
+/****************************************************************************/
+/* For SOCK_RAW support, it will initially be modeled after linux's API, so */
+/* below are the various things we need to define in order to make this API */
+/* work on other platforms. Mayber later down the road we will customize    */
+/* this for each different platform. Maybe.                                 */
+/****************************************************************************/
+#if !defined(__linux__)
+#define SIOCGIFINDEX  101
+#define SIOCGIFHWADDR 102
+#endif
 
 /****************************************************************************/
 /* LWIP                                                                     */
@@ -140,6 +152,7 @@
 #define ZT_GETSOCKNAME_SIG int fd, struct sockaddr *addr, socklen_t *addrlen
 #define ZT_GETPEERNAME_SIG int fd, struct sockaddr *addr, socklen_t *addrlen
 #define ZT_FCNTL_SIG int fd, int cmd, int flags
+#define ZT_IOCTL_SIG int fd, unsigned long request, void *argp
 #define ZT_SYSCALL_SIG long number, ...
 
 /****************************************************************************/
@@ -366,6 +379,11 @@ int zts_select(ZT_SELECT_SIG);
  * Issue file control commands on a socket
  */
 int zts_fcntl(ZT_FCNTL_SIG);
+
+/**
+ * Control a device
+ */
+int zts_ioctl(ZT_IOCTL_SIG);
 
 /**
  * Send data to a remote host

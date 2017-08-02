@@ -51,16 +51,16 @@ struct tcp_pcb;
 struct netif;
 
 #if defined(LIBZT_IPV4)
-    #define LWIP_NETIF_ADD_SIG struct netif *netif, ip_addr_t *ipaddr, ip_addr_t *netmask, ip_addr_t *gw, void *state, netif_init_fn init, netif_input_fn input
-    #define LWIP_ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip4_addr_t *ipaddr
+	#define LWIP_NETIF_ADD_SIG struct netif *netif, ip_addr_t *ipaddr, ip_addr_t *netmask, ip_addr_t *gw, void *state, netif_init_fn init, netif_input_fn input
+	#define LWIP_ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip4_addr_t *ipaddr
 #endif
 #if defined(LIBZT_IPV6)
 #include "lwip/ip6_addr.h"
-    #define LWIP_NETIF_ADD_SIG struct netif *netif, void *state, netif_init_fn init, netif_input_fn input
-    #define LWIP_ETHIP6_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip6_addr_t *ip6addr
-    #define LWIP_ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip6_addr_t *ipaddr
-    #define LWIP_NETIF_IP6_ADDR_SET_STATE_SIG struct netif* netif, s8_t addr_idx, u8_t state
-    #define LWIP_NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG struct netif *netif, u8_t from_mac_48bit
+	#define LWIP_NETIF_ADD_SIG struct netif *netif, void *state, netif_init_fn init, netif_input_fn input
+	#define LWIP_ETHIP6_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip6_addr_t *ip6addr
+	#define LWIP_ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip6_addr_t *ipaddr
+	#define LWIP_NETIF_IP6_ADDR_SET_STATE_SIG struct netif* netif, s8_t addr_idx, u8_t state
+	#define LWIP_NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG struct netif *netif, u8_t from_mac_48bit
 #endif
 
 #define LWIP_PBUF_FREE_SIG struct pbuf *p
@@ -105,13 +105,13 @@ struct netif;
 
 
 #if defined(LIBZT_IPV4)
-    extern "C" err_t etharp_output(LWIP_ETHARP_OUTPUT_SIG);
+	extern "C" err_t etharp_output(LWIP_ETHARP_OUTPUT_SIG);
 #endif            
 #if defined(LIBZT_IPV6)
-    extern "C" void nd6_tmr(void);
-    extern "C" void netif_ip6_addr_set_state(LWIP_NETIF_IP6_ADDR_SET_STATE_SIG);
-    extern "C" void netif_create_ip6_linklocal_address(LWIP_NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG);
-    extern "C" err_t _ethip6_output(LWIP_ETHIP6_OUTPUT_SIG);
+	extern "C" void nd6_tmr(void);
+	extern "C" void netif_ip6_addr_set_state(LWIP_NETIF_IP6_ADDR_SET_STATE_SIG);
+	extern "C" void netif_create_ip6_linklocal_address(LWIP_NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG);
+	extern "C" err_t _ethip6_output(LWIP_ETHIP6_OUTPUT_SIG);
 #endif
 
 extern "C" void lwip_init();
@@ -161,45 +161,45 @@ extern "C" err_t ip_input(LWIP_IP_INPUT_SIG);
 
 
 namespace ZeroTier {
-    
-    class SocketTap;
-    struct Connection;
+	
+	class SocketTap;
+	struct Connection;
 
-    class lwIP
-    {
-    public:
+	class lwIP
+	{
+	public:
 
-        /*
-         * Set up an interface in the network stack for the SocketTap
-         */
-        void lwip_init_interface(SocketTap *tap, const InetAddress &ip);
+		/*
+		 * Set up an interface in the network stack for the SocketTap
+		 */
+		void lwip_init_interface(SocketTap *tap, const InetAddress &ip);
 
-        /*
-         * Main stack loop
-         */
-        void lwip_loop(SocketTap *tap);
+		/*
+		 * Main stack loop
+		 */
+		void lwip_loop(SocketTap *tap);
 
-        /*
-         * Packets from the ZeroTier virtual wire enter the stack here
-         */
-        void lwip_rx(SocketTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
-        
-        int lwip_Socket(void **pcb, int socket_family, int socket_type, int protocol);
-        int lwip_Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
-        int lwip_Bind(SocketTap *tap, Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
-        int lwip_Listen(SocketTap *tap, PhySocket *sock, PhySocket *rpcSock, void **uptr, struct listen_st *listen_rpc);
-        int lwip_Read(SocketTap *tap, PhySocket *sock, void **uptr, bool lwip_invoked);
-        int lwip_Write(SocketTap *tap, Connection *conn);
-        int lwip_Close(SocketTap *tap, PhySocket *sock, Connection *conn);
+		/*
+		 * Packets from the ZeroTier virtual wire enter the stack here
+		 */
+		void lwip_rx(SocketTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
+		
+		int lwip_Socket(void **pcb, int socket_family, int socket_type, int protocol);
+		int lwip_Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+		int lwip_Bind(SocketTap *tap, Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+		int lwip_Listen(SocketTap *tap, PhySocket *sock, PhySocket *rpcSock, void **uptr, struct listen_st *listen_rpc);
+		int lwip_Read(SocketTap *tap, PhySocket *sock, void **uptr, bool lwip_invoked);
+		int lwip_Write(SocketTap *tap, Connection *conn);
+		int lwip_Close(SocketTap *tap, PhySocket *sock, Connection *conn);
 
-        static err_t nc_recved(void *arg, struct tcp_pcb *PCB, struct pbuf *p, err_t err);
-        static err_t nc_accept(void *arg, struct tcp_pcb *newPCB, err_t err);
-        static void nc_udp_recved(void * arg, struct udp_pcb * upcb, struct pbuf * p, const ip_addr_t * addr, u16_t port);
-        static void nc_err(void *arg, err_t err);
-        static err_t nc_poll(void* arg, struct tcp_pcb *PCB);
-        static err_t nc_sent(void *arg, struct tcp_pcb *PCB, u16_t len);
-        static err_t nc_connected(void *arg, struct tcp_pcb *PCB, err_t err);
-    };
+		static err_t nc_recved(void *arg, struct tcp_pcb *PCB, struct pbuf *p, err_t err);
+		static err_t nc_accept(void *arg, struct tcp_pcb *newPCB, err_t err);
+		static void nc_udp_recved(void * arg, struct udp_pcb * upcb, struct pbuf * p, const ip_addr_t * addr, u16_t port);
+		static void nc_err(void *arg, err_t err);
+		static err_t nc_poll(void* arg, struct tcp_pcb *PCB);
+		static err_t nc_sent(void *arg, struct tcp_pcb *PCB, u16_t len);
+		static err_t nc_connected(void *arg, struct tcp_pcb *PCB, err_t err);
+	};
 } 
 
 #endif

@@ -45,33 +45,33 @@
 // Normally defined in linux/if_packet.h, defined here so we can offer a linux-like 
 // raw socket API on non-linux platforms 
 struct sockaddr_ll {
-    unsigned short sll_family;   /* Always AF_PACKET */
-    unsigned short sll_protocol; /* Physical layer protocol */
-    int            sll_ifindex;  /* Interface number */
-    unsigned short sll_hatype;   /* ARP hardware type */
-    unsigned char  sll_pkttype;  /* Packet type */
-    unsigned char  sll_halen;    /* Length of address */
-    unsigned char  sll_addr[8];  /* Physical layer address */
+		unsigned short sll_family;   /* Always AF_PACKET */
+		unsigned short sll_protocol; /* Physical layer protocol */
+		int            sll_ifindex;  /* Interface number */
+		unsigned short sll_hatype;   /* ARP hardware type */
+		unsigned char  sll_pkttype;  /* Packet type */
+		unsigned char  sll_halen;    /* Length of address */
+		unsigned char  sll_addr[8];  /* Physical layer address */
 };
 
 /*
 struct zts_ifreq {
-   char ifr_name[IFNAMSIZ]; // Interface name
-   union {
-       struct sockaddr ifr_addr;
-       struct sockaddr ifr_dstaddr;
-       struct sockaddr ifr_broadaddr;
-       struct sockaddr ifr_netmask;
-       struct sockaddr ifr_hwaddr;
-       short           ifr_flags;
-       int             ifr_ifindex;
-       int             ifr_metric;
-       int             ifr_mtu;
-       struct ifmap    ifr_map;
-       char            ifr_slave[IFNAMSIZ];
-       char            ifr_newname[IFNAMSIZ];
-       char           *ifr_data;
-   };
+	 char ifr_name[IFNAMSIZ]; // Interface name
+	 union {
+			 struct sockaddr ifr_addr;
+			 struct sockaddr ifr_dstaddr;
+			 struct sockaddr ifr_broadaddr;
+			 struct sockaddr ifr_netmask;
+			 struct sockaddr ifr_hwaddr;
+			 short           ifr_flags;
+			 int             ifr_ifindex;
+			 int             ifr_metric;
+			 int             ifr_mtu;
+			 struct ifmap    ifr_map;
+			 char            ifr_slave[IFNAMSIZ];
+			 char            ifr_newname[IFNAMSIZ];
+			 char           *ifr_data;
+	 };
 };
 */
 
@@ -467,14 +467,14 @@ int zts_shutdown(ZT_SHUTDOWN_SIG);
 
 namespace ZeroTier
 {
-  class picoTCP;
-  extern ZeroTier::picoTCP *picostack;
+	class picoTCP;
+	extern ZeroTier::picoTCP *picostack;
 
-  class lwIP;
-  extern ZeroTier::lwIP *lwipstack;
+	class lwIP;
+	extern ZeroTier::lwIP *lwipstack;
 
-  class SocketTap;
-  struct InetAddress;
+	class SocketTap;
+	struct InetAddress;
 }
 
 /*

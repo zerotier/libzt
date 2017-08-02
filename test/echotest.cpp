@@ -68,9 +68,9 @@ void loadTestConfigFile(std::string filepath)
 			prefix = value;
 		}
 		if(key[0] != '#' && key[0] != ';') {
-	    	testConf[prefix + "." + key] = value; // format: alice.ipv4 172.30.30.1
-	        //fprintf(stderr, "%s.%s = %s\n", prefix.c_str(), key.c_str(), testConf[prefix + "." + key].c_str());
-	    }
+			testConf[prefix + "." + key] = value; // format: alice.ipv4 172.30.30.1
+			//fprintf(stderr, "%s.%s = %s\n", prefix.c_str(), key.c_str(), testConf[prefix + "." + key].c_str());
+		}
 
 	}
 	testFile.close();
@@ -225,18 +225,18 @@ void start_echo_mode(std::string ipstr, int listen_port)
 
 int main(int argc , char *argv[])
 {
-    if(argc < 5) {
-        fprintf(stderr, "usage: echotest <selftest.conf> <alice|bob|ted|carol> to <bob|alice|ted|carol>\n");
-        fprintf(stderr, "e.g. : echotest test/selftest.conf bob to alice\n");   
-        return 1;
-    }
+	if(argc < 5) {
+		fprintf(stderr, "usage: echotest <selftest.conf> <alice|bob|ted|carol> to <bob|alice|ted|carol>\n");
+		fprintf(stderr, "e.g. : echotest test/selftest.conf bob to alice\n");   
+		return 1;
+	}
 
 	std::string from = argv[2];
 	std::string   to = argv[4];
 	std::string   me = from;
 
-    int start_port       = 0;
-    int port_offset      = 0;
+	int start_port       = 0;
+	int port_offset      = 0;
 	int echo_listen_port = 0;
 
 	std::string local_echo_ipv4;

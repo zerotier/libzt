@@ -137,22 +137,22 @@ namespace ZeroTier {
 		/* 
 		 * For moving data onto the ZeroTier virtual wire
 		 */
-	  	void (*_handler)(void *,void *,uint64_t,const MAC &,const MAC &,unsigned int,unsigned int,
-	  		const void *,unsigned int);
+		void (*_handler)(void *,void *,uint64_t,const MAC &,const MAC &,unsigned int,unsigned int,
+			const void *,unsigned int);
 
 		/*
-	 	 * Signals us to close the TcpConnection associated with this PhySocket
-	 	 */
+		 * Signals us to close the TcpConnection associated with this PhySocket
+		 */
 		void phyOnUnixClose(PhySocket *sock,void **uptr);
 		
-	    /* 
-	 	 * Notifies us that there is data to be read from an application's socket
-	 	 */
+		/* 
+		 * Notifies us that there is data to be read from an application's socket
+		 */
 		void phyOnUnixData(PhySocket *sock,void **uptr,void *data,ssize_t len);
 		
 		/* 
-	 	 * Notifies us that we can write to an application's socket
-	 	 */
+		 * Notifies us that we can write to an application's socket
+		 */
 		void phyOnUnixWritable(PhySocket *sock,void **uptr,bool lwip_invoked);
 
 		/****************************************************************************/
@@ -173,14 +173,14 @@ namespace ZeroTier {
 		/* Guarded RX Frame Buffer for picoTCP                                      */
 		/****************************************************************************/
 
-        unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
-        int pico_frame_rxbuf_tot;
-        Mutex _pico_frame_rxbuf_m;
+		unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
+		int pico_frame_rxbuf_tot;
+		Mutex _pico_frame_rxbuf_m;
 #endif
 
 #if defined(STACK_LWIP)
-        netif lwipdev;
-        netif lwipdev6;
+		netif lwipdev;
+		netif lwipdev6;
 #endif
 
 		static int devno;
@@ -190,13 +190,13 @@ namespace ZeroTier {
 		std::vector<InetAddress> _ips;
 
 		std::string _homePath;
-	 	void *_arg;
+		void *_arg;
 		volatile bool _enabled;
 		volatile bool _run;	
 		MAC _mac;
-	  	unsigned int _mtu;
-	  	uint64_t _nwid;
-	  	PhySocket *_unixListenSocket;
+		unsigned int _mtu;
+		uint64_t _nwid;
+		PhySocket *_unixListenSocket;
 		Phy<SocketTap *> _phy;
 
 		std::vector<Connection*> _Connections;
@@ -245,14 +245,14 @@ namespace ZeroTier {
 		int Read(PhySocket *sock,void **uptr,bool stack_invoked);
 
 		/* 
-	 	 * Move data from application's "socket" into network stack
-	 	 */
+		 * Move data from application's "socket" into network stack
+		 */
 		int Write(Connection *conn, void *data, ssize_t len);
 
 		/*
 		 * Closes a Connection
 		 */
-        int Close(Connection *conn);
+		int Close(Connection *conn);
 
 		/*
 		 * Disposes of previously-closed Connections

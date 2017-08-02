@@ -81,7 +81,7 @@ namespace ZeroTier {
 		void (*handler)(void *,void*,uint64_t,const MAC &,const MAC &,
 			unsigned int,unsigned int,const void *,unsigned int),
 		void *arg) :
-	        _handler(handler),
+			_handler(handler),
 			_homePath(homePath),
 			_arg(arg),
 			_enabled(true),
@@ -185,12 +185,12 @@ namespace ZeroTier {
 		const void *data,unsigned int len)
 	{
 #if defined(STACK_PICO)
-	    if(picostack)
-	   		picostack->pico_rx(this,from,to,etherType,data,len);
+		if(picostack)
+			picostack->pico_rx(this,from,to,etherType,data,len);
 #endif
 #if defined(STACK_LWIP)
-	    if(lwipstack)
-	   		lwipstack->lwip_rx(this,from,to,etherType,data,len);
+		if(lwipstack)
+			lwipstack->lwip_rx(this,from,to,etherType,data,len);
 #endif  
 	}
 
@@ -264,11 +264,11 @@ namespace ZeroTier {
 		Connection *conn = (Connection*)*uptr;
 		if(!conn)
 			return;
-	    if(len){
+		if(len){
 
-	        Write(conn, data, len);
-	    }
-	    return;
+			Write(conn, data, len);
+		}
+		return;
 	}
 
 	void SocketTap::phyOnUnixWritable(PhySocket *sock,void **uptr,bool stack_invoked)
@@ -337,13 +337,13 @@ namespace ZeroTier {
 
 	int SocketTap::Write(Connection *conn, void *data, ssize_t len) {
 		if(conn->socket_type == SOCK_RAW) { // we don't want to use a stack, just VL2
-        	struct ether_header *eh = (struct ether_header *) data;
-        	MAC src_mac;
-        	MAC dest_mac;
-        	src_mac.setTo(eh->ether_shost, 6);
-        	dest_mac.setTo(eh->ether_dhost, 6);
-        	_handler(_arg,NULL,_nwid,src_mac,dest_mac, Utils::ntoh((uint16_t)eh->ether_type),0, ((char*)data) + sizeof(struct ether_header),len - sizeof(struct ether_header));
-        	return len;
+			struct ether_header *eh = (struct ether_header *) data;
+			MAC src_mac;
+			MAC dest_mac;
+			src_mac.setTo(eh->ether_shost, 6);
+			dest_mac.setTo(eh->ether_dhost, 6);
+			_handler(_arg,NULL,_nwid,src_mac,dest_mac, Utils::ntoh((uint16_t)eh->ether_type),0, ((char*)data) + sizeof(struct ether_header),len - sizeof(struct ether_header));
+			return len;
 		}
 
 #if defined(STACK_PICO)

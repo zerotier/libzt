@@ -116,7 +116,7 @@ std::map<std::string, std::string> testConf;
 	[OK] comprehensive server ipv6 - test all ipv4/6 server simple/sustained modes
 
 	Performance: 
-	     (See libzt.h, compile libzt with appropriate ZT_TCP_TX_BUF_SZ, ZT_TCP_RX_BUF_SZ, ZT_UDP_TX_BUF_SZ, and ZT_UDO_RX_BUF_SZ for your test)
+		 (See libzt.h, compile libzt with appropriate ZT_TCP_TX_BUF_SZ, ZT_TCP_RX_BUF_SZ, ZT_UDP_TX_BUF_SZ, and ZT_UDO_RX_BUF_SZ for your test)
 
 	[OK]                Throughput - Test maximum RX/TX speeds
 	[  ]              Memory Usage - Test memory consumption profile
@@ -164,9 +164,9 @@ void loadTestConfigFile(std::string filepath)
 			prefix = value;
 		}
 		if(key[0] != '#' && key[0] != ';') {
-	    	testConf[prefix + "." + key] = value;
-	        fprintf(stderr, "%s.%s = %s\n", prefix.c_str(), key.c_str(), testConf[prefix + "." + key].c_str());
-	    }
+			testConf[prefix + "." + key] = value;
+			fprintf(stderr, "%s.%s = %s\n", prefix.c_str(), key.c_str(), testConf[prefix + "." + key].c_str());
+		}
 
 	}
 	testFile.close();
@@ -870,7 +870,7 @@ int slam_api_test()
 	int results[SLAM_NUMBER*SLAM_REPEAT];
 
 	struct hostent *server;
-    struct sockaddr_in6 addr6;
+	struct sockaddr_in6 addr6;
 	struct sockaddr_in addr;
 
 	// int start_stack_timer_count = pico_ntimers(); // number of picoTCP timers allocated
@@ -946,17 +946,17 @@ int slam_api_test()
 
 				int port;
 				while(!(std::find(used_ports.begin(),used_ports.end(),port) == used_ports.end())) {
-			    	port = MIN_PORT + (rand() % (int)(MAX_PORT - MIN_PORT + 1));
-			    }
-			    used_ports.push_back(port);
-			    std::cout << "port = " << port << std::endl;
+					port = MIN_PORT + (rand() % (int)(MAX_PORT - MIN_PORT + 1));
+				}
+				used_ports.push_back(port);
+				std::cout << "port = " << port << std::endl;
 				
 				if(false) {
 					server = gethostbyname2("::",AF_INET6);
-	    			memset((char *) &addr6, 0, sizeof(addr6));
-	    			addr6.sin6_flowinfo = 0;
-	    			addr6.sin6_family = AF_INET6;
-	    			addr6.sin6_port = htons(port);
+					memset((char *) &addr6, 0, sizeof(addr6));
+					addr6.sin6_flowinfo = 0;
+					addr6.sin6_family = AF_INET6;
+					addr6.sin6_port = htons(port);
 					addr6.sin6_addr = in6addr_any;
 					err = zts_bind(sock, (struct sockaddr *)&addr6, (socklen_t)(sizeof addr6));
 				}
@@ -1020,10 +1020,10 @@ int slam_api_test()
 			// connect()
 			if(false) {
 				server = gethostbyname2("::",AF_INET6);
-    			memset((char *) &addr6, 0, sizeof(addr6));
-    			addr6.sin6_flowinfo = 0;
-    			addr6.sin6_family = AF_INET6;
-    			addr6.sin6_port = htons(port);
+				memset((char *) &addr6, 0, sizeof(addr6));
+				addr6.sin6_flowinfo = 0;
+				addr6.sin6_family = AF_INET6;
+				addr6.sin6_port = htons(port);
 				addr6.sin6_addr = in6addr_any;
 				err = zts_connect(sock, (struct sockaddr *)&addr6, (socklen_t)(sizeof addr6));
 			}
@@ -1086,7 +1086,7 @@ int random_api_test()
 	int calls_made = 0;
 
 	// how many calls we'll make
-    int num_of_api_calls = 10;
+	int num_of_api_calls = 10;
 
 
 	zts_socket()
@@ -1241,24 +1241,24 @@ void test_bad_args()
 
 int main(int argc , char *argv[])
 {
-    if(argc < 5) {
-        fprintf(stderr, "usage: selftest <selftest.conf> <alice|bob|ted|carol> to <bob|alice|ted|carol>\n");
-        fprintf(stderr, "e.g. : selftest test/selftest.conf alice to bob\n");
-        return 1;
-    }
+	if(argc < 5) {
+		fprintf(stderr, "usage: selftest <selftest.conf> <alice|bob|ted|carol> to <bob|alice|ted|carol>\n");
+		fprintf(stderr, "e.g. : selftest test/selftest.conf alice to bob\n");
+		return 1;
+	}
 
 	std::string from = argv[2];
 	std::string   to = argv[4];
 	std::string   me = from;
 
-    std::vector<std::string> results;
+	std::vector<std::string> results;
 
-    int err          = 0;
-    int mode         = 0;
-    int port         = 0;
-    int operation    = 0;
-    int start_port   = 0;
-    int port_offset  = 0;
+	int err          = 0;
+	int mode         = 0;
+	int port         = 0;
+	int operation    = 0;
+	int start_port   = 0;
+	int port_offset  = 0;
 	int count        = 0;
 	int delay        = 0;
 

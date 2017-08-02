@@ -55,6 +55,7 @@ struct netif;
     #define LWIP_ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip4_addr_t *ipaddr
 #endif
 #if defined(LIBZT_IPV6)
+#include "lwip/ip6_addr.h"
     #define LWIP_NETIF_ADD_SIG struct netif *netif, void *state, netif_init_fn init, netif_input_fn input
     #define LWIP_ETHIP6_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip6_addr_t *ip6addr
     #define LWIP_ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip6_addr_t *ipaddr

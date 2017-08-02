@@ -183,6 +183,9 @@ namespace ZeroTier {
         netif lwipdev6;
 #endif
 
+		static int devno;
+		int ifindex;
+
 		std::vector<InetAddress> ips() const;
 		std::vector<InetAddress> _ips;
 
@@ -239,17 +242,17 @@ namespace ZeroTier {
 		/* 
 		 * Move data from RX buffer to application's "socket"
 		 */
-		void Read(PhySocket *sock,void **uptr,bool stack_invoked);
+		int Read(PhySocket *sock,void **uptr,bool stack_invoked);
 
 		/* 
 	 	 * Move data from application's "socket" into network stack
 	 	 */
-		void Write(Connection *conn, void *data, ssize_t len);
+		int Write(Connection *conn, void *data, ssize_t len);
 
 		/*
 		 * Closes a Connection
 		 */
-        void Close(Connection *conn);
+        int Close(Connection *conn);
 
 		/*
 		 * Disposes of previously-closed Connections

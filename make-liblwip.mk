@@ -45,7 +45,7 @@ ifeq ($(origin CCX),default)
 	CCX=$(shell if [ -e /usr/bin/clang++ ]; then echo clang++; else echo g++; fi)
 endif
 
-CFLAGS=-O3 -g -Wall -DIPv4 -fPIC
+CFLAGS=-O3 -g -Wall -DIPv4 -DIPv6 -fPIC
 
 CFLAGS:=$(CFLAGS) \
 	-I$(LWIPDIR)/include -I$(LWIPARCH)/include -I$(LWIPDIR)/include/ipv4 \
@@ -115,11 +115,15 @@ ARCHFILES=$(wildcard $(LWIPARCH)/*.c $(LWIPARCH)tapif.c $(LWIPARCH)/netif/list.c
 # LWIPFILES: All the above.
 LWIPFILES=$(COREFILES) $(CORE4FILES) $(APIFILES) $(NETIFFILES) $(ARCHFILES)
 
-# ipv6 support
-ifeq ($(SDK_IPV6),1)
-	LWIPFILES+=$(CORE6FILES)
-	CFLAGS+=-DSDK_IPV6=1
+ifeq ($(IPV4),1)
+	LWIPFILES+=$(CORE4FILES)
+	CFLAGS+=-DLIBZT_IPV4=1
 endif
+ifeq ($(IPV6),1)
+	LWIPFILES+=$(CORE6FILES)
+	CFLAGS+=-DLIBZT_IPV6=1
+endif
+
 LWIPFILESW=$(wildcard $(LWIPFILES))
 LWIPOBJS=$(notdir $(LWIPFILESW:.c=.o))
 
@@ -145,9 +149,6 @@ $(LWIPLIB): $(LWIPOBJS)
 liblwip.a: $(LWIPOBJS)
 	echo $(LWIPOBJS)
 	libtool -static -o $@ $^
-	#echo "wtf"
-	#echo $(NETIFFILES)
-	#$(AR) -r $@ $^
 
 .depend: $(LWIPFILES)
 	$(CCDEP) $(CFLAGS) -MM $^ > .depend || rm -f .depend

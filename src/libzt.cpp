@@ -28,18 +28,31 @@
 stack driver and core ZeroTier service to create a socket-like interface
 for applications to use. See also: include/libzt.h */
 
-#include <sys/socket.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
-#include <fcntl.h>
-#include <sys/types.h>
+
+#if defined(__APPLE__)
+#include <net/ethernet.h>
+#include <net/if.h>
+#endif
+#if defined(__linux__)
+#include <netinet/ether.h>
+#include <sys/socket.h>
+#include <linux/if_packet.h>
+#include <net/ethernet.h>
+#endif
+
 #include <pthread.h>
 #include <poll.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #if defined(STACK_PICO)
 #include "pico_stack.h"
@@ -84,6 +97,12 @@ namespace ZeroTier {
      */
     std::map<int, std::pair<Connection*,SocketTap*>*> fdmap;
 
+    /*
+     * 
+     */
+    std::vector<void*> vtaps;
+
+    ZeroTier::Mutex _vtaps_lock;
     ZeroTier::Mutex _multiplexer_lock;
     ZeroTier::Mutex _accepted_connection_lock;
 }
@@ -125,7 +144,7 @@ void zts_simple_start(const char *path, const char *nwid)
 void zts_stop() {
     if(zt1Service) { 
         zt1Service->terminate();
-        zt1Service->removeNets();
+        dismantleTaps();
     }
 }
 
@@ -237,11 +256,12 @@ void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen)
 {
     if(zt1Service) {
         uint64_t nwid_int = strtoull(nwid, NULL, 16);
-        ZeroTier::SocketTap *tap = zt1Service->getTap(nwid_int);
+        ZeroTier::SocketTap *tap = getTapByNWID(nwid_int);
         if(tap && tap->_ips.size()){ 
             for(int i=0; i<tap->_ips.size(); i++) {
                 if(tap->_ips[i].isV4()) {
-                    std::string addr = tap->_ips[i].toString();
+                	char ipbuf[64];
+                    std::string addr = tap->_ips[i].toString(ipbuf);
                     int len = addrlen < addr.length() ? addrlen : addr.length();
                     memset(addrstr, 0, len);
                     memcpy(addrstr, addr.c_str(), len); 
@@ -258,11 +278,12 @@ void zts_get_ipv6_address(const char *nwid, char *addrstr, const int addrlen)
 {
     if(zt1Service) {
         uint64_t nwid_int = strtoull(nwid, NULL, 16);
-        ZeroTier::SocketTap *tap = zt1Service->getTap(nwid_int);
+        ZeroTier::SocketTap *tap = getTapByNWID(nwid_int);
         if(tap && tap->_ips.size()){ 
             for(int i=0; i<tap->_ips.size(); i++) {
                 if(tap->_ips[i].isV6()) {
-                    std::string addr = tap->_ips[i].toString();
+                	char ipbuf[64];
+                    std::string addr = tap->_ips[i].toString(ipbuf);
                     int len = addrlen < addr.length() ? addrlen : addr.length();
                     memset(addrstr, 0, len);
                     memcpy(addrstr, addr.c_str(), len); 
@@ -279,14 +300,16 @@ void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID)
 {
     ZeroTier::InetAddress _6planeAddr = ZeroTier::InetAddress::makeIpv66plane(
         ZeroTier::Utils::hexStrToU64(nwid),ZeroTier::Utils::hexStrToU64(devID));
-    memcpy(addr, _6planeAddr.toIpString().c_str(), 40);
+    char ipbuf[64];
+    memcpy(addr, _6planeAddr.toIpString(ipbuf), 40);
 }
 
 void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID)
 {
     ZeroTier::InetAddress _6planeAddr = ZeroTier::InetAddress::makeIpv6rfc4193(
         ZeroTier::Utils::hexStrToU64(nwid),ZeroTier::Utils::hexStrToU64(devID));
-    memcpy(addr, _6planeAddr.toIpString().c_str(), 40);
+    char ipbuf[64];
+    memcpy(addr, _6planeAddr.toIpString(ipbuf), 40);
 }
 
 unsigned long zts_get_peer_count() {
@@ -361,14 +384,19 @@ int zts_socket(ZT_SOCKET_SIG) {
         errno = EPROTONOSUPPORT; // seemingly closest match
         return -1;
     }
+
+    ZeroTier::_multiplexer_lock.lock();
+
     if(socket_type == SOCK_RAW)
     {
-        // TODO: 
-        //  - create Connection object, handle as you please
-        //  - we will need to hook this up to SocketTap::put and SocketTap::_handler at some point 
-        return -1;  
+        // Connection is only used to associate a socket with a SocketTap, it has no other implication
+        ZeroTier::Connection *conn = new ZeroTier::Connection();
+        conn->socket_family = socket_family;
+        conn->socket_type = socket_type;
+        conn->protocol = protocol;
+        ZeroTier::unmap[conn->app_fd] = conn;
+        return conn->app_fd;
     }
-    ZeroTier::_multiplexer_lock.lock();
 
 #if defined(STACK_PICO)
     struct pico_socket *p;
@@ -498,11 +526,13 @@ int zts_connect(ZT_CONNECT_SIG) {
             inet_ntop(AF_INET6, 
                 (const void *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, ipstr, INET6_ADDRSTRLEN);
             // TODO: This is a hack, determine a proper way to do this
-            iaddr.fromString(ipstr + std::string("/88"));
+            char addrstr[64];
+            sprintf(addrstr, "%s%s", ipstr, std::string("/88").c_str());
+            iaddr.fromString(addrstr);
             port = ((struct sockaddr_in6*)addr)->sin6_port;
         }
         DEBUG_EXTRA("fd = %d, %s : %d", fd, ipstr, ntohs(port));
-        tap = zt1Service->getTap(iaddr);
+        tap = getTapByAddr(iaddr);
         if(!tap) {
             DEBUG_ERROR("no route to host");
             errno = ENETUNREACH;
@@ -636,7 +666,7 @@ int zts_bind(ZT_BIND_SIG) {
         }
         DEBUG_EXTRA("fd = %d, %s : %d", fd, ipstr, ntohs(port));
         iaddr.fromString(ipstr);
-        tap = zt1Service->getTap(iaddr);
+        tap = getTapByAddr(iaddr);
 
         if(!tap) {
             DEBUG_ERROR("no matching interface to bind to");            
@@ -1082,7 +1112,6 @@ int zts_select(ZT_SELECT_SIG)
 
 int zts_fcntl(ZT_FCNTL_SIG)
 {
-    //DEBUG_INFO("fd = %d", fd);
     int err = 0;
     if(fd < 0) {
         errno = EBADF;
@@ -1094,7 +1123,102 @@ int zts_fcntl(ZT_FCNTL_SIG)
     return err;
 }
 
-// TODO
+/*
+       struct ifreq {
+           char ifr_name[IFNAMSIZ];
+           union {
+               struct sockaddr ifr_addr;
+               struct sockaddr ifr_dstaddr;
+               struct sockaddr ifr_broadaddr;
+               struct sockaddr ifr_netmask;
+               struct sockaddr ifr_hwaddr;
+               short           ifr_flags;
+               int             ifr_ifindex;
+               int             ifr_metric;
+               int             ifr_mtu;
+               struct ifmap    ifr_map;
+               char            ifr_slave[IFNAMSIZ];
+               char            ifr_newname[IFNAMSIZ];
+               char           *ifr_data;
+           };
+       };
+*/
+
+/*
+    [  ] [BADF]             fd is not a valid file descriptor.
+    [  ] [EFAULT]           argp references an inaccessible memory area.
+    [  ] [EINVAL]           request or argp is not valid.
+    [  ] [ENOTTY]           The specified request does not apply to the kind of object that the file descriptor fd references.
+*/
+
+int zts_ioctl(ZT_IOCTL_SIG)
+{
+    int err = 0;
+    if(fd < 0) {
+        errno = EBADF;
+        err = -1;
+    }
+    else {
+#if defined(__linux__)
+        if(argp)
+        {
+            struct ifreq *ifr = (struct ifreq *)argp;
+            ZeroTier::SocketTap *tap = getTapByName(ifr->ifr_name);
+            if(!tap) {
+                DEBUG_ERROR("unable to locate tap interface with that name");
+                err = -1;
+                errno = EINVAL;
+            }
+            // index of SocketTap interface
+            if(request == SIOCGIFINDEX) {
+                ifr->ifr_ifindex = tap->ifindex;
+                err = 0;
+            }
+            // MAC addres or SocketTap
+            if(request == SIOCGIFHWADDR) {
+                tap->_mac.copyTo(&(ifr->ifr_hwaddr.sa_data), sizeof(ifr->ifr_hwaddr.sa_data));
+                err = 0;
+            }
+            // IP address of SocketTap
+            if(request == SIOCGIFADDR) {
+                struct sockaddr_in *in4 = (struct sockaddr_in *)&(ifr->ifr_addr);
+                memcpy(&(in4->sin_addr.s_addr), tap->_ips[0].rawIpData(), sizeof(ifr->ifr_addr));
+                err = 0;
+            }
+        }
+        else
+        {
+            DEBUG_INFO("!argp");
+        }
+#else
+        err = ioctl(fd, request, argp);
+#endif
+    }
+    return err;
+}
+
+
+/*
+
+Linux:
+
+    [  ] [EAGAIN or EWOULDBLOCK] The socket is marked nonblocking and the requested operation would block. POSIX.1-2001 allows either error to be returned for this case, and does not require these constants to have the same value, so a portable application should check for both possibilities.
+    [  ] [EBADF]                 An invalid descriptor was specified.
+    [  ] [ECONNRESET]            Connection reset by peer.
+    [  ] [EDESTADDRREQ]          The socket is not connection-mode, and no peer address is set.
+    [  ] [EFAULT]                An invalid user space address was specified for an argument.
+    [  ] [EINTR]                 A signal occurred before any data was transmitted; see signal(7).
+    [  ] [EINVAL]                Invalid argument passed.
+    [  ] [EISCONN]               The connection-mode socket was connected already but a recipient was specified. (Now either this error is returned, or the recipient specification is ignored.)
+    [  ] [EMSGSIZE]              The socket type requires that message be sent atomically, and the size of the message to be sent made this impossible.
+    [  ] [ENOBUFS]               The output queue for a network interface was full. This generally indicates that the interface has stopped sending, but may be caused by transient congestion. (Normally, this does not occur in Linux. Packets are just silently dropped when a device queue overflows.)
+    [  ] [ENOMEM]                No memory available.
+    [  ] [ENOTCONN]              The socket is not connected, and no target has been given.
+    [  ] [ENOTSOCK]              The argument sockfd is not a socket.
+    [  ] [EOPNOTSUPP]            Some bit in the flags argument is inappropriate for the socket type.
+    [  ] [EPIPE]                 The local end has been shut down on a connection oriented socket. In this case the process will also receive a SIGPIPE unless MSG_NOSIGNAL is set.
+
+*/
 ssize_t zts_sendto(ZT_SENDTO_SIG)
 {
     DEBUG_INFO("fd = %d", fd);
@@ -1104,7 +1228,29 @@ ssize_t zts_sendto(ZT_SENDTO_SIG)
         err = -1;
     }
     else {
-        err = sendto(fd, buf, len, flags, addr, addrlen);
+        struct sockaddr_ll *socket_address = (struct sockaddr_ll *)addr;
+        ZeroTier::SocketTap *tap = getTapByIndex(socket_address->sll_ifindex);
+        if(tap)
+        {
+            DEBUG_INFO("found interface of ifindex=%d", tap->ifindex);
+            ZeroTier::Connection *conn = ZeroTier::unmap[fd];
+            if(conn) {
+                DEBUG_INFO("located connection object for fd=%d", fd);
+                err = tap->Write(conn, (void*)buf, len);
+            }
+            else {
+                DEBUG_ERROR("unable to locate connection object for fd=%d", fd);
+                err = -1;
+                errno = EINVAL;
+            }
+        }
+        else
+        {
+            DEBUG_ERROR("unable to locate tap of ifindex=%d", socket_address->sll_ifindex);
+            err = -1;
+            errno = EINVAL;
+        }
+        //err = sendto(fd, buf, len, flags, addr, addrlen);
     }
     return err;
 }
@@ -1565,6 +1711,78 @@ int zts_maxsockets()
 #endif
     return 32;
 }
+
+/****************************************************************************/
+/* ZeroTier Core helper functions for libzt - DON'T CALL THESE DIRECTLY     */
+/****************************************************************************/
+
+ZeroTier::SocketTap *getTapByNWID(uint64_t nwid)
+{
+    ZeroTier::_vtaps_lock.lock();
+    ZeroTier::SocketTap *s, *tap = nullptr;    
+    for(int i=0; i<ZeroTier::vtaps.size(); i++) {
+        s = (ZeroTier::SocketTap*)ZeroTier::vtaps[i];
+        if(s->_nwid == nwid) { tap = s; }
+    }
+    ZeroTier::_vtaps_lock.unlock();
+    return tap;
+}
+
+ZeroTier::SocketTap *getTapByAddr(ZeroTier::InetAddress &addr)
+{
+    ZeroTier::_vtaps_lock.lock();
+    ZeroTier::SocketTap *s, *tap = nullptr; 
+    for(int i=0; i<ZeroTier::vtaps.size(); i++) {
+        s = (ZeroTier::SocketTap*)ZeroTier::vtaps[i];
+        for(int j=0; j<s->_ips.size(); j++) {
+            if(s->_ips[j].isEqualPrefix(addr) 
+                || s->_ips[j].ipsEqual(addr) 
+                || s->_ips[j].containsAddress(addr)) 
+            {
+                tap = s;
+            }
+        }
+    }
+    ZeroTier::_vtaps_lock.unlock();
+    return tap;
+}
+
+ZeroTier::SocketTap *getTapByName(char *ifname)
+{
+    ZeroTier::_vtaps_lock.lock();
+    ZeroTier::SocketTap *s, *tap = nullptr;  
+    for(int i=0; i<ZeroTier::vtaps.size(); i++) {
+        s = (ZeroTier::SocketTap*)ZeroTier::vtaps[i];
+        if(!strcmp(s->_dev.c_str(), ifname)) {
+            tap = s;
+        }
+    }
+    ZeroTier::_vtaps_lock.unlock();
+    return tap;
+}
+
+ZeroTier::SocketTap *getTapByIndex(int index)
+{
+    ZeroTier::_vtaps_lock.lock();
+    ZeroTier::SocketTap *s, *tap = nullptr;    
+    for(int i=0; i<ZeroTier::vtaps.size(); i++) {
+        s = (ZeroTier::SocketTap*)ZeroTier::vtaps[i];
+        if(s->ifindex == index) {
+            tap = s;
+        }
+    }
+    ZeroTier::_vtaps_lock.unlock();
+    return tap;
+}
+
+void dismantleTaps()
+{
+    ZeroTier::_vtaps_lock.lock();
+    for(int i=0; i<ZeroTier::vtaps.size(); i++) { delete (ZeroTier::SocketTap*)ZeroTier::vtaps[i]; }
+    ZeroTier::vtaps.clear();
+    ZeroTier::_vtaps_lock.unlock();
+}
+
 
 // Starts a ZeroTier service in the background
 void *zts_start_service(void *thread_id) {

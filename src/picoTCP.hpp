@@ -40,7 +40,7 @@
 #include "SocketTap.hpp"
 
 /****************************************************************************/
-/* PicoTCP API Signatures (See libzt.h for the API an app should use) */
+/* PicoTCP API Signatures (See libzt.h for the API an app should use)       */
 /****************************************************************************/
 
 #define PICO_IPV4_TO_STRING_SIG char *ipbuf, const uint32_t ip
@@ -150,12 +150,12 @@ namespace ZeroTier
     	/*
 		 * Read from RX buffer to application - Called from SocketTap
 		 */
-    	void pico_Read(SocketTap *tap, ZeroTier::PhySocket *sock,Connection *conn,bool stack_invoked);
+    	int pico_Read(SocketTap *tap, ZeroTier::PhySocket *sock,Connection *conn,bool stack_invoked);
 
     	/*
 		 * Write to userspace network stack - Called from SocketTap
 		 */
-    	void pico_Write(Connection *conn, void *data, ssize_t len);
+    	int pico_Write(Connection *conn, void *data, ssize_t len);
 
     	/*
 		 * Close a Connection - Called from SocketTap

@@ -24,6 +24,10 @@
  * of your own application.
  */
 
+#include <netinet/in.h>
+#include <net/if_arp.h>
+#include <arpa/inet.h>
+
 #include <algorithm>
 #include <utility>
 #include <sys/poll.h>
@@ -41,12 +45,25 @@
 #include "lwIP.hpp"
 #endif
 
+#if defined(__APPLE__)
+#include <net/ethernet.h>
+#endif
+#if defined(__linux__)
+#include <netinet/ether.h>
+#endif
+
 #include "Utils.hpp"
 #include "OSUtils.hpp"
 #include "Constants.hpp"
 #include "Phy.hpp"
 
+class SocketTap;
+
+extern std::vector<void*> vtaps;
+
 namespace ZeroTier {
+
+	int SocketTap::devno = 0;
 
 	/****************************************************************************/
 	/* SocketTap Service                                                        */
@@ -75,6 +92,15 @@ namespace ZeroTier {
 			_unixListenSocket((PhySocket *)0),
 			_phy(this,false,true)
 	{
+		vtaps.push_back((void*)this);
+
+		// set interface name
+		char tmp3[17];
+		ifindex = devno;
+		sprintf(tmp3, "libzt%d", devno++);
+		_dev = tmp3;
+		DEBUG_INFO("set device name to: %s", _dev.c_str());
+
 		_thread = Thread::start(this);
 	}
 
@@ -175,6 +201,7 @@ namespace ZeroTier {
 
 	void SocketTap::setFriendlyName(const char *friendlyName) 
 	{
+		DEBUG_INFO("%s", friendlyName);
 		// Someday
 	}
 
@@ -300,52 +327,57 @@ namespace ZeroTier {
 		return NULL;
 	}
 
-	void SocketTap::Read(PhySocket *sock,void **uptr,bool stack_invoked) {
+	int SocketTap::Read(PhySocket *sock,void **uptr,bool stack_invoked) {
 #if defined(STACK_PICO)
-		DEBUG_INFO();
 		if(picostack)
-			picostack->pico_Read(this, sock, (Connection*)uptr, stack_invoked);
+			return picostack->pico_Read(this, sock, (Connection*)uptr, stack_invoked);
 #endif
+		return -1;
 	}
 
-	void SocketTap::Write(Connection *conn, void *data, ssize_t len) {
+	int SocketTap::Write(Connection *conn, void *data, ssize_t len) {
+		if(conn->socket_type == SOCK_RAW) { // we don't want to use a stack, just VL2
+        	struct ether_header *eh = (struct ether_header *) data;
+        	MAC src_mac;
+        	MAC dest_mac;
+        	src_mac.setTo(eh->ether_shost, 6);
+        	dest_mac.setTo(eh->ether_dhost, 6);
+        	_handler(_arg,NULL,_nwid,src_mac,dest_mac, Utils::ntoh((uint16_t)eh->ether_type),0, ((char*)data) + sizeof(struct ether_header),len - sizeof(struct ether_header));
+        	return len;
+		}
+
 #if defined(STACK_PICO)
-		//DEBUG_INFO();
 		if(picostack)
-			picostack->pico_Write(conn, data, len);
+			return picostack->pico_Write(conn, data, len);
 #endif
+		return -1;
 	}
 
-	void SocketTap::Close(Connection *conn) {
+	int SocketTap::Close(Connection *conn) {
 #if defined(STACK_PICO)
 		if(!conn) {
 			DEBUG_ERROR("invalid connection");
-			return;
+			return -1;
 		}
-		//DEBUG_INFO("A");
 		picostack->pico_Close(conn);
 		if(!conn->sock) {
 			// DEBUG_EXTRA("invalid PhySocket");
-			return;
+			return -1;
 		}
 		// Here we assume _tcpconns_m is already locked by caller
 		// FIXME: is this assumption still valid
 		if(conn->state==ZT_SOCK_STATE_LISTENING)
 		{
-			//DEBUG_INFO("B");
 			// since we never wrapped this socket
 			DEBUG_INFO("in LISTENING state, no need to close in PhyIO");
-			return;
+			return -1;
 		}
 		else
 		{
-			//DEBUG_INFO("C");
 			if(conn->sock)
 				_phy.close(conn->sock, false);
 		}
 		close(_phy.getDescriptor(conn->sock));
-
-		//DEBUG_INFO("D");
 		for(size_t i=0;i<_Connections.size();++i) {
 			if(_Connections[i] == conn){
 				// FIXME: double free issue exists here (potentially)
@@ -355,6 +387,7 @@ namespace ZeroTier {
 			}
 		}
 #endif
+		return 0; // TODO
 	}
 
 	void SocketTap::Housekeeping()

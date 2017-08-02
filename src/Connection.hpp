@@ -66,7 +66,7 @@ namespace ZeroTier {
 		struct sockaddr_storage *local_addr; // Address we've bound to locally
 		struct sockaddr_storage *peer_addr;  // Address of connection call to remote host
 
-		int socket_family, socket_type;
+		int socket_family, socket_type, protocol;
 
 		int app_fd; // used by app for I/O
 		int sdk_fd; // used by lib for I/O

@@ -269,8 +269,7 @@ tests: $(UNIT_TEST_OBJ_FILES)
 # Cleans only current $(OSTYPE)
 clean:
 	-rm -rf $(BUILD)/*
-	-find $(PICO_DIR) -type f \( -name '*.o' -o -name '*.so' -o -name '*.a' \) -delete
-	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
+	-find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
 
 # Clean everything
 nuke:

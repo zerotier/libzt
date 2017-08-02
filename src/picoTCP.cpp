@@ -85,6 +85,7 @@ namespace ZeroTier {
 
 	bool picoTCP::pico_init_interface(SocketTap *tap, const InetAddress &ip)
 	{
+		char ipbuf[64];
 		if (std::find(tap->_ips.begin(),tap->_ips.end(),ip) == tap->_ips.end()) {
 			tap->_ips.push_back(ip);
 			std::sort(tap->_ips.begin(),tap->_ips.end());
@@ -97,7 +98,7 @@ namespace ZeroTier {
 			    picodev.tap = tap;
 			    uint8_t mac[PICO_SIZE_ETH];
 			    tap->_mac.copyTo(mac, PICO_SIZE_ETH);
-			    if(pico_device_init(&picodev, "pz", mac) != 0) {
+			    if(pico_device_init(&picodev, tap->_dev.c_str(), mac) != 0) {
 			        DEBUG_ERROR("dev init failed");
 			        handle_general_failure();
 			        return false;
@@ -110,7 +111,8 @@ namespace ZeroTier {
 			    ipaddr.addr = *((uint32_t *)ip.rawIpData());
 			    netmask.addr = *((uint32_t *)ip.netmask().rawIpData());
 			    pico_ipv4_link_add(&picodev, ipaddr, netmask);
-			    DEBUG_INFO("addr  = %s", ip.toString().c_str());
+			    DEBUG_INFO("addr  = %s", ip.toString(ipbuf));
+			    //DEBUG_INFO("mac   = %s", tap->_mac.toString(ipbuf));
 			    return true;
 			}
 			if(ip.isV6())
@@ -123,6 +125,7 @@ namespace ZeroTier {
 		    	pico_string_to_ipv6(nm_str, netmask.addr);
 			    pico_ipv6_link_add(&picodev, ipaddr, netmask);
 			    DEBUG_INFO("addr6 = %s", ipv6_str);
+			    //DEBUG_INFO("mac   = %s", tap->_mac.toString(ipbuf));
 			   	return true;    
 			}
 		}
@@ -686,7 +689,7 @@ namespace ZeroTier {
     	return new_conn;
     }
 
-    void picoTCP::pico_Read(SocketTap *tap, PhySocket *sock, Connection* conn, bool stack_invoked)
+    int picoTCP::pico_Read(SocketTap *tap, PhySocket *sock, Connection* conn, bool stack_invoked)
     {
     	DEBUG_INFO();
     	//exit(0);
@@ -766,26 +769,28 @@ namespace ZeroTier {
         }
         // DEBUG_FLOW("[ ZTSOCK <- RXBUF] Emitted (%d) from RXBUF(%d) to socket", tot, conn->rxsz);
         */
+        return 0;
     }
 
-    void picoTCP::pico_Write(Connection *conn, void *data, ssize_t len)
+    int picoTCP::pico_Write(Connection *conn, void *data, ssize_t len)
     {
+    	int err = 0;
 	    // TODO: Add RingBuffer overflow checks
 	    //DEBUG_INFO("conn=%p, len = %d", conn, len);
 	    Mutex::Lock _l(conn->_tx_m);
 		if(len <= 0) {
     		DEBUG_ERROR("invalid write length (len=%d)", len);
     		handle_general_failure();
-    		return;
+    		return -1;
     	}
     	if(conn->picosock->state & PICO_SOCKET_STATE_CLOSED){
     		DEBUG_ERROR("socket is CLOSED, this write() will fail");
-    		return;
+    		return -1;
     	}
     	if(!conn) {
     		DEBUG_ERROR("invalid connection (len=%d)", len);
     		handle_general_failure();
-    		return;
+    		return -1;
     	}
 
     	int original_txsz = conn->TXbuf->count();
@@ -798,7 +803,7 @@ namespace ZeroTier {
 
 	    int buf_w = conn->TXbuf->write((const unsigned char*)data, len);
             if (buf_w != len) {
-		// because we checked ZT_TCP_TX_BUF_SZ above, this should not happen
+		    // because we checked ZT_TCP_TX_BUF_SZ above, this should not happen
     		DEBUG_ERROR("TX wrote only %d but expected to write %d", buf_w, len);
     		exit(0);
 	    }
@@ -813,7 +818,10 @@ namespace ZeroTier {
 	    
 	    if((r = pico_socket_write(conn->picosock, conn->TXbuf->get_buf(), max_write_len)) < 0) {
 	    	DEBUG_ERROR("unable to write to picosock=%p, r=%d", conn->picosock, r);
-	    	return;
+	    	err = -1;
+	    }
+	    else {
+	    	err = r; // successful write
 	    }
 	   	if(conn->socket_type == SOCK_STREAM) {
 	    	//DEBUG_TRANS("[ TCP TX -> STACK] :: conn = %p, len = %d", conn, r);
@@ -823,6 +831,8 @@ namespace ZeroTier {
 	    }
 	    if(r>0)
 	    	conn->TXbuf->consume(r);
+
+	    return err;
     }
 
     int picoTCP::pico_Close(Connection *conn)

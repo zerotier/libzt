@@ -49,6 +49,7 @@ For an example using only the [Virtual Layer 2](https://www.zerotier.com/manual.
  git submodule init
  git submodule update
  make static_lib
+ make tests
  ```
  
  All targets will output to `build/`. Complete instructions [here](BUILDING.md)
@@ -58,8 +59,13 @@ For an example using only the [Virtual Layer 2](https://www.zerotier.com/manual.
 ### Testing and Debugging
  - See [TESTING.md](TESTING.md)
 
-### Licensing
- - For a [BSD]() license, build using the `lwIP` network stack with `STACK_LWIP=1`
- - For a [GPL]() license, build using the `picoTCP` network stack with `STACK_PICO=1`
+
+### Contributing
+
+Please make pull requests against the `dev` branch. The `master` branch is release, and `edge` is for unstable and work in progress changes and is not likely to work.
+
+### License
+ - **Commercial**, with BSD license, build using `lwIP` network stack with `STACK_LWIP=1`, then contact us directly via `contact@zerotier.com` to discuss commercial licensing.
+ - **Personal**, with GPL license, build using `picoTCP` network stack with `STACK_PICO=1`, everything is free. Have fun.
 
  Regardless of which network stack you build with, the socket API will remain the same.

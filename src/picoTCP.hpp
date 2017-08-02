@@ -73,12 +73,12 @@ namespace ZeroTier
 	/*
 	 * Send raw frames from the stack to the ZeroTier virtual wire
 	 */
-    int pico_eth_send(struct pico_device *dev, void *buf, int len);
+	int pico_eth_send(struct pico_device *dev, void *buf, int len);
 
-    /*
+	/*
 	 * Read raw frames from RX frame buffer into the stack 
 	 */
-    int pico_eth_poll(struct pico_device *dev, int loop_score);
+	int pico_eth_poll(struct pico_device *dev, int loop_score);
 
 	class SocketTap;
 	struct Connection;
@@ -88,38 +88,38 @@ namespace ZeroTier
 	public:
 
 		/*
-	 	 * Set up an interface in the network stack for the SocketTap
-	 	 */
+		 * Set up an interface in the network stack for the SocketTap
+		 */
 		bool pico_init_interface(ZeroTier::SocketTap *tap, const ZeroTier::InetAddress &ip);
 
 		/*
-	 	 * Main stack loop
-	 	 */
+		 * Main stack loop
+		 */
 		void pico_loop(SocketTap *tap);
 
 		/*
-	 	 * Read bytes from the stack to the RX buffer (prepare to be read by app)
-	 	 */
+		 * Read bytes from the stack to the RX buffer (prepare to be read by app)
+		 */
 		static void pico_cb_tcp_read(SocketTap *tap, struct pico_socket *s);
 
 		/*
-	 	 * Read bytes from the stack to the RX buffer (prepare to be read by app)
-	 	 */
-	 	static void pico_cb_udp_read(SocketTap *tap, struct pico_socket *s);
+		 * Read bytes from the stack to the RX buffer (prepare to be read by app)
+		 */
+		static void pico_cb_udp_read(SocketTap *tap, struct pico_socket *s);
 
-	 	 /*
-	 	 * Write bytes from TX buffer to stack (prepare to be sent to ZT virtual wire)
-	 	 */
+		 /*
+		 * Write bytes from TX buffer to stack (prepare to be sent to ZT virtual wire)
+		 */
 		static void pico_cb_tcp_write(SocketTap *tap, struct pico_socket *s);
 
 		/*
-	 	 * Write bytes from TX buffer to stack (prepare to be sent to ZT virtual wire)
-	 	 */
-	 	static void pico_cb_socket_activity(uint16_t ev, struct pico_socket *s);
+		 * Write bytes from TX buffer to stack (prepare to be sent to ZT virtual wire)
+		 */
+		static void pico_cb_socket_activity(uint16_t ev, struct pico_socket *s);
 
 		/*
-	 	 * Packets from the ZeroTier virtual wire enter the stack here
-	 	 */
+		 * Packets from the ZeroTier virtual wire enter the stack here
+		 */
 		void pico_rx(SocketTap *tap, const ZeroTier::MAC &from,const ZeroTier::MAC &to,unsigned int etherType,const void *data,unsigned int len);
 		
 		/*
@@ -130,39 +130,39 @@ namespace ZeroTier
 		/*
 		 * Connect to remote host via userspace network stack interface - Called from SocketTap
 		 */
-    	int pico_Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
-    	
-    	/*
+		int pico_Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+		
+		/*
 		 * Bind to a userspace network stack interface - Called from SocketTap
 		 */
-    	int pico_Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
-    	
-    	/*
+		int pico_Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+		
+		/*
 		 * Listen for incoming connections - Called from SocketTap
 		 */
-    	int pico_Listen(Connection *conn, int fd, int backlog);
+		int pico_Listen(Connection *conn, int fd, int backlog);
 
-    	/*
+		/*
 		 * Accept an incoming connection - Called from SocketTap
 		 */
-    	Connection* pico_Accept(Connection *conn);
+		Connection* pico_Accept(Connection *conn);
 
-    	/*
+		/*
 		 * Read from RX buffer to application - Called from SocketTap
 		 */
-    	int pico_Read(SocketTap *tap, ZeroTier::PhySocket *sock,Connection *conn,bool stack_invoked);
+		int pico_Read(SocketTap *tap, ZeroTier::PhySocket *sock,Connection *conn,bool stack_invoked);
 
-    	/*
+		/*
 		 * Write to userspace network stack - Called from SocketTap
 		 */
-    	int pico_Write(Connection *conn, void *data, ssize_t len);
+		int pico_Write(Connection *conn, void *data, ssize_t len);
 
-    	/*
+		/*
 		 * Close a Connection - Called from SocketTap
 		 */
 		int pico_Close(Connection *conn);
 
-    	/*
+		/*
 		 * Converts picoTCP error codes to pretty string
 		 */
 		static char *beautify_pico_error(int err);

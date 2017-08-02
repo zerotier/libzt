@@ -84,7 +84,7 @@ namespace ZeroTier {
 		void threadMain()
 			throw();
 
-  	TcpConnection *getConnection(PhySocket *sock);
+	TcpConnection *getConnection(PhySocket *sock);
 
 	private:	
 		volatile bool _enabled;

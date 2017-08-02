@@ -93,27 +93,27 @@ namespace ZeroTier {
 			if(!tap->picodev_initialized)
 			{
 				picodev.send = pico_eth_send; // tx
-			    picodev.poll = pico_eth_poll; // rx
-			    picodev.mtu = tap->_mtu;
-			    picodev.tap = tap;
-			    uint8_t mac[PICO_SIZE_ETH];
-			    tap->_mac.copyTo(mac, PICO_SIZE_ETH);
-			    if(pico_device_init(&picodev, tap->_dev.c_str(), mac) != 0) {
-			        DEBUG_ERROR("dev init failed");
-			        handle_general_failure();
-			        return false;
-			    }
+				picodev.poll = pico_eth_poll; // rx
+				picodev.mtu = tap->_mtu;
+				picodev.tap = tap;
+				uint8_t mac[PICO_SIZE_ETH];
+				tap->_mac.copyTo(mac, PICO_SIZE_ETH);
+				if(pico_device_init(&picodev, tap->_dev.c_str(), mac) != 0) {
+					DEBUG_ERROR("dev init failed");
+					handle_general_failure();
+					return false;
+				}
 				tap->picodev_initialized = true;
 			}
 			if(ip.isV4())
 			{
-			    struct pico_ip4 ipaddr, netmask;
-			    ipaddr.addr = *((uint32_t *)ip.rawIpData());
-			    netmask.addr = *((uint32_t *)ip.netmask().rawIpData());
-			    pico_ipv4_link_add(&picodev, ipaddr, netmask);
-			    DEBUG_INFO("addr  = %s", ip.toString(ipbuf));
-			    //DEBUG_INFO("mac   = %s", tap->_mac.toString(ipbuf));
-			    return true;
+				struct pico_ip4 ipaddr, netmask;
+				ipaddr.addr = *((uint32_t *)ip.rawIpData());
+				netmask.addr = *((uint32_t *)ip.netmask().rawIpData());
+				pico_ipv4_link_add(&picodev, ipaddr, netmask);
+				DEBUG_INFO("addr  = %s", ip.toString(ipbuf));
+				//DEBUG_INFO("mac   = %s", tap->_mac.toString(ipbuf));
+				return true;
 			}
 			if(ip.isV6())
 			{
@@ -121,12 +121,12 @@ namespace ZeroTier {
 				inet_ntop(AF_INET6, ip.rawIpData(), ipv6_str, INET6_ADDRSTRLEN);
 				inet_ntop(AF_INET6, ip.netmask().rawIpData(), nm_str, INET6_ADDRSTRLEN);
 				struct pico_ip6 ipaddr, netmask;
-			    pico_string_to_ipv6(ipv6_str, ipaddr.addr);
-		    	pico_string_to_ipv6(nm_str, netmask.addr);
-			    pico_ipv6_link_add(&picodev, ipaddr, netmask);
-			    DEBUG_INFO("addr6 = %s", ipv6_str);
-			    //DEBUG_INFO("mac   = %s", tap->_mac.toString(ipbuf));
-			   	return true;    
+				pico_string_to_ipv6(ipv6_str, ipaddr.addr);
+				pico_string_to_ipv6(nm_str, netmask.addr);
+				pico_ipv6_link_add(&picodev, ipaddr, netmask);
+				DEBUG_INFO("addr6 = %s", ipv6_str);
+				//DEBUG_INFO("mac   = %s", tap->_mac.toString(ipbuf));
+				return true;    
 			}
 		}
 		return false;
@@ -137,8 +137,8 @@ namespace ZeroTier {
 		while(tap->_run)
 		{
 			tap->_phy.poll(ZT_PHY_POLL_INTERVAL);
-	        pico_stack_tick();
-	        //tap->Housekeeping();
+			pico_stack_tick();
+			//tap->Housekeeping();
 		}
 	}
 
@@ -149,17 +149,17 @@ namespace ZeroTier {
 		Mutex::Lock _l(conn->_rx_m);
 		
 		if(!conn || !tap) {
-    		DEBUG_ERROR("invalid tap or conn");
-    		handle_general_failure();
-    		return;
-    	}
+			DEBUG_ERROR("invalid tap or conn");
+			handle_general_failure();
+			return;
+		}
 
 		int r, n;				
 		uint16_t port = 0;
 		union {
-	        struct pico_ip4 ip4;
-	        struct pico_ip6 ip6;
-	    } peer;
+			struct pico_ip4 ip4;
+			struct pico_ip6 ip6;
+		} peer;
 
 		do {
 			n = 0;
@@ -167,38 +167,38 @@ namespace ZeroTier {
 			int avail = ZT_TCP_RX_BUF_SZ - conn->RXbuf->count();
 			if(avail) {
 
-	            r = pico_socket_recvfrom(s, conn->RXbuf->get_buf(), ZT_STACK_SOCKET_RD_MAX, 
-	            	(void *)&peer.ip4.addr, &port);
-	            
-	            conn->tot += r;
+				r = pico_socket_recvfrom(s, conn->RXbuf->get_buf(), ZT_STACK_SOCKET_RD_MAX, 
+					(void *)&peer.ip4.addr, &port);
+				
+				conn->tot += r;
 
-	            if (r > 0)
-	            {
-	            	conn->RXbuf->produce(r);
-	            	//DEBUG_INFO("RXbuf->count() = %d", conn->RXbuf->count());
-	            	n = tap->_phy.streamSend(conn->sock, conn->RXbuf->get_buf(), r);
+				if (r > 0)
+				{
+					conn->RXbuf->produce(r);
+					//DEBUG_INFO("RXbuf->count() = %d", conn->RXbuf->count());
+					n = tap->_phy.streamSend(conn->sock, conn->RXbuf->get_buf(), r);
 
-	            	if(n>0)
-	            		conn->RXbuf->consume(n);
-	            	//DEBUG_INFO("pico_recv = %d, streamSend = %d, rxsz = %d, tot = %d", r, n, conn->RXbuf->count(), conn->tot);
+					if(n>0)
+						conn->RXbuf->consume(n);
+					//DEBUG_INFO("pico_recv = %d, streamSend = %d, rxsz = %d, tot = %d", r, n, conn->RXbuf->count(), conn->tot);
 
-	            	//DEBUG_TRANS("[ TCP RX <- STACK] :: conn = %p, len = %d", conn, n);
-	            }
+					//DEBUG_TRANS("[ TCP RX <- STACK] :: conn = %p, len = %d", conn, n);
+				}
 
-	        	if(conn->RXbuf->count() == 0) {
+				if(conn->RXbuf->count() == 0) {
 					tap->_phy.setNotifyWritable(conn->sock, false);
 				}
 				else {
-	        		tap->_phy.setNotifyWritable(conn->sock, true);	
+					tap->_phy.setNotifyWritable(conn->sock, true);	
 				}				
-        	}
-        	else {
-        		//tap->_phy.setNotifyWritable(conn->sock, false);
-        		DEBUG_ERROR("not enough space left on I/O RX buffer for pico_socket(%p)", s);
-        		handle_general_failure();
-        	}
-        }
-    	while(r > 0);
+			}
+			else {
+				//tap->_phy.setNotifyWritable(conn->sock, false);
+				DEBUG_ERROR("not enough space left on I/O RX buffer for pico_socket(%p)", s);
+				handle_general_failure();
+			}
+		}
+		while(r > 0);
 	}
 
 	// from stack socket to app socket
@@ -212,50 +212,50 @@ namespace ZeroTier {
 
 			uint16_t port = 0;
 			union {
-		        struct pico_ip4 ip4;
-		        struct pico_ip6 ip6;
-		    } peer;
+				struct pico_ip4 ip4;
+				struct pico_ip6 ip6;
+			} peer;
 
-		    char tmpbuf[ZT_SDK_MTU];
-        	unsigned char *addr_pos, *sz_pos, *payload_pos;
+			char tmpbuf[ZT_SDK_MTU];
+			unsigned char *addr_pos, *sz_pos, *payload_pos;
 			struct sockaddr_in addr_in;
 			addr_in.sin_addr.s_addr = peer.ip4.addr;
-        	addr_in.sin_port = port;
+			addr_in.sin_port = port;
 			
-        	// RX
-        	int r = pico_socket_recvfrom(s, tmpbuf, ZT_SDK_MTU, (void *)&peer.ip4.addr, &port);
-            //DEBUG_FLOW(" [  RXBUF <- STACK] Receiving (%d) from stack, copying to receving buffer", r);
+			// RX
+			int r = pico_socket_recvfrom(s, tmpbuf, ZT_SDK_MTU, (void *)&peer.ip4.addr, &port);
+			//DEBUG_FLOW(" [  RXBUF <- STACK] Receiving (%d) from stack, copying to receving buffer", r);
 
 			if(conn->rxsz == ZT_UDP_RX_BUF_SZ) { // if UDP buffer full
-                //DEBUG_FLOW(" [  RXBUF <- STACK] UDP RX buffer full. Discarding oldest payload segment");
-                memmove(conn->rxbuf, conn->rxbuf + ZT_SDK_MTU, ZT_UDP_RX_BUF_SZ - ZT_SDK_MTU);
-                addr_pos = conn->rxbuf + (ZT_UDP_RX_BUF_SZ - ZT_SDK_MTU); // TODO:
-                sz_pos = addr_pos + sizeof(struct sockaddr_storage);
-                conn->rxsz -= ZT_SDK_MTU;
-            }
-            else {
-                addr_pos = conn->rxbuf + conn->rxsz; // where we'll prepend the size of the address
-                sz_pos = addr_pos + sizeof(struct sockaddr_storage);
-            }
-            payload_pos = addr_pos + sizeof(struct sockaddr_storage) + sizeof(r);
-           	memcpy(addr_pos, &addr_in, sizeof(struct sockaddr_storage));
-        	memcpy(payload_pos, tmpbuf, r); // write payload to app's socket
+				//DEBUG_FLOW(" [  RXBUF <- STACK] UDP RX buffer full. Discarding oldest payload segment");
+				memmove(conn->rxbuf, conn->rxbuf + ZT_SDK_MTU, ZT_UDP_RX_BUF_SZ - ZT_SDK_MTU);
+				addr_pos = conn->rxbuf + (ZT_UDP_RX_BUF_SZ - ZT_SDK_MTU); // TODO:
+				sz_pos = addr_pos + sizeof(struct sockaddr_storage);
+				conn->rxsz -= ZT_SDK_MTU;
+			}
+			else {
+				addr_pos = conn->rxbuf + conn->rxsz; // where we'll prepend the size of the address
+				sz_pos = addr_pos + sizeof(struct sockaddr_storage);
+			}
+			payload_pos = addr_pos + sizeof(struct sockaddr_storage) + sizeof(r);
+			memcpy(addr_pos, &addr_in, sizeof(struct sockaddr_storage));
+			memcpy(payload_pos, tmpbuf, r); // write payload to app's socket
 
-            // Adjust buffer size
+			// Adjust buffer size
 			if(r) {
-	            conn->rxsz += ZT_SDK_MTU;
-	            memcpy(sz_pos, &r, sizeof(r));
-	        }
-	        if (r < 0) {
-            	DEBUG_ERROR("unable to read from picosock=%p", s);
-            	handle_general_failure();
-    		} 
-	        tap->_rx_buf_m.unlock(); 
+				conn->rxsz += ZT_SDK_MTU;
+				memcpy(sz_pos, &r, sizeof(r));
+			}
+			if (r < 0) {
+				DEBUG_ERROR("unable to read from picosock=%p", s);
+				handle_general_failure();
+			} 
+			tap->_rx_buf_m.unlock(); 
 
-	        if(r)
-	            tap->phyOnUnixWritable(conn->sock, NULL, true);
-        	//DEBUG_EXTRA(" Copied onto rxbuf (%d) from stack socket", r);
-        	return;
+			if(r)
+				tap->phyOnUnixWritable(conn->sock, NULL, true);
+			//DEBUG_EXTRA(" Copied onto rxbuf (%d) from stack socket", r);
+			return;
 		}
 		*/
 	}
@@ -263,70 +263,70 @@ namespace ZeroTier {
 	void picoTCP::pico_cb_tcp_write(SocketTap *tap, struct pico_socket *s)
 	{
 		Connection *conn = (Connection*)((ConnectionPair*)(s->priv))->conn;
-	    Mutex::Lock _l(conn->_tx_m);
-	   	if(!conn) {
+		Mutex::Lock _l(conn->_tx_m);
+		if(!conn) {
 			DEBUG_ERROR("invalid connection");
 			handle_general_failure();
 			return;
 		}
-	   	int txsz = conn->TXbuf->count();
-	   	if(txsz <= 0)
-	   		return;
-	    //DEBUG_INFO("TXbuf->count() = %d", conn->TXbuf->count());
+		int txsz = conn->TXbuf->count();
+		if(txsz <= 0)
+			return;
+		//DEBUG_INFO("TXbuf->count() = %d", conn->TXbuf->count());
 
 		int r, max_write_len = std::min(std::min(txsz, ZT_SDK_MTU),ZT_STACK_SOCKET_WR_MAX);
-	    if((r = pico_socket_write(conn->picosock, conn->TXbuf->get_buf(), max_write_len)) < 0) {
-	    	DEBUG_ERROR("unable to write to picosock=%p, r=%d", conn->picosock, r);
-	    	handle_general_failure();
-	    	return;
-	    }
-	   	if(conn->socket_type == SOCK_STREAM) {
-	    	//DEBUG_TRANS("[ TCP TX -> STACK] :: conn = %p, len = %d", conn, r);
-	    }
-	   	if(conn->socket_type == SOCK_DGRAM) {
-	    	//DEBUG_TRANS("[ UDP TX -> STACK] :: conn = %p, len = %d", conn, r);
-	    }
-	    if(r == 0) {
-	    	// This is a peciliarity of the picoTCP network stack, if we receive no error code, and the size of 
-	    	// the byte stream written is 0, this is an indication that the buffer for this pico_socket is too small
-	    	// DEBUG_ERROR("pico_socket buffer is too small (adjust ZT_STACK_SOCKET_TX_SZ, ZT_STACK_SOCKET_RX_SZ)");
-	    	// handle_general_failure(); 
-	    }
-	    if(r>0)
-	    	conn->TXbuf->consume(r);
+		if((r = pico_socket_write(conn->picosock, conn->TXbuf->get_buf(), max_write_len)) < 0) {
+			DEBUG_ERROR("unable to write to picosock=%p, r=%d", conn->picosock, r);
+			handle_general_failure();
+			return;
+		}
+		if(conn->socket_type == SOCK_STREAM) {
+			//DEBUG_TRANS("[ TCP TX -> STACK] :: conn = %p, len = %d", conn, r);
+		}
+		if(conn->socket_type == SOCK_DGRAM) {
+			//DEBUG_TRANS("[ UDP TX -> STACK] :: conn = %p, len = %d", conn, r);
+		}
+		if(r == 0) {
+			// This is a peciliarity of the picoTCP network stack, if we receive no error code, and the size of 
+			// the byte stream written is 0, this is an indication that the buffer for this pico_socket is too small
+			// DEBUG_ERROR("pico_socket buffer is too small (adjust ZT_STACK_SOCKET_TX_SZ, ZT_STACK_SOCKET_RX_SZ)");
+			// handle_general_failure(); 
+		}
+		if(r>0)
+			conn->TXbuf->consume(r);
 	}
 
 	void picoTCP::pico_cb_socket_activity(uint16_t ev, struct pico_socket *s)
-    {
-    	if(!(SocketTap*)((ConnectionPair*)(s->priv)))
-    		return;
-    	SocketTap *tap = (SocketTap*)((ConnectionPair*)(s->priv))->tap;
-    	Connection *conn = (Connection*)((ConnectionPair*)(s->priv))->conn;
-    	if(!tap || !conn) {
-    		DEBUG_ERROR("invalid tap or conn");
-    		handle_general_failure();
-    		return;
-    	}
-    	int err = 0;
-        if(!conn) {
-        	DEBUG_ERROR("invalid connection");
-        	handle_general_failure();
-        	return;
-        }
-        // PICO_SOCK_EV_CONN - triggered when connection is established (TCP only). This event is
+	{
+		if(!(SocketTap*)((ConnectionPair*)(s->priv)))
+			return;
+		SocketTap *tap = (SocketTap*)((ConnectionPair*)(s->priv))->tap;
+		Connection *conn = (Connection*)((ConnectionPair*)(s->priv))->conn;
+		if(!tap || !conn) {
+			DEBUG_ERROR("invalid tap or conn");
+			handle_general_failure();
+			return;
+		}
+		int err = 0;
+		if(!conn) {
+			DEBUG_ERROR("invalid connection");
+			handle_general_failure();
+			return;
+		}
+		// PICO_SOCK_EV_CONN - triggered when connection is established (TCP only). This event is
 		// received either after a successful call to pico socket connect to indicate that the connection
 		// has been established, or on a listening socket, indicating that a call to pico socket accept
 		// may now be issued in order to accept the incoming connection from a remote host.
-        if (ev & PICO_SOCK_EV_CONN) {
-        	if(conn->state == ZT_SOCK_STATE_LISTENING)
-        	{
-        		Mutex::Lock _l(tap->_tcpconns_m);
-	            uint32_t peer;
+		if (ev & PICO_SOCK_EV_CONN) {
+			if(conn->state == ZT_SOCK_STATE_LISTENING)
+			{
+				Mutex::Lock _l(tap->_tcpconns_m);
+				uint32_t peer;
 				uint16_t port;
-	            struct pico_socket *client_psock = pico_socket_accept(s, &peer, &port);
-	            if(!client_psock) {
-	            	DEBUG_ERROR("pico_err=%s, picosock=%p", beautify_pico_error(pico_err), s);
-	            	return;
+				struct pico_socket *client_psock = pico_socket_accept(s, &peer, &port);
+				if(!client_psock) {
+					DEBUG_ERROR("pico_err=%s, picosock=%p", beautify_pico_error(pico_err), s);
+					return;
 				}			
 
 				// Create a new Connection and add it to the queue,
@@ -343,19 +343,19 @@ namespace ZeroTier {
 				conn->_AcceptedConnections.push(newConn);
 
 
-                int value = 1;
-                pico_socket_setoption(newConn->picosock, PICO_TCP_NODELAY, &value);
-                
+				int value = 1;
+				pico_socket_setoption(newConn->picosock, PICO_TCP_NODELAY, &value);
+				
 				if(ZT_SOCK_BEHAVIOR_LINGER) {
-                    int linger_time_ms = ZT_SOCK_BEHAVIOR_LINGER_TIME;
-                    int t_err = 0;
-                	if((t_err = pico_socket_setoption(newConn->picosock, PICO_SOCKET_OPT_LINGER, &linger_time_ms)) < 0)
-                   		DEBUG_ERROR("unable to set LINGER size, err = %d, pico_err = %d, app_fd=%d, sdk_fd=%d", t_err, pico_err, conn->app_fd, conn->sdk_fd);
-           		}
+					int linger_time_ms = ZT_SOCK_BEHAVIOR_LINGER_TIME;
+					int t_err = 0;
+					if((t_err = pico_socket_setoption(newConn->picosock, PICO_SOCKET_OPT_LINGER, &linger_time_ms)) < 0)
+						DEBUG_ERROR("unable to set LINGER size, err = %d, pico_err = %d, app_fd=%d, sdk_fd=%d", t_err, pico_err, conn->app_fd, conn->sdk_fd);
+				}
 /*
-               	linger_time_ms = 0;
-                if((t_err = pico_socket_getoption(newConn->picosock, PICO_SOCKET_OPT_LINGER, &linger_time_ms)) < 0)
-                   DEBUG_ERROR("unable to set LINGER size, err = %d, pico_err = %d", t_err, pico_err);
+				linger_time_ms = 0;
+				if((t_err = pico_socket_getoption(newConn->picosock, PICO_SOCKET_OPT_LINGER, &linger_time_ms)) < 0)
+				   DEBUG_ERROR("unable to set LINGER size, err = %d, pico_err = %d", t_err, pico_err);
 				DEBUG_TEST("getting linger = %d", linger_time_ms);
 */
 				// For I/O loop participation and referencing the PhySocket's parent Connection in callbacks
@@ -367,79 +367,79 @@ namespace ZeroTier {
 				// set state so socket multiplexer logic will pick this up
 				conn->state = ZT_SOCK_STATE_UNHANDLED_CONNECTED;
 			}
-        }
+		}
 
-        // PICO_SOCK_EV_FIN - triggered when the socket is closed. No further communication is
+		// PICO_SOCK_EV_FIN - triggered when the socket is closed. No further communication is
 		// possible from this point on the socket.
-        if (ev & PICO_SOCK_EV_FIN) {
-            //DEBUG_EXTRA("PICO_SOCK_EV_FIN (socket closed), picosock=%p, conn=%p, app_fd=%d, sdk_fd=%d", s, conn, conn->app_fd, conn->sdk_fd);
-            conn->closure_ts = std::time(nullptr);	
-        }
+		if (ev & PICO_SOCK_EV_FIN) {
+			//DEBUG_EXTRA("PICO_SOCK_EV_FIN (socket closed), picosock=%p, conn=%p, app_fd=%d, sdk_fd=%d", s, conn, conn->app_fd, conn->sdk_fd);
+			conn->closure_ts = std::time(nullptr);	
+		}
 
-        // PICO_SOCK_EV_ERR - triggered when an error occurs.
-        if (ev & PICO_SOCK_EV_ERR) {
-        	if(pico_err == PICO_ERR_ECONNRESET) {
-        		DEBUG_ERROR("PICO_ERR_ECONNRESET");
-        		conn->state = PICO_ERR_ECONNRESET;
-        	}
-            DEBUG_ERROR("PICO_SOCK_EV_ERR, err=%s, picosock=%p, app_fd=%d, sdk_fd=%d", beautify_pico_error(pico_err), s, conn->app_fd, conn->sdk_fd); 
-        }
-        // PICO_SOCK_EV_CLOSE - triggered when a FIN segment is received (TCP only). This event
+		// PICO_SOCK_EV_ERR - triggered when an error occurs.
+		if (ev & PICO_SOCK_EV_ERR) {
+			if(pico_err == PICO_ERR_ECONNRESET) {
+				DEBUG_ERROR("PICO_ERR_ECONNRESET");
+				conn->state = PICO_ERR_ECONNRESET;
+			}
+			DEBUG_ERROR("PICO_SOCK_EV_ERR, err=%s, picosock=%p, app_fd=%d, sdk_fd=%d", beautify_pico_error(pico_err), s, conn->app_fd, conn->sdk_fd); 
+		}
+		// PICO_SOCK_EV_CLOSE - triggered when a FIN segment is received (TCP only). This event
 		// indicates that the oher endpont has closed the connection, so the local TCP layer is only
 		// allowed to send new data until a local shutdown or close is initiated. PicoTCP is able to
 		// keep the connection half-open (only for sending) after the FIN packet has been received,
 		// allowing new data to be sent in the TCP CLOSE WAIT state.
-        if (ev & PICO_SOCK_EV_CLOSE) {
-            err = pico_socket_close(s);
-            //DEBUG_INFO("PICO_SOCK_EV_CLOSE (socket closure) err = %d, picosock=%p, conn=%p, app_fd=%d, sdk_fd=%d", err, s, conn, conn->app_fd, conn->sdk_fd);            
-            conn->closure_ts = std::time(nullptr);	
-            return;
-        }
-        // PICO_SOCK_EV_RD - triggered when new data arrives on the socket. A new receive action
+		if (ev & PICO_SOCK_EV_CLOSE) {
+			err = pico_socket_close(s);
+			//DEBUG_INFO("PICO_SOCK_EV_CLOSE (socket closure) err = %d, picosock=%p, conn=%p, app_fd=%d, sdk_fd=%d", err, s, conn, conn->app_fd, conn->sdk_fd);            
+			conn->closure_ts = std::time(nullptr);	
+			return;
+		}
+		// PICO_SOCK_EV_RD - triggered when new data arrives on the socket. A new receive action
 		// can be taken by the socket owner because this event indicates there is new data to receive.
-        if (ev & PICO_SOCK_EV_RD) {
-        	if(conn->socket_type==SOCK_STREAM)
-            	pico_cb_tcp_read(tap, s);
-        	if(conn->socket_type==SOCK_DGRAM)
-        		pico_cb_udp_read(tap, s);
-        }
-        // PICO_SOCK_EV_WR - triggered when ready to write to the socket. Issuing a write/send call
+		if (ev & PICO_SOCK_EV_RD) {
+			if(conn->socket_type==SOCK_STREAM)
+				pico_cb_tcp_read(tap, s);
+			if(conn->socket_type==SOCK_DGRAM)
+				pico_cb_udp_read(tap, s);
+		}
+		// PICO_SOCK_EV_WR - triggered when ready to write to the socket. Issuing a write/send call
 		// will now succeed if the buffer has enough space to allocate new outstanding data
-        if (ev & PICO_SOCK_EV_WR) {
-            pico_cb_tcp_write(tap, s);
-        }
-    }
+		if (ev & PICO_SOCK_EV_WR) {
+			pico_cb_tcp_write(tap, s);
+		}
+	}
    
-   	int pico_eth_send(struct pico_device *dev, void *buf, int len)
-    {
-    	//DEBUG_INFO("len = %d", len);
-    	SocketTap *tap = (SocketTap*)(dev->tap);
-    	if(!tap) {
-    		DEBUG_ERROR("invalid dev->tap");
-    		handle_general_failure();
-    		return ZT_ERR_GENERAL_FAILURE;
-    	}
-        struct pico_eth_hdr *ethhdr;
-        ethhdr = (struct pico_eth_hdr *)buf;
-        MAC src_mac;
-        MAC dest_mac;
-        src_mac.setTo(ethhdr->saddr, 6);
-        dest_mac.setTo(ethhdr->daddr, 6);
-        tap->_handler(tap->_arg,NULL,tap->_nwid,src_mac,dest_mac,
-            Utils::ntoh((uint16_t)ethhdr->proto),0, ((char*)buf) + sizeof(struct pico_eth_hdr),len - sizeof(struct pico_eth_hdr));
-        return len;
-    }
+	int pico_eth_send(struct pico_device *dev, void *buf, int len)
+	{
+		//DEBUG_INFO("len = %d", len);
+		SocketTap *tap = (SocketTap*)(dev->tap);
+		if(!tap) {
+			DEBUG_ERROR("invalid dev->tap");
+			handle_general_failure();
+			return ZT_ERR_GENERAL_FAILURE;
+		}
+		struct pico_eth_hdr *ethhdr;
+		ethhdr = (struct pico_eth_hdr *)buf;
+		MAC src_mac;
+		MAC dest_mac;
+		src_mac.setTo(ethhdr->saddr, 6);
+		dest_mac.setTo(ethhdr->daddr, 6);
+		tap->_handler(tap->_arg,NULL,tap->_nwid,src_mac,dest_mac,
+			Utils::ntoh((uint16_t)ethhdr->proto),0, ((char*)buf) + sizeof(struct pico_eth_hdr),len - sizeof(struct pico_eth_hdr));
+		return len;
+	}
 
-    // receive frames from zerotier virtual wire and copy them to a guarded buffer awaiting placement into network stack
-    void picoTCP::pico_rx(SocketTap *tap, const MAC &from,const MAC &to,unsigned int etherType,
-    	const void *data,unsigned int len)
+	// receive frames from zerotier virtual wire and copy them to a guarded buffer awaiting placement into network stack
+	void picoTCP::pico_rx(SocketTap *tap, const MAC &from,const MAC &to,unsigned int etherType,
+		const void *data,unsigned int len)
 	{
 		DEBUG_INFO("len = %d", len);
 		if(!tap) {
-    		DEBUG_ERROR("invalid tap");
-    		handle_general_failure();
-    		return;
-    	}
+			DEBUG_ERROR("invalid tap");
+			handle_general_failure();
+			return;
+		}
 		// Since picoTCP only allows the reception of frames from within the polling function, we
 		// must enqueue each frame into a memory structure shared by both threads. This structure will
 		Mutex::Lock _l(tap->_pico_frame_rxbuf_m);
@@ -467,101 +467,101 @@ namespace ZeroTier {
 	}
 
 	// feed frames on the guarded RX buffer (from zerotier virtual wire) into the network stack
-    int pico_eth_poll(struct pico_device *dev, int loop_score)
-    {
-    	SocketTap *tap = (SocketTap*)(dev->tap);
-    	if(!tap) {
-    		DEBUG_ERROR("invalid dev->tap");
-    		handle_general_failure();
-    		return ZT_ERR_GENERAL_FAILURE;
-    	}
-        // FIXME: The copy logic and/or buffer structure should be reworked for better performance after the BETA
-        // SocketTap *tap = (SocketTap*)netif->state;
-        Mutex::Lock _l(tap->_pico_frame_rxbuf_m);
-        unsigned char frame[ZT_SDK_MTU];
-        int len;
-    	int err = 0;
-        while (tap->pico_frame_rxbuf_tot > 0 && loop_score > 0) {
-        	//DEBUG_FLOW(" [   FBUF -> STACK] Frame buffer SZ=%d", tap->pico_frame_rxbuf_tot);
-            memset(frame, 0, sizeof(frame));
-            len = 0;
-            memcpy(&len, tap->pico_frame_rxbuf, sizeof(len)); // get frame len
-            if(len >= 0) {
-            	//DEBUG_FLOW(" [   FBUF -> STACK]   Moving FRAME of size (%d) from FBUF(sz=%d) into stack",len, tap->pico_frame_rxbuf_tot-len);
-            	memcpy(frame, tap->pico_frame_rxbuf + sizeof(len), len-(sizeof(len)) ); // get frame data
-            	memmove(tap->pico_frame_rxbuf, tap->pico_frame_rxbuf + len, MAX_PICO_FRAME_RX_BUF_SZ-len); // shift buffer
-            	err = pico_stack_recv(dev, (uint8_t*)frame, (len-sizeof(len))); 
-            	//DEBUG_INFO("recv = %d", err);
-                tap->pico_frame_rxbuf_tot-=len;
-            }
-            else {
-            	DEBUG_ERROR("Invalid frame size (%d). Exiting.",len);
-            	handle_general_failure();
-            }
-            loop_score--;
-        }
-        return loop_score;
-    }
-    
-    int picoTCP::pico_Socket(struct pico_socket **p, int socket_family, int socket_type, int protocol)
-    {
-    	int err = 0;
+	int pico_eth_poll(struct pico_device *dev, int loop_score)
+	{
+		SocketTap *tap = (SocketTap*)(dev->tap);
+		if(!tap) {
+			DEBUG_ERROR("invalid dev->tap");
+			handle_general_failure();
+			return ZT_ERR_GENERAL_FAILURE;
+		}
+		// FIXME: The copy logic and/or buffer structure should be reworked for better performance after the BETA
+		// SocketTap *tap = (SocketTap*)netif->state;
+		Mutex::Lock _l(tap->_pico_frame_rxbuf_m);
+		unsigned char frame[ZT_SDK_MTU];
+		int len;
+		int err = 0;
+		while (tap->pico_frame_rxbuf_tot > 0 && loop_score > 0) {
+			//DEBUG_FLOW(" [   FBUF -> STACK] Frame buffer SZ=%d", tap->pico_frame_rxbuf_tot);
+			memset(frame, 0, sizeof(frame));
+			len = 0;
+			memcpy(&len, tap->pico_frame_rxbuf, sizeof(len)); // get frame len
+			if(len >= 0) {
+				//DEBUG_FLOW(" [   FBUF -> STACK]   Moving FRAME of size (%d) from FBUF(sz=%d) into stack",len, tap->pico_frame_rxbuf_tot-len);
+				memcpy(frame, tap->pico_frame_rxbuf + sizeof(len), len-(sizeof(len)) ); // get frame data
+				memmove(tap->pico_frame_rxbuf, tap->pico_frame_rxbuf + len, MAX_PICO_FRAME_RX_BUF_SZ-len); // shift buffer
+				err = pico_stack_recv(dev, (uint8_t*)frame, (len-sizeof(len))); 
+				//DEBUG_INFO("recv = %d", err);
+				tap->pico_frame_rxbuf_tot-=len;
+			}
+			else {
+				DEBUG_ERROR("Invalid frame size (%d). Exiting.",len);
+				handle_general_failure();
+			}
+			loop_score--;
+		}
+		return loop_score;
+	}
+	
+	int picoTCP::pico_Socket(struct pico_socket **p, int socket_family, int socket_type, int protocol)
+	{
+		int err = 0;
 		if(pico_ntimers() >= PICO_MAX_TIMERS) {
-		    DEBUG_ERROR("cannot create additional socket, see PICO_MAX_TIMERS. current = %d", pico_ntimers());
-		    errno = EMFILE;
-		    err = -1;
+			DEBUG_ERROR("cannot create additional socket, see PICO_MAX_TIMERS. current = %d", pico_ntimers());
+			errno = EMFILE;
+			err = -1;
 		}
 		else
 		{
-		    int protocol_version = 0;
-		    struct pico_socket *psock;
-		    if(socket_family == AF_INET)
-		        protocol_version = PICO_PROTO_IPV4;
-		    if(socket_family == AF_INET6)
-		        protocol_version = PICO_PROTO_IPV6;
-		    
-		    if(socket_type == SOCK_DGRAM) {
-		    	DEBUG_ERROR("SOCK_DGRAM");
-		        psock = pico_socket_open(
-		            protocol_version, PICO_PROTO_UDP, &ZeroTier::picoTCP::pico_cb_socket_activity);
-		        if(psock) { // configure size of UDP SND/RCV buffers
-		            // TODO
-		        }
-		    }
-		    if(socket_type == SOCK_STREAM) {		    	
-		        psock = pico_socket_open(
-		            protocol_version, PICO_PROTO_TCP, &ZeroTier::picoTCP::pico_cb_socket_activity);
-		        if(psock) { // configure size of TCP SND/RCV buffers
-		            int tx_buf_sz = ZT_STACK_TCP_SOCKET_TX_SZ;
-		            int rx_buf_sz = ZT_STACK_TCP_SOCKET_RX_SZ;
-		            int t_err = 0;
-		            int value = 1;
-		            pico_socket_setoption(psock, PICO_TCP_NODELAY, &value);
+			int protocol_version = 0;
+			struct pico_socket *psock;
+			if(socket_family == AF_INET)
+				protocol_version = PICO_PROTO_IPV4;
+			if(socket_family == AF_INET6)
+				protocol_version = PICO_PROTO_IPV6;
+			
+			if(socket_type == SOCK_DGRAM) {
+				DEBUG_ERROR("SOCK_DGRAM");
+				psock = pico_socket_open(
+					protocol_version, PICO_PROTO_UDP, &ZeroTier::picoTCP::pico_cb_socket_activity);
+				if(psock) { // configure size of UDP SND/RCV buffers
+					// TODO
+				}
+			}
+			if(socket_type == SOCK_STREAM) {		    	
+				psock = pico_socket_open(
+					protocol_version, PICO_PROTO_TCP, &ZeroTier::picoTCP::pico_cb_socket_activity);
+				if(psock) { // configure size of TCP SND/RCV buffers
+					int tx_buf_sz = ZT_STACK_TCP_SOCKET_TX_SZ;
+					int rx_buf_sz = ZT_STACK_TCP_SOCKET_RX_SZ;
+					int t_err = 0;
+					int value = 1;
+					pico_socket_setoption(psock, PICO_TCP_NODELAY, &value);
 
-		            if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_SNDBUF, &tx_buf_sz)) < 0)
-		                DEBUG_ERROR("unable to set SNDBUF size, err = %d, pico_err = %d", t_err, pico_err);
-		            if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_RCVBUF, &rx_buf_sz)) < 0)
-		                DEBUG_ERROR("unable to set RCVBUF size, err = %d, pico_err = %d", t_err, pico_err);
-		           
-		            if(ZT_SOCK_BEHAVIOR_LINGER) {
-		                int linger_time_ms = ZT_SOCK_BEHAVIOR_LINGER_TIME;
-		                if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_LINGER, &linger_time_ms)) < 0)
-		                    DEBUG_ERROR("unable to set LINGER, err = %d, pico_err = %d", t_err, pico_err);
-		            }
-		        }
-		    }
-		    *p = psock;
+					if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_SNDBUF, &tx_buf_sz)) < 0)
+						DEBUG_ERROR("unable to set SNDBUF size, err = %d, pico_err = %d", t_err, pico_err);
+					if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_RCVBUF, &rx_buf_sz)) < 0)
+						DEBUG_ERROR("unable to set RCVBUF size, err = %d, pico_err = %d", t_err, pico_err);
+				   
+					if(ZT_SOCK_BEHAVIOR_LINGER) {
+						int linger_time_ms = ZT_SOCK_BEHAVIOR_LINGER_TIME;
+						if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_LINGER, &linger_time_ms)) < 0)
+							DEBUG_ERROR("unable to set LINGER, err = %d, pico_err = %d", t_err, pico_err);
+					}
+				}
+			}
+			*p = psock;
 		}
 		return err;
-    }
+	}
 
-    int picoTCP::pico_Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen)
-    {		
-    	if(!conn || !conn->picosock) {
-    		DEBUG_ERROR("invalid conn or conn->picosock");
-    		handle_general_failure();
-    		return ZT_ERR_GENERAL_FAILURE;
-    	}
+	int picoTCP::pico_Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen)
+	{		
+		if(!conn || !conn->picosock) {
+			DEBUG_ERROR("invalid conn or conn->picosock");
+			handle_general_failure();
+			return ZT_ERR_GENERAL_FAILURE;
+		}
 		int err = 0;
 		if(conn->socket_family == AF_INET) {
 			struct pico_ip4 zaddr;
@@ -579,7 +579,7 @@ namespace ZeroTier {
 			struct sockaddr_in6 *in6 = (struct sockaddr_in6*)addr;
 			char ipv6_str[INET6_ADDRSTRLEN];
 			inet_ntop(AF_INET6, &(in6->sin6_addr), ipv6_str, INET6_ADDRSTRLEN);
-	    	pico_string_to_ipv6(ipv6_str, zaddr.addr);
+			pico_string_to_ipv6(ipv6_str, zaddr.addr);
 			err = pico_socket_connect(conn->picosock, &zaddr, in6->sin6_port);
 		}
 		memcpy(&(conn->peer_addr), &addr, sizeof(struct sockaddr_storage));
@@ -591,17 +591,17 @@ namespace ZeroTier {
 		if(err == PICO_ERR_EHOSTUNREACH)
 			DEBUG_ERROR("PICO_ERR_EHOSTUNREACH");
 		return err;
-    }
+	}
 
-    int picoTCP::pico_Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen)
-    {
-    	//DEBUG_INFO();
-    	if(!conn || !conn->picosock) {
-    		DEBUG_ERROR("invalid conn or conn->picosock");
-    		handle_general_failure();
-    		return ZT_ERR_GENERAL_FAILURE;
-    	}
-    	int err = 0;
+	int picoTCP::pico_Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen)
+	{
+		//DEBUG_INFO();
+		if(!conn || !conn->picosock) {
+			DEBUG_ERROR("invalid conn or conn->picosock");
+			handle_general_failure();
+			return ZT_ERR_GENERAL_FAILURE;
+		}
+		int err = 0;
 		if(conn->socket_family == AF_INET) { 
 			struct pico_ip4 zaddr;
 			uint32_t tempaddr;
@@ -620,8 +620,8 @@ namespace ZeroTier {
 			char ipv6_str[INET6_ADDRSTRLEN];
 			inet_ntop(AF_INET6, &(in6->sin6_addr), ipv6_str, INET6_ADDRSTRLEN);
 			// TODO: This isn't proper
-	    	pico_string_to_ipv6("::", pip6.addr);
-       		//DEBUG_EXTRA("addr=%s:%d", ipv6_str, Utils::ntoh(in6->sin6_port));
+			pico_string_to_ipv6("::", pip6.addr);
+			//DEBUG_EXTRA("addr=%s:%d", ipv6_str, Utils::ntoh(in6->sin6_port));
 			err = pico_socket_bind(conn->picosock, &pip6, (uint16_t *)&(in6->sin6_port));
 		}
 		if(err < 0) {
@@ -645,67 +645,67 @@ namespace ZeroTier {
 			}
 		}
 		return err;
-    }
+	}
 
-    int picoTCP::pico_Listen(Connection *conn, int fd, int backlog)
-    {
-    	//DEBUG_INFO();
-    	if(!conn || !conn->picosock) {
-    		DEBUG_ERROR("invalid conn or conn->picosock");
-    		handle_general_failure();
-    		return ZT_ERR_GENERAL_FAILURE;
-    	}
-    	int err = 0;
-    	if((err = pico_socket_listen(conn->picosock, backlog)) < 0)
-    	{
-    		if(err == PICO_ERR_EINVAL) {
-    			DEBUG_ERROR("PICO_ERR_EINVAL");
-    			errno = EINVAL;
-    			return -1;
-    		}
+	int picoTCP::pico_Listen(Connection *conn, int fd, int backlog)
+	{
+		//DEBUG_INFO();
+		if(!conn || !conn->picosock) {
+			DEBUG_ERROR("invalid conn or conn->picosock");
+			handle_general_failure();
+			return ZT_ERR_GENERAL_FAILURE;
+		}
+		int err = 0;
+		if((err = pico_socket_listen(conn->picosock, backlog)) < 0)
+		{
+			if(err == PICO_ERR_EINVAL) {
+				DEBUG_ERROR("PICO_ERR_EINVAL");
+				errno = EINVAL;
+				return -1;
+			}
 			if(err == PICO_ERR_EISCONN) {
 				DEBUG_ERROR("PICO_ERR_EISCONN");
 				errno = EISCONN;
 				return -1;
 			}
-    	}
-    	conn->state = ZT_SOCK_STATE_LISTENING;
-    	return ZT_ERR_OK;
-    }
+		}
+		conn->state = ZT_SOCK_STATE_LISTENING;
+		return ZT_ERR_OK;
+	}
 
-    Connection* picoTCP::pico_Accept(Connection *conn)
-    {
-    	if(!conn) {
-    		DEBUG_ERROR("invalid conn");
-    		handle_general_failure();
-    		return NULL;
-    	}
-    	// Retreive first of queued Connections from parent connection
-    	Connection *new_conn = NULL;
-        if(conn->_AcceptedConnections.size()) {
+	Connection* picoTCP::pico_Accept(Connection *conn)
+	{
+		if(!conn) {
+			DEBUG_ERROR("invalid conn");
+			handle_general_failure();
+			return NULL;
+		}
+		// Retreive first of queued Connections from parent connection
+		Connection *new_conn = NULL;
+		if(conn->_AcceptedConnections.size()) {
 			new_conn = conn->_AcceptedConnections.front();
 			conn->_AcceptedConnections.pop();
 		}
-    	return new_conn;
-    }
+		return new_conn;
+	}
 
-    int picoTCP::pico_Read(SocketTap *tap, PhySocket *sock, Connection* conn, bool stack_invoked)
-    {
-    	DEBUG_INFO();
-    	//exit(0);
-    	/*
-    	if(!conn || !tap || !conn) {
-    		DEBUG_ERROR("invalid tap, sock, or conn");
-    		handle_general_failure();
-    		return;
-    	}
-    	//DEBUG_INFO();
-        if(!stack_invoked) {
-        	// The stack thread writes to RXBUF as well
-            tap->_tcpconns_m.lock();
-            tap->_rx_buf_m.lock(); 
-        }
-        int tot = 0, n = -1, write_attempts = 0;
+	int picoTCP::pico_Read(SocketTap *tap, PhySocket *sock, Connection* conn, bool stack_invoked)
+	{
+		DEBUG_INFO();
+		//exit(0);
+		/*
+		if(!conn || !tap || !conn) {
+			DEBUG_ERROR("invalid tap, sock, or conn");
+			handle_general_failure();
+			return;
+		}
+		//DEBUG_INFO();
+		if(!stack_invoked) {
+			// The stack thread writes to RXBUF as well
+			tap->_tcpconns_m.lock();
+			tap->_rx_buf_m.lock(); 
+		}
+		int tot = 0, n = -1, write_attempts = 0;
 		
 		if(conn && conn->rxsz) {	
 			//DEBUG_INFO("conn = %p", conn);
@@ -733,7 +733,7 @@ namespace ZeroTier {
 				if(conn->rxsz-n > 0) { // If more remains on buffer
 					memcpy(conn->rxbuf, conn->rxbuf+ZT_SDK_MTU, conn->rxsz - ZT_SDK_MTU);
 				}
-			  	conn->rxsz -= ZT_SDK_MTU;
+				conn->rxsz -= ZT_SDK_MTU;
 			}
 			//
 			if(conn->socket_type==SOCK_STREAM) {
@@ -743,20 +743,20 @@ namespace ZeroTier {
 				// n = write(conn->sdk_fd, conn->rxbuf, conn->rxsz);
 				if(conn->rxsz-n > 0) // If more remains on buffer
 					memcpy(conn->rxbuf, conn->rxbuf+n, conn->rxsz - n);
-			  	conn->rxsz -= n;
+				conn->rxsz -= n;
 			}
 			// Notify ZT I/O loop that it has new buffer contents
 			if(n) {
 				if(conn->socket_type==SOCK_STREAM) {
 					//#if DEBUG_LEVEL >= MSG_TRANSFER
-		            //	DEBUG_TRANS("[ TCP RX <- STACK] :: conn = %p, len = %d", conn, n);
+					//	DEBUG_TRANS("[ TCP RX <- STACK] :: conn = %p, len = %d", conn, n);
 					//#endif
-	        	}
-	        	if(conn->rxsz == 0) {
+				}
+				if(conn->rxsz == 0) {
 					tap->_phy.setNotifyWritable(sock, false);
 				}
 				else {
-	        		tap->_phy.setNotifyWritable(sock, true);	
+					tap->_phy.setNotifyWritable(sock, true);	
 				}
 			}
 			else {
@@ -764,92 +764,92 @@ namespace ZeroTier {
 			}	
 		}
 		if(!stack_invoked) {
-            tap->_tcpconns_m.unlock();
-            tap->_rx_buf_m.unlock();
-        }
-        // DEBUG_FLOW("[ ZTSOCK <- RXBUF] Emitted (%d) from RXBUF(%d) to socket", tot, conn->rxsz);
-        */
-        return 0;
-    }
+			tap->_tcpconns_m.unlock();
+			tap->_rx_buf_m.unlock();
+		}
+		// DEBUG_FLOW("[ ZTSOCK <- RXBUF] Emitted (%d) from RXBUF(%d) to socket", tot, conn->rxsz);
+		*/
+		return 0;
+	}
 
-    int picoTCP::pico_Write(Connection *conn, void *data, ssize_t len)
-    {
-    	int err = 0;
-	    // TODO: Add RingBuffer overflow checks
-	    //DEBUG_INFO("conn=%p, len = %d", conn, len);
-	    Mutex::Lock _l(conn->_tx_m);
+	int picoTCP::pico_Write(Connection *conn, void *data, ssize_t len)
+	{
+		int err = 0;
+		// TODO: Add RingBuffer overflow checks
+		//DEBUG_INFO("conn=%p, len = %d", conn, len);
+		Mutex::Lock _l(conn->_tx_m);
 		if(len <= 0) {
-    		DEBUG_ERROR("invalid write length (len=%d)", len);
-    		handle_general_failure();
-    		return -1;
-    	}
-    	if(conn->picosock->state & PICO_SOCKET_STATE_CLOSED){
-    		DEBUG_ERROR("socket is CLOSED, this write() will fail");
-    		return -1;
-    	}
-    	if(!conn) {
-    		DEBUG_ERROR("invalid connection (len=%d)", len);
-    		handle_general_failure();
-    		return -1;
-    	}
+			DEBUG_ERROR("invalid write length (len=%d)", len);
+			handle_general_failure();
+			return -1;
+		}
+		if(conn->picosock->state & PICO_SOCKET_STATE_CLOSED){
+			DEBUG_ERROR("socket is CLOSED, this write() will fail");
+			return -1;
+		}
+		if(!conn) {
+			DEBUG_ERROR("invalid connection (len=%d)", len);
+			handle_general_failure();
+			return -1;
+		}
 
-    	int original_txsz = conn->TXbuf->count();
+		int original_txsz = conn->TXbuf->count();
 
-    	if(original_txsz + len >= ZT_TCP_TX_BUF_SZ) {
-    		DEBUG_ERROR("txsz = %d, len = %d", original_txsz, len);
-    		DEBUG_ERROR("TX buffer is too small, try increasing ZT_TCP_TX_BUF_SZ in libzt.h");
-    		exit(0);
-    	}
+		if(original_txsz + len >= ZT_TCP_TX_BUF_SZ) {
+			DEBUG_ERROR("txsz = %d, len = %d", original_txsz, len);
+			DEBUG_ERROR("TX buffer is too small, try increasing ZT_TCP_TX_BUF_SZ in libzt.h");
+			exit(0);
+		}
 
-	    int buf_w = conn->TXbuf->write((const unsigned char*)data, len);
-            if (buf_w != len) {
-		    // because we checked ZT_TCP_TX_BUF_SZ above, this should not happen
-    		DEBUG_ERROR("TX wrote only %d but expected to write %d", buf_w, len);
-    		exit(0);
-	    }
-	    //DEBUG_INFO("TXbuf->count() = %d", conn->TXbuf->count());
-	   	int txsz = conn->TXbuf->count();
+		int buf_w = conn->TXbuf->write((const unsigned char*)data, len);
+			if (buf_w != len) {
+			// because we checked ZT_TCP_TX_BUF_SZ above, this should not happen
+			DEBUG_ERROR("TX wrote only %d but expected to write %d", buf_w, len);
+			exit(0);
+		}
+		//DEBUG_INFO("TXbuf->count() = %d", conn->TXbuf->count());
+		int txsz = conn->TXbuf->count();
 
-	   	//if(original_txsz > 0)
-	   	//	return; // don't write here, we already have stuff in the queue, a callback will handle it
-	   	
+		//if(original_txsz > 0)
+		//	return; // don't write here, we already have stuff in the queue, a callback will handle it
+		
 		int r, max_write_len = std::min(std::min(txsz, ZT_SDK_MTU),ZT_STACK_SOCKET_WR_MAX);
 		//int buf_r = conn->TXbuf->read(conn->tmptxbuf, max_write_len);
-	    
-	    if((r = pico_socket_write(conn->picosock, conn->TXbuf->get_buf(), max_write_len)) < 0) {
-	    	DEBUG_ERROR("unable to write to picosock=%p, r=%d", conn->picosock, r);
-	    	err = -1;
-	    }
-	    else {
-	    	err = r; // successful write
-	    }
-	   	if(conn->socket_type == SOCK_STREAM) {
-	    	//DEBUG_TRANS("[ TCP TX -> STACK] :: conn = %p, len = %d", conn, r);
-	    }
-	   	if(conn->socket_type == SOCK_DGRAM) {
-	    	//DEBUG_TRANS("[ UDP TX -> STACK] :: conn = %p, len = %d", conn, r);
-	    }
-	    if(r>0)
-	    	conn->TXbuf->consume(r);
+		
+		if((r = pico_socket_write(conn->picosock, conn->TXbuf->get_buf(), max_write_len)) < 0) {
+			DEBUG_ERROR("unable to write to picosock=%p, r=%d", conn->picosock, r);
+			err = -1;
+		}
+		else {
+			err = r; // successful write
+		}
+		if(conn->socket_type == SOCK_STREAM) {
+			//DEBUG_TRANS("[ TCP TX -> STACK] :: conn = %p, len = %d", conn, r);
+		}
+		if(conn->socket_type == SOCK_DGRAM) {
+			//DEBUG_TRANS("[ UDP TX -> STACK] :: conn = %p, len = %d", conn, r);
+		}
+		if(r>0)
+			conn->TXbuf->consume(r);
 
-	    return err;
-    }
+		return err;
+	}
 
-    int picoTCP::pico_Close(Connection *conn)
-    {
-    	DEBUG_INFO("conn = %p, picosock=%p, fd = %d", conn, conn->picosock, conn->app_fd);
-    	if(!conn || !conn->picosock)
-    		return ZT_ERR_GENERAL_FAILURE;
-    	int err = 0;
-    	Mutex::Lock _l(conn->tap->_tcpconns_m);
-    	if(conn->closure_ts != -1) // it was closed at some point in the past, it'll work itself out 
-    		return ZT_ERR_OK;
-    	if((err = pico_socket_close(conn->picosock)) < 0) {
-    		errno = pico_err;
-    		DEBUG_ERROR("error closing pico_socket(%p)", (void*)(conn->picosock));
-    	}
-    	return err;
-    }
+	int picoTCP::pico_Close(Connection *conn)
+	{
+		DEBUG_INFO("conn = %p, picosock=%p, fd = %d", conn, conn->picosock, conn->app_fd);
+		if(!conn || !conn->picosock)
+			return ZT_ERR_GENERAL_FAILURE;
+		int err = 0;
+		Mutex::Lock _l(conn->tap->_tcpconns_m);
+		if(conn->closure_ts != -1) // it was closed at some point in the past, it'll work itself out 
+			return ZT_ERR_OK;
+		if((err = pico_socket_close(conn->picosock)) < 0) {
+			errno = pico_err;
+			DEBUG_ERROR("error closing pico_socket(%p)", (void*)(conn->picosock));
+		}
+		return err;
+	}
 
 	char *picoTCP::beautify_pico_error(int err)
 	{

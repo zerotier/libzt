@@ -191,9 +191,9 @@ namespace ZeroTier {
 					struct sockaddr_in6 in6;
 					memset(&in6,0,sizeof(in6));
 					in6.sin6_family = AF_INET;
-    				struct hostent *server;
-    				server = gethostbyname2((char*)host.c_str(),AF_INET6);
-    				memmove((char *) &in6.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
+					struct hostent *server;
+					server = gethostbyname2((char*)host.c_str(),AF_INET6);
+					memmove((char *) &in6.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
 					in6.sin6_port = Utils::hton(dest_port);
 					conn->destination_sock = _phy.tcpConnect((const struct sockaddr *)&in6, connected, this);
 				}

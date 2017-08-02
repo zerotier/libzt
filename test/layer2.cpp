@@ -27,22 +27,22 @@
 
 unsigned short csum(unsigned short *buf, int nwords)
 {
-    unsigned long sum;
-    for(sum=0; nwords>0; nwords--)
-        sum += *buf++;
-    sum = (sum >> 16) + (sum &0xffff);
-    sum += (sum >> 16);
-    return (unsigned short)(~sum);
+	unsigned long sum;
+	for(sum=0; nwords>0; nwords--)
+		sum += *buf++;
+	sum = (sum >> 16) + (sum &0xffff);
+	sum += (sum >> 16);
+	return (unsigned short)(~sum);
 }
 
 int main(int argc , char *argv[])
 {
 	if(argc < 3) {
-        fprintf(stderr, "usage: layer2 <zt_home_dir> <nwid>\n");
-        return 1;
-    }
+		fprintf(stderr, "usage: layer2 <zt_home_dir> <nwid>\n");
+		return 1;
+	}
 
-    // initialize library
+	// initialize library
 	printf("Starting libzt...\n");
 	zts_simple_start(argv[1], argv[2]);
 	char device_id[11];
@@ -181,7 +181,7 @@ int main(int argc , char *argv[])
 		usleep(10000);
 		// Send packet
 		if (zts_sendto(fd, sendbuf, tx_len, 0, (struct sockaddr*)&socket_address, sizeof(struct sockaddr_ll)) < 0)
-		    fprintf(stderr, "Send failed\n");
+			fprintf(stderr, "Send failed\n");
 	}
 
 	// dismantle all zt virtual taps (SocketTaps)

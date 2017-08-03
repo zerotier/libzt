@@ -143,7 +143,8 @@ namespace ZeroTier {
 	bool SocketTap::addIp(const InetAddress &ip)
 	{
 #if defined(NO_STACK)
-		DEBUG_INFO("addIp (%s)", ip.toString().c_str());
+		char ipbuf[64];
+		DEBUG_INFO("addIp (%s)", ip.toString(ipbuf));
 		_ips.push_back(ip);
 		std::sort(_ips.begin(),_ips.end());
 		return true;

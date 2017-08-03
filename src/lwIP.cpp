@@ -99,7 +99,8 @@ namespace ZeroTier
 				tap->lwipdev.flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_IGMP | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 				netif_set_default(&(tap->lwipdev));
 				netif_set_up(&(tap->lwipdev));
-				DEBUG_INFO("addr=%s, netmask=%s", ip.toString().c_str(), ip.netmask().toString().c_str());
+				char ipbuf[64];
+				DEBUG_INFO("addr=%s, netmask=%s", ip.toString(ipbuf), ip.netmask().toString(ipbuf));
 			}
 #endif
 #if defined(LIBZT_IPV6)
@@ -125,7 +126,8 @@ namespace ZeroTier
 				tap->lwipdev6.output_ip6 = ethip6_output;
 				tap->lwipdev6.state = tap;
 				tap->lwipdev6.flags = NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
-				DEBUG_INFO("addr=%s, netmask=%s", ip.toString().c_str(), ip.netmask().toString().c_str());
+				char ipbuf[64];
+				DEBUG_INFO("addr=%s, netmask=%s", ip.toString(ipbuf), ip.netmask().toString(ipbuf));
 			}
 #endif 
 		}

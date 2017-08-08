@@ -506,7 +506,7 @@ namespace ZeroTier {
 	int picoTCP::pico_Socket(struct pico_socket **p, int socket_family, int socket_type, int protocol)
 	{
 		int err = 0;
-		if(pico_ntimers() >= PICO_MAX_TIMERS) {
+		if(!can_provision_new_socket()) {
 			DEBUG_ERROR("cannot create additional socket, see PICO_MAX_TIMERS. current = %d", pico_ntimers());
 			errno = EMFILE;
 			err = -1;

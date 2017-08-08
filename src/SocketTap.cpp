@@ -266,13 +266,12 @@ namespace ZeroTier {
 		if(!conn)
 			return;
 		if(len){
-
 			Write(conn, data, len);
 		}
 		return;
 	}
 
-	void SocketTap::phyOnUnixWritable(PhySocket *sock,void **uptr,bool stack_invoked)
+	void SocketTap::phyOnUnixWritable(PhySocket *sock, void **uptr, bool stack_invoked)
 	{
 		if(sock)
 			Read(sock,uptr,stack_invoked);
@@ -283,6 +282,9 @@ namespace ZeroTier {
 	/****************************************************************************/
 
 	int SocketTap::Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen) {
+#if defined(NO_STACK)
+		return -1;
+#endif
 		Mutex::Lock _l(_tcpconns_m);
 #if defined(STACK_PICO)
 		if(picostack)
@@ -296,6 +298,9 @@ namespace ZeroTier {
 	}
 
 	int SocketTap::Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen) {
+#if defined(NO_STACK)
+		return -1;
+#endif
 		Mutex::Lock _l(_tcpconns_m);
 #if defined(STACK_PICO)
 		if(picostack)
@@ -309,20 +314,36 @@ namespace ZeroTier {
 	}
 
 	int SocketTap::Listen(Connection *conn, int fd, int backlog) {
-#if defined(STACK_PICO)
+#if defined(NO_STACK)
+		return -1;
+#endif
 		Mutex::Lock _l(_tcpconns_m);
+#if defined(STACK_PICO)
 		if(picostack)
 			return picostack->pico_Listen(conn, fd, backlog);
+		return ZT_ERR_GENERAL_FAILURE;
+#endif
+#if defined(STACK_LWIP)
+		if(lwipstack)
+			return lwipstack->lwip_Listen(conn, backlog);
 		return ZT_ERR_GENERAL_FAILURE;
 #endif
 		return ZT_ERR_GENERAL_FAILURE;
 	}
 
 	Connection* SocketTap::Accept(Connection *conn) {
-#if defined(STACK_PICO)
+#if defined(NO_STACK)
+		return NULL;
+#endif
 		Mutex::Lock _l(_tcpconns_m);
+#if defined(STACK_PICO)
 		if(picostack)
 			return picostack->pico_Accept(conn);
+		return NULL;
+#endif
+#if defined(STACK_LWIP)
+		if(lwipstack)
+			return lwipstack->lwip_Accept(conn);
 		return NULL;
 #endif
 		return NULL;
@@ -333,11 +354,16 @@ namespace ZeroTier {
 		if(picostack)
 			return picostack->pico_Read(this, sock, (Connection*)uptr, stack_invoked);
 #endif
+#if defined(STACK_LWIP)
+		if(lwipstack)
+			return lwipstack->lwip_Read((Connection*)*(_phy.getuptr(sock)), stack_invoked);
+#endif
 		return -1;
 	}
 
 	int SocketTap::Write(Connection *conn, void *data, ssize_t len) {
-		if(conn->socket_type == SOCK_RAW) { // we don't want to use a stack, just VL2
+		// VL2, SOCK_RAW, no network stack
+		if(conn->socket_type == SOCK_RAW) {
 			struct ether_header *eh = (struct ether_header *) data;
 			MAC src_mac;
 			MAC dest_mac;
@@ -350,6 +376,10 @@ namespace ZeroTier {
 #if defined(STACK_PICO)
 		if(picostack)
 			return picostack->pico_Write(conn, data, len);
+#endif
+#if defined(STACK_LWIP)
+		if(lwipstack)
+			return lwipstack->lwip_Write(conn, data, len);
 #endif
 		return -1;
 	}
@@ -387,6 +417,10 @@ namespace ZeroTier {
 				break;
 			}
 		}
+#endif
+#if defined(STACK_LWIP)
+		if(lwipstack)
+			lwipstack->lwip_Close(conn);
 #endif
 		return 0; // TODO
 	}

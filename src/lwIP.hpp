@@ -187,10 +187,11 @@ namespace ZeroTier {
 		int lwip_Socket(void **pcb, int socket_family, int socket_type, int protocol);
 		int lwip_Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
 		int lwip_Bind(SocketTap *tap, Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
-		int lwip_Listen(SocketTap *tap, PhySocket *sock, PhySocket *rpcSock, void **uptr, struct listen_st *listen_rpc);
-		int lwip_Read(SocketTap *tap, PhySocket *sock, void **uptr, bool lwip_invoked);
-		int lwip_Write(SocketTap *tap, Connection *conn);
-		int lwip_Close(SocketTap *tap, PhySocket *sock, Connection *conn);
+		int lwip_Listen(Connection *conn, int backlog);
+		Connection* lwip_Accept(Connection *conn);
+		int lwip_Read(Connection *conn, bool lwip_invoked);
+		int lwip_Write(Connection *conn, void *data, ssize_t len);
+		int lwip_Close(Connection *conn);
 
 		static err_t nc_recved(void *arg, struct tcp_pcb *PCB, struct pbuf *p, err_t err);
 		static err_t nc_accept(void *arg, struct tcp_pcb *newPCB, err_t err);

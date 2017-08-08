@@ -30,6 +30,8 @@
 #include <sys/socket.h>
 #include <poll.h>
 #include <net/if.h>
+#include <stdlib.h>
+#include <stdint.h>
 
 /****************************************************************************/
 /* For SOCK_RAW support, it will initially be modeled after linux's API, so */
@@ -483,6 +485,11 @@ namespace ZeroTier
 #if defined(STACK_PICO)
 int zts_get_pico_socket(int fd, struct pico_socket **s);
 #endif
+
+/*
+ * Whether we can add a new socket or not. Depends on stack in use
+ */
+bool can_provision_new_socket();
 
 /**
  * Returns the number of sockets either already provisioned or waiting to be

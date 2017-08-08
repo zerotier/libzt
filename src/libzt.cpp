@@ -689,6 +689,7 @@ int zts_bind(ZT_BIND_SIG) {
 		else {
 			tap->_Connections.push_back(conn);
 			err = tap->Bind(conn, fd, addr, addrlen);
+			conn->tap = tap;
 			if(err == 0) { // success
 				ZeroTier::unmap.erase(fd);
 				ZeroTier::fdmap[fd] = new std::pair<ZeroTier::Connection*,ZeroTier::SocketTap*>(conn, tap);
@@ -724,7 +725,6 @@ Linux:
 	[  ] [EOPNOTSUPP]       The socket is not of a type that supports the listen() operation.
 */
 int zts_listen(ZT_LISTEN_SIG) {
-#if defined(STACK_PICO)
 	DEBUG_EXTRA("fd = %d", fd);
 	int err = 0;
 	if(fd < 0) {
@@ -757,8 +757,6 @@ int zts_listen(ZT_LISTEN_SIG) {
 		ZeroTier::_multiplexer_lock.unlock();
 	}
 	return err;
-#endif
-	return 0;
 }
 
 /*
@@ -776,68 +774,63 @@ Darwin:
 	[  ] [ENFILE]           The system file table is full.
 */
 int zts_accept(ZT_ACCEPT_SIG) {
-#if defined(STACK_PICO)
 	DEBUG_EXTRA("fd = %d", fd);
 	int err = 0;
 	if(fd < 0) {
 		errno = EBADF;
 		return -1;
 	}
-	else
-	{
-		// +1 since we'll be creating a new pico_socket when we accept the connection
-		if(pico_ntimers()+1 >= PICO_MAX_TIMERS) {
-			DEBUG_ERROR("cannot provision additional socket due to limitation of PICO_MAX_TIMERS.");
-			errno = EMFILE;
-			err = -1;
-		}
-		ZeroTier::_multiplexer_lock.lock();
-		std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::fdmap[fd];
-		if(!p) {
-			DEBUG_ERROR("unable to locate connection pair (did you zts_bind())?");
-			errno = EBADF;
-			err = -1;
-		}
-		else {
-			ZeroTier::Connection *conn = p->first;
-			ZeroTier::SocketTap *tap = p->second;
-
-			// BLOCKING: loop and keep checking until we find a newly accepted connection
-			int f_err, blocking = 1;
-			if ((f_err = fcntl(fd, F_GETFL, 0)) < 0) {
-				DEBUG_ERROR("fcntl error, err = %s, errno = %d", f_err, errno);
-				err = -1;
-			} 
-			else {
-				blocking = !(f_err & O_NONBLOCK);
-			}
-			if(!err) {
-				ZeroTier::Connection *accepted_conn;
-				if(!blocking) { // non-blocking
-					DEBUG_EXTRA("EWOULDBLOCK, not a real error, assuming non-blocking mode");
-					errno = EWOULDBLOCK;
-					err = -1;
-					accepted_conn = tap->Accept(conn);
-				}
-				else { // blocking
-					while(true) {
-						usleep(ZT_ACCEPT_RECHECK_DELAY * 1000);
-						accepted_conn = tap->Accept(conn);
-						if(accepted_conn)
-							break; // accepted fd = err
-					}
-				}
-				if(accepted_conn) {
-					ZeroTier::fdmap[accepted_conn->app_fd] = new std::pair<ZeroTier::Connection*,ZeroTier::SocketTap*>(accepted_conn, tap);
-					err = accepted_conn->app_fd;
-				}
-			}
-		}
-		ZeroTier::_multiplexer_lock.unlock();
+	// +1 since we'll be creating a new pico_socket when we accept the connection
+	if(!can_provision_new_socket()) {
+		DEBUG_ERROR("cannot provision additional socket due to limitation of network stack");
+		errno = EMFILE;
+		return -1;
 	}
+	ZeroTier::_multiplexer_lock.lock();
+	std::pair<ZeroTier::Connection*, ZeroTier::SocketTap*> *p = ZeroTier::fdmap[fd];
+	if(!p) {
+		DEBUG_ERROR("unable to locate connection pair (did you zts_bind())?");
+		errno = EBADF;
+		err = -1;
+	}
+	else {
+		ZeroTier::Connection *conn = p->first;
+		ZeroTier::SocketTap *tap = p->second;
+
+		// BLOCKING: loop and keep checking until we find a newly accepted connection
+		int f_err, blocking = 1;
+		if ((f_err = fcntl(fd, F_GETFL, 0)) < 0) {
+			DEBUG_ERROR("fcntl error, err = %s, errno = %d", f_err, errno);
+			err = -1;
+		} 
+		else {
+			blocking = !(f_err & O_NONBLOCK);
+		}
+
+		if(!err) {
+			ZeroTier::Connection *accepted_conn;
+			if(!blocking) { // non-blocking
+				DEBUG_EXTRA("EWOULDBLOCK, not a real error, assuming non-blocking mode");
+				errno = EWOULDBLOCK;
+				err = -1;
+				accepted_conn = tap->Accept(conn);
+			}
+			else { // blocking
+				while(true) {
+					usleep(ZT_ACCEPT_RECHECK_DELAY * 1000);
+					accepted_conn = tap->Accept(conn);
+					if(accepted_conn)
+						break; // accepted fd = err
+				}
+			}
+			if(accepted_conn) {
+				ZeroTier::fdmap[accepted_conn->app_fd] = new std::pair<ZeroTier::Connection*,ZeroTier::SocketTap*>(accepted_conn, tap);
+				err = accepted_conn->app_fd;
+			}
+		}
+	}
+	ZeroTier::_multiplexer_lock.unlock();
 	return err;
-#endif
-	return 0;
 }
 
 
@@ -1301,12 +1294,12 @@ ssize_t zts_recvmsg(ZT_RECVMSG_SIG)
 }
 
 int zts_read(ZT_READ_SIG) {
-	//DEBUG_INFO("fd = %d", fd);
+	DEBUG_INFO("fd = %d", fd);
 	return read(fd, buf, len);
 }
 
 int zts_write(ZT_WRITE_SIG) {
-	//DEBUG_INFO("fd = %d", fd);
+	DEBUG_INFO("fd = %d", fd);
 	return write(fd, buf, len);
 }
 
@@ -1694,6 +1687,20 @@ int zts_get_pico_socket(int fd, struct pico_socket **s)
 	return err;
 }
 #endif
+
+bool can_provision_new_socket()
+{
+#if defined(STACK_PICO)
+	if(pico_ntimers()+1 >= PICO_MAX_TIMERS) {
+		return false;
+	}
+	return true;
+#endif
+#if defined(STACK_LWIP)
+	// TODO: Add check here (see lwipopts.h)
+	return true;
+#endif
+}
 
 int zts_nsockets()
 {

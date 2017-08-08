@@ -137,23 +137,23 @@ namespace ZeroTier {
 		/* 
 		 * For moving data onto the ZeroTier virtual wire
 		 */
-		void (*_handler)(void *,void *,uint64_t,const MAC &,const MAC &,unsigned int,unsigned int,
-			const void *,unsigned int);
+		void (*_handler)(void *, void *, uint64_t, const MAC &, const MAC &, unsigned int, unsigned int,
+			const void *, unsigned int);
 
 		/*
 		 * Signals us to close the TcpConnection associated with this PhySocket
 		 */
-		void phyOnUnixClose(PhySocket *sock,void **uptr);
+		void phyOnUnixClose(PhySocket *sock, void **uptr);
 		
 		/* 
 		 * Notifies us that there is data to be read from an application's socket
 		 */
-		void phyOnUnixData(PhySocket *sock,void **uptr,void *data,ssize_t len);
+		void phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len);
 		
 		/* 
 		 * Notifies us that we can write to an application's socket
 		 */
-		void phyOnUnixWritable(PhySocket *sock,void **uptr,bool lwip_invoked);
+		void phyOnUnixWritable(PhySocket *sock, void **uptr, bool lwip_invoked);
 
 		/****************************************************************************/
 		/* Vars                                                                     */

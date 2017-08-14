@@ -36,7 +36,6 @@ LWIPARCH=$(CONTRIBDIR)/ports/unix
 #default assumes it's a dir named lwip at the same level as the contrib module
 LWIPDIR=ext/lwip/src
 
-
 CCDEP=clang++
 
 # Automagically pick clang or gcc, with preference for clang
@@ -79,14 +78,14 @@ CORE4FILES=$(LWIPDIR)/core/ipv4/autoip.c \
 	$(LWIPDIR)/core/ipv4/ip4.c \
 	$(LWIPDIR)/core/ipv4/ip4_addr.c
 
-CORE6FILES=$(LWIPDIR)/core/ipv6/dhcp6.c \
-	$(LWIPDIR)/core/ipv6/ethip6.c \
+CORE6FILES=$(LWIPDIR)/core/ipv6/ethip6.c \
 	$(LWIPDIR)/core/ipv6/icmp6.c \
 	$(LWIPDIR)/core/ipv6/inet6.c \
 	$(LWIPDIR)/core/ipv6/ip6.c \
 	$(LWIPDIR)/core/ipv6/ip6_addr.c \
 	$(LWIPDIR)/core/ipv6/ip6_frag.c \
 	$(LWIPDIR)/core/ipv6/mld6.c \
+	$(LWIPDIR)/core/ipv6/dhcp6.c \
 	$(LWIPDIR)/core/ipv6/nd6.c
 
 	# APIFILES: The files which implement the sequential and socket APIs.
@@ -113,7 +112,7 @@ SIXLOWPAN=$(LWIPDIR)/netif/lowpan6.c \
 ARCHFILES=$(wildcard $(LWIPARCH)/*.c $(LWIPARCH)tapif.c $(LWIPARCH)/netif/list.c $(LWIPARCH)/netif/tcpdump.c)
 
 # LWIPFILES: All the above.
-LWIPFILES=$(COREFILES) $(CORE4FILES) $(APIFILES) $(NETIFFILES) $(ARCHFILES)
+LWIPFILES=$(COREFILES) $(APIFILES) $(NETIFFILES) $(ARCHFILES)
 
 ifeq ($(IPV4),1)
 	LWIPFILES+=$(CORE4FILES)
@@ -127,28 +126,21 @@ endif
 LWIPFILESW=$(wildcard $(LWIPFILES))
 LWIPOBJS=$(notdir $(LWIPFILESW:.c=.o))
 
-LWIPLIB=liblwip.so
-
 %.o:
-	$(CXX) $(CFLAGS) -Isrc/stack_drivers/lwip -c $(<:.o=.c)
+	$(CXX) $(CFLAGS) -c $(<:.o=.c) -o obj/$@
 
-all: $(LWIPLIB)
+all:
 .PHONY: all
 
 clean:
-	rm -f *.o $(LWIPLIB4) $(LWIPLIB6) *.s .depend* *.core core
+	rm -f *.o *.s .depend* *.core core
 
 depend dep: .depend
 
 include .depend
 
-$(LWIPLIB): $(LWIPOBJS)
-	mkdir -p build
-	$(CXX) -Isrc/stack_drivers/lwip -g -nostartfiles -shared -o build/$@ $^
-
 liblwip.a: $(LWIPOBJS)
-	echo $(LWIPOBJS)
-	libtool -static -o $@ $^
+	#libtool -static -o $@ $^
 
 .depend: $(LWIPFILES)
 	$(CCDEP) $(CFLAGS) -MM $^ > .depend || rm -f .depend

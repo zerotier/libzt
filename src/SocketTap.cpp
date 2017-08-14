@@ -52,6 +52,7 @@
 #include <netinet/ether.h>
 #endif
 
+#include "OneService.hpp"
 #include "Utils.hpp"
 #include "OSUtils.hpp"
 #include "Constants.hpp"
@@ -59,7 +60,9 @@
 
 class SocketTap;
 
+
 extern std::vector<void*> vtaps;
+//extern ZeroTier::OneService *zt1Service;
 
 namespace ZeroTier {
 
@@ -277,50 +280,79 @@ namespace ZeroTier {
 			Read(sock,uptr,stack_invoked);
 	}
 
+	// Adds a route to the virtual tap
+	bool SocketTap::routeAdd(const InetAddress &addr, const InetAddress &nm, const InetAddress &gw)
+	{
+#if defined(STACK_PICO)
+		if(picostack)
+			return picostack->pico_route_add(this, addr, nm, gw, 0);
+#endif
+#if defined(STACK_LWIP)
+		return true;
+#endif
+		return false;
+	}
+
+	// Deletes a route from the virtual tap
+	bool SocketTap::routeDelete(const InetAddress &addr, const InetAddress &nm)
+	{
+#if defined(STACK_PICO)
+		if(picostack)
+			return picostack->pico_route_del(this, addr, nm, 0);
+#endif
+#if defined(STACK_LWIP)
+		return true;
+#endif
+		return false;
+	}
+	
 	/****************************************************************************/
 	/* SDK Socket API                                                           */
 	/****************************************************************************/
 
-	int SocketTap::Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen) {
+	// Connect
+	int SocketTap::Connect(Connection *conn, const struct sockaddr *addr, socklen_t addrlen) {
 #if defined(NO_STACK)
 		return -1;
 #endif
-		Mutex::Lock _l(_tcpconns_m);
 #if defined(STACK_PICO)
 		if(picostack)
-			return picostack->pico_Connect(conn, fd, addr, addrlen);
+			Mutex::Lock _l(_tcpconns_m);
+			return picostack->pico_Connect(conn, addr, addrlen);
 #endif
 #if defined(STACK_LWIP)
 		if(lwipstack)
-			return lwipstack->lwip_Connect(conn, fd, addr, addrlen);
+			return lwipstack->lwip_Connect(conn, addr, addrlen);
 #endif
 		return ZT_ERR_GENERAL_FAILURE;
 	}
 
-	int SocketTap::Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen) {
+	// Bind VirtualSocket to a network stack's interface
+	int SocketTap::Bind(Connection *conn, const struct sockaddr *addr, socklen_t addrlen) {
 #if defined(NO_STACK)
 		return -1;
 #endif
 		Mutex::Lock _l(_tcpconns_m);
 #if defined(STACK_PICO)
 		if(picostack)
-			return picostack->pico_Bind(conn, fd, addr, addrlen);
+			return picostack->pico_Bind(conn, addr, addrlen);
 #endif
 #if defined(STACK_LWIP)
 		if(lwipstack)
-			return lwipstack->lwip_Bind(this, conn, fd, addr, addrlen);
+			return lwipstack->lwip_Bind(this, conn, addr, addrlen);
 #endif	
 		return ZT_ERR_GENERAL_FAILURE;
 	}
 
-	int SocketTap::Listen(Connection *conn, int fd, int backlog) {
+	// Listen for an incoming connection
+	int SocketTap::Listen(Connection *conn, int backlog) {
 #if defined(NO_STACK)
 		return -1;
 #endif
 		Mutex::Lock _l(_tcpconns_m);
 #if defined(STACK_PICO)
 		if(picostack)
-			return picostack->pico_Listen(conn, fd, backlog);
+			return picostack->pico_Listen(conn, backlog);
 		return ZT_ERR_GENERAL_FAILURE;
 #endif
 #if defined(STACK_LWIP)
@@ -331,13 +363,14 @@ namespace ZeroTier {
 		return ZT_ERR_GENERAL_FAILURE;
 	}
 
+	// Accept a connection 
 	Connection* SocketTap::Accept(Connection *conn) {
 #if defined(NO_STACK)
 		return NULL;
 #endif
-		Mutex::Lock _l(_tcpconns_m);
 #if defined(STACK_PICO)
 		if(picostack)
+			Mutex::Lock _l(_tcpconns_m);
 			return picostack->pico_Accept(conn);
 		return NULL;
 #endif
@@ -349,6 +382,7 @@ namespace ZeroTier {
 		return NULL;
 	}
 
+	// Read from stack/buffers into the app's socket
 	int SocketTap::Read(PhySocket *sock,void **uptr,bool stack_invoked) {
 #if defined(STACK_PICO)
 		if(picostack)
@@ -361,6 +395,7 @@ namespace ZeroTier {
 		return -1;
 	}
 
+	// Write data from app socket to the virtual wire, either raw over VL2, or via network stack
 	int SocketTap::Write(Connection *conn, void *data, ssize_t len) {
 		// VL2, SOCK_RAW, no network stack
 		if(conn->socket_type == SOCK_RAW) {
@@ -372,7 +407,6 @@ namespace ZeroTier {
 			_handler(_arg,NULL,_nwid,src_mac,dest_mac, Utils::ntoh((uint16_t)eh->ether_type),0, ((char*)data) + sizeof(struct ether_header),len - sizeof(struct ether_header));
 			return len;
 		}
-
 #if defined(STACK_PICO)
 		if(picostack)
 			return picostack->pico_Write(conn, data, len);
@@ -382,6 +416,26 @@ namespace ZeroTier {
 			return lwipstack->lwip_Write(conn, data, len);
 #endif
 		return -1;
+	}
+
+	// Send data to a specified host
+	int SocketTap::SendTo(Connection *conn, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen)
+	{
+		// TODO: flags
+		int err = 0;
+		DEBUG_INFO();
+#if defined(STACK_PICO)
+		if(picostack) {
+			err = picostack->pico_Connect(conn, addr, addrlen); // implicit
+			err = picostack->pico_Write(conn, (void*)buf, len);
+		}
+#endif
+#if defined(STACK_LWIP)
+		if(lwipstack)
+			err = lwipstack->lwip_Connect(conn, addr, addrlen); // implicit
+			err = lwipstack->lwip_Write(conn, (void*)buf, len);
+#endif
+		return err;
 	}
 
 	int SocketTap::Close(Connection *conn) {
@@ -427,21 +481,66 @@ namespace ZeroTier {
 
 	void SocketTap::Housekeeping()
 	{
-#if defined(STACK_PICO)
 		Mutex::Lock _l(_tcpconns_m);
 		std::time_t current_ts = std::time(nullptr);
 		if(current_ts > last_housekeeping_ts + ZT_HOUSEKEEPING_INTERVAL) {
-			// Clean up old Connection objects
-			for(size_t i=0;i<_Connections.size();++i) {
-				if(_Connections[i]->closure_ts != -1 && (current_ts > _Connections[i]->closure_ts + ZT_CONNECTION_DELETE_WAIT_TIME)) {
-					// DEBUG_ERROR("deleting %p object, _Connections.size() = %d", _Connections[i], _Connections.size());
-					delete _Connections[i];
-					_Connections.erase(_Connections.begin() + i);
-				}			
+			// update managed routes (add/del from network stacks)		
+			if(zt1ServiceRef) {
+				std::vector<ZT_VirtualNetworkRoute> *managed_routes = ((ZeroTier::OneService *)zt1ServiceRef)->getRoutes(this->_nwid);
+				ZeroTier::InetAddress target_addr;
+				ZeroTier::InetAddress via_addr;
+				ZeroTier::InetAddress null_addr;
+				ZeroTier::InetAddress nm;
+				null_addr.fromString("");
+				bool found;
+				char ipbuf[64], ipbuf2[64], ipbuf3[64];
+				// TODO: Rework this when we have time
+				// check if pushed route exists in tap (add)
+				for(int i=0; i<ZT_MAX_NETWORK_ROUTES; i++) {
+					found = false;
+					target_addr = managed_routes->at(i).target;
+					via_addr = managed_routes->at(i).via;
+					nm = target_addr.netmask();
+					for(int j=0; j<routes.size(); j++) {
+						if(via_addr.ipsEqual(null_addr) || target_addr.ipsEqual(null_addr)) {
+							found=true;
+							continue;
+						}
+						if(routes[j].first.ipsEqual(target_addr) && routes[j].second.ipsEqual(nm)) {
+							found=true;
+						}
+					}
+					if(!found) {
+						if(!via_addr.ipsEqual(null_addr)) {
+							DEBUG_INFO("adding route <target=%s, nm=%s, via=%s>", target_addr.toString(ipbuf), nm.toString(ipbuf2), via_addr.toString(ipbuf3));
+							routes.push_back(std::pair<ZeroTier::InetAddress,ZeroTier::InetAddress>(target_addr, nm));							
+							routeAdd(target_addr, nm, via_addr);						
+						}
+					}
+				}
+				// check if route exists in tap but not in pushed routes (remove)
+				for(int i=0; i<routes.size(); i++) {
+					found = false;
+					for(int j=0; j<ZT_MAX_NETWORK_ROUTES; j++) {
+						target_addr = managed_routes->at(j).target;
+						via_addr = managed_routes->at(j).via;
+						nm = target_addr.netmask();
+						if(routes[i].first.ipsEqual(target_addr) && routes[i].second.ipsEqual(nm)) {
+							found=true;
+						}
+					}
+					if(!found) {
+						DEBUG_INFO("removing route to <target=%s>", routes[i].first.toString(ipbuf), routes[i].second.toString(ipbuf2));
+						routes.erase(routes.begin() + i);
+						routeDelete(routes[i].first, routes[i].second);
+					}
+				}
 			}
+
+			// TODO: Clean up Connection objects
+
 			last_housekeeping_ts = std::time(nullptr);
 		}
-#endif
 	}
 
 	/****************************************************************************/

@@ -155,6 +155,16 @@ namespace ZeroTier {
 		 */
 		void phyOnUnixWritable(PhySocket *sock, void **uptr, bool lwip_invoked);
 
+		/*
+		 * Adds a route to the virtual tap
+		 */
+		bool routeAdd(const InetAddress &addr, const InetAddress &nm, const InetAddress &gw);
+		
+		/*
+		 * Deletes a route from the virtual tap
+		 */
+		bool routeDelete(const InetAddress &addr, const InetAddress &nm);
+
 		/****************************************************************************/
 		/* Vars                                                                     */
 		/****************************************************************************/
@@ -182,6 +192,9 @@ namespace ZeroTier {
 		netif lwipdev;
 		netif lwipdev6;
 #endif
+
+		std::vector<std::pair<ZeroTier::InetAddress, ZeroTier::InetAddress>> routes;
+		void *zt1ServiceRef;
 
 		static int devno;
 		int ifindex;
@@ -222,17 +235,17 @@ namespace ZeroTier {
 		/* 
 		 * Connect to a remote host via the userspace stack interface associated with this SocketTap
 		 */
-		int Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+		int Connect(Connection *conn, const struct sockaddr *addr, socklen_t addrlen);
 	
 		/* 
 		 * Bind to the userspace stack interface associated with this SocketTap
 		 */
-		int Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+		int Bind(Connection *conn, const struct sockaddr *addr, socklen_t addrlen);
 		
 		/* 
 		 * Listen for a Connection
 		 */
-		int Listen(Connection *conn, int fd, int backlog);
+		int Listen(Connection *conn, int backlog);
 		
 		/* 
 		 * Accepts an incoming Connection
@@ -248,6 +261,11 @@ namespace ZeroTier {
 		 * Move data from application's "socket" into network stack
 		 */
 		int Write(Connection *conn, void *data, ssize_t len);
+
+		/* 
+		 * Send data to specified host
+		 */
+		int SendTo(Connection *conn, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen);
 
 		/*
 		 * Closes a Connection

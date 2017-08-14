@@ -56,6 +56,7 @@ struct netif;
 #endif
 #if defined(LIBZT_IPV6)
 #include "lwip/ip6_addr.h"
+#include "ethip6.h"
 	#define LWIP_NETIF_ADD_SIG struct netif *netif, void *state, netif_init_fn init, netif_input_fn input
 	#define LWIP_ETHIP6_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip6_addr_t *ip6addr
 	#define LWIP_ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip6_addr_t *ipaddr
@@ -109,9 +110,9 @@ struct netif;
 #endif            
 #if defined(LIBZT_IPV6)
 	extern "C" void nd6_tmr(void);
-	extern "C" void netif_ip6_addr_set_state(LWIP_NETIF_IP6_ADDR_SET_STATE_SIG);
+	//extern "C" void netif_ip6_addr_set_state(LWIP_NETIF_IP6_ADDR_SET_STATE_SIG);
 	extern "C" void netif_create_ip6_linklocal_address(LWIP_NETIF_CREATE_IP6_LINKLOCAL_ADDRESS_SIG);
-	extern "C" err_t _ethip6_output(LWIP_ETHIP6_OUTPUT_SIG);
+	extern "C" err_t ethip6_output(LWIP_ETHIP6_OUTPUT_SIG);
 #endif
 
 extern "C" void lwip_init();
@@ -185,8 +186,8 @@ namespace ZeroTier {
 		void lwip_rx(SocketTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
 		
 		int lwip_Socket(void **pcb, int socket_family, int socket_type, int protocol);
-		int lwip_Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
-		int lwip_Bind(SocketTap *tap, Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+		int lwip_Connect(Connection *conn, const struct sockaddr *addr, socklen_t addrlen);
+		int lwip_Bind(SocketTap *tap, Connection *conn, const struct sockaddr *addr, socklen_t addrlen);
 		int lwip_Listen(Connection *conn, int backlog);
 		Connection* lwip_Accept(Connection *conn);
 		int lwip_Read(Connection *conn, bool lwip_invoked);

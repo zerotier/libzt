@@ -48,12 +48,12 @@
 #include "Constants.hpp"
 #include "Phy.hpp"
 
-
+int pico_ipv4_to_string(PICO_IPV4_TO_STRING_SIG);
 extern "C" int pico_stack_init(void);
 extern "C" void pico_stack_tick(void);
-
-int pico_ipv4_to_string(PICO_IPV4_TO_STRING_SIG);
 extern "C" int pico_ipv4_link_add(PICO_IPV4_LINK_ADD_SIG);
+extern "C" int pico_ipv4_route_add(PICO_IPV4_ROUTE_ADD_SIG);
+extern "C" int pico_ipv4_route_del(PICO_IPV4_ROUTE_DEL_SIG);
 extern "C" int pico_device_init(PICO_DEVICE_INIT_SIG);
 extern "C" int pico_string_to_ipv4(PICO_STRING_TO_IPV4_SIG);
 extern "C" int pico_string_to_ipv6(PICO_STRING_TO_IPV6_SIG);
@@ -131,6 +131,39 @@ namespace ZeroTier {
 		}
 		return false;
 	}
+
+	// TODO:
+	// pico_ipv6_route_add
+	// pico_ipv6_route_del
+
+	bool picoTCP::pico_route_add(SocketTap *tap, const InetAddress &addr, const InetAddress &nm, const InetAddress &gw, int metric)
+	{
+		struct pico_ipv4_link *link = NULL;
+		struct pico_ip4 address;
+		address.addr = *((uint32_t *)addr.rawIpData());
+		struct pico_ip4 netmask;
+		netmask.addr = *((uint32_t *)nm.rawIpData());
+		struct pico_ip4 gateway;
+		gateway.addr = *((uint32_t *)gw.rawIpData());
+		int err = pico_ipv4_route_add(address, netmask, gateway, metric, link);
+		if(err) {
+			DEBUG_ERROR("err=%d, %s", err, beautify_pico_error(pico_err));
+		}
+		return err;
+	}
+	
+	bool picoTCP::pico_route_del(SocketTap *tap, const InetAddress &addr, const InetAddress &nm, int metric)
+	{
+		struct pico_ip4 address;
+		address.addr = *((uint32_t *)addr.rawIpData());
+		struct pico_ip4 netmask;
+		netmask.addr = *((uint32_t *)nm.rawIpData());
+		int err = pico_ipv4_route_del(address, netmask, metric);
+		if(err) {
+			DEBUG_ERROR("err=%d, %s", err, beautify_pico_error(pico_err));
+		}
+		return err;
+	}
 	
 	void picoTCP::pico_loop(SocketTap *tap)
 	{
@@ -138,7 +171,7 @@ namespace ZeroTier {
 		{
 			tap->_phy.poll(ZT_PHY_POLL_INTERVAL);
 			pico_stack_tick();
-			//tap->Housekeeping();
+			tap->Housekeeping();
 		}
 	}
 
@@ -521,7 +554,7 @@ namespace ZeroTier {
 				protocol_version = PICO_PROTO_IPV6;
 			
 			if(socket_type == SOCK_DGRAM) {
-				DEBUG_ERROR("SOCK_DGRAM");
+				DEBUG_INFO("SOCK_DGRAM");
 				psock = pico_socket_open(
 					protocol_version, PICO_PROTO_UDP, &ZeroTier::picoTCP::pico_cb_socket_activity);
 				if(psock) { // configure size of UDP SND/RCV buffers
@@ -555,7 +588,7 @@ namespace ZeroTier {
 		return err;
 	}
 
-	int picoTCP::pico_Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen)
+	int picoTCP::pico_Connect(Connection *conn, const struct sockaddr *addr, socklen_t addrlen)
 	{		
 		if(!conn || !conn->picosock) {
 			DEBUG_ERROR("invalid conn or conn->picosock");
@@ -582,6 +615,9 @@ namespace ZeroTier {
 			pico_string_to_ipv6(ipv6_str, zaddr.addr);
 			err = pico_socket_connect(conn->picosock, &zaddr, in6->sin6_port);
 		}
+		if(err) {
+			DEBUG_ERROR("err=%d, %s", err, beautify_pico_error(pico_err));
+		}
 		memcpy(&(conn->peer_addr), &addr, sizeof(struct sockaddr_storage));
 
 		if(err == PICO_ERR_EPROTONOSUPPORT)
@@ -593,7 +629,7 @@ namespace ZeroTier {
 		return err;
 	}
 
-	int picoTCP::pico_Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen)
+	int picoTCP::pico_Bind(Connection *conn, const struct sockaddr *addr, socklen_t addrlen)
 	{
 		//DEBUG_INFO();
 		if(!conn || !conn->picosock) {
@@ -647,7 +683,7 @@ namespace ZeroTier {
 		return err;
 	}
 
-	int picoTCP::pico_Listen(Connection *conn, int fd, int backlog)
+	int picoTCP::pico_Listen(Connection *conn, int backlog)
 	{
 		//DEBUG_INFO();
 		if(!conn || !conn->picosock) {
@@ -776,7 +812,7 @@ namespace ZeroTier {
 	{
 		int err = 0;
 		// TODO: Add RingBuffer overflow checks
-		//DEBUG_INFO("conn=%p, len = %d", conn, len);
+		DEBUG_INFO("conn=%p, len=%d", conn, len);
 		Mutex::Lock _l(conn->_tx_m);
 		if(len <= 0) {
 			DEBUG_ERROR("invalid write length (len=%d)", len);
@@ -793,51 +829,56 @@ namespace ZeroTier {
 			return -1;
 		}
 
-		int original_txsz = conn->TXbuf->count();
+		if(conn->socket_type == SOCK_DGRAM)
+		{
+			int r;
+			if((r = pico_socket_write(conn->picosock, data, len)) < 0) {
+				DEBUG_ERROR("unable to write to picosock=%p, r=%d", conn->picosock, r);
+				err = -1;
+			}
+			else {
+				err = r; // successful write
+			}
+			DEBUG_TRANS("[ UDP TX -> STACK] :: conn=%p, len=%d, err=%s", conn, r, beautify_pico_error(pico_err));
+		}
+		if(conn->socket_type == SOCK_STREAM)
+		{
+			int original_txsz = conn->TXbuf->count();
+			if(original_txsz + len >= ZT_TCP_TX_BUF_SZ) {
+				DEBUG_ERROR("txsz=%d, len=%d", original_txsz, len);
+				DEBUG_ERROR("TX buffer is too small, try increasing ZT_TCP_TX_BUF_SZ in libzt.h");
+				exit(0);
+			}
+			int buf_w = conn->TXbuf->write((const unsigned char*)data, len);
+				if (buf_w != len) {
+				// because we checked ZT_TCP_TX_BUF_SZ above, this should not happen
+				DEBUG_ERROR("TX wrote only %d but expected to write %d", buf_w, len);
+				exit(0);
+			}
+			//DEBUG_INFO("TXbuf->count() = %d", conn->TXbuf->count());
+			int txsz = conn->TXbuf->count();
 
-		if(original_txsz + len >= ZT_TCP_TX_BUF_SZ) {
-			DEBUG_ERROR("txsz = %d, len = %d", original_txsz, len);
-			DEBUG_ERROR("TX buffer is too small, try increasing ZT_TCP_TX_BUF_SZ in libzt.h");
-			exit(0);
+			int r, max_write_len = std::min(std::min(txsz, ZT_SDK_MTU),ZT_STACK_SOCKET_WR_MAX);
+			//int buf_r = conn->TXbuf->read(conn->tmptxbuf, max_write_len);
+			
+			if((r = pico_socket_write(conn->picosock, conn->TXbuf->get_buf(), max_write_len)) < 0) {
+				DEBUG_ERROR("unable to write to picosock=%p, r=%d", conn->picosock, r);
+				err = -1;
+			}
+			else {
+				err = r; // successful write
+			}
+			if(r>0){
+				conn->TXbuf->consume(r);
+			}
+			DEBUG_TRANS("[ TCP TX -> STACK] :: conn=%p, len=%d", conn, r);
 		}
-
-		int buf_w = conn->TXbuf->write((const unsigned char*)data, len);
-			if (buf_w != len) {
-			// because we checked ZT_TCP_TX_BUF_SZ above, this should not happen
-			DEBUG_ERROR("TX wrote only %d but expected to write %d", buf_w, len);
-			exit(0);
-		}
-		//DEBUG_INFO("TXbuf->count() = %d", conn->TXbuf->count());
-		int txsz = conn->TXbuf->count();
-
-		//if(original_txsz > 0)
-		//	return; // don't write here, we already have stuff in the queue, a callback will handle it
-		
-		int r, max_write_len = std::min(std::min(txsz, ZT_SDK_MTU),ZT_STACK_SOCKET_WR_MAX);
-		//int buf_r = conn->TXbuf->read(conn->tmptxbuf, max_write_len);
-		
-		if((r = pico_socket_write(conn->picosock, conn->TXbuf->get_buf(), max_write_len)) < 0) {
-			DEBUG_ERROR("unable to write to picosock=%p, r=%d", conn->picosock, r);
-			err = -1;
-		}
-		else {
-			err = r; // successful write
-		}
-		if(conn->socket_type == SOCK_STREAM) {
-			//DEBUG_TRANS("[ TCP TX -> STACK] :: conn = %p, len = %d", conn, r);
-		}
-		if(conn->socket_type == SOCK_DGRAM) {
-			//DEBUG_TRANS("[ UDP TX -> STACK] :: conn = %p, len = %d", conn, r);
-		}
-		if(r>0)
-			conn->TXbuf->consume(r);
-
 		return err;
 	}
 
 	int picoTCP::pico_Close(Connection *conn)
 	{
-		DEBUG_INFO("conn = %p, picosock=%p, fd = %d", conn, conn->picosock, conn->app_fd);
+		DEBUG_INFO("conn=%p, picosock=%p, fd=%d", conn, conn->picosock, conn->app_fd);
 		if(!conn || !conn->picosock)
 			return ZT_ERR_GENERAL_FAILURE;
 		int err = 0;

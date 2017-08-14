@@ -32,6 +32,11 @@
 #include <net/if.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <vector>
+
+#include "ZeroTierOne.h"
+
+// See test/selftest.cpp for examples
 
 /****************************************************************************/
 /* For SOCK_RAW support, it will initially be modeled after linux's API, so */
@@ -463,6 +468,11 @@ int zts_write(ZT_WRITE_SIG);
  */
 int zts_shutdown(ZT_SHUTDOWN_SIG);
 
+/*
+ * Returns a vector of network routes { target, via, metric, etc... }
+ */
+std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(char *nwid);
+
 /****************************************************************************/
 /* SDK Socket API Helper functions/objects --- DONT CALL THESE DIRECTLY     */
 /****************************************************************************/
@@ -515,6 +525,10 @@ ZeroTier::SocketTap *getTapByNWID(uint64_t nwid);
 ZeroTier::SocketTap *getTapByAddr(ZeroTier::InetAddress &addr);
 ZeroTier::SocketTap *getTapByName(char *ifname);
 ZeroTier::SocketTap *getTapByIndex(int index);
+
+/*
+ * Destroys all virtual tap devices
+ */
 void dismantleTaps();
 
 /**

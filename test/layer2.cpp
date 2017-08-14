@@ -57,6 +57,10 @@ int main(int argc , char *argv[])
 	}
 	fprintf(stderr, "Created raw socket (%d)\n", fd);
 
+#if defined(__APPLE__)
+	fprintf(stderr, "SOCK_RAW not supported on mac builds yet. exiting");
+	exit(0);
+#endif
 #if defined(__linux__) // The rest of this file isn't yet supported on non-linux platforms
 	// get interface index to bind on
 	struct ifreq if_idx;

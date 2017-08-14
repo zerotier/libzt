@@ -103,7 +103,7 @@ LWIPFILES=$(COREFILES) $(APIFILES) $(NETIFFILES) $(ARCHFILES)
 
 ifeq ($(LIBZT_IPV4),1)
 	LWIPFILES+=$(CORE4FILES)
-	CFLAGS+=-DLIBZT_IPV4=1 -DLWIP_IPV4 -DDLWIP_IPV6=0 -DIPv4
+	CFLAGS+=-DLIBZT_IPV4=1 -DLWIP_IPV4 -DLWIP_IPV6=0 -DIPv4
 endif
 ifeq ($(LIBZT_IPV6),1)
 	LWIPFILES+=$(CORE6FILES)
@@ -120,12 +120,13 @@ all:
 .PHONY: all
 
 clean:
+	rm -rf .depend
 	rm -f *.o *.s .depend* *.core core
 
 depend dep: .depend
 include .depend
 
-liblwip.a: $(LWIPOBJS)
+liblwip.a: clean $(LWIPOBJS)
 	#libtool -static -o $@ $^
 
 .depend: $(LWIPFILES)

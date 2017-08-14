@@ -14,7 +14,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux lwIP, ipv4') {
-				sh 'make -f make-liblwip.mk liblwip.a IPV4=1'
+				sh 'make -j4 -f make-liblwip.mk liblwip.a IPV4=1'
 			}
 		}
 		catch (err) {
@@ -27,8 +27,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux lwIP, ipv6') {
-				sh 'rm -rf .depend'
-				sh 'make -f make-liblwip.mk liblwip.a IPV6=1'
+				sh 'make -j4 -f make-liblwip.mk liblwip.a IPV6=1'
 			}
 		}
 		catch (err) {
@@ -45,7 +44,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux picoTCP, ipv4') {
-				sh 'cd ext/picotcp;  make lib ARCH=shared IPV4=1'
+				sh 'cd ext/picotcp;  make -j4 lib ARCH=shared IPV4=1'
 			}
 		}
 		catch (err) {
@@ -58,7 +57,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux picoTCP, ipv6') {
-				sh 'cd ext/picotcp;  make lib ARCH=shared IPV6=1'
+				sh 'cd ext/picotcp;  make -j4 lib ARCH=shared IPV6=1'
 			}
 		}
 		catch (err) {
@@ -71,7 +70,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux picoTCP, ipv4, ipv6') {
-				sh 'cd ext/picotcp;  make lib ARCH=shared IPV4=1 IPV6=1'
+				sh 'cd ext/picotcp;  make -j4 lib ARCH=shared IPV4=1 IPV6=1'
 			}
 		}
 		catch (err) {
@@ -90,7 +89,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux static lib, no stack') {
-				sh 'make clean; make static_lib NO_STACK=1; make tests'
+				sh 'make clean; make -j4 static_lib NO_STACK=1; make tests'
 			}
 		}
 		catch (err) {
@@ -104,7 +103,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux static lib, no stack, ipv4') {
-				sh 'make clean; make static_lib NO_STACK=1 LIBZT_IPV4=1; make tests'
+				sh 'make clean; make -j4 static_lib NO_STACK=1 LIBZT_IPV4=1; make tests'
 			}
 		}
 		catch (err) {
@@ -118,7 +117,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux static lib, no stack, ipv6') {
-				sh 'make clean; make static_lib NO_STACK=1 LIBZT_IPV6=1; make tests'
+				sh 'make clean; make -j4 static_lib NO_STACK=1 LIBZT_IPV6=1; make tests'
 			}
 		}
 		catch (err) {
@@ -132,7 +131,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux static lib, no stack, ipv4, ipv6') {
-				sh 'make clean; make static_lib NO_STACK=1 LIBZT_IPV4=1 LIBZT_IPV6=1; make tests'
+				sh 'make clean; make -j4 static_lib NO_STACK=1 LIBZT_IPV4=1 LIBZT_IPV6=1; make tests'
 			}
 		}
 		catch (err) {
@@ -148,7 +147,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux static lib, picoTCP') {
-				sh 'make clean; make static_lib STACK_PICO=1; make tests'
+				sh 'make clean; make -j4 static_lib STACK_PICO=1; make tests'
 			}
 		}
 		catch (err) {
@@ -162,7 +161,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux static lib, picoTCP, ipv4') {
-				sh 'make clean; make static_lib STACK_PICO=1 LIBZT_IPV4=1; make tests'
+				sh 'make clean; make -j4 static_lib STACK_PICO=1 LIBZT_IPV4=1; make tests'
 			}
 		}
 		catch (err) {
@@ -176,7 +175,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux static lib, picoTCP, ipv6') {
-				sh 'make clean; make static_lib STACK_PICO=1 LIBZT_IPV6=1; make tests'
+				sh 'make clean; make -j4 static_lib STACK_PICO=1 LIBZT_IPV6=1; make tests'
 			}
 		}
 		catch (err) {
@@ -190,7 +189,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux static lib, picoTCP, ipv4, ipv6') {
-				sh 'make clean; make static_lib STACK_PICO=1 LIBZT_IPV4=1 LIBZT_IPV6=1; make tests'
+				sh 'make clean; make -j4 static_lib STACK_PICO=1 LIBZT_IPV4=1 LIBZT_IPV6=1; make tests'
 			}
 		}
 		catch (err) {
@@ -207,7 +206,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux static lib lwIP') {
-				sh 'make clean; make static_lib STACK_LWIP=1; make tests'
+				sh 'make clean; make -j4 static_lib STACK_LWIP=1; make tests'
 			}
 		}
 		catch (err) {
@@ -222,7 +221,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux static lib lwIP, ipv4') {
-				sh 'make clean; make static_lib STACK_LWIP=1 LIBZT_IPV4=1; make tests'
+				sh 'make clean; make -j4 static_lib STACK_LWIP=1 LIBZT_IPV4=1; make tests'
 			}
 		}
 		catch (err) {
@@ -237,7 +236,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux static lib lwIP, ipv6') {
-				sh 'make clean; make static_lib STACK_LWIP=1 LIBZT_IPV6=1; make tests'
+				sh 'make clean; make -j4 static_lib STACK_LWIP=1 LIBZT_IPV6=1; make tests'
 			}
 		}
 		catch (err) {
@@ -252,7 +251,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('linux static lib lwIP, ipv4, ipv6') {
-				sh 'make clean; make clean; make static_lib STACK_LWIP=1 LIBZT_IPV4=1 LIBZT_IPV6=1; make tests'
+				sh 'make clean; make clean; make -j4 static_lib STACK_LWIP=1 LIBZT_IPV4=1 LIBZT_IPV6=1; make tests'
 			}
 		}
 		catch (err) {
@@ -274,7 +273,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS lwIP, ipv4') {
-				sh 'make -f make-liblwip.mk liblwip.a IPV4=1'
+				sh 'make -j4 -f make-liblwip.mk liblwip.a IPV4=1'
 			}
 		}
 		catch (err) {
@@ -287,8 +286,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS lwIP, ipv6') {
-				sh 'rm -rf .depend'
-				sh 'make -f make-liblwip.mk liblwip.a IPV6=1'
+				sh 'make -j4 -f make-liblwip.mk liblwip.a IPV6=1'
 			}
 		}
 		catch (err) {
@@ -306,7 +304,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS picoTCP, ipv4') {
-				sh 'cd ext/picotcp;  make lib ARCH=shared IPV4=1'
+				sh 'cd ext/picotcp;  make -j4 lib ARCH=shared IPV4=1'
 			}
 		}
 		catch (err) {
@@ -319,7 +317,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS picoTCP, ipv6') {
-				sh 'cd ext/picotcp;  make lib ARCH=shared IPV6=1'
+				sh 'cd ext/picotcp;  make -j4 lib ARCH=shared IPV6=1'
 			}
 		}
 		catch (err) {
@@ -332,7 +330,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS picoTCP, ipv4, ipv6') {
-				sh 'cd ext/picotcp;  make lib ARCH=shared IPV4=1 IPV6=1'
+				sh 'cd ext/picotcp;  make -j4 lib ARCH=shared IPV4=1 IPV6=1'
 			}
 		}
 		catch (err) {
@@ -363,7 +361,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS static lib, no stack') {
-				sh 'make clean; make static_lib NO_STACK=1; make tests'
+				sh 'make clean; make -j4 static_lib NO_STACK=1; make tests'
 			}
 		}
 		catch (err) {
@@ -377,7 +375,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS static lib, no stack, ipv4') {
-				sh 'make clean; make static_lib NO_STACK=1 LIBZT_IPV4=1; make tests'
+				sh 'make clean; make -j4 static_lib NO_STACK=1 LIBZT_IPV4=1; make tests'
 			}
 		}
 		catch (err) {
@@ -391,7 +389,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS static lib, no stack, ipv6') {
-				sh 'make clean; make static_lib NO_STACK=1 LIBZT_IPV6=1'; make tests
+				sh 'make clean; make -j4 static_lib NO_STACK=1 LIBZT_IPV6=1'; make tests
 			}
 		}
 		catch (err) {
@@ -405,7 +403,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS static lib, no stack, ipv4, ipv6') {
-				sh 'make clean; make static_lib NO_STACK=1 LIBZT_IPV4=1 LIBZT_IPV6=1; make tests'
+				sh 'make clean; make -j4 static_lib NO_STACK=1 LIBZT_IPV4=1 LIBZT_IPV6=1; make tests'
 			}
 		}
 		catch (err) {
@@ -420,7 +418,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS static lib, picoTCP') {
-				sh 'make clean; make static_lib STACK_PICO=1; make tests'
+				sh 'make clean; make -j4 static_lib STACK_PICO=1; make tests'
 			}
 		}
 		catch (err) {
@@ -434,7 +432,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS static lib, picoTCP, ipv4') {
-				sh 'make clean; make static_lib STACK_PICO=1 LIBZT_IPV4=1; make tests'
+				sh 'make clean; make -j4 static_lib STACK_PICO=1 LIBZT_IPV4=1; make tests'
 			}
 		}
 		catch (err) {
@@ -448,7 +446,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS static lib, picoTCP, ipv6') {
-				sh 'make clean; make static_lib STACK_PICO=1 LIBZT_IPV6=1; make tests'
+				sh 'make clean; make -j4 static_lib STACK_PICO=1 LIBZT_IPV6=1; make tests'
 			}
 		}
 		catch (err) {
@@ -462,7 +460,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS static lib, picoTCP, ipv4, ipv6') {
-				sh 'make clean; make static_lib STACK_PICO=1 LIBZT_IPV4=1 LIBZT_IPV6=1'; make tests
+				sh 'make clean; make -j4 static_lib STACK_PICO=1 LIBZT_IPV4=1 LIBZT_IPV6=1'; make tests
 			}
 		}
 		catch (err) {
@@ -479,7 +477,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS static lib, lwIP') {
-				sh 'make clean; make static_lib STACK_LWIP=1; make tests'
+				sh 'make clean; make -j4 static_lib STACK_LWIP=1; make tests'
 			}
 		}
 		catch (err) {
@@ -493,7 +491,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS static lib, lwIP, ipv4') {
-				sh 'make clean; make static_lib STACK_LWIP=1 LIBZT_IPV4=1; make tests'
+				sh 'make clean; make -j4 static_lib STACK_LWIP=1 LIBZT_IPV4=1; make tests'
 			}
 		}
 		catch (err) {
@@ -507,7 +505,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS static lib, lwIP, ipv6') {
-				sh 'make clean; make static_lib STACK_LWIP=1 LIBZT_IPV6=1; make tests'
+				sh 'make clean; make -j4 static_lib STACK_LWIP=1 LIBZT_IPV6=1; make tests'
 			}
 		}
 		catch (err) {
@@ -521,7 +519,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS static lib, lwIP, ipv4, ipv6') {
-				sh 'make clean; make static_lib STACK_LWIP=1 LIBZT_IPV4=1 LIBZT_IPV6=1; make tests'
+				sh 'make clean; make -j4 static_lib STACK_LWIP=1 LIBZT_IPV4=1 LIBZT_IPV6=1; make tests'
 			}
 		}
 		catch (err) {

@@ -7,6 +7,79 @@ parallel 'centos7': {
     node('centos7') {
 
     // ------------------------------------------------------------------------------
+    // ------------------------------------- lwIP -----------------------------------
+    // ------------------------------------------------------------------------------
+
+        try {
+            checkout scm
+            sh 'git submodule update --init'
+            stage('linux lwIP, ipv4') {
+                sh 'make -f make-liblwip.mk liblwip.a IPV4=1'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on linux (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
+        try {
+            checkout scm
+            sh 'git submodule update --init'
+            stage('linux lwIP, ipv6') {
+                sh 'make -f make-liblwip.mk liblwip.a IPV6=1'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on linux (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
+    // ------------------------------------------------------------------------------
+    // ------------------------------------ picoTCP ---------------------------------
+    // ------------------------------------------------------------------------------
+
+        try {
+            checkout scm
+            sh 'git submodule update --init'
+            stage('linux picoTCP, ipv4') {
+                sh 'cd ext/picotcp;  make lib ARCH=shared IPV4=1'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on linux (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
+        try {
+            checkout scm
+            sh 'git submodule update --init'
+            stage('linux picoTCP, ipv6') {
+                sh 'cd ext/picotcp;  make lib ARCH=shared IPV6=1'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on linux (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
+        try {
+            checkout scm
+            sh 'git submodule update --init'
+            stage('linux picoTCP, ipv4, ipv6') {
+                sh 'cd ext/picotcp;  make lib ARCH=shared IPV4=1 IPV6=1'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on linux (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
+    // ------------------------------------------------------------------------------
     // ---------------------------- static library (Linux) --------------------------
     // ------------------------------------------------------------------------------
 
@@ -191,6 +264,80 @@ parallel 'centos7': {
     node('macOS') {
 
         unlockKeychainMac "~/Library/Keychains/login.keychain-db"
+
+    // ------------------------------------------------------------------------------
+    // ------------------------------------- lwIP -----------------------------------
+    // ------------------------------------------------------------------------------
+
+        try {
+            checkout scm
+            sh 'git submodule update --init'
+            stage('macOS lwIP, ipv4') {
+                sh 'make -f make-liblwip.mk liblwip.a IPV4=1'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
+        try {
+            checkout scm
+            sh 'git submodule update --init'
+            stage('macOS lwIP, ipv6') {
+                sh 'make -f make-liblwip.mk liblwip.a IPV6=1'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
+
+    // ------------------------------------------------------------------------------
+    // ------------------------------------ picoTCP ---------------------------------
+    // ------------------------------------------------------------------------------
+
+        try {
+            checkout scm
+            sh 'git submodule update --init'
+            stage('macOS picoTCP, ipv4') {
+                sh 'cd ext/picotcp;  make lib ARCH=shared IPV4=1'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
+        try {
+            checkout scm
+            sh 'git submodule update --init'
+            stage('macOS picoTCP, ipv6') {
+                sh 'cd ext/picotcp;  make lib ARCH=shared IPV6=1'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
+
+        try {
+            checkout scm
+            sh 'git submodule update --init'
+            stage('macOS picoTCP, ipv4, ipv6') {
+                sh 'cd ext/picotcp;  make lib ARCH=shared IPV4=1 IPV6=1'
+            }
+        }
+        catch (err) {
+            currentBuild.result = "FAILURE"
+            slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
+            throw err
+        }
 
     // ------------------------------------------------------------------------------
     // -------------------------- Intercept Library (macOS) -------------------------

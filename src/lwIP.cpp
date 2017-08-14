@@ -36,6 +36,13 @@
 #include "netif/ethernet.h"
 #include "lwip/etharp.h"
 
+#if defined(LIBZT_IPV6)
+#include "lwip/ethip6.h"
+#include "lwip/nd6.h"
+#endif
+
+void nd6_tmr(void);
+
 err_t tapif_init(struct netif *netif)
 {
   DEBUG_INFO();
@@ -82,6 +89,7 @@ namespace ZeroTier
 		if (std::find(tap->_ips.begin(),tap->_ips.end(),ip) == tap->_ips.end()) {
 			tap->_ips.push_back(ip);
 			std::sort(tap->_ips.begin(),tap->_ips.end());
+			char ipbuf[64], nmbuf[64];
 #if defined(LIBZT_IPV4)
 			if (ip.isV4()) {
 				// Set IP
@@ -101,13 +109,11 @@ namespace ZeroTier
 				tap->lwipdev.flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_IGMP | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 				netif_set_default(&(tap->lwipdev));
 				netif_set_up(&(tap->lwipdev));
-				char ipbuf[64];
-				DEBUG_INFO("addr=%s, netmask=%s", ip.toString(ipbuf), ip.netmask().toString(ipbuf));
+				DEBUG_INFO("addr=%s, netmask=%s", ip.toString(ipbuf), ip.netmask().toString(nmbuf));
 			}
 #endif
 #if defined(LIBZT_IPV6)
 			if(ip.isV6()) {
-				DEBUG_INFO("local_addr=%s", ip.toString().c_str());
 				static ip6_addr_t addr6;
 				struct sockaddr_in6 in6;
 				memcpy(in6.sin6_addr.s6_addr,ip.rawIpData(),16);
@@ -128,8 +134,7 @@ namespace ZeroTier
 				tap->lwipdev6.output_ip6 = ethip6_output;
 				tap->lwipdev6.state = tap;
 				tap->lwipdev6.flags = NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
-				char ipbuf[64];
-				DEBUG_INFO("addr=%s, netmask=%s", ip.toString(ipbuf), ip.netmask().toString(ipbuf));
+				DEBUG_INFO("addr=%s, netmask=%s", ip.toString(ipbuf), ip.netmask().toString(nmbuf));
 			}
 #endif 
 		}
@@ -138,13 +143,12 @@ namespace ZeroTier
 	void lwIP::lwip_loop(SocketTap *tap)
 	{
 	   DEBUG_INFO();
-	   uint64_t prev_tcp_time = 0, prev_status_time = 0, prev_discovery_time = 0;
+	   uint64_t prev_tcp_time = 0, prev_discovery_time = 0;
 	   while(tap->_run)
 	   {
 			uint64_t now = OSUtils::now();
 			uint64_t since_tcp = now - prev_tcp_time;
 			uint64_t since_discovery = now - prev_discovery_time;
-			uint64_t since_status = now - prev_status_time;
 			uint64_t tcp_remaining = LWIP_TCP_TIMER_INTERVAL;
 			uint64_t discovery_remaining = 5000;
 
@@ -173,6 +177,7 @@ namespace ZeroTier
 				discovery_remaining = DISCOVERY_INTERVAL - since_discovery;
 			}
 			tap->_phy.poll((unsigned long)std::min(tcp_remaining,discovery_remaining));
+			tap->Housekeeping();
 		}
 	}
 
@@ -244,7 +249,7 @@ namespace ZeroTier
 		return -1;
 	}
 
-	int lwIP::lwip_Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen)
+	int lwIP::lwip_Connect(Connection *conn, const struct sockaddr *addr, socklen_t addrlen)
 	{
 		DEBUG_INFO();
 		ip_addr_t ba;
@@ -252,9 +257,8 @@ namespace ZeroTier
 		int port = 0, err = 0;
 
 #if defined(LIBZT_IPV4)
-			struct sockaddr_in *in4;
+			struct sockaddr_in *in4 = (struct sockaddr_in *)addr;
 			if(addr->sa_family == AF_INET) {
-				in4 = (struct sockaddr_in *)addr;
 				inet_ntop(AF_INET, &(in4->sin_addr), addrstr, INET_ADDRSTRLEN); 
 				DEBUG_INFO("%s:%d", addrstr, lwip_ntohs(in4->sin_port));
 			}
@@ -336,9 +340,10 @@ namespace ZeroTier
 				return -1;
 			}
 		} 
+		return err;
 	}
 
-	int lwIP::lwip_Bind(SocketTap *tap, Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen)
+	int lwIP::lwip_Bind(SocketTap *tap, Connection *conn, const struct sockaddr *addr, socklen_t addrlen)
 	{
 		DEBUG_INFO();
 		ip_addr_t ba;
@@ -346,9 +351,8 @@ namespace ZeroTier
 		int port = 0, err = 0;
 
 #if defined(LIBZT_IPV4)
-			struct sockaddr_in *in4;
+			struct sockaddr_in *in4 = (struct sockaddr_in *)addr;
 			if(addr->sa_family == AF_INET) {
-				in4 = (struct sockaddr_in *)addr;
 				inet_ntop(AF_INET, &(in4->sin_addr), addrstr, INET_ADDRSTRLEN); 
 				DEBUG_INFO("%s:%d", addrstr, lwip_ntohs(in4->sin_port));
 			}
@@ -422,7 +426,6 @@ namespace ZeroTier
 
 	Connection* lwIP::lwip_Accept(Connection *conn)
 	{
-		DEBUG_EXTRA("conn=%p", conn);
 		if(!conn) {
 			DEBUG_ERROR("invalid conn");
 			handle_general_failure();
@@ -430,9 +433,7 @@ namespace ZeroTier
 		}
 		// Retreive first of queued Connections from parent connection
 		Connection *new_conn = NULL;
-		DEBUG_INFO("locking...");
 		Mutex::Lock _l(conn->tap->_tcpconns_m);
-		DEBUG_INFO("locked.");
 		if(conn->_AcceptedConnections.size()) {
 			new_conn = conn->_AcceptedConnections.front();
 			conn->_AcceptedConnections.pop();
@@ -443,6 +444,7 @@ namespace ZeroTier
 	int lwIP::lwip_Read(Connection *conn, bool lwip_invoked)
 	{
 		DEBUG_EXTRA("conn=%p", conn);
+		int err = 0;
 		if(!conn) {
 			DEBUG_ERROR("no connection");
 			return -1;
@@ -458,49 +460,39 @@ namespace ZeroTier
 			int n = conn->tap->_phy.streamSend(conn->sock, conn->RXbuf->get_buf(), wr);
 			char str[22];
 			memcpy(str, conn->RXbuf->get_buf(), 22);
-			DEBUG_INFO("string = %s", str);
-			DEBUG_INFO("n =%d", n);
 			conn->RXbuf->consume(n);
 			
-			//if(n == max) 
-			//{
-				//if(conn->socket_type == SOCK_DGRAM){
-				//	conn->tap->_phy.setNotifyWritable(conn->sock, false);
-				//}
+			if(conn->socket_type == SOCK_DGRAM)
+			{
+				// TODO
+			}
 			if(conn->socket_type == SOCK_STREAM) { // Only acknolwedge receipt of TCP packets
 				tcp_recved((struct tcp_pcb*)conn->pcb, n);
-				DEBUG_TRANS("TCP RX %ld bytes", n);
+				DEBUG_TRANS("TCP RX %d bytes", n);
 			}
-			//}
 		}
 		if(conn->RXbuf->count() == 0) {
 			DEBUG_INFO("wrote everything");
 			conn->tap->_phy.setNotifyWritable(conn->sock, false); // nothing else to send to the app
 		}
 		if(!lwip_invoked) {
-			DEBUG_INFO("unlocking...");
 			conn->tap->_tcpconns_m.unlock();
 			conn->_rx_m.unlock();
 		}
-
-		/*
-			int payload_sz, addr_sz_offset = sizeof(struct sockaddr_storage);
-			memcpy(&payload_sz, conn->rxbuf + addr_sz_offset, sizeof(int)); // OPT:
-			// extract address
-			struct sockaddr_storage addr;
-			memcpy(&addr, conn->rxbuf, addr_sz_offset);
-		*/
+		return err;
 	}
 
 	int lwIP::lwip_Write(Connection *conn, void *data, ssize_t len)
 	{
-		DEBUG_EXTRA("conn=%p", (void*)&conn);
+		DEBUG_EXTRA("conn=%p, len=%d", (void*)&conn, len);
+		int err = 0;
 		if(!conn) {
 			DEBUG_ERROR("no connection");
 			return -1;
 		}
 		if(conn->socket_type == SOCK_DGRAM) 
 		{
+			DEBUG_ERROR("socket_type==SOCK_DGRAM");
 			// TODO: Packet re-assembly hasn't yet been tested with lwIP so UDP packets are limited to MTU-sized chunks
             int udp_trans_len = std::min((ssize_t)conn->TXbuf->count(), (ssize_t)ZT_MAX_MTU);
 			DEBUG_EXTRA("allocating pbuf chain of size=%d for UDP packet, txsz=%d", udp_trans_len, conn->TXbuf->count());
@@ -526,24 +518,27 @@ namespace ZeroTier
 		}
 		if(conn->socket_type == SOCK_STREAM) 
 		{
+			DEBUG_ERROR("socket_type==SOCK_STREAM");
 			// How much we are currently allowed to write to the connection
 			ssize_t sndbuf = ((struct tcp_pcb*)conn->pcb)->snd_buf;
-			int err, sz, r;
-		
+			int err, r;
 			if(!sndbuf) {
 				// PCB send buffer is full, turn off readability notifications for the
 				// corresponding PhySocket until nc_sent() is called and confirms that there is
 				// now space on the buffer
-				DEBUG_ERROR(" LWIP stack is full, sndbuf == 0");
+				DEBUG_ERROR("lwIP stack is full, sndbuf == 0");
 				conn->tap->_phy.setNotifyReadable(conn->sock, false);
 				return -1;
 			}
-			if(conn->TXbuf->count() <= 0)
-				return -1; // Nothing to write
-			
-			//if(!conn->listening)
-			//	tcp_output(conn->TCP_pcb);
-
+			int buf_w = conn->TXbuf->write((const unsigned char*)data, len);
+			if (buf_w != len) {
+				// because we checked ZT_TCP_TX_BUF_SZ above, this should not happen
+				DEBUG_ERROR("TX wrote only %d but expected to write %d", buf_w, len);
+				exit(0);
+			}
+			if(conn->TXbuf->count() <= 0) {
+				return -1; // nothing to write
+			}
 			if(conn->sock) {
 				r = std::min((ssize_t)conn->TXbuf->count(), sndbuf);
 				// Writes data pulled from the client's socket buffer to LWIP. This merely sends the
@@ -552,9 +547,9 @@ namespace ZeroTier
 					err = tcp_write((struct tcp_pcb*)conn->pcb, conn->TXbuf->get_buf(), r, TCP_WRITE_FLAG_COPY);
 					tcp_output((struct tcp_pcb*)conn->pcb);
 					if(err != ERR_OK) {
-						DEBUG_ERROR(" error while writing to PCB, err=%d", err);
+						DEBUG_ERROR("error while writing to lwIP tcp_pcb, err=%d", err);
 						if(err == -1)
-							DEBUG_ERROR("out of memory");
+							DEBUG_ERROR("lwIP out of memory");
 						return -1;
 					} else {
 						conn->TXbuf->consume(r); // success
@@ -563,6 +558,7 @@ namespace ZeroTier
 				}
 			}
 		}
+		return err;
 	}
 
 	int lwIP::lwip_Close(Connection *conn)
@@ -580,7 +576,6 @@ namespace ZeroTier
 				DEBUG_EXTRA("ignoring close request. invalid PCB state for this operation. sock=%p", conn->sock);
 				return -1;
 			}
-			// DEBUG_BLANK("__tcp_close(...)");
 			struct tcp_pcb* tpcb = (struct tcp_pcb*)conn->pcb;
 			if(tcp_close(tpcb) == ERR_OK) {
 				// Unregister callbacks for this PCB
@@ -614,13 +609,8 @@ namespace ZeroTier
 
 		//Mutex::Lock _l(conn->tap->_tcpconns_m);
 		//Mutex::Lock _l2(conn->_rx_m);
-
-		DEBUG_INFO("locking...");
-
 		conn->tap->_tcpconns_m.lock();
 		conn->_rx_m.lock();
-
-		DEBUG_INFO("locked.");
 
 		struct pbuf* q = p;
 		if(p == NULL) {
@@ -725,14 +715,13 @@ namespace ZeroTier
 	{
 		DEBUG_ERROR("err=%d", err);
 		Connection *conn = (Connection *)arg;
-		Mutex::Lock _l(conn->tap->_tcpconns_m);
-
 		if(!conn){
 			DEBUG_ERROR("conn==NULL");
 			errno = -1; // FIXME: Find more appropriate value
 		}
+		Mutex::Lock _l(conn->tap->_tcpconns_m);
 		int fd = conn->tap->_phy.getDescriptor(conn->sock);
-		DEBUG_ERROR("conn=%p, pcb=%p, err=%d", conn, conn->pcb, err);
+		DEBUG_ERROR("conn=%p, pcb=%p, fd=%d, err=%d", conn, conn->pcb, fd, err);
 		DEBUG_ERROR("closing connection");
 		conn->tap->Close(conn);
 		switch(err)
@@ -781,19 +770,19 @@ namespace ZeroTier
 				// TODO: Below are errors which don't have a standard errno correlate
 
 			case ERR_RST:
-				//l->tap->sendReturnValue(fd, -1, -1);
+				// -1
 				break;
 			case ERR_CLSD:
-				//l->tap->sendReturnValue(fd, -1, -1);
+				// -1
 				break;
 			case ERR_CONN:
-				//l->tap->sendReturnValue(fd, -1, -1);
+				// -1
 				break;
 			case ERR_ARG:
-				//l->tap->sendReturnValue(fd, -1, -1);
+				// -1
 				break;
 			case ERR_IF:
-				//l->tap->sendReturnValue(fd, -1, -1);
+				// -1
 				break;
 			default:
 				break;

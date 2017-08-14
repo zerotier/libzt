@@ -45,14 +45,12 @@
 #include "lwip/debug.h"
 
 // IP Protocol version 
-// It seems using ipv6/ipv4 in the same stack is problematic, for this reason we 
-// compile for only one or the other using the SDK_IPV4=1/SDK_IPV6=1 flags for now
-#if defined(SDK_IPV6)
+#if defined(LIBZT_IPV6)
 	#define LWIP_IPV6   1
  	#define LWIP_IPV4   0
 
 #endif
-#if defined(SDK_IPV4) 
+#if defined(LIBZT_IPV4) 
 	#define LWIP_IPV4   1
  	#define LWIP_IPV6   0
 #endif

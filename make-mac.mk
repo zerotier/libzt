@@ -119,12 +119,15 @@ ifeq ($(STACK_PICO),1)
 ifeq ($(LIBZT_IPV4)$(LIBZT_IPV6),1)
 ifeq ($(LIBZT_IPV4),1)
 CXXFLAGS+=-DLIBZT_IPV4
+STACK_FLAGS+=-IPV4=1 -IPv4=1
 endif
 ifeq ($(LIBZT_IPV6),1)
 CXXFLAGS+=-DLIBZT_IPV6
+STACK_FLAGS+=-IPV6=1 -IPv6=1
 endif
 else
 CXXFLAGS+=-DLIBZT_IPV4 -DLIBZT_IPV6
+STACK_FLAGS+=-IPV6=1 -IPv6=1 -IPV6=1 -IPv6=1
 endif
 endif
 
@@ -133,12 +136,15 @@ ifeq ($(STACK_LWIP),1)
 ifeq ($(LIBZT_IPV4)$(LIBZT_IPV6),1)
 ifeq ($(LIBZT_IPV4),1)
 CXXFLAGS+=-DLIBZT_IPV4
+STACK_FLAGS+=IPV4=1 IPv4=1
 endif
 ifeq ($(LIBZT_IPV6),1)
 CXXFLAGS+=-DLIBZT_IPV6
+STACK_FLAGS+=IPV6=1 IPv6=1
 endif
 else
 CXXFLAGS+=-DLIBZT_IPV4
+STACK_FLAGS+=IPV4=1 IPv4=1
 endif
 endif
 
@@ -152,27 +158,14 @@ STACK_DIR:=ext/picotcp
 STACK_LIB:=$(STACK_DIR)/build/lib/$(STACK_LIB)
 STACK_DRIVER_FILES:=src/picoTCP.cpp
 STACK_DRIVER_OBJS+=picoTCP.o
-STACK_OBJS+= ext/picotcp/build/lib/pico_device.o \
-	ext/picotcp/build/lib/pico_frame.o \
-	ext/picotcp/build/lib/pico_md5.o \
-	ext/picotcp/build/lib/pico_protocol.o \
-	ext/picotcp/build/lib/pico_socket_multicast.o \
-	ext/picotcp/build/lib/pico_socket.o \
-	ext/picotcp/build/lib/pico_stack.o \
-	ext/picotcp/build/lib/pico_tree.o
 INCLUDES+=-Iext/picotcp/include -Iext/picotcp/build/include
 endif
 
 ifeq ($(STACK_LWIP),1)
+STACK_DRIVER_FLAGS+=-DLWIP_PREFIX_BYTEORDER_FUNCS
 CXXFLAGS+=-DSTACK_LWIP
 STACK_DRIVER_FILES:=src/lwIP.cpp
 STACK_DRIVER_OBJS+=lwIP.o
-STACK_OBJS+= init.o def.o dns.o inet_chksum.o ip.o mem.o \
-			memp.o netif.o pbuf.o raw.o stats.o sys.o tcp.o \
-			tcp_in.o tcp_out.o timeouts.o udp.o autoip.o \
-			dhcp.o etharp.o icmp.o igmp.o ip4_frag.o ip4.o \
-			ip4_addr.o api_lib.o api_msg.o err.o netbuf.o \
-			netdb.o netifapi.o sockets.o tcpip.o ethernet.o
 LWIPARCH=$(CONTRIBDIR)/ports/unix
 LWIPDIR=ext/lwip/src
 INCLUDES+=-Iext/lwip/src/include/lwip \
@@ -189,6 +182,14 @@ endif
 
 all: 
 
+%.o : %.cpp
+	@mkdir -p $(BUILD) obj
+	$(CXX) $(CXXFLAGS) -c $^ -o obj/$(@F)
+
+%.o : %.c
+	@mkdir -p $(BUILD) obj
+	$(CC) $(CFLAGS) -c $^ -o obj/$(@F)
+
 ##############################################################################
 ## User-Space Stack                                                         ##
 ##############################################################################
@@ -203,24 +204,30 @@ lwip:
 ## Static Libraries                                                         ##
 ##############################################################################
 
+
 ifeq ($(STACK_PICO),1)
 static_lib: picotcp $(ZTO_OBJS)
-	@mkdir -p $(BUILD)
+	@mkdir -p $(BUILD) obj
 	$(CXX) $(CXXFLAGS) $(LIBZT_FILES) $(STACK_DRIVER_FILES) -c
-	libtool -static -o $(STATIC_LIB) $(ZTO_OBJS) $(STACK_DRIVER_OBJS)  $(STACK_OBJS) $(LIBZT_OBJS) $(STACK_LIB)
+	mv *.o obj
+	mv ext/picotcp/build/lib/*.o obj
+	mv ext/picotcp/build/modules/*.o obj
+	libtool -static -o $(STATIC_LIB) obj/*.o $(STACK_LIB)
 endif
 ifeq ($(STACK_LWIP),1)
 static_lib: lwip $(ZTO_OBJS)
-	@mkdir -p $(BUILD)
-	$(CXX) $(CXXFLAGS) $(STACK_INCLUDES) $(LIBZT_FILES) $(STACK_DRIVER_FILES) -c
-	libtool -static -o $(STATIC_LIB) $(ZTO_OBJS) $(STACK_DRIVER_OBJS) $(STACK_OBJS) $(LIBZT_OBJS) $(STACK_LIB)
+	@mkdir -p $(BUILD) obj
+	$(CXX) $(CXXFLAGS) $(STACK_DRIVER_FLAGS) $(STACK_INCLUDES) $(LIBZT_FILES) $(STACK_DRIVER_FILES) -c 
+	mv *.o obj
+	libtool -static -o $(STATIC_LIB) obj/*.o $(STACK_LIB)
 endif
 # for layer-2 only (this will omit all userspace network stack code)
 ifeq ($(NO_STACK),1)
 static_lib: $(ZTO_OBJS)
-	@mkdir -p $(BUILD)
+	@mkdir -p $(BUILD) obj
 	$(CXX) $(CXXFLAGS) $(LIBZT_FILES) -c
-	libtool -static -o $(STATIC_LIB) $(ZTO_OBJS) $(LIBZT_OBJS)
+	mv *.o obj
+	libtool -static -o $(STATIC_LIB) obj/*.o
 endif
 
 ##############################################################################

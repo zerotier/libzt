@@ -67,6 +67,10 @@
 #define PICO_SOCKET_SHUTDOWN_SIG struct pico_socket *s, int mode
 #define PICO_SOCKET_ACCEPT_SIG struct pico_socket *s, void *orig, uint16_t *port
 #define PICO_IPV6_LINK_ADD_SIG struct pico_device *dev, struct pico_ip6 address, struct pico_ip6 netmask
+#define PICO_IPV4_ROUTE_ADD_SIG struct pico_ip4 address, struct pico_ip4 netmask, struct pico_ip4 gateway, int metric, struct pico_ipv4_link *link
+#define PICO_IPV4_ROUTE_DEL_SIG struct pico_ip4 address, struct pico_ip4 netmask, int metric
+#define PICO_IPV6_ROUTE_ADD_SIG struct pico_ip6 address, struct pico_ip6 netmask, struct pico_ip6 gateway, int metric, struct pico_ipv6_link *link
+#define PICO_IPV6_ROUTE_DEL_SIG struct pico_ip6 address, struct pico_ip6 netmask, struct pico_ip6 gateway, int metric, struct pico_ipv6_link *link
 
 namespace ZeroTier
 {
@@ -92,6 +96,16 @@ namespace ZeroTier
 		 */
 		bool pico_init_interface(ZeroTier::SocketTap *tap, const ZeroTier::InetAddress &ip);
 
+		/*
+		 * Adds a route to the picoTCP device
+		 */
+		bool pico_route_add(SocketTap *tap, const InetAddress &addr, const InetAddress &nm, const InetAddress &gw, int metric);
+
+		/*
+		 * Deletes a route from the picoTCP device
+		 */
+		bool pico_route_del(SocketTap *tap, const InetAddress &addr, const InetAddress &nm, int metric);
+		
 		/*
 		 * Main stack loop
 		 */
@@ -130,17 +144,17 @@ namespace ZeroTier
 		/*
 		 * Connect to remote host via userspace network stack interface - Called from SocketTap
 		 */
-		int pico_Connect(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+		int pico_Connect(Connection *conn, const struct sockaddr *addr, socklen_t addrlen);
 		
 		/*
 		 * Bind to a userspace network stack interface - Called from SocketTap
 		 */
-		int pico_Bind(Connection *conn, int fd, const struct sockaddr *addr, socklen_t addrlen);
+		int pico_Bind(Connection *conn, const struct sockaddr *addr, socklen_t addrlen);
 		
 		/*
 		 * Listen for incoming connections - Called from SocketTap
 		 */
-		int pico_Listen(Connection *conn, int fd, int backlog);
+		int pico_Listen(Connection *conn, int backlog);
 
 		/*
 		 * Accept an incoming connection - Called from SocketTap

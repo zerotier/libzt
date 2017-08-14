@@ -1159,7 +1159,7 @@ static int pico_ipv4_frame_sock_push(struct pico_protocol *self, struct pico_fra
 }
 
 
-int MOCKABLE pico_ipv4_route_add(struct pico_ip4 address, struct pico_ip4 netmask, struct pico_ip4 gateway, int metric, struct pico_ipv4_link *link)
+extern int MOCKABLE pico_ipv4_route_add(struct pico_ip4 address, struct pico_ip4 netmask, struct pico_ip4 gateway, int metric, struct pico_ipv4_link *link)
 {
     struct pico_ipv4_route test, *new;
     test.dest.addr = address.addr;

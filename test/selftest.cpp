@@ -345,7 +345,7 @@ void udp_client_4(UNIT_TEST_SIG_4)
 	if((sockfd = zts_socket(AF_INET, SOCK_DGRAM, 0)) < 0)
 		DEBUG_ERROR("error creating ZeroTier socket");
 
-	w = zts_sendto(sockfd, str, strlen(str), 0, (struct sockaddr *)&addr, sizeof(addr));
+	w = zts_sendto(sockfd, str, strlen(str), 0, (struct sockaddr *)addr, sizeof(addr));
 	memset(rbuf, 0, sizeof(rbuf));
 	int serverlen = sizeof(addr);
     r = zts_recvfrom(sockfd, rbuf, STR_SIZE, 0, (struct sockaddr *)&addr, (socklen_t *)&serverlen);
@@ -367,10 +367,13 @@ void udp_server_4(UNIT_TEST_SIG_4)
 	if((sockfd = zts_socket(AF_INET, SOCK_DGRAM, 0)) < 0)
 		DEBUG_ERROR("error creating ZeroTier socket");
 
+	if((err = zts_bind(sockfd, (struct sockaddr *)addr, sizeof(struct sockaddr_in)) < 0))
+		DEBUG_ERROR("error binding to interface (%d)", err);
+
 	int serverlen = sizeof(addr);
     r = zts_recvfrom(sockfd, rbuf, STR_SIZE, 0, (struct sockaddr *)&addr, (socklen_t *)&serverlen);
     memset(rbuf, 0, sizeof(rbuf));
-	w = zts_sendto(sockfd, str, strlen(str), 0, (struct sockaddr *)&addr, sizeof(addr));
+	w = zts_sendto(sockfd, str, strlen(str), 0, (struct sockaddr *)addr, sizeof(addr));
 
 	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 	err = zts_close(sockfd);
@@ -1159,6 +1162,23 @@ int obscure_api_test()
 	return err;
 }
 
+void get_network_routes(char *nwid)
+{
+	// Retreive managed routes for a given ZeroTier network
+	std::vector<ZT_VirtualNetworkRoute> *routes = zts_get_network_routes(nwid);
+
+	for(int i=0; i<routes->size(); i++) {
+		struct sockaddr_in *target = (struct sockaddr_in*)&(routes->at(i).target);
+		struct sockaddr_in *via = (struct sockaddr_in*)&(routes->at(i).via);
+		char target_str[INET6_ADDRSTRLEN];
+		memset(target_str, 0, INET6_ADDRSTRLEN);
+		inet_ntop(AF_INET, (const void *)&((struct sockaddr_in *)target)->sin_addr.s_addr, target_str, INET_ADDRSTRLEN);
+		char via_str[INET6_ADDRSTRLEN];
+		memset(via_str, 0, INET6_ADDRSTRLEN);
+		inet_ntop(AF_INET, (const void *)&((struct sockaddr_in *)via)->sin_addr.s_addr, via_str, INET_ADDRSTRLEN);
+		DEBUG_INFO("<target=%s, via=%s, flags=%d>", target_str, via_str, routes->at(i).flags);
+	}
+}
 
 /****************************************************************************/
 /* RANDOMIZED API TEST                                                      */
@@ -1433,6 +1453,7 @@ int main(int argc , char *argv[])
 
 
 // ipv4 client/server
+
 	ipv = 4;
 	if(mode == TEST_MODE_SERVER) {
 		create_addr(local_ipstr, port, ipv, (struct sockaddr *)&addr);
@@ -1459,7 +1480,7 @@ int main(int argc , char *argv[])
 	port++;
 
 // UDP
-
+/*
 	if(mode == TEST_MODE_SERVER) {
 		create_addr(local_ipstr, port, ipv, (struct sockaddr *)&addr);
 		udp_server_4((struct sockaddr_in *)&addr, operation, count, delay, details, &passed); // tcp_server_4
@@ -1483,7 +1504,7 @@ int main(int argc , char *argv[])
 	}
 	RECORD_RESULTS(&test_number, passed, details, &results);
 	port++;
-
+*/
 // ipv4 sustained transfer	
 	ipv = 4;	
 	if(mode == TEST_MODE_SERVER) {

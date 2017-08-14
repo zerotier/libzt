@@ -94,6 +94,10 @@ extern "C" {
 #endif
 int pico_ipv4_link_add(struct pico_device *dev, struct pico_ip4 address, struct pico_ip4 netmask);
 int pico_string_to_ipv4(const char *ipstr, uint32_t *ip);
+int pico_ipv4_route_add(struct pico_ip4 address, struct pico_ip4 netmask, struct pico_ip4 gateway, int metric, struct pico_ipv4_link *link);
+int pico_ipv4_route_del(struct pico_ip4 address, struct pico_ip4 netmask, int metric);
+struct pico_ip4 pico_ipv4_route_get_gateway(struct pico_ip4 *addr);
+void pico_ipv4_route_set_bcast_link(struct pico_ipv4_link *link);
 #ifdef __cplusplus
 }
 #endif
@@ -108,10 +112,6 @@ struct pico_ipv4_link *pico_ipv4_link_by_dev_next(struct pico_device *dev, struc
 struct pico_device *pico_ipv4_link_find(struct pico_ip4 *address);
 struct pico_ip4 *pico_ipv4_source_find(const struct pico_ip4 *dst);
 struct pico_device *pico_ipv4_source_dev_find(const struct pico_ip4 *dst);
-int pico_ipv4_route_add(struct pico_ip4 address, struct pico_ip4 netmask, struct pico_ip4 gateway, int metric, struct pico_ipv4_link *link);
-int pico_ipv4_route_del(struct pico_ip4 address, struct pico_ip4 netmask, int metric);
-struct pico_ip4 pico_ipv4_route_get_gateway(struct pico_ip4 *addr);
-void pico_ipv4_route_set_bcast_link(struct pico_ipv4_link *link);
 void pico_ipv4_unreachable(struct pico_frame *f, int err);
 
 int pico_ipv4_mcast_join(struct pico_ip4 *mcast_link, struct pico_ip4 *mcast_group, uint8_t reference_count, uint8_t filter_mode, struct pico_tree *MCASTFilter);

@@ -27,6 +27,7 @@ parallel 'centos7': {
             checkout scm
             sh 'git submodule update --init'
             stage('linux lwIP, ipv6') {
+                sh 'rm -rf .depend'
                 sh 'make -f make-liblwip.mk liblwip.a IPV6=1'
             }
         }

@@ -119,37 +119,37 @@ ifeq ($(STACK_PICO),1)
 ifeq ($(LIBZT_IPV4)$(LIBZT_IPV6),1)
 ifeq ($(LIBZT_IPV4),1)
 CXXFLAGS+=-DLIBZT_IPV4
-STACK_FLAGS+=-IPV4=1 -IPv4=1
+STACK_FLAGS+=IPV4=1
 endif
 ifeq ($(LIBZT_IPV6),1)
 CXXFLAGS+=-DLIBZT_IPV6
-STACK_FLAGS+=-IPV6=1 -IPv6=1
+STACK_FLAGS+=IPV6=1
 endif
 else
 CXXFLAGS+=-DLIBZT_IPV4 -DLIBZT_IPV6
-STACK_FLAGS+=-IPV6=1 -IPv6=1 -IPV6=1 -IPv6=1
+STACK_FLAGS+=IPV6=1 IPV4=1
 endif
 endif
 
 # lwIP default protocol versions
+# Simultaneous IPV4 and IPV6 not supported by lwIP stack driver (yet)
 ifeq ($(STACK_LWIP),1)
 ifeq ($(LIBZT_IPV4)$(LIBZT_IPV6),1)
 ifeq ($(LIBZT_IPV4),1)
-CXXFLAGS+=-DLIBZT_IPV4
-STACK_FLAGS+=IPV4=1 IPv4=1
+CXXFLAGS+=-DLIBZT_IPV4 -DLWIP_IPV4=1 -DLWIP_IPV6=0
+STACK_FLAGS+=LIBZT_IPV4=1
 endif
 ifeq ($(LIBZT_IPV6),1)
-CXXFLAGS+=-DLIBZT_IPV6
-STACK_FLAGS+=IPV6=1 IPv6=1
+CXXFLAGS+=-DLIBZT_IPV6 -DLWIP_IPV6=1 -DLWIP_IPV4=0
+STACK_FLAGS+=LIBZT_IPV6=1
 endif
 else
-CXXFLAGS+=-DLIBZT_IPV4
-STACK_FLAGS+=IPV4=1 IPv4=1
+CXXFLAGS+=-DLIBZT_IPV4 -DLWIP_IPV4=1 -DLWIP_IPV6=0
+STACK_FLAGS+=LIBZT_IPV4=1
 endif
 endif
 
 LIBZT_FILES:=src/SocketTap.cpp src/libzt.cpp src/Utilities.cpp
-LIBZT_OBJS+=SocketTap.o libzt.o Utilities.o 
 
 ifeq ($(STACK_PICO),1)
 CXXFLAGS+=-DSTACK_PICO
@@ -157,7 +157,6 @@ STACK_LIB:=libpicotcp.a
 STACK_DIR:=ext/picotcp
 STACK_LIB:=$(STACK_DIR)/build/lib/$(STACK_LIB)
 STACK_DRIVER_FILES:=src/picoTCP.cpp
-STACK_DRIVER_OBJS+=picoTCP.o
 INCLUDES+=-Iext/picotcp/include -Iext/picotcp/build/include
 endif
 
@@ -165,7 +164,6 @@ ifeq ($(STACK_LWIP),1)
 STACK_DRIVER_FLAGS+=-DLWIP_PREFIX_BYTEORDER_FUNCS
 CXXFLAGS+=-DSTACK_LWIP
 STACK_DRIVER_FILES:=src/lwIP.cpp
-STACK_DRIVER_OBJS+=lwIP.o
 LWIPARCH=$(CONTRIBDIR)/ports/unix
 LWIPDIR=ext/lwip/src
 INCLUDES+=-Iext/lwip/src/include/lwip \
@@ -210,8 +208,8 @@ static_lib: picotcp $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
 	$(CXX) $(CXXFLAGS) $(LIBZT_FILES) $(STACK_DRIVER_FILES) -c
 	mv *.o obj
-	mv ext/picotcp/build/lib/*.o obj
-	mv ext/picotcp/build/modules/*.o obj
+	#mv ext/picotcp/build/lib/*.o obj
+	#mv ext/picotcp/build/modules/*.o obj
 	libtool -static -o $(STATIC_LIB) obj/*.o $(STACK_LIB)
 endif
 ifeq ($(STACK_LWIP),1)
@@ -243,10 +241,6 @@ macos_app_framework:
 	cd examples/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug -scheme ZeroTierSDK_OSX build SYMROOT="../../../$(BUILD)/macos_app_framework"
 
 ##############################################################################
-## Static Libraries                                                         ##
-##############################################################################
-
-##############################################################################
 ## Java JNI                                                                 ##
 ##############################################################################
 
@@ -273,16 +267,10 @@ tests: $(UNIT_TEST_OBJ_FILES)
 ## Misc                                                                     ##
 ##############################################################################
 
-# Cleans only current $(OSTYPE)
 clean:
 	-rm -rf $(BUILD)/*
 	-find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
 
-# Clean everything
-nuke:
-	-rm -rf $(BUILD)/*
-	-find . -type f \( -name '*.o' -o -name '*.so' -o -name '*.a' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
-	
 check:
 	-./check.sh $(PICO_LIB)
 	-./check.sh $(STATIC_LIB)

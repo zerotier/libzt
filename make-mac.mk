@@ -209,7 +209,7 @@ static_lib: picotcp $(ZTO_OBJS)
 	$(CXX) $(CXXFLAGS) $(LIBZT_FILES) $(STACK_DRIVER_FILES) -c
 	mv *.o obj
 	#mv ext/picotcp/build/lib/*.o obj
-	#mv ext/picotcp/build/modules/*.o obj
+	mv ext/picotcp/build/modules/*.o obj
 	libtool -static -o $(STATIC_LIB) obj/*.o $(STACK_LIB)
 endif
 ifeq ($(STACK_LWIP),1)

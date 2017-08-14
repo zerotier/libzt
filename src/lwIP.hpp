@@ -51,7 +51,7 @@ struct tcp_pcb;
 struct netif;
 
 #if defined(LIBZT_IPV4)
-	#define LWIP_NETIF_ADD_SIG struct netif *netif, ip_addr_t *ipaddr, ip_addr_t *netmask, ip_addr_t *gw, void *state, netif_init_fn init, netif_input_fn input
+	//#define LWIP_NETIF_ADD_SIG struct netif *netif, ip_addr_t *ipaddr, ip_addr_t *netmask, ip_addr_t *gw, void *state, netif_init_fn init, netif_input_fn input
 	#define LWIP_ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip4_addr_t *ipaddr
 #endif
 #if defined(LIBZT_IPV6)
@@ -83,7 +83,6 @@ struct netif;
 #define LWIP_TCP_NEW_SIG void
 #define LWIP_TCP_RECV_SIG struct tcp_pcb * pcb, err_t (* recv)(void * arg, struct tcp_pcb * tpcb, struct pbuf * p, err_t err)
 #define LWIP_TCP_RECVED_SIG struct tcp_pcb * pcb, u16_t len
-//#define LWIP_TCP_SNDBUF_SIG struct tcp_pcb * pcb
 #define LWIP_TCP_CONNECT_SIG struct tcp_pcb * pcb, const ip_addr_t * ipaddr, u16_t port, err_t (* connected)(void * arg, struct tcp_pcb * tpcb, err_t err)
 #define LWIP_TCP_RECV_SIG struct tcp_pcb * pcb, err_t (* recv)(void * arg, struct tcp_pcb * tpcb, struct pbuf * p, err_t err)
 #define LWIP_TCP_ERR_SIG struct tcp_pcb * pcb, void (* err)(void * arg, err_t err)

@@ -48,7 +48,6 @@
 #if defined(LIBZT_IPV6)
 	#define LWIP_IPV6   1
  	#define LWIP_IPV4   0
-
 #endif
 #if defined(LIBZT_IPV4) 
 	#define LWIP_IPV4   1

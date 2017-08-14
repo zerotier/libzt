@@ -44,11 +44,9 @@ ifeq ($(origin CCX),default)
 	CCX=$(shell if [ -e /usr/bin/clang++ ]; then echo clang++; else echo g++; fi)
 endif
 
-CFLAGS=-O3 -g -Wall -DIPv4 -DIPv6 -fPIC
+CFLAGS=-O3 -g -Wall -fPIC
 
-CFLAGS:=$(CFLAGS) \
-	-I$(LWIPDIR)/include -I$(LWIPARCH)/include -I$(LWIPDIR)/include/ipv4 \
-	-I$(LWIPDIR) -I. -Iext -Iinclude
+CFLAGS:=$(CFLAGS) -I$(LWIPDIR)/include -I$(LWIPARCH)/include -I$(LWIPDIR) -I. -Iext -Iinclude
 
 # COREFILES, CORE4FILES: The minimum set of files needed for lwIP.
 COREFILES=$(LWIPDIR)/core/init.c \
@@ -68,7 +66,6 @@ COREFILES=$(LWIPDIR)/core/init.c \
 	$(LWIPDIR)/core/tcp_out.c \
 	$(LWIPDIR)/core/timeouts.c \
 	$(LWIPDIR)/core/udp.c
-
 CORE4FILES=$(LWIPDIR)/core/ipv4/autoip.c \
 	$(LWIPDIR)/core/ipv4/dhcp.c \
 	$(LWIPDIR)/core/ipv4/etharp.c \
@@ -77,7 +74,6 @@ CORE4FILES=$(LWIPDIR)/core/ipv4/autoip.c \
 	$(LWIPDIR)/core/ipv4/ip4_frag.c \
 	$(LWIPDIR)/core/ipv4/ip4.c \
 	$(LWIPDIR)/core/ipv4/ip4_addr.c
-
 CORE6FILES=$(LWIPDIR)/core/ipv6/ethip6.c \
 	$(LWIPDIR)/core/ipv6/icmp6.c \
 	$(LWIPDIR)/core/ipv6/inet6.c \
@@ -87,7 +83,6 @@ CORE6FILES=$(LWIPDIR)/core/ipv6/ethip6.c \
 	$(LWIPDIR)/core/ipv6/mld6.c \
 	$(LWIPDIR)/core/ipv6/dhcp6.c \
 	$(LWIPDIR)/core/ipv6/nd6.c
-
 	# APIFILES: The files which implement the sequential and socket APIs.
 APIFILES=$(LWIPDIR)/api/api_lib.c \
 	$(LWIPDIR)/api/api_msg.c \
@@ -97,30 +92,22 @@ APIFILES=$(LWIPDIR)/api/api_lib.c \
 	$(LWIPDIR)/api/netifapi.c \
 	$(LWIPDIR)/api/sockets.c \
 	$(LWIPDIR)/api/tcpip.c
-
-
 # NETIFFILES: Files implementing various generic network interface functions
 NETIFFILES=$(LWIPDIR)/netif/ethernet.c 
-
-#
-#	$(LWIPDIR)/netif/slipif.c
-
 # SIXLOWPAN: 6LoWPAN
 SIXLOWPAN=$(LWIPDIR)/netif/lowpan6.c \
-
 # ARCHFILES: Architecture specific files.
 ARCHFILES=$(wildcard $(LWIPARCH)/*.c $(LWIPARCH)tapif.c $(LWIPARCH)/netif/list.c $(LWIPARCH)/netif/tcpdump.c)
-
 # LWIPFILES: All the above.
 LWIPFILES=$(COREFILES) $(APIFILES) $(NETIFFILES) $(ARCHFILES)
 
-ifeq ($(IPV4),1)
+ifeq ($(LIBZT_IPV4),1)
 	LWIPFILES+=$(CORE4FILES)
-	CFLAGS+=-DLIBZT_IPV4=1
+	CFLAGS+=-DLIBZT_IPV4=1 -DLWIP_IPV4 -DDLWIP_IPV6=0 -DIPv4
 endif
-ifeq ($(IPV6),1)
+ifeq ($(LIBZT_IPV6),1)
 	LWIPFILES+=$(CORE6FILES)
-	CFLAGS+=-DLIBZT_IPV6=1
+	CFLAGS+=-DLIBZT_IPV6=1 -DLWIP_IPV6 -DLWIP_IPV4=0 -DIPv6
 endif
 
 LWIPFILESW=$(wildcard $(LWIPFILES))
@@ -136,7 +123,6 @@ clean:
 	rm -f *.o *.s .depend* *.core core
 
 depend dep: .depend
-
 include .depend
 
 liblwip.a: $(LWIPOBJS)

@@ -114,6 +114,8 @@ std::map<std::string, std::string> testConf;
 	[OK]     sustained server ipv6 - accept and echo messages, VERIFIES data integrity
 	[OK] comprehensive client ipv4 - test all ipv4/6 client simple/sustained modes
 	[OK] comprehensive server ipv6 - test all ipv4/6 server simple/sustained modes
+	[ ?]       SOCK_RAW (VL2) ipv4 - See test/layer2.cpp
+	[ ?]       SOCK_RAW (VL2) ipv6 - See test/layer2.cpp
 
 	Performance: 
 		 (See libzt.h, compile libzt with appropriate ZT_TCP_TX_BUF_SZ, ZT_TCP_RX_BUF_SZ, ZT_UDP_TX_BUF_SZ, and ZT_UDO_RX_BUF_SZ for your test)

@@ -378,7 +378,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS static lib, no stack, ipv6') {
-				sh 'make clean; make -j4 static_lib NO_STACK=1 LIBZT_IPV6=1'; make tests
+				sh 'make clean; make -j4 static_lib NO_STACK=1 LIBZT_IPV6=1; make tests'
 			}
 		}
 		catch (err) {
@@ -449,7 +449,7 @@ parallel 'centos7': {
 			checkout scm
 			sh 'git submodule update --init'
 			stage('macOS static lib, picoTCP, ipv4, ipv6') {
-				sh 'make clean; make -j4 static_lib STACK_PICO=1 LIBZT_IPV4=1 LIBZT_IPV6=1'; make tests
+				sh 'make clean; make -j4 static_lib STACK_PICO=1 LIBZT_IPV4=1 LIBZT_IPV6=1; make tests'
 			}
 		}
 		catch (err) {

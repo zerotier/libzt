@@ -196,7 +196,7 @@ picotcp:
 	cd $(STACK_DIR); make lib ARCH=shared IPV4=1 IPV6=1
 
 lwip:
-	make -f make-liblwip.mk liblwip.a
+	make -f make-liblwip.mk liblwip.a $(STACK_FLAGS)
 
 ##############################################################################
 ## Static Libraries                                                         ##

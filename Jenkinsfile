@@ -1,7 +1,10 @@
 #!/usr/bin/env groovy
 
-def changelog = getChangeLog currentBuild
-slackSend "Building ${env.JOB_NAME} #${env.BUILD_NUMBER} \n Change Log: \n ${changelog}"
+node('master') {
+    checkout scm
+    def changelog = getChangeLog currentBuild
+    mattermostSend "Building ${env.JOB_NAME} #${env.BUILD_NUMBER} \n Change Log: \n ${changelog}"
+}
 
 parallel 'centos7': {
 	node('centos7') {

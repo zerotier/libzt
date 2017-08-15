@@ -198,7 +198,7 @@ picotcp:
 
 lwip:
 	echo $(STACK_FLAGSs)
-	-make -f make-liblwip.mk liblwip.a $(STACK_FLAGS)
+	make -f make-liblwip.mk liblwip.a $(STACK_FLAGS)
 
 ##############################################################################
 ## Static Libraries                                                         ##
@@ -247,8 +247,8 @@ UNIT_TEST_LIBS      := -L$(BUILD) -lzt $(COMMON_LIBS)
 
 $(TEST_BUILD_DIR)/%: $(UNIT_TEST_SRC_DIR)/%.cpp
 	@mkdir -p $(TEST_BUILD_DIR)
-	@-$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) $(INCLUDES) -o $@ $< $(UNIT_TEST_LIBS)
-	@-./check.sh $@
+	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) $(INCLUDES) -o $@ $< $(UNIT_TEST_LIBS)
+	@./check.sh $@
 
 tests: $(UNIT_TEST_OBJ_FILES)
 
@@ -261,7 +261,7 @@ clean:
 	-find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
 
 check:
-	-./check.sh $(PICO_LIB)
-	-./check.sh $(STATIC_LIB)
+	./check.sh $(PICO_LIB)
+	./check.sh $(STATIC_LIB)
 
 	

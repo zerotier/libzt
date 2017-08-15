@@ -6,7 +6,6 @@ node('master') {
     mattermostSend "Building ${env.JOB_NAME} #${env.BUILD_NUMBER} \n Change Log: \n ${changelog}"
 }
 
-//parallel 'centos7': {
 	node('centos7') {
 
 	// ------------------------------------------------------------------------------
@@ -248,10 +247,8 @@ node('master') {
 			throw err
 		}
 
-	},
-//}, 
+	}
 
-'macOS': {
 	node('macOS') {
 
 		unlockKeychainMac "~/Library/Keychains/login.keychain-db"
@@ -519,6 +516,6 @@ node('master') {
 			throw err
 		}
 	}
-}
+
 
 mattermostSend color: "#00ff00", message: "${env.JOB_NAME} #${env.BUILD_NUMBER} Complete (<${env.BUILD_URL}|Show More...>)"

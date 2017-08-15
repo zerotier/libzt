@@ -501,20 +501,6 @@ node('master') {
 			slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
 			throw err
 		}
-
-
-		try {
-			checkout scm
-			sh 'git submodule update --init'
-			stage('macOS static lib, lwIP, ipv4, ipv6') {
-				sh 'make clean; make -j4 static_lib STACK_LWIP=1 LIBZT_IPV4=1 LIBZT_IPV6=1; make tests'
-			}
-		}
-		catch (err) {
-			currentBuild.result = "FAILURE"
-			slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
-			throw err
-		}
 	}
 
 

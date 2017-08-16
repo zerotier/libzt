@@ -90,7 +90,7 @@ struct zts_ifreq {
 
 #define LWIP_APPLICATION_POLL_FREQ         2
 #define LWIP_TCP_TIMER_INTERVAL            50
-#define LWIP_STATUS_TMR_INTERVAL           500 // How often we check connection statuses (in ms)
+#define LWIP_STATUS_TMR_INTERVAL           500 // How often we check VirtualSocket statuses (in ms)
 
 /****************************************************************************/
 /* Defines                                                                  */
@@ -155,11 +155,11 @@ struct zts_ifreq {
 #define ZT_SDK_CLTIME                      60
 
 // After closing a pico_socket, other threads might still try to use the 
-// Connection object for remaining data I/O, as a safety measure we will wait to 
-// delete this Connection object until the socket has been closed for some arbitrary
+// VirtualSocket object for remaining data I/O, as a safety measure we will wait to 
+// delete this VirtualSocket object until the socket has been closed for some arbitrary
 // amount of time and it is safe to assume any clients interacting with this
 // socket have read some sort of error code from the API.
-#define ZT_CONNECTION_DELETE_WAIT_TIME     30 // s
+#define ZT_VirtualSocket_DELETE_WAIT_TIME     30 // s
 
 // Interval for performing cleanup tasks on Tap/Stack objects
 #define ZT_HOUSEKEEPING_INTERVAL           10 // s 
@@ -351,30 +351,30 @@ int zts_connect(ZT_CONNECT_SIG);
 
 /**
  * Binds a socket to a specific address
- *  - To accept connections on a specific ZeroTier network you must
+ *  - To accept VirtualSockets on a specific ZeroTier network you must
  *    use this bind call with an address which is associated with that network
  *
  *  For instance, given the following networks:
  *     - nwid = 97afaf1963cc6a90 (10.9.0.0/24)
  *     - nwid = 23bfae5663c8b188 (192.168.0.0/24)
  *
- *  In order to accept a connection on 97afaf1963cc6a90, you 
+ *  In order to accept a VirtualSocket on 97afaf1963cc6a90, you 
  *  should bind to 10.9.0.0
  */
 int zts_bind(ZT_BIND_SIG);
 
 /**
- * Listen for incoming connections
+ * Listen for incoming VirtualSockets
  */
 int zts_listen(ZT_LISTEN_SIG);
 
 /**
- * Accept a connection
+ * Accept a VirtualSocket
  */
 int zts_accept(ZT_ACCEPT_SIG);
 
 /**
- * Accept a connection
+ * Accept a VirtualSocket
  */
 #if defined(__linux__)
 	int zts_accept4(ZT_ACCEPT4_SIG);
@@ -485,7 +485,7 @@ namespace ZeroTier
 	class lwIP;
 	extern ZeroTier::lwIP *lwipstack;
 
-	class SocketTap;
+	class VirtualTap;
 	struct InetAddress;
 }
 
@@ -521,10 +521,10 @@ int pico_ntimers();
 /* ZeroTier Core helper functions for libzt - DON'T CALL THESE DIRECTLY     */
 /****************************************************************************/
 
-ZeroTier::SocketTap *getTapByNWID(uint64_t nwid);
-ZeroTier::SocketTap *getTapByAddr(ZeroTier::InetAddress &addr);
-ZeroTier::SocketTap *getTapByName(char *ifname);
-ZeroTier::SocketTap *getTapByIndex(int index);
+ZeroTier::VirtualTap *getTapByNWID(uint64_t nwid);
+ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress &addr);
+ZeroTier::VirtualTap *getTapByName(char *ifname);
+ZeroTier::VirtualTap *getTapByIndex(int index);
 
 /*
  * Destroys all virtual tap devices

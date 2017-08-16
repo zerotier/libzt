@@ -188,7 +188,7 @@ int main(int argc , char *argv[])
 			fprintf(stderr, "Send failed\n");
 	}
 
-	// dismantle all zt virtual taps (SocketTaps)
+	// dismantle all zt virtual taps
 	zts_stop();
 #endif
 	return 0;

@@ -37,7 +37,7 @@
 #include "pico_device.h"
 #include "pico_ipv6.h"
 
-#include "SocketTap.hpp"
+#include "VirtualTap.hpp"
 
 /****************************************************************************/
 /* PicoTCP API Signatures (See libzt.h for the API an app should use)       */
@@ -84,47 +84,47 @@ namespace ZeroTier
 	 */
 	int pico_eth_poll(struct pico_device *dev, int loop_score);
 
-	class SocketTap;
-	struct Connection;
+	class VirtualTap;
+	struct VirtualSocket;
 
 	class picoTCP
 	{		
 	public:
 
 		/*
-		 * Set up an interface in the network stack for the SocketTap
+		 * Set up an interface in the network stack for the VirtualTap
 		 */
-		bool pico_init_interface(ZeroTier::SocketTap *tap, const ZeroTier::InetAddress &ip);
+		bool pico_init_interface(ZeroTier::VirtualTap *tap, const ZeroTier::InetAddress &ip);
 
 		/*
 		 * Adds a route to the picoTCP device
 		 */
-		bool pico_route_add(SocketTap *tap, const InetAddress &addr, const InetAddress &nm, const InetAddress &gw, int metric);
+		bool pico_route_add(VirtualTap *tap, const InetAddress &addr, const InetAddress &nm, const InetAddress &gw, int metric);
 
 		/*
 		 * Deletes a route from the picoTCP device
 		 */
-		bool pico_route_del(SocketTap *tap, const InetAddress &addr, const InetAddress &nm, int metric);
+		bool pico_route_del(VirtualTap *tap, const InetAddress &addr, const InetAddress &nm, int metric);
 		
 		/*
 		 * Main stack loop
 		 */
-		void pico_loop(SocketTap *tap);
+		void pico_loop(VirtualTap *tap);
 
 		/*
 		 * Read bytes from the stack to the RX buffer (prepare to be read by app)
 		 */
-		static void pico_cb_tcp_read(SocketTap *tap, struct pico_socket *s);
+		static void pico_cb_tcp_read(VirtualTap *tap, struct pico_socket *s);
 
 		/*
 		 * Read bytes from the stack to the RX buffer (prepare to be read by app)
 		 */
-		static void pico_cb_udp_read(SocketTap *tap, struct pico_socket *s);
+		static void pico_cb_udp_read(VirtualTap *tap, struct pico_socket *s);
 
 		 /*
 		 * Write bytes from TX buffer to stack (prepare to be sent to ZT virtual wire)
 		 */
-		static void pico_cb_tcp_write(SocketTap *tap, struct pico_socket *s);
+		static void pico_cb_tcp_write(VirtualTap *tap, struct pico_socket *s);
 
 		/*
 		 * Write bytes from TX buffer to stack (prepare to be sent to ZT virtual wire)
@@ -134,47 +134,47 @@ namespace ZeroTier
 		/*
 		 * Packets from the ZeroTier virtual wire enter the stack here
 		 */
-		void pico_rx(SocketTap *tap, const ZeroTier::MAC &from,const ZeroTier::MAC &to,unsigned int etherType,const void *data,unsigned int len);
+		void pico_rx(VirtualTap *tap, const ZeroTier::MAC &from,const ZeroTier::MAC &to,unsigned int etherType,const void *data,unsigned int len);
 		
 		/*
-		 * Creates a stack-specific "socket" or "connection object"
+		 * Creates a stack-specific "socket" or "VirtualSocket object"
 		 */
 		int pico_Socket(struct pico_socket **p, int socket_family, int socket_type, int protocol);
 
 		/*
-		 * Connect to remote host via userspace network stack interface - Called from SocketTap
+		 * Connect to remote host via userspace network stack interface - Called from VirtualTap
 		 */
-		int pico_Connect(Connection *conn, const struct sockaddr *addr, socklen_t addrlen);
+		int pico_Connect(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
 		
 		/*
-		 * Bind to a userspace network stack interface - Called from SocketTap
+		 * Bind to a userspace network stack interface - Called from VirtualTap
 		 */
-		int pico_Bind(Connection *conn, const struct sockaddr *addr, socklen_t addrlen);
+		int pico_Bind(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
 		
 		/*
-		 * Listen for incoming connections - Called from SocketTap
+		 * Listen for incoming VirtualSockets - Called from VirtualTap
 		 */
-		int pico_Listen(Connection *conn, int backlog);
+		int pico_Listen(VirtualSocket *vs, int backlog);
 
 		/*
-		 * Accept an incoming connection - Called from SocketTap
+		 * Accept an incoming VirtualSocket - Called from VirtualTap
 		 */
-		Connection* pico_Accept(Connection *conn);
+		VirtualSocket* pico_Accept(VirtualSocket *vs);
 
 		/*
-		 * Read from RX buffer to application - Called from SocketTap
+		 * Read from RX buffer to application - Called from VirtualTap
 		 */
-		int pico_Read(SocketTap *tap, ZeroTier::PhySocket *sock,Connection *conn,bool stack_invoked);
+		int pico_Read(VirtualTap *tap, ZeroTier::PhySocket *sock,VirtualSocket *vs,bool stack_invoked);
 
 		/*
-		 * Write to userspace network stack - Called from SocketTap
+		 * Write to userspace network stack - Called from VirtualTap
 		 */
-		int pico_Write(Connection *conn, void *data, ssize_t len);
+		int pico_Write(VirtualSocket *vs, void *data, ssize_t len);
 
 		/*
-		 * Close a Connection - Called from SocketTap
+		 * Close a VirtualSocket - Called from VirtualTap
 		 */
-		int pico_Close(Connection *conn);
+		int pico_Close(VirtualSocket *vs);
 
 		/*
 		 * Converts picoTCP error codes to pretty string

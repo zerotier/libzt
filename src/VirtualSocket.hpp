@@ -24,7 +24,7 @@
  * of your own application.
  */
 
-// General connection object used by SocketTap and network stack drivers
+// General connection object used by VirtualTap and network stack drivers
 
 #ifndef ZT_CONNECTION_HPP
 #define ZT_CONNECTION_HPP
@@ -39,19 +39,24 @@
 #include "Phy.hpp"
 
 #include "libzt.h"
-#include "SocketTap.hpp"
+#include "VirtualTap.hpp"
 #include "RingBuffer.hpp"
 
 namespace ZeroTier {
 	
-	class SocketTap;
+	class VirtualTap;
 
-	struct Connection
+	/*
+	 * Something analogous to a socket. This is a common object used by the 
+	 * libzt API, VirtualTap, and the userspace network stack driver implementations. 
+	 * In some situations the word 'Connection' would capture the meaning and
+	 * function of this object, however I'd like to discourage this since this 
+	 * object also handles non-connection-based traffic as well.
+	 */
+	struct VirtualSocket
 	{
-		int tot = 0;
 		RingBuffer<unsigned char> *TXbuf;
 		RingBuffer<unsigned char> *RXbuf;
-
 		Mutex _tx_m, _rx_m;
 
 		PhySocket *sock;	
@@ -62,6 +67,7 @@ namespace ZeroTier {
 #if defined(STACK_LWIP)
 		void *pcb;
 #endif
+
 		// TODO: For getsockname, etc
 		struct sockaddr_storage *local_addr; // Address we've bound to locally
 		struct sockaddr_storage *peer_addr;  // Address of connection call to remote host
@@ -71,14 +77,14 @@ namespace ZeroTier {
 		int app_fd; // used by app for I/O
 		int sdk_fd; // used by lib for I/O
 
-		std::queue<Connection*> _AcceptedConnections;
-		SocketTap *tap;
+		std::queue<VirtualSocket*> _AcceptedConnections;
+		VirtualTap *tap;
 		int state;      // See libzt.h for (ZT_SOCK_STATE_*)
 
 		// timestamp for closure event
 		std::time_t closure_ts;
 
-		Connection() {
+		VirtualSocket() {
 			TXbuf = new RingBuffer<unsigned char>(ZT_TCP_TX_BUF_SZ);
 			RXbuf = new RingBuffer<unsigned char>(ZT_TCP_RX_BUF_SZ);
 
@@ -93,17 +99,17 @@ namespace ZeroTier {
 			sdk_fd = fdpair[0];
 			app_fd = fdpair[1];
 		}
-		~Connection() { }
+		~VirtualSocket() { }
 	};
 
 	/*
-	 * A helper object for passing SocketTap(s) and Connection(s) through the stack
+	 * A helper object for passing VirtualTap(s) and VirtualSocket(s) through the stack
 	 */
-	struct ConnectionPair
+	struct VirtualBindingPair
 	{
-	  SocketTap *tap;
-	  Connection *conn;
-	  ConnectionPair(SocketTap *_tap, Connection *conn) : tap(_tap), conn(conn) {}
+	  VirtualTap *tap;
+	  VirtualSocket *vs;
+	  VirtualBindingPair(VirtualTap *_tap, VirtualSocket *_vs) : tap(_tap), vs(_vs) {}
 	};
 }
 #endif

@@ -220,31 +220,31 @@ namespace ZeroTier {
 
 	void ZTProxy::phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *localAddr,const struct sockaddr *from,void *data,unsigned long len)
 	{
-		// Not used, connections are handled via user space network stack and SocketTap subsystem
+		// Not used, connections are handled via user space network stack and VirtualTap
 		DEBUG_INFO("phyOnDatagram");
 		exit(0);
 	}
 	void ZTProxy::phyOnTcpWritable(PhySocket *sock,void **uptr)
 	{
-		// Not used, connections are handled via user space network stack and SocketTap subsystem
+		// Not used, connections are handled via user space network stack and VirtualTap
 		DEBUG_INFO("phyOnTcpWritable");
 		exit(0);
 	}
 	void ZTProxy::phyOnFileDescriptorActivity(PhySocket *sock,void **uptr,bool readable,bool writable)
 	{
-		// Not used, connections are handled via user space network stack and SocketTap subsystem
+		// Not used, connections are handled via user space network stack and VirtualTap
 		DEBUG_INFO("phyOnFileDescriptorActivity, sock=%p", sock);
 		exit(0);
 	}
 	void ZTProxy::phyOnTcpConnect(PhySocket *sock,void **uptr,bool success)
 	{
-		// Not used, connections are handled via user space network stack and SocketTap subsystem
+		// Not used, connections are handled via user space network stack and VirtualTap
 		DEBUG_INFO("phyOnTcpConnect, sock=%p", sock);
 		exit(0);
 	}
 	void ZTProxy::phyOnUnixClose(PhySocket *sock,void **uptr) 
 	{
-		// Not used, connections are handled via user space network stack and SocketTap subsystem
+		// Not used, connections are handled via user space network stack and VirtualTap
 		DEBUG_INFO("phyOnUnixClose, sock=%p", sock);
 		exit(0);
 	}

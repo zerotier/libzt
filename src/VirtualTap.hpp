@@ -24,8 +24,8 @@
  * of your own application.
  */
 
-#ifndef ZT_SOCKETTAP_HPP
-#define ZT_SOCKETTAP_HPP
+#ifndef ZT_VIRTUALTAP_HPP
+#define ZT_VIRTUALTAP_HPP
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +44,7 @@
 #include "Phy.hpp"
 
 #include "libzt.h"
-#include "Connection.hpp"
+#include "VirtualSocket.hpp"
 
 #if defined(STACK_PICO)
 #include "picoTCP.hpp"
@@ -66,12 +66,12 @@ namespace ZeroTier {
 	/*
 	 * Socket Tap -- emulates an Ethernet tap device
 	 */
-	class SocketTap
+	class VirtualTap
 	{
-		friend class Phy<SocketTap *>;
+		friend class Phy<VirtualTap *>;
 
 	public:
-		SocketTap(
+		VirtualTap(
 			const char *homePath,
 			const MAC &mac,
 			unsigned int mtu,
@@ -81,7 +81,7 @@ namespace ZeroTier {
 			void (*handler)(void *, void *,uint64_t,const MAC &,const MAC &,unsigned int,unsigned int,const void *,unsigned int),
 			void *arg);
 
-		~SocketTap();
+		~VirtualTap();
 
 		void setEnabled(bool en);
 		bool enabled() const;
@@ -92,13 +92,13 @@ namespace ZeroTier {
 		bool registerIpWithStack(const InetAddress &ip);
 
 		/* 
-		 * Adds an address to the userspace stack interface associated with this SocketTap
-		 * - Starts SocketTap main thread ONLY if successful
+		 * Adds an address to the userspace stack interface associated with this VirtualTap
+		 * - Starts VirtualTap main thread ONLY if successful
 		 */
 		bool addIp(const InetAddress &ip);
 
 		/* 
-		 * Removes an address from the userspace stack interface associated with this SocketTap
+		 * Removes an address from the userspace stack interface associated with this VirtualTap
 		 */
 		bool removeIp(const InetAddress &ip);
 		
@@ -141,7 +141,7 @@ namespace ZeroTier {
 			const void *, unsigned int);
 
 		/*
-		 * Signals us to close the TcpConnection associated with this PhySocket
+		 * Signals us to close the TcpVirtualSocket associated with this PhySocket
 		 */
 		void phyOnUnixClose(PhySocket *sock, void **uptr);
 		
@@ -210,9 +210,9 @@ namespace ZeroTier {
 		unsigned int _mtu;
 		uint64_t _nwid;
 		PhySocket *_unixListenSocket;
-		Phy<SocketTap *> _phy;
+		Phy<VirtualTap *> _phy;
 
-		std::vector<Connection*> _Connections;
+		std::vector<VirtualSocket*> _VirtualSockets;
 
 		Thread _thread;
 		std::string _dev; // path to Unix domain socket
@@ -233,24 +233,24 @@ namespace ZeroTier {
 		/****************************************************************************/
 
 		/* 
-		 * Connect to a remote host via the userspace stack interface associated with this SocketTap
+		 * Connect to a remote host via the userspace stack interface associated with this VirtualTap
 		 */
-		int Connect(Connection *conn, const struct sockaddr *addr, socklen_t addrlen);
+		int Connect(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
 	
 		/* 
-		 * Bind to the userspace stack interface associated with this SocketTap
+		 * Bind to the userspace stack interface associated with this VirtualTap
 		 */
-		int Bind(Connection *conn, const struct sockaddr *addr, socklen_t addrlen);
+		int Bind(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
 		
 		/* 
-		 * Listen for a Connection
+		 * Listen for a VirtualSocket
 		 */
-		int Listen(Connection *conn, int backlog);
+		int Listen(VirtualSocket *vs, int backlog);
 		
 		/* 
-		 * Accepts an incoming Connection
+		 * Accepts an incoming VirtualSocket
 		 */
-		Connection* Accept(Connection *conn);
+		VirtualSocket* Accept(VirtualSocket *vs);
 		
 		/* 
 		 * Move data from RX buffer to application's "socket"
@@ -260,20 +260,20 @@ namespace ZeroTier {
 		/* 
 		 * Move data from application's "socket" into network stack
 		 */
-		int Write(Connection *conn, void *data, ssize_t len);
+		int Write(VirtualSocket *vs, void *data, ssize_t len);
 
 		/* 
 		 * Send data to specified host
 		 */
-		int SendTo(Connection *conn, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen);
+		int SendTo(VirtualSocket *vs, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen);
 
 		/*
-		 * Closes a Connection
+		 * Closes a VirtualSocket
 		 */
-		int Close(Connection *conn);
+		int Close(VirtualSocket *vs);
 
 		/*
-		 * Disposes of previously-closed Connections
+		 * Disposes of previously-closed VirtualSockets
 		 */
 		void Housekeeping();
 

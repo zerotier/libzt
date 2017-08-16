@@ -136,11 +136,11 @@ CXXFLAGS+=-DSDK_IPV6
 ##############################################################################
 
 STACK_DRIVER_FILES:=src/picoTCP.cpp
-TAP_FILES:=src/SocketTap.cpp \
+TAP_FILES:=src/VirtualTap.cpp \
 	src/libzt.cpp \
 	src/Utilities.cpp
 
-SDK_OBJS+= SocketTap.o \
+SDK_OBJS+= VirtualTap.o \
 	picoTCP.o \
 	libzt.o \
 	Utilities.o

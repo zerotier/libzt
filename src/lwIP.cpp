@@ -29,7 +29,7 @@
 #include <algorithm>
 
 #include "libzt.h"
-#include "SocketTap.hpp"
+#include "VirtualTap.hpp"
 #include "Utilities.hpp"
 #include "lwIP.hpp"
 
@@ -57,7 +57,7 @@ err_t low_level_output(struct netif *netif, struct pbuf *p)
 	char *bufptr;
 	int totalLength = 0;
 
-	ZeroTier::SocketTap *tap = (ZeroTier::SocketTap*)netif->state;
+	ZeroTier::VirtualTap *tap = (ZeroTier::VirtualTap*)netif->state;
 	bufptr = buf;
 	// Copy data from each pbuf, one at a time
 	for(q = p; q != NULL; q = q->next) {
@@ -81,7 +81,7 @@ err_t low_level_output(struct netif *netif, struct pbuf *p)
 
 namespace ZeroTier
 {
-	void lwIP::lwip_init_interface(SocketTap *tap, const InetAddress &ip)
+	void lwIP::lwip_init_interface(VirtualTap *tap, const InetAddress &ip)
 	{
 		DEBUG_INFO();
 		Mutex::Lock _l(tap->_ips_m);
@@ -140,7 +140,7 @@ namespace ZeroTier
 		}
 	}
 
-	void lwIP::lwip_loop(SocketTap *tap)
+	void lwIP::lwip_loop(VirtualTap *tap)
 	{
 	   DEBUG_INFO();
 	   uint64_t prev_tcp_time = 0, prev_discovery_time = 0;
@@ -181,7 +181,7 @@ namespace ZeroTier
 		}
 	}
 
-	void lwIP::lwip_rx(SocketTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
+	void lwIP::lwip_rx(VirtualTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
 	{
 		DEBUG_INFO("etherType=%x, len=%d", etherType, len);
 		struct pbuf *p,*q;
@@ -249,7 +249,7 @@ namespace ZeroTier
 		return -1;
 	}
 
-	int lwIP::lwip_Connect(Connection *conn, const struct sockaddr *addr, socklen_t addrlen)
+	int lwIP::lwip_Connect(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen)
 	{
 		DEBUG_INFO();
 		ip_addr_t ba;
@@ -269,7 +269,7 @@ namespace ZeroTier
 			struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&addr;
 			in6_to_ip6((ip6_addr *)&ba, in6);
 			if(addr->sa_family == AF_INET6) {        
-				struct sockaddr_in6 *connaddr6 = (struct sockaddr_in6 *)addr;
+				struct sockaddr_in6 *vsaddr6 = (struct sockaddr_in6 *)addr;
 				inet_ntop(AF_INET6, &(connaddr6->sin6_addr), addrstr, INET6_ADDRSTRLEN);
 				DEBUG_INFO("%s:%d", addrstr, lwip_ntohs(connaddr6->sin6_port));
 			}
@@ -277,25 +277,25 @@ namespace ZeroTier
 
 		DEBUG_INFO("addr=%s", addrstr);
 
-		if(conn->socket_type == SOCK_DGRAM) {
+		if(vs->socket_type == SOCK_DGRAM) {
 			// Generates no network traffic
-			if((err = udp_connect((struct udp_pcb*)conn->pcb,(ip_addr_t *)&ba,port)) < 0) {
+			if((err = udp_connect((struct udp_pcb*)vs->pcb,(ip_addr_t *)&ba,port)) < 0) {
 				DEBUG_ERROR("error while connecting to with UDP");
 			}
-			udp_recv((struct udp_pcb*)conn->pcb, nc_udp_recved, conn);
+			udp_recv((struct udp_pcb*)vs->pcb, nc_udp_recved, vs);
 			return ERR_OK;
 		}
 
-		if(conn->socket_type == SOCK_STREAM) {
-			struct tcp_pcb *tpcb = (struct tcp_pcb*)conn->pcb;
+		if(vs->socket_type == SOCK_STREAM) {
+			struct tcp_pcb *tpcb = (struct tcp_pcb*)vs->pcb;
 			tcp_sent(tpcb, nc_sent);
 			tcp_recv(tpcb, nc_recved);
 			tcp_err(tpcb, nc_err);
 			tcp_poll(tpcb, nc_poll, LWIP_APPLICATION_POLL_FREQ);
-			tcp_arg(tpcb, conn);
+			tcp_arg(tpcb, vs);
 				
-			//DEBUG_EXTRA(" pcb->state=%x", conn->TCP_pcb->state);
-			//if(conn->TCP_pcb->state != CLOSED) {
+			//DEBUG_EXTRA(" pcb->state=%x", vs->TCP_pcb->state);
+			//if(vs->TCP_pcb->state != CLOSED) {
 			//	DEBUG_INFO(" cannot connect using this PCB, PCB!=CLOSED");
 			//	tap->sendReturnValue(tap->_phy.getDescriptor(rpcSock), -1, EAGAIN);
 			//	return;
@@ -343,7 +343,7 @@ namespace ZeroTier
 		return err;
 	}
 
-	int lwIP::lwip_Bind(SocketTap *tap, Connection *conn, const struct sockaddr *addr, socklen_t addrlen)
+	int lwIP::lwip_Bind(VirtualTap *tap, VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen)
 	{
 		DEBUG_INFO();
 		ip_addr_t ba;
@@ -363,26 +363,26 @@ namespace ZeroTier
 			struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&addr;
 			in6_to_ip6((ip6_addr *)&ba, in6);
 			if(addr->sa_family == AF_INET6) {        
-				struct sockaddr_in6 *connaddr6 = (struct sockaddr_in6 *)addr;
+				struct sockaddr_in6 *vsaddr6 = (struct sockaddr_in6 *)addr;
 				inet_ntop(AF_INET6, &(connaddr6->sin6_addr), addrstr, INET6_ADDRSTRLEN);
 				DEBUG_INFO("%s:%d", addrstr, lwip_ntohs(connaddr6->sin6_port));
 			}
 #endif
-		if(conn->socket_type == SOCK_DGRAM) {
-			err = udp_bind((struct udp_pcb*)conn->pcb, (const ip_addr_t *)&ba, port);
+		if(vs->socket_type == SOCK_DGRAM) {
+			err = udp_bind((struct udp_pcb*)vs->pcb, (const ip_addr_t *)&ba, port);
 			if(err == ERR_USE) {
 				err = -1;
 				errno = EADDRINUSE; // port in use
 			}
 			else {
 				// set the recv callback
-				udp_recv((struct udp_pcb*)conn->pcb, nc_udp_recved, new ConnectionPair(tap, conn));
+				udp_recv((struct udp_pcb*)vs->pcb, nc_udp_recved, new VirtualBindingPair(tap, vs));
 				err = ERR_OK; 
 				errno = ERR_OK; // success
 			}
 		}
-		else if (conn->socket_type == SOCK_STREAM) {
-			err = tcp_bind((struct tcp_pcb*)conn->pcb, (const ip_addr_t *)&ba, port);
+		else if (vs->socket_type == SOCK_STREAM) {
+			err = tcp_bind((struct tcp_pcb*)vs->pcb, (const ip_addr_t *)&ba, port);
 			if(err != ERR_OK) {
 				DEBUG_ERROR("err=%d", err);
 				if(err == ERR_USE){
@@ -406,103 +406,103 @@ namespace ZeroTier
 		return err;
 	}
 
-	int lwIP::lwip_Listen(Connection *conn, int backlog)
+	int lwIP::lwip_Listen(VirtualSocket *vs, int backlog)
 	{
-		DEBUG_INFO("conn=%p", conn);
+		DEBUG_INFO("vs=%p", vs);
 		struct tcp_pcb* listeningPCB;
 #ifdef TCP_LISTEN_BACKLOG
-		listeningPCB = tcp_listen_with_backlog((struct tcp_pcb*)conn->pcb, backlog);
+		listeningPCB = tcp_listen_with_backlog((struct tcp_pcb*)vs->pcb, backlog);
 #else
-		listeningPCB = tcp_listen((struct tcp_pcb*)conn->pcb);
+		listeningPCB = tcp_listen((struct tcp_pcb*)vs->pcb);
 #endif
 		if(listeningPCB != NULL) {
-			conn->pcb = listeningPCB;
+			vs->pcb = listeningPCB;
 			tcp_accept(listeningPCB, nc_accept); // set callback
-			tcp_arg(listeningPCB, conn);
-			//fcntl(tap->_phy.getDescriptor(conn->sock), F_SETFL, O_NONBLOCK);
+			tcp_arg(listeningPCB, vs);
+			//fcntl(tap->_phy.getDescriptor(vs->sock), F_SETFL, O_NONBLOCK);
 		}
 		return 0;
 	}
 
-	Connection* lwIP::lwip_Accept(Connection *conn)
+	VirtualSocket* lwIP::lwip_Accept(VirtualSocket *vs)
 	{
-		if(!conn) {
-			DEBUG_ERROR("invalid conn");
+		if(!vs) {
+			DEBUG_ERROR("invalid virtual socket");
 			handle_general_failure();
 			return NULL;
 		}
-		// Retreive first of queued Connections from parent connection
-		Connection *new_conn = NULL;
-		Mutex::Lock _l(conn->tap->_tcpconns_m);
-		if(conn->_AcceptedConnections.size()) {
-			new_conn = conn->_AcceptedConnections.front();
-			conn->_AcceptedConnections.pop();
+		// Retreive first of queued VirtualSockets from parent VirtualSocket
+		VirtualSocket *new_vs = NULL;
+		Mutex::Lock _l(vs->tap->_tcpconns_m);
+		if(vs->_AcceptedConnections.size()) {
+			new_vs = vs->_AcceptedConnections.front();
+			vs->_AcceptedConnections.pop();
 		}
-		return new_conn;
+		return new_vs;
 	}
 
-	int lwIP::lwip_Read(Connection *conn, bool lwip_invoked)
+	int lwIP::lwip_Read(VirtualSocket *vs, bool lwip_invoked)
 	{
-		DEBUG_EXTRA("conn=%p", conn);
+		DEBUG_EXTRA("vs=%p", vs);
 		int err = 0;
-		if(!conn) {
-			DEBUG_ERROR("no connection");
+		if(!vs) {
+			DEBUG_ERROR("no VirtualSocket");
 			return -1;
 		}
 		if(!lwip_invoked) {
 			DEBUG_INFO("!lwip_invoked");
-			conn->tap->_tcpconns_m.lock();
-			conn->_rx_m.lock(); 
+			vs->tap->_tcpconns_m.lock();
+			vs->_rx_m.lock(); 
 		}
-		if(conn->RXbuf->count()) {
-			int max = conn->socket_type == SOCK_STREAM ? ZT_STACK_TCP_SOCKET_RX_SZ : ZT_STACK_TCP_SOCKET_RX_SZ;
-			int wr = std::min((ssize_t)max, (ssize_t)conn->RXbuf->count());
-			int n = conn->tap->_phy.streamSend(conn->sock, conn->RXbuf->get_buf(), wr);
+		if(vs->RXbuf->count()) {
+			int max = vs->socket_type == SOCK_STREAM ? ZT_STACK_TCP_SOCKET_RX_SZ : ZT_STACK_TCP_SOCKET_RX_SZ;
+			int wr = std::min((ssize_t)max, (ssize_t)vs->RXbuf->count());
+			int n = vs->tap->_phy.streamSend(vs->sock, vs->RXbuf->get_buf(), wr);
 			char str[22];
-			memcpy(str, conn->RXbuf->get_buf(), 22);
-			conn->RXbuf->consume(n);
+			memcpy(str, vs->RXbuf->get_buf(), 22);
+			vs->RXbuf->consume(n);
 			
-			if(conn->socket_type == SOCK_DGRAM)
+			if(vs->socket_type == SOCK_DGRAM)
 			{
 				// TODO
 			}
-			if(conn->socket_type == SOCK_STREAM) { // Only acknolwedge receipt of TCP packets
-				tcp_recved((struct tcp_pcb*)conn->pcb, n);
+			if(vs->socket_type == SOCK_STREAM) { // Only acknolwedge receipt of TCP packets
+				tcp_recved((struct tcp_pcb*)vs->pcb, n);
 				DEBUG_TRANS("TCP RX %d bytes", n);
 			}
 		}
-		if(conn->RXbuf->count() == 0) {
+		if(vs->RXbuf->count() == 0) {
 			DEBUG_INFO("wrote everything");
-			conn->tap->_phy.setNotifyWritable(conn->sock, false); // nothing else to send to the app
+			vs->tap->_phy.setNotifyWritable(vs->sock, false); // nothing else to send to the app
 		}
 		if(!lwip_invoked) {
-			conn->tap->_tcpconns_m.unlock();
-			conn->_rx_m.unlock();
+			vs->tap->_tcpconns_m.unlock();
+			vs->_rx_m.unlock();
 		}
 		return err;
 	}
 
-	int lwIP::lwip_Write(Connection *conn, void *data, ssize_t len)
+	int lwIP::lwip_Write(VirtualSocket *vs, void *data, ssize_t len)
 	{
-		DEBUG_EXTRA("conn=%p, len=%d", (void*)&conn, len);
+		DEBUG_EXTRA("vs=%p, len=%d", (void*)&vs, len);
 		int err = 0;
-		if(!conn) {
-			DEBUG_ERROR("no connection");
+		if(!vs) {
+			DEBUG_ERROR("no VirtualSocket");
 			return -1;
 		}
-		if(conn->socket_type == SOCK_DGRAM) 
+		if(vs->socket_type == SOCK_DGRAM) 
 		{
 			DEBUG_ERROR("socket_type==SOCK_DGRAM");
 			// TODO: Packet re-assembly hasn't yet been tested with lwIP so UDP packets are limited to MTU-sized chunks
-            int udp_trans_len = std::min((ssize_t)conn->TXbuf->count(), (ssize_t)ZT_MAX_MTU);
-			DEBUG_EXTRA("allocating pbuf chain of size=%d for UDP packet, txsz=%d", udp_trans_len, conn->TXbuf->count());
+            int udp_trans_len = std::min((ssize_t)vs->TXbuf->count(), (ssize_t)ZT_MAX_MTU);
+			DEBUG_EXTRA("allocating pbuf chain of size=%d for UDP packet, txsz=%d", udp_trans_len, vs->TXbuf->count());
 			struct pbuf * pb = pbuf_alloc(PBUF_TRANSPORT, udp_trans_len, PBUF_POOL);
 			if(!pb){
-				DEBUG_ERROR("unable to allocate new pbuf of size=%d", conn->TXbuf->count());
+				DEBUG_ERROR("unable to allocate new pbuf of size=%d", vs->TXbuf->count());
 				return -1;
 			}
-			memcpy(pb->payload, conn->TXbuf->get_buf(), udp_trans_len);
-			int err = udp_send((struct udp_pcb*)conn->pcb, pb);
+			memcpy(pb->payload, vs->TXbuf->get_buf(), udp_trans_len);
+			int err = udp_send((struct udp_pcb*)vs->pcb, pb);
 			
 			if(err == ERR_MEM) {
 				DEBUG_ERROR("error sending packet. out of memory");
@@ -511,48 +511,48 @@ namespace ZeroTier
 			} else if(err != ERR_OK) {
 				DEBUG_ERROR("error sending packet - %d", err);
 			} else {
-				conn->TXbuf->consume(udp_trans_len); // success
+				vs->TXbuf->consume(udp_trans_len); // success
 			}
 			pbuf_free(pb);
 			return ERR_OK;
 		}
-		if(conn->socket_type == SOCK_STREAM) 
+		if(vs->socket_type == SOCK_STREAM) 
 		{
 			DEBUG_ERROR("socket_type==SOCK_STREAM");
-			// How much we are currently allowed to write to the connection
-			ssize_t sndbuf = ((struct tcp_pcb*)conn->pcb)->snd_buf;
+			// How much we are currently allowed to write to the VirtualSocket
+			ssize_t sndbuf = ((struct tcp_pcb*)vs->pcb)->snd_buf;
 			int err, r;
 			if(!sndbuf) {
 				// PCB send buffer is full, turn off readability notifications for the
 				// corresponding PhySocket until nc_sent() is called and confirms that there is
 				// now space on the buffer
 				DEBUG_ERROR("lwIP stack is full, sndbuf == 0");
-				conn->tap->_phy.setNotifyReadable(conn->sock, false);
+				vs->tap->_phy.setNotifyReadable(vs->sock, false);
 				return -1;
 			}
-			int buf_w = conn->TXbuf->write((const unsigned char*)data, len);
+			int buf_w = vs->TXbuf->write((const unsigned char*)data, len);
 			if (buf_w != len) {
 				// because we checked ZT_TCP_TX_BUF_SZ above, this should not happen
 				DEBUG_ERROR("TX wrote only %d but expected to write %d", buf_w, len);
 				exit(0);
 			}
-			if(conn->TXbuf->count() <= 0) {
+			if(vs->TXbuf->count() <= 0) {
 				return -1; // nothing to write
 			}
-			if(conn->sock) {
-				r = std::min((ssize_t)conn->TXbuf->count(), sndbuf);
+			if(vs->sock) {
+				r = std::min((ssize_t)vs->TXbuf->count(), sndbuf);
 				// Writes data pulled from the client's socket buffer to LWIP. This merely sends the
 				// data to LWIP to be enqueued and eventually sent to the network.
 				if(r > 0) {
-					err = tcp_write((struct tcp_pcb*)conn->pcb, conn->TXbuf->get_buf(), r, TCP_WRITE_FLAG_COPY);
-					tcp_output((struct tcp_pcb*)conn->pcb);
+					err = tcp_write((struct tcp_pcb*)vs->pcb, vs->TXbuf->get_buf(), r, TCP_WRITE_FLAG_COPY);
+					tcp_output((struct tcp_pcb*)vs->pcb);
 					if(err != ERR_OK) {
 						DEBUG_ERROR("error while writing to lwIP tcp_pcb, err=%d", err);
 						if(err == -1)
 							DEBUG_ERROR("lwIP out of memory");
 						return -1;
 					} else {
-						conn->TXbuf->consume(r); // success
+						vs->TXbuf->consume(r); // success
 						return ERR_OK;
 					}
 				}
@@ -561,22 +561,22 @@ namespace ZeroTier
 		return err;
 	}
 
-	int lwIP::lwip_Close(Connection *conn)
+	int lwIP::lwip_Close(VirtualSocket *vs)
 	{
 		DEBUG_INFO();
 
-		if(conn->socket_type == SOCK_DGRAM) {
-			udp_remove((struct udp_pcb*)conn->pcb);
+		if(vs->socket_type == SOCK_DGRAM) {
+			udp_remove((struct udp_pcb*)vs->pcb);
 		}
-		// FIXME: check if already closed? conn->TCP_pcb->state != CLOSED
-		if(conn->pcb) {
-			//DEBUG_EXTRA("conn=%p, sock=%p, PCB->state = %d", 
-			//	(void*)&conn, (void*)&sock, conn->TCP_pcb->state);
-			if(((struct tcp_pcb*)conn->pcb)->state == SYN_SENT /*|| conn->TCP_pcb->state == CLOSE_WAIT*/) {
-				DEBUG_EXTRA("ignoring close request. invalid PCB state for this operation. sock=%p", conn->sock);
+		// FIXME: check if already closed? vs->TCP_pcb->state != CLOSED
+		if(vs->pcb) {
+			//DEBUG_EXTRA("vs=%p, sock=%p, PCB->state = %d", 
+			//	(void*)&conn, (void*)&sock, vs->TCP_pcb->state);
+			if(((struct tcp_pcb*)vs->pcb)->state == SYN_SENT /*|| vs->TCP_pcb->state == CLOSE_WAIT*/) {
+				DEBUG_EXTRA("ignoring close request. invalid PCB state for this operation. sock=%p", vs->sock);
 				return -1;
 			}
-			struct tcp_pcb* tpcb = (struct tcp_pcb*)conn->pcb;
+			struct tcp_pcb* tpcb = (struct tcp_pcb*)vs->pcb;
 			if(tcp_close(tpcb) == ERR_OK) {
 				// Unregister callbacks for this PCB
 				tcp_arg(tpcb, NULL);
@@ -586,7 +586,7 @@ namespace ZeroTier
 				tcp_poll(tpcb, NULL, 1);
 			}
 			else {
-				DEBUG_EXTRA("error while calling tcp_close() sock=%p", conn->sock);
+				DEBUG_EXTRA("error while calling tcp_close() sock=%p", vs->sock);
 			}
 		}
 		return 0;
@@ -599,22 +599,22 @@ namespace ZeroTier
 	err_t lwIP::nc_recved(void *arg, struct tcp_pcb *PCB, struct pbuf *p, err_t err)
 	{
 		DEBUG_INFO();
-		Connection *conn = (Connection *)arg;
+		VirtualSocket *vs = (VirtualSocket *)arg;
 		int tot = 0;
 
-		if(!conn) {
-			DEBUG_ERROR("no connection");
+		if(!vs) {
+			DEBUG_ERROR("no VirtualSocket");
 			return ERR_OK; // FIXME: Determine if this is correct behaviour expected by the stack 
 		}
 
-		//Mutex::Lock _l(conn->tap->_tcpconns_m);
-		//Mutex::Lock _l2(conn->_rx_m);
-		conn->tap->_tcpconns_m.lock();
-		conn->_rx_m.lock();
+		//Mutex::Lock _l(vs->tap->_tcpconns_m);
+		//Mutex::Lock _l2(vs->_rx_m);
+		vs->tap->_tcpconns_m.lock();
+		vs->_rx_m.lock();
 
 		struct pbuf* q = p;
 		if(p == NULL) {
-			if(((struct tcp_pcb*)conn->pcb)->state == CLOSE_WAIT) {
+			if(((struct tcp_pcb*)vs->pcb)->state == CLOSE_WAIT) {
 				// FIXME: Implement?
 			}
 			DEBUG_INFO("p == NULL");
@@ -626,24 +626,24 @@ namespace ZeroTier
 		while(p != NULL) {
 			if(p->len <= 0)
 				break;
-			int avail = ZT_TCP_RX_BUF_SZ - conn->RXbuf->count();
+			int avail = ZT_TCP_RX_BUF_SZ - vs->RXbuf->count();
 			int len = p->len;
 			if(avail < len) {
 				DEBUG_ERROR("not enough room (%d bytes) on RX buffer", avail);
 			}
-			memcpy(conn->RXbuf->get_buf(), p->payload, len);
-			conn->RXbuf->produce(len);
+			memcpy(vs->RXbuf->get_buf(), p->payload, len);
+			vs->RXbuf->produce(len);
 			p = p->next;
 			tot += len;
 		}
 		DEBUG_INFO("tot=%d", tot);
 
-		conn->tap->_tcpconns_m.unlock();
-		conn->_rx_m.unlock();
+		vs->tap->_tcpconns_m.unlock();
+		vs->_rx_m.unlock();
 
 		if(tot) {
-			conn->tap->_phy.setNotifyWritable(conn->sock, true);
-			//conn->tap->phyOnUnixWritable(conn->sock, NULL, true); // to app
+			vs->tap->_phy.setNotifyWritable(vs->sock, true);
+			//vs->tap->phyOnUnixWritable(vs->sock, NULL, true); // to app
 		}
 		pbuf_free(q);
 		return ERR_OK;
@@ -651,27 +651,27 @@ namespace ZeroTier
 
 	err_t lwIP::nc_accept(void *arg, struct tcp_pcb *newPCB, err_t err)
 	{
-		Connection *conn = (Connection*)arg;
-		DEBUG_INFO("conn=%p", conn);
-		//Mutex::Lock _l(conn->tap->_tcpconns_m);
-		// create and populate new Connection object
-		Connection *new_conn = new Connection();
-		new_conn->socket_type = SOCK_STREAM;
-		new_conn->pcb = newPCB;
-		new_conn->tap = conn->tap;
-		new_conn->sock = conn->tap->_phy.wrapSocket(new_conn->sdk_fd, new_conn);
-		//memcpy(new_conn->tap->_phy.getuptr(new_conn->sock), new_conn, sizeof(conn));
-		DEBUG_INFO("new_conn=%p", new_conn);
-		// add new Connection object to parent connection so that we can find it via lwip_Accept()
-		conn->_AcceptedConnections.push(new_conn);
+		VirtualSocket *vs = (VirtualSocket*)arg;
+		DEBUG_INFO("vs=%p", vs);
+		//Mutex::Lock _l(vs->tap->_tcpconns_m);
+		// create and populate new VirtualSocket object
+		VirtualSocket *new_vs = new VirtualSocket();
+		new_vs->socket_type = SOCK_STREAM;
+		new_vs->pcb = newPCB;
+		new_vs->tap = vs->tap;
+		new_vs->sock = vs->tap->_phy.wrapSocket(new_vs->sdk_fd, new_vs);
+		//memcpy(new_vs->tap->_phy.getuptr(new_vs->sock), new_vs, sizeof(vs));
+		DEBUG_INFO("new_vs=%p", new_vs);
+		// add new VirtualSocket object to parent VirtualSocket so that we can find it via lwip_Accept()
+		vs->_AcceptedConnections.push(new_vs);
 		// set callbacks
-		tcp_arg(newPCB, new_conn);
+		tcp_arg(newPCB, new_vs);
 		tcp_recv(newPCB, nc_recved);
 		tcp_err(newPCB, nc_err);
 		tcp_sent(newPCB, nc_sent);
 		tcp_poll(newPCB, nc_poll, 1);
-		// let lwIP know that it can queue additional incoming connections
-		tcp_accepted((struct tcp_pcb*)conn->pcb); 
+		// let lwIP know that it can queue additional incoming VirtualSockets
+		tcp_accepted((struct tcp_pcb*)vs->pcb); 
 		return 0;
 	}
 		
@@ -684,13 +684,13 @@ namespace ZeroTier
 	err_t lwIP::nc_sent(void* arg, struct tcp_pcb *PCB, u16_t len)
 	{
 		DEBUG_EXTRA("pcb=%p", (void*)&PCB);
-		Connection *conn = (Connection *)arg;
-		Mutex::Lock _l(conn->tap->_tcpconns_m);
-		if(conn && len) {
-			int softmax = conn->socket_type == SOCK_STREAM ? ZT_TCP_TX_BUF_SZ : ZT_UDP_TX_BUF_SZ;
-			if(conn->TXbuf->count() < softmax) {
-				conn->tap->_phy.setNotifyReadable(conn->sock, true);
-				conn->tap->_phy.whack();
+		VirtualSocket *vs = (VirtualSocket *)arg;
+		Mutex::Lock _l(vs->tap->_tcpconns_m);
+		if(vs && len) {
+			int softmax = vs->socket_type == SOCK_STREAM ? ZT_TCP_TX_BUF_SZ : ZT_UDP_TX_BUF_SZ;
+			if(vs->TXbuf->count() < softmax) {
+				vs->tap->_phy.setNotifyReadable(vs->sock, true);
+				vs->tap->_phy.whack();
 			}
 		}
 		return ERR_OK;
@@ -699,8 +699,8 @@ namespace ZeroTier
 	err_t lwIP::nc_connected(void *arg, struct tcp_pcb *PCB, err_t err)
 	{
 		DEBUG_ATTN("pcb=%p", (void*)&PCB);
-		Connection *conn = (Connection *)arg;
-		if(conn)
+		VirtualSocket *vs = (VirtualSocket *)arg;
+		if(vs)
 			return ERR_OK;
 		return -1;
 		// FIXME: check stack for expected return values
@@ -714,16 +714,16 @@ namespace ZeroTier
 	void lwIP::nc_err(void *arg, err_t err)
 	{
 		DEBUG_ERROR("err=%d", err);
-		Connection *conn = (Connection *)arg;
-		if(!conn){
-			DEBUG_ERROR("conn==NULL");
+		VirtualSocket *vs = (VirtualSocket *)arg;
+		if(!vs){
+			DEBUG_ERROR("vs==NULL");
 			errno = -1; // FIXME: Find more appropriate value
 		}
-		Mutex::Lock _l(conn->tap->_tcpconns_m);
-		int fd = conn->tap->_phy.getDescriptor(conn->sock);
-		DEBUG_ERROR("conn=%p, pcb=%p, fd=%d, err=%d", conn, conn->pcb, fd, err);
-		DEBUG_ERROR("closing connection");
-		conn->tap->Close(conn);
+		Mutex::Lock _l(vs->tap->_tcpconns_m);
+		int fd = vs->tap->_phy.getDescriptor(vs->sock);
+		DEBUG_ERROR("vs=%p, pcb=%p, fd=%d, err=%d", vs, vs->pcb, fd, err);
+		DEBUG_ERROR("closing VirtualSocket");
+		vs->tap->Close(vs);
 		switch(err)
 		{
 			case ERR_MEM:
@@ -759,7 +759,7 @@ namespace ZeroTier
 				errno = EADDRINUSE;
 				break;
 			case ERR_ISCONN:
-				DEBUG_ERROR("ERR_ISCONN->EISCONN");
+				DEBUG_ERROR("ERR_ISvs->EISCONN");
 				errno = EISCONN;
 				break;
 			case ERR_ABRT:

@@ -149,7 +149,7 @@ STACK_FLAGS+=LIBZT_IPV4=1
 endif
 endif
 
-LIBZT_FILES:=src/SocketTap.cpp src/libzt.cpp src/Utilities.cpp
+LIBZT_FILES:=src/VirtualTap.cpp src/libzt.cpp src/Utilities.cpp
 
 ifeq ($(STACK_PICO),1)
 CXXFLAGS+=-DSTACK_PICO

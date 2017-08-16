@@ -35,7 +35,7 @@
 #include <utility>
 #include <string>
 
-#include "SocketTap.hpp"
+#include "VirtualTap.hpp"
 #include "libzt.h"
 
 #if defined(STACK_PICO)
@@ -58,23 +58,21 @@
 #include "Constants.hpp"
 #include "Phy.hpp"
 
-class SocketTap;
-
+class VirtualTap;
 
 extern std::vector<void*> vtaps;
-//extern ZeroTier::OneService *zt1Service;
 
 namespace ZeroTier {
 
-	int SocketTap::devno = 0;
+	int VirtualTap::devno = 0;
 
 	/****************************************************************************/
-	/* SocketTap Service                                                        */
-	/* - For each joined network a SocketTap will be created to administer I/O  */
+	/* VirtualTap Service                                                        */
+	/* - For each joined network a VirtualTap will be created to administer I/O  */
 	/*   calls to the stack and the ZT virtual wire                             */
 	/****************************************************************************/
 
-	SocketTap::SocketTap(
+	VirtualTap::VirtualTap(
 		const char *homePath,
 		const MAC &mac,
 		unsigned int mtu,
@@ -107,26 +105,26 @@ namespace ZeroTier {
 		_thread = Thread::start(this);
 	}
 
-	SocketTap::~SocketTap()
+	VirtualTap::~VirtualTap()
 	{
 		_run = false;
 		_phy.whack();
 		Thread::join(_thread);
 		_phy.close(_unixListenSocket,false);
-		for(int i=0; i<_Connections.size(); i++) delete _Connections[i];
+		for(int i=0; i<_VirtualSockets.size(); i++) delete _VirtualSockets[i];
 	}
 
-	void SocketTap::setEnabled(bool en)
+	void VirtualTap::setEnabled(bool en)
 	{
 		_enabled = en;
 	}
 
-	bool SocketTap::enabled() const
+	bool VirtualTap::enabled() const
 	{
 		return _enabled;
 	}
 
-	bool SocketTap::registerIpWithStack(const InetAddress &ip)
+	bool VirtualTap::registerIpWithStack(const InetAddress &ip)
 	{
 #if defined(STACK_PICO)
 		if(picostack){
@@ -143,7 +141,7 @@ namespace ZeroTier {
 		return false;
 	}
 
-	bool SocketTap::addIp(const InetAddress &ip)
+	bool VirtualTap::addIp(const InetAddress &ip)
 	{
 #if defined(NO_STACK)
 		char ipbuf[64];
@@ -163,7 +161,7 @@ namespace ZeroTier {
 		return false;
 	}
 
-	bool SocketTap::removeIp(const InetAddress &ip)
+	bool VirtualTap::removeIp(const InetAddress &ip)
 	{
 		Mutex::Lock _l(_ips_m);
 		std::vector<InetAddress>::iterator i(std::find(_ips.begin(),_ips.end(),ip));
@@ -179,13 +177,13 @@ namespace ZeroTier {
 		return true;
 	}
 
-	std::vector<InetAddress> SocketTap::ips() const
+	std::vector<InetAddress> VirtualTap::ips() const
 	{
 		Mutex::Lock _l(_ips_m);
 		return _ips;
 	}
 
-	void SocketTap::put(const MAC &from,const MAC &to,unsigned int etherType,
+	void VirtualTap::put(const MAC &from,const MAC &to,unsigned int etherType,
 		const void *data,unsigned int len)
 	{
 #if defined(STACK_PICO)
@@ -198,18 +196,18 @@ namespace ZeroTier {
 #endif  
 	}
 
-	std::string SocketTap::deviceName() const
+	std::string VirtualTap::deviceName() const
 	{
 		return _dev;
 	}
 
-	void SocketTap::setFriendlyName(const char *friendlyName) 
+	void VirtualTap::setFriendlyName(const char *friendlyName) 
 	{
 		DEBUG_INFO("%s", friendlyName);
 		// Someday
 	}
 
-	void SocketTap::scanMulticastGroups(std::vector<MulticastGroup> &added,
+	void VirtualTap::scanMulticastGroups(std::vector<MulticastGroup> &added,
 		std::vector<MulticastGroup> &removed)
 	{
 		std::vector<MulticastGroup> newGroups;
@@ -233,14 +231,14 @@ namespace ZeroTier {
 		_multicastGroups.swap(newGroups);
 	}
 
-	void SocketTap::setMtu(unsigned int mtu)
+	void VirtualTap::setMtu(unsigned int mtu)
 	{
 		if (_mtu != mtu) {
 			_mtu = mtu;
 		}
 	}
 
-	void SocketTap::threadMain()
+	void VirtualTap::threadMain()
 		throw()
 	{
 #if defined(STACK_PICO)
@@ -253,35 +251,35 @@ namespace ZeroTier {
 #endif
 	}
 
-	void SocketTap::phyOnUnixClose(PhySocket *sock,void **uptr) 
+	void VirtualTap::phyOnUnixClose(PhySocket *sock,void **uptr) 
 	{
 		if(sock) {
-			Connection *conn = (Connection*)uptr;
-			if(conn)
-				Close(conn);
+			VirtualSocket *vs = (VirtualSocket*)uptr;
+			if(vs)
+				Close(vs);
 		}
 	}
 	
-	void SocketTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
+	void VirtualTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
 	{
 		DEBUG_ATTN("sock->fd=%d", _phy.getDescriptor(sock));
-		Connection *conn = (Connection*)*uptr;
-		if(!conn)
+		VirtualSocket *vs = (VirtualSocket*)*uptr;
+		if(!vs)
 			return;
 		if(len){
-			Write(conn, data, len);
+			Write(vs, data, len);
 		}
 		return;
 	}
 
-	void SocketTap::phyOnUnixWritable(PhySocket *sock, void **uptr, bool stack_invoked)
+	void VirtualTap::phyOnUnixWritable(PhySocket *sock, void **uptr, bool stack_invoked)
 	{
 		if(sock)
 			Read(sock,uptr,stack_invoked);
 	}
 
 	// Adds a route to the virtual tap
-	bool SocketTap::routeAdd(const InetAddress &addr, const InetAddress &nm, const InetAddress &gw)
+	bool VirtualTap::routeAdd(const InetAddress &addr, const InetAddress &nm, const InetAddress &gw)
 	{
 #if defined(STACK_PICO)
 		if(picostack)
@@ -294,7 +292,7 @@ namespace ZeroTier {
 	}
 
 	// Deletes a route from the virtual tap
-	bool SocketTap::routeDelete(const InetAddress &addr, const InetAddress &nm)
+	bool VirtualTap::routeDelete(const InetAddress &addr, const InetAddress &nm)
 	{
 #if defined(STACK_PICO)
 		if(picostack)
@@ -311,94 +309,94 @@ namespace ZeroTier {
 	/****************************************************************************/
 
 	// Connect
-	int SocketTap::Connect(Connection *conn, const struct sockaddr *addr, socklen_t addrlen) {
+	int VirtualTap::Connect(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen) {
 #if defined(NO_STACK)
 		return -1;
 #endif
 #if defined(STACK_PICO)
 		if(picostack)
 			Mutex::Lock _l(_tcpconns_m);
-			return picostack->pico_Connect(conn, addr, addrlen);
+			return picostack->pico_Connect(vs, addr, addrlen);
 #endif
 #if defined(STACK_LWIP)
 		if(lwipstack)
-			return lwipstack->lwip_Connect(conn, addr, addrlen);
+			return lwipstack->lwip_Connect(vs, addr, addrlen);
 #endif
 		return ZT_ERR_GENERAL_FAILURE;
 	}
 
 	// Bind VirtualSocket to a network stack's interface
-	int SocketTap::Bind(Connection *conn, const struct sockaddr *addr, socklen_t addrlen) {
+	int VirtualTap::Bind(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen) {
 #if defined(NO_STACK)
 		return -1;
 #endif
 		Mutex::Lock _l(_tcpconns_m);
 #if defined(STACK_PICO)
 		if(picostack)
-			return picostack->pico_Bind(conn, addr, addrlen);
+			return picostack->pico_Bind(vs, addr, addrlen);
 #endif
 #if defined(STACK_LWIP)
 		if(lwipstack)
-			return lwipstack->lwip_Bind(this, conn, addr, addrlen);
+			return lwipstack->lwip_Bind(this, vs, addr, addrlen);
 #endif	
 		return ZT_ERR_GENERAL_FAILURE;
 	}
 
-	// Listen for an incoming connection
-	int SocketTap::Listen(Connection *conn, int backlog) {
+	// Listen for an incoming VirtualSocket
+	int VirtualTap::Listen(VirtualSocket *vs, int backlog) {
 #if defined(NO_STACK)
 		return -1;
 #endif
 		Mutex::Lock _l(_tcpconns_m);
 #if defined(STACK_PICO)
 		if(picostack)
-			return picostack->pico_Listen(conn, backlog);
+			return picostack->pico_Listen(vs, backlog);
 		return ZT_ERR_GENERAL_FAILURE;
 #endif
 #if defined(STACK_LWIP)
 		if(lwipstack)
-			return lwipstack->lwip_Listen(conn, backlog);
+			return lwipstack->lwip_Listen(vs, backlog);
 		return ZT_ERR_GENERAL_FAILURE;
 #endif
 		return ZT_ERR_GENERAL_FAILURE;
 	}
 
-	// Accept a connection 
-	Connection* SocketTap::Accept(Connection *conn) {
+	// Accept a VirtualSocket 
+	VirtualSocket* VirtualTap::Accept(VirtualSocket *vs) {
 #if defined(NO_STACK)
 		return NULL;
 #endif
 #if defined(STACK_PICO)
 		if(picostack)
 			Mutex::Lock _l(_tcpconns_m);
-			return picostack->pico_Accept(conn);
+			return picostack->pico_Accept(vs);
 		return NULL;
 #endif
 #if defined(STACK_LWIP)
 		if(lwipstack)
-			return lwipstack->lwip_Accept(conn);
+			return lwipstack->lwip_Accept(vs);
 		return NULL;
 #endif
 		return NULL;
 	}
 
 	// Read from stack/buffers into the app's socket
-	int SocketTap::Read(PhySocket *sock,void **uptr,bool stack_invoked) {
+	int VirtualTap::Read(PhySocket *sock,void **uptr,bool stack_invoked) {
 #if defined(STACK_PICO)
 		if(picostack)
-			return picostack->pico_Read(this, sock, (Connection*)uptr, stack_invoked);
+			return picostack->pico_Read(this, sock, (VirtualSocket*)uptr, stack_invoked);
 #endif
 #if defined(STACK_LWIP)
 		if(lwipstack)
-			return lwipstack->lwip_Read((Connection*)*(_phy.getuptr(sock)), stack_invoked);
+			return lwipstack->lwip_Read((VirtualSocket*)*(_phy.getuptr(sock)), stack_invoked);
 #endif
 		return -1;
 	}
 
 	// Write data from app socket to the virtual wire, either raw over VL2, or via network stack
-	int SocketTap::Write(Connection *conn, void *data, ssize_t len) {
+	int VirtualTap::Write(VirtualSocket *vs, void *data, ssize_t len) {
 		// VL2, SOCK_RAW, no network stack
-		if(conn->socket_type == SOCK_RAW) {
+		if(vs->socket_type == SOCK_RAW) {
 			struct ether_header *eh = (struct ether_header *) data;
 			MAC src_mac;
 			MAC dest_mac;
@@ -409,49 +407,49 @@ namespace ZeroTier {
 		}
 #if defined(STACK_PICO)
 		if(picostack)
-			return picostack->pico_Write(conn, data, len);
+			return picostack->pico_Write(vs, data, len);
 #endif
 #if defined(STACK_LWIP)
 		if(lwipstack)
-			return lwipstack->lwip_Write(conn, data, len);
+			return lwipstack->lwip_Write(vs, data, len);
 #endif
 		return -1;
 	}
 
 	// Send data to a specified host
-	int SocketTap::SendTo(Connection *conn, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen)
+	int VirtualTap::SendTo(VirtualSocket *vs, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen)
 	{
 		// TODO: flags
 		int err = 0;
 		DEBUG_INFO();
 #if defined(STACK_PICO)
 		if(picostack) {
-			err = picostack->pico_Connect(conn, addr, addrlen); // implicit
-			err = picostack->pico_Write(conn, (void*)buf, len);
+			err = picostack->pico_Connect(vs, addr, addrlen); // implicit
+			err = picostack->pico_Write(vs, (void*)buf, len);
 		}
 #endif
 #if defined(STACK_LWIP)
 		if(lwipstack)
-			err = lwipstack->lwip_Connect(conn, addr, addrlen); // implicit
-			err = lwipstack->lwip_Write(conn, (void*)buf, len);
+			err = lwipstack->lwip_Connect(vs, addr, addrlen); // implicit
+			err = lwipstack->lwip_Write(vs, (void*)buf, len);
 #endif
 		return err;
 	}
 
-	int SocketTap::Close(Connection *conn) {
+	int VirtualTap::Close(VirtualSocket *vs) {
 #if defined(STACK_PICO)
-		if(!conn) {
-			DEBUG_ERROR("invalid connection");
+		if(!vs) {
+			DEBUG_ERROR("invalid VirtualSocket");
 			return -1;
 		}
-		picostack->pico_Close(conn);
-		if(!conn->sock) {
+		picostack->pico_Close(vs);
+		if(!vs->sock) {
 			// DEBUG_EXTRA("invalid PhySocket");
 			return -1;
 		}
 		// Here we assume _tcpconns_m is already locked by caller
 		// FIXME: is this assumption still valid
-		if(conn->state==ZT_SOCK_STATE_LISTENING)
+		if(vs->state==ZT_SOCK_STATE_LISTENING)
 		{
 			// since we never wrapped this socket
 			DEBUG_INFO("in LISTENING state, no need to close in PhyIO");
@@ -459,14 +457,14 @@ namespace ZeroTier {
 		}
 		else
 		{
-			if(conn->sock)
-				_phy.close(conn->sock, false);
+			if(vs->sock)
+				_phy.close(vs->sock, false);
 		}
-		close(_phy.getDescriptor(conn->sock));
-		for(size_t i=0;i<_Connections.size();++i) {
-			if(_Connections[i] == conn){
+		close(_phy.getDescriptor(vs->sock));
+		for(size_t i=0;i<_VirtualSockets.size();++i) {
+			if(_VirtualSockets[i] == vs){
 				// FIXME: double free issue exists here (potentially)
-				// _Connections.erase(_Connections.begin() + i);
+				// _VirtualSockets.erase(_VirtualSockets.begin() + i);
 				//delete conn;
 				break;
 			}
@@ -474,12 +472,12 @@ namespace ZeroTier {
 #endif
 #if defined(STACK_LWIP)
 		if(lwipstack)
-			lwipstack->lwip_Close(conn);
+			lwipstack->lwip_Close(vs);
 #endif
 		return 0; // TODO
 	}
 
-	void SocketTap::Housekeeping()
+	void VirtualTap::Housekeeping()
 	{
 		Mutex::Lock _l(_tcpconns_m);
 		std::time_t current_ts = std::time(nullptr);
@@ -537,7 +535,7 @@ namespace ZeroTier {
 				}
 			}
 
-			// TODO: Clean up Connection objects
+			// TODO: Clean up VirtualSocket objects
 
 			last_housekeeping_ts = std::time(nullptr);
 		}
@@ -547,14 +545,14 @@ namespace ZeroTier {
 	/* Not used in this implementation                                          */
 	/****************************************************************************/
 
-	void SocketTap::phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address, 
+	void VirtualTap::phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address, 
 		const struct sockaddr *from,void *data,unsigned long len) {}
-	void SocketTap::phyOnTcpConnect(PhySocket *sock,void **uptr,bool success) {}
-	void SocketTap::phyOnTcpAccept(PhySocket *sockL,PhySocket *sockN,void **uptrL,void **uptrN,
+	void VirtualTap::phyOnTcpConnect(PhySocket *sock,void **uptr,bool success) {}
+	void VirtualTap::phyOnTcpAccept(PhySocket *sockL,PhySocket *sockN,void **uptrL,void **uptrN,
 		const struct sockaddr *from) {}
-	void SocketTap::phyOnTcpClose(PhySocket *sock,void **uptr) {}
-	void SocketTap::phyOnTcpData(PhySocket *sock,void **uptr,void *data,unsigned long len) {}
-	void SocketTap::phyOnTcpWritable(PhySocket *sock,void **uptr) {}
+	void VirtualTap::phyOnTcpClose(PhySocket *sock,void **uptr) {}
+	void VirtualTap::phyOnTcpData(PhySocket *sock,void **uptr,void *data,unsigned long len) {}
+	void VirtualTap::phyOnTcpWritable(PhySocket *sock,void **uptr) {}
 
 } // namespace ZeroTier
 

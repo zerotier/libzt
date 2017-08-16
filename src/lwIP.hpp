@@ -45,7 +45,7 @@
 #include "OSUtils.hpp"
 
 #include "libzt.h"
-#include "SocketTap.hpp"
+#include "VirtualTap.hpp"
 
 struct tcp_pcb;
 struct netif;
@@ -162,36 +162,36 @@ extern "C" err_t ip_input(LWIP_IP_INPUT_SIG);
 
 namespace ZeroTier {
 	
-	class SocketTap;
-	struct Connection;
+	class VirtualTap;
+	struct VirtualSocket;
 
 	class lwIP
 	{
 	public:
 
 		/*
-		 * Set up an interface in the network stack for the SocketTap
+		 * Set up an interface in the network stack for the VirtualTap
 		 */
-		void lwip_init_interface(SocketTap *tap, const InetAddress &ip);
+		void lwip_init_interface(VirtualTap *tap, const InetAddress &ip);
 
 		/*
 		 * Main stack loop
 		 */
-		void lwip_loop(SocketTap *tap);
+		void lwip_loop(VirtualTap *tap);
 
 		/*
 		 * Packets from the ZeroTier virtual wire enter the stack here
 		 */
-		void lwip_rx(SocketTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
+		void lwip_rx(VirtualTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
 		
 		int lwip_Socket(void **pcb, int socket_family, int socket_type, int protocol);
-		int lwip_Connect(Connection *conn, const struct sockaddr *addr, socklen_t addrlen);
-		int lwip_Bind(SocketTap *tap, Connection *conn, const struct sockaddr *addr, socklen_t addrlen);
-		int lwip_Listen(Connection *conn, int backlog);
-		Connection* lwip_Accept(Connection *conn);
-		int lwip_Read(Connection *conn, bool lwip_invoked);
-		int lwip_Write(Connection *conn, void *data, ssize_t len);
-		int lwip_Close(Connection *conn);
+		int lwip_Connect(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
+		int lwip_Bind(VirtualTap *tap, VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
+		int lwip_Listen(VirtualSocket *vs, int backlog);
+		VirtualSocket* lwip_Accept(VirtualSocket *vs);
+		int lwip_Read(VirtualSocket *vs, bool lwip_invoked);
+		int lwip_Write(VirtualSocket *vs, void *data, ssize_t len);
+		int lwip_Close(VirtualSocket *vs);
 
 		static err_t nc_recved(void *arg, struct tcp_pcb *PCB, struct pbuf *p, err_t err);
 		static err_t nc_accept(void *arg, struct tcp_pcb *newPCB, err_t err);

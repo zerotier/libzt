@@ -156,8 +156,6 @@ PICO_OBJS+= ext/picotcp/build/lib/pico_device.o \
 
 all: 
 
-tests: unit_tests
-
 ##############################################################################
 ## User-Space Stack                                                         ##
 ##############################################################################
@@ -195,8 +193,16 @@ $(TEST_BUILD_DIR)/%: $(UNIT_TEST_SRC_DIR)/%.cpp
 	@-$(CXX) $(UNIT_TEST_INCLUDES) -o $@ $< $(UNIT_TEST_LIBS)
 	@-./check.sh $@
 
-unit_tests: $(UNIT_TEST_OBJ_FILES)
+tests: $(UNIT_TEST_OBJ_FILES)
 
+intercept:
+	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) examples/intercept/intercept.cpp -D_GNU_SOURCE -shared -o $(BUILD)/intercept.so $< $(UNIT_TEST_LIBS) -ldl
+	@./check.sh $(BUILD)/intercept.so
+
+ztproxy:
+	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) examples/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< $(UNIT_TEST_LIBS) -ldl
+	@./check.sh $(BUILD)/ztproxy
+	
 ##############################################################################
 ## Misc                                                                     ##
 ##############################################################################

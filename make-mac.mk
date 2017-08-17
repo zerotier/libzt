@@ -263,6 +263,14 @@ $(TEST_BUILD_DIR)/%: $(UNIT_TEST_SRC_DIR)/%.cpp
 
 tests: $(UNIT_TEST_OBJ_FILES)
 
+intercept:
+	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) examples/intercept/intercept.cpp -D_GNU_SOURCE -shared -o $(BUILD)/intercept.so $< $(UNIT_TEST_LIBS) -ldl
+	@./check.sh $(BUILD)/intercept.so
+
+ztproxy:
+	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) examples/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< $(UNIT_TEST_LIBS) -ldl
+	@./check.sh $(BUILD)/ztproxy
+
 ##############################################################################
 ## Misc                                                                     ##
 ##############################################################################

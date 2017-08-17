@@ -27,6 +27,67 @@
 #ifndef UTILITIES_HPP
 #define UTILITIES_HPP
 
+char *beautify_eth_proto_nums(int proto)
+{
+	if(proto == 0x0800) return (char*)"IPv4";
+	if(proto == 0x0806) return (char*)"ARP";
+	if(proto == 0x0842) return (char*)"Wake-on-LAN";
+	if(proto == 0x22F3) return (char*)"IETF TRILL Protocol";
+	if(proto == 0x22EA) return (char*)"Stream Reservation Protocol";
+	if(proto == 0x6003) return (char*)"DECnet Phase IV";
+	if(proto == 0x8035) return (char*)"Reverse Address Resolution Protocol";
+	if(proto == 0x809B) return (char*)"AppleTalk (Ethertalk)";
+	if(proto == 0x80F3) return (char*)"AppleTalk Address Resolution Protocol (AARP)";
+	if(proto == 0x8100) return (char*)"VLAN-tagged frame (IEEE 802.1Q) and Shortest Path Bridging IEEE 802.1aq with NNI compatibility";
+	if(proto == 0x8137) return (char*)"IPX";
+	if(proto == 0x8204) return (char*)"QNX Qnet";
+	if(proto == 0x86DD) return (char*)"IPv6";
+	if(proto == 0x8808) return (char*)"Ethernet flow control";
+	if(proto == 0x8809) return (char*)"Ethernet Slow Protocols";
+	if(proto == 0x8819) return (char*)"CobraNet";
+	if(proto == 0x8847) return (char*)"MPLS unicast";
+	if(proto == 0x8848) return (char*)"MPLS multicast";
+	if(proto == 0x8863) return (char*)"PPPoE Discovery Stage";
+	if(proto == 0x8864) return (char*)"PPPoE Session Stage";
+	if(proto == 0x886D) return (char*)"Intel Advanced Networking Services";
+	if(proto == 0x8870) return (char*)"Jumbo Frames (Obsoleted draft-ietf-isis-ext-eth-01)";
+	if(proto == 0x887B) return (char*)"HomePlug 1.0 MME";
+	if(proto == 0x888E) return (char*)"EAP over LAN (IEEE 802.1X)";
+	if(proto == 0x8892) return (char*)"PROFINET Protocol";
+	if(proto == 0x889A) return (char*)"HyperSCSI (SCSI over Ethernet)";
+	if(proto == 0x88A2) return (char*)"ATA over Ethernet";
+	if(proto == 0x88A4) return (char*)"EtherCAT Protocol";
+	if(proto == 0x88A8) return (char*)"Provider Bridging (IEEE 802.1ad) & Shortest Path Bridging IEEE 802.1aq";
+	if(proto == 0x88AB) return (char*)"Ethernet Powerlink[citation needed]";
+	if(proto == 0x88B8) return (char*)"GOOSE (Generic Object Oriented Substation event)";
+	if(proto == 0x88B9) return (char*)"GSE (Generic Substation Events) Management Services";
+	if(proto == 0x88BA) return (char*)"SV (Sampled Value Transmission)";
+	if(proto == 0x88CC) return (char*)"Link Layer Discovery Protocol (LLDP)";
+	if(proto == 0x88CD) return (char*)"SERCOS III";
+	if(proto == 0x88DC) return (char*)"WSMP, WAVE Short Message Protocol";
+	if(proto == 0x88E1) return (char*)"HomePlug AV MME[citation needed]";
+	if(proto == 0x88E3) return (char*)"Media Redundancy Protocol (IEC62439-2)";
+	if(proto == 0x88E5) return (char*)"MAC security (IEEE 802.1AE)";
+	if(proto == 0x88E7) return (char*)"Provider Backbone Bridges (PBB) (IEEE 802.1ah)";
+	if(proto == 0x88F7) return (char*)"Precision Time Protocol (PTP) over Ethernet (IEEE 1588)";
+	if(proto == 0x88FB) return (char*)"Parallel Redundancy Protocol (PRP)";
+	if(proto == 0x8902) return (char*)"IEEE 802.1ag Connectivity Fault Management (CFM) Protocol / ITU-T Recommendation Y.1731 (OAM)";
+	if(proto == 0x8906) return (char*)"Fibre Channel over Ethernet (FCoE)";
+	if(proto == 0x8914) return (char*)"FCoE Initialization Protocol";
+	if(proto == 0x8915) return (char*)"RDMA over Converged Ethernet (RoCE)";
+	if(proto == 0x891D) return (char*)"TTEthernet Protocol Control Frame (TTE)";
+	if(proto == 0x892F) return (char*)"High-availability Seamless Redundancy (HSR)";
+	if(proto == 0x9000) return (char*)"Ethernet Configuration Testing Protocol";
+	if(proto == 0x9100) return (char*)"VLAN-tagged (IEEE 802.1Q) frame with double tagging";
+	return (char*)"UNKNOWN";
+}
+
+void mac2str(char *macbuf, int len, unsigned char* addr)
+{
+	snprintf(macbuf, len, "%02x:%02x:%02x:%02x:%02x:%02x",
+         addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+}
+
 #if defined(STACK_LWIP) && defined(LIBZT_IPV6)
 #define IP6_ADDR2(ipaddr, a,b,c,d,e,f,g,h) do { (ipaddr)->addr[0] = ZeroTier::Utils::hton((u32_t)((a & 0xffff) << 16) | (b & 0xffff)); \
                                                (ipaddr)->addr[1] = ZeroTier::Utils::hton(((c & 0xffff) << 16) | (d & 0xffff)); \

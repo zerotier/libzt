@@ -188,11 +188,11 @@ namespace ZeroTier {
 	{
 #if defined(STACK_PICO)
 		if(picostack)
-			picostack->pico_rx(this,from,to,etherType,data,len);
+			picostack->pico_eth_rx(this,from,to,etherType,data,len);
 #endif
 #if defined(STACK_LWIP)
 		if(lwipstack)
-			lwipstack->lwip_rx(this,from,to,etherType,data,len);
+			lwipstack->lwip_eth_rx(this,from,to,etherType,data,len);
 #endif  
 	}
 
@@ -421,7 +421,6 @@ namespace ZeroTier {
 	{
 		// TODO: flags
 		int err = 0;
-		DEBUG_INFO();
 #if defined(STACK_PICO)
 		if(picostack) {
 			err = picostack->pico_Connect(vs, addr, addrlen); // implicit

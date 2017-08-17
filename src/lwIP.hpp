@@ -124,7 +124,7 @@ extern "C" void netif_set_up(LWIP_NETIF_SET_UP_SIG);
 extern "C" void netif_set_default(LWIP_NETIF_SET_DEFAULT_SIG);
 //extern "C" struct netif *netif_add(LWIP_NETIF_ADD_SIG);
 extern "C" err_t tapif_init(struct netif *netif);
-extern "C" err_t low_level_output(struct netif *netif, struct pbuf *p);
+//extern "C" err_t low_level_output(struct netif *netif, struct pbuf *p);
 extern "C" err_t tcp_write(LWIP_TCP_WRITE_SIG);
 extern "C" void tcp_sent(LWIP_TCP_SENT_SIG);
 extern "C" struct tcp_pcb *tcp_new(LWIP_TCP_NEW_SIG);
@@ -182,7 +182,7 @@ namespace ZeroTier {
 		/*
 		 * Packets from the ZeroTier virtual wire enter the stack here
 		 */
-		void lwip_rx(VirtualTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
+		void lwip_eth_rx(VirtualTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
 		
 		int lwip_Socket(void **pcb, int socket_family, int socket_type, int protocol);
 		int lwip_Connect(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);

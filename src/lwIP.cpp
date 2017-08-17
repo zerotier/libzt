@@ -49,7 +49,7 @@ err_t tapif_init(struct netif *netif)
   return ERR_OK;
 }
 
-err_t low_level_output(struct netif *netif, struct pbuf *p)
+err_t lwip_eth_tx(struct netif *netif, struct pbuf *p)
 {
 	DEBUG_INFO();
 	struct pbuf *q;
@@ -104,7 +104,7 @@ namespace ZeroTier
 				tap->lwipdev.mtu = tap->_mtu;
 				tap->lwipdev.name[0] = 'l';
 				tap->lwipdev.name[1] = '4';
-				tap->lwipdev.linkoutput = low_level_output;
+				tap->lwipdev.linkoutput = lwip_eth_tx;
 				tap->lwipdev.hwaddr_len = 6;
 				tap->lwipdev.flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_IGMP | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 				netif_set_default(&(tap->lwipdev));
@@ -122,7 +122,7 @@ namespace ZeroTier
 				tap->lwipdev6.name[0] = 'l';
 				tap->lwipdev6.name[1] = '6';
 				tap->lwipdev6.hwaddr_len = 6;
-				tap->lwipdev6.linkoutput = low_level_output;
+				tap->lwipdev6.linkoutput = lwip_eth_tx;
 				tap->lwipdev6.ip6_autoconfig_enabled = 1;
 				tap->_mac.copyTo(tap->lwipdev6.hwaddr, tap->lwipdev6.hwaddr_len);
 				netif_create_ip6_linklocal_address(&(tap->lwipdev6), 1);
@@ -181,7 +181,7 @@ namespace ZeroTier
 		}
 	}
 
-	void lwIP::lwip_rx(VirtualTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
+	void lwIP::lwip_eth_rx(VirtualTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len)
 	{
 		DEBUG_INFO("etherType=%x, len=%d", etherType, len);
 		struct pbuf *p,*q;

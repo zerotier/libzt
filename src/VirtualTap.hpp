@@ -109,27 +109,27 @@ namespace ZeroTier {
 			unsigned int len);
 
 		/* 
-		 * 
+		 * Get device name
 		 */
 		std::string deviceName() const;
 		
 		/* 
-		 * 
+		 * Set friendly name
 		 */
 		void setFriendlyName(const char *friendlyName);
 		
 		/* 
-		 * 
+		 * Scan multicast groups
 		 */
 		void scanMulticastGroups(std::vector<MulticastGroup> &added,std::vector<MulticastGroup> &removed);
 
 		/* 
-		 * 
+		 * Set MTU
 		 */
 		void setMtu(unsigned int mtu);
 
 		/* 
-		 * 
+		 * Calls main network stack loops
 		 */
 		void threadMain()
 			throw();
@@ -176,28 +176,28 @@ namespace ZeroTier {
 		 */
 		bool picodev_initialized = false;
 
-		struct pico_device *picodev;
-		struct pico_device *picodev6;
+		struct pico_device *picodev = NULL;
+		struct pico_device *picodev6 = NULL;
 
 		/****************************************************************************/
 		/* Guarded RX Frame Buffer for picoTCP                                      */
 		/****************************************************************************/
 
 		unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
-		int pico_frame_rxbuf_tot;
+		int pico_frame_rxbuf_tot = 0;
 		Mutex _pico_frame_rxbuf_m;
 #endif
 
 #if defined(STACK_LWIP)
-		netif lwipdev;
-		netif lwipdev6;
+		netif lwipdev = NULL;
+		netif lwipdev6 = NULL;
 #endif
 
 		std::vector<std::pair<ZeroTier::InetAddress, ZeroTier::InetAddress>> routes;
-		void *zt1ServiceRef;
+		void *zt1ServiceRef = NULL;
 
 		static int devno;
-		int ifindex;
+		int ifindex = 0;
 
 		std::vector<InetAddress> ips() const;
 		std::vector<InetAddress> _ips;

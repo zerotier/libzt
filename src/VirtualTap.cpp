@@ -111,7 +111,10 @@ namespace ZeroTier {
 		_phy.whack();
 		Thread::join(_thread);
 		_phy.close(_unixListenSocket,false);
-		for(int i=0; i<_VirtualSockets.size(); i++) delete _VirtualSockets[i];
+		for(int i=0; i<_VirtualSockets.size(); i++) {
+			delete _VirtualSockets[i];
+			_VirtualSockets[i] = NULL;
+		}
 	}
 
 	void VirtualTap::setEnabled(bool en)
@@ -262,7 +265,7 @@ namespace ZeroTier {
 	
 	void VirtualTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
 	{
-		DEBUG_ATTN("sock->fd=%d", _phy.getDescriptor(sock));
+		//DEBUG_ATTN("sock->fd=%d", _phy.getDescriptor(sock));
 		VirtualSocket *vs = (VirtualSocket*)*uptr;
 		if(!vs)
 			return;
@@ -459,15 +462,7 @@ namespace ZeroTier {
 			if(vs->sock)
 				_phy.close(vs->sock, false);
 		}
-		close(_phy.getDescriptor(vs->sock));
-		for(size_t i=0;i<_VirtualSockets.size();++i) {
-			if(_VirtualSockets[i] == vs){
-				// FIXME: double free issue exists here (potentially)
-				// _VirtualSockets.erase(_VirtualSockets.begin() + i);
-				//delete conn;
-				break;
-			}
-		}
+		//close(_phy.getDescriptor(vs->sock));
 #endif
 #if defined(STACK_LWIP)
 		if(lwipstack)

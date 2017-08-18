@@ -86,14 +86,15 @@ namespace ZeroTier {
 	bool picoTCP::pico_init_interface(VirtualTap *tap, const InetAddress &ip)
 	{
 		char ipbuf[64];
+		uint8_t hwaddr[6];
 		if (std::find(tap->_ips.begin(),tap->_ips.end(),ip) == tap->_ips.end()) {
 			tap->_ips.push_back(ip);
 			std::sort(tap->_ips.begin(),tap->_ips.end());
 			
 			if(!tap->picodev_initialized)
 			{
-				picodev.send = pico_eth_send; // tx
-				picodev.poll = pico_eth_poll; // rx
+				picodev.send = pico_eth_tx; // tx
+				picodev.poll = pico_eth_poll; // calls pico_eth_rx
 				picodev.mtu = tap->_mtu;
 				picodev.tap = tap;
 				uint8_t mac[PICO_SIZE_ETH];
@@ -111,8 +112,11 @@ namespace ZeroTier {
 				ipaddr.addr = *((uint32_t *)ip.rawIpData());
 				netmask.addr = *((uint32_t *)ip.netmask().rawIpData());
 				pico_ipv4_link_add(&picodev, ipaddr, netmask);
-				DEBUG_INFO("addr  = %s", ip.toString(ipbuf));
-				//DEBUG_INFO("mac   = %s", tap->_mac.toString(ipbuf));
+				DEBUG_INFO("addr=%s", ip.toString(ipbuf));
+				tap->_mac.copyTo(hwaddr, 6);
+				char macbuf[18];
+				mac2str(macbuf, sizeof(macbuf), hwaddr);
+				DEBUG_INFO("mac=%s", macbuf);
 				return true;
 			}
 			if(ip.isV6())
@@ -124,8 +128,11 @@ namespace ZeroTier {
 				pico_string_to_ipv6(ipv6_str, ipaddr.addr);
 				pico_string_to_ipv6(nm_str, netmask.addr);
 				pico_ipv6_link_add(&picodev, ipaddr, netmask);
-				DEBUG_INFO("addr6 = %s", ipv6_str);
-				//DEBUG_INFO("mac   = %s", tap->_mac.toString(ipbuf));
+				DEBUG_INFO("addr=%s", ipv6_str);
+				tap->_mac.copyTo(hwaddr, 6);
+				char macbuf[18];
+				mac2str(macbuf, sizeof(macbuf), hwaddr);
+				DEBUG_INFO("mac=%s", macbuf);
 				return true;    
 			}
 		}
@@ -181,8 +188,13 @@ namespace ZeroTier {
 		VirtualSocket *vs = (VirtualSocket*)((VirtualBindingPair*)(s->priv))->vs;
 		Mutex::Lock _l(vs->_rx_m);
 		
-		if(!vs || !tap) {
-			DEBUG_ERROR("invalid tap or vs");
+		if(!tap) {
+			DEBUG_ERROR("invalid tap");
+			handle_general_failure();
+			return;
+		}
+		if(!vs) {
+			DEBUG_ERROR("invalid vs");
 			handle_general_failure();
 			return;
 		}
@@ -232,60 +244,64 @@ namespace ZeroTier {
 	// from stack socket to app socket
 	void picoTCP::pico_cb_udp_read(VirtualTap *tap, struct pico_socket *s)
 	{
-		/*
-		DEBUG_INFO();
+		// DEBUG_INFO();
 		VirtualSocket *vs = (VirtualSocket*)((VirtualBindingPair*)(s->priv))->vs;
 		Mutex::Lock _l(vs->_rx_m);
-		if(vs) {
 
-			uint16_t port = 0;
-			union {
-				struct pico_ip4 ip4;
-				struct pico_ip6 ip6;
-			} peer;
-
-			char tmpbuf[ZT_SDK_MTU];
-			unsigned char *addr_pos, *sz_pos, *payload_pos;
-			struct sockaddr_in addr_in;
-			addr_in.sin_addr.s_addr = peer.ip4.addr;
-			addr_in.sin_port = port;
-			
-			// RX
-			int r = pico_socket_recvfrom(s, tmpbuf, ZT_SDK_MTU, (void *)&peer.ip4.addr, &port);
-			//DEBUG_FLOW(" [  RXBUF <- STACK] Receiving (%d) from stack, copying to receving buffer", r);
-
-			if(vs->rxsz == ZT_UDP_RX_BUF_SZ) { // if UDP buffer full
-				//DEBUG_FLOW(" [  RXBUF <- STACK] UDP RX buffer full. Discarding oldest payload segment");
-				memmove(vs->rxbuf, vs->rxbuf + ZT_SDK_MTU, ZT_UDP_RX_BUF_SZ - ZT_SDK_MTU);
-				addr_pos = vs->rxbuf + (ZT_UDP_RX_BUF_SZ - ZT_SDK_MTU); // TODO:
-				sz_pos = addr_pos + sizeof(struct sockaddr_storage);
-				vs->rxsz -= ZT_SDK_MTU;
-			}
-			else {
-				addr_pos = vs->rxbuf + vs->rxsz; // where we'll prepend the size of the address
-				sz_pos = addr_pos + sizeof(struct sockaddr_storage);
-			}
-			payload_pos = addr_pos + sizeof(struct sockaddr_storage) + sizeof(r);
-			memcpy(addr_pos, &addr_in, sizeof(struct sockaddr_storage));
-			memcpy(payload_pos, tmpbuf, r); // write payload to app's socket
-
-			// Adjust buffer size
-			if(r) {
-				vs->rxsz += ZT_SDK_MTU;
-				memcpy(sz_pos, &r, sizeof(r));
-			}
-			if (r < 0) {
-				DEBUG_ERROR("unable to read from picosock=%p", s);
-				handle_general_failure();
-			} 
-			tap->_rx_buf_m.unlock(); 
-
-			if(r)
-				tap->phyOnUnixWritable(vs->sock, NULL, true);
-			//DEBUG_EXTRA(" Copied onto rxbuf (%d) from stack socket", r);
+		if(!tap) {
+			DEBUG_ERROR("invalid tap");
+			handle_general_failure();
 			return;
 		}
-		*/
+		if(!vs) {
+			DEBUG_ERROR("invalid vs");
+			handle_general_failure();
+			return;
+		}
+
+		uint16_t port = 0;
+		union {
+			struct pico_ip4 ip4;
+			struct pico_ip6 ip6;
+		} peer;
+		int r = 0;
+
+		if(vs->socket_family == AF_INET) {
+			struct sockaddr_in in4;
+			char udp_payload_buf[ZT_MAX_MTU];
+			if((r = pico_socket_recvfrom(s, udp_payload_buf, ZT_SDK_MTU, (void *)&peer.ip4.addr, &port)) < 0) {
+				DEBUG_ERROR("err=%d, %s", r, beautify_pico_error(pico_err));
+			}
+			in4.sin_addr.s_addr = peer.ip4.addr;
+			in4.sin_port = port;
+			// immediately attempt to write addr and payload to app socket. The idea is that the zts_recvfrom() has
+			// been called and will pick this up and correctly handle it
+			char udp_msg_buf[ZT_MAX_MTU]; // [sz : addr : payload]
+			int len = sizeof(struct sockaddr_in) + r;
+			int tot_len = sizeof(len) + len;
+			memcpy(udp_msg_buf, &len, sizeof(len)); // len: sockaddr+payload
+			memcpy(udp_msg_buf + sizeof(len), &in4, sizeof(in4)); // sockaddr
+			memcpy(udp_msg_buf + sizeof(len) + sizeof(in4), &udp_payload_buf, r); // payload
+			int w = write(vs->sdk_fd, udp_msg_buf, tot_len);
+		}
+		if(vs->socket_family == AF_INET6) {
+			struct sockaddr_in6 in6;
+			char udp_payload_buf[ZT_MAX_MTU];
+			if((r = pico_socket_recvfrom(s, udp_payload_buf, ZT_SDK_MTU, (void *)&peer.ip6.addr, &port)) < 0) {
+				DEBUG_ERROR("err=%d, %s", r, beautify_pico_error(pico_err));
+			}
+			memcpy(&(in6.sin6_addr.s6_addr), &(peer.ip6.addr), sizeof(peer.ip6.addr));
+			in6.sin6_port = port;
+			// immediately attempt to write addr and payload to app socket. The idea is that the zts_recvfrom() has
+			// been called and will pick this up and correctly handle it
+			char udp_msg_buf[ZT_MAX_MTU]; // [sz : addr : payload]
+			int len = sizeof(struct sockaddr_in6) + r;
+			int tot_len = sizeof(len) + len;
+			memcpy(udp_msg_buf, &len, sizeof(len)); // len: sockaddr+payload
+			memcpy(udp_msg_buf + sizeof(len), &in6, sizeof(in6)); // sockaddr
+			memcpy(udp_msg_buf + sizeof(len) + sizeof(in6), &udp_payload_buf, r); // payload
+			int w = write(vs->sdk_fd, udp_msg_buf, tot_len);
+		}
 	}
 
 	void picoTCP::pico_cb_tcp_write(VirtualTap *tap, struct pico_socket *s)
@@ -349,19 +365,27 @@ namespace ZeroTier {
 			if(vs->state == ZT_SOCK_STATE_LISTENING)
 			{
 				Mutex::Lock _l(tap->_tcpconns_m);
-				uint32_t peer;
+
 				uint16_t port;
-				struct pico_socket *client_psock = pico_socket_accept(s, &peer, &port);
+				struct pico_socket *client_psock = nullptr;
+				struct pico_ip4 orig4;
+				struct pico_ip6 orig6;
+
+				if(vs->socket_family == AF_INET) { // NOTE: p->net->proto_number == PICO_PROTO_IPV4
+					client_psock = pico_socket_accept(s, &orig4, &port);
+				}
+				if(vs->socket_family == AF_INET6) { // NOTE: p->net->proto_number == PICO_PROTO_IPV4
+					client_psock = pico_socket_accept(s, &orig6, &port);
+				}
+
 				if(!client_psock) {
 					DEBUG_ERROR("pico_err=%s, picosock=%p", beautify_pico_error(pico_err), s);
 					return;
-				}			
-
+				}		
 				// Create a new VirtualSocket and add it to the queue,
 				//   some time in the future a call to zts_multiplex_accept() will pick up 
 				//   this new VirtualSocket, add it to the VirtualSocket list and return its
 				//   VirtualSocket->sock to the application
-
 				VirtualSocket *new_vs = new VirtualSocket();
 				new_vs->socket_type = SOCK_STREAM;
 				new_vs->picosock = client_psock;
@@ -369,27 +393,38 @@ namespace ZeroTier {
 				new_vs->picosock->priv = new VirtualBindingPair(tap,new_vs);
 				tap->_VirtualSockets.push_back(new_vs);
 				vs->_AcceptedConnections.push(new_vs);
-
-
-				int value = 1;
-				pico_socket_setoption(new_vs->picosock, PICO_TCP_NODELAY, &value);
+				// TODO: Condense this
+				if(vs->socket_family == AF_INET)
+				{
+					struct sockaddr_in in4;
+					in4.sin_addr.s_addr = orig4.addr;
+					in4.sin_port = Utils::hton(port);
+					memcpy(&(new_vs->peer_addr), &in4, sizeof(new_vs->peer_addr));
+					char addrstr[INET_ADDRSTRLEN];
+					inet_ntop(AF_INET, &(in4.sin_addr), addrstr, INET_ADDRSTRLEN);
+					DEBUG_EXTRA("accepted connection from: %s : %d", addrstr, port);
+				}
+				if(vs->socket_family == AF_INET6)
+				{
+					struct sockaddr_in6 in6;
+					memcpy(&(in6.sin6_addr.s6_addr), &orig6, sizeof(in6.sin6_addr.s6_addr));
+					in6.sin6_port = Utils::hton(port);
+					memcpy(&(new_vs->peer_addr), &in6, sizeof(new_vs->peer_addr));
+					char addrstr[INET6_ADDRSTRLEN];
+					inet_ntop(AF_INET6, &(in6.sin6_addr), addrstr, INET6_ADDRSTRLEN);
+					DEBUG_EXTRA("accepted connection from: %s : %d", addrstr, port);
+				}
+				
+				// int value = 1;
+				// pico_socket_setoption(new_vs->picosock, PICO_TCP_NODELAY, &value);
 				
 				if(ZT_SOCK_BEHAVIOR_LINGER) {
 					int linger_time_ms = ZT_SOCK_BEHAVIOR_LINGER_TIME;
 					int t_err = 0;
 					if((t_err = pico_socket_setoption(new_vs->picosock, PICO_SOCKET_OPT_LINGER, &linger_time_ms)) < 0)
-						DEBUG_ERROR("unable to set LINGER size, err = %d, pico_err = %d, app_fd=%d, sdk_fd=%d", t_err, pico_err, vs->app_fd, vs->sdk_fd);
+						DEBUG_ERROR("unable to set LINGER size, err=%d, pico_err=%d, app_fd=%d, sdk_fd=%d", t_err, pico_err, vs->app_fd, vs->sdk_fd);
 				}
-/*
-				linger_time_ms = 0;
-				if((t_err = pico_socket_getoption(new_vs->picosock, PICO_SOCKET_OPT_LINGER, &linger_time_ms)) < 0)
-				   DEBUG_ERROR("unable to set LINGER size, err = %d, pico_err = %d", t_err, pico_err);
-				DEBUG_TEST("getting linger = %d", linger_time_ms);
-*/
-				// For I/O loop participation and referencing the PhySocket's parent VirtualSocket in callbacks
 				new_vs->sock = tap->_phy.wrapSocket(new_vs->sdk_fd, new_vs);
-				//DEBUG_ERROR("sock->fd = %d", tap->_phy.getDescriptor(new_vs->sock));      
-
 			}
 			if(vs->state != ZT_SOCK_STATE_LISTENING) {
 				// set state so socket multiplexer logic will pick this up
@@ -410,7 +445,8 @@ namespace ZeroTier {
 				DEBUG_ERROR("PICO_ERR_ECONNRESET");
 				vs->state = PICO_ERR_ECONNRESET;
 			}
-			DEBUG_ERROR("PICO_SOCK_EV_ERR, err=%s, picosock=%p, app_fd=%d, sdk_fd=%d", beautify_pico_error(pico_err), s, vs->app_fd, vs->sdk_fd); 
+			DEBUG_ERROR("PICO_SOCK_EV_ERR, err=%s, picosock=%p, app_fd=%d, sdk_fd=%d", 
+				beautify_pico_error(pico_err), s, vs->app_fd, vs->sdk_fd); 
 		}
 		// PICO_SOCK_EV_CLOSE - triggered when a FIN segment is received (TCP only). This event
 		// indicates that the oher endpont has closed the VirtualSocket, so the local TCP layer is only
@@ -438,7 +474,7 @@ namespace ZeroTier {
 		}
 	}
    
-	int pico_eth_send(struct pico_device *dev, void *buf, int len)
+	int pico_eth_tx(struct pico_device *dev, void *buf, int len)
 	{
 		//DEBUG_INFO("len = %d", len);
 		VirtualTap *tap = (VirtualTap*)(dev->tap);
@@ -453,16 +489,26 @@ namespace ZeroTier {
 		MAC dest_mac;
 		src_mac.setTo(ethhdr->saddr, 6);
 		dest_mac.setTo(ethhdr->daddr, 6);
+		
+		if(ZT_DEBUG_LEVEL >= ZT_MSG_TRANSFER) {
+			char macBuf[18], nodeBuf[11];
+			mac2str(macBuf, sizeof(macBuf), ethhdr->daddr);
+			ZeroTier::MAC mac;
+			mac.setTo(ethhdr->daddr, 6);
+			mac.toAddress(tap->_nwid).toString(nodeBuf);
+			DEBUG_TRANS("len=%5d, dest=%s, node=%s, proto=0x%04x (%s)", len, macBuf, nodeBuf, Utils::ntoh(ethhdr->proto), beautify_eth_proto_nums(Utils::ntoh(ethhdr->proto)));
+		}
+
 		tap->_handler(tap->_arg,NULL,tap->_nwid,src_mac,dest_mac,
-			Utils::ntoh((uint16_t)ethhdr->proto),0, ((char*)buf) + sizeof(struct pico_eth_hdr),len - sizeof(struct pico_eth_hdr));
+			Utils::ntoh((uint16_t)ethhdr->proto),0, ((char*)buf) 
+			+ sizeof(struct pico_eth_hdr),len - sizeof(struct pico_eth_hdr));
 		return len;
 	}
 
 	// receive frames from zerotier virtual wire and copy them to a guarded buffer awaiting placement into network stack
-	void picoTCP::pico_rx(VirtualTap *tap, const MAC &from,const MAC &to,unsigned int etherType,
+	void picoTCP::pico_eth_rx(VirtualTap *tap, const MAC &from,const MAC &to,unsigned int etherType,
 		const void *data,unsigned int len)
 	{
-		DEBUG_INFO("len = %d", len);
 		if(!tap) {
 			DEBUG_ERROR("invalid tap");
 			handle_general_failure();
@@ -471,27 +517,26 @@ namespace ZeroTier {
 		// Since picoTCP only allows the reception of frames from within the polling function, we
 		// must enqueue each frame into a memory structure shared by both threads. This structure will
 		Mutex::Lock _l(tap->_pico_frame_rxbuf_m);
-
 		// assemble new eth header
 		struct pico_eth_hdr ethhdr;
 		from.copyTo(ethhdr.saddr, 6);
 		to.copyTo(ethhdr.daddr, 6);
 		ethhdr.proto = Utils::hton((uint16_t)etherType);
 		int newlen = len + sizeof(int) + sizeof(struct pico_eth_hdr);
-
-		int mylen;
-		// FIXME
-		while(newlen > (MAX_PICO_FRAME_RX_BUF_SZ-tap->pico_frame_rxbuf_tot) && ethhdr.proto == 56710)
-		{
-			mylen = 0;
-			memset(tap->pico_frame_rxbuf,0,MAX_PICO_FRAME_RX_BUF_SZ);
-			tap->pico_frame_rxbuf_tot=0;
+		
+		if(ZT_DEBUG_LEVEL >= ZT_MSG_TRANSFER) {
+			char macBuf[18], nodeBuf[11];
+			mac2str(macBuf, sizeof(macBuf), ethhdr.saddr);
+			ZeroTier::MAC mac;
+			mac.setTo(ethhdr.saddr, 6);
+			mac.toAddress(tap->_nwid).toString(nodeBuf);
+			DEBUG_TRANS("len=%5d,  src=%s, node=%s, proto=0x%04x (%s)", len, macBuf, nodeBuf, etherType, beautify_eth_proto_nums(etherType));
 		}
+		// write virtual ethernet frame to guarded buffer (emptied by pico_eth_poll())
 		memcpy(tap->pico_frame_rxbuf + tap->pico_frame_rxbuf_tot, &newlen, sizeof(newlen));                      // size of frame + meta		
 		memcpy(tap->pico_frame_rxbuf + tap->pico_frame_rxbuf_tot + sizeof(newlen), &ethhdr, sizeof(ethhdr));     // new eth header
 		memcpy(tap->pico_frame_rxbuf + tap->pico_frame_rxbuf_tot + sizeof(newlen) + sizeof(ethhdr), data, len);  // frame data
 		tap->pico_frame_rxbuf_tot += newlen;
-		//DEBUG_FLOW("[ ZWIRE -> FBUF ] Move FRAME(sz=%d) into FBUF(sz=%d), data_len=%d", newlen, tap->pico_frame_rxbuf_tot, len);
 	}
 
 	// feed frames on the guarded RX buffer (from zerotier virtual wire) into the network stack
@@ -519,7 +564,7 @@ namespace ZeroTier {
 				memcpy(frame, tap->pico_frame_rxbuf + sizeof(len), len-(sizeof(len)) ); // get frame data
 				memmove(tap->pico_frame_rxbuf, tap->pico_frame_rxbuf + len, MAX_PICO_FRAME_RX_BUF_SZ-len); // shift buffer
 				err = pico_stack_recv(dev, (uint8_t*)frame, (len-sizeof(len))); 
-				//DEBUG_INFO("recv = %d", err);
+				// DEBUG_INFO("pico_stack_recv() = %d", err);
 				tap->pico_frame_rxbuf_tot-=len;
 			}
 			else {
@@ -563,8 +608,9 @@ namespace ZeroTier {
 					int tx_buf_sz = ZT_STACK_TCP_SOCKET_TX_SZ;
 					int rx_buf_sz = ZT_STACK_TCP_SOCKET_RX_SZ;
 					int t_err = 0;
-					int value = 1;
-					pico_socket_setoption(psock, PICO_TCP_NODELAY, &value);
+
+					//int value = 1;
+					// pico_socket_setoption(psock, PICO_TCP_NODELAY, &value);
 
 					if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_SNDBUF, &tx_buf_sz)) < 0)
 						DEBUG_ERROR("unable to set SNDBUF size, err = %d, pico_err = %d", t_err, pico_err);
@@ -722,84 +768,8 @@ namespace ZeroTier {
 
 	int picoTCP::pico_Read(VirtualTap *tap, PhySocket *sock, VirtualSocket* vs, bool stack_invoked)
 	{
-		DEBUG_INFO();
-		//exit(0);
-		/*
-		if(!vs || !tap || !vs) {
-			DEBUG_ERROR("invalid tap, sock, or vs");
-			handle_general_failure();
-			return;
-		}
-		//DEBUG_INFO();
-		if(!stack_invoked) {
-			// The stack thread writes to RXBUF as well
-			tap->_tcpconns_m.lock();
-			tap->_rx_buf_m.lock(); 
-		}
-		int tot = 0, n = -1, write_attempts = 0;
-		
-		if(vs && vs->rxsz) {	
-			//DEBUG_INFO("vs = %p", vs);
-			//	
-			if(vs->socket_type==SOCK_DGRAM) {
-				// Try to write ZT_SDK_MTU-sized chunk to app socket
-				while(tot < ZT_SDK_MTU) {
-					write_attempts++;
-					n = tap->_phy.streamSend(vs->sock, (vs->rxbuf)+tot, ZT_SDK_MTU);
-					tot += n;
-					//DEBUG_FLOW("[ ZTSOCK <- RXBUF] wrote = %d, errno=%d", n, errno);
-					// If socket is unavailable, attempt to write N times before giving up
-					if(errno==35) {
-						if(write_attempts == 1024) {
-							n = ZT_SDK_MTU; // say we wrote it, even though we didn't (drop packet)
-							tot = ZT_SDK_MTU;
-						}
-					}
-				}
-				int payload_sz, addr_sz_offset = sizeof(struct sockaddr_storage);
-				memcpy(&payload_sz, vs->rxbuf + addr_sz_offset, sizeof(int));
-				struct sockaddr_storage addr;
-				memcpy(&addr, vs->rxbuf, addr_sz_offset);
-				// adjust buffer
-				if(vs->rxsz-n > 0) { // If more remains on buffer
-					memcpy(vs->rxbuf, vs->rxbuf+ZT_SDK_MTU, vs->rxsz - ZT_SDK_MTU);
-				}
-				vs->rxsz -= ZT_SDK_MTU;
-			}
-			//
-			if(vs->socket_type==SOCK_STREAM) {
-				//DEBUG_INFO("writing to vs->sock = %p, vs->sdk_fd=%d, vs->app_fd=%d", vs->sock, vs->sdk_fd, vs->app_fd);
-				n = tap->_phy.streamSend(vs->sock, vs->rxbuf, vs->rxsz);	
-				// FIXME: Revisit the idea of writing directly to the app socketpair instead of using Phy I/O 
-				// n = write(vs->sdk_fd, vs->rxbuf, vs->rxsz);
-				if(vs->rxsz-n > 0) // If more remains on buffer
-					memcpy(vs->rxbuf, vs->rxbuf+n, vs->rxsz - n);
-				vs->rxsz -= n;
-			}
-			// Notify ZT I/O loop that it has new buffer contents
-			if(n) {
-				if(vs->socket_type==SOCK_STREAM) {
-					//#if DEBUG_LEVEL >= MSG_TRANSFER
-					//	DEBUG_TRANS("[ TCP RX <- STACK] :: vs = %p, len = %d", vs, n);
-					//#endif
-				}
-				if(vs->rxsz == 0) {
-					tap->_phy.setNotifyWritable(sock, false);
-				}
-				else {
-					tap->_phy.setNotifyWritable(sock, true);	
-				}
-			}
-			else {
-				tap->_phy.setNotifyWritable(sock, false);
-			}	
-		}
-		if(!stack_invoked) {
-			tap->_tcpconns_m.unlock();
-			tap->_rx_buf_m.unlock();
-		}
-		// DEBUG_FLOW("[ ZTSOCK <- RXBUF] Emitted (%d) from RXBUF(%d) to socket", tot, vs->rxsz);
-		*/
+		// DEBUG_INFO();
+		// Vestigial
 		return 0;
 	}
 
@@ -807,7 +777,7 @@ namespace ZeroTier {
 	{
 		int err = 0;
 		// TODO: Add RingBuffer overflow checks
-		DEBUG_INFO("vs=%p, len=%d", vs, len);
+		// DEBUG_INFO("vs=%p, len=%d", vs, len);
 		Mutex::Lock _l(vs->_tx_m);
 		if(len <= 0) {
 			DEBUG_ERROR("invalid write length (len=%d)", len);
@@ -828,13 +798,14 @@ namespace ZeroTier {
 		{
 			int r;
 			if((r = pico_socket_write(vs->picosock, data, len)) < 0) {
-				DEBUG_ERROR("unable to write to picosock=%p, r=%d", vs->picosock, r);
+				DEBUG_ERROR("unable to write to picosock=%p, err=%d (%s)", 
+					vs->picosock, r, pico_err, beautify_pico_error(pico_err));
 				err = -1;
 			}
 			else {
 				err = r; // successful write
 			}
-			DEBUG_TRANS("[ UDP TX -> STACK] :: vs=%p, len=%d, err=%s", vs, r, beautify_pico_error(pico_err));
+			// DEBUG_TRANS("[ UDP TX -> STACK] :: vs=%p, len=%d", vs, r);
 		}
 		if(vs->socket_type == SOCK_STREAM)
 		{

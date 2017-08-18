@@ -193,6 +193,8 @@ struct zts_ifreq {
 #define ZT_SELECT_SIG int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout
 #define ZT_GETSOCKNAME_SIG int fd, struct sockaddr *addr, socklen_t *addrlen
 #define ZT_GETPEERNAME_SIG int fd, struct sockaddr *addr, socklen_t *addrlen
+#define ZT_GETHOSTNAME_SIG char *name, size_t len
+#define ZT_SETHOSTNAME_SIG const char *name, size_t len
 #define ZT_FCNTL_SIG int fd, int cmd, int flags
 #define ZT_IOCTL_SIG int fd, unsigned long request, void *argp
 #define ZT_SYSCALL_SIG long number, ...
@@ -401,6 +403,16 @@ int zts_getsockname(ZT_GETSOCKNAME_SIG);
 int zts_getpeername(ZT_GETPEERNAME_SIG);
 
 /**
+ * Gets current hostname
+ */
+int zts_gethostname(ZT_GETHOSTNAME_SIG);
+
+/**
+ * Sets current hostname
+ */
+int zts_sethostname(ZT_SETHOSTNAME_SIG);
+
+/**
  * Close a socket
  * TODO: Check that closing a socket immediately after writing doesn't behave in 
  * an undefined manner
@@ -430,12 +442,22 @@ int zts_ioctl(ZT_IOCTL_SIG);
 /**
  * Send data to a remote host
  */
+ssize_t zts_send(ZT_SEND_SIG);
+
+/**
+ * Send data to a remote host
+ */
 ssize_t zts_sendto(ZT_SENDTO_SIG);
 
 /**
  * Send a message to a remote host
  */
 ssize_t zts_sendmsg(ZT_SENDMSG_SIG);
+
+/**
+ * Receive data from a remote host
+ */
+ssize_t zts_recv(ZT_RECV_SIG);
 
 /**
  * Receive data from a remote host
@@ -486,6 +508,7 @@ namespace ZeroTier
 	extern ZeroTier::lwIP *lwipstack;
 
 	class VirtualTap;
+	struct VirtualSocket;
 	struct InetAddress;
 }
 
@@ -527,9 +550,19 @@ ZeroTier::VirtualTap *getTapByName(char *ifname);
 ZeroTier::VirtualTap *getTapByIndex(int index);
 
 /*
+ * Returns a pointer to a VirtualSocket for a given fd
+ */
+ZeroTier::VirtualSocket *get_virtual_socket(int fd);
+
+/*
  * Destroys all virtual tap devices
  */
 void dismantleTaps();
+
+/*
+ * Get device ID (from file)
+ */
+int zts_get_device_id_from_file(const char *filepath, char *devID);
 
 /**
  * Don't call this directly, use 'zts_start()'

@@ -408,7 +408,7 @@ int zts_socket(ZT_SOCKET_SIG) {
 #if defined(STACK_PICO)
 	struct pico_socket *p;
 	err = ZeroTier::picostack->pico_Socket(&p, socket_family, socket_type, protocol);
-	if(p) {
+	if(!err && p) {
 		ZeroTier::VirtualSocket *vs = new ZeroTier::VirtualSocket();
 		vs->socket_family = socket_family;
 		vs->socket_type = socket_type;
@@ -625,6 +625,10 @@ int zts_connect(ZT_CONNECT_SIG) {
 			}
 		}
 	}
+	if(!err) {
+		// for calls like getpeername()
+		memcpy(&(vs->peer_addr), addr, sizeof(vs->peer_addr));
+	}
 	return err;
 }
 
@@ -837,6 +841,11 @@ int zts_accept(ZT_ACCEPT_SIG) {
 				err = accepted_vs->app_fd;
 			}
 		}
+		if(!err) {
+			// copy address into provided address buffer and len buffer
+			memcpy(addr, &(vs->peer_addr), sizeof(struct sockaddr));
+			*addrlen = sizeof(vs->peer_addr);
+		}
 	}
 	ZeroTier::_multiplexer_lock.unlock();
 	return err;
@@ -963,9 +972,12 @@ int zts_getsockname(ZT_GETSOCKNAME_SIG)
 }
 
 /*
+
+Linux:
+
 	[--] [EBADF]            The argument s is not a valid descriptor.
 	[  ] [ENOTSOCK]         The argument s is a file, not a socket.
-	[  ] [ENOTCONN]         The socket is not connected.
+	[--] [ENOTCONN]         The socket is not connected.
 	[  ] [ENOBUFS]          Insufficient resources were available in the system to
 							perform the operation.
 	[  ] [EFAULT]           The name parameter points to memory not in a valid
@@ -973,14 +985,56 @@ int zts_getsockname(ZT_GETSOCKNAME_SIG)
 */
 int zts_getpeername(ZT_GETPEERNAME_SIG)
 {
-	DEBUG_INFO("fd = %d", fd);
 	int err = 0;
 	if(fd < 0) {
 		errno = EBADF;
 		err = -1;
 	}
-	// TODO
+	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	if(!vs) {
+		errno = ENOTCONN;
+		return -1;
+	}
+	memcpy(addr, &(vs->peer_addr), sizeof(struct sockaddr_storage));
 	return err;
+}
+
+/*
+
+Linux:
+
+	[  ] [EFAULT]			name is an invalid address.
+	[  ] [EINVAL] 			len is negative or, for sethostname(), len is larger than the
+							maximum allowed size.
+	[  ] [ENAMETOOLONG]		(glibc gethostname()) len is smaller than the actual size.
+							(Before version 2.1, glibc uses EINVAL for this case.)
+	[  ] [EPERM]  			For sethostname(), the caller did not have the CAP_SYS_ADMIN
+							capability in the user namespace associated with its UTS
+							namespace (see namespaces(7)).
+*/
+
+int zts_gethostname(ZT_GETHOSTNAME_SIG)
+{
+	return gethostname(name, len);
+}
+
+/*
+
+Linux:
+
+	[  ] [EFAULT]			name is an invalid address.
+	[  ] [EINVAL] 			len is negative or, for sethostname(), len is larger than the
+							maximum allowed size.
+	[  ] [ENAMETOOLONG]		(glibc gethostname()) len is smaller than the actual size.
+							(Before version 2.1, glibc uses EINVAL for this case.)
+	[  ] [EPERM]  			For sethostname(), the caller did not have the CAP_SYS_ADMIN
+							capability in the user namespace associated with its UTS
+							namespace (see namespaces(7)).
+*/
+
+int zts_sethostname(ZT_SETHOSTNAME_SIG)
+{
+	return sethostname(name, len);
 }
 
 /*
@@ -1031,6 +1085,7 @@ int zts_close(ZT_CLOSE_SIG)
 				if((err = close(vs->sdk_fd)) < 0)
 					DEBUG_ERROR("error closing sdk_fd");            
 				delete vs;
+				vs = NULL;
 				ZeroTier::unmap.erase(fd);
 			}
 			else // assigned
@@ -1089,6 +1144,8 @@ int zts_close(ZT_CLOSE_SIG)
 
 					//DEBUG_INFO("s->state = %s", ZeroTier::picoTCP::beautify_pico_state(vs->picosock->state));
 					tap->Close(vs);
+					delete vs;
+					vs = NULL;
 					ZeroTier::fdmap.erase(fd);
 					err = 0;
 				}
@@ -1204,92 +1261,162 @@ int zts_ioctl(ZT_IOCTL_SIG)
 
 Linux:
 
-	[  ] [EAGAIN or EWOULDBLOCK] The socket is marked nonblocking and the requested operation would block. POSIX.1-2001 allows either error to be returned for this case, and does not require these constants to have the same value, so a portable application should check for both possibilities.
-	[  ] [EBADF]                 An invalid descriptor was specified.
-	[  ] [ECONNRESET]            VirtualSocket reset by peer.
-	[  ] [EDESTADDRREQ]          The socket is not VirtualSocket-mode, and no peer address is set.
-	[  ] [EFAULT]                An invalid user space address was specified for an argument.
-	[  ] [EINTR]                 A signal occurred before any data was transmitted; see signal(7).
-	[  ] [EINVAL]                Invalid argument passed.
-	[  ] [EISCONN]               The VirtualSocket-mode socket was connected already but a recipient was specified. (Now either this error is returned, or the recipient specification is ignored.)
-	[  ] [EMSGSIZE]              The socket type requires that message be sent atomically, and the size of the message to be sent made this impossible.
-	[  ] [ENOBUFS]               The output queue for a network interface was full. This generally indicates that the interface has stopped sending, but may be caused by transient congestion. (Normally, this does not occur in Linux. Packets are just silently dropped when a device queue overflows.)
-	[  ] [ENOMEM]                No memory available.
-	[  ] [ENOTCONN]              The socket is not connected, and no target has been given.
-	[  ] [ENOTSOCK]              The argument sockfd is not a socket.
-	[  ] [EOPNOTSUPP]            Some bit in the flags argument is inappropriate for the socket type.
-	[  ] [EPIPE]                 The local end has been shut down on a VirtualSocket oriented socket. In this case the process will also receive a SIGPIPE unless MSG_NOSIGNAL is set.
+	[  ] [EAGAIN or EWOULDBLOCK] 	The socket is marked nonblocking and the requested operation would block. 
+									POSIX.1-2001 allows either error to be returned for this case, and does not 
+									require these constants to have the same value, so a portable application 
+									should check for both possibilities.
+	[--] [EBADF]                 	An invalid descriptor was specified.
+	[  ] [ECONNRESET]            	VirtualSocket reset by peer.
+	[  ] [EDESTADDRREQ]          	The socket is not VirtualSocket-mode, and no peer address is set.
+	[  ] [EFAULT]                	An invalid user space address was specified for an argument.
+	[  ] [EINTR]                 	A signal occurred before any data was transmitted; see signal(7).
+	[  ] [EINVAL]                	Invalid argument passed.
+	[  ] [EISCONN]               	The VirtualSocket-mode socket was connected already but a recipient was 
+									specified. (Now either this error is returned, or the recipient 
+									specification is ignored.)
+	[  ] [EMSGSIZE]              	The socket type requires that message be sent atomically, and the size 
+									of the message to be sent made this impossible.
+	[  ] [ENOBUFS]               	The output queue for a network interface was full. This generally indicates 
+									that the interface has stopped sending, but may be caused by transient congestion. 
+									(Normally, this does not occur in Linux. Packets are just silently 
+									dropped when a device queue overflows.)
+	[  ] [ENOMEM]                	No memory available.
+	[  ] [ENOTCONN]              	The socket is not connected, and no target has been given.
+	[  ] [ENOTSOCK]              	The argument sockfd is not a socket.
+	[  ] [EOPNOTSUPP]            	Some bit in the flags argument is inappropriate for the socket type.
+	[  ] [EPIPE]                 	The local end has been shut down on a VirtualSocket oriented socket. 
+									In this case the process will also receive a SIGPIPE unless MSG_NOSIGNAL is set.
 
 */
 ssize_t zts_sendto(ZT_SENDTO_SIG)
 {
-	DEBUG_INFO("fd = %d", fd);
+	//DEBUG_INFO("fd = %d", fd);
 	int err = 0;
 	if(fd < 0) {
 		errno = EBADF;
-		err = -1;
+		return -1;
 	}
-	else {
-		ZeroTier::VirtualSocket *vs = ZeroTier::unmap[fd];
-		ZeroTier::InetAddress iaddr;
-		ZeroTier::VirtualTap *tap;
-		char ipstr[INET6_ADDRSTRLEN];
-		int port;
-		memset(ipstr, 0, INET6_ADDRSTRLEN);
+	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	if(!vs) {
+		DEBUG_ERROR("invalid vs");
+		handle_general_failure();
+		errno = EBADF;
+		return -1;
+	}
 
-		if(vs->socket_type == SOCK_DGRAM) {
-			if(vs->socket_family == AF_INET) {
-				inet_ntop(AF_INET, 
-					(const void *)&((struct sockaddr_in *)addr)->sin_addr.s_addr, ipstr, INET_ADDRSTRLEN);
-				iaddr.fromString(ipstr);
-				port = ((struct sockaddr_in*)addr)->sin_port;
-			}
-			if(vs->socket_family == AF_INET6) {
-				inet_ntop(AF_INET6, 
-					(const void *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, ipstr, INET6_ADDRSTRLEN);
-				// TODO: This is a hack, determine a proper way to do this
-				char addrstr[64];
-				sprintf(addrstr, "%s%s", ipstr, std::string("/88").c_str());
-				iaddr.fromString(addrstr);
-				port = ((struct sockaddr_in6*)addr)->sin6_port;
-			}
-			tap = getTapByAddr(iaddr);
-			if(tap) {
-				tap->SendTo(vs, buf, len, flags, addr, addrlen);
+	ZeroTier::InetAddress iaddr;
+	ZeroTier::VirtualTap *tap;
+	char ipstr[INET6_ADDRSTRLEN];
+	int port;
+	memset(ipstr, 0, INET6_ADDRSTRLEN);
+
+	if(vs->socket_type == SOCK_DGRAM) {
+		// form addresses
+		if(vs->socket_family == AF_INET) {
+			inet_ntop(AF_INET, 
+				(const void *)&((struct sockaddr_in *)addr)->sin_addr.s_addr, ipstr, INET_ADDRSTRLEN);
+			iaddr.fromString(ipstr);
+			port = ((struct sockaddr_in*)addr)->sin_port;
+		}
+		if(vs->socket_family == AF_INET6) {
+			inet_ntop(AF_INET6, 
+				(const void *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, ipstr, INET6_ADDRSTRLEN);
+			// TODO: This is a hack, determine a proper way to do this
+			char addrstr[64];
+			sprintf(addrstr, "%s%s", ipstr, std::string("/40").c_str());
+			iaddr.fromString(addrstr);
+			port = ((struct sockaddr_in6*)addr)->sin6_port;
+		}
+		// get tap
+		tap = getTapByAddr(iaddr);
+		if(!tap) {
+			DEBUG_INFO("SOCK_DGRAM, tap not found");
+			errno = EDESTADDRREQ; // TODO: double check this is the best errno to report
+			return -1;
+		}
+		// write
+		if((err = tap->SendTo(vs, buf, len, flags, addr, addrlen)) < 0) {
+			DEBUG_ERROR("error while attempting to sendto");
+			errno = EINVAL; // TODO: Not correct, but what else could we use?
+		}
+	}
+	if(vs->socket_type == SOCK_RAW) {
+		struct sockaddr_ll *socket_address = (struct sockaddr_ll *)addr;
+		ZeroTier::VirtualTap *tap = getTapByIndex(socket_address->sll_ifindex);
+		if(tap)
+		{
+			DEBUG_INFO("found interface of ifindex=%d", tap->ifindex);
+			if(vs) {
+				DEBUG_INFO("located VirtualSocket object for fd=%d", fd);
+				err = tap->Write(vs, (void*)buf, len);
 			}
 			else {
-				DEBUG_INFO("SOCK_DGRAM, tap not found");
-				errno = EDESTADDRREQ; // TODO: double check this is the best errno to report
-				return -1;
-			}
-		}
-		if(vs->socket_type == SOCK_RAW)
-		{
-			struct sockaddr_ll *socket_address = (struct sockaddr_ll *)addr;
-			ZeroTier::VirtualTap *tap = getTapByIndex(socket_address->sll_ifindex);
-			if(tap)
-			{
-				DEBUG_INFO("found interface of ifindex=%d", tap->ifindex);
-				if(vs) {
-					DEBUG_INFO("located VirtualSocket object for fd=%d", fd);
-					err = tap->Write(vs, (void*)buf, len);
-				}
-				else {
-					DEBUG_ERROR("unable to locate VirtualSocket object for fd=%d", fd);
-					err = -1;
-					errno = EINVAL;
-				}
-			}
-			else
-			{
-				DEBUG_ERROR("unable to locate tap of ifindex=%d", socket_address->sll_ifindex);
+				DEBUG_ERROR("unable to locate VirtualSocket object for fd=%d", fd);
 				err = -1;
 				errno = EINVAL;
 			}
-			//err = sendto(fd, buf, len, flags, addr, addrlen);
 		}
+		else
+		{
+			DEBUG_ERROR("unable to locate tap of ifindex=%d", socket_address->sll_ifindex);
+			err = -1;
+			errno = EINVAL;
+		}
+		//err = sendto(fd, buf, len, flags, addr, addrlen);
 	}
 	return err;
+}
+
+/*
+	Linux:
+
+	[  ] EACCES						(For UNIX domain sockets, which are identified by pathname)
+			  						Write permission is denied on the destination socket file, or
+			  						search permission is denied for one of the directories the
+			  						path prefix.  (See path_resolution(7).)
+
+			  						(For UDP sockets) An attempt was made to send to a
+			  						network/broadcast address as though it was a unicast address.
+	[  ] EAGAIN or EWOULDBLOCK		The socket is marked nonblocking and the requested operation
+			  						would block.  POSIX.1-2001 allows either error to be returned
+			  						for this case, and does not require these constants to have
+			  						the same value, so a portable application should check for
+			  						both possibilities.
+	[  ] EAGAIN 					(Internet domain datagram sockets) The socket referred to by
+			  						sockfd had not previously been bound to an address and, upon
+			  						attempting to bind it to an ephemeral port, it was determined
+			  						that all port numbers in the ephemeral port range are
+			  						currently in use.  See the discussion of
+			  						/proc/sys/net/ipv4/ip_local_port_range in ip(7).
+	[  ] EBADF  					sockfd is not a valid open file descriptor.
+	[  ] ECONNRESET 				Connection reset by peer.
+	[  ] EDESTADDRREQ 				The socket is not connection-mode, and no peer address is set.
+	[  ] EFAULT 					An invalid user space address was specified for an argument.
+	[  ] EINTR  					A signal occurred before any data was transmitted
+	[  ] EINVAL 					Invalid argument passed.
+	[  ] EISCONN					The connection-mode socket was connected already but a
+									recipient was specified.  (Now either this error is returned,
+									or the recipient specification is ignored.)
+	[  ] EMSGSIZE					The socket type requires that message be sent atomically, and
+									the size of the message to be sent made this impossible.
+	[  ] ENOBUFS					The output queue for a network interface was full.  This
+			  						generally indicates that the interface has stopped sending,
+			  						but may be caused by transient congestion.  (Normally, this
+			  						does not occur in Linux.  Packets are just silently dropped
+			  						when a device queue overflows.)
+	[  ] ENOMEM 					No memory available.
+	[  ] ENOTCONN					The socket is not connected, and no target has been given.
+	[  ] ENOTSOCK					The file descriptor sockfd does not refer to a socket.
+	[  ] EOPNOTSUPP					Some bit in the flags argument is inappropriate for the socket
+									type.
+	[  ] EPIPE  					The local end has been shut down on a connection oriented
+									socket.  In this case, the process will also receive a SIGPIPE
+									unless MSG_NOSIGNAL is set.
+
+*/
+ssize_t zts_send(ZT_SEND_SIG)
+{
+	return send(fd, buf, len, flags);
 }
 
 // TODO
@@ -1307,19 +1434,77 @@ ssize_t zts_sendmsg(ZT_SENDMSG_SIG)
 	return err;
 }
 
-// TODO
+/*
+
+	Linux:
+
+	   These are some standard errors generated by the socket layer.
+	   Additional errors may be generated and returned from the underlying
+	   protocol modules; see their manual pages.
+
+	[  ] EAGAIN or EWOULDBLOCK		The socket is marked nonblocking and the receive operation
+									would block, or a receive timeout had been set and the timeout
+									expired before data was received.  
+	[  ] EBADF  					The argument sockfd is an invalid file descriptor.
+	[  ] ECONNREFUSED
+									A remote host refused to allow the network connection
+									(typically because it is not running the requested service).
+	[  ] EFAULT 					The receive buffer pointer(s) point outside the process's
+									address space.
+	[  ] EINTR  					The receive was interrupted by delivery of a signal before any
+									data were available; see signal(7).
+	[  ] EINVAL 					Invalid argument passed.
+	[  ] ENOMEM 					Could not allocate memory for recvmsg().
+	[  ] ENOTCONN 					The socket is associated with a connection-oriented protocol and has not been connected (see connect(2) and accept(2)).
+	[  ] ENOTSOCK 					The file descriptor sockfd does not refer to a socket.
+*/
+ssize_t zts_recv(ZT_RECV_SIG)
+{
+	return recv(fd, buf, len, flags);
+}
+
+/*
+	Linux:
+
+	[  ] [EAGAIN or EWOULDBLOCK] 	The socket is marked nonblocking and the receive operation 
+									would block, or a receive timeout had been set and the 
+									timeout expired before data was received. POSIX.1-2001 
+									allows either error to be returned for this case, and does 
+									not require these constants to have the same value, so a 
+									portable application should check for both possibilities.
+	[  ] [EBADF]					The argument sockfd is an invalid descriptor.
+	[  ] [ECONNREFUSED] 			A remote host refused to allow the network connection 
+									(typically because it is not running the requested service).
+	[  ] [EFAULT] 					The receive buffer pointer(s) point outside the process's 
+									address space.
+	[  ] [EINTR] 					The receive was interrupted by delivery of a signal before any 
+									data were available; see signal(7).
+	[  ] [EINVAL] 					Invalid argument passed.
+	[  ] [ENOMEM] 					Could not allocate memory for recvmsg().
+	[  ] [ENOTCONN] 				The socket is associated with a connection-oriented protocol 
+									and has not been connected (see connect(2) and accept(2)).
+	[  ] [ENOTSOCK] 				The argument sockfd does not refer to a socket.
+*/
 ssize_t zts_recvfrom(ZT_RECVFROM_SIG)
 {
-	DEBUG_INFO("fd = %d", fd);
-	int err = 0;
+	//DEBUG_INFO("fd = %d", fd);
+	int r = 0;
 	if(fd < 0) {
 		errno = EBADF;
-		err = -1;
+		return -1;
 	}
-	else {
-		err = recvfrom(fd, buf, len, flags, addr, addrlen);
+	char udp_msg_buf[ZT_MAX_MTU];
+	r = read(fd, udp_msg_buf, sizeof(udp_msg_buf));
+	if(r > 0) {
+		int udp_msg_len = 0;
+		memcpy(&udp_msg_len, udp_msg_buf, sizeof(udp_msg_len));
+		memcpy(addr, udp_msg_buf + sizeof(int), sizeof(struct sockaddr_in));
+		*addrlen = sizeof(struct sockaddr_in);
+		int payload_sz = udp_msg_len - sizeof(struct sockaddr_in);
+		memcpy(buf, udp_msg_buf + sizeof(int) + sizeof(struct sockaddr_in), payload_sz);
+		r = payload_sz;
 	}
-	return err;
+	return r;
 }
 
 // TODO
@@ -1338,12 +1523,12 @@ ssize_t zts_recvmsg(ZT_RECVMSG_SIG)
 }
 
 int zts_read(ZT_READ_SIG) {
-	DEBUG_INFO("fd = %d", fd);
+	//DEBUG_INFO("fd = %d", fd);
 	return read(fd, buf, len);
 }
 
 int zts_write(ZT_WRITE_SIG) {
-	DEBUG_INFO("fd = %d", fd);
+	//DEBUG_INFO("fd = %d", fd);
 	return write(fd, buf, len);
 }
 
@@ -1386,6 +1571,7 @@ int zts_shutdown(ZT_SHUTDOWN_SIG)
 				if((err = pico_socket_shutdown(vs->picosock, mode)) < 0)
 					DEBUG_ERROR("error calling pico_socket_shutdown()");
 				delete vs;
+				vs = NULL;
 				ZeroTier::unmap.erase(fd);
 				// FIXME: Is deleting this correct behaviour?
 			}
@@ -1795,6 +1981,7 @@ ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress &addr)
 		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		// check address schemes
 		for(int j=0; j<s->_ips.size(); j++) {
+			DEBUG_INFO("looking at tap <addr=%s> for <%s>", s->_ips[j].toString(ipbuf), addr.toString(ipbuf2));
 			if(s->_ips[j].isEqualPrefix(addr) 
 				|| s->_ips[j].ipsEqual(addr) 
 				|| s->_ips[j].containsAddress(addr)) 
@@ -1813,7 +2000,7 @@ ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress &addr)
 				nm = target.netmask();
 				via = managed_routes->at(i).via;
 				if(target.containsAddress(addr)) {
-					DEBUG_INFO("chose tap with route <target=%s, nm=%s, via=%s>", target.toString(ipbuf), nm.toString(ipbuf2), via.toString(ipbuf3));
+					// DEBUG_INFO("chose tap with route <target=%s, nm=%s, via=%s>", target.toString(ipbuf), nm.toString(ipbuf2), via.toString(ipbuf3));
 					tap = s;
 					break;
 				}
@@ -1852,14 +2039,45 @@ ZeroTier::VirtualTap *getTapByIndex(int index)
 	return tap;
 }
 
+ZeroTier::VirtualSocket *get_virtual_socket(int fd)
+{
+	ZeroTier::_multiplexer_lock.lock();
+	// try to locate in unmapped set
+	ZeroTier::VirtualSocket *vs = ZeroTier::unmap[fd];
+	if(!vs) {
+		// if not, try to find in mapped set (bind to vtap has been performed)
+		std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *p = ZeroTier::fdmap[fd];
+		if(p) {
+			vs = p->first;
+		}
+	}
+	ZeroTier::_multiplexer_lock.unlock();
+	return vs;
+}
+
 void dismantleTaps()
 {
 	ZeroTier::_vtaps_lock.lock();
-	for(int i=0; i<ZeroTier::vtaps.size(); i++) { delete (ZeroTier::VirtualTap*)ZeroTier::vtaps[i]; }
+	for(int i=0; i<ZeroTier::vtaps.size(); i++) { 
+		delete (ZeroTier::VirtualTap*)ZeroTier::vtaps[i]; 
+		ZeroTier::vtaps[i] = NULL;
+	}
 	ZeroTier::vtaps.clear();
 	ZeroTier::_vtaps_lock.unlock();
 }
 
+int zts_get_device_id_from_file(const char *filepath, char *devID) {
+    std::string fname("identity.public");
+    std::string fpath(filepath);
+
+    if(ZeroTier::OSUtils::fileExists((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),false)) {
+        std::string oldid;
+        ZeroTier::OSUtils::readFile((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),oldid);
+        memcpy(devID, oldid.c_str(), 10); // first 10 bytes of file
+        return 0;
+    }
+    return -1;
+}
 
 // Starts a ZeroTier service in the background
 void *zts_start_service(void *thread_id) {

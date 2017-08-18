@@ -77,7 +77,7 @@ namespace ZeroTier
 	/*
 	 * Send raw frames from the stack to the ZeroTier virtual wire
 	 */
-	int pico_eth_send(struct pico_device *dev, void *buf, int len);
+	int pico_eth_tx(struct pico_device *dev, void *buf, int len);
 
 	/*
 	 * Read raw frames from RX frame buffer into the stack 
@@ -134,7 +134,7 @@ namespace ZeroTier
 		/*
 		 * Packets from the ZeroTier virtual wire enter the stack here
 		 */
-		void pico_rx(VirtualTap *tap, const ZeroTier::MAC &from,const ZeroTier::MAC &to,unsigned int etherType,const void *data,unsigned int len);
+		void pico_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from,const ZeroTier::MAC &to,unsigned int etherType,const void *data,unsigned int len);
 		
 		/*
 		 * Creates a stack-specific "socket" or "VirtualSocket object"

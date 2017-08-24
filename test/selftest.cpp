@@ -1546,9 +1546,8 @@ void* create_socket(void *arg)
     }
 
     for(i=0; i<(0xFFFFFFFF);i++);
-
+	*/
     return NULL;
-    */
 }
 
 

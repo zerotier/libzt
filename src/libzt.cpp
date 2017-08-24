@@ -638,7 +638,7 @@ int zts_bind(ZT_BIND_SIG) {
 	}
 	
 	// detect local interface binds 
-	ZeroTier::VirtualTap *tap;
+	ZeroTier::VirtualTap *tap = NULL;
 	
 	if(vs->socket_family == AF_INET) {
 		struct sockaddr_in *in4 = (struct sockaddr_in *)addr;

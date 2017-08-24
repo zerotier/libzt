@@ -40,7 +40,7 @@
 #include "VirtualTap.hpp"
 
 /****************************************************************************/
-/* PicoTCP API Signatures (See libzt.h for the API an app should use)       */
+/* PicoTCP API Signatures (See libzt.h for the application-facing API)      */
 /****************************************************************************/
 
 #define PICO_IPV4_TO_STRING_SIG char *ipbuf, const uint32_t ip
@@ -94,7 +94,12 @@ namespace ZeroTier
 		/*
 		 * Set up an interface in the network stack for the VirtualTap
 		 */
-		bool pico_init_interface(ZeroTier::VirtualTap *tap, const ZeroTier::InetAddress &ip);
+		bool pico_init_interface(ZeroTier::VirtualTap *tap);
+
+		/*
+		 * Register an address with the stack
+		 */
+		bool pico_register_address(VirtualTap *tap, const InetAddress &ip);
 
 		/*
 		 * Adds a route to the picoTCP device
@@ -129,7 +134,7 @@ namespace ZeroTier
 		/*
 		 * Write bytes from TX buffer to stack (prepare to be sent to ZT virtual wire)
 		 */
-		static void pico_cb_socket_activity(uint16_t ev, struct pico_socket *s);
+		static void pico_cb_socket_ev(uint16_t ev, struct pico_socket *s);
 
 		/*
 		 * Packets from the ZeroTier virtual wire enter the stack here

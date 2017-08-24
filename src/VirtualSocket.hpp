@@ -82,7 +82,6 @@ namespace ZeroTier {
 		std::time_t closure_ts = 0;
 
 		VirtualSocket() {
-			DEBUG_EXTRA("this=0x%x, socket_family=%d, socket_type=%d", this, socket_family, socket_type);
 			TXbuf = new RingBuffer<unsigned char>(ZT_TCP_TX_BUF_SZ);
 			RXbuf = new RingBuffer<unsigned char>(ZT_TCP_RX_BUF_SZ);
 
@@ -98,7 +97,11 @@ namespace ZeroTier {
 			app_fd = fdpair[1];
 		}
 		~VirtualSocket() { 
-			DEBUG_EXTRA("this=0x%x", this);
+			close(app_fd);
+			close(sdk_fd);
+			delete TXbuf;
+			delete RXbuf;
+			TXbuf = RXbuf = NULL;
 		}
 	};
 

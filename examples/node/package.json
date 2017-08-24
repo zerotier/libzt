@@ -1,0 +1,35 @@
+{
+    "name": "node-libzt",
+    "version": "0.0.1",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "autogypi": "autogypi",
+        "node-gyp": "node-gyp",
+        "format": "prettier-standard '*.js'",
+        "preinstall": "mkdir -p libzt; cd libzt; ln -sf ../../../include include; ln -sf ../../../zto zto; ln -sf ../../../build build",
+        "postinstall": "npm run -- node-gyp rebuild"
+    },
+    "lint-staged": {
+        "linters": {
+            "src/**/*.js": [
+                "prettier-standard",
+                "git add"
+            ]
+        }
+    },
+    "keywords": [],
+    "author": "",
+    "license": "MIT",
+    "devDependencies": {
+        "husky": "^0.14.3",
+        "lint-staged": "^4.0.3",
+        "node-gyp": "^3.6.2",
+        "prettier-standard": "^6.0.0"
+    },
+    "dependencies": {
+        "autogypi": "^0.2.2",
+        "nbind": "^0.3.13"
+    }
+}

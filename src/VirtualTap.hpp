@@ -199,8 +199,8 @@ namespace ZeroTier {
 #endif
 
 #if defined(STACK_LWIP)
-		netif lwipdev = NULL;
-		netif lwipdev6 = NULL;
+		netif lwipdev;
+		netif lwipdev6;
 #endif
 
 		std::vector<std::pair<ZeroTier::InetAddress, ZeroTier::InetAddress>> routes;

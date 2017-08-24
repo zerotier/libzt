@@ -270,8 +270,8 @@ namespace ZeroTier
 			in6_to_ip6((ip6_addr *)&ba, in6);
 			if(addr->sa_family == AF_INET6) {        
 				struct sockaddr_in6 *vsaddr6 = (struct sockaddr_in6 *)addr;
-				inet_ntop(AF_INET6, &(connaddr6->sin6_addr), addrstr, INET6_ADDRSTRLEN);
-				DEBUG_INFO("%s:%d", addrstr, lwip_ntohs(connaddr6->sin6_port));
+				inet_ntop(AF_INET6, &(in6->sin6_addr), addrstr, INET6_ADDRSTRLEN);
+				DEBUG_INFO("%s:%d", addrstr, lwip_ntohs(in6->sin6_port));
 			}
 #endif
 
@@ -364,8 +364,8 @@ namespace ZeroTier
 			in6_to_ip6((ip6_addr *)&ba, in6);
 			if(addr->sa_family == AF_INET6) {        
 				struct sockaddr_in6 *vsaddr6 = (struct sockaddr_in6 *)addr;
-				inet_ntop(AF_INET6, &(connaddr6->sin6_addr), addrstr, INET6_ADDRSTRLEN);
-				DEBUG_INFO("%s:%d", addrstr, lwip_ntohs(connaddr6->sin6_port));
+				inet_ntop(AF_INET6, &(in6->sin6_addr), addrstr, INET6_ADDRSTRLEN);
+				DEBUG_INFO("%s:%d", addrstr, lwip_ntohs(in6->sin6_port));
 			}
 #endif
 		if(vs->socket_type == SOCK_DGRAM) {

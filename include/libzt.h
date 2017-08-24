@@ -495,6 +495,16 @@ int zts_shutdown(ZT_SHUTDOWN_SIG);
  */
 std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(char *nwid);
 
+/*
+ * Adds a DNS nameserver for the network stack to use
+ */
+int zts_add_dns_nameserver(struct sockaddr *addr);
+
+/*
+ * Removes a DNS nameserver
+ */
+int zts_remove_dns_nameserver(struct sockaddr *addr);
+
 /****************************************************************************/
 /* SDK Socket API Helper functions/objects --- DONT CALL THESE DIRECTLY     */
 /****************************************************************************/
@@ -545,7 +555,7 @@ int pico_ntimers();
 /****************************************************************************/
 
 ZeroTier::VirtualTap *getTapByNWID(uint64_t nwid);
-ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress &addr);
+ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress *addr);
 ZeroTier::VirtualTap *getTapByName(char *ifname);
 ZeroTier::VirtualTap *getTapByIndex(int index);
 
@@ -553,6 +563,30 @@ ZeroTier::VirtualTap *getTapByIndex(int index);
  * Returns a pointer to a VirtualSocket for a given fd
  */
 ZeroTier::VirtualSocket *get_virtual_socket(int fd);
+
+/*
+ * Removes a VirtualSocket
+ */
+void del_virtual_socket(int fd);
+
+/*
+ * Adds a virtualSocket
+ */
+void add_unassigned_virtual_socket(int fd, ZeroTier::VirtualSocket *vs);
+/*
+ * Removes unassigned VirtualSocket
+ */
+void del_unassigned_virtual_socket(int fd);
+
+/*
+ * Adds an assigned VirtualSocket
+ */
+void add_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd);
+
+/*
+ * Removes an assigned VirtualSocket
+ */
+void del_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd);
 
 /*
  * Destroys all virtual tap devices

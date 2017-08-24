@@ -34,6 +34,7 @@ for applications to use. See also: include/libzt.h */
 #include <stdarg.h>
 #include <unistd.h>
 #include <errno.h>
+#include <time.h>
 
 #if defined(__APPLE__)
 #include <net/ethernet.h>
@@ -67,6 +68,7 @@ for applications to use. See also: include/libzt.h */
 #include "InetAddress.hpp"
 #include "ZeroTierOne.h"
 
+#include "Utilities.hpp"
 #include "VirtualTap.hpp"
 #include "libzt.h"
 
@@ -89,7 +91,7 @@ namespace ZeroTier {
 #endif
 
 	/*
-	 * "sockets" that have been created but not bound to a VirtualTap interface yet
+	 * VirtualSockets that have been created but not bound to a VirtualTap interface yet
 	 */
 	std::map<int, VirtualSocket*> unmap;
 
@@ -105,7 +107,6 @@ namespace ZeroTier {
 
 	ZeroTier::Mutex _vtaps_lock;
 	ZeroTier::Mutex _multiplexer_lock;
-	ZeroTier::Mutex _accepted_VirtualSocket_lock;
 }
 
 /****************************************************************************/
@@ -135,11 +136,15 @@ void zts_start(const char *path)
 void zts_simple_start(const char *path, const char *nwid)
 {
 	zts_start(path);
-	while(!zts_running())
-		usleep(ZT_API_CHECK_INTERVAL * 1000);
+	while(!zts_running()) {
+		nanosleep((const struct timespec[]){{0, (ZT_API_CHECK_INTERVAL * 1000000)}}, NULL);
+		//usleep(ZT_API_CHECK_INTERVAL * 1000);
+	}
 	zts_join(nwid);
-	while(!zts_has_address(nwid))
-		usleep(ZT_API_CHECK_INTERVAL * 1000);
+	while(!zts_has_address(nwid)) {
+		//usleep(ZT_API_CHECK_INTERVAL * 1000);
+		nanosleep((const struct timespec[]){{0, (ZT_API_CHECK_INTERVAL * 1000000)}}, NULL);
+	}
 }
 
 void zts_stop() {
@@ -375,12 +380,11 @@ Darwin:
 
 // int socket_family, int socket_type, int protocol
 int zts_socket(ZT_SOCKET_SIG) {
-	errno = 0;
+	int err = errno = 0;
 	if(socket_family < 0 || socket_type < 0 || protocol < 0) {
 		errno = EINVAL;
 		return -1;
 	}
-	int err = 0;
 	if(!ZeroTier::zt1Service) {
 		DEBUG_ERROR("cannot create socket, no service running. call zts_start() first.");
 		errno = EMFILE; // could also be ENFILE
@@ -392,8 +396,6 @@ int zts_socket(ZT_SOCKET_SIG) {
 		return -1;
 	}
 
-	ZeroTier::_multiplexer_lock.lock();
-
 	if(socket_type == SOCK_RAW)
 	{
 		// VirtualSocket is only used to associate a socket with a VirtualTap, it has no other implication
@@ -401,7 +403,7 @@ int zts_socket(ZT_SOCKET_SIG) {
 		vs->socket_family = socket_family;
 		vs->socket_type = socket_type;
 		vs->protocol = protocol;
-		ZeroTier::unmap[vs->app_fd] = vs;
+		add_unassigned_virtual_socket(vs->app_fd, vs);
 		return vs->app_fd;
 	}
 
@@ -413,7 +415,7 @@ int zts_socket(ZT_SOCKET_SIG) {
 		vs->socket_family = socket_family;
 		vs->socket_type = socket_type;
 		vs->picosock = p;
-		ZeroTier::unmap[vs->app_fd] = vs;
+		add_unassigned_virtual_socket(vs->app_fd, vs);
 		err = vs->app_fd; // return one end of the socketpair
 	}
 	else {
@@ -431,7 +433,7 @@ int zts_socket(ZT_SOCKET_SIG) {
 		vs->socket_family = socket_family;
 		vs->socket_type = socket_type;
 		vs->pcb = pcb;
-		ZeroTier::unmap[vs->app_fd] = vs;
+		add_unassigned_virtual_socket(vs->app_fd, vs);
 		err = vs->app_fd; // return one end of the socketpair
 	}
 	else {
@@ -439,8 +441,6 @@ int zts_socket(ZT_SOCKET_SIG) {
 		err = -1;
 	}
 #endif
-
-	ZeroTier::_multiplexer_lock.unlock();
 	return err;
 }
 
@@ -498,136 +498,107 @@ Linux:
 							IP sockets the timeout may be very long when syncookies are enabled on the server.
 
 */
+
 int zts_connect(ZT_CONNECT_SIG) {
-	DEBUG_INFO("fd = %d", fd);
-	int err = 0;
+	int err = errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
 		DEBUG_ERROR("EBADF");
 		return -1;
 	}
 	if(!ZeroTier::zt1Service) {
-		DEBUG_ERROR("Service not started. Call zts_start(path) first");
+		DEBUG_ERROR("service not started. call zts_start(path) first");
 		errno = EBADF;
 		return -1;
 	}
-	ZeroTier::_multiplexer_lock.lock();
-	ZeroTier::VirtualSocket *vs = ZeroTier::unmap[fd];
-	ZeroTier::VirtualTap *tap;
+	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	if(!vs) {
+		DEBUG_ERROR("invalid socket, unable to locate VirtualSocket for fd=%d", fd);
+		errno = EBADF;
+		return -1;
+	}
+	// DEBUG_EXTRA("fd = %d, %s : %d", fd, ipstr, ntohs(port));
+	ZeroTier::InetAddress inet;
+	sockaddr2inet(vs->socket_family, addr, &inet);
+	ZeroTier::VirtualTap *tap = getTapByAddr(&inet);
+	if(!tap) {
+		DEBUG_ERROR("no route to host, could not find appropriate VirtualTap for fd=%d", fd);
+		errno = ENETUNREACH;
+		return -1;
+	}
 
-	if(vs) {      
-		char ipstr[INET6_ADDRSTRLEN];
-		memset(ipstr, 0, INET6_ADDRSTRLEN);
-		ZeroTier::InetAddress iaddr;
-		int port = 0;
-
-		if(vs->socket_family == AF_INET) {
-			inet_ntop(AF_INET, 
-				(const void *)&((struct sockaddr_in *)addr)->sin_addr.s_addr, ipstr, INET_ADDRSTRLEN);
-			iaddr.fromString(ipstr);
-			port = ((struct sockaddr_in*)addr)->sin_port;
-		}
-		if(vs->socket_family == AF_INET6) {
-			inet_ntop(AF_INET6, 
-				(const void *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, ipstr, INET6_ADDRSTRLEN);
-			// TODO: This is a hack, determine a proper way to do this
-			char addrstr[64];
-			sprintf(addrstr, "%s%s", ipstr, std::string("/88").c_str());
-			iaddr.fromString(addrstr);
-			port = ((struct sockaddr_in6*)addr)->sin6_port;
-		}
-		DEBUG_EXTRA("fd = %d, %s : %d", fd, ipstr, ntohs(port));
-		tap = getTapByAddr(iaddr);
-		if(!tap) {
-			DEBUG_ERROR("no route to host");
-			errno = ENETUNREACH;
-			err = -1;
-		}
-		else {
 #if defined(STACK_PICO)
-			// pointer to tap we use in callbacks from the stack
-			vs->picosock->priv = new ZeroTier::VirtualBindingPair(tap, vs); 
+	// pointer to virtual tap we use in callbacks from the stack
+	vs->picosock->priv = new ZeroTier::VirtualBindingPair(tap, vs); 
 #endif
 #if defined(STACK_LWIP)
-#endif		
-			err = tap->Connect(vs, addr, addrlen); 
-			if(err == 0) {
-				tap->_VirtualSockets.push_back(vs); // Give this VirtualSocket to the tap we decided on
-				vs->tap = tap;
-			}
-			// Wrap the socketpair we created earlier
-			// For I/O loop participation and referencing the PhySocket's parent VirtualSocket in callbacks
-			vs->sock = tap->_phy.wrapSocket(vs->sdk_fd, vs);  
-		}
+#endif
+
+	if((err = tap->Connect(vs, addr, addrlen)) < 0) {
+		DEBUG_ERROR("error while connecting socket");
+		// errno will be set by tap->Connect
+		return -1;
 	}
-	else {
-		DEBUG_ERROR("unable to locate VirtualSocket");
-		errno = EBADF;
-		err = -1;
-	}
-	ZeroTier::unmap.erase(fd);
-	ZeroTier::fdmap[fd] = new std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>(vs, tap);
-	ZeroTier::_multiplexer_lock.unlock();
+	// assign this VirtualSocket to the tap we decided on
+	tap->_VirtualSockets.push_back(vs); 
+	vs->tap = tap;
+	vs->sock = tap->_phy.wrapSocket(vs->sdk_fd, vs);  
+
+	// TODO: Consolidate these calls
+	del_unassigned_virtual_socket(fd);
+	add_assigned_virtual_socket(tap, vs, fd);
+
+	// save peer addr, for calls like getpeername
+	memcpy(&(vs->peer_addr), addr, sizeof(vs->peer_addr));
+
+	// Below will simulate BLOCKING/NON-BLOCKING behaviour
 
 	// NOTE: pico_socket_connect() will return 0 if no error happens immediately, but that doesn't indicate
-	// the VirtualSocket was completed, for that we must wait for a callback from the stack. During that
+	// the connection was completed, for that we must wait for a callback from the stack. During that
 	// callback we will place the VirtualSocket in a ZT_SOCK_STATE_UNHANDLED_CONNECTED state to signal 
-	// to the multiplexer logic that this VirtualSocket is complete and a success value can be sent to the
+	// to the multiplexer logic that this connection is complete and a success value can be sent to the
 	// user application
 
 	int f_err, blocking = 1;
 	if ((f_err = fcntl(fd, F_GETFL, 0)) < 0) {
-		DEBUG_ERROR("fcntl error, err = %s, errno = %d", f_err, errno);
-		err = -1;
+		DEBUG_ERROR("fcntl error, err=%s, errno=%d", f_err, errno);
+		// errno will be set by fcntl
+		return -1;
 	} 
-	else {
-		blocking = !(f_err & O_NONBLOCK);
-	}
-	// non-blocking
-	if(err == 0 && !blocking) {
-		DEBUG_EXTRA("EINPROGRESS, not a real error, assuming non-blocking mode");
-		errno = EINPROGRESS;
+	blocking = !(f_err & O_NONBLOCK);
+	if(!blocking) {
+		errno = EINPROGRESS; // can't connect immediately
 		err = -1;
 	}
-	else // blocking
-	{
-		// FIXME: Double check that accept/connect queues in multithreaded apps don't get mixed up
-		if(err == 0 && blocking) {
-			bool complete = false;
-			while(true)
+	if(blocking) {
+		bool complete = false;
+		while(true)
+		{
+			// FIXME: locking and unlocking so often might cause a performance bottleneck while outgoing VirtualSockets
+			// are being established (also applies to accept())
+			//usleep(ZT_CONNECT_RECHECK_DELAY * 1000);
+			nanosleep((const struct timespec[]){{0, (ZT_CONNECT_RECHECK_DELAY * 1000000)}}, NULL);
+			tap->_tcpconns_m.lock();
+			for(int i=0; i<tap->_VirtualSockets.size(); i++)
 			{
-				// FIXME: locking and unlocking so often might cause a performance bottleneck while outgoing VirtualSockets
-				// are being established (also applies to accept())
-				usleep(ZT_CONNECT_RECHECK_DELAY * 1000);
-				//DEBUG_ERROR("waiting to connect...\n");
-				tap->_tcpconns_m.lock();
-				for(int i=0; i<tap->_VirtualSockets.size(); i++)
-				{
 #if defined(STACK_PICO)
-					if(tap->_VirtualSockets[i]->state == PICO_ERR_ECONNRESET) {   
-						errno = ECONNRESET;
-						DEBUG_ERROR("ECONNRESET");
-						err = -1;
-					}
+				if(tap->_VirtualSockets[i]->state == PICO_ERR_ECONNRESET) {   
+					errno = ECONNRESET;
+					DEBUG_ERROR("ECONNRESET");
+					err = -1;
+				}
 #endif
 #if defined(STACK_LWIP)
 #endif
-					if(tap->_VirtualSockets[i]->state == ZT_SOCK_STATE_UNHANDLED_CONNECTED) {
-						tap->_VirtualSockets[i]->state = ZT_SOCK_STATE_CONNECTED;
-						errno = 0;
-						err = 0; // complete
-						complete = true;
-					}
+				if(tap->_VirtualSockets[i]->state == ZT_SOCK_STATE_UNHANDLED_CONNECTED) {
+					tap->_VirtualSockets[i]->state = ZT_SOCK_STATE_CONNECTED;
+					complete = true;
 				}
-				tap->_tcpconns_m.unlock();
-				if(complete)
-					break;
 			}
+			tap->_tcpconns_m.unlock();
+			if(complete)
+				break;
 		}
-	}
-	if(!err) {
-		// for calls like getpeername()
-		memcpy(&(vs->peer_addr), addr, sizeof(vs->peer_addr));
 	}
 	return err;
 }
@@ -637,7 +608,7 @@ int zts_connect(ZT_CONNECT_SIG) {
 Darwin:
 
 	[--] [EBADF]            S is not a valid descriptor.
-	[  ] [ENOTSOCK]         S is not a socket.
+	[--] [ENOTSOCK]         S is not a socket.
 	[--] [EADDRNOTAVAIL]    The specified address is not available from the local
 							machine.
 	[  ] [EADDRINUSE]       The specified address is already in use.
@@ -648,74 +619,69 @@ Darwin:
 							address space.
 */
 int zts_bind(ZT_BIND_SIG) {
-	int err = 0;
+	DEBUG_INFO();
+	int err = errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
 		return -1;
 	}
 	if(!ZeroTier::zt1Service) {
-		DEBUG_ERROR("Service not started. Call zts_start(path) first");        
+		DEBUG_ERROR("service not started. call zts_start(path) first");        
 		errno = EBADF;
 		return -1;
 	}
-	ZeroTier::_multiplexer_lock.lock();
-	ZeroTier::VirtualSocket *vs = ZeroTier::unmap[fd];
+	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	if(!vs) {
+		DEBUG_ERROR("no VirtualSocket for fd=%d", fd);
+		errno = ENOTSOCK;
+		return -1;
+	}
+	
+	// detect local interface binds 
 	ZeroTier::VirtualTap *tap;
 	
-	if(vs) {     
-		char ipstr[INET6_ADDRSTRLEN];
-		memset(ipstr, 0, INET6_ADDRSTRLEN);
-		ZeroTier::InetAddress iaddr;
-		int port = 0;
-		if(vs->socket_family == AF_INET) {
-			inet_ntop(AF_INET, 
-				(const void *)&((struct sockaddr_in *)addr)->sin_addr.s_addr, ipstr, INET_ADDRSTRLEN);
-			port = ((struct sockaddr_in*)addr)->sin_port;
+	if(vs->socket_family == AF_INET) {
+		struct sockaddr_in *in4 = (struct sockaddr_in *)addr;
+		if(in4->sin_addr.s_addr == INADDR_ANY) {
+			DEBUG_INFO("AF_INET, INADDR_ANY, binding to all interfaces");
+			// grab first vtap
+			if(ZeroTier::vtaps.size()) {
+				tap = (ZeroTier::VirtualTap*)(ZeroTier::vtaps[0]);
+			}
 		}
-		if(vs->socket_family == AF_INET6) {
-			inet_ntop(AF_INET6, 
-				(const void *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, ipstr, INET6_ADDRSTRLEN);
-			port = ((struct sockaddr_in6*)addr)->sin6_port;
+	}
+	if(vs->socket_family == AF_INET6) {
+		struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)addr;
+		if(memcmp((void*)&(in6->sin6_addr), (void*)&(in6addr_any), sizeof(in6addr_any)) == 0) {
+			DEBUG_INFO("AF_INET6, in6addr_any, binding to all interfaces");
+			if(ZeroTier::vtaps.size()) {
+				tap = (ZeroTier::VirtualTap*)(ZeroTier::vtaps[0]);
+			}
 		}
-		DEBUG_EXTRA("fd = %d, %s : %d", fd, ipstr, ntohs(port));
-		iaddr.fromString(ipstr);
-		tap = getTapByAddr(iaddr);
+	}
 
-		if(!tap) {
-			DEBUG_ERROR("no matching interface to bind to");            
-			errno = EADDRNOTAVAIL;
-			err = -1;
-		}
+	ZeroTier::InetAddress inet;
+	sockaddr2inet(vs->socket_family, addr, &inet);
+	char buf3[64];
+	if(!tap)
+		tap = getTapByAddr(&inet);
+
+	if(!tap) {
+		DEBUG_ERROR("no matching interface to bind to, could not find appropriate VirtualTap for fd=%d", fd);
+		errno = ENETUNREACH;
+		return -1;
+	}
 #if defined(STACK_PICO) 
-		else {
-			vs->picosock->priv = new ZeroTier::VirtualBindingPair(tap, vs);
-			tap->_VirtualSockets.push_back(vs); // Give this VirtualSocket to the tap we decided on
-			err = tap->Bind(vs, addr, addrlen);
-			vs->tap = tap;
-			if(err == 0) { // success
-				ZeroTier::unmap.erase(fd);
-				ZeroTier::fdmap[fd] = new std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>(vs, tap);
-			}
-		}
+	// used in callbacks from network stack
+	vs->picosock->priv = new ZeroTier::VirtualBindingPair(tap, vs);
 #endif
-#if defined(STACK_LWIP)
-		else {
-			tap->_VirtualSockets.push_back(vs);
-			err = tap->Bind(vs, addr, addrlen);
-			vs->tap = tap;
-			if(err == 0) { // success
-				ZeroTier::unmap.erase(fd);
-				ZeroTier::fdmap[fd] = new std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>(vs, tap);
-			}
-		}
-#endif
+	tap->addVirtualSocket(vs);
+	err = tap->Bind(vs, addr, addrlen);
+	vs->tap = tap;
+	if(err == 0) { // success
+		del_unassigned_virtual_socket(fd);
+		add_assigned_virtual_socket(tap, vs, fd);
 	}
-	else {
-		DEBUG_ERROR("unable to locate VirtualSocket");
-		errno = EBADF;
-		err = -1;
-	}
-	ZeroTier::_multiplexer_lock.unlock();
 	return err;
 }
 
@@ -738,8 +704,7 @@ Linux:
 	[  ] [EOPNOTSUPP]       The socket is not of a type that supports the listen() operation.
 */
 int zts_listen(ZT_LISTEN_SIG) {
-	DEBUG_EXTRA("fd = %d", fd);
-	int err = 0;
+	int err = errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
 		return -1;
@@ -763,12 +728,10 @@ int zts_listen(ZT_LISTEN_SIG) {
 		errno = EBADF;
 		return -1;
 	}
-	if(!err) {
-		backlog = backlog > 128 ? 128 : backlog; // See: /proc/sys/net/core/somaxconn
-		err = tap->Listen(vs, backlog);
-		vs->state = ZT_SOCK_STATE_LISTENING;
-		ZeroTier::_multiplexer_lock.unlock();
-	}
+	backlog = backlog > 128 ? 128 : backlog; // See: /proc/sys/net/core/somaxconn
+	err = tap->Listen(vs, backlog);
+	vs->state = ZT_SOCK_STATE_LISTENING;
+	ZeroTier::_multiplexer_lock.unlock();
 	return err;
 }
 
@@ -787,8 +750,8 @@ Darwin:
 	[  ] [ENFILE]           The system file table is full.
 */
 int zts_accept(ZT_ACCEPT_SIG) {
-	DEBUG_EXTRA("fd = %d", fd);
-	int err = 0;
+	int err = errno = 0;
+	//DEBUG_EXTRA("fd=%d", fd);
 	if(fd < 0) {
 		errno = EBADF;
 		return -1;
@@ -830,7 +793,8 @@ int zts_accept(ZT_ACCEPT_SIG) {
 			}
 			else { // blocking
 				while(true) {
-					usleep(ZT_ACCEPT_RECHECK_DELAY * 1000);
+					//usleep(ZT_ACCEPT_RECHECK_DELAY * 1000);
+					nanosleep((const struct timespec[]){{0, (ZT_ACCEPT_RECHECK_DELAY * 1000000)}}, NULL);
 					accepted_vs = tap->Accept(vs);
 					if(accepted_vs)
 						break; // accepted fd = err
@@ -873,17 +837,37 @@ Errors
 In addition, Linux accept() may fail if:
 
 EPERM Firewall rules forbid VirtualSocket.
+
+
+
+	SOCK_NONBLOCK   Set the O_NONBLOCK file status flag on the new open
+				   file description.  Using this flag saves extra calls
+				   to fcntl(2) to achieve the same result.
+
+	SOCK_CLOEXEC    Set the close-on-exec (FD_CLOEXEC) flag on the new
+				   file descriptor.  See the description of the
+				   O_CLOEXEC flag in open(2) for reasons why this may be
+				   useful.
+
+	int fd, struct sockaddr *addr, socklen_t *addrlen, int flags
 */
 #if defined(__linux__)
 	int zts_accept4(ZT_ACCEPT4_SIG)
 	{
-		DEBUG_INFO("fd = %d", fd);
-		int err = 0;
+		errno = 0;
+		//DEBUG_INFO("fd=%d", fd);
 		if(fd < 0) {
 			errno = EBADF;
-			err = -1;
+			return -1;
 		}
-		return 0;
+		if(flags & SOCK_NONBLOCK) {
+			fcntl(fd, F_SETFL, O_NONBLOCK);
+		}
+		if(flags & SOCK_CLOEXEC) {
+			fcntl(fd, F_SETFL, FD_CLOEXEC);
+		}
+		addrlen = !addr ? 0 : addrlen;
+		return zts_accept(fd, addr, addrlen);
 	}
 #endif
 
@@ -900,14 +884,13 @@ EPERM Firewall rules forbid VirtualSocket.
 */
 int zts_setsockopt(ZT_SETSOCKOPT_SIG)
 {
+	int err = errno = 0;
 #if defined(STACK_PICO)
-	DEBUG_INFO("fd = %d", fd);
-	int err = 0;
+	//DEBUG_INFO("fd=%d", fd);
 	if(fd < 0) {
 		errno = EBADF;
 		err = -1;
 	}
-
 	// Disable Nagle's algorithm
 	struct pico_socket *p = NULL;
 	err = zts_get_pico_socket(fd, &p);
@@ -941,8 +924,7 @@ int zts_setsockopt(ZT_SETSOCKOPT_SIG)
 */
 int zts_getsockopt(ZT_GETSOCKOPT_SIG)
 {
-	//DEBUG_INFO("fd = %d", fd);    
-	int err = 0;
+	int err = errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
 		err = -1;
@@ -961,8 +943,7 @@ int zts_getsockopt(ZT_GETSOCKOPT_SIG)
 */
 int zts_getsockname(ZT_GETSOCKNAME_SIG)
 {
-	DEBUG_INFO("fd = %d", fd);
-	int err = 0;
+	int err = errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
 		err = -1;
@@ -985,7 +966,7 @@ Linux:
 */
 int zts_getpeername(ZT_GETPEERNAME_SIG)
 {
-	int err = 0;
+	int err = errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
 		err = -1;
@@ -1015,6 +996,7 @@ Linux:
 
 int zts_gethostname(ZT_GETHOSTNAME_SIG)
 {
+	errno = 0;
 	return gethostname(name, len);
 }
 
@@ -1034,6 +1016,7 @@ Linux:
 
 int zts_sethostname(ZT_SETHOSTNAME_SIG)
 {
+	errno = 0;
 	return sethostname(name, len);
 }
 
@@ -1052,126 +1035,66 @@ Linux / Darwin:
 
 int zts_close(ZT_CLOSE_SIG)
 {
-#if defined(STACK_PICO)
-	DEBUG_EXTRA("fd = %d", fd);
-	int err = 0;
+	int err = errno = 0;
+	DEBUG_EXTRA("fd=%d", fd);
 	if(fd < 0) {
 		errno = EBADF;
-		err = -1;
+		return -1;
 	}
-	else
-	{
-		if(!ZeroTier::zt1Service) {
-			DEBUG_ERROR("cannot close socket. service not started. call zts_start(path) first");
-			errno = EBADF;
-			err = -1;
-		}
-		else
-		{
-			ZeroTier::_multiplexer_lock.lock();
-			//DEBUG_INFO("unmap=%d, fdmap=%d", ZeroTier::unmap.size(), ZeroTier::fdmap.size());
-			// First, look for for unassigned VirtualSockets
-			ZeroTier::VirtualSocket *vs = ZeroTier::unmap[fd];
-
-			// Since we found an unassigned VirtualSocket, we don't need to consult the stack or tap
-			// during closure - it isn't yet stitched into the clockwork
-			if(vs) // unassigned
-			{
-				DEBUG_ERROR("unassigned closure");
-				if((err = pico_socket_close(vs->picosock)) < 0)
-					DEBUG_ERROR("error calling pico_socket_close()");
-				if((err = close(vs->app_fd)) < 0)
-					DEBUG_ERROR("error closing app_fd");
-				if((err = close(vs->sdk_fd)) < 0)
-					DEBUG_ERROR("error closing sdk_fd");            
-				delete vs;
-				vs = NULL;
-				ZeroTier::unmap.erase(fd);
-			}
-			else // assigned
-			{
-				std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *p = ZeroTier::fdmap[fd];
-				if(!p) 
-				{
-					DEBUG_ERROR("unable to locate VirtualSocket pair.");
-					errno = EBADF;
-					err = -1;
-				}
-				else // found everything, begin closure
-				{
-					vs = p->first;
-					ZeroTier::VirtualTap *tap = p->second;
-
-					// check if socket is blocking
-					int f_err, blocking = 1;
-					if ((f_err = fcntl(fd, F_GETFL, 0)) < 0) {
-						DEBUG_ERROR("fcntl error, err = %s, errno = %d", f_err, errno);
-						err = -1;
-					} 
-					else {
-						blocking = !(f_err & O_NONBLOCK);
-					}
-
-					if(blocking) {
-						DEBUG_INFO("blocking, waiting for write operations before closure...");
-						for(int i=0; i<ZT_SDK_CLTIME; i++) {
-							if(vs->TXbuf->count() == 0)
-								break;
-							usleep(ZT_API_CHECK_INTERVAL * 1000);
-						}
-					}
-
-					// For cases where data might still need to pass through the library
-					// before socket closure
-					
-					/*
-					if(ZT_SOCK_BEHAVIOR_LINGER) {
-						socklen_t optlen;
-						struct linger so_linger;
-						so_linger.l_linger = 0;                        
-						zts_getsockopt(fd, SOL_SOCKET, SO_LINGER, &so_linger, &optlen);
-						//DEBUG_ERROR("fd = %d, value = %d", fd, so_linger.l_linger);
-					   // if (so_linger.l_linger != 0) {
-							DEBUG_EXTRA("lingering before closure for (%d) seconds...", so_linger.l_linger);
-							sleep(3); // do the linger!
-					   // }    
-					}
-					else
-					{
-						DEBUG_ERROR("LINGER NOT enabled");
-					}
-					*/
-
-					//DEBUG_INFO("s->state = %s", ZeroTier::picoTCP::beautify_pico_state(vs->picosock->state));
-					tap->Close(vs);
-					delete vs;
-					vs = NULL;
-					ZeroTier::fdmap.erase(fd);
-					err = 0;
-				}
-			}
-			//DEBUG_INFO(" unmap=%d, fdmap=%d", ZeroTier::unmap.size(), ZeroTier::fdmap.size());
-			ZeroTier::_multiplexer_lock.unlock();
-		}
+	if(!ZeroTier::zt1Service) {
+		DEBUG_ERROR("cannot close socket. service not started. call zts_start(path) first");
+		errno = EBADF;
+		return -1;
 	}
+	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	if(!vs) {
+		DEBUG_ERROR("no vs found for fd=%d", fd);
+		errno = EBADF;
+		return -1;
+	}
+	if(vs->tap) {
+		vs->tap->Close(vs);
+	}
+	delete vs;
+	vs = NULL;
+	del_virtual_socket(fd);
 	return err;
-#endif
-	return 0;
+
+	/*
+		// check if socket is blocking
+		int f_err, blocking = 1;
+		if ((f_err = fcntl(fd, F_GETFL, 0)) < 0) {
+			DEBUG_ERROR("fcntl error, err = %s, errno = %d", f_err, errno);
+			err = -1;
+		} 
+		else {
+			blocking = !(f_err & O_NONBLOCK);
+		}
+		if(blocking) {
+			for(int i=0; i<ZT_SDK_CLTIME; i++) {
+				if(vs->TXbuf->count() == 0)
+					break;
+				usleep(ZT_API_CHECK_INTERVAL * 1000);
+			}
+		}
+	*/
 }
 
 int zts_poll(ZT_POLL_SIG)
 {
+	errno = 0;
 	return poll(fds, nfds, timeout);
 }
 
 int zts_select(ZT_SELECT_SIG)
 {
+	errno = 0;
 	return select(nfds, readfds, writefds, exceptfds, timeout);
 }
 
 int zts_fcntl(ZT_FCNTL_SIG)
 {
-	int err = 0;
+	int err = errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
 		err = -1;
@@ -1183,27 +1106,6 @@ int zts_fcntl(ZT_FCNTL_SIG)
 }
 
 /*
-	   struct ifreq {
-		   char ifr_name[IFNAMSIZ];
-		   union {
-			   struct sockaddr ifr_addr;
-			   struct sockaddr ifr_dstaddr;
-			   struct sockaddr ifr_broadaddr;
-			   struct sockaddr ifr_netmask;
-			   struct sockaddr ifr_hwaddr;
-			   short           ifr_flags;
-			   int             ifr_ifindex;
-			   int             ifr_metric;
-			   int             ifr_mtu;
-			   struct ifmap    ifr_map;
-			   char            ifr_slave[IFNAMSIZ];
-			   char            ifr_newname[IFNAMSIZ];
-			   char           *ifr_data;
-		   };
-	   };
-*/
-
-/*
 	[  ] [BADF]             fd is not a valid file descriptor.
 	[  ] [EFAULT]           argp references an inaccessible memory area.
 	[  ] [EINVAL]           request or argp is not valid.
@@ -1212,7 +1114,7 @@ int zts_fcntl(ZT_FCNTL_SIG)
 
 int zts_ioctl(ZT_IOCTL_SIG)
 {
-	int err = 0;
+	int err = errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
 		err = -1;
@@ -1290,15 +1192,15 @@ Linux:
 */
 ssize_t zts_sendto(ZT_SENDTO_SIG)
 {
-	//DEBUG_INFO("fd = %d", fd);
-	int err = 0;
+	//DEBUG_INFO();
+	int err = errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
 		return -1;
 	}
 	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
 	if(!vs) {
-		DEBUG_ERROR("invalid vs");
+		DEBUG_ERROR("no vs found for fd=%x", fd);
 		handle_general_failure();
 		errno = EBADF;
 		return -1;
@@ -1307,7 +1209,7 @@ ssize_t zts_sendto(ZT_SENDTO_SIG)
 	ZeroTier::InetAddress iaddr;
 	ZeroTier::VirtualTap *tap;
 	char ipstr[INET6_ADDRSTRLEN];
-	int port;
+	// int port;
 	memset(ipstr, 0, INET6_ADDRSTRLEN);
 
 	if(vs->socket_type == SOCK_DGRAM) {
@@ -1316,7 +1218,7 @@ ssize_t zts_sendto(ZT_SENDTO_SIG)
 			inet_ntop(AF_INET, 
 				(const void *)&((struct sockaddr_in *)addr)->sin_addr.s_addr, ipstr, INET_ADDRSTRLEN);
 			iaddr.fromString(ipstr);
-			port = ((struct sockaddr_in*)addr)->sin_port;
+			// port = ((struct sockaddr_in*)addr)->sin_port;
 		}
 		if(vs->socket_family == AF_INET6) {
 			inet_ntop(AF_INET6, 
@@ -1325,10 +1227,10 @@ ssize_t zts_sendto(ZT_SENDTO_SIG)
 			char addrstr[64];
 			sprintf(addrstr, "%s%s", ipstr, std::string("/40").c_str());
 			iaddr.fromString(addrstr);
-			port = ((struct sockaddr_in6*)addr)->sin6_port;
+			// port = ((struct sockaddr_in6*)addr)->sin6_port;
 		}
 		// get tap
-		tap = getTapByAddr(iaddr);
+		tap = getTapByAddr(&iaddr);
 		if(!tap) {
 			DEBUG_INFO("SOCK_DGRAM, tap not found");
 			errno = EDESTADDRREQ; // TODO: double check this is the best errno to report
@@ -1343,21 +1245,11 @@ ssize_t zts_sendto(ZT_SENDTO_SIG)
 	if(vs->socket_type == SOCK_RAW) {
 		struct sockaddr_ll *socket_address = (struct sockaddr_ll *)addr;
 		ZeroTier::VirtualTap *tap = getTapByIndex(socket_address->sll_ifindex);
-		if(tap)
-		{
+		if(tap) {
 			DEBUG_INFO("found interface of ifindex=%d", tap->ifindex);
-			if(vs) {
-				DEBUG_INFO("located VirtualSocket object for fd=%d", fd);
-				err = tap->Write(vs, (void*)buf, len);
-			}
-			else {
-				DEBUG_ERROR("unable to locate VirtualSocket object for fd=%d", fd);
-				err = -1;
-				errno = EINVAL;
-			}
+			err = tap->Write(vs, (void*)buf, len);
 		}
-		else
-		{
+		else {
 			DEBUG_ERROR("unable to locate tap of ifindex=%d", socket_address->sll_ifindex);
 			err = -1;
 			errno = EINVAL;
@@ -1371,39 +1263,39 @@ ssize_t zts_sendto(ZT_SENDTO_SIG)
 	Linux:
 
 	[  ] EACCES						(For UNIX domain sockets, which are identified by pathname)
-			  						Write permission is denied on the destination socket file, or
-			  						search permission is denied for one of the directories the
-			  						path prefix.  (See path_resolution(7).)
+									Write permission is denied on the destination socket file, or
+									search permission is denied for one of the directories the
+									path prefix.  (See path_resolution(7).)
 
-			  						(For UDP sockets) An attempt was made to send to a
-			  						network/broadcast address as though it was a unicast address.
+									(For UDP sockets) An attempt was made to send to a
+									network/broadcast address as though it was a unicast address.
 	[  ] EAGAIN or EWOULDBLOCK		The socket is marked nonblocking and the requested operation
-			  						would block.  POSIX.1-2001 allows either error to be returned
-			  						for this case, and does not require these constants to have
-			  						the same value, so a portable application should check for
-			  						both possibilities.
+									would block.  POSIX.1-2001 allows either error to be returned
+									for this case, and does not require these constants to have
+									the same value, so a portable application should check for
+									both possibilities.
 	[  ] EAGAIN 					(Internet domain datagram sockets) The socket referred to by
-			  						sockfd had not previously been bound to an address and, upon
-			  						attempting to bind it to an ephemeral port, it was determined
-			  						that all port numbers in the ephemeral port range are
-			  						currently in use.  See the discussion of
-			  						/proc/sys/net/ipv4/ip_local_port_range in ip(7).
-	[  ] EBADF  					sockfd is not a valid open file descriptor.
+									sockfd had not previously been bound to an address and, upon
+									attempting to bind it to an ephemeral port, it was determined
+									that all port numbers in the ephemeral port range are
+									currently in use.  See the discussion of
+									/proc/sys/net/ipv4/ip_local_port_range in ip(7).
+	[--] EBADF  					sockfd is not a valid open file descriptor.
 	[  ] ECONNRESET 				Connection reset by peer.
-	[  ] EDESTADDRREQ 				The socket is not connection-mode, and no peer address is set.
+	[--] EDESTADDRREQ 				The socket is not connection-mode, and no peer address is set.
 	[  ] EFAULT 					An invalid user space address was specified for an argument.
 	[  ] EINTR  					A signal occurred before any data was transmitted
-	[  ] EINVAL 					Invalid argument passed.
+	[--] EINVAL 					Invalid argument passed.
 	[  ] EISCONN					The connection-mode socket was connected already but a
 									recipient was specified.  (Now either this error is returned,
 									or the recipient specification is ignored.)
 	[  ] EMSGSIZE					The socket type requires that message be sent atomically, and
 									the size of the message to be sent made this impossible.
 	[  ] ENOBUFS					The output queue for a network interface was full.  This
-			  						generally indicates that the interface has stopped sending,
-			  						but may be caused by transient congestion.  (Normally, this
-			  						does not occur in Linux.  Packets are just silently dropped
-			  						when a device queue overflows.)
+									generally indicates that the interface has stopped sending,
+									but may be caused by transient congestion.  (Normally, this
+									does not occur in Linux.  Packets are just silently dropped
+									when a device queue overflows.)
 	[  ] ENOMEM 					No memory available.
 	[  ] ENOTCONN					The socket is not connected, and no target has been given.
 	[  ] ENOTSOCK					The file descriptor sockfd does not refer to a socket.
@@ -1416,14 +1308,75 @@ ssize_t zts_sendto(ZT_SENDTO_SIG)
 */
 ssize_t zts_send(ZT_SEND_SIG)
 {
-	return send(fd, buf, len, flags);
+	int err = errno = 0;
+	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	if(!vs) {
+		DEBUG_ERROR("invalid vs for fd=%d", fd);
+		errno = EBADF;
+		return -1;
+	}
+	if(vs->socket_type != SOCK_STREAM) {
+		DEBUG_ERROR("the socket is not connection-mode, and no peer address is set for fd=%d", fd);
+		errno = EDESTADDRREQ;
+		return -1;
+	}
+	if(flags & MSG_DONTROUTE) {
+		DEBUG_INFO("MSG_DONTROUTE not implemented yet");
+		errno = EINVAL;
+		return -1;
+	}
+	if(flags & MSG_DONTWAIT) {
+		// The stack drivers and stack are inherently non-blocking by design, but we 
+		// still need to modify the unix pipe connecting them to the application:
+		fcntl(fd, F_SETFL, O_NONBLOCK);
+	}
+	if(flags & MSG_EOR) {
+		DEBUG_INFO("MSG_EOR not implemented yet");
+		errno = EINVAL;
+		return -1;
+	}
+	if(flags & MSG_OOB) {
+		DEBUG_INFO("MSG_OOB not implemented yet");
+		errno = EINVAL;
+		return -1;
+	}
+#if defined(__linux__)
+	if(flags & MSG_CONFIRM) {
+		DEBUG_INFO("MSG_CONFIRM not implemented yet");
+		errno = EINVAL;
+		return -1;
+	}
+	if(flags & MSG_MORE) {
+		DEBUG_INFO("MSG_MORE not implemented yet");
+		errno = EINVAL;
+		return -1;
+	}
+	if(flags & MSG_NOSIGNAL) {
+		DEBUG_INFO("MSG_NOSIGNAL not implemented yet");
+		errno = EINVAL;
+		return -1;
+	}
+#endif
+
+	err = write(fd, buf, len);
+
+	// restore "per-call" flags
+
+	if(flags & MSG_DONTWAIT) {
+		int saved_flags = fcntl(fd, F_GETFL);
+		if(fcntl(fd, F_SETFL, saved_flags & ~O_NONBLOCK) < 0) { // mask out the blocking flag
+			handle_general_failure();
+			return -1;
+		}
+	}
+	return err;
 }
 
 // TODO
 ssize_t zts_sendmsg(ZT_SENDMSG_SIG)
 {
 	DEBUG_INFO("fd = %d", fd);
-	int err = 0;
+	int err = errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
 		err = -1;
@@ -1445,7 +1398,7 @@ ssize_t zts_sendmsg(ZT_SENDMSG_SIG)
 	[  ] EAGAIN or EWOULDBLOCK		The socket is marked nonblocking and the receive operation
 									would block, or a receive timeout had been set and the timeout
 									expired before data was received.  
-	[  ] EBADF  					The argument sockfd is an invalid file descriptor.
+	[--] EBADF  					The argument sockfd is an invalid file descriptor.
 	[  ] ECONNREFUSED
 									A remote host refused to allow the network connection
 									(typically because it is not running the requested service).
@@ -1453,14 +1406,74 @@ ssize_t zts_sendmsg(ZT_SENDMSG_SIG)
 									address space.
 	[  ] EINTR  					The receive was interrupted by delivery of a signal before any
 									data were available; see signal(7).
-	[  ] EINVAL 					Invalid argument passed.
+	[--] EINVAL 					Invalid argument passed.
 	[  ] ENOMEM 					Could not allocate memory for recvmsg().
 	[  ] ENOTCONN 					The socket is associated with a connection-oriented protocol and has not been connected (see connect(2) and accept(2)).
 	[  ] ENOTSOCK 					The file descriptor sockfd does not refer to a socket.
 */
 ssize_t zts_recv(ZT_RECV_SIG)
 {
-	return recv(fd, buf, len, flags);
+	int err = errno = 0;
+	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	if(!vs) {
+		DEBUG_ERROR("invalid vs for fd=%d", fd);
+		errno = EBADF;
+		return -1;
+	}
+	if(vs->socket_type != SOCK_STREAM) {
+		DEBUG_ERROR("the socket is not connection-mode, and no peer address is set for fd=%d", fd);
+		errno = EDESTADDRREQ;
+		return -1;
+	}
+	if(vs->state != ZT_SOCK_STATE_CONNECTED) {
+		DEBUG_ERROR("the socket is not in a connected state, fd=%d", fd);
+		errno = ENOTCONN;
+		return -1;
+	}
+	if(flags & MSG_DONTWAIT) {
+		// The stack drivers and stack are inherently non-blocking by design, but we 
+		// still need to modify the unix pipe connecting them to the application:
+		fcntl(fd, F_SETFL, O_NONBLOCK);
+	}
+	if(flags & MSG_OOB) {
+		DEBUG_INFO("MSG_OOB not implemented yet");
+		errno = EINVAL;
+		return -1;
+	}
+	if(flags & MSG_TRUNC) {
+		DEBUG_INFO("MSG_TRUNC not implemented yet");
+		errno = EINVAL;
+		return -1;
+	}
+	if(flags & MSG_WAITALL) {
+		DEBUG_INFO("MSG_WAITALL not implemented yet");
+		errno = EINVAL;
+		return -1;
+	}
+#if defined(__linux__)
+	if(flags & MSG_ERRQUEUE) {
+		DEBUG_INFO("MSG_ERRQUEUE not implemented yet");
+		errno = EINVAL;
+		return -1;
+	}
+#endif
+
+	if(flags & MSG_PEEK) {
+		// MSG_PEEK doesn't require any special stack-related machinery so we can just
+		// pass it to a regular recv() call with no issue
+		err = recv(fd, buf, len, MSG_PEEK);
+	}
+
+	// restore "per-call" flags
+
+	if(flags & MSG_DONTWAIT) {
+		int saved_flags = fcntl(fd, F_GETFL);
+		if(fcntl(fd, F_SETFL, saved_flags & ~O_NONBLOCK) < 0) { // mask out the blocking flag
+			handle_general_failure();
+			return -1;
+		}
+	}
+	return err;
 }
 
 /*
@@ -1487,8 +1500,8 @@ ssize_t zts_recv(ZT_RECV_SIG)
 */
 ssize_t zts_recvfrom(ZT_RECVFROM_SIG)
 {
-	//DEBUG_INFO("fd = %d", fd);
-	int r = 0;
+	//DEBUG_INFO();
+	int r = 0, err = errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
 		return -1;
@@ -1510,8 +1523,8 @@ ssize_t zts_recvfrom(ZT_RECVFROM_SIG)
 // TODO
 ssize_t zts_recvmsg(ZT_RECVMSG_SIG)
 {
-	DEBUG_INFO("fd = %d", fd);
-	int err = 0;
+	DEBUG_INFO("fd=%d", fd);
+	int err = errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
 		err = -1;
@@ -1528,16 +1541,18 @@ int zts_read(ZT_READ_SIG) {
 }
 
 int zts_write(ZT_WRITE_SIG) {
-	//DEBUG_INFO("fd = %d", fd);
+	// DEBUG_INFO("fd = %d", fd);
 	return write(fd, buf, len);
 }
 
 int zts_shutdown(ZT_SHUTDOWN_SIG)
 {
+	/*
+	int err = errno = 0;
 #if defined(STACK_PICO)
 	DEBUG_INFO("fd = %d", fd);
  
-	int err = 0, mode = 0;
+	int mode = 0;
 	if(how == SHUT_RD) mode = PICO_SHUT_RD;
 	if(how == SHUT_WR) mode = PICO_SHUT_WR;
 	if(how == SHUT_RDWR) mode = PICO_SHUT_RDWR;
@@ -1563,13 +1578,14 @@ int zts_shutdown(ZT_SHUTDOWN_SIG)
 			if(vs) // unassigned
 			{
 				DEBUG_ERROR("unassigned shutdown");
-				/*
-				   PICO_SHUT_RD
-				   PICO_SHUT_WR
-				   PICO_SHUT_RDWR
-				*/
+				
+				//   PICO_SHUT_RD
+				//   PICO_SHUT_WR
+				//   PICO_SHUT_RDWR
+			
 				if((err = pico_socket_shutdown(vs->picosock, mode)) < 0)
 					DEBUG_ERROR("error calling pico_socket_shutdown()");
+				DEBUG_ERROR("vs=%p", vs);
 				delete vs;
 				vs = NULL;
 				ZeroTier::unmap.erase(fd);
@@ -1600,7 +1616,9 @@ int zts_shutdown(ZT_SHUTDOWN_SIG)
 						for(int i=0; i<ZT_SDK_CLTIME; i++) {
 							if(vs->TXbuf->count() == 0)
 								break;
-							usleep(ZT_API_CHECK_INTERVAL * 1000);
+							//usleep(ZT_API_CHECK_INTERVAL * 1000);
+							nanosleep((const struct timespec[]){{0, (ZT_API_CHECK_INTERVAL * 1000000)}}, NULL);
+
 						}
 					}
 
@@ -1613,12 +1631,25 @@ int zts_shutdown(ZT_SHUTDOWN_SIG)
 	}
 	return err;
 #endif
+*/
+	return 0;
+}
+
+
+int zts_add_dns_nameserver(struct sockaddr *addr)
+{
+	errno = 0;
+	return 0;
+}
+
+int zts_remove_dns_nameserver(struct sockaddr *addr)
+{
+	errno = 0;
 	return 0;
 }
 
 /****************************************************************************/
-/* SDK Socket API (Java Native Interface JNI)                               */
-/* JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME             */
+/* SDK Socket API (Java Native Interface JNI)                               /* JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME             */
 /****************************************************************************/
 
 
@@ -1878,6 +1909,18 @@ namespace ZeroTier {
 /* SDK Socket API Helper functions --- DON'T CALL THESE DIRECTLY            */
 /****************************************************************************/
 
+void zts_start_dns_client()
+{
+	// Coming soon
+
+	/*
+	struct pico_ip4 *ns;
+	uint8_t flag = PICO_DNS_NS_ADD; // PICO_DNS_NS_DEL, PICO_DNS_NS_ADD
+	pico_dns_client_nameserver(ns, flag);
+	*/
+}
+
+
 #if defined(STACK_PICO)
 int zts_get_pico_socket(int fd, struct pico_socket **s)
 {
@@ -1887,8 +1930,7 @@ int zts_get_pico_socket(int fd, struct pico_socket **s)
 		errno = EBADF;
 		err = -1;
 	}
-	else
-	{
+	else {
 		ZeroTier::_multiplexer_lock.lock();
 		// First, look for for unassigned VirtualSockets
 		ZeroTier::VirtualSocket *vs = ZeroTier::unmap[fd];
@@ -1930,7 +1972,9 @@ bool can_provision_new_socket()
 	// TODO: Add check here (see lwipopts.h)
 	return true;
 #endif
-	return false;
+#if defined(NO_STACK)
+	return true; // always true since there's no network stack timer limitation
+#endif
 }
 
 int zts_nsockets()
@@ -1947,7 +1991,12 @@ int zts_maxsockets()
 	// TODO: This is only an approximation
 	return PICO_MAX_TIMERS - 10;
 #endif
+#if defined(STACK_LWIP)
 	return 32;
+#endif
+#if defined(NO_STACK)
+	return 1024; // arbitrary
+#endif
 }
 
 /****************************************************************************/
@@ -1972,7 +2021,7 @@ ZeroTier::VirtualTap *getTapByNWID(uint64_t nwid)
 	return tap;
 }
 
-ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress &addr)
+ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress *addr)
 {
 	ZeroTier::_vtaps_lock.lock();
 	ZeroTier::VirtualTap *s, *tap = nullptr; 
@@ -1981,14 +2030,18 @@ ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress &addr)
 		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		// check address schemes
 		for(int j=0; j<s->_ips.size(); j++) {
-			DEBUG_INFO("looking at tap <addr=%s> for <%s>", s->_ips[j].toString(ipbuf), addr.toString(ipbuf2));
-			if(s->_ips[j].isEqualPrefix(addr) 
-				|| s->_ips[j].ipsEqual(addr) 
-				|| s->_ips[j].containsAddress(addr)) 
-			{
-				DEBUG_INFO("chose tap <addr=%s>", s->_ips[j].toString(ipbuf));
-				tap = s;
-				break;
+			if((s->_ips[j].isV4() && addr->isV4()) || (s->_ips[j].isV6() && addr->isV6())) {
+				//DEBUG_INFO("looking at tap %s, <addr=%s> --- for <%s>", s->_dev.c_str(), s->_ips[j].toString(ipbuf), addr->toIpString(ipbuf2));
+				if(s->_ips[j].isEqualPrefix(addr) 
+					|| s->_ips[j].ipsEqual(addr) 
+					|| s->_ips[j].containsAddress(addr)
+					|| (addr->isV6() && ipv6_in_subnet(&s->_ips[j], addr)) 
+					) 
+				{
+					//DEBUG_INFO("selected tap %s, <addr=%s>", s->_dev.c_str(), s->_ips[j].toString(ipbuf));
+					ZeroTier::_vtaps_lock.unlock();
+					return s;
+				}
 			}
 		}
 		// check managed routes
@@ -2001,8 +2054,8 @@ ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress &addr)
 				via = managed_routes->at(i).via;
 				if(target.containsAddress(addr)) {
 					// DEBUG_INFO("chose tap with route <target=%s, nm=%s, via=%s>", target.toString(ipbuf), nm.toString(ipbuf2), via.toString(ipbuf3));
-					tap = s;
-					break;
+					ZeroTier::_vtaps_lock.unlock();
+					return s;
 				}
 			}
 		}
@@ -2039,6 +2092,10 @@ ZeroTier::VirtualTap *getTapByIndex(int index)
 	return tap;
 }
 
+/****************************************************************************/
+/* VirtualSocket / VirtualTap helper functions - DON'T CALL THESE DIRECTLY  */
+/****************************************************************************/
+
 ZeroTier::VirtualSocket *get_virtual_socket(int fd)
 {
 	ZeroTier::_multiplexer_lock.lock();
@@ -2055,10 +2112,47 @@ ZeroTier::VirtualSocket *get_virtual_socket(int fd)
 	return vs;
 }
 
+void del_virtual_socket(int fd)
+{
+	ZeroTier::_multiplexer_lock.lock();
+	ZeroTier::unmap.erase(fd);
+	ZeroTier::fdmap.erase(fd);
+	ZeroTier::_multiplexer_lock.unlock();
+}
+
+void add_unassigned_virtual_socket(int fd, ZeroTier::VirtualSocket *vs)
+{
+	ZeroTier::_multiplexer_lock.lock();
+	ZeroTier::unmap[fd] = vs;
+	ZeroTier::_multiplexer_lock.unlock();
+}
+
+void del_unassigned_virtual_socket(int fd)
+{
+	ZeroTier::_multiplexer_lock.lock();
+	ZeroTier::unmap.erase(fd);
+	ZeroTier::_multiplexer_lock.unlock();
+}
+
+void add_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd)
+{
+	ZeroTier::_multiplexer_lock.lock();
+	ZeroTier::fdmap[fd] = new std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>(vs, tap);
+	ZeroTier::_multiplexer_lock.unlock();
+}
+
+void del_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd)
+{
+	ZeroTier::_multiplexer_lock.lock();
+	ZeroTier::fdmap.erase(fd);
+	ZeroTier::_multiplexer_lock.unlock();
+}
+
 void dismantleTaps()
 {
 	ZeroTier::_vtaps_lock.lock();
 	for(int i=0; i<ZeroTier::vtaps.size(); i++) { 
+		DEBUG_ERROR("ZeroTier::vtapsf[i]=%p", ZeroTier::vtaps[i]);
 		delete (ZeroTier::VirtualTap*)ZeroTier::vtaps[i]; 
 		ZeroTier::vtaps[i] = NULL;
 	}
@@ -2067,16 +2161,16 @@ void dismantleTaps()
 }
 
 int zts_get_device_id_from_file(const char *filepath, char *devID) {
-    std::string fname("identity.public");
-    std::string fpath(filepath);
+	std::string fname("identity.public");
+	std::string fpath(filepath);
 
-    if(ZeroTier::OSUtils::fileExists((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),false)) {
-        std::string oldid;
-        ZeroTier::OSUtils::readFile((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),oldid);
-        memcpy(devID, oldid.c_str(), 10); // first 10 bytes of file
-        return 0;
-    }
-    return -1;
+	if(ZeroTier::OSUtils::fileExists((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),false)) {
+		std::string oldid;
+		ZeroTier::OSUtils::readFile((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),oldid);
+		memcpy(devID, oldid.c_str(), 10); // first 10 bytes of file
+		return 0;
+	}
+	return -1;
 }
 
 // Starts a ZeroTier service in the background
@@ -2118,7 +2212,6 @@ void *zts_start_service(void *thread_id) {
 	ZeroTier::Utils::getSecureRandom(&randp,sizeof(randp));
 	// TODO: Better port random range selection
 	int servicePort = 9000 + (randp % 1000);
-
 	for(;;) {
 		ZeroTier::zt1Service = ZeroTier::OneService::newInstance(ZeroTier::homeDir.c_str(),servicePort);
 		switch(ZeroTier::zt1Service->run()) {
@@ -2126,6 +2219,7 @@ void *zts_start_service(void *thread_id) {
 			case ZeroTier::OneService::ONE_NORMAL_TERMINATION:
 				break;
 			case ZeroTier::OneService::ONE_UNRECOVERABLE_ERROR:
+				DEBUG_ERROR("ZTO service port = %d", servicePort);
 				DEBUG_ERROR("fatal error: %s",ZeroTier::zt1Service->fatalErrorMessage().c_str());
 				break;
 			case ZeroTier::OneService::ONE_IDENTITY_COLLISION: {

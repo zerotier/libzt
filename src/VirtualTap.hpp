@@ -109,10 +109,15 @@ namespace ZeroTier {
 			unsigned int len);
 
 		/* 
-		 * Get device name
+		 * Get VirtualTap device name (e.g. 'libzt4-17d72843bc2c5760')
 		 */
 		std::string deviceName() const;
 		
+		/*
+		 * Get Node ID (ZT address)
+		 */
+		std::string nodeId() const;
+
 		/* 
 		 * Set friendly name
 		 */
@@ -153,7 +158,7 @@ namespace ZeroTier {
 		/* 
 		 * Notifies us that we can write to an application's socket
 		 */
-		void phyOnUnixWritable(PhySocket *sock, void **uptr, bool lwip_invoked);
+		void phyOnUnixWritable(PhySocket *sock, void **uptr, bool stack_invoked);
 
 		/*
 		 * Adds a route to the virtual tap
@@ -165,19 +170,24 @@ namespace ZeroTier {
 		 */
 		bool routeDelete(const InetAddress &addr, const InetAddress &nm);
 
+		/*
+		 * Assign a VirtualSocket to the VirtualTap
+		 */
+		void addVirtualSocket(VirtualSocket *vs); 
+
+		/*
+		 * Remove a VirtualSocket from the VirtualTap
+		 */
+		void removeVirtualSocket(VirtualSocket *vs);
+
 		/****************************************************************************/
 		/* Vars                                                                     */
 		/****************************************************************************/
 
 #if defined(STACK_PICO)
 
-		/*
-		 * Whether our picoTCP device has been initialized
-		 */
-		bool picodev_initialized = false;
-
+		bool should_start_stack = false;
 		struct pico_device *picodev = NULL;
-		struct pico_device *picodev6 = NULL;
 
 		/****************************************************************************/
 		/* Guarded RX Frame Buffer for picoTCP                                      */

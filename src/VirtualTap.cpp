@@ -97,9 +97,9 @@ namespace ZeroTier {
 	{
 		vtaps.push_back((void*)this);
 		// set interface name
-		char tmp3[17];
+		char tmp3[64];
 		ifindex = devno;
-		sprintf(tmp3, "libzt%d-%lx", devno++, _nwid);
+		snprintf(tmp3, 64, "libzt%d-%lx", devno++, _nwid);
 		_dev = tmp3;
 		DEBUG_INFO("set VirtualTap interface name to: %s", _dev.c_str());
 		_thread = Thread::start(this);

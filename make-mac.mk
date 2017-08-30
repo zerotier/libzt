@@ -70,6 +70,11 @@ endif
 
 CXXFLAGS=$(CFLAGS) -Wno-format -fno-rtti -std=c++11 -DZT_SOFTWARE_UPDATE_DEFAULT="\"disable\""
 
+# Build against address sanitization library for advanced debugging (clang)
+ifeq ($(ZT_SANITIZE),1)
+	CXXFLAGS+=-x c++ -O -g -fsanitize=address -DASAN_OPTIONS=symbolize=1 -DASAN_SYMBOLIZER_PATH=$(shell which llvm-symbolizer)
+endif
+
 INCLUDES+= -Iext \
 	-I$(ZTO)/osdep \
 	-I$(ZTO)/node \
@@ -209,7 +214,7 @@ static_lib: picotcp $(ZTO_OBJS)
 	$(CXX) $(CXXFLAGS) $(LIBZT_FILES) $(STACK_DRIVER_FILES) -c
 	mv *.o obj
 	#mv ext/picotcp/build/lib/*.o obj
-	mv ext/picotcp/build/modules/*.o obj
+	#mv ext/picotcp/build/modules/*.o obj
 	libtool -static -o $(STATIC_LIB) obj/*.o $(STACK_LIB)
 endif
 ifeq ($(STACK_LWIP),1)

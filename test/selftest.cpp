@@ -240,8 +240,9 @@ void RECORD_RESULTS(int *test_number, bool passed, char *details, std::vector<st
 // 
 void tcp_client_4(TCP_UNIT_TEST_SIG_4)
 {
-	std::string msg = "tcp_client_4";
-	fprintf(stderr, "\n\n%s\n\n", msg.c_str());
+	std::string testname = "tcp_client_4";
+	std::string msg = "tcp_cs_4";
+	fprintf(stderr, "\n\n%s\n\n", testname.c_str());
 	int r, w, sockfd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
@@ -249,7 +250,6 @@ void tcp_client_4(TCP_UNIT_TEST_SIG_4)
 		DEBUG_ERROR("error creating ZeroTier socket");
 	if((err = zts_connect(sockfd, (const struct sockaddr *)addr, sizeof(addr))) < 0)
 		DEBUG_ERROR("error connecting to remote host (%d)", err);
-
 	// TODO: Put this test in the general API section
 	struct sockaddr_storage peer_addr;
 	struct sockaddr_in *in4 = (struct sockaddr_in*)&peer_addr;
@@ -263,15 +263,16 @@ void tcp_client_4(TCP_UNIT_TEST_SIG_4)
 	DEBUG_TEST("Received : %s", rbuf);
 	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 	err = zts_close(sockfd);
-	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", msg.c_str(), count, err, r, w);
+	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", testname.c_str(), count, err, r, w);
 	*passed = (w == len && r == len && !err) && !strcmp(rbuf, msg.c_str());
 }
 
 //
 void tcp_server_4(TCP_UNIT_TEST_SIG_4)
 {
-	std::string msg = "tcp_server_4";
-	fprintf(stderr, "\n\n%s\n\n", msg.c_str());	
+	std::string testname = "tcp_server_4";
+	std::string msg = "tcp_cs_4";
+	fprintf(stderr, "\n\n%s\n\n", testname.c_str());	
 	int w=0, r=0, sockfd, accfd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
@@ -283,7 +284,6 @@ void tcp_server_4(TCP_UNIT_TEST_SIG_4)
 		printf("error placing socket in LISTENING state (%d)", err);
 	if((accfd = zts_accept(sockfd, (struct sockaddr *)&addr, (socklen_t *)sizeof(addr))) < 0)
 		DEBUG_ERROR("error accepting connection (%d)", err);
-
 	// TODO: Put this test in the general API section
 	struct sockaddr_storage peer_addr;
 	struct sockaddr_in *in4 = (struct sockaddr_in*)&peer_addr;
@@ -297,15 +297,16 @@ void tcp_server_4(TCP_UNIT_TEST_SIG_4)
 	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 	err = zts_close(sockfd);
 	err = zts_close(accfd);
-	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", msg.c_str(), count, err, r, w);
+	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", testname.c_str(), count, err, r, w);
 	*passed = (w == len && r == len && !err) && !strcmp(rbuf, msg.c_str());
 }
 
 // 
 void tcp_client_6(TCP_UNIT_TEST_SIG_6)
 {
-	std::string msg = "tcp_client_6";
-	fprintf(stderr, "\n\n%s\n\n", msg.c_str());
+	std::string testname = "tcp_client_6";
+	std::string msg = "tcp_cs_6";
+	fprintf(stderr, "\n\n%s\n\n", testname.c_str());
 	int r, w, sockfd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
@@ -313,7 +314,6 @@ void tcp_client_6(TCP_UNIT_TEST_SIG_6)
 		DEBUG_ERROR("error creating ZeroTier socket");
 	if((err = zts_connect(sockfd, (const struct sockaddr *)addr, sizeof(addr))) < 0)
 		DEBUG_ERROR("error connecting to remote host (%d)", err);
-
 	// TODO: Put this test in the general API section
 	struct sockaddr_storage peer_addr;
 	struct sockaddr_in6 *p6 = (struct sockaddr_in6*)&peer_addr;
@@ -327,7 +327,7 @@ void tcp_client_6(TCP_UNIT_TEST_SIG_6)
 	r = zts_read(sockfd, rbuf, len);
 	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 	err = zts_close(sockfd);
-	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", msg.c_str(), count, err, r, w);
+	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", testname.c_str(), count, err, r, w);
 	DEBUG_TEST("Sent     : %s", msg.c_str());
 	DEBUG_TEST("Received : %s", rbuf);
 	*passed = (w == len && r == len && !err) && !strcmp(rbuf, msg.c_str());
@@ -336,8 +336,9 @@ void tcp_client_6(TCP_UNIT_TEST_SIG_6)
 //
 void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 {
-	std::string msg = "tcp_sever_6";
-	fprintf(stderr, "\n\n%s\n\n", msg.c_str());	
+	std::string testname = "tcp_sever_6";
+	std::string msg = "tcp_cs_6";
+	fprintf(stderr, "\n\n%s\n\n", testname.c_str());	
 	int w=0, r=0, sockfd, accfd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
@@ -349,7 +350,6 @@ void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 		DEBUG_ERROR("error placing socket in LISTENING state (%d)", err);
 	if((accfd = zts_accept(sockfd, (struct sockaddr *)&addr, (socklen_t *)sizeof(addr))) < 0)
 		DEBUG_ERROR("error accepting connection (%d)", err);
-	
 	// TODO: Put this test in the general API section
 	struct sockaddr_storage peer_addr;
 	struct sockaddr_in6 *p6 = (struct sockaddr_in6*)&peer_addr;
@@ -365,7 +365,7 @@ void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 	err = zts_close(sockfd);
 	err = zts_close(accfd);
-	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", msg.c_str(), count, err, r, w);
+	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", testname.c_str(), count, err, r, w);
 	*passed = (w == len && r == len && !err) && !strcmp(rbuf, msg.c_str());
 }
 
@@ -374,8 +374,9 @@ void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 //
 void udp_client_4(UDP_UNIT_TEST_SIG_4)
 {
-	std::string msg = "udp_client_4";
-	fprintf(stderr, "\n\n%s\n\n", msg.c_str());	
+	std::string testname = "udp_client_4";
+	std::string msg = "udp_cs_4";
+	fprintf(stderr, "\n\n%s\n\n", testname.c_str());	
 	int r, w, sockfd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
@@ -384,11 +385,11 @@ void udp_client_4(UDP_UNIT_TEST_SIG_4)
 		DEBUG_ERROR("error creating ZeroTier socket");
 	if((err = zts_fcntl(sockfd, F_SETFL, O_NONBLOCK) < 0))
 		std::cout << "error setting O_NONBLOCK (errno=" << strerror(errno) << ")" << std::endl;
-	fprintf(stderr, "sending UDP packets until I get a single response...\n");
+	DEBUG_INFO("sending UDP packets until I get a single response...\n");
 	if((err = zts_bind(sockfd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in)) < 0))
 		DEBUG_ERROR("error binding to interface (%d)", err);
 
-	struct sockaddr_in saddr;
+	struct sockaddr_storage saddr;
 	while(1) {
 		// tx
 		if((w = zts_sendto(sockfd, msg.c_str(), strlen(msg.c_str()), 0, (struct sockaddr *)remote_addr, sizeof(remote_addr))) < 0) {
@@ -402,8 +403,8 @@ void udp_client_4(UDP_UNIT_TEST_SIG_4)
     	if(r == strlen(msg.c_str())) {
     		sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 			err = zts_close(sockfd);
-			DEBUG_INFO("%s, n=%d, err=%d, r=%d, w=%d\n", msg.c_str(), count, err, r, w);
-			sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", msg.c_str(), count, err, r, w);
+			DEBUG_INFO("%s, n=%d, err=%d, r=%d, w=%d\n", testname.c_str(), count, err, r, w);
+			sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", testname.c_str(), count, err, r, w);
 			DEBUG_TEST("Sent     : %s", msg.c_str());
 			DEBUG_TEST("Received : %s", rbuf);
 			*passed = (w == len && r == len && !err) && !strcmp(rbuf, msg.c_str());
@@ -414,8 +415,9 @@ void udp_client_4(UDP_UNIT_TEST_SIG_4)
 
 void udp_server_4(UDP_UNIT_TEST_SIG_4)
 {
-	std::string msg = "udp_server_4";
-	fprintf(stderr, "\n\n%s\n\n", msg.c_str());	
+	std::string testname = "udp_server_4";
+	std::string msg = "udp_cs_4";
+	fprintf(stderr, "\n\n%s\n\n", testname.c_str());	
 	int r, w, sockfd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
@@ -426,32 +428,33 @@ void udp_server_4(UDP_UNIT_TEST_SIG_4)
 		DEBUG_ERROR("error binding to interface (%d)", err);    
     // rx
     DEBUG_INFO("waiting for UDP packet...");
-    struct sockaddr_in saddr;
+    struct sockaddr_storage saddr;
+    struct sockaddr_in *in4 = (struct sockaddr_in*)&saddr;
     int serverlen = sizeof(saddr);
     memset(&saddr, 0, sizeof(saddr));
-    r = zts_recvfrom(sockfd, rbuf, STR_SIZE, 0, (struct sockaddr *)&saddr, (socklen_t *)&serverlen);
+    r = zts_recvfrom(sockfd, rbuf, STR_SIZE, 0, (struct sockaddr *)in4, (socklen_t *)&serverlen);
     char addrstr[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &(saddr.sin_addr), addrstr, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, &(in4->sin_addr), addrstr, INET_ADDRSTRLEN);
     // once we receive a UDP packet, spend 10 seconds sending responses in the hopes that the client will see
-    DEBUG_INFO("received DGRAM from %s : %d", inet_ntoa(saddr.sin_addr), ntohs(saddr.sin_port));
+    DEBUG_INFO("received DGRAM from %s : %d", inet_ntoa(in4->sin_addr), ntohs(in4->sin_port));
     DEBUG_INFO("sending DGRAM(s) to %s : %d", inet_ntoa(remote_addr->sin_addr), ntohs(remote_addr->sin_port));
     // tx
     long int tx_ti = get_now_ts();	
     while(1) {
     	sleep(1);
     	//DEBUG_INFO("sending UDP packet");
-		if((w = zts_sendto(sockfd, msg.c_str(), strlen(msg.c_str()), 0, (struct sockaddr *)remote_addr, sizeof(remote_addr))) < 0) {
+		if((w = zts_sendto(sockfd, msg.c_str(), len, 0, (struct sockaddr *)remote_addr, sizeof(remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
 		}
 		if(get_now_ts() >= tx_ti + 20000) {
-			DEBUG_INFO("get_now_ts()-tx_ti=%d\n", get_now_ts()-tx_ti);
+			DEBUG_INFO("get_now_ts()-tx_ti=%d", get_now_ts()-tx_ti);
 			break;
 		}
 	}
 	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 	//err = zts_close(sockfd);
-	DEBUG_INFO("%s, n=%d, err=%d, r=%d, w=%d\n", msg.c_str(), count, err, r, w);
-	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", msg.c_str(), count, err, r, w);
+	DEBUG_INFO("%s, n=%d, err=%d, r=%d, w=%d\n", testname.c_str(), count, err, r, w);
+	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", testname.c_str(), count, err, r, w);
 	DEBUG_TEST("Sent     : %s", msg.c_str());
 	DEBUG_TEST("Received : %s", rbuf);
 	*passed = (w == len && r == len && !err) && !strcmp(rbuf, msg.c_str());
@@ -460,8 +463,9 @@ void udp_server_4(UDP_UNIT_TEST_SIG_4)
 //
 void udp_client_6(UDP_UNIT_TEST_SIG_6)
 {
-	std::string msg = "udp_client_6";
-	fprintf(stderr, "\n\n%s\n\n", msg.c_str());
+	std::string testname = "udp_client_6";
+	std::string msg = "udp_cs_6";
+	fprintf(stderr, "\n\n%s\n\n", testname.c_str());
 	int r, w, sockfd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
@@ -470,28 +474,29 @@ void udp_client_6(UDP_UNIT_TEST_SIG_6)
 		DEBUG_ERROR("error creating ZeroTier socket");
 	if((err = zts_fcntl(sockfd, F_SETFL, O_NONBLOCK) < 0))
 		std::cout << "error setting O_NONBLOCK (errno=" << strerror(errno) << ")" << std::endl;
-	DEBUG_INFO("[1] sending UDP packets until I get a single response...\n");
+	
+	DEBUG_INFO("[1] binding and sending UDP packets until I get a single response...");
 	if((err = zts_bind(sockfd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in6)) < 0))
 		DEBUG_ERROR("error binding to interface (%d)", err);
 
 	// start sending UDP packets in the hopes that at least one will be picked up by the server
-	struct sockaddr_in saddr;
+	struct sockaddr_storage saddr;
 	while(1) {
 		// tx
-		if((w = zts_sendto(sockfd, msg.c_str(), strlen(msg.c_str()), 0, (struct sockaddr *)remote_addr, sizeof(remote_addr))) < 0) {
+		if((w = zts_sendto(sockfd, msg.c_str(), len, 0, (struct sockaddr *)remote_addr, sizeof(remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
 		}
 		usleep(100000);
 		memset(rbuf, 0, sizeof(rbuf));
 		int serverlen = sizeof(remote_addr);
 		// rx
-    	r = zts_recvfrom(sockfd, rbuf, STR_SIZE, 0, (struct sockaddr *)&saddr, (socklen_t *)&serverlen);
-    	if(r == strlen(msg.c_str())) {
+    	r = zts_recvfrom(sockfd, rbuf, len, 0, (struct sockaddr *)&saddr, (socklen_t *)&serverlen);
+    	if(r == len) {
     		DEBUG_INFO("[2] complete");
     		sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 			err = zts_close(sockfd);
-			DEBUG_INFO("%s, n=%d, err=%d, r=%d, w=%d\n", msg.c_str(), count, err, r, w);
-			sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", msg.c_str(), count, err, r, w);
+			DEBUG_INFO("%s, n=%d, err=%d, r=%d, w=%d", testname.c_str(), count, err, r, w);
+			sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", testname.c_str(), count, err, r, w);
 			DEBUG_TEST("Sent     : %s", msg.c_str());
 			DEBUG_TEST("Received : %s", rbuf);
 			*passed = (w == len && r == len && !err) && !strcmp(rbuf, msg.c_str());
@@ -502,8 +507,9 @@ void udp_client_6(UDP_UNIT_TEST_SIG_6)
 
 void udp_server_6(UDP_UNIT_TEST_SIG_6)
 {
-	std::string msg = "udp_server_6";
-	fprintf(stderr, "\n\n%s\n\n", msg.c_str());
+	std::string testname = "udp_server_6";
+	std::string msg = "udp_cs_6";
+	fprintf(stderr, "\n\n%s\n\n", testname.c_str());
 	int r, w, sockfd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
@@ -513,16 +519,17 @@ void udp_server_6(UDP_UNIT_TEST_SIG_6)
 	if((err = zts_bind(sockfd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in6)) < 0))
 		DEBUG_ERROR("error binding to interface (%d)", err);    
     // rx
-    DEBUG_INFO("[1/4] waiting for UDP packet...\n");
-    struct sockaddr_in6 saddr;
+    DEBUG_INFO("[1/4] waiting for UDP packet to start test...");
+    struct sockaddr_storage saddr;
+    struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&saddr;
     int serverlen = sizeof(saddr);
     memset(&saddr, 0, sizeof(saddr));
-    r = zts_recvfrom(sockfd, rbuf, STR_SIZE, 0, (struct sockaddr *)&saddr, (socklen_t *)&serverlen);
+    r = zts_recvfrom(sockfd, rbuf, len, 0, (struct sockaddr *)&saddr, (socklen_t *)&serverlen);
  
     char addrstr[INET6_ADDRSTRLEN], remote_addrstr[INET6_ADDRSTRLEN];
-    inet_ntop(AF_INET6, &(saddr.sin6_addr), addrstr, INET6_ADDRSTRLEN);
+    inet_ntop(AF_INET6, &(in6->sin6_addr), addrstr, INET6_ADDRSTRLEN);
     inet_ntop(AF_INET6, &(remote_addr->sin6_addr), remote_addrstr, INET6_ADDRSTRLEN);
-    DEBUG_INFO("[2/4] received DGRAM from %s : %d", addrstr, ntohs(saddr.sin6_port));
+    DEBUG_INFO("[2/4] received DGRAM from %s : %d", addrstr, ntohs(in6->sin6_port));
     DEBUG_INFO("[2/4] sending DGRAM(s) to %s : %d", remote_addrstr, ntohs(remote_addr->sin6_port));
     // once we receive a UDP packet, spend 10 seconds sending responses in the hopes that the client will see
     // tx
@@ -530,19 +537,18 @@ void udp_server_6(UDP_UNIT_TEST_SIG_6)
     while(1) {
     	usleep(100000);
     	//DEBUG_INFO("sending UDP packet");
-		if((w = zts_sendto(sockfd, msg.c_str(), strlen(msg.c_str()), 0, (struct sockaddr *)remote_addr, sizeof(remote_addr))) < 0) {
+		if((w = zts_sendto(sockfd, msg.c_str(), len, 0, (struct sockaddr *)remote_addr, sizeof(remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
 		}
 		if(get_now_ts() >= tx_ti + 20000) {
-			DEBUG_INFO("[3/4] get_now_ts()-tx_ti=%d\n", get_now_ts()-tx_ti);
+			DEBUG_INFO("[3/4] get_now_ts()-tx_ti=%d", get_now_ts()-tx_ti);
 			break;
 		}
 	}
-	DEBUG_INFO("[4/4] complete");
 	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 	//err = zts_close(sockfd);
-	DEBUG_INFO("%s, n=%d, err=%d, r=%d, w=%d\n", msg.c_str(), count, err, r, w);
-	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", msg.c_str(), count, err, r, w);
+	DEBUG_INFO("[4/4] complete, %s, n=%d, err=%d, r=%d, w=%d\n", testname.c_str(), count, err, r, w);
+	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", testname.c_str(), count, err, r, w);
 	DEBUG_TEST("Sent     : %s", msg.c_str());
 	DEBUG_TEST("Received : %s", rbuf);
 	*passed = (w == len && r == len && !err) && !strcmp(rbuf, msg.c_str());
@@ -557,8 +563,9 @@ void udp_server_6(UDP_UNIT_TEST_SIG_6)
 // Maintain transfer for count OR count
 void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 {
-	std::string msg = "tcp_client_sustained_4";
-	fprintf(stderr, "\n\n%s\n\n", msg.c_str());
+	std::string testname = "tcp_client_sustained_4";
+	std::string msg = "tcp_sustained_4";
+	fprintf(stderr, "\n\n%s\n\n", testname.c_str());
 	int n=0, w=0, r=0, sockfd, err;	
 	char *rxbuf = (char*)malloc(count*sizeof(char));
 	char *txbuf = (char*)malloc(count*sizeof(char));
@@ -621,7 +628,7 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 		float rx_rate = (float)count / (float)rx_dt;
 
 		sprintf(details, "%s, match=%d, n=%d, tx_dt=%.2f, rx_dt=%.2f, r=%d, w=%d, tx_rate=%.2f MB/s, rx_rate=%.2f MB/s", 
-			msg.c_str(), match, count, tx_dt, rx_dt, r, w, (tx_rate / float(ONE_MEGABYTE) ), (rx_rate / float(ONE_MEGABYTE) ));	
+			testname.c_str(), match, count, tx_dt, rx_dt, r, w, (tx_rate / float(ONE_MEGABYTE) ), (rx_rate / float(ONE_MEGABYTE) ));	
 
 		*passed = (r == count && w == count && match && err>=0);
 	}
@@ -634,11 +641,13 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 // Maintain transfer for count OR count
 void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 {
-	std::string msg = "tcp_server_sustained_6";
-	fprintf(stderr, "\n\n%s\n\n", msg.c_str());
+	std::string testname = "tcp_client_sustained_6";
+	std::string msg = "tcp_sustained_6";
+	fprintf(stderr, "\n\n%s\n\n", testname.c_str());
 	int n=0, w=0, r=0, sockfd, err;	
 	char *rxbuf = (char*)malloc(count*sizeof(char));
 	char *txbuf = (char*)malloc(count*sizeof(char));
+
 	generate_random_data(txbuf, count);
 
 	if((sockfd = zts_socket(AF_INET6, SOCK_STREAM, 0)) < 0)
@@ -699,7 +708,7 @@ void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 		float rx_rate = (float)count / (float)rx_dt;
 
 		sprintf(details, "%s, match=%d, n=%d, tx_dt=%.2f, rx_dt=%.2f, r=%d, w=%d, tx_rate=%.2f MB/s, rx_rate=%.2f MB/s", 
-			msg.c_str(), msg.c_str(), match, count, tx_dt, rx_dt, r, w, (tx_rate / float(ONE_MEGABYTE) ), (rx_rate / float(ONE_MEGABYTE) ));	
+			testname.c_str(), msg.c_str(), match, count, tx_dt, rx_dt, r, w, (tx_rate / float(ONE_MEGABYTE) ), (rx_rate / float(ONE_MEGABYTE) ));	
 
 		*passed = (r == count && w == count && match && err>=0);
 	}
@@ -711,15 +720,16 @@ void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 // Maintain transfer for count OR count
 void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 {
-	std::string msg = "tcp_server_sustained_4";
-	fprintf(stderr, "\n\n%s\n\n", msg.c_str());
+	std::string testname = "tcp_server_sustained_4";
+	std::string msg = "tcp_sustained_4";
+	fprintf(stderr, "\n\n%s\n\n", testname.c_str());
 	int n=0, w=0, r=0, sockfd, accfd, err;
 	char *rxbuf = (char*)malloc(count*sizeof(char));
 	memset(rxbuf, 0, count);
 
 	if((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		DEBUG_ERROR("error creating ZeroTier socket");
-	if((err = zts_bind(sockfd, (struct sockaddr *)addr, (socklen_t)sizeof(struct sockaddr_in)) < 0))
+	if((err = zts_bind(sockfd, (struct sockaddr *)addr, (socklen_t)sizeof(addr)) < 0))
 		DEBUG_ERROR("error binding to interface (%d)", err);
 	if((err = zts_listen(sockfd, 1)) < 0)
 		DEBUG_ERROR("error placing socket in LISTENING state (%d)", err);
@@ -767,7 +777,7 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 		float rx_rate = (float)count / (float)rx_dt;
 
 		sprintf(details, "%s, n=%d, tx_dt=%.2f, rx_dt=%.2f, r=%d, w=%d, tx_rate=%.2f MB/s, rx_rate=%.2f MB/s", 
-			msg.c_str(), count, tx_dt, rx_dt, r, w, (tx_rate / float(ONE_MEGABYTE) ), (rx_rate / float(ONE_MEGABYTE) ));
+			testname.c_str(), count, tx_dt, rx_dt, r, w, (tx_rate / float(ONE_MEGABYTE) ), (rx_rate / float(ONE_MEGABYTE) ));
 
 		*passed = (r == count && w == count && err>=0);
 	}
@@ -778,8 +788,9 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 // Maintain transfer for count OR count
 void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 {
-	std::string msg = "tcp_server_sustained_6";
-	fprintf(stderr, "\n\n%s\n\n", msg.c_str());
+	std::string testname = "tcp_server_sustained_6";
+	std::string msg = "tcp_sustained_6";
+	fprintf(stderr, "\n\n%s\n\n", testname.c_str());
 	int n=0, w=0, r=0, sockfd, accfd, err;
 	char *rxbuf = (char*)malloc(count*sizeof(char));
 	memset(rxbuf, 0, count);
@@ -832,7 +843,7 @@ void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 		float rx_rate = (float)count / (float)rx_dt;
 
 		sprintf(details, "%s, n=%d, tx_dt=%.2f, rx_dt=%.2f, r=%d, w=%d, tx_rate=%.2f MB/s, rx_rate=%.2f MB/s", 
-			msg.c_str(), count, tx_dt, rx_dt, r, w, (tx_rate / float(ONE_MEGABYTE) ), (rx_rate / float(ONE_MEGABYTE) ));
+			testname.c_str(), count, tx_dt, rx_dt, r, w, (tx_rate / float(ONE_MEGABYTE) ), (rx_rate / float(ONE_MEGABYTE) ));
 
 		*passed = (r == count && w == count && err>=0);
 	}
@@ -841,8 +852,9 @@ void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 
 void udp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 {
-	std::string msg = "udp_client_sustained_4";
-	fprintf(stderr, "\n\n%s\n\n", msg.c_str());
+	std::string testname = "udp_client_sustained_4";
+	std::string msg = "udp_sustained_4";
+	fprintf(stderr, "\n\n%s\n\n", testname.c_str());
 	int r, w, sockfd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
@@ -858,7 +870,7 @@ void udp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 
 	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 	err = zts_close(sockfd);
-	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", msg.c_str(), count, err, r, w);
+	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", testname.c_str(), count, err, r, w);
 	DEBUG_TEST("Sent     : %s", msg.c_str());
 	DEBUG_TEST("Received : %s", rbuf);
 	*passed = (w == len && r == len && !err) && !strcmp(rbuf, msg.c_str());
@@ -866,8 +878,9 @@ void udp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 
 void udp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 {
-	std::string msg = "udp_server_sustained_4";
-	fprintf(stderr, "\n\n%s\n\n", msg.c_str());	
+	std::string testname = "udp_server_sustained_4";
+	std::string msg = "udp_sustained_4";
+	fprintf(stderr, "\n\n%s\n\n", testname.c_str());	
 	int r, w, sockfd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
@@ -888,7 +901,7 @@ void udp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
     w = r;
 	//sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 	//err = zts_close(sockfd);
-	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", msg.c_str(), count, err, r, w);
+	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", testname.c_str(), count, err, r, w);
 	DEBUG_TEST("Sent     : %s", msg.c_str());
 	DEBUG_TEST("Received : %s", rbuf);
 	*passed = (w == len && r == len && !err) && !strcmp(rbuf, msg.c_str());
@@ -1524,11 +1537,19 @@ void test_bad_args()
 	DEBUG_TEST("SOCK_DGRAM = %d", SOCK_DGRAM);
 }
 
-void close_while_writing_test()
+void dns_test(struct sockaddr *addr)
 {
-	// TODO: Close a socket while another thread is writing to it or reading from it
+	fprintf(stderr, "\n\ndns_test\n\n");
+	zts_add_dns_nameserver(addr);
+	// resolve
+	zts_del_dns_nameserver(addr);
 }
 
+void close_while_writing_test()
+{
+	fprintf(stderr, "\n\nclose_while_writing_test\n\n");
+	// TODO: Close a socket while another thread is writing to it or reading from it
+}
 
 void* create_socket(void *arg)
 {
@@ -1553,6 +1574,7 @@ void* create_socket(void *arg)
 
 void multithread_socket_creation()
 {
+	fprintf(stderr, "\n\nmultithread_socket_creation\n\n");
 	/*
 	pthread_t tid[2];
 
@@ -1567,12 +1589,14 @@ void multithread_socket_creation()
 
 void multithread_rw()
 {
+	fprintf(stderr, "\n\nmultithread_rw\n\n");
 	// TODO: Test read/writes from multiple threads
 }
 
 // Tests rapid opening and closure of sockets
 void close_test(struct sockaddr *bind_addr)
 {
+	fprintf(stderr, "\n\nclose_test\n\n");
 	// BUG: While running an extended test of unassigned closures, the 
 	// stack may crash at: `pico_check_timers at pico_stack.c:608, this appears
 	// to be a bad pointer to a timer within the stack. 
@@ -1583,7 +1607,7 @@ void close_test(struct sockaddr *bind_addr)
 	{
 		int fd;
 		if((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-			DEBUG_INFO("error creating socket. sleeping until timers are released");
+			DEBUG_ERROR("error creating socket. sleeping until timers are released");
 			sleep(30);
 		}
 		if((err = zts_bind(fd, (struct sockaddr *)bind_addr, sizeof(struct sockaddr_in)) < 0)) { 
@@ -1600,10 +1624,10 @@ void close_test(struct sockaddr *bind_addr)
 
 void bind_to_localhost_test(int port)
 {
+	fprintf(stderr, "\n\nbind_to_localhost_test\n\n");
 	int fd, err = 0;
-
 	// ipv4, 0.0.0.0
-	struct sockaddr bind_addr;
+	struct sockaddr_storage bind_addr;
 	DEBUG_INFO("binding to 0.0.0.0");
 	create_addr("0.0.0.0", port, 4, (struct sockaddr *)&bind_addr);
 	if((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) > 0) {
@@ -1623,6 +1647,7 @@ void bind_to_localhost_test(int port)
 
 	port++;
 
+	/*
 	// ipv4, 127.0.0.1
 	DEBUG_INFO("binding to 127.0.0.1");
 	create_addr("127.0.0.1", port, 4, (struct sockaddr *)&bind_addr);
@@ -1642,6 +1667,7 @@ void bind_to_localhost_test(int port)
 	}
 
 	port++;
+	*/
 
 	// ipv6, [::]
 	DEBUG_INFO("binding to [::]");
@@ -1670,7 +1696,7 @@ int main(int argc , char *argv[])
 {
 	if(argc < 5) {
 		fprintf(stderr, "usage: selftest <selftest.conf> <alice|bob|ted|carol> to <bob|alice|ted|carol>\n");
-		fprintf(stderr, "e.g. : selftest test/selftest.conf alice to bob\n");
+		fprintf(stderr, "e.g. : selftest test/test.conf alice to bob\n");
 		return 1;
 	}
 
@@ -1693,7 +1719,7 @@ int main(int argc , char *argv[])
 	std::string nwid, stype, path = argv[1];
 	std::string ipstr, ipstr6, local_ipstr, local_ipstr6, remote_ipstr, remote_ipstr6;
 
-	// loaf config file
+	// load config file
 	if(path.find(".conf") == std::string::npos) {
 		fprintf(stderr, "Possibly invalid conf file. Exiting...\n");
 		exit(0);
@@ -1734,7 +1760,7 @@ int main(int argc , char *argv[])
 
 	DEBUG_TEST("Waiting for libzt to come online...\n");
 	zts_simple_start(path.c_str(), nwid.c_str());
-	char device_id[11];
+	char device_id[ZT_ID_LEN];
 	zts_get_device_id(device_id);
 	DEBUG_TEST("I am %s, %s", device_id, me.c_str());
 	if(mode == TEST_MODE_SERVER)
@@ -1767,6 +1793,7 @@ int main(int argc , char *argv[])
 	struct sockaddr_storage local_addr;
 	struct sockaddr_storage remote_addr;
 
+
 // closure test
 
 /*
@@ -1775,16 +1802,34 @@ int main(int argc , char *argv[])
 	DEBUG_INFO("testing closures by binding to: %s", local_ipstr.c_str());
 	create_addr(local_ipstr, port, 4, (struct sockaddr *)&in4);
 	close_test((struct sockaddr*)&in4);
+	port++;
 */
 
-	close_while_writing_test();
+// Test adding, resolving, and removing a DNS server
+
+	ipv = 4;
+	create_addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+	dns_test((struct sockaddr *)&remote_addr);
+
+//	close_while_writing_test();
 
 // localhost bind test
 
-	//bind_to_localhost_test(1000);
-
+//	bind_to_localhost_test(port);
 
 // Transmission Tests
+
+// RANDOM API TEST
+		//random_api_test();
+
+// SLAM API TEST
+		//slam_api_test();
+
+// BAD ARGS API TEST
+		//test_bad_args();
+
+// OBSCURE API TEST
+		//obscure_api_test();
 
 	port      = start_port;
 	delay     = 0;
@@ -1793,7 +1838,6 @@ int main(int argc , char *argv[])
 
 // ipv4 client/server (UDP)
 
-/*
 	ipv = 4;
 	if(mode == TEST_MODE_SERVER) {
 		create_addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
@@ -1822,8 +1866,6 @@ int main(int argc , char *argv[])
 	}
 	RECORD_RESULTS(&test_number, passed, details, &results);
 	port++;
-*/
-
 
 // ipv6 client/server (UDP)
 	ipv = 6;
@@ -1855,7 +1897,6 @@ int main(int argc , char *argv[])
 	RECORD_RESULTS(&test_number, passed, details, &results);
 	port++;
 
-exit(0);
 
 // ipv4 sustained transfer (UDP)
 	ipv = 4;		
@@ -1910,6 +1951,7 @@ exit(0);
 	port++;
 
 // ipv4 sustained transfer (TCP)
+	
 	ipv = 4;	
 	if(mode == TEST_MODE_SERVER) {
 		create_addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
@@ -2015,19 +2057,6 @@ exit(0);
 		RECORD_RESULTS(&test_number, passed, details, &results);
 	}
 	*/
-
-// RANDOM API TEST
-		//random_api_test();
-
-// SLAM API TEST
-		//slam_api_test();
-
-// BAD ARGS API TEST
-		//test_bad_args();
-
-// OBSCURE API TEST
-		//obscure_api_test();
-
 
 	// Print results of all tests
 	printf("--------------------------------------------------------------------------------\n");

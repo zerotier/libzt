@@ -71,6 +71,7 @@
 #define PICO_IPV4_ROUTE_DEL_SIG struct pico_ip4 address, struct pico_ip4 netmask, int metric
 #define PICO_IPV6_ROUTE_ADD_SIG struct pico_ip6 address, struct pico_ip6 netmask, struct pico_ip6 gateway, int metric, struct pico_ipv6_link *link
 #define PICO_IPV6_ROUTE_DEL_SIG struct pico_ip6 address, struct pico_ip6 netmask, struct pico_ip6 gateway, int metric, struct pico_ipv6_link *link
+#define PICO_DNS_CLIENT_NAMESERVER_SIG pico_ip4*, unsigned char
 
 namespace ZeroTier
 {
@@ -111,6 +112,16 @@ namespace ZeroTier
 		 */
 		bool pico_route_del(VirtualTap *tap, const InetAddress &addr, const InetAddress &nm, int metric);
 		
+		/*
+		 * Registers a DNS nameserver with the network stack
+		 */
+		int pico_add_dns_nameserver(struct sockaddr *addr);
+
+		/*
+		 * Un-registers a DNS nameserver from the network stack
+		 */
+		int pico_del_dns_nameserver(struct sockaddr *addr);
+
 		/*
 		 * Main stack loop
 		 */
@@ -180,6 +191,11 @@ namespace ZeroTier
 		 * Close a VirtualSocket - Called from VirtualTap
 		 */
 		int pico_Close(VirtualSocket *vs);
+
+		/*
+		 * Converts a pico_err to its most closely-related errno, and sets errno
+		 */
+		static int map_pico_err_to_errno(int err);
 
 		/*
 		 * Converts picoTCP error codes to pretty string

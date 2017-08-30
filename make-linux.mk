@@ -64,11 +64,15 @@ ifeq ($(ZT_DEBUG),1)
 else
 	CFLAGS?=-Ofast -g -fstack-protector
 	CFLAGS+=-Wall -fPIE -fvisibility=hidden -pthread $(INCLUDES) $(DEFS)
-	#CFLAGS+=$(ARCH_FLAGS) -Wall -flto -fPIC -pthread -mmacosx-version-min=10.7 -DNDEBUG -Wno-unused-private-field $(INCLUDES) $(DEFS)
 	STRIP=strip
 endif
 
 CXXFLAGS=$(CFLAGS) -Wno-format -fno-rtti -std=c++11 -DZT_SOFTWARE_UPDATE_DEFAULT="\"disable\""
+
+# Build against address sanitization library for advanced debugging (clang)
+ifeq ($(ZT_SANITIZE),1)
+	CXXFLAGS+=-x c++ -O -g -fsanitize=address -DASAN_OPTIONS=symbolize=1 -DASAN_SYMBOLIZER_PATH=$(shell which llvm-symbolizer)
+endif
 
 INCLUDES+= -Iext \
 	-I$(ZTO)/osdep \

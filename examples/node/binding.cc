@@ -23,8 +23,8 @@ struct ZT {
   }
 
   static char* getIpV4Address(const char *nwid) {
-    char* addr_str = new char [ZT_MAX_IPADDR_LEN];
-    zts_get_ipv4_address(nwid, addr_str, ZT_MAX_IPADDR_LEN);
+    char* addr_str = new char [INET_ADDRSTRLEN];
+    zts_get_ipv4_address(nwid, addr_str, INET_ADDRSTRLEN);
     return addr_str;
   }
 

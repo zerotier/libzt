@@ -181,11 +181,24 @@ namespace ZeroTier {
 		void removeVirtualSocket(VirtualSocket *vs);
 
 		/****************************************************************************/
+		/* DNS                                                                      */
+		/****************************************************************************/
+
+		/*
+		 * Registers a DNS nameserver with the network stack
+		 */
+		int add_DNS_Nameserver(struct sockaddr *addr);
+
+		/*
+		 * Un-registers a DNS nameserver from the network stack
+		 */
+		int del_DNS_Nameserver(struct sockaddr *addr);
+
+		/****************************************************************************/
 		/* Vars                                                                     */
 		/****************************************************************************/
 
 #if defined(STACK_PICO)
-
 		bool should_start_stack = false;
 		struct pico_device *picodev = NULL;
 
@@ -205,6 +218,9 @@ namespace ZeroTier {
 
 		std::vector<std::pair<ZeroTier::InetAddress, ZeroTier::InetAddress>> routes;
 		void *zt1ServiceRef = NULL;
+
+		char vtap_full_name[64];
+		char vtap_abbr_name[16];
 
 		static int devno;
 		int ifindex = 0;

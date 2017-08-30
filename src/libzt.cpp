@@ -35,6 +35,7 @@ for applications to use. See also: include/libzt.h */
 #include <unistd.h>
 #include <errno.h>
 #include <time.h>
+#include <stdint.h>
 
 #if defined(__APPLE__)
 #include <net/ethernet.h>
@@ -130,7 +131,7 @@ void zts_start(const char *path)
 	if(path)
 		ZeroTier::homeDir = path;
 	pthread_t service_thread;
-	pthread_create(&service_thread, NULL, zts_start_service, (void *)(path));
+	pthread_create(&service_thread, NULL, zts_start_service, NULL);
 }
 
 void zts_simple_start(const char *path, const char *nwid)
@@ -138,11 +139,9 @@ void zts_simple_start(const char *path, const char *nwid)
 	zts_start(path);
 	while(!zts_running()) {
 		nanosleep((const struct timespec[]){{0, (ZT_API_CHECK_INTERVAL * 1000000)}}, NULL);
-		//usleep(ZT_API_CHECK_INTERVAL * 1000);
 	}
 	zts_join(nwid);
 	while(!zts_has_address(nwid)) {
-		//usleep(ZT_API_CHECK_INTERVAL * 1000);
 		nanosleep((const struct timespec[]){{0, (ZT_API_CHECK_INTERVAL * 1000000)}}, NULL);
 	}
 }
@@ -219,9 +218,9 @@ void zts_lib_version(char *ver) {
 
 int zts_get_device_id(char *devID) { 
 	if(ZeroTier::zt1Service) {
-		char id[ZT_ID_LEN+1];
+		char id[ZT_ID_LEN];
 		sprintf(id, "%lx",ZeroTier::zt1Service->getNode()->address());
-		memcpy(devID, id, ZT_ID_LEN+1);
+		memcpy(devID, id, ZT_ID_LEN);
 		return 0;
 	}
 	else // Service isn't online, try to read ID from file
@@ -245,17 +244,17 @@ int zts_running() {
 
 int zts_has_ipv4_address(const char *nwid)
 {
-	char ipv4_addr[ZT_MAX_IPADDR_LEN];
-	memset(ipv4_addr, 0, ZT_MAX_IPADDR_LEN);
-	zts_get_ipv4_address(nwid, ipv4_addr, ZT_MAX_IPADDR_LEN);
+	char ipv4_addr[INET_ADDRSTRLEN];
+	memset(ipv4_addr, 0, INET_ADDRSTRLEN);
+	zts_get_ipv4_address(nwid, ipv4_addr, INET_ADDRSTRLEN);
 	return strcmp(ipv4_addr, "\0");
 }
 
 int zts_has_ipv6_address(const char *nwid)
 {
-	char ipv6_addr[ZT_MAX_IPADDR_LEN];
-	memset(ipv6_addr, 0, ZT_MAX_IPADDR_LEN);
-	zts_get_ipv6_address(nwid, ipv6_addr, ZT_MAX_IPADDR_LEN);
+	char ipv6_addr[INET6_ADDRSTRLEN];
+	memset(ipv6_addr, 0, INET6_ADDRSTRLEN);
+	zts_get_ipv6_address(nwid, ipv6_addr, INET6_ADDRSTRLEN);
 	return strcmp(ipv6_addr, "\0");
 }
 
@@ -272,7 +271,7 @@ void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen)
 		if(tap && tap->_ips.size()){ 
 			for(int i=0; i<tap->_ips.size(); i++) {
 				if(tap->_ips[i].isV4()) {
-					char ipbuf[64];
+					char ipbuf[INET_ADDRSTRLEN];
 					std::string addr = tap->_ips[i].toString(ipbuf);
 					int len = addrlen < addr.length() ? addrlen : addr.length();
 					memset(addrstr, 0, len);
@@ -294,7 +293,7 @@ void zts_get_ipv6_address(const char *nwid, char *addrstr, const int addrlen)
 		if(tap && tap->_ips.size()){ 
 			for(int i=0; i<tap->_ips.size(); i++) {
 				if(tap->_ips[i].isV6()) {
-					char ipbuf[64];
+					char ipbuf[INET6_ADDRSTRLEN];
 					std::string addr = tap->_ips[i].toString(ipbuf);
 					int len = addrlen < addr.length() ? addrlen : addr.length();
 					memset(addrstr, 0, len);
@@ -312,7 +311,7 @@ void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID)
 {
 	ZeroTier::InetAddress _6planeAddr = ZeroTier::InetAddress::makeIpv66plane(
 		ZeroTier::Utils::hexStrToU64(nwid),ZeroTier::Utils::hexStrToU64(devID));
-	char ipbuf[64];
+	char ipbuf[INET6_ADDRSTRLEN];
 	memcpy(addr, _6planeAddr.toIpString(ipbuf), 40);
 }
 
@@ -320,7 +319,7 @@ void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID)
 {
 	ZeroTier::InetAddress _6planeAddr = ZeroTier::InetAddress::makeIpv6rfc4193(
 		ZeroTier::Utils::hexStrToU64(nwid),ZeroTier::Utils::hexStrToU64(devID));
-	char ipbuf[64];
+	char ipbuf[INET6_ADDRSTRLEN];
 	memcpy(addr, _6planeAddr.toIpString(ipbuf), 40);
 }
 
@@ -576,7 +575,6 @@ int zts_connect(ZT_CONNECT_SIG) {
 		{
 			// FIXME: locking and unlocking so often might cause a performance bottleneck while outgoing VirtualSockets
 			// are being established (also applies to accept())
-			//usleep(ZT_CONNECT_RECHECK_DELAY * 1000);
 			nanosleep((const struct timespec[]){{0, (ZT_CONNECT_RECHECK_DELAY * 1000000)}}, NULL);
 			tap->_tcpconns_m.lock();
 			for(int i=0; i<tap->_VirtualSockets.size(); i++)
@@ -619,7 +617,6 @@ Darwin:
 							address space.
 */
 int zts_bind(ZT_BIND_SIG) {
-	DEBUG_INFO();
 	int err = errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
@@ -643,26 +640,31 @@ int zts_bind(ZT_BIND_SIG) {
 	if(vs->socket_family == AF_INET) {
 		struct sockaddr_in *in4 = (struct sockaddr_in *)addr;
 		if(in4->sin_addr.s_addr == INADDR_ANY) {
-			DEBUG_INFO("AF_INET, INADDR_ANY, binding to all interfaces");
+			DEBUG_EXTRA("AF_INET, INADDR_ANY, binding to all interfaces");
 			// grab first vtap
 			if(ZeroTier::vtaps.size()) {
-				tap = (ZeroTier::VirtualTap*)(ZeroTier::vtaps[0]);
+				tap = (ZeroTier::VirtualTap*)(ZeroTier::vtaps[0]); // pick any vtap
+			}
+		}
+		if(in4->sin_addr.s_addr == 0x7f000001) {
+			DEBUG_EXTRA("127.0.0.1, will bind to appropriate vtap when connection is inbound");
+			if(ZeroTier::vtaps.size()) {
+				tap = (ZeroTier::VirtualTap*)(ZeroTier::vtaps[0]); // pick any vtap
 			}
 		}
 	}
 	if(vs->socket_family == AF_INET6) {
 		struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)addr;
 		if(memcmp((void*)&(in6->sin6_addr), (void*)&(in6addr_any), sizeof(in6addr_any)) == 0) {
-			DEBUG_INFO("AF_INET6, in6addr_any, binding to all interfaces");
+			DEBUG_EXTRA("AF_INET6, in6addr_any, binding to all interfaces");
 			if(ZeroTier::vtaps.size()) {
-				tap = (ZeroTier::VirtualTap*)(ZeroTier::vtaps[0]);
+				tap = (ZeroTier::VirtualTap*)(ZeroTier::vtaps[0]);  // pick any vtap
 			}
 		}
 	}
 
 	ZeroTier::InetAddress inet;
 	sockaddr2inet(vs->socket_family, addr, &inet);
-	char buf3[64];
 	if(!tap)
 		tap = getTapByAddr(&inet);
 
@@ -793,7 +795,6 @@ int zts_accept(ZT_ACCEPT_SIG) {
 			}
 			else { // blocking
 				while(true) {
-					//usleep(ZT_ACCEPT_RECHECK_DELAY * 1000);
 					nanosleep((const struct timespec[]){{0, (ZT_ACCEPT_RECHECK_DELAY * 1000000)}}, NULL);
 					accepted_vs = tap->Accept(vs);
 					if(accepted_vs)
@@ -1036,7 +1037,7 @@ Linux / Darwin:
 int zts_close(ZT_CLOSE_SIG)
 {
 	int err = errno = 0;
-	DEBUG_EXTRA("fd=%d", fd);
+	//DEBUG_EXTRA("fd=%d", fd);
 	if(fd < 0) {
 		errno = EBADF;
 		return -1;
@@ -1192,7 +1193,7 @@ Linux:
 */
 ssize_t zts_sendto(ZT_SENDTO_SIG)
 {
-	//DEBUG_INFO();
+	DEBUG_TRANS("fd=%d", fd);
 	int err = errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
@@ -1208,26 +1209,27 @@ ssize_t zts_sendto(ZT_SENDTO_SIG)
 
 	ZeroTier::InetAddress iaddr;
 	ZeroTier::VirtualTap *tap;
-	char ipstr[INET6_ADDRSTRLEN];
-	// int port;
-	memset(ipstr, 0, INET6_ADDRSTRLEN);
 
-	if(vs->socket_type == SOCK_DGRAM) {
-		// form addresses
-		if(vs->socket_family == AF_INET) {
+	if(vs->socket_type == SOCK_DGRAM) 
+	{
+		if(vs->socket_family == AF_INET) 
+		{
+			char ipstr[INET_ADDRSTRLEN];
+			memset(ipstr, 0, INET_ADDRSTRLEN);
 			inet_ntop(AF_INET, 
 				(const void *)&((struct sockaddr_in *)addr)->sin_addr.s_addr, ipstr, INET_ADDRSTRLEN);
 			iaddr.fromString(ipstr);
-			// port = ((struct sockaddr_in*)addr)->sin_port;
 		}
-		if(vs->socket_family == AF_INET6) {
+		if(vs->socket_family == AF_INET6) 
+		{
+			char ipstr[INET6_ADDRSTRLEN];
+			memset(ipstr, 0, INET6_ADDRSTRLEN);
 			inet_ntop(AF_INET6, 
 				(const void *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, ipstr, INET6_ADDRSTRLEN);
 			// TODO: This is a hack, determine a proper way to do this
-			char addrstr[64];
+			char addrstr[INET6_ADDRSTRLEN];
 			sprintf(addrstr, "%s%s", ipstr, std::string("/40").c_str());
 			iaddr.fromString(addrstr);
-			// port = ((struct sockaddr_in6*)addr)->sin6_port;
 		}
 		// get tap
 		tap = getTapByAddr(&iaddr);
@@ -1242,7 +1244,8 @@ ssize_t zts_sendto(ZT_SENDTO_SIG)
 			errno = EINVAL; // TODO: Not correct, but what else could we use?
 		}
 	}
-	if(vs->socket_type == SOCK_RAW) {
+	if(vs->socket_type == SOCK_RAW) 
+	{
 		struct sockaddr_ll *socket_address = (struct sockaddr_ll *)addr;
 		ZeroTier::VirtualTap *tap = getTapByIndex(socket_address->sll_ifindex);
 		if(tap) {
@@ -1308,6 +1311,7 @@ ssize_t zts_sendto(ZT_SENDTO_SIG)
 */
 ssize_t zts_send(ZT_SEND_SIG)
 {
+	DEBUG_TRANS("fd=%d", fd);
 	int err = errno = 0;
 	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
 	if(!vs) {
@@ -1375,7 +1379,7 @@ ssize_t zts_send(ZT_SEND_SIG)
 // TODO
 ssize_t zts_sendmsg(ZT_SENDMSG_SIG)
 {
-	DEBUG_INFO("fd = %d", fd);
+	DEBUG_TRANS("fd=%d", fd);	
 	int err = errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
@@ -1413,6 +1417,7 @@ ssize_t zts_sendmsg(ZT_SENDMSG_SIG)
 */
 ssize_t zts_recv(ZT_RECV_SIG)
 {
+	DEBUG_TRANS("fd=%d", fd);
 	int err = errno = 0;
 	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
 	if(!vs) {
@@ -1500,21 +1505,31 @@ ssize_t zts_recv(ZT_RECV_SIG)
 */
 ssize_t zts_recvfrom(ZT_RECVFROM_SIG)
 {
-	//DEBUG_INFO();
-	int r = 0, err = errno = 0;
+	DEBUG_TRANS("fd=%d", fd);
+	int32_t r = 0;
+	errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
 		return -1;
 	}
-	char udp_msg_buf[ZT_MAX_MTU];
-	r = read(fd, udp_msg_buf, sizeof(udp_msg_buf));
+	char udp_msg_buf[ZT_SOCKET_MSG_BUF_SZ];
+	char *msg_ptr = udp_msg_buf;
+	r = read(fd, msg_ptr, sizeof(udp_msg_buf));
 	if(r > 0) {
-		int udp_msg_len = 0;
-		memcpy(&udp_msg_len, udp_msg_buf, sizeof(udp_msg_len));
-		memcpy(addr, udp_msg_buf + sizeof(int), sizeof(struct sockaddr_in));
-		*addrlen = sizeof(struct sockaddr_in);
-		int payload_sz = udp_msg_len - sizeof(struct sockaddr_in);
-		memcpy(buf, udp_msg_buf + sizeof(int) + sizeof(struct sockaddr_in), payload_sz);
+		*addrlen = sizeof(struct sockaddr_storage);
+
+		// get message length
+		int32_t udp_msg_len = 0;
+		memcpy(&udp_msg_len, msg_ptr, sizeof(udp_msg_len));
+		msg_ptr+=sizeof(int32_t);
+
+		// get address
+		memcpy(addr, msg_ptr, *addrlen);
+		msg_ptr+=*addrlen;
+		
+		// get payload
+		int32_t payload_sz = udp_msg_len - *addrlen;
+		memcpy(buf, msg_ptr, payload_sz);
 		r = payload_sz;
 	}
 	return r;
@@ -1523,7 +1538,7 @@ ssize_t zts_recvfrom(ZT_RECVFROM_SIG)
 // TODO
 ssize_t zts_recvmsg(ZT_RECVMSG_SIG)
 {
-	DEBUG_INFO("fd=%d", fd);
+	DEBUG_TRANS("fd=%d", fd);
 	int err = errno = 0;
 	if(fd < 0) {
 		errno = EBADF;
@@ -1536,12 +1551,12 @@ ssize_t zts_recvmsg(ZT_RECVMSG_SIG)
 }
 
 int zts_read(ZT_READ_SIG) {
-	//DEBUG_INFO("fd = %d", fd);
+	DEBUG_TRANS("fd=%d", fd);
 	return read(fd, buf, len);
 }
 
 int zts_write(ZT_WRITE_SIG) {
-	// DEBUG_INFO("fd = %d", fd);
+	DEBUG_TRANS("fd=%d", fd);
 	return write(fd, buf, len);
 }
 
@@ -1616,7 +1631,6 @@ int zts_shutdown(ZT_SHUTDOWN_SIG)
 						for(int i=0; i<ZT_SDK_CLTIME; i++) {
 							if(vs->TXbuf->count() == 0)
 								break;
-							//usleep(ZT_API_CHECK_INTERVAL * 1000);
 							nanosleep((const struct timespec[]){{0, (ZT_API_CHECK_INTERVAL * 1000000)}}, NULL);
 
 						}
@@ -1635,21 +1649,29 @@ int zts_shutdown(ZT_SHUTDOWN_SIG)
 	return 0;
 }
 
-
 int zts_add_dns_nameserver(struct sockaddr *addr)
 {
-	errno = 0;
-	return 0;
+	ZeroTier::VirtualTap *vtap = getAnyTap();
+	if(vtap){
+		return vtap->add_DNS_Nameserver(addr);
+	}
+	DEBUG_ERROR("unable to locate virtual tap to add DNS nameserver");
+	return -1;
 }
 
-int zts_remove_dns_nameserver(struct sockaddr *addr)
+int zts_del_dns_nameserver(struct sockaddr *addr)
 {
-	errno = 0;
-	return 0;
+	ZeroTier::VirtualTap *vtap = getAnyTap();
+	if(vtap){
+		return vtap->del_DNS_Nameserver(addr);
+	}
+	DEBUG_ERROR("unable to locate virtual tap to remove DNS nameserver");
+	return -1;
 }
 
 /****************************************************************************/
-/* SDK Socket API (Java Native Interface JNI)                               /* JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME             */
+/* SDK Socket API (Java Native Interface JNI)                               */
+/* JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME             */
 /****************************************************************************/
 
 
@@ -1659,7 +1681,7 @@ namespace ZeroTier {
 
 	#include <jni.h>
 
-	JNIEXPORT int JNICALL Java_zerotier_ZeroTier_ztjni_1start(JNIEnv *env, jobject thisObj, jstring path) {
+	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1start(JNIEnv *env, jobject thisObj, jstring path) {
 		if(path) {
 			homeDir = env->GetStringUTFChars(path, NULL);
 			zts_start(homeDir.c_str());
@@ -1711,9 +1733,9 @@ namespace ZeroTier {
 		JNIEnv *env, jobject thisObj, jstring nwid) 
 	{
 		const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
-		char address_string[32];
-		memset(address_string, 0, 32);
-		zts_get_ipv4_address(nwid_str, address_string, ZT_MAX_IPADDR_LEN);
+		char address_string[INET_ADDRSTRLEN];
+		memset(address_string, 0, INET_ADDRSTRLEN);
+		zts_get_ipv4_address(nwid_str, address_string, INET_ADDRSTRLEN);
 		jclass clazz = (*env).FindClass("java/util/ArrayList");
 		jobject addresses = (*env).NewObject(clazz, (*env).GetMethodID(clazz, "<init>", "()V"));        
 		jstring _str = (*env).NewStringUTF(address_string);
@@ -1725,9 +1747,9 @@ namespace ZeroTier {
 		JNIEnv *env, jobject thisObj, jstring nwid) 
 	{
 		const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
-		char address_string[32];
-		memset(address_string, 0, 32);
-		zts_get_ipv6_address(nwid_str, address_string, ZT_MAX_IPADDR_LEN);
+		char address_string[INET6_ADDRSTRLEN];
+		memset(address_string, 0, INET6_ADDRSTRLEN);
+		zts_get_ipv6_address(nwid_str, address_string, INET6_ADDRSTRLEN);
 		jclass clazz = (*env).FindClass("java/util/ArrayList");
 		jobject addresses = (*env).NewObject(clazz, (*env).GetMethodID(clazz, "<init>", "()V"));        
 		jstring _str = (*env).NewStringUTF(address_string);
@@ -1778,7 +1800,7 @@ namespace ZeroTier {
 		struct sockaddr_in addr;
 		jbyte *body = (*env).GetByteArrayElements( buf, 0);
 		unsigned char buffer[ZT_SDK_MTU];
-		int payload_offset = sizeof(int) + sizeof(struct sockaddr_storage);
+		int payload_offset = sizeof(int32_t) + sizeof(struct sockaddr_storage);
 		int rxbytes = zts_recvfrom(fd, &buffer, len, flags, (struct sockaddr *)&addr, (socklen_t *)sizeof(struct sockaddr_storage));
 		if(rxbytes > 0)
 			memcpy(body, (jbyte*)buffer + payload_offset, rxbytes);
@@ -1909,18 +1931,6 @@ namespace ZeroTier {
 /* SDK Socket API Helper functions --- DON'T CALL THESE DIRECTLY            */
 /****************************************************************************/
 
-void zts_start_dns_client()
-{
-	// Coming soon
-
-	/*
-	struct pico_ip4 *ns;
-	uint8_t flag = PICO_DNS_NS_ADD; // PICO_DNS_NS_DEL, PICO_DNS_NS_ADD
-	pico_dns_client_nameserver(ns, flag);
-	*/
-}
-
-
 #if defined(STACK_PICO)
 int zts_get_pico_socket(int fd, struct pico_socket **s)
 {
@@ -2025,7 +2035,7 @@ ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress *addr)
 {
 	ZeroTier::_vtaps_lock.lock();
 	ZeroTier::VirtualTap *s, *tap = nullptr; 
-	char ipbuf[64], ipbuf2[64], ipbuf3[64];
+	//char ipbuf[64], ipbuf2[64], ipbuf3[64];
 	for(int i=0; i<ZeroTier::vtaps.size(); i++) {
 		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		// check address schemes
@@ -2090,6 +2100,17 @@ ZeroTier::VirtualTap *getTapByIndex(int index)
 	}
 	ZeroTier::_vtaps_lock.unlock();
 	return tap;
+}
+
+ZeroTier::VirtualTap *getAnyTap()
+{
+	ZeroTier::_vtaps_lock.lock();
+	ZeroTier::VirtualTap *vtap = NULL;
+	if(ZeroTier::vtaps.size()) {
+		vtap = (ZeroTier::VirtualTap *)ZeroTier::vtaps[0];
+	}
+	ZeroTier::_vtaps_lock.unlock();
+	return vtap;
 }
 
 /****************************************************************************/

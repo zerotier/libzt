@@ -97,6 +97,11 @@ struct zts_ifreq {
 /****************************************************************************/
 
 #define ZT_SDK_MTU                         ZT_MAX_MTU
+#define ZT_LEN_SZ                          4
+#define ZT_ADDR_SZ                         128
+#define ZT_SOCKET_MSG_BUF_SZ               ZT_SDK_MTU + ZT_LEN_SZ + ZT_ADDR_SZ
+
+
 #define ZT_PHY_POLL_INTERVAL               2 // ms
 #define ZT_ACCEPT_RECHECK_DELAY            100 // ms (for blocking zts_accept() calls)
 #define ZT_CONNECT_RECHECK_DELAY           100 // ms (for blocking zts_connect() calls)
@@ -130,10 +135,10 @@ struct zts_ifreq {
 #define ZT_LIB_VERSION_MINOR               1
 #define ZT_LIB_VERSION_REVISION            4
 
-#define ZT_MAX_IPADDR_LEN                  64
-#define ZT_ID_LEN                          10
+#define ZT_ID_LEN                          16
 #define ZT_VER_STR_LEN                     6
 #define ZT_HOME_PATH_MAX_LEN               128
+#define ZT_MAC_ADDRSTRLEN                  18
 
 #define ZT_SOCK_STATE_NONE                 100
 #define ZT_SOCK_STATE_UNHANDLED_CONNECTED  101
@@ -503,7 +508,7 @@ int zts_add_dns_nameserver(struct sockaddr *addr);
 /*
  * Removes a DNS nameserver
  */
-int zts_remove_dns_nameserver(struct sockaddr *addr);
+int zts_del_dns_nameserver(struct sockaddr *addr);
 
 /****************************************************************************/
 /* SDK Socket API Helper functions/objects --- DONT CALL THESE DIRECTLY     */
@@ -558,6 +563,7 @@ ZeroTier::VirtualTap *getTapByNWID(uint64_t nwid);
 ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress *addr);
 ZeroTier::VirtualTap *getTapByName(char *ifname);
 ZeroTier::VirtualTap *getTapByIndex(int index);
+ZeroTier::VirtualTap *getAnyTap();
 
 /*
  * Returns a pointer to a VirtualSocket for a given fd

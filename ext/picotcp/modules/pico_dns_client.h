@@ -37,6 +37,9 @@
 #define PICO_DNS_RR_A_RDLENGTH 4
 #define PICO_DNS_RR_AAAA_RDLENGTH 16
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int pico_dns_client_init(void);
 /* flag is PICO_DNS_NS_DEL or PICO_DNS_NS_ADD */
 int pico_dns_client_nameserver(struct pico_ip4 *ns, uint8_t flag);
@@ -45,6 +48,9 @@ int pico_dns_client_getname(const char *ip, void (*callback)(char *url, void *ar
 #ifdef PICO_SUPPORT_IPV6
 int pico_dns_client_getaddr6(const char *url, void (*callback)(char *, void *), void *arg);
 int pico_dns_client_getname6(const char *url, void (*callback)(char *, void *), void *arg);
+#endif
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* _INCLUDE_PICO_DNS_CLIENT */

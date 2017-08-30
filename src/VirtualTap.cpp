@@ -62,7 +62,7 @@ class VirtualTap;
 
 extern std::vector<void*> vtaps;
 
-static bool picodev_initialized;
+// static bool picodev_initialized;
 
 namespace ZeroTier {
 
@@ -96,12 +96,19 @@ namespace ZeroTier {
 			_phy(this,false,true)
 	{
 		vtaps.push_back((void*)this);
-		// set interface name
-		char tmp3[64];
+
+		// set virtual tap interface name (full)
+		memset(vtap_full_name, 0, sizeof(vtap_full_name));
 		ifindex = devno;
-		snprintf(tmp3, 64, "libzt%d-%lx", devno++, _nwid);
-		_dev = tmp3;
+		snprintf(vtap_full_name, sizeof(vtap_full_name), "libzt%d-%lx", devno++, _nwid);
+		_dev = vtap_full_name;
 		DEBUG_INFO("set VirtualTap interface name to: %s", _dev.c_str());
+
+		// set virtual tap interface name (abbreviated)
+		memset(vtap_abbr_name, 0, sizeof(vtap_abbr_name));
+		snprintf(vtap_abbr_name, sizeof(vtap_abbr_name), "libzt%d", devno);
+		
+		// start vtap thread and stack I/O loops
 		_thread = Thread::start(this);
 	}
 
@@ -143,14 +150,14 @@ namespace ZeroTier {
 	bool VirtualTap::addIp(const InetAddress &ip)
 	{
 #if defined(NO_STACK)
-		char ipbuf[64];
+		char ipbuf[INET6_ADDRSTRLEN];
 		DEBUG_INFO("addIp (%s)", ip.toString(ipbuf));
 		_ips.push_back(ip);
 		std::sort(_ips.begin(),_ips.end());
 		return true;
 #endif
 #if defined(STACK_PICO) || defined(STACK_LWIP)
-		char ipbuf[64];
+		char ipbuf[INET6_ADDRSTRLEN];
 		DEBUG_INFO("addIp (%s)", ip.toString(ipbuf));
 		if(registerIpWithStack(ip)) {
 			if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
@@ -207,7 +214,8 @@ namespace ZeroTier {
 	{
 		// TODO: This is inefficient and awkward, should be replaced with something more elegant
 		if(zt1ServiceRef) {
-			char id[ZT_ID_LEN+1];
+			char id[ZT_ID_LEN];
+			memset(id, 0, sizeof(id));
 			sprintf(id, "%lx",((ZeroTier::OneService *)zt1ServiceRef)->getNode()->address());
 			return std::string(id);
 		}
@@ -260,6 +268,10 @@ namespace ZeroTier {
 		if(picostack){
 			picostack->pico_init_interface(this);
 			if(should_start_stack) {
+				// Add link to ipv4_link_add
+				//ZeroTier::InetAddress localhost;
+				//localhost.fromString("127.0.0.1");
+				//addIp(localhost); // Add a single link to localhost to the picoTCP device (TODO: should be placed elsewhere)
 				picostack->pico_loop(this);
 			}
 		}
@@ -351,6 +363,31 @@ namespace ZeroTier {
 				break;
 			}
 		}
+	}
+
+
+	/****************************************************************************/
+	/* DNS                                                                      */
+	/****************************************************************************/
+
+	int VirtualTap::add_DNS_Nameserver(struct sockaddr *addr)
+	{
+#if defined(STACK_PICO)
+		return picostack->pico_add_dns_nameserver(addr);
+#endif
+#if defined(STACK_LWIP)
+		return lwipstack->lwip_add_dns_nameserver(addr);
+#endif
+	}
+
+	int VirtualTap::del_DNS_Nameserver(struct sockaddr *addr)
+	{
+#if defined(STACK_PICO)
+		return picostack->pico_del_dns_nameserver(addr);
+#endif
+#if defined(STACK_LWIP)
+		return lwipstack->lwip_del_dns_nameserver(addr);
+#endif
 	}
 
 	/****************************************************************************/
@@ -532,20 +569,21 @@ namespace ZeroTier {
 	}
 
 	void VirtualTap::Housekeeping()
-	{
+	{/*
 		Mutex::Lock _l(_tcpconns_m);
 		std::time_t current_ts = std::time(nullptr);
 		if(current_ts > last_housekeeping_ts + ZT_HOUSEKEEPING_INTERVAL) {
-			// update managed routes (add/del from network stacks)		
-			if(zt1ServiceRef) {
-				std::vector<ZT_VirtualNetworkRoute> *managed_routes = ((ZeroTier::OneService *)zt1ServiceRef)->getRoutes(this->_nwid);
+			// update managed routes (add/del from network stacks)	
+			ZeroTier::OneService *service = ((ZeroTier::OneService *)zt1ServiceRef);	
+			if(service) {
+				std::vector<ZT_VirtualNetworkRoute> *managed_routes = service->getRoutes(this->_nwid);
 				ZeroTier::InetAddress target_addr;
 				ZeroTier::InetAddress via_addr;
 				ZeroTier::InetAddress null_addr;
 				ZeroTier::InetAddress nm;
 				null_addr.fromString("");
 				bool found;
-				char ipbuf[64], ipbuf2[64], ipbuf3[64];
+				char ipbuf[INET6_ADDRSTRLEN], ipbuf2[INET6_ADDRSTRLEN], ipbuf3[INET6_ADDRSTRLEN];
 				// TODO: Rework this when we have time
 				// check if pushed route exists in tap (add)
 				for(int i=0; i<ZT_MAX_NETWORK_ROUTES; i++) {
@@ -592,7 +630,9 @@ namespace ZeroTier {
 			// TODO: Clean up VirtualSocket objects
 
 			last_housekeeping_ts = std::time(nullptr);
+		
 		}
+		*/
 	}
 
 	/****************************************************************************/

@@ -500,9 +500,8 @@ Linux:
 
 int zts_connect(ZT_CONNECT_SIG) {
 	int err = errno = 0;
-	if(fd < 0) {
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
-		DEBUG_ERROR("EBADF");
 		return -1;
 	}
 	if(!ZeroTier::zt1Service) {
@@ -516,6 +515,19 @@ int zts_connect(ZT_CONNECT_SIG) {
 		errno = EBADF;
 		return -1;
 	}
+	if(!addr) {
+		DEBUG_ERROR("invalid address for fd=%d", fd);
+		errno = EINVAL;
+		return -1;
+	}
+	if(addrlen <= 0) {
+		DEBUG_ERROR("invalid address length for fd=%d", fd);
+		errno = EINVAL;
+		return -1;
+	}
+	// TODO: Handle bad address lengths, right now this call will still 
+	// succeed with a complete connect despite a bad address length. 
+
 	// DEBUG_EXTRA("fd = %d, %s : %d", fd, ipstr, ntohs(port));
 	ZeroTier::InetAddress inet;
 	sockaddr2inet(vs->socket_family, addr, &inet);
@@ -618,7 +630,7 @@ Darwin:
 */
 int zts_bind(ZT_BIND_SIG) {
 	int err = errno = 0;
-	if(fd < 0) {
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
 		return -1;
 	}
@@ -707,7 +719,7 @@ Linux:
 */
 int zts_listen(ZT_LISTEN_SIG) {
 	int err = errno = 0;
-	if(fd < 0) {
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
 		return -1;
 	}
@@ -754,7 +766,7 @@ Darwin:
 int zts_accept(ZT_ACCEPT_SIG) {
 	int err = errno = 0;
 	//DEBUG_EXTRA("fd=%d", fd);
-	if(fd < 0) {
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
 		return -1;
 	}
@@ -857,7 +869,7 @@ EPERM Firewall rules forbid VirtualSocket.
 	{
 		errno = 0;
 		//DEBUG_INFO("fd=%d", fd);
-		if(fd < 0) {
+		if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 			errno = EBADF;
 			return -1;
 		}
@@ -888,9 +900,9 @@ int zts_setsockopt(ZT_SETSOCKOPT_SIG)
 	int err = errno = 0;
 #if defined(STACK_PICO)
 	//DEBUG_INFO("fd=%d", fd);
-	if(fd < 0) {
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
-		err = -1;
+		return -1;
 	}
 	// Disable Nagle's algorithm
 	struct pico_socket *p = NULL;
@@ -926,9 +938,9 @@ int zts_setsockopt(ZT_SETSOCKOPT_SIG)
 int zts_getsockopt(ZT_GETSOCKOPT_SIG)
 {
 	int err = errno = 0;
-	if(fd < 0) {
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
-		err = -1;
+		return -1;
 	}
 	err = getsockopt(fd, level, optname, optval, optlen);
 	return err;
@@ -945,9 +957,9 @@ int zts_getsockopt(ZT_GETSOCKOPT_SIG)
 int zts_getsockname(ZT_GETSOCKNAME_SIG)
 {
 	int err = errno = 0;
-	if(fd < 0) {
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
-		err = -1;
+		return -1;
 	}
 	// TODO
 	return err;
@@ -968,9 +980,9 @@ Linux:
 int zts_getpeername(ZT_GETPEERNAME_SIG)
 {
 	int err = errno = 0;
-	if(fd < 0) {
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
-		err = -1;
+		return -1;
 	}
 	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
 	if(!vs) {
@@ -1037,8 +1049,7 @@ Linux / Darwin:
 int zts_close(ZT_CLOSE_SIG)
 {
 	int err = errno = 0;
-	//DEBUG_EXTRA("fd=%d", fd);
-	if(fd < 0) {
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
 		return -1;
 	}
@@ -1096,9 +1107,9 @@ int zts_select(ZT_SELECT_SIG)
 int zts_fcntl(ZT_FCNTL_SIG)
 {
 	int err = errno = 0;
-	if(fd < 0) {
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
-		err = -1;
+		return -1;
 	}
 	else {
 		err = fcntl(fd, cmd, flags);
@@ -1116,9 +1127,9 @@ int zts_fcntl(ZT_FCNTL_SIG)
 int zts_ioctl(ZT_IOCTL_SIG)
 {
 	int err = errno = 0;
-	if(fd < 0) {
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
-		err = -1;
+		return -1;
 	}
 	else {
 #if defined(__linux__)
@@ -1190,13 +1201,28 @@ Linux:
 	[  ] [EPIPE]                 	The local end has been shut down on a VirtualSocket oriented socket. 
 									In this case the process will also receive a SIGPIPE unless MSG_NOSIGNAL is set.
 
+	ZT_SENDTO_SIG int fd, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen
 */
+
 ssize_t zts_sendto(ZT_SENDTO_SIG)
 {
-	DEBUG_TRANS("fd=%d", fd);
+	//DEBUG_TRANS("fd=%d", fd);
 	int err = errno = 0;
-	if(fd < 0) {
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
+		return -1;
+	}
+	if(len == 0) {
+		return 0;
+	}
+	if(len > ZT_SOCKET_MSG_BUF_SZ) {
+		DEBUG_ERROR("msg is too long to be sent atomically (len=%d)", len);
+		errno = EMSGSIZE;
+		return -1;
+	}
+	if(!buf) {
+		DEBUG_ERROR("msg buf is null");
+		errno = EINVAL;
 		return -1;
 	}
 	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
@@ -1308,11 +1334,26 @@ ssize_t zts_sendto(ZT_SENDTO_SIG)
 									socket.  In this case, the process will also receive a SIGPIPE
 									unless MSG_NOSIGNAL is set.
 
+	ZT_SEND_SIG int fd, const void *buf, size_t len, int flags
 */
+
 ssize_t zts_send(ZT_SEND_SIG)
 {
-	DEBUG_TRANS("fd=%d", fd);
+	// DEBUG_TRANS("fd=%d", fd);
 	int err = errno = 0;
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
+		errno = EBADF;
+		return -1;
+	}
+	if(len == 0) {
+		return 0;
+	}
+	if(len > ZT_SOCKET_MSG_BUF_SZ) {
+		DEBUG_ERROR("msg is too long to be sent atomically (len=%d)", len);
+		errno = EMSGSIZE;
+		return -1;
+	}
+
 	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
 	if(!vs) {
 		DEBUG_ERROR("invalid vs for fd=%d", fd);
@@ -1381,9 +1422,9 @@ ssize_t zts_sendmsg(ZT_SENDMSG_SIG)
 {
 	DEBUG_TRANS("fd=%d", fd);	
 	int err = errno = 0;
-	if(fd < 0) {
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
-		err = -1;
+		return -1;
 	}
 	else {
 		err = sendmsg(fd, msg, flags);
@@ -1414,7 +1455,10 @@ ssize_t zts_sendmsg(ZT_SENDMSG_SIG)
 	[  ] ENOMEM 					Could not allocate memory for recvmsg().
 	[  ] ENOTCONN 					The socket is associated with a connection-oriented protocol and has not been connected (see connect(2) and accept(2)).
 	[  ] ENOTSOCK 					The file descriptor sockfd does not refer to a socket.
+
+	ZT_RECV_SIG int fd, void *buf, size_t len, int flags
 */
+
 ssize_t zts_recv(ZT_RECV_SIG)
 {
 	DEBUG_TRANS("fd=%d", fd);
@@ -1502,47 +1546,85 @@ ssize_t zts_recv(ZT_RECV_SIG)
 	[  ] [ENOTCONN] 				The socket is associated with a connection-oriented protocol 
 									and has not been connected (see connect(2) and accept(2)).
 	[  ] [ENOTSOCK] 				The argument sockfd does not refer to a socket.
+
+	ZT_RECVFROM_SIG int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen
 */
+
 ssize_t zts_recvfrom(ZT_RECVFROM_SIG)
 {
-	DEBUG_TRANS("fd=%d", fd);
+	//DEBUG_TRANS("fd=%d", fd);
 	int32_t r = 0;
 	errno = 0;
-	if(fd < 0) {
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
+		return -1;
+	}
+	if(len == 0) {
+		return 0;
+	}
+	if(!buf) {
+		DEBUG_ERROR("buf is null");
+		errno = EINVAL;
 		return -1;
 	}
 	char udp_msg_buf[ZT_SOCKET_MSG_BUF_SZ];
 	char *msg_ptr = udp_msg_buf;
-	r = read(fd, msg_ptr, sizeof(udp_msg_buf));
-	if(r > 0) {
-		*addrlen = sizeof(struct sockaddr_storage);
+	memset(msg_ptr, 0, sizeof(int32_t)); // zero only len portion
 
-		// get message length
-		int32_t udp_msg_len = 0;
-		memcpy(&udp_msg_len, msg_ptr, sizeof(udp_msg_len));
-		msg_ptr+=sizeof(int32_t);
-
-		// get address
-		memcpy(addr, msg_ptr, *addrlen);
-		msg_ptr+=*addrlen;
-		
-		// get payload
-		int32_t payload_sz = udp_msg_len - *addrlen;
-		memcpy(buf, msg_ptr, payload_sz);
-		r = payload_sz;
+	int32_t udp_msg_len = 0;
+	
+	// PEEK at the buffer and see if we can read a length, if not, err out
+	r = recv(fd, msg_ptr, sizeof(int32_t), MSG_PEEK);
+	if(r != sizeof(int32_t)){
+		//DEBUG_ERROR("invalid datagram, PEEK, r=%d", r);
+		errno = EIO; // TODO: test for this
+		return -1;
 	}
-	return r;
+	// read of sizeof(int32_t) for the length of the datagram (including address)
+	r = read(fd, msg_ptr, sizeof(int32_t));
+	// copy to length variable
+	memcpy(&udp_msg_len, msg_ptr, sizeof(int32_t));
+	msg_ptr+=sizeof(int32_t);
+
+	if(udp_msg_len <= 0) {
+		DEBUG_ERROR("invalid datagram");
+		errno = EIO; // TODO: test for this
+		return -1;
+	}
+	// there is a datagram to read, so let's read it
+	// zero remainder of buffer
+	memset(msg_ptr, 0, ZT_SOCKET_MSG_BUF_SZ- sizeof(int32_t));
+	if((r = read(fd, msg_ptr, udp_msg_len)) < 0) {
+		DEBUG_ERROR("invalid datagram");
+		errno = EIO; // TODO: test for this
+		return -1;
+	}
+	// get address
+	if(addr) {
+		if(*addrlen < sizeof(struct sockaddr_storage)) {
+			DEBUG_ERROR("invalid address length provided");
+			errno = EINVAL;
+			return -1;
+		}
+		*addrlen = sizeof(struct sockaddr_storage);
+		memcpy(addr, msg_ptr, *addrlen);
+	}
+	msg_ptr+=sizeof(struct sockaddr_storage);
+	// get payload
+	int32_t payload_sz = udp_msg_len - *addrlen;
+	int32_t write_sz = len < payload_sz ? len : payload_sz;
+	memcpy(buf, msg_ptr, write_sz);
+	return write_sz;
 }
 
 // TODO
 ssize_t zts_recvmsg(ZT_RECVMSG_SIG)
 {
-	DEBUG_TRANS("fd=%d", fd);
+	//DEBUG_TRANS("fd=%d", fd);
 	int err = errno = 0;
-	if(fd < 0) {
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
-		err = -1;
+		return -1;
 	}
 	else {
 		err = recvmsg(fd, msg, flags);
@@ -1551,12 +1633,12 @@ ssize_t zts_recvmsg(ZT_RECVMSG_SIG)
 }
 
 int zts_read(ZT_READ_SIG) {
-	DEBUG_TRANS("fd=%d", fd);
+	//DEBUG_TRANS("fd=%d", fd);
 	return read(fd, buf, len);
 }
 
 int zts_write(ZT_WRITE_SIG) {
-	DEBUG_TRANS("fd=%d", fd);
+	//DEBUG_TRANS("fd=%d", fd);
 	return write(fd, buf, len);
 }
 

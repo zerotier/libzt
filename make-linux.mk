@@ -249,20 +249,26 @@ UNIT_TEST_OBJ_FILES := $(addprefix $(TEST_BUILD_DIR)/,$(notdir $(UNIT_TEST_SRC_F
 UNIT_TEST_INCLUDES  := -Iinclude
 UNIT_TEST_LIBS      := -L$(BUILD) -lzt $(COMMON_LIBS)
 
-$(TEST_BUILD_DIR)/%: $(UNIT_TEST_SRC_DIR)/%.cpp
-	@mkdir -p $(TEST_BUILD_DIR)
-	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) $(INCLUDES) -o $@ $< $(UNIT_TEST_LIBS)
-	@./check.sh $@
+#$(TEST_BUILD_DIR)/%: $(UNIT_TEST_SRC_DIR)/%.cpp
+#	@mkdir -p $(TEST_BUILD_DIR)
+#	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) $(INCLUDES) -o $@ $< $(UNIT_TEST_LIBS)
+#	@./check.sh $@
 
-tests: $(UNIT_TEST_OBJ_FILES)
+tests: selftest nativetest ztproxy intercept
 
 intercept:
 	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) examples/intercept/intercept.cpp -D_GNU_SOURCE -shared -o $(BUILD)/intercept.so $< $(UNIT_TEST_LIBS) -ldl
 	@./check.sh $(BUILD)/intercept.so
-
 ztproxy:
 	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) examples/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< $(UNIT_TEST_LIBS) -ldl
 	@./check.sh $(BUILD)/ztproxy
+selftest:
+	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) $(INCLUDES) test/selftest.cpp -D__SELFTEST__ -o $(BUILD)/selftest $(UNIT_TEST_LIBS)
+	@./check.sh $(BUILD)/selftest
+nativetest:
+	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) $(INCLUDES) test/selftest.cpp -D__NATIVETEST__ -o $(BUILD)/nativetest
+	@./check.sh $(BUILD)/nativetest
+
 	
 ##############################################################################
 ## Misc                                                                     ##

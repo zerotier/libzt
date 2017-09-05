@@ -175,6 +175,16 @@ namespace ZeroTier {
 		void lwip_init_interface(VirtualTap *tap, const InetAddress &ip);
 
 		/*
+		 * Registers a DNS nameserver with the network stack
+		 */
+		int lwip_add_dns_nameserver(struct sockaddr *addr);
+
+		/*
+		 * Un-registers a DNS nameserver from the network stack
+		 */
+		int lwip_del_dns_nameserver(struct sockaddr *addr);
+
+		/*
 		 * Main stack loop
 		 */
 		void lwip_loop(VirtualTap *tap);
@@ -184,22 +194,84 @@ namespace ZeroTier {
 		 */
 		void lwip_eth_rx(VirtualTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
 		
+		/*
+		 * Creates a stack-specific "socket" or "VirtualSocket object"
+		 */
 		int lwip_Socket(void **pcb, int socket_family, int socket_type, int protocol);
+
+		/*
+		 * Connect to remote host via userspace network stack interface - Called from VirtualTap
+		 */
 		int lwip_Connect(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
+
+		/*
+		 * Bind to a userspace network stack interface - Called from VirtualTap
+		 */
 		int lwip_Bind(VirtualTap *tap, VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
+
+		/*
+		 * Listen for incoming VirtualSockets - Called from VirtualTap
+		 */
 		int lwip_Listen(VirtualSocket *vs, int backlog);
+
+		/*
+		 * Accept an incoming VirtualSocket - Called from VirtualTap
+		 */
 		VirtualSocket* lwip_Accept(VirtualSocket *vs);
+
+		/*
+		 * Read from RX buffer to application - Called from VirtualTap
+		 */
 		int lwip_Read(VirtualSocket *vs, bool lwip_invoked);
+
+		/*
+		 * Write to userspace network stack - Called from VirtualTap
+		 */
 		int lwip_Write(VirtualSocket *vs, void *data, ssize_t len);
+
+		/*
+		 * Close a VirtualSocket - Called from VirtualTap
+		 */
 		int lwip_Close(VirtualSocket *vs);
 
-		static err_t nc_recved(void *arg, struct tcp_pcb *PCB, struct pbuf *p, err_t err);
-		static err_t nc_accept(void *arg, struct tcp_pcb *newPCB, err_t err);
-		static void nc_udp_recved(void * arg, struct udp_pcb * upcb, struct pbuf * p, const ip_addr_t * addr, u16_t port);
-		static void nc_err(void *arg, err_t err);
-		static err_t nc_poll(void* arg, struct tcp_pcb *PCB);
-		static err_t nc_sent(void *arg, struct tcp_pcb *PCB, u16_t len);
-		static err_t nc_connected(void *arg, struct tcp_pcb *PCB, err_t err);
+
+		// --- Callbacks from network stack ---
+
+
+		/*
+		 * Callback for handling received UDP packets (already processed by network stack)
+		 */
+		static err_t lwip_cb_tcp_recved(void *arg, struct tcp_pcb *PCB, struct pbuf *p, err_t err);
+
+		/*
+		 * Callback for handling accepted connection
+		 */
+		static err_t lwip_cb_accept(void *arg, struct tcp_pcb *newPCB, err_t err);
+
+		/*
+		 * Callback for handling received TCP packets (already processed by stack)
+		 */
+		static void lwip_cb_udp_recved(void * arg, struct udp_pcb * upcb, struct pbuf * p, const ip_addr_t * addr, u16_t port);
+
+		/*
+		 * Callback for handling errors from within the network stack
+		 */
+		static void lwip_cb_err(void *arg, err_t err);
+
+		/*
+		 * Callback for handling periodic background tasks
+		 */
+		static err_t lwip_cb_poll(void* arg, struct tcp_pcb *PCB);
+
+		/*
+		 * Callback for handling confirmation of sent packets
+		 */
+		static err_t lwip_cb_sent(void *arg, struct tcp_pcb *PCB, u16_t len);
+
+		/*
+		 * Callback for handling successful connections
+		 */
+		static err_t lwip_cb_connected(void *arg, struct tcp_pcb *PCB, err_t err);
 	};
 } 
 

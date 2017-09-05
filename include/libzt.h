@@ -85,17 +85,27 @@ struct zts_ifreq {
 #endif
 
 /****************************************************************************/
-/* LWIP                                                                     */
+/* lwIP                                                                     */
 /****************************************************************************/
 
+#if defined(STACK_LWIP)
 #define LWIP_APPLICATION_POLL_FREQ         2
 #define LWIP_TCP_TIMER_INTERVAL            50
 #define LWIP_STATUS_TMR_INTERVAL           500 // How often we check VirtualSocket statuses (in ms)
+#endif
+
+/****************************************************************************/
+/* picoTCP                                                                  */
+/****************************************************************************/
+
+#if defined(STACK_PICO)
+#endif
 
 /****************************************************************************/
 /* Defines                                                                  */
 /****************************************************************************/
 
+#define ZT_MAX_SOCKETS                     1024
 #define ZT_SDK_MTU                         ZT_MAX_MTU
 #define ZT_LEN_SZ                          4
 #define ZT_ADDR_SZ                         128
@@ -206,7 +216,6 @@ struct zts_ifreq {
 
 /****************************************************************************/
 /* SDK Socket API (ZeroTier Service Controls)                               */
-/* Implemented in libzt.cpp                                                 */ 
 /****************************************************************************/
 
 #ifdef __cplusplus
@@ -341,9 +350,8 @@ void zts_disable_http_control_plane();
 
 /****************************************************************************/
 /* SDK Socket API (Socket User Controls)                                    */
-/* - These functions are designed to work just like regular socket calls    */
+/* - These functions are designed to work just like ordinary socket calls   */
 /*   but are provisioned and handled by ZeroTier                            */
-/* Implemented in Socket.c                                                  */ 
 /****************************************************************************/
 
 /**

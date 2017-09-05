@@ -391,7 +391,7 @@ namespace ZeroTier {
 		int txsz = vs->TXbuf->count();
 		if(txsz <= 0)
 			return;
-		//DEBUG_INFO("TXbuf->count() = %d", vs->TXbuf->count());
+		//DEBUG_INFO("TXbuf->count()=%d", vs->TXbuf->count());
 
 		int r, max_write_len = std::min(std::min(txsz, ZT_SDK_MTU),ZT_STACK_SOCKET_WR_MAX);
 		if((r = pico_socket_write(vs->picosock, vs->TXbuf->get_buf(), max_write_len)) < 0) {
@@ -447,7 +447,7 @@ namespace ZeroTier {
 				DEBUG_ERROR("pico_socket_close()=%d, pico_err=%d, %s", err, pico_err, beautify_pico_error(pico_err));
 			}
 			DEBUG_EXTRA("PICO_SOCK_EV_CLOSE (socket closure) err=%d (%s), picosock=%p", pico_err, beautify_pico_error(pico_err), s);
-			//DEBUG_EXTRA("PICO_SOCK_EV_CLOSE (socket closure) err = %d, picosock=%p, vs=%p, app_fd=%d, sdk_fd=%d", err, s, vs, vs->app_fd, vs->sdk_fd);            
+			//DEBUG_EXTRA("PICO_SOCK_EV_CLOSE (socket closure) err=%d, picosock=%p, vs=%p, app_fd=%d, sdk_fd=%d", err, s, vs, vs->app_fd, vs->sdk_fd);            
 			//vs->closure_ts = std::time(nullptr);	
 			return;
 		}
@@ -591,17 +591,9 @@ namespace ZeroTier {
 			{
 				tcp_hdr_ptr = &buf + PICO_SIZE_ETHHDR + PICO_SIZE_IP4HDR;
 				hdr = (struct pico_tcp_hdr *)tcp_hdr_ptr;
-
-				/*
-					ext/picotcp/build/include/pico_tcp.h:#define PICO_TCP_SYNACK    (PICO_TCP_SYN | PICO_TCP_ACK)
-					ext/picotcp/build/include/pico_tcp.h:#define PICO_TCP_PSHACK    (PICO_TCP_PSH | PICO_TCP_ACK)
-					ext/picotcp/build/include/pico_tcp.h:#define PICO_TCP_FINACK    (PICO_TCP_FIN | PICO_TCP_ACK)
-					ext/picotcp/build/include/pico_tcp.h:#define PICO_TCP_FINPSHACK (PICO_TCP_FIN | PICO_TCP_PSH | PICO_TCP_ACK)
-					ext/picotcp/build/include/pico_tcp.h:#define PICO_TCP_RSTACK    (PICO_TCP_RST | PICO_TCP_ACK)
-				*/
 				
 				if(hdr) {
-	 				char *flag_ptr = flagbuf;
+					char *flag_ptr = flagbuf;
 
 					if (hdr->flags & PICO_TCP_PSH) {
 						sprintf(flag_ptr, "PSH ");
@@ -991,10 +983,10 @@ namespace ZeroTier {
 				vs->TXbuf->consume(r);
 			}
 			if(vs->socket_type == SOCK_STREAM) {
-				DEBUG_TRANS("len=%5d, [app(buf) --> network_stack(vs=%p)] proto=0x%04x (TCP)", r, vs, PICO_PROTO_TCP);
+				DEBUG_TRANS("len=%5d [app(buf) --> network_stack(vs=%p)] proto=0x%04x (TCP)", r, vs, PICO_PROTO_TCP);
 			}
 			if(vs->socket_type == SOCK_DGRAM) {
-				DEBUG_TRANS("len=%5d, [app(buf) --> network_stack(vs=%p)] proto=0x%04x (TCP)", r, vs, PICO_PROTO_UDP);
+				DEBUG_TRANS("len=%5d [app(buf) --> network_stack(vs=%p)] proto=0x%04x (TCP)", r, vs, PICO_PROTO_UDP);
 			}
 		}
 		return err;
@@ -1016,8 +1008,8 @@ namespace ZeroTier {
 			return ZT_ERR_OK;
 		if((err = pico_socket_close(vs->picosock)) < 0) {
 			errno = pico_err;
-			DEBUG_ERROR("error closing pico_socket(%p), err=%d, pico_err=%s, %s", 
-				(void*)(vs->picosock), err, pico_err, beautify_pico_error(pico_err));
+			DEBUG_ERROR("error closing pico_socket, err=%d, pico_err=%s, %s", 
+				err, pico_err, beautify_pico_error(pico_err));
 		}
 		return err;
 	}

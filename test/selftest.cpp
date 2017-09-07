@@ -2335,13 +2335,13 @@ udp-ip6-server   |              |      OK        |                |       OK    
 // set start time here since we aren't waiting for libzt to come online in NATIVETEST mode
 #if defined(__NATIVETEST__)
 	long int selftest_start_time = get_now_ts();
-	subtest_expected_duration = 10; // initial value, wait for other instance to come online
+	subtest_expected_duration = 0; // initial value, wait for other instance to come online
 #endif
 
 
 #if defined(LIBZT_IPV4)
 	// UDP 4 client/server
-	
+	/*
 	ipv = 4;
 	subtest_start_time_offset += subtest_expected_duration;
 	subtest_expected_duration = 30;
@@ -2413,7 +2413,7 @@ udp-ip6-server   |              |      OK        |                |       OK    
 	}
 	RECORD_RESULTS(passed, details, &results);
 	port++;
-
+*/
 // TCP 4 client/server
 
 	ipv = 4;

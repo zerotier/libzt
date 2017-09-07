@@ -210,12 +210,10 @@ namespace ZeroTier {
 		int pico_frame_rxbuf_tot = 0;
 		Mutex _pico_frame_rxbuf_m;
 #endif
-
 #if defined(STACK_LWIP)
 		netif lwipdev;
 		netif lwipdev6;
 #endif
-
 		std::vector<std::pair<ZeroTier::InetAddress, ZeroTier::InetAddress>> routes;
 		void *zt1ServiceRef = NULL;
 

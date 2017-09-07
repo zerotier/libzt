@@ -542,9 +542,10 @@ namespace ZeroTier {
 		}
 #endif
 #if defined(STACK_LWIP)
-		if(lwipstack)
+		if(lwipstack) {
 			err = lwipstack->lwip_Connect(vs, addr, addrlen); // implicit
 			err = lwipstack->lwip_Write(vs, (void*)buf, len);
+		}
 #endif
 		return err;
 	}

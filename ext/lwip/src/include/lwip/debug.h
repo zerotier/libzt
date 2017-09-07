@@ -102,7 +102,8 @@
 /** print debug message only if debug message type is enabled...
  *  AND is of correct type AND is at least LWIP_DBG_LEVEL
  */
-#define LWIP_DEBUGF(debug, message) LWIP_PLATFORM_DIAG(message);
+#include "Debug.hpp" // use libzt's more descriptive debug printers
+#define LWIP_DEBUGF(debug, message) DEBUG_LWIP message;
 
 #else  /* LWIP_DEBUG */
 #define LWIP_DEBUGF(debug, message)

@@ -103,6 +103,8 @@ struct netif;
 #define LWIP_NETIF_SET_UP_SIG struct netif *netif
 #define LWIP_NETIF_POLL_SIG struct netif *netif
 
+#define NETIF_SET_STATUS_CALLBACK struct netif *netif, netif_status_callback_fn status_callback
+
 
 #if defined(LIBZT_IPV4)
 	extern "C" err_t etharp_output(LWIP_ETHARP_OUTPUT_SIG);
@@ -158,6 +160,8 @@ extern "C" u16_t lwip_htons(LWIP_HTONS_SIG);
 extern "C" u16_t lwip_ntohs(LWIP_NTOHS_SIG);
 extern "C" void tcp_input(LWIP_TCP_INPUT_SIG);
 extern "C" err_t ip_input(LWIP_IP_INPUT_SIG);
+
+//extern "C" void netif_set_status_callback(NETIF_SET_STATUS_CALLBACK);
 
 
 namespace ZeroTier {
@@ -237,6 +241,7 @@ namespace ZeroTier {
 
 		// --- Callbacks from network stack ---
 
+		//static void netif_status_callback(struct netif *nif);
 
 		/*
 		 * Callback for handling received UDP packets (already processed by network stack)

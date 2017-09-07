@@ -65,18 +65,6 @@
 
 #define ZT_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__) // short
 
-/*
-#ifdef __linux__
-	#define ZT_THREAD_ID 0 // (long)getpid()
-#elif __FreeBSD__
-	#define ZT_THREAD_ID 0 // (long)getpid()
-#elif __APPLE__
-	#define ZT_THREAD_ID 0 // (long)syscall(SYS_thread_selfid)
-#endif
-*/
-
-// #define ZT_THREAD_ID 0
-
 #if defined(__JNI_LIB__)
 		#include <jni.h>
 #endif
@@ -84,6 +72,9 @@
 		#include <android/log.h>
 		#define ZT_LOG_TAG "ZTSDK"
 #endif
+
+#define DEBUG_LWIP(fmt, args...) fprintf(stderr, ZT_CYN "LWIP : %17s:%5d:%25s: " fmt   \
+	ZT_RESET, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 
 #if ZT_DEBUG_LEVEL >= ZT_MSG_TEST
 	#define DEBUG_TEST(fmt, args...) fprintf(stderr, ZT_CYN "TEST : %17s:%5d:%25s: " fmt   \

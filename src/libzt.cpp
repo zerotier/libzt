@@ -499,6 +499,7 @@ Linux:
 */
 
 int zts_connect(ZT_CONNECT_SIG) {
+	DEBUG_INFO("fd=%d");
 	int err = errno = 0;
 	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
@@ -979,6 +980,7 @@ Linux:
 */
 int zts_getpeername(ZT_GETPEERNAME_SIG)
 {
+	DEBUG_INFO("fd=%d");
 	int err = errno = 0;
 	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
@@ -1048,6 +1050,7 @@ Linux / Darwin:
 
 int zts_close(ZT_CLOSE_SIG)
 {
+	//DEBUG_EXTRA("fd=%d", fd);
 	int err = errno = 0;
 	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
@@ -1206,7 +1209,7 @@ Linux:
 
 ssize_t zts_sendto(ZT_SENDTO_SIG)
 {
-	//DEBUG_TRANS("fd=%d", fd);
+	DEBUG_TRANS("fd=%d", fd);
 	int err = errno = 0;
 	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
@@ -1552,7 +1555,7 @@ ssize_t zts_recv(ZT_RECV_SIG)
 
 ssize_t zts_recvfrom(ZT_RECVFROM_SIG)
 {
-	//DEBUG_TRANS("fd=%d", fd);
+	DEBUG_TRANS("fd=%d", fd);
 	int32_t r = 0;
 	errno = 0;
 	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {

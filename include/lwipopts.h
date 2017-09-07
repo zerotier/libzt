@@ -54,13 +54,68 @@
  	#define LWIP_IPV6   0
 #endif
 
-#define LWIP_TCP        1
-#define IP6_DEBUG       1
-#define LWIP_DEBUG      1
-#define IP_DEBUG        LWIP_DBG_ON
-#define LWIP_ETHERNET   1
+// --- DEBUG ---
 
-#define LWIP_DBG_TYPES_ON LWIP_DBG_TRACE | LWIP_DBG_STATE | LWIP_DBG_FRESH
+/* flag for LWIP_DEBUGF indicating a tracing message
+ * (to follow program flow)
+ */
+#define LWIP_DBG_TRACE         0x40U
+/* flag for LWIP_DEBUGF indicating a state debug message
+ * (to follow module states)
+ */
+#define LWIP_DBG_STATE         0x20U
+/* flag for LWIP_DEBUGF indicating newly added code,
+ * not thoroughly tested yet
+ */
+#define LWIP_DBG_FRESH         0x10U
+/* flag for LWIP_DEBUGF to halt after printing
+ * this debug message
+ */
+#define LWIP_DBG_HALT          0x08U
+
+#define LWIP_DEBUG      0
+
+//#define LWIP_DBG_TYPES_ON LWIP_DBG_TRACE | LWIP_DBG_STATE | LWIP_DBG_FRESH
+
+#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_ALL
+#define LWIP_DBG_TYPES_ON               LWIP_DBG_ON
+
+#define ETHARP_DEBUG                    LWIP_DBG_OFF
+#define NETIF_DEBUG                     LWIP_DBG_OFF
+#define PBUF_DEBUG                      LWIP_DBG_OFF
+#define API_LIB_DEBUG                   LWIP_DBG_OFF
+#define API_MSG_DEBUG                   LWIP_DBG_OFF
+#define SOCKETS_DEBUG                   LWIP_DBG_OFF
+#define ICMP_DEBUG                      LWIP_DBG_OFF
+#define IGMP_DEBUG                      LWIP_DBG_OFF
+#define INET_DEBUG                      LWIP_DBG_OFF
+#define IP_DEBUG                        LWIP_DBG_OFF
+#define IP_REASS_DEBUG                  LWIP_DBG_OFF
+#define RAW_DEBUG                       LWIP_DBG_OFF
+#define MEM_DEBUG                       LWIP_DBG_OFF
+#define MEMP_DEBUG                      LWIP_DBG_OFF
+#define SYS_DEBUG                       LWIP_DBG_OFF
+#define TIMERS_DEBUG                    LWIP_DBG_OFF
+#define TCP_DEBUG                       LWIP_DBG_OFF
+#define TCP_INPUT_DEBUG                 LWIP_DBG_OFF
+#define TCP_FR_DEBUG                    LWIP_DBG_OFF
+#define TCP_RTO_DEBUG                   LWIP_DBG_OFF
+#define TCP_CWND_DEBUG                  LWIP_DBG_OFF
+#define TCP_WND_DEBUG                   LWIP_DBG_OFF
+#define TCP_OUTPUT_DEBUG                LWIP_DBG_OFF
+#define TCP_RST_DEBUG                   LWIP_DBG_OFF
+#define TCP_QLEN_DEBUG                  LWIP_DBG_OFF
+#define UDP_DEBUG                       LWIP_DBG_OFF
+#define TCPIP_DEBUG                     LWIP_DBG_OFF
+#define SLIP_DEBUG                      LWIP_DBG_OFF
+#define DHCP_DEBUG                      LWIP_DBG_OFF
+#define AUTOIP_DEBUG                    LWIP_DBG_OFF
+#define DNS_DEBUG                       LWIP_DBG_OFF
+#define IP6_DEBUG                       LWIP_DBG_OFF
+
+#define LWIP_UDP        1
+#define LWIP_TCP        1
+#define LWIP_ETHERNET   1
 
 #define LWIP_CHKSUM_ALGORITHM 2
 

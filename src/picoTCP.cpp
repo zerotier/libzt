@@ -1014,6 +1014,24 @@ namespace ZeroTier {
 		return err;
 	}
 
+	int picoTCP::pico_Shutdown(VirtualSocket *vs, int how)
+	{
+		int err = 0, mode = 0;
+		if(how == SHUT_RD) {
+			mode = PICO_SHUT_RD;
+		}
+		if(how == SHUT_WR) {
+			mode = PICO_SHUT_WR;
+		}
+		if(how == SHUT_RDWR) { 
+			mode = PICO_SHUT_RDWR;
+		}
+		if((err = pico_socket_shutdown(vs->picosock, mode)) < 0) {
+			DEBUG_ERROR("error while shutting down socket, fd=%d, pico_err=%d, %s", vs->app_fd, pico_err, beautify_pico_error(pico_err));
+		}
+		return err;
+	}
+
 	int picoTCP::map_pico_err_to_errno(int err)
 	{
 		if(err == PICO_ERR_NOERR) { errno = 0; return 0; } //

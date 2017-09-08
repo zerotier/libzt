@@ -297,6 +297,11 @@ namespace ZeroTier {
 		int Close(VirtualSocket *vs);
 
 		/*
+		 * Shuts down some aspect of a VirtualSocket
+		 */
+		int Shutdown(VirtualSocket *vs, int how);
+
+		/*
 		 * Disposes of previously-closed VirtualSockets
 		 */
 		void Housekeeping();

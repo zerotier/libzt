@@ -638,6 +638,25 @@ namespace ZeroTier
 		return err;
 	}
 
+	int lwIP::lwip_Shutdown(VirtualSocket *vs, int how)
+	{
+		int err=0, shut_rx=0, shut_tx=0;
+		if(how == SHUT_RD) {
+			shut_rx = 1;
+		}
+		if(how == SHUT_WR) {
+			shut_tx = 1;
+		}
+		if(how == SHUT_RDWR) { 
+			shut_rx = 1;
+			shut_tx = 1;
+		}
+		if((err = tcp_shutdown((tcp_pcb*)(vs->pcb), shut_rx, shut_tx) < 0)) {
+			DEBUG_ERROR("error while shutting down socket, fd=%d", vs->app_fd);
+		}
+		return err;
+	}
+
 	/****************************************************************************/
 	/* Callbacks from lwIP stack                                                */
 	/****************************************************************************/
@@ -716,15 +735,7 @@ namespace ZeroTier
 		return ERR_OK;
 	}
 
-/*
-	NSLWIP network_stack_lwip
-	NSPICO network_stack_pico
-	NSRXBF network_stack_pico guarded frame buffer RX
-	ZTVIRT zt_virtual_wire
-	APPFDS app_fd
-	VSRXBF app_fd TX buf
-	VSTXBF app_fd RX buf
-*/
+	// callback from stack to notify driver of the successful acceptance of a connection
 	err_t lwIP::lwip_cb_accept(void *arg, struct tcp_pcb *newPCB, err_t err)
 	{
 		//DEBUG_INFO();

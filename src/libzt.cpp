@@ -905,13 +905,14 @@ EPERM Firewall rules forbid VirtualSocket.
 */
 int zts_setsockopt(ZT_SETSOCKOPT_SIG)
 {
-	int err = errno = 0;
-#if defined(STACK_PICO)
+	// TODO: Move stack-specific logic into stack driver section
 	//DEBUG_INFO("fd=%d", fd);
+	int err = errno = 0;
 	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
 		return -1;
 	}
+#if defined(STACK_PICO)
 	// Disable Nagle's algorithm
 	struct pico_socket *p = NULL;
 	err = zts_get_pico_socket(fd, &p);
@@ -1074,12 +1075,12 @@ int zts_close(ZT_CLOSE_SIG)
 		errno = EBADF;
 		return -1;
 	}
+	del_virtual_socket(fd);
 	if(vs->tap) {
 		vs->tap->Close(vs);
 	}
 	delete vs;
 	vs = NULL;
-	del_virtual_socket(fd);
 	return err;
 
 	/*
@@ -1216,7 +1217,7 @@ Linux:
 
 ssize_t zts_sendto(ZT_SENDTO_SIG)
 {
-	DEBUG_TRANS("fd=%d", fd);
+	//DEBUG_TRANS("fd=%d", fd);
 	int err = errno = 0;
 	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
@@ -1293,7 +1294,6 @@ ssize_t zts_sendto(ZT_SENDTO_SIG)
 			err = -1;
 			errno = EINVAL;
 		}
-		//err = sendto(fd, buf, len, flags, addr, addrlen);
 	}
 	return err;
 }
@@ -1473,6 +1473,10 @@ ssize_t zts_recv(ZT_RECV_SIG)
 {
 	DEBUG_TRANS("fd=%d", fd);
 	int err = errno = 0;
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
+		errno = EBADF;
+		return -1;
+	}
 	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
 	if(!vs) {
 		DEBUG_ERROR("invalid vs for fd=%d", fd);
@@ -1544,18 +1548,18 @@ ssize_t zts_recv(ZT_RECV_SIG)
 									allows either error to be returned for this case, and does 
 									not require these constants to have the same value, so a 
 									portable application should check for both possibilities.
-	[  ] [EBADF]					The argument sockfd is an invalid descriptor.
+	[--] [EBADF]					The argument sockfd is an invalid descriptor.
 	[  ] [ECONNREFUSED] 			A remote host refused to allow the network connection 
 									(typically because it is not running the requested service).
 	[  ] [EFAULT] 					The receive buffer pointer(s) point outside the process's 
 									address space.
 	[  ] [EINTR] 					The receive was interrupted by delivery of a signal before any 
 									data were available; see signal(7).
-	[  ] [EINVAL] 					Invalid argument passed.
+	[--] [EINVAL] 					Invalid argument passed.
 	[  ] [ENOMEM] 					Could not allocate memory for recvmsg().
 	[  ] [ENOTCONN] 				The socket is associated with a connection-oriented protocol 
 									and has not been connected (see connect(2) and accept(2)).
-	[  ] [ENOTSOCK] 				The argument sockfd does not refer to a socket.
+	[NA] [ENOTSOCK] 				The argument sockfd does not refer to a socket.
 
 	ZT_RECVFROM_SIG int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen
 */
@@ -1652,93 +1656,46 @@ int zts_write(ZT_WRITE_SIG) {
 	return write(fd, buf, len);
 }
 
+
+/*
+
+Linux:
+
+	[--] [EBADF]					The socket argument is not a valid file descriptor.
+	[--] [EINVAL] 					The how argument is invalid.
+	[--] [ENOTCONN] 				The socket is not connected.
+	[NA] [ENOTSOCK] 				The socket argument does not refer to a socket.
+	[NA] [ENOBUFS] 					Insufficient resources were available in the system to perform the operation.
+
+	ZT_SHUTDOWN_SIG int fd, int how
+*/
+
 int zts_shutdown(ZT_SHUTDOWN_SIG)
 {
-	/*
 	int err = errno = 0;
-#if defined(STACK_PICO)
-	DEBUG_INFO("fd = %d", fd);
- 
-	int mode = 0;
-	if(how == SHUT_RD) mode = PICO_SHUT_RD;
-	if(how == SHUT_WR) mode = PICO_SHUT_WR;
-	if(how == SHUT_RDWR) mode = PICO_SHUT_RDWR;
-
-	if(fd < 0) {
+	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
-		err = -1;
+		return -1;
 	}
-	else
-	{
-		if(!ZeroTier::zt1Service) {
-			DEBUG_ERROR("cannot shutdown socket. service not started. call zts_start(path) first");
-			errno = EBADF;
-			err = -1;
-		}
-		else
-		{
-			ZeroTier::_multiplexer_lock.lock();
-			// First, look for for unassigned VirtualSockets
-			ZeroTier::VirtualSocket *vs = ZeroTier::unmap[fd];
-			// Since we found an unassigned VirtualSocket, we don't need to consult the stack or tap
-			// during closure - it isn't yet stitched into the clockwork
-			if(vs) // unassigned
-			{
-				DEBUG_ERROR("unassigned shutdown");
-				
-				//   PICO_SHUT_RD
-				//   PICO_SHUT_WR
-				//   PICO_SHUT_RDWR
-			
-				if((err = pico_socket_shutdown(vs->picosock, mode)) < 0)
-					DEBUG_ERROR("error calling pico_socket_shutdown()");
-				DEBUG_ERROR("vs=%p", vs);
-				delete vs;
-				vs = NULL;
-				ZeroTier::unmap.erase(fd);
-				// FIXME: Is deleting this correct behaviour?
-			}
-			else // assigned
-			{
-				std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *p = ZeroTier::fdmap[fd];
-				if(!p) 
-				{
-					DEBUG_ERROR("unable to locate VirtualSocket pair.");
-					errno = EBADF;
-					err = -1;
-				}
-				else // found everything, begin closure
-				{
-					vs = p->first;
-					int f_err, blocking = 1;
-					if ((f_err = fcntl(fd, F_GETFL, 0)) < 0) {
-						DEBUG_ERROR("fcntl error, err = %s, errno = %d", f_err, errno);
-						err = -1;
-					} 
-					else {
-						blocking = !(f_err & O_NONBLOCK);
-					}
-					if(blocking) {
-						DEBUG_INFO("blocking, waiting for write operations before shutdown...");
-						for(int i=0; i<ZT_SDK_CLTIME; i++) {
-							if(vs->TXbuf->count() == 0)
-								break;
-							nanosleep((const struct timespec[]){{0, (ZT_API_CHECK_INTERVAL * 1000000)}}, NULL);
-
-						}
-					}
-
-					if((err = pico_socket_shutdown(vs->picosock, mode)) < 0)
-						DEBUG_ERROR("error calling pico_socket_shutdown()");
-				}
-			}
-			ZeroTier::_multiplexer_lock.unlock();
-		}
+	if(how != SHUT_RD && how != SHUT_WR && how != SHUT_RDWR) {
+		errno = EINVAL;
+		return -1;
+	}
+	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	if(!vs) {
+		DEBUG_ERROR("invalid vs for fd=%d", fd);
+		errno = EBADF;
+		return -1;
+	}
+	if(vs->state != ZT_SOCK_STATE_CONNECTED || vs->socket_type != SOCK_STREAM) {
+		DEBUG_ERROR("the socket is either not in a connected state, or isn't connection-based, fd=%d", fd);
+		errno = ENOTCONN;
+		return -1;
+	}
+	if(vs->tap) {
+		err = vs->tap->Shutdown(vs, how);
 	}
 	return err;
-#endif
-*/
-	return 0;
 }
 
 int zts_add_dns_nameserver(struct sockaddr *addr)
@@ -2081,7 +2038,7 @@ bool can_provision_new_socket()
 
 int zts_nsockets()
 {
-	ZeroTier::_multiplexer_lock.unlock();
+	ZeroTier::_multiplexer_lock.lock();
 	int num = ZeroTier::unmap.size() + ZeroTier::fdmap.size();
 	ZeroTier::_multiplexer_lock.unlock(); 
 	return num;
@@ -2228,52 +2185,62 @@ ZeroTier::VirtualSocket *get_virtual_socket(int fd)
 void del_virtual_socket(int fd)
 {
 	ZeroTier::_multiplexer_lock.lock();
-	std::map<int, ZeroTier::VirtualSocket*>::iterator fd_iter = ZeroTier::unmap.find(fd);
-  	if(fd_iter != ZeroTier::unmap.end()) {
-  		ZeroTier::unmap.erase(fd_iter);
+	std::map<int, ZeroTier::VirtualSocket*>::iterator un_iter = ZeroTier::unmap.find(fd);
+  	if(un_iter != ZeroTier::unmap.end()) {
+  		ZeroTier::unmap.erase(un_iter);
   	}
-	//ZeroTier::unmap.erase(fd);
-	std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator un_iter = ZeroTier::fdmap.find(fd);
-  	if(un_iter != ZeroTier::fdmap.end()) {
-  		ZeroTier::fdmap.erase(un_iter);
+	std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter = ZeroTier::fdmap.find(fd);
+  	if(fd_iter != ZeroTier::fdmap.end()) {
+		ZeroTier::fdmap.erase(fd_iter);
   	}
-	//ZeroTier::fdmap.erase(fd);
 	ZeroTier::_multiplexer_lock.unlock();
 }
 
 void add_unassigned_virtual_socket(int fd, ZeroTier::VirtualSocket *vs)
 {
 	ZeroTier::_multiplexer_lock.lock();
-	ZeroTier::unmap[fd] = vs;
+	std::map<int, ZeroTier::VirtualSocket*>::iterator un_iter = ZeroTier::unmap.find(fd);
+	if(un_iter == ZeroTier::unmap.end()) {
+		ZeroTier::unmap[fd] = vs;
+	}
+	else {
+		DEBUG_ERROR("fd=%d already contained in <fd:vs> map", fd);
+		handle_general_failure();
+	}
 	ZeroTier::_multiplexer_lock.unlock();
 }
 
 void del_unassigned_virtual_socket(int fd)
 {
 	ZeroTier::_multiplexer_lock.lock();
-	std::map<int, ZeroTier::VirtualSocket*>::iterator iter = ZeroTier::unmap.find(fd);
-  	if(iter != ZeroTier::unmap.end()) {
-  		ZeroTier::unmap.erase(iter);
-  	}
-	//ZeroTier::unmap.erase(fd);
+	std::map<int, ZeroTier::VirtualSocket*>::iterator un_iter = ZeroTier::unmap.find(fd);
+	if(un_iter != ZeroTier::unmap.end()) {
+		ZeroTier::unmap.erase(un_iter);
+	}
 	ZeroTier::_multiplexer_lock.unlock();
 }
 
 void add_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd)
 {
 	ZeroTier::_multiplexer_lock.lock();
-	ZeroTier::fdmap[fd] = new std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>(vs, tap);
+	std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter = ZeroTier::fdmap.find(fd);
+	if(fd_iter == ZeroTier::fdmap.end()) {
+		ZeroTier::fdmap[fd] = new std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>(vs, tap);
+	}
+	else {
+		DEBUG_ERROR("fd=%d already contained in <fd,<vs,vt>> map", fd);
+		handle_general_failure();
+	}
 	ZeroTier::_multiplexer_lock.unlock();
 }
 
 void del_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd)
 {
 	ZeroTier::_multiplexer_lock.lock();
-	std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator iter = ZeroTier::fdmap.find(fd);
-  	if(iter != ZeroTier::fdmap.end()) {
-  		ZeroTier::fdmap.erase(iter);
-  	}
-	//ZeroTier::fdmap.erase(fd);
+	std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter = ZeroTier::fdmap.find(fd);
+	if(fd_iter != ZeroTier::fdmap.end()) {
+		ZeroTier::fdmap.erase(fd_iter);
+	}
 	ZeroTier::_multiplexer_lock.unlock();
 }
 

@@ -193,6 +193,11 @@ namespace ZeroTier
 		int pico_Close(VirtualSocket *vs);
 
 		/*
+		 *  Shuts down some aspect of a VirtualSocket - Called from VirtualTap
+		 */
+		int pico_Shutdown(VirtualSocket *vs, int how);
+
+		/*
 		 * Converts a pico_err to its most closely-related errno, and sets errno
 		 */
 		static int map_pico_err_to_errno(int err);

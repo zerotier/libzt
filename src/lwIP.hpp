@@ -68,7 +68,6 @@ struct netif;
 #define LWIP_PBUF_ALLOC_SIG pbuf_layer layer, u16_t length, pbuf_type type
 #define LWIP_HTONS_SIG u16_t x
 #define LWIP_NTOHS_SIG u16_t x
-
 #define LWIP_UDP_NEW_SIG void
 #define LWIP_UDP_CONNECT_SIG struct udp_pcb * pcb, const ip_addr_t * ipaddr, u16_t port
 #define LWIP_UDP_SEND_SIG struct udp_pcb * pcb, struct pbuf * p
@@ -77,7 +76,6 @@ struct netif;
 #define LWIP_UDP_RECVED_SIG struct udp_pcb * pcb, u16_t len
 #define LWIP_UDP_BIND_SIG struct udp_pcb * pcb, const ip_addr_t * ipaddr, u16_t port
 #define LWIP_UDP_REMOVE_SIG struct udp_pcb *pcb
-
 #define LWIP_TCP_WRITE_SIG struct tcp_pcb *pcb, const void *arg, u16_t len, u8_t apiflags
 #define LWIP_TCP_SENT_SIG struct tcp_pcb * pcb, err_t (* sent)(void * arg, struct tcp_pcb * tpcb, u16_t len)
 #define LWIP_TCP_NEW_SIG void
@@ -96,15 +94,13 @@ struct netif;
 #define LWIP_TCP_LISTEN_WITH_BACKLOG_SIG struct tcp_pcb * pcb, u8_t backlog
 #define LWIP_TCP_BIND_SIG struct tcp_pcb * pcb, const ip_addr_t * ipaddr, u16_t port
 #define LWIP_TCP_INPUT_SIG struct pbuf *p, struct netif *inp
-
 #define LWIP_ETHERNET_INPUT_SIG struct pbuf *p, struct netif *netif
 #define LWIP_IP_INPUT_SIG struct pbuf *p, struct netif *inp
 #define LWIP_NETIF_SET_DEFAULT_SIG struct netif *netif
 #define LWIP_NETIF_SET_UP_SIG struct netif *netif
 #define LWIP_NETIF_POLL_SIG struct netif *netif
-
 #define NETIF_SET_STATUS_CALLBACK struct netif *netif, netif_status_callback_fn status_callback
-
+#define LWIP_TCP_SHUTDOWN_SIG struct tcp_pcb *pcb, int shut_rx, int shut_tx
 
 #if defined(LIBZT_IPV4)
 	extern "C" err_t etharp_output(LWIP_ETHARP_OUTPUT_SIG);
@@ -160,10 +156,8 @@ extern "C" u16_t lwip_htons(LWIP_HTONS_SIG);
 extern "C" u16_t lwip_ntohs(LWIP_NTOHS_SIG);
 extern "C" void tcp_input(LWIP_TCP_INPUT_SIG);
 extern "C" err_t ip_input(LWIP_IP_INPUT_SIG);
-
-
+extern "C" err_t tcp_shutdown(LWIP_TCP_SHUTDOWN_SIG);
 //extern "C" void netif_set_status_callback(NETIF_SET_STATUS_CALLBACK);
-
 
 namespace ZeroTier {
 	
@@ -239,6 +233,10 @@ namespace ZeroTier {
 		 */
 		int lwip_Close(VirtualSocket *vs);
 
+		/*
+		 * Shuts down some aspect of a VirtualSocket - Called from VirtualTap
+		 */
+		int lwip_Shutdown(VirtualSocket *vs, int how);
 
 		// --- Callbacks from network stack ---
 

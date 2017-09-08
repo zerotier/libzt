@@ -575,8 +575,26 @@ namespace ZeroTier {
 		return err;
 	}
 
+	// Shuts down some aspect of a connection (Read/Write)
+	int VirtualTap::Shutdown(VirtualSocket *vs, int how)
+	{
+		int err = 0;
+#if defined(STACK_PICO) 
+		if(picostack) {
+			err = picostack->pico_Shutdown(vs, how);
+		}
+		return err;
+#endif
+#if defined(STACK_LWIP)
+		if(lwipstack) {
+			err = lwipstack->lwip_Shutdown(vs, how);
+		}
+		return err;
+#endif
+	}
+
 	void VirtualTap::Housekeeping()
-	{/*
+	{
 		Mutex::Lock _l(_tcpconns_m);
 		std::time_t current_ts = std::time(nullptr);
 		if(current_ts > last_housekeeping_ts + ZT_HOUSEKEEPING_INTERVAL) {
@@ -635,11 +653,8 @@ namespace ZeroTier {
 			}
 
 			// TODO: Clean up VirtualSocket objects
-
 			last_housekeeping_ts = std::time(nullptr);
-		
 		}
-		*/
 	}
 
 	/****************************************************************************/

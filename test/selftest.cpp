@@ -1847,6 +1847,7 @@ int random_api_test()
 	// PASSED implies we didn't segfault or hang anywhere
 
 	// variables which will be populated with random values
+	/*
 	int socket_family;
 	int socket_type;
 	int protocol;
@@ -1858,7 +1859,8 @@ int random_api_test()
 	struct sockaddr_storage;
 	struct sockaddr_in addr;
 	struct sockaddr_in6 addr6;
-
+	*/
+	
 	/*
 	int num_operations = 100;
 	char *opbuf = (char*)malloc(num_operations*sizeof(char));

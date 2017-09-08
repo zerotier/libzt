@@ -35,6 +35,9 @@
 #if defined(STACK_PICO)
 #include "pico_socket.h"
 #endif
+#if defined(STACK_LWIP)
+#include "lwip/tcp.h"
+#endif
 
 #include "Phy.hpp"
 
@@ -65,6 +68,18 @@ namespace ZeroTier {
 #endif
 #if defined(STACK_LWIP)
 		void *pcb = NULL; // Protocol Control Block
+		/*
+		  - TCP_WRITE_FLAG_COPY: indicates whether the new memory should be allocated
+		    for the data to be copied into. If this flag is not given, no new memory
+		    should be allocated and the data should only be referenced by pointer. This
+		    also means that the memory behind dataptr must not change until the data is
+		    ACKed by the remote host
+		  - TCP_WRITE_FLAG_MORE: indicates that more data follows. If this is omitted,
+		    the PSH flag is set in the last segment created by this call to tcp_write.
+		    If this flag is given, the PSH flag is not set.
+		*/
+		// copy as default, processed via pointer reference if set to 0. See notes in lwip_cb_sent() and lwip_Write()
+		int8_t copymode = TCP_WRITE_FLAG_COPY;
 #endif
 
 		struct sockaddr_storage local_addr; // address we've bound to locally

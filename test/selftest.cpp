@@ -742,7 +742,7 @@ void udp_server_6(UDP_UNIT_TEST_SIG_6)
 	struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&saddr;
 	int serverlen = sizeof(saddr);
 	memset(&saddr, 0, sizeof(saddr));
- 	if((r = RECVFROM(fd, rbuf, len, 0, (struct sockaddr *)&saddr, (socklen_t *)&serverlen)) < 0) {
+	if((r = RECVFROM(fd, rbuf, len, 0, (struct sockaddr *)&saddr, (socklen_t *)&serverlen)) < 0) {
 		perror("recvfrom");
 		*passed = false;
 		return;

@@ -7,4 +7,6 @@ Yes! - Just let us know, and we will work out a licensing scheme. You will need 
 
 ### Application or service won't fully come online
 
-Sometimes it can take a substatial amount of time for libzt to come online and become reachable. In cases where it never seems to progress beyond this stage you should check to make sure there are no rogue processes on the machines using the same ZeroTier identity files, or no other instances on your ZeroTier network using said identity files. If this doesn't help. Contact us.
+In rare circumstances it can take a substantial amount of time for a libzt instance to come online and become reachable. In cases where it never seems to progress beyond this stage you should check to make sure there are no rogue processes on the machines using the same ZeroTier identity files, or no other instances on your ZeroTier network using said identity files. If this doesn't help. Contact us.
+
+

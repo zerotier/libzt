@@ -50,6 +50,34 @@
 struct tcp_pcb;
 struct netif;
 
+/** Table to quickly map an lwIP error (err_t) to a socket error
+  * by using -err as an index */
+static const int lwip_err_to_errno_table[] = {
+  0,             /* ERR_OK          0      No error, everything OK. */
+  ENOMEM,        /* ERR_MEM        -1      Out of memory error.     */
+  ENOBUFS,       /* ERR_BUF        -2      Buffer error.            */
+  EWOULDBLOCK,   /* ERR_TIMEOUT    -3      Timeout                  */
+  EHOSTUNREACH,  /* ERR_RTE        -4      Routing problem.         */
+  EINPROGRESS,   /* ERR_INPROGRESS -5      Operation in progress    */
+  EINVAL,        /* ERR_VAL        -6      Illegal value.           */
+  EWOULDBLOCK,   /* ERR_WOULDBLOCK -7      Operation would block.   */
+  EADDRINUSE,    /* ERR_USE        -8      Address in use.          */
+  EALREADY,      /* ERR_ALREADY    -9      Already connecting.      */
+  EISCONN,       /* ERR_ISCONN     -10     Conn already established.*/
+  ENOTCONN,      /* ERR_CONN       -11     Not connected.           */
+  -1,            /* ERR_IF         -12     Low-level netif error    */
+  ECONNABORTED,  /* ERR_ABRT       -13     Connection aborted.      */
+  ECONNRESET,    /* ERR_RST        -14     Connection reset.        */
+  ENOTCONN,      /* ERR_CLSD       -15     Connection closed.       */
+  EIO            /* ERR_ARG        -16     Illegal argument.        */
+};
+
+#define ERR_TO_ERRNO_TABLE_SIZE LWIP_ARRAYSIZE(lwip_err_to_errno_table)
+
+#define lwip_err_to_errno(err) \
+  ((unsigned)(-(signed)(err)) < ERR_TO_ERRNO_TABLE_SIZE ? \
+	lwip_err_to_errno_table[-(signed)(err)] : EIO)
+
 #if defined(LIBZT_IPV4)
 	//#define LWIP_NETIF_ADD_SIG struct netif *netif, ip_addr_t *ipaddr, ip_addr_t *netmask, ip_addr_t *gw, void *state, netif_init_fn init, netif_input_fn input
 	#define LWIP_ETHARP_OUTPUT_SIG struct netif *netif, struct pbuf *q, const ip4_addr_t *ipaddr
@@ -172,6 +200,21 @@ namespace ZeroTier {
 		 * Set up an interface in the network stack for the VirtualTap
 		 */
 		void lwip_init_interface(VirtualTap *tap, const InetAddress &ip);
+
+		/*
+		 * Returns the number of TCP PCBs currently allocated
+		 */
+		static int lwip_num_current_tcp_pcbs();
+
+		/*
+		 * Returns the number of UDP PCBs currently allocated
+		 */
+		static int lwip_num_current_udp_pcbs();
+
+		/*
+		 * Returns the number of RAW PCBs currently allocated
+		 */
+		static int lwip_num_current_raw_pcbs();
 
 		/*
 		 * Registers a DNS nameserver with the network stack

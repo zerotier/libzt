@@ -372,7 +372,7 @@ Darwin:
 	[--] [EMFILE]           The per-process descriptor table is full.
 	[NA] [ENFILE]           The system file table is full.
 	[  ] [ENOBUFS]          Insufficient buffer space is available.  The socket cannot be created until sufficient resources are freed.
-	[  ] [ENOMEM]           Insufficient memory was available to fulfill the request.
+	[--] [ENOMEM]           Insufficient memory was available to fulfill the request.
 	[--] [EPROTONOSUPPORT]  The protocol type or the specified protocol is not supported within this domain.
 	[  ] [EPROTOTYPE]       The socket type is not supported by the protocol.
 */
@@ -394,9 +394,7 @@ int zts_socket(ZT_SOCKET_SIG) {
 		errno = EPROTONOSUPPORT; // seemingly closest match
 		return -1;
 	}
-
-	if(socket_type == SOCK_RAW)
-	{
+	if(socket_type == SOCK_RAW) {
 		// VirtualSocket is only used to associate a socket with a VirtualTap, it has no other implication
 		ZeroTier::VirtualSocket *vs = new ZeroTier::VirtualSocket();
 		vs->socket_family = socket_family;
@@ -405,7 +403,6 @@ int zts_socket(ZT_SOCKET_SIG) {
 		add_unassigned_virtual_socket(vs->app_fd, vs);
 		return vs->app_fd;
 	}
-
 #if defined(STACK_PICO)
 	struct pico_socket *p;
 	err = ZeroTier::picostack->pico_Socket(&p, socket_family, socket_type, protocol);
@@ -419,10 +416,10 @@ int zts_socket(ZT_SOCKET_SIG) {
 	}
 	else {
 		DEBUG_ERROR("failed to create pico_socket");
+		errno = ENOMEM;
 		err = -1;
 	}
 #endif
-
 #if defined(STACK_LWIP)
 	// TODO: check for max lwIP timers/sockets
 	void *pcb;
@@ -433,10 +430,12 @@ int zts_socket(ZT_SOCKET_SIG) {
 		vs->socket_type = socket_type;
 		vs->pcb = pcb;
 		add_unassigned_virtual_socket(vs->app_fd, vs);
-		err = vs->app_fd; // return one end of the socketpair
+		// return one end of the socketpair for the app to use
+		err = vs->app_fd; 
 	}
 	else {
 		DEBUG_ERROR("failed to create lwip pcb");
+		errno = ENOMEM;
 		err = -1;
 	}
 #endif
@@ -777,8 +776,7 @@ int zts_accept(ZT_ACCEPT_SIG) {
 		errno = EINVAL; // TODO, not actually a valid error for this function
 		return -1;
 	}
-	// since we'll be creating a new stack socket or protocol control block when we accept the connection
-	if(!can_provision_new_socket()) {
+	if(!can_provision_new_socket(SOCK_STREAM)) {
 		DEBUG_ERROR("cannot provision additional socket due to limitation of network stack");
 		errno = EMFILE;
 		return -1;
@@ -806,7 +804,7 @@ int zts_accept(ZT_ACCEPT_SIG) {
 		ZeroTier::VirtualSocket *accepted_vs;
 		if(!err) {
 			if(!blocking) { // non-blocking
-				DEBUG_EXTRA("EWOULDBLOCK, not a real error, assuming non-blocking mode");
+				DEBUG_EXTRA("EWOULDBLOCK, assuming non-blocking mode");
 				errno = EWOULDBLOCK;
 				err = -1;
 				accepted_vs = tap->Accept(vs);
@@ -1566,7 +1564,7 @@ ssize_t zts_recv(ZT_RECV_SIG)
 
 ssize_t zts_recvfrom(ZT_RECVFROM_SIG)
 {
-	DEBUG_TRANS("fd=%d", fd);
+	//DEBUG_TRANS("fd=%d", fd);
 	int32_t r = 0;
 	errno = 0;
 	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
@@ -1590,7 +1588,6 @@ ssize_t zts_recvfrom(ZT_RECVFROM_SIG)
 	// PEEK at the buffer and see if we can read a length, if not, err out
 	r = recv(fd, msg_ptr, sizeof(int32_t), MSG_PEEK);
 	if(r != sizeof(int32_t)){
-		//DEBUG_ERROR("invalid datagram, PEEK, r=%d", r);
 		errno = EIO; // TODO: test for this
 		return -1;
 	}
@@ -2019,20 +2016,26 @@ int zts_get_pico_socket(int fd, struct pico_socket **s)
 }
 #endif
 
-bool can_provision_new_socket()
+bool can_provision_new_socket(int socket_type)
 {
 #if defined(STACK_PICO)
-	if(pico_ntimers()+1 >= PICO_MAX_TIMERS) {
-		return false;
+	return !(pico_ntimers()+1 > PICO_MAX_TIMERS);
+#endif
+#if defined(STACK_LWIP)
+	if(socket_type == SOCK_STREAM) {
+		return !(ZeroTier::lwIP::lwip_num_current_tcp_pcbs()+1 > MEMP_NUM_TCP_PCB);
+	}
+	if(socket_type == SOCK_DGRAM) {
+		return !(ZeroTier::lwIP::lwip_num_current_udp_pcbs()+1 > MEMP_NUM_UDP_PCB);
+	}
+	if(socket_type == SOCK_RAW) {
+		return !(ZeroTier::lwIP::lwip_num_current_raw_pcbs()+1 > MEMP_NUM_RAW_PCB);
 	}
 	return true;
 #endif
-#if defined(STACK_LWIP)
-	// TODO: Add check here (see lwipopts.h)
-	return true;
-#endif
 #if defined(NO_STACK)
-	return true; // always true since there's no network stack timer limitation
+	// always true since there's no network stack timer/memory limitation
+	return true; 
 #endif
 }
 
@@ -2186,13 +2189,13 @@ void del_virtual_socket(int fd)
 {
 	ZeroTier::_multiplexer_lock.lock();
 	std::map<int, ZeroTier::VirtualSocket*>::iterator un_iter = ZeroTier::unmap.find(fd);
-  	if(un_iter != ZeroTier::unmap.end()) {
-  		ZeroTier::unmap.erase(un_iter);
-  	}
+	if(un_iter != ZeroTier::unmap.end()) {
+		ZeroTier::unmap.erase(un_iter);
+	}
 	std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter = ZeroTier::fdmap.find(fd);
-  	if(fd_iter != ZeroTier::fdmap.end()) {
+	if(fd_iter != ZeroTier::fdmap.end()) {
 		ZeroTier::fdmap.erase(fd_iter);
-  	}
+	}
 	ZeroTier::_multiplexer_lock.unlock();
 }
 

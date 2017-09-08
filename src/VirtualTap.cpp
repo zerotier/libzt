@@ -359,7 +359,7 @@ namespace ZeroTier {
 		for(int i=0; i<_VirtualSockets.size(); i++) { 
 			if(vs == _VirtualSockets[i]) {
 				_VirtualSockets.erase(_VirtualSockets.begin() + i);
-				DEBUG_INFO("Removed vs=%p from vt=%p", vs, this);
+				//DEBUG_EXTRA("Removed vs=%p from vt=%p", vs, this);
 				break;
 			}
 		}

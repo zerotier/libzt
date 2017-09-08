@@ -561,7 +561,7 @@ int zts_get_pico_socket(int fd, struct pico_socket **s);
 /*
  * Whether we can add a new socket or not. Depends on stack in use
  */
-bool can_provision_new_socket();
+bool can_provision_new_socket(int socket_type);
 
 /**
  * Returns the number of sockets either already provisioned or waiting to be

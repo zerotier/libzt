@@ -85,8 +85,24 @@ struct zts_ifreq {
 #endif
 
 /****************************************************************************/
+/* Legend                                                                   */
+/****************************************************************************/
+
+/*
+	NSLWIP network_stack_lwip
+	NSPICO network_stack_pico
+	NSRXBF network_stack_pico guarded frame buffer RX
+	ZTVIRT zt_virtual_wire
+	APPFDS app_fd
+	VSRXBF app_fd TX buf
+	VSTXBF app_fd RX buf
+*/
+
+/****************************************************************************/
 /* lwIP                                                                     */
 /****************************************************************************/
+
+// For LWIP configuration see: include/lwipopts.h
 
 #if defined(STACK_LWIP)
 #define LWIP_APPLICATION_POLL_FREQ         2

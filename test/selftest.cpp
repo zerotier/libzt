@@ -239,7 +239,7 @@ void wait_until_tplus_s(long int original_time, int tplus_s) {
 	fprintf(stderr, "\n\n--- WAITING FOR T+%d --- (current: T+%d)\n\n", tplus_s, current_time_offset);
 	if(current_time_offset > tplus_s) {
 		DEBUG_ERROR("--- ABORTING TEST: Tests are out of sync and might not yield valid results. ---");
-		exit(0);
+		//exit(0);
 	}
 	if(current_time_offset == tplus_s) {
 		DEBUG_ERROR("--- WARNING: Tests might be out of sync and might not yield valid results. ---");
@@ -824,10 +824,11 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 				w += n;
 				wrem -= n;
 				err = n;
+				DEBUG_TEST("wrote=%d, w=%d, wrem=%d", n, w, wrem);
 			}
 		}
 		long int tx_tf = get_now_ts();	
-		DEBUG_TEST("wrote=%d", w);
+		DEBUG_TEST("wrote=%d, reading next...", w);
 		// RX
 		long int rx_ti = 0;	
 		while(rrem) {
@@ -981,13 +982,14 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 		*passed = false;
 		return;
 	}
-	struct sockaddr_in client;
-	socklen_t client_addrlen = sizeof(sockaddr_in);
-	if((client_fd = ACCEPT(fd, (struct sockaddr *)&client, &client_addrlen)) < 0) {
+	struct sockaddr_storage client;
+	struct sockaddr_in *in4 = (struct sockaddr_in*)&client;
+	socklen_t client_addrlen = sizeof(sockaddr_storage);
+	if((client_fd = ACCEPT(fd, (struct sockaddr *)in4, &client_addrlen)) < 0) {
 		fprintf(stderr,"error accepting connection (%d)\n", err);
 		perror("accept");
 	}
-	DEBUG_TEST("accepted connection from %s, on port %d", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+	DEBUG_TEST("accepted connection from %s, on port %d", inet_ntoa(in4->sin_addr), ntohs(in4->sin_port));
 	if(op == TEST_OP_N_BYTES) {
 		int wrem = cnt, rrem = cnt;
 		long int rx_ti = 0;
@@ -1001,11 +1003,11 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 				r += n;
 				rrem -= n;
 				err = n;
+				DEBUG_TEST("read=%d, r=%d, rrem=%d", n, r, rrem);
 			}
 		}
 		long int rx_tf = get_now_ts();	
-		DEBUG_TEST("read=%d", r);
-		
+		DEBUG_TEST("read=%d, writing next...", r);
 		long int tx_ti = get_now_ts();	
 		while(wrem) {
 			int next_write = std::min(1024, wrem);
@@ -2254,7 +2256,7 @@ int main(int argc , char *argv[])
 #if defined(__SELFTEST__)
 	// set start time here since we need to wait for both libzt instances to be online
 	long int selftest_start_time = get_now_ts();
-	subtest_expected_duration = 30;
+	subtest_expected_duration = 5;
 
 	DEBUG_TEST("Waiting for libzt to come online...\n");
 	zts_simple_start(path.c_str(), nwid.c_str());
@@ -2319,7 +2321,7 @@ int main(int argc , char *argv[])
 #endif // __SELFTEST__
 
 	port = start_port;
-	cnt  = 1024*128;
+	cnt  = 1024*16;
 	op   = TEST_OP_N_BYTES;
 
 /*
@@ -2341,7 +2343,7 @@ udp-ip6-server   |              |      OK        |                |       OK    
 
 #if defined(LIBZT_IPV4)
 	// UDP 4 client/server
-	/*
+	
 	ipv = 4;
 	subtest_start_time_offset += subtest_expected_duration;
 	subtest_expected_duration = 30;
@@ -2413,7 +2415,7 @@ udp-ip6-server   |              |      OK        |                |       OK    
 	}
 	RECORD_RESULTS(passed, details, &results);
 	port++;
-*/
+
 // TCP 4 client/server
 
 	ipv = 4;

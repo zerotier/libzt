@@ -550,18 +550,24 @@ namespace ZeroTier {
 		return err;
 	}
 
+	// Remove VritualSocket from VirtualTap, and instruct network stacks to dismantle their
+	// respective protocol control structures
 	int VirtualTap::Close(VirtualSocket *vs) {
 		int err = 0;
 		if(!vs) {
 			DEBUG_ERROR("invalid VirtualSocket");
 			return -1;
 		}
+		removeVirtualSocket(vs);
 #if defined(STACK_PICO)
-		err = picostack->pico_Close(vs);
+		if(picostack) {
+			err = picostack->pico_Close(vs);
+		}
 #endif
 #if defined(STACK_LWIP)
-		if(lwipstack)
-			lwipstack->lwip_Close(vs);
+		if(lwipstack) {
+			err = lwipstack->lwip_Close(vs);
+		}
 #endif
 		if(vs->sock) {
 			_phy.close(vs->sock, false);

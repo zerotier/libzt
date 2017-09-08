@@ -401,7 +401,7 @@ namespace ZeroTier {
 			return;
 		}
 		if(vs->socket_type == SOCK_STREAM) {
-			DEBUG_TRANS("len=%5d, [app(buf) --> network_stack(vs=%p)] proto=0x%04x (TCP)", r, vs, PICO_PROTO_TCP);
+			DEBUG_TRANS("len=%5d buf_len=%13d [VSTXBF        -->     NSPICO] proto=0x%04x (TCP)", r, vs->TXbuf->count(), PICO_PROTO_TCP);
 		}
 		if(r == 0) {
 			// DEBUG_ERROR("err=%d, pico_err=%d, %s", r, pico_err, beautify_pico_error(pico_err));
@@ -935,7 +935,7 @@ namespace ZeroTier {
 			return -1;
 		}
 		if(vs->picosock->state & PICO_SOCKET_STATE_CLOSED){
-			DEBUG_ERROR("socket is CLOSED, this write() will fail");
+			DEBUG_ERROR("socket is CLOSED, this wrpico_cb_tcp_writeite() will fail");
 			return -1;
 		}
 		if(!vs) {
@@ -983,10 +983,10 @@ namespace ZeroTier {
 				vs->TXbuf->consume(r);
 			}
 			if(vs->socket_type == SOCK_STREAM) {
-				DEBUG_TRANS("len=%5d [app(buf) --> network_stack(vs=%p)] proto=0x%04x (TCP)", r, vs, PICO_PROTO_TCP);
+				DEBUG_TRANS("len=%5d buf_len=%13d [VSTXBF        -->     NSPICO] proto=0x%04x (TCP)", r, vs->TXbuf->count(), PICO_PROTO_TCP);
 			}
 			if(vs->socket_type == SOCK_DGRAM) {
-				DEBUG_TRANS("len=%5d [app(buf) --> network_stack(vs=%p)] proto=0x%04x (TCP)", r, vs, PICO_PROTO_UDP);
+				DEBUG_TRANS("len=%5d buf_len=               [APPFDS        -->     NSPICO] proto=0x%04x (UDP)", r, PICO_PROTO_TCP);
 			}
 		}
 		return err;

@@ -499,7 +499,7 @@ Linux:
 */
 
 int zts_connect(ZT_CONNECT_SIG) {
-	DEBUG_INFO("fd=%d");
+	DEBUG_INFO("fd=%d",fd);
 	int err = errno = 0;
 	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
@@ -586,7 +586,7 @@ int zts_connect(ZT_CONNECT_SIG) {
 		bool complete = false;
 		while(true)
 		{
-			// FIXME: locking and unlocking so often might cause a performance bottleneck while outgoing VirtualSockets
+			// FIXME: locking and unlocking so often might cause significant performance overhead while outgoing VirtualSockets
 			// are being established (also applies to accept())
 			nanosleep((const struct timespec[]){{0, (ZT_CONNECT_RECHECK_DELAY * 1000000)}}, NULL);
 			tap->_tcpconns_m.lock();
@@ -607,8 +607,9 @@ int zts_connect(ZT_CONNECT_SIG) {
 				}
 			}
 			tap->_tcpconns_m.unlock();
-			if(complete)
+			if(complete) {
 				break;
+			}
 		}
 	}
 	return err;
@@ -771,7 +772,12 @@ int zts_accept(ZT_ACCEPT_SIG) {
 		errno = EBADF;
 		return -1;
 	}
-	// +1 since we'll be creating a new pico_socket when we accept the VirtualSocket
+	if(addr && *addrlen <= 0) {
+		DEBUG_ERROR("invalid address length given");
+		errno = EINVAL; // TODO, not actually a valid error for this function
+		return -1;
+	}
+	// since we'll be creating a new stack socket or protocol control block when we accept the connection
 	if(!can_provision_new_socket()) {
 		DEBUG_ERROR("cannot provision additional socket due to limitation of network stack");
 		errno = EMFILE;
@@ -797,9 +803,8 @@ int zts_accept(ZT_ACCEPT_SIG) {
 		else {
 			blocking = !(f_err & O_NONBLOCK);
 		}
-
+		ZeroTier::VirtualSocket *accepted_vs;
 		if(!err) {
-			ZeroTier::VirtualSocket *accepted_vs;
 			if(!blocking) { // non-blocking
 				DEBUG_EXTRA("EWOULDBLOCK, not a real error, assuming non-blocking mode");
 				errno = EWOULDBLOCK;
@@ -819,10 +824,12 @@ int zts_accept(ZT_ACCEPT_SIG) {
 				err = accepted_vs->app_fd;
 			}
 		}
-		if(!err) {
-			// copy address into provided address buffer and len buffer
-			memcpy(addr, &(vs->peer_addr), sizeof(struct sockaddr));
-			*addrlen = sizeof(vs->peer_addr);
+		if(err > 0) {
+			if(addr && *addrlen) {
+				*addrlen = *addrlen < sizeof(accepted_vs->peer_addr) ? *addrlen : sizeof(accepted_vs->peer_addr);
+				// copy address into provided address buffer and len buffer
+				memcpy(addr, &(accepted_vs->peer_addr), *addrlen);
+			}
 		}
 	}
 	ZeroTier::_multiplexer_lock.unlock();
@@ -2221,8 +2228,16 @@ ZeroTier::VirtualSocket *get_virtual_socket(int fd)
 void del_virtual_socket(int fd)
 {
 	ZeroTier::_multiplexer_lock.lock();
-	ZeroTier::unmap.erase(fd);
-	ZeroTier::fdmap.erase(fd);
+	std::map<int, ZeroTier::VirtualSocket*>::iterator fd_iter = ZeroTier::unmap.find(fd);
+  	if(fd_iter != ZeroTier::unmap.end()) {
+  		ZeroTier::unmap.erase(fd_iter);
+  	}
+	//ZeroTier::unmap.erase(fd);
+	std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator un_iter = ZeroTier::fdmap.find(fd);
+  	if(un_iter != ZeroTier::fdmap.end()) {
+  		ZeroTier::fdmap.erase(un_iter);
+  	}
+	//ZeroTier::fdmap.erase(fd);
 	ZeroTier::_multiplexer_lock.unlock();
 }
 
@@ -2236,7 +2251,11 @@ void add_unassigned_virtual_socket(int fd, ZeroTier::VirtualSocket *vs)
 void del_unassigned_virtual_socket(int fd)
 {
 	ZeroTier::_multiplexer_lock.lock();
-	ZeroTier::unmap.erase(fd);
+	std::map<int, ZeroTier::VirtualSocket*>::iterator iter = ZeroTier::unmap.find(fd);
+  	if(iter != ZeroTier::unmap.end()) {
+  		ZeroTier::unmap.erase(iter);
+  	}
+	//ZeroTier::unmap.erase(fd);
 	ZeroTier::_multiplexer_lock.unlock();
 }
 
@@ -2250,7 +2269,11 @@ void add_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSoc
 void del_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd)
 {
 	ZeroTier::_multiplexer_lock.lock();
-	ZeroTier::fdmap.erase(fd);
+	std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator iter = ZeroTier::fdmap.find(fd);
+  	if(iter != ZeroTier::fdmap.end()) {
+  		ZeroTier::fdmap.erase(iter);
+  	}
+	//ZeroTier::fdmap.erase(fd);
 	ZeroTier::_multiplexer_lock.unlock();
 }
 

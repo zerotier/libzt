@@ -229,6 +229,7 @@ namespace ZeroTier
 	int lwIP::lwip_num_current_raw_pcbs()
 	{
 		// TODO: These will likely need some sort of locking protection
+		/*
 		int count = 0;
 		struct raw_pcb *pcb_ptr = raw_pcbs; 
 		while(pcb_ptr) {
@@ -237,6 +238,8 @@ namespace ZeroTier
 			DEBUG_ERROR("FOUND --- raw_pcbs PCB COUNT = %d", count);
 		}	
 		return count;
+		*/
+		return 0;
 	}
 
 	int lwIP::lwip_add_dns_nameserver(struct sockaddr *addr)

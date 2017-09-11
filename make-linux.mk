@@ -70,8 +70,8 @@ endif
 CXXFLAGS=$(CFLAGS) -Wno-format -fno-rtti -std=c++11 -DZT_SOFTWARE_UPDATE_DEFAULT="\"disable\""
 
 # Build against address sanitization library for advanced debugging (clang)
-ifeq ($(ZT_SANITIZE),1)
-	CXXFLAGS+=-x c++ -O -g -fsanitize=address -DASAN_OPTIONS=symbolize=1 -DASAN_SYMBOLIZER_PATH=$(shell which llvm-symbolizer)
+ifeq ($(LIBZT_SANITIZE),1)
+	SANFLAGS+=-x c++ -O -g -fsanitize=address -DASAN_OPTIONS=symbolize=1 -DASAN_SYMBOLIZER_PATH=$(shell which llvm-symbolizer)
 endif
 
 INCLUDES+= -Iext \
@@ -207,7 +207,6 @@ picotcp:
 	cd $(STACK_DIR); make lib ARCH=shared IPV4=1 IPV6=1
 
 lwip:
-	echo $(STACK_FLAGSs)
 	make -f make-liblwip.mk liblwip.a $(STACK_FLAGS)
 
 ##############################################################################
@@ -269,10 +268,10 @@ ztproxy:
 	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) examples/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< $(UNIT_TEST_LIBS) -ldl
 	@./check.sh $(BUILD)/ztproxy
 selftest:
-	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) $(INCLUDES) test/selftest.cpp -D__SELFTEST__ -o $(BUILD)/selftest $(UNIT_TEST_LIBS)
+	@$(CXX) $(CXXFLAGS) $(SANFLAGS) $(UNIT_TEST_INCLUDES) $(INCLUDES) test/selftest.cpp -D__SELFTEST__ -o $(BUILD)/selftest $(UNIT_TEST_LIBS)
 	@./check.sh $(BUILD)/selftest
 nativetest:
-	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) $(INCLUDES) test/selftest.cpp -D__NATIVETEST__ -o $(BUILD)/nativetest
+	@$(CXX) -v $(CXXFLAGS) $(SANFLAGS) $(UNIT_TEST_INCLUDES) $(INCLUDES) test/selftest.cpp -D__NATIVETEST__ -o $(BUILD)/nativetest
 	@./check.sh $(BUILD)/nativetest
 
 	

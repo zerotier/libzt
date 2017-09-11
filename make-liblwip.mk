@@ -99,7 +99,8 @@ SIXLOWPAN=$(LWIPDIR)/netif/lowpan6.c \
 # ARCHFILES: Architecture specific files.
 ARCHFILES=$(wildcard $(LWIPARCH)/*.c $(LWIPARCH)tapif.c $(LWIPARCH)/netif/list.c $(LWIPARCH)/netif/tcpdump.c)
 # LWIPFILES: All the above.
-LWIPFILES=$(COREFILES) $(APIFILES) $(NETIFFILES) $(ARCHFILES)
+LWIPFILES=$(COREFILES) $(NETIFFILES) $(ARCHFILES)
+#$(APIFILES)
 
 ifeq ($(LIBZT_IPV4),1)
 	LWIPFILES+=$(CORE4FILES)

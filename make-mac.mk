@@ -157,6 +157,9 @@ endif
 LIBZT_FILES:=src/VirtualTap.cpp src/libzt.cpp src/Utilities.cpp
 
 ifeq ($(STACK_PICO),1)
+ifeq ($(NS_DEBUG),1)
+	STACK_FLAGS+=
+endif
 CXXFLAGS+=-DSTACK_PICO
 STACK_LIB:=libpicotcp.a
 STACK_DIR:=ext/picotcp
@@ -166,6 +169,9 @@ INCLUDES+=-Iext/picotcp/include -Iext/picotcp/build/include
 endif
 
 ifeq ($(STACK_LWIP),1)
+ifeq ($(NS_DEBUG),1)
+	STACK_FLAGS+=LWIP_DEBUG=1
+endif
 STACK_DRIVER_FLAGS+=-DLWIP_PREFIX_BYTEORDER_FUNCS
 CXXFLAGS+=-DSTACK_LWIP
 STACK_DRIVER_FILES:=src/lwIP.cpp

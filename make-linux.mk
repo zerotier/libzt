@@ -122,6 +122,9 @@ endif
 
 # picoTCP default protocol versions
 ifeq ($(STACK_PICO),1)
+ifeq ($(NS_DEBUG),1)
+	STACK_FLAGS+=
+endif
 ifeq ($(LIBZT_IPV4)$(LIBZT_IPV6),1)
 ifeq ($(LIBZT_IPV4),1)
 CXXFLAGS+=-DLIBZT_IPV4
@@ -139,6 +142,9 @@ endif
 
 # lwIP default protocol versions
 ifeq ($(STACK_LWIP),1)
+ifeq ($(NS_DEBUG),1)
+	STACK_FLAGS+=LWIP_DEBUG=1
+endif
 ifeq ($(LIBZT_IPV4)$(LIBZT_IPV6),1)
 ifeq ($(LIBZT_IPV4),1)
 CXXFLAGS+=-DLIBZT_IPV4 -DLWIP_IPV4=1

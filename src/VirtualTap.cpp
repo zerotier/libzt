@@ -527,6 +527,9 @@ namespace ZeroTier {
 	// Send data to a specified host
 	int VirtualTap::SendTo(VirtualSocket *vs, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen)
 	{
+		/* FIXME: There is a call to *_Connect for each send, we should probably figure out a better way to do this, 
+		possibly consult the stack for "connection" state */
+		
 		// TODO: flags
 		int err = 0;
 #if defined(STACK_PICO)

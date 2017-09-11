@@ -719,6 +719,7 @@ Linux:
 	[  ] [EOPNOTSUPP]       The socket is not of a type that supports the listen() operation.
 */
 int zts_listen(ZT_LISTEN_SIG) {
+	DEBUG_EXTRA("fd=%d", fd);
 	int err = errno = 0;
 	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
@@ -729,8 +730,8 @@ int zts_listen(ZT_LISTEN_SIG) {
 		errno = EACCES;
 		return -1;
 	}
+	std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *p = get_assigned_virtual_pair(fd);
 	ZeroTier::_multiplexer_lock.lock();
-	std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *p = ZeroTier::fdmap[fd];
 	if(!p) {
 		DEBUG_ERROR("unable to locate VirtualSocket pair. did you bind?");
 		errno = EDESTADDRREQ;
@@ -766,7 +767,7 @@ Darwin:
 */
 int zts_accept(ZT_ACCEPT_SIG) {
 	int err = errno = 0;
-	//DEBUG_EXTRA("fd=%d", fd);
+	DEBUG_EXTRA("fd=%d", fd);
 	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
 		return -1;
@@ -781,8 +782,7 @@ int zts_accept(ZT_ACCEPT_SIG) {
 		errno = EMFILE;
 		return -1;
 	}
-	ZeroTier::_multiplexer_lock.lock();
-	std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *p = ZeroTier::fdmap[fd];
+	std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *p = get_assigned_virtual_pair(fd);	
 	if(!p) {
 		DEBUG_ERROR("unable to locate VirtualSocket pair (did you zts_bind())?");
 		errno = EBADF;
@@ -818,7 +818,7 @@ int zts_accept(ZT_ACCEPT_SIG) {
 				}
 			}
 			if(accepted_vs) {
-				ZeroTier::fdmap[accepted_vs->app_fd] = new std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>(accepted_vs, tap);
+				add_assigned_virtual_socket(tap, accepted_vs, accepted_vs->app_fd);
 				err = accepted_vs->app_fd;
 			}
 		}
@@ -830,7 +830,6 @@ int zts_accept(ZT_ACCEPT_SIG) {
 			}
 		}
 	}
-	ZeroTier::_multiplexer_lock.unlock();
 	return err;
 }
 
@@ -911,10 +910,15 @@ int zts_setsockopt(ZT_SETSOCKOPT_SIG)
 		return -1;
 	}
 #if defined(STACK_PICO)
-	// Disable Nagle's algorithm
-	struct pico_socket *p = NULL;
-	err = zts_get_pico_socket(fd, &p);
+	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	if(!vs) {
+		DEBUG_ERROR("invalid fd=%d", fd);
+		errno = EBADF;
+		return -1;
+	}
+	struct pico_socket *p = vs->picosock;
 	if(p) {
+		// Disable Nagle's algorithm
 		int value = 1;
 		if((err = pico_socket_setoption(p, PICO_TCP_NODELAY, &value)) < 0) {
 			if(err == PICO_ERR_EINVAL) {
@@ -927,6 +931,9 @@ int zts_setsockopt(ZT_SETSOCKOPT_SIG)
 	}
 	err = setsockopt(fd, level, optname, optval, optlen);
 	return err;
+#endif
+#if defined(STACK_LWIP)
+
 #endif
 	return 0;
 }
@@ -986,7 +993,7 @@ Linux:
 */
 int zts_getpeername(ZT_GETPEERNAME_SIG)
 {
-	DEBUG_INFO("fd=%d");
+	DEBUG_INFO("fd=%d", fd);
 	int err = errno = 0;
 	if(fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
@@ -1977,45 +1984,6 @@ namespace ZeroTier {
 /* SDK Socket API Helper functions --- DON'T CALL THESE DIRECTLY            */
 /****************************************************************************/
 
-#if defined(STACK_PICO)
-int zts_get_pico_socket(int fd, struct pico_socket **s)
-{
-	int err = 0;
-	if(!ZeroTier::zt1Service) {
-		DEBUG_ERROR("cannot locate socket. service not started. call zts_start(path) first");
-		errno = EBADF;
-		err = -1;
-	}
-	else {
-		ZeroTier::_multiplexer_lock.lock();
-		// First, look for for unassigned VirtualSockets
-		ZeroTier::VirtualSocket *vs = ZeroTier::unmap[fd];
-		if(vs)
-		{
-			*s = vs->picosock;
-			err = 1; // unassigned
-		}
-		else
-		{
-			std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *p = ZeroTier::fdmap[fd];
-			if(!p) 
-			{
-				DEBUG_ERROR("unable to locate VirtualSocket pair.");
-				errno = EBADF;
-				err = -1;
-			}
-			else
-			{
-				*s = p->first->picosock;
-				err = 0; // assigned
-			}
-		}
-		ZeroTier::_multiplexer_lock.unlock();
-	}
-	return err;
-}
-#endif
-
 bool can_provision_new_socket(int socket_type)
 {
 #if defined(STACK_PICO)
@@ -2245,6 +2213,14 @@ void del_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSoc
 		ZeroTier::fdmap.erase(fd_iter);
 	}
 	ZeroTier::_multiplexer_lock.unlock();
+}
+
+std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *get_assigned_virtual_pair(int fd)
+{
+	ZeroTier::_multiplexer_lock.lock();
+	std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *p = ZeroTier::fdmap[fd];
+	ZeroTier::_multiplexer_lock.unlock();
+	return p;
 }
 
 void dismantleTaps()

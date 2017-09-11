@@ -108,6 +108,7 @@ struct zts_ifreq {
 #define LWIP_APPLICATION_POLL_FREQ         2
 #define LWIP_TCP_TIMER_INTERVAL            50
 #define LWIP_STATUS_TMR_INTERVAL           500 // How often we check VirtualSocket statuses (in ms)
+// #define LWIP_CHKSUM <your_checksum_routine>, See: RFC1071 for inspiration
 #endif
 
 /****************************************************************************/
@@ -552,13 +553,6 @@ namespace ZeroTier
 }
 
 /*
- * Gets a pointer to a pico_socket given a file descriptor
- */
-#if defined(STACK_PICO)
-int zts_get_pico_socket(int fd, struct pico_socket **s);
-#endif
-
-/*
  * Whether we can add a new socket or not. Depends on stack in use
  */
 bool can_provision_new_socket(int socket_type);
@@ -617,6 +611,11 @@ void add_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSoc
  * Removes an assigned VirtualSocket
  */
 void del_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd);
+
+/*
+ * Gets a pair of associated virtual objects (VirtualSocket bound to a VirtualTap)
+ */
+std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *get_assigned_virtual_pair(int fd);
 
 /*
  * Destroys all virtual tap devices

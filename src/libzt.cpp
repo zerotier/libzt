@@ -140,7 +140,16 @@ void zts_simple_start(const char *path, const char *nwid)
 	while(!zts_running()) {
 		nanosleep((const struct timespec[]){{0, (ZT_API_CHECK_INTERVAL * 1000000)}}, NULL);
 	}
-	zts_join(nwid);
+	while(1) {
+		try {
+			zts_join(nwid);
+			break;
+		}
+		catch( ... ) {
+			DEBUG_ERROR("there was a problem joining the virtual network");
+			handle_general_failure();
+		}
+	}
 	while(!zts_has_address(nwid)) {
 		nanosleep((const struct timespec[]){{0, (ZT_API_CHECK_INTERVAL * 1000000)}}, NULL);
 	}
@@ -2153,66 +2162,111 @@ ZeroTier::VirtualSocket *get_virtual_socket(int fd)
 	return vs;
 }
 
-void del_virtual_socket(int fd)
+int del_virtual_socket(int fd)
 {
+	int err = 0;
 	ZeroTier::_multiplexer_lock.lock();
-	std::map<int, ZeroTier::VirtualSocket*>::iterator un_iter = ZeroTier::unmap.find(fd);
-	if(un_iter != ZeroTier::unmap.end()) {
-		ZeroTier::unmap.erase(un_iter);
+	try {
+		std::map<int, ZeroTier::VirtualSocket*>::iterator un_iter = ZeroTier::unmap.find(fd);
+		if(un_iter != ZeroTier::unmap.end()) {
+			ZeroTier::unmap.erase(un_iter);
+		}
+		std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter = ZeroTier::fdmap.find(fd);
+		if(fd_iter != ZeroTier::fdmap.end()) {
+			ZeroTier::fdmap.erase(fd_iter);
+		}
 	}
-	std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter = ZeroTier::fdmap.find(fd);
-	if(fd_iter != ZeroTier::fdmap.end()) {
-		ZeroTier::fdmap.erase(fd_iter);
-	}
-	ZeroTier::_multiplexer_lock.unlock();
-}
-
-void add_unassigned_virtual_socket(int fd, ZeroTier::VirtualSocket *vs)
-{
-	ZeroTier::_multiplexer_lock.lock();
-	std::map<int, ZeroTier::VirtualSocket*>::iterator un_iter = ZeroTier::unmap.find(fd);
-	if(un_iter == ZeroTier::unmap.end()) {
-		ZeroTier::unmap[fd] = vs;
-	}
-	else {
-		DEBUG_ERROR("fd=%d already contained in <fd:vs> map", fd);
+	catch( ... ) {
+		DEBUG_ERROR("unable to remove virtual socket");
 		handle_general_failure();
+		err = -1;
 	}
 	ZeroTier::_multiplexer_lock.unlock();
+	return err;
 }
 
-void del_unassigned_virtual_socket(int fd)
+int add_unassigned_virtual_socket(int fd, ZeroTier::VirtualSocket *vs)
 {
+	int err = 0;
 	ZeroTier::_multiplexer_lock.lock();
-	std::map<int, ZeroTier::VirtualSocket*>::iterator un_iter = ZeroTier::unmap.find(fd);
-	if(un_iter != ZeroTier::unmap.end()) {
-		ZeroTier::unmap.erase(un_iter);
+	try {
+		std::map<int, ZeroTier::VirtualSocket*>::iterator un_iter = ZeroTier::unmap.find(fd);
+		if(un_iter == ZeroTier::unmap.end()) {
+			ZeroTier::unmap[fd] = vs;
+		}
+		else {
+			DEBUG_ERROR("fd=%d already contained in <fd:vs> map", fd);
+			handle_general_failure();
+		}
 	}
-	ZeroTier::_multiplexer_lock.unlock();
-}
-
-void add_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd)
-{
-	ZeroTier::_multiplexer_lock.lock();
-	std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter = ZeroTier::fdmap.find(fd);
-	if(fd_iter == ZeroTier::fdmap.end()) {
-		ZeroTier::fdmap[fd] = new std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>(vs, tap);
-	}
-	else {
-		DEBUG_ERROR("fd=%d already contained in <fd,<vs,vt>> map", fd);
+	catch( ... ) {
+		DEBUG_ERROR("unable to add virtual socket");
 		handle_general_failure();
+		err = -1;
 	}
 	ZeroTier::_multiplexer_lock.unlock();
+	return err;
 }
 
-void del_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd)
+int del_unassigned_virtual_socket(int fd)
 {
+	int err = 0;
 	ZeroTier::_multiplexer_lock.lock();
-	std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter = ZeroTier::fdmap.find(fd);
-	if(fd_iter != ZeroTier::fdmap.end()) {
-		ZeroTier::fdmap.erase(fd_iter);
+	try {
+		std::map<int, ZeroTier::VirtualSocket*>::iterator un_iter = ZeroTier::unmap.find(fd);
+		if(un_iter != ZeroTier::unmap.end()) {
+			ZeroTier::unmap.erase(un_iter);
+		}
+	}
+	catch( ... ) {
+		DEBUG_ERROR("unable to remove virtual socket");
+		handle_general_failure();
+		err = -1;
 	}
 	ZeroTier::_multiplexer_lock.unlock();
+	return err;
+}
+
+int add_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd)
+{
+	int err = 0;
+	ZeroTier::_multiplexer_lock.lock();
+	try {
+		std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter = ZeroTier::fdmap.find(fd);
+		if(fd_iter == ZeroTier::fdmap.end()) {
+			ZeroTier::fdmap[fd] = new std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>(vs, tap);
+		}
+		else {
+			DEBUG_ERROR("fd=%d already contained in <fd,<vs,vt>> map", fd);
+			handle_general_failure();
+		}
+	}
+	catch( ... ) {
+		DEBUG_ERROR("unable to add virtual socket");
+		handle_general_failure();
+		err = -1;
+	}
+	ZeroTier::_multiplexer_lock.unlock();
+	return err;
+}
+
+int del_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd)
+{
+	int err = 0;
+	ZeroTier::_multiplexer_lock.lock();
+	try {
+		std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter = ZeroTier::fdmap.find(fd);
+		if(fd_iter != ZeroTier::fdmap.end()) {
+			ZeroTier::fdmap.erase(fd_iter);
+		}
+	}
+	catch( ... ) {
+		DEBUG_ERROR("unable to remove virtual socket");
+		handle_general_failure();
+		err = -1;
+	}
+	ZeroTier::_multiplexer_lock.unlock();
+	return err;
 }
 
 std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *get_assigned_virtual_pair(int fd)

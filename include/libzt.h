@@ -105,9 +105,19 @@ struct zts_ifreq {
 // For LWIP configuration see: include/lwipopts.h
 
 #if defined(STACK_LWIP)
+/*
+  Specifies the polling interval and the callback function that should
+  be called to poll the application. The interval is specified in
+  number of TCP coarse grained timer shots, which typically occurs
+  twice a second. An interval of 10 means that the application would
+  be polled every 5 seconds. */
 #define LWIP_APPLICATION_POLL_FREQ         2
-#define LWIP_TCP_TIMER_INTERVAL            50
-#define LWIP_STATUS_TMR_INTERVAL           500 // How often we check VirtualSocket statuses (in ms)
+
+#define LWIP_TCP_TIMER_INTERVAL            25
+
+// How often we check VirtualSocket statuses (in ms)
+#define LWIP_STATUS_TMR_INTERVAL           500 
+
 // #define LWIP_CHKSUM <your_checksum_routine>, See: RFC1071 for inspiration
 #endif
 
@@ -591,26 +601,26 @@ ZeroTier::VirtualSocket *get_virtual_socket(int fd);
 /*
  * Removes a VirtualSocket
  */
-void del_virtual_socket(int fd);
+int del_virtual_socket(int fd);
 
 /*
  * Adds a virtualSocket
  */
-void add_unassigned_virtual_socket(int fd, ZeroTier::VirtualSocket *vs);
+int add_unassigned_virtual_socket(int fd, ZeroTier::VirtualSocket *vs);
 /*
  * Removes unassigned VirtualSocket
  */
-void del_unassigned_virtual_socket(int fd);
+int del_unassigned_virtual_socket(int fd);
 
 /*
  * Adds an assigned VirtualSocket
  */
-void add_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd);
+int add_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd);
 
 /*
  * Removes an assigned VirtualSocket
  */
-void del_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd);
+int del_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd);
 
 /*
  * Gets a pair of associated virtual objects (VirtualSocket bound to a VirtualTap)

@@ -17,6 +17,10 @@ In order of relevance, enable the following: For `libzt`-specific debug output w
 
 Each version of libzt will include a specific (and unrelated) version of the ZeroTier core, and network stacks. For instance: Version 1.1.5 of libzt might include version 1.2.5 of ZeroTier, there is no connection between these versioning schemes. Additionally, an update to libzt doesn't necessarily translate to an update to the ZeroTier core.
 
+### Code Quality and Standardization
+
+Explicit coding style rules are specified in `test/vera++/libzt` and enforced periodically by running the source through `vera++`. Before each commit or merge into `master` one should run `test/selftest` and `test/nativetest` as specified in [TESTING.md](TESTING.md). Also, on the tabs vs. spaces debate, for this project we have chosen `tabs`. 
+
 ### How do I run unit tests?
 
 See: [TESTING.md](TESTING.md)

@@ -273,7 +273,7 @@ happening sooner than they should.
  * per active UDP "connection".
  * (requires the LWIP_UDP option)
  */
-#define MEMP_NUM_UDP_PCB                4
+#define MEMP_NUM_UDP_PCB                128
 
 /**
  * MEMP_NUM_TCP_PCB: the number of simulatenously active TCP connections.

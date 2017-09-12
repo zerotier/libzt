@@ -1,0 +1,85 @@
+# Source files should not use the 'r' (CR) character
+rule=F001
+
+# File names should be well-formed
+rule=F002
+
+# No trailing whitespace
+rule=L001
+parameter=strict-trailing-space=0
+
+# Don't use tab characters
+# project deliberately uses TABS, so this rule should be left commented out
+# rule=L002
+
+# No leading and no trailing empty lines
+rule=L003
+
+# Line cannot be too long
+rule=L004
+parameter=max-line-length=120
+
+# There should not be too many consecutive empty lines
+rule=L005
+parameter=max-consecutive-empty-lines=5
+
+# Source file should not be too long
+# rule=L006
+# parameter=max-file-length=3000
+
+# One-line comments should not have forced continuation
+rule=T001
+
+# Reserved names should not be used for preprocessor macros
+rule=T002
+
+# Some keywords should be followed by a single space
+rule=T003
+
+# Some keywords should be immediately followed by a colon
+rule=T004
+
+# Keywords break and continue should be immediately followed by a semicolon
+rule=T005
+
+# Keywords return and throw should be immediately followed by a semicolon or a single space
+rule=T006
+
+# Semicolons should not be isolated by spaces or comments from
+rule=T007
+
+# Keywords catch, for, if, switch and while should be followed by a single space
+rule=T008
+
+# Comma should not be preceded by whitespace, but should be followed by one
+rule=T009
+
+# Identifiers should not be composed of 'l' and 'O' characters only
+rule=T010
+
+# Curly brackets from the same pair should be either in the same line or in the same column
+# rule=T011
+
+# Negation operator should not be used in its short form
+rule=T012
+
+# Source files should contain the copyright notice
+rule=T013
+
+#  
+# rule=T014
+
+# HTML links in comments and string literals should be correct
+rule=T015
+
+# Calls to min/max should be protected against accidental macro
+rule=T016
+
+# Unnamed namespaces are not allowed in header files
+rule=T017
+
+# Using namespace is not allowed in header files
+rule=T018
+
+# Control structures should have complete curly-braced block of code
+rule=T019

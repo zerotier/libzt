@@ -342,7 +342,6 @@ void tcp_client_4(TCP_UNIT_TEST_SIG_4)
 	r = READ(fd, rbuf, len);
 	DEBUG_TEST("Sent     : %s", msg.c_str());
 	DEBUG_TEST("Received : %s", rbuf);
-	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 	err = CLOSE(fd);
 	sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
 	*passed = (w == len && r == len && !err) && !strcmp(rbuf, msg.c_str());
@@ -380,13 +379,14 @@ void tcp_server_4(TCP_UNIT_TEST_SIG_4)
 		*passed = false;
 		return;
 	}
-	
 	struct sockaddr_in client;
 	socklen_t client_addrlen = sizeof(sockaddr_in);
-	if((client_fd = ACCEPT(fd, (struct sockaddr *)&client, &client_addrlen)) < 0)
-		fprintf(stderr,"error accepting connection (%d)\n", err);
+	if((client_fd = ACCEPT(fd, (struct sockaddr *)&client, &client_addrlen)) < 0) {
+		perror("accept");
+		*passed = false;
+		return;
+	}
 	DEBUG_TEST("accepted connection from %s, on port %d", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
-
 	// TODO: Put this test in the general API section
 	struct sockaddr_storage peer_addr;
 	struct sockaddr_in *in4 = (struct sockaddr_in*)&peer_addr;
@@ -397,13 +397,10 @@ void tcp_server_4(TCP_UNIT_TEST_SIG_4)
 		*passed = false;
 		return;
 	}
-
 	DEBUG_TEST("getpeername() => %s : %d", inet_ntoa(in4->sin_addr), ntohs(in4->sin_port));
-
-	r = READ(client_fd, rbuf, sizeof rbuf);
+	r = READ(client_fd, rbuf, len);
 	w = WRITE(client_fd, rbuf, len);
-	DEBUG_TEST("Received : %s", rbuf);
-	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
+	DEBUG_TEST("Received : %s, r=%d, w=%d", rbuf, r, w);
 	err = CLOSE(fd);
 	err = CLOSE(client_fd);
 	sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
@@ -440,7 +437,6 @@ void tcp_client_6(TCP_UNIT_TEST_SIG_6)
 	struct sockaddr_storage peer_addr;
 	struct sockaddr_in6 *p6 = (struct sockaddr_in6*)&peer_addr;
 	socklen_t peer_addrlen = sizeof(peer_addr);
-
 	if((err = GETPEERNAME(fd, (struct sockaddr*)&peer_addr, &peer_addrlen)) < 0) {
 		perror("getpeername");
 		*passed = false;
@@ -452,7 +448,6 @@ void tcp_client_6(TCP_UNIT_TEST_SIG_6)
 
 	w = WRITE(fd, msg.c_str(), len);
 	r = READ(fd, rbuf, len);
-	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 	err = CLOSE(fd);
 	sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
 	DEBUG_TEST("Sent     : %s", msg.c_str());
@@ -492,20 +487,20 @@ void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 		*passed = false;
 		return;
 	}
-	
 	struct sockaddr_in6 client;
 	socklen_t client_addrlen = sizeof(sockaddr_in6);
-	if((client_fd = ACCEPT(fd, (struct sockaddr *)&client, &client_addrlen)) < 0)
-		fprintf(stderr,"error accepting connection (%d)\n", err);
+	if((client_fd = ACCEPT(fd, (struct sockaddr *)&client, &client_addrlen)) < 0) {
+		perror("accept");
+		*passed = false;
+		return;
+	}
 	char ipstr[INET6_ADDRSTRLEN];
 	inet_ntop(AF_INET6, &client.sin6_addr, ipstr, sizeof ipstr);
 	DEBUG_TEST("accepted connection from %s, on port %d", ipstr, ntohs(client.sin6_port));
-
 	// TODO: Put this test in the general API section
 	struct sockaddr_storage peer_addr;
 	struct sockaddr_in6 *p6 = (struct sockaddr_in6*)&peer_addr;
 	socklen_t peer_addrlen = sizeof(peer_addr);
-
 	if((err = GETPEERNAME(client_fd, (struct sockaddr*)&peer_addr, &peer_addrlen)) < 0) {
 		perror("getpeername");
 		*passed = false;
@@ -514,11 +509,9 @@ void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 	char peer_addrstr[INET6_ADDRSTRLEN];
 	inet_ntop(AF_INET6, &(p6->sin6_addr), peer_addrstr, INET6_ADDRSTRLEN);
 	DEBUG_TEST("getpeername() => %s : %d", peer_addrstr, ntohs(p6->sin6_port));
-
 	r = READ(client_fd, rbuf, sizeof rbuf);
 	w = WRITE(client_fd, rbuf, len);
 	DEBUG_TEST("Received : %s", rbuf);
-	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 	err = CLOSE(fd);
 	err = CLOSE(client_fd);
 	sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
@@ -573,7 +566,6 @@ void udp_client_4(UDP_UNIT_TEST_SIG_4)
 		// rx
 		r = RECVFROM(fd, rbuf, STR_SIZE, 0, (struct sockaddr *)&saddr, (socklen_t *)&serverlen);
 		if(r == strlen(msg.c_str())) {
-			sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 			err = CLOSE(fd);
 			DEBUG_TEST("%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
 			sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
@@ -631,17 +623,14 @@ void udp_server_4(UDP_UNIT_TEST_SIG_4)
 	long int tx_ti = get_now_ts();	
 	while(1) {
 		sleep(1);
-		//DEBUG_TEST("sending UDP packet");
 		if((w = SENDTO(fd, msg.c_str(), len, 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
 		}
 		if(get_now_ts() >= tx_ti + 10000) {
-			// DEBUG_TEST("get_now_ts()-tx_ti=%d", get_now_ts()-tx_ti);
 			break;
 		}
 	}
-	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
-	//err = CLOSE(fd);
+	err = CLOSE(fd);
 	DEBUG_TEST("%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
 	sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
 	DEBUG_TEST("Sent     : %s", msg.c_str());
@@ -1021,8 +1010,8 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 		}
 		long int tx_tf = get_now_ts();	
 		DEBUG_TEST("wrote=%d", w);
-		sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 		err = CLOSE(fd);
+		err = CLOSE(client_fd);
 		// Compute time deltas and transfer rates
 		float tx_dt = (tx_tf - tx_ti) / (float)1000;
 		float rx_dt = (rx_tf - rx_ti) / (float)1000;
@@ -1110,8 +1099,8 @@ void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 		}
 		long int tx_tf = get_now_ts();	
 		DEBUG_TEST("wrote=%d", w);
-		sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 		err = CLOSE(fd);
+		err = CLOSE(client_fd);
 		// Compute time deltas and transfer rates
 		float tx_dt = (tx_tf - tx_ti) / (float)1000;
 		float rx_dt = (rx_tf - rx_ti) / (float)1000;
@@ -2187,18 +2176,21 @@ void bind_to_localhost_test(int port)
 
 int main(int argc , char *argv[])
 {
-	if(argc < 5) {
-		fprintf(stderr, "usage: selftest <selftest.conf> <alice|bob|ted|carol> to <bob|alice|ted|carol>\n");
-		fprintf(stderr, "e.g. : selftest test/test.conf alice to bob\n");
+	if(argc < 6) {
+		fprintf(stderr, "usage: selftest <num_repeats> <selftest.conf> <alice|bob|ted|carol> to <bob|alice|ted|carol>\n");
+		fprintf(stderr, "e.g. : selftest 3 test/test.conf alice to bob\n");
 		return 1;
 	}
 
-	std::string from = argv[2];
-	std::string   to = argv[4];
+	int num_repeats = atoi(argv[1]);
+	std::string path = argv[2];
+	std::string from = argv[3];
+	std::string   to = argv[5];
 	std::string   me = from;
 	std::vector<std::string> results;
 	std::string remote_echo_ipv4, smode;
-	std::string nwid, stype, path = argv[1];
+
+	std::string nwid, stype;
 	std::string ipstr, ipstr6, local_ipstr, local_ipstr6, remote_ipstr, remote_ipstr6;
 
 	int err         = 0;
@@ -2284,386 +2276,391 @@ int main(int argc , char *argv[])
 		sleep(1);
 	*/
 
-// closure test
+for(int i=0; i<num_repeats; i++)
+{
+	DEBUG_TEST("\n\n\n --- COMPREHENSIVE TEST ITERATION: %d out of %d ---\n\n\n", i, num_repeats);
 
-#if defined(__SELFTEST__)
-	port = 1000; 
-	struct sockaddr_in in4;
-	DEBUG_TEST("testing closures by binding to: %s", local_ipstr.c_str());
-	str2addr(local_ipstr, port, 4, (struct sockaddr *)&in4);
-	close_test((struct sockaddr*)&in4);
-	port++;
+	// closure test
 
-// Test adding, resolving, and removing a DNS server
+	#if defined(__SELFTEST__)
+		port = 1000; 
+		struct sockaddr_in in4;
+		DEBUG_TEST("testing closures by binding to: %s", local_ipstr.c_str());
+		str2addr(local_ipstr, port, 4, (struct sockaddr *)&in4);
+		close_test((struct sockaddr*)&in4);
+		port++;
 
-//	ipv = 4;
-//	str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
-//	dns_test((struct sockaddr *)&remote_addr);
+	// Test adding, resolving, and removing a DNS server
 
-//	close_while_writing_test();
+	//	ipv = 4;
+	//	str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+	//	dns_test((struct sockaddr *)&remote_addr);
 
-// localhost bind test
+	//	close_while_writing_test();
 
-//	bind_to_localhost_test(port);
+	// localhost bind test
 
-// Transmission Tests
+	//	bind_to_localhost_test(port);
 
-// RANDOM API TEST
-		//random_api_test();
+	// Transmission Tests
 
-// SLAM API TEST
-		//slam_api_test();
+	// RANDOM API TEST
+			//random_api_test();
 
-// BAD ARGS API TEST
-		//test_bad_args();
+	// SLAM API TEST
+			//slam_api_test();
 
-// OBSCURE API TEST
-		//obscure_api_test();
+	// BAD ARGS API TEST
+			//test_bad_args();
 
-#endif // __SELFTEST__
+	// OBSCURE API TEST
+			//obscure_api_test();
 
-	port = start_port;
-	cnt  = 1024*16;
-	op   = TEST_OP_N_BYTES;
+	#endif // __SELFTEST__
 
-/*
-				  tcp-ip4-client  tcp-ip6-client   udp-ip4-client   udp-ip6-client
-				 |              |                |                |              |
-tcp-ip4-server   |      OK      |                |      OK        |              |
-tcp-ip6-server   |              |      OK        |                |       OK     |
-udp-ip4-server   |      OK      |                |      OK        |              |
-udp-ip6-server   |              |      OK        |                |       OK     |
+		port = start_port+(100*i); // arbitrary
+		cnt  = 1024*3;
+		op   = TEST_OP_N_BYTES;
 
-*/
-
-// set start time here since we aren't waiting for libzt to come online in NATIVETEST mode
-#if defined(__NATIVETEST__)
-	long int selftest_start_time = get_now_ts();
-	subtest_expected_duration = 0; // initial value, wait for other instance to come online
-#endif
-
-
-#if defined(LIBZT_IPV4)
-	// UDP 4 client/server
-	
-	ipv = 4;
-	subtest_start_time_offset += subtest_expected_duration;
-	subtest_expected_duration = 30;
-
-	if(mode == TEST_MODE_SERVER) {
-		str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
-		str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
-		udp_server_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-	}
-	else if(mode == TEST_MODE_CLIENT) {
-		str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
-		str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
-		udp_client_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-	}
-	RECORD_RESULTS(passed, details, &results);
-	mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
-	port++; // move up one port
-	subtest_start_time_offset+=subtest_expected_duration;
-	if(mode == TEST_MODE_SERVER) {
-		str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
-		str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
-		udp_server_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-	}
-	else if(mode == TEST_MODE_CLIENT) {
-		str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
-		str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
-		udp_client_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-	}
-	RECORD_RESULTS(passed, details, &results);
-	port++;
-
-// UDP 4 sustained transfer
-
-	ipv = 4;	
-	subtest_start_time_offset+=subtest_expected_duration;
-	subtest_expected_duration = 30;
-
-	if(mode == TEST_MODE_SERVER) {
-		str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
-		str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
-		udp_server_sustained_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-	}
-	else if(mode == TEST_MODE_CLIENT) {
-		str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
-		str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
-		udp_client_sustained_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-	}
-	RECORD_RESULTS(passed, details, &results);
-	mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
-	port++; // move up one port
-	subtest_start_time_offset+=subtest_expected_duration;
-	if(mode == TEST_MODE_SERVER) {
-		str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
-		str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
-		udp_server_sustained_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-	}
-	else if(mode == TEST_MODE_CLIENT) {
-		str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
-		str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
-		udp_client_sustained_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-	}
-	RECORD_RESULTS(passed, details, &results);
-	port++;
-
-// TCP 4 client/server
-
-	ipv = 4;
-	subtest_start_time_offset+=subtest_expected_duration;
-	subtest_expected_duration = 30;
-
-	if(mode == TEST_MODE_SERVER) {
-		str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
-		tcp_server_4((struct sockaddr_in *)&local_addr, op, cnt, details, &passed); 
-	}
-	else if(mode == TEST_MODE_CLIENT) {
-		str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
-		tcp_client_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-	}
-	RECORD_RESULTS(passed, details, &results);
-	mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
-	port++; // move up one port
-	subtest_start_time_offset+=subtest_expected_duration;
-	if(mode == TEST_MODE_SERVER) {
-		str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
-		tcp_server_4((struct sockaddr_in *)&local_addr, op, cnt, details, &passed); 
-	}
-	else if(mode == TEST_MODE_CLIENT) {
-		str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
-		tcp_client_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-	}
-	RECORD_RESULTS(passed, details, &results);
-	port++;
-
-// TCP 4 sustained transfer
-	
-	ipv = 4;	
-	subtest_start_time_offset+=subtest_expected_duration;
-	subtest_expected_duration = 30;
-
-	if(mode == TEST_MODE_SERVER) {
-		str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
-		tcp_server_sustained_4((struct sockaddr_in *)&local_addr, op, cnt, details, &passed); 
-	}
-	else if(mode == TEST_MODE_CLIENT) {
-		str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
-		tcp_client_sustained_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-	}
-	RECORD_RESULTS(passed, details, &results);
-	mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
-	port++;
-	subtest_start_time_offset+=subtest_expected_duration;
-	if(mode == TEST_MODE_SERVER) {
-		str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
-		tcp_server_sustained_4((struct sockaddr_in *)&local_addr, op, cnt, details, &passed); 
-	}
-	else if(mode == TEST_MODE_CLIENT) {
-		str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
-		tcp_client_sustained_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-	}
-	RECORD_RESULTS(passed, details, &results);
-	port++;
-
-	// PERFORMANCE (between this library instance and a native non library instance (echo) )
-	// Client/Server mode isn't being tested here, so it isn't important, we'll just set it to client
-
-	// ipv4 echo test (TCP)
 	/*
-	ipv = 4;	
-	if(me == "alice" || me == "ted") {
-		port=start_port+100; // e.g. 7100
-		str2addr(remote_echo_ipv4, port, ipv, (struct sockaddr *)&remote_addr);
-		tcp_perf_tx_echo_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-		RECORD_RESULTS(passed, details, &results);
-		tcp_perf_rx_echo_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-		RECORD_RESULTS(passed, details, &results);
-	}
-	if(me == "bob" || me == "carol") {
-		DEBUG_TEST("waiting (15s) for other selftest to complete before continuing...");
-		port=start_port+101; // e.g. 7101
-		str2addr(remote_echo_ipv4, port, ipv, (struct sockaddr *)&remote_addr);
-		tcp_perf_rx_echo_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-		RECORD_RESULTS(passed, details, &results);
-		tcp_perf_tx_echo_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-		RECORD_RESULTS(passed, details, &results);
-	}
+	 int stack_array[100];
+  	stack_array[1] = 0;
+  	return stack_array[argc + 100];  // BOOM
+
+	int mybuf[10];
+	mybuf[11] = 9;
+	memcpy(mybuf, "what the hell is this", 55);
 	*/
 
-#endif // LIBZT_IPV4
+	// set start time here since we aren't waiting for libzt to come online in NATIVETEST mode
+	#if defined(__NATIVETEST__)	
+		long int selftest_start_time = get_now_ts();
+		subtest_expected_duration = 5; // initial value, wait for other instance to come online
+	#endif
+
+
+	#if defined(LIBZT_IPV4)
+		// UDP 4 client/server
+
+		ipv = 4;
+		subtest_start_time_offset += subtest_expected_duration;
+		subtest_expected_duration = 30;
+
+		if(mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			udp_server_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			udp_client_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+		port++; // move up one port
+		subtest_start_time_offset+=subtest_expected_duration;
+		if(mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			udp_server_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			udp_client_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		port++;
+
+	// UDP 4 sustained transfer
+
+		ipv = 4;	
+		subtest_start_time_offset+=subtest_expected_duration;
+		subtest_expected_duration = 30;
+
+		if(mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			udp_server_sustained_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			udp_client_sustained_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+		port++; // move up one port
+		subtest_start_time_offset+=subtest_expected_duration;
+		if(mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			udp_server_sustained_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			udp_client_sustained_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		port++;
+
+	// TCP 4 client/server
+
+		ipv = 4;
+		subtest_start_time_offset+=subtest_expected_duration;
+		subtest_expected_duration = 30;
+
+		if(mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			tcp_server_4((struct sockaddr_in *)&local_addr, op, cnt, details, &passed); 
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			tcp_client_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+		port++; // move up one port
+		subtest_start_time_offset+=subtest_expected_duration;
+		if(mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			tcp_server_4((struct sockaddr_in *)&local_addr, op, cnt, details, &passed); 
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			tcp_client_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		port++;
+
+	// TCP 4 sustained transfer
+		
+		ipv = 4;	
+		subtest_start_time_offset+=subtest_expected_duration;
+		subtest_expected_duration = 30;
+
+		if(mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			tcp_server_sustained_4((struct sockaddr_in *)&local_addr, op, cnt, details, &passed); 
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			tcp_client_sustained_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+		port++;
+		subtest_start_time_offset+=subtest_expected_duration;
+		if(mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			tcp_server_sustained_4((struct sockaddr_in *)&local_addr, op, cnt, details, &passed); 
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			tcp_client_sustained_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		port++;
+
+		// PERFORMANCE (between this library instance and a native non library instance (echo) )
+		// Client/Server mode isn't being tested here, so it isn't important, we'll just set it to client
+
+		// ipv4 echo test (TCP)
+		/*
+		ipv = 4;	
+		if(me == "alice" || me == "ted") {
+			port=start_port+100; // e.g. 7100
+			str2addr(remote_echo_ipv4, port, ipv, (struct sockaddr *)&remote_addr);
+			tcp_perf_tx_echo_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+			RECORD_RESULTS(passed, details, &results);
+			tcp_perf_rx_echo_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+			RECORD_RESULTS(passed, details, &results);
+		}
+		if(me == "bob" || me == "carol") {
+			DEBUG_TEST("waiting (15s) for other selftest to complete before continuing...");
+			port=start_port+101; // e.g. 7101
+			str2addr(remote_echo_ipv4, port, ipv, (struct sockaddr *)&remote_addr);
+			tcp_perf_rx_echo_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+			RECORD_RESULTS(passed, details, &results);
+			tcp_perf_tx_echo_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+			RECORD_RESULTS(passed, details, &results);
+		}
+		*/
+
+	#endif // LIBZT_IPV4
 
 
 
 
 
-#if defined(LIBZT_IPV6)
-	// UDP 6 client/server
+	#if defined(LIBZT_IPV6)
+		// UDP 6 client/server
 
-	ipv = 6;
-	subtest_start_time_offset+=subtest_expected_duration;
-	subtest_expected_duration = 30;
+		ipv = 6;
+		subtest_start_time_offset+=subtest_expected_duration;
+		subtest_expected_duration = 30;
 
-	if(mode == TEST_MODE_SERVER) {
-		str2addr(local_ipstr6, port, ipv, (struct sockaddr*)&local_addr);
-		str2addr(remote_ipstr6, port, ipv, (struct sockaddr*)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
-		udp_server_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
-	}
-	else if(mode == TEST_MODE_CLIENT) {
-		str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
-		str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
-		udp_client_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
-	}
-	RECORD_RESULTS(passed, details, &results);
-	mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
-	port++; // move up one port
-	subtest_start_time_offset+=subtest_expected_duration;
-	if(mode == TEST_MODE_SERVER) {
-		str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
-		str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
-		udp_server_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
-	}
-	else if(mode == TEST_MODE_CLIENT) {
-		str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
-		str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
-		udp_client_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
-	}
-	RECORD_RESULTS(passed, details, &results);
-	port++;
+		if(mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr6, port, ipv, (struct sockaddr*)&local_addr);
+			str2addr(remote_ipstr6, port, ipv, (struct sockaddr*)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			udp_server_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
+			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			udp_client_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+		port++; // move up one port
+		subtest_start_time_offset+=subtest_expected_duration;
+		if(mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
+			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			udp_server_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
+			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			udp_client_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		port++;
 
 
 
-// UDP 6 sustained transfer
+	// UDP 6 sustained transfer
 
-	ipv = 6;	
-	subtest_start_time_offset+=subtest_expected_duration;
-	subtest_expected_duration = 30;
+		ipv = 6;	
+		subtest_start_time_offset+=subtest_expected_duration;
+		subtest_expected_duration = 30;
 
-	if(mode == TEST_MODE_SERVER) {
-		str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
-		str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
-		udp_server_sustained_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
-	}
-	else if(mode == TEST_MODE_CLIENT) {
-		str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
-		str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
-		udp_client_sustained_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
-	}
-	RECORD_RESULTS(passed, details, &results);
-	mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
-	port++; // move up one port
-	subtest_start_time_offset+=subtest_expected_duration;
-	if(mode == TEST_MODE_SERVER) {
-		str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
-		str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
-		udp_server_sustained_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
-	}
-	else if(mode == TEST_MODE_CLIENT) {
-		str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
-		str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
-		udp_client_sustained_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
-	}
-	RECORD_RESULTS(passed, details, &results);
-	port++;
+		if(mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
+			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			udp_server_sustained_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
+			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			udp_client_sustained_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+		port++; // move up one port
+		subtest_start_time_offset+=subtest_expected_duration;
+		if(mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
+			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			udp_server_sustained_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
+			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			udp_client_sustained_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		port++;
 
-// TCP 6 client/server
+	// TCP 6 client/server
 
-	ipv = 6;
-	subtest_start_time_offset+=subtest_expected_duration;
-	subtest_expected_duration = 30;
+		ipv = 6;
+		subtest_start_time_offset+=subtest_expected_duration;
+		subtest_expected_duration = 30;
 
-	if(mode == TEST_MODE_SERVER) {
-		str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
-		tcp_server_6((struct sockaddr_in6 *)&local_addr, op, cnt, details, &passed); 
-	}
-	else if(mode == TEST_MODE_CLIENT) {
-		DEBUG_TEST("waiting (15s) for other selftest to complete before continuing...");
-		str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
-		tcp_client_6((struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
-	}
-	RECORD_RESULTS(passed, details, &results);
-	mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
-	port++; // move up one port
-	subtest_start_time_offset+=subtest_expected_duration;
-	if(mode == TEST_MODE_SERVER) {
-		str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
-		tcp_server_6((struct sockaddr_in6 *)&local_addr, op, cnt, details, &passed); 
-	}
-	else if(mode == TEST_MODE_CLIENT) {
-		str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
-		tcp_client_6((struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
-	}
-	RECORD_RESULTS(passed, details, &results);
-	port++;
+		if(mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			tcp_server_6((struct sockaddr_in6 *)&local_addr, op, cnt, details, &passed); 
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			DEBUG_TEST("waiting (15s) for other selftest to complete before continuing...");
+			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			tcp_client_6((struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+		port++; // move up one port
+		subtest_start_time_offset+=subtest_expected_duration;
+		if(mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			tcp_server_6((struct sockaddr_in6 *)&local_addr, op, cnt, details, &passed); 
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			tcp_client_6((struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		port++;
 
-// TCP 6 sustained transfer
+	// TCP 6 sustained transfer
 
-	ipv = 6;	
-	subtest_start_time_offset+=subtest_expected_duration;
-	subtest_expected_duration = 30;
+		ipv = 6;	
+		subtest_start_time_offset+=subtest_expected_duration;
+		subtest_expected_duration = 30;
 
-	if(mode == TEST_MODE_SERVER) {
-		str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
-		tcp_server_sustained_6((struct sockaddr_in6 *)&local_addr, op, cnt, details, &passed); 
-	}
-	else if(mode == TEST_MODE_CLIENT) {
-		str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
-		tcp_client_sustained_6((struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
-	}
-	RECORD_RESULTS(passed, details, &results);
-	mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
-	port++;
-	subtest_start_time_offset+=subtest_expected_duration;
-	if(mode == TEST_MODE_SERVER) {
-		str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
-		tcp_server_sustained_6((struct sockaddr_in6 *)&local_addr, op, cnt, details, &passed); 
-	}
-	else if(mode == TEST_MODE_CLIENT) {
-		str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
-		wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
-		tcp_client_sustained_6((struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
-	}
-	RECORD_RESULTS(passed, details, &results);
-	port++;
-#endif // LIBZT_IPV6
+		if(mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			tcp_server_sustained_6((struct sockaddr_in6 *)&local_addr, op, cnt, details, &passed); 
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			tcp_client_sustained_6((struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+		port++;
+		subtest_start_time_offset+=subtest_expected_duration;
+		if(mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			tcp_server_sustained_6((struct sockaddr_in6 *)&local_addr, op, cnt, details, &passed); 
+		}
+		else if(mode == TEST_MODE_CLIENT) {
+			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			tcp_client_sustained_6((struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		port++;
+	#endif // LIBZT_IPV6
 
-	// Print results of all tests
-	printf("--------------------------------------------------------------------------------\n");
-	for(int i=0;i<results.size(); i++) {
-		fprintf(stderr, "%s\n", results[i].c_str());
+		// Print results of all tests
+		printf("--------------------------------------------------------------------------------\n");
+		for(int i=0;i<results.size(); i++) {
+			fprintf(stderr, "%s\n", results[i].c_str());
+		}
 	}
 	return err;
 }

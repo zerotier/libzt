@@ -529,7 +529,7 @@ namespace ZeroTier {
 	{
 		/* FIXME: There is a call to *_Connect for each send, we should probably figure out a better way to do this, 
 		possibly consult the stack for "connection" state */
-		
+
 		// TODO: flags
 		int err = 0;
 #if defined(STACK_PICO)
@@ -546,8 +546,12 @@ namespace ZeroTier {
 #endif
 #if defined(STACK_LWIP)
 		if(lwipstack) {
-			err = lwipstack->lwip_Connect(vs, addr, addrlen); // implicit
-			err = lwipstack->lwip_Write(vs, (void*)buf, len);
+			if((err = lwipstack->lwip_Connect(vs, addr, addrlen)) < 0) { // implicit
+				return err;
+			}
+			if((err = lwipstack->lwip_Write(vs, (void*)buf, len)) < 0) {
+				return err;
+			}
 		}
 #endif
 		return err;
@@ -586,14 +590,13 @@ namespace ZeroTier {
 		if(picostack) {
 			err = picostack->pico_Shutdown(vs, how);
 		}
-		return err;
 #endif
 #if defined(STACK_LWIP)
 		if(lwipstack) {
 			err = lwipstack->lwip_Shutdown(vs, how);
 		}
-		return err;
 #endif
+		return err;
 	}
 
 	void VirtualTap::Housekeeping()

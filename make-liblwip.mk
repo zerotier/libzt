@@ -84,9 +84,10 @@ CORE6FILES=$(LWIPDIR)/core/ipv6/ethip6.c \
 	$(LWIPDIR)/core/ipv6/dhcp6.c \
 	$(LWIPDIR)/core/ipv6/nd6.c
 	# APIFILES: The files which implement the sequential and socket APIs.
-APIFILES=$(LWIPDIR)/api/api_lib.c \
+APIFILES=$(LWIPDIR)/api/err.c
+#$(LWIPDIR)/api/api_lib.c \
 	$(LWIPDIR)/api/api_msg.c \
-	$(LWIPDIR)/api/err.c \
+	 \
 	$(LWIPDIR)/api/netbuf.c \
 	$(LWIPDIR)/api/netdb.c \
 	$(LWIPDIR)/api/netifapi.c \
@@ -99,8 +100,7 @@ SIXLOWPAN=$(LWIPDIR)/netif/lowpan6.c \
 # ARCHFILES: Architecture specific files.
 ARCHFILES=$(wildcard $(LWIPARCH)/*.c $(LWIPARCH)tapif.c $(LWIPARCH)/netif/list.c $(LWIPARCH)/netif/tcpdump.c)
 # LWIPFILES: All the above.
-LWIPFILES=$(COREFILES) $(NETIFFILES) $(ARCHFILES)
-#$(APIFILES)
+LWIPFILES=$(COREFILES) $(NETIFFILES) $(ARCHFILES) $(APIFILES)
 
 ifeq ($(LIBZT_IPV4),1)
 	LWIPFILES+=$(CORE4FILES)

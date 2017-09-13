@@ -264,16 +264,15 @@ namespace ZeroTier {
 			handle_general_failure();
 			return;
 		}
-
-		int r, n;				
+		int r;		
 		uint16_t port = 0;
 		union {
 			struct pico_ip4 ip4;
 			struct pico_ip6 ip6;
 		} peer;
-
+		
 		do {
-			n = 0;
+			int n = 0;
 			int avail = ZT_TCP_RX_BUF_SZ - vs->RXbuf->count();
 			if(avail) {
 				r = pico_socket_recvfrom(s, vs->RXbuf->get_buf(), ZT_STACK_SOCKET_RD_MAX, 
@@ -622,7 +621,7 @@ namespace ZeroTier {
 				Utils::ntoh(ethhdr->proto), beautify_eth_proto_nums(Utils::ntoh(ethhdr->proto)), flagbuf);
 		}
 		tap->_handler(tap->_arg,NULL,tap->_nwid,src_mac,dest_mac,
-			Utils::ntoh((uint16_t)ethhdr->proto),0, ((char*)buf) 
+			Utils::ntoh((uint16_t)ethhdr->proto), 0, ((char*)buf) 
 			+ sizeof(struct pico_eth_hdr),len - sizeof(struct pico_eth_hdr));
 		//_picostack_driver_lock.unlock();
 		return len;

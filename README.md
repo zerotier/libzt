@@ -19,11 +19,11 @@ Pre-Built Binaries Here: [zerotier.com/download.shtml](https://zerotier.com/down
 ```
 #include "libzt.h"
 
-char *str = "welcome to the machine"; // test msg 
+char *str = "welcome to the machine";
 char *nwid = "c7cd7c9e1b0f52a2";      // network to join
 char *path = "zt1";                   // path where this node's keys and configs will be stored
-char *ip = "10.8.8.42";               // host on ZeroTier network
-int port = 8080;                      // resource's port
+char *ip = "10.8.8.42";               // remote address
+int port = 8080;                      // remote port
 
 struct sockaddr_in addr;
 addr.sin_family = AF_INET;
@@ -31,10 +31,26 @@ addr.sin_addr.s_addr = inet_addr(ip);
 addr.sin_port = hton(port);	
 
 zts_simple_start(path, nwid);
-int fd = zts_socket(AF_INET, SOCK_STREAM, 0);
-zts_connect(fd, (const struct sockaddr *)addr, sizeof(addr));
-zts_write(fd, str, strlen(str));
-zts_close(fd);
+
+int fd, err = 0;
+if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+	printf("error creating socket\n");
+	return -1;
+}
+if ((err = zts_connect(fd, (const struct sockaddr *)addr, sizeof(addr))) < 0) {
+	printf("error connecting to remote host\n");
+	return -1;
+}
+if ((err = zts_write(fd, str, strlen(str))) < 0) {
+	printf("error writing to socket\n");
+	return -1;
+}
+if ((err = zts_close(fd)) < 0) {
+	printf("error closing socket\n");
+	return -1;
+}
+
+zts_stop();
 ```
 
 Bindings for various [languages](examples)

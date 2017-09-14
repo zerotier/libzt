@@ -50,70 +50,6 @@ TEST_BUILD_DIR     = $(BUILD)
 UNIT_TEST_SRC_DIR  = test
 
 ##############################################################################
-## General Configuration                                                    ##
-##############################################################################
-
-# Debug output for ZeroTier service
-ifeq ($(ZT_DEBUG),1)
-	DEFS+=-DZT_TRACE
-	CFLAGS+=-Wall -g -pthread $(INCLUDES) $(DEFS)
-	STRIP=echo
-	# The following line enables optimization for the crypto code, since
-	# C25519 in particular is almost UNUSABLE in heavy testing without it.
-#ext/lz4/lz4.o node/Salsa20.o node/SHA512.o node/C25519.o node/Poly1305.o: CFLAGS = -Wall -O2 -g -pthread $(INCLUDES) $(DEFS)
-else
-	CFLAGS?=-Ofast -g -fstack-protector
-	CFLAGS+=-Wall -fPIE -fvisibility=hidden -pthread $(INCLUDES) $(DEFS)
-	STRIP=strip
-endif
-
-CXXFLAGS=$(CFLAGS) -Wno-format -fno-rtti -std=c++11 -DZT_SOFTWARE_UPDATE_DEFAULT="\"disable\""
-
-# Build against address sanitization library for advanced debugging (clang)
-ifeq ($(LIBZT_SANITIZE),1)
-	SANFLAGS+=-x c++ -O -g -fsanitize=address -DASAN_OPTIONS=symbolize=1 -DASAN_SYMBOLIZER_PATH=$(shell which llvm-symbolizer)
-endif
-ifeq ($(LIBZT_DEBUG),1)
-	CXXFLAGS+=-DLIBZT_DEBUG
-endif
-
-INCLUDES+= -Iext \
-	-I$(ZTO)/osdep \
-	-I$(ZTO)/node \
-	-I$(ZTO)/service \
-	-I$(ZTO)/include \
-	-I$(ZTO)/controller \
-	-I../$(ZTO)/osdep \
-	-I../$(ZTO)/node \
-	-I../$(ZTO)/service \
-	-I. \
-	-Isrc \
-	-Iinclude \
-
-COMMON_LIBS = -lpthread
-
-##############################################################################
-## User Build Flags                                                         ##
-##############################################################################
-
-CXXFLAGS+=-DZT_SDK
-
-# Debug option, prints filenames, lines, functions, arguments, etc
-# Also enables debug symbols for debugging with tools like gdb, etc
-ifeq ($(SDK_DEBUG),1)
-	CXXFLAGS+=-g
-endif
-
-# JNI (Java Native Interface)
-ifeq ($(SDK_JNI), 1)
-	# jni.h
-	INCLUDES+=-I$(shell /usr/libexec/java_home)/include 
-	# jni_md.h
-	INCLUDES+=-I$(shell /usr/libexec/java_home)/include/$(SYSTEM)
-	CXXFLAGS+=-DSDK_JNI
-endif
-
-##############################################################################
 ## Stack Configuration                                                      ##
 ##############################################################################
 
@@ -130,15 +66,15 @@ ifeq ($(NS_DEBUG),1)
 endif
 ifeq ($(LIBZT_IPV4)$(LIBZT_IPV6),1)
 ifeq ($(LIBZT_IPV4),1)
-CXXFLAGS+=-DLIBZT_IPV4
+STACK_DRIVER_FLAGS+=-DLIBZT_IPV4
 STACK_FLAGS+=IPV4=1
 endif
 ifeq ($(LIBZT_IPV6),1)
-CXXFLAGS+=-DLIBZT_IPV6
+STACK_DRIVER_FLAGS+=-DLIBZT_IPV6
 STACK_FLAGS+=IPV6=1
 endif
 else
-CXXFLAGS+=-DLIBZT_IPV4 -DLIBZT_IPV6
+STACK_DRIVER_FLAGS+=-DLIBZT_IPV4 -DLIBZT_IPV6
 STACK_FLAGS+=IPV6=1 IPV4=1
 endif
 endif
@@ -150,53 +86,101 @@ ifeq ($(NS_DEBUG),1)
 endif
 ifeq ($(LIBZT_IPV4)$(LIBZT_IPV6),1)
 ifeq ($(LIBZT_IPV4),1)
-CXXFLAGS+=-DLIBZT_IPV4 -DLWIP_IPV4=1
+STACK_DRIVER_FLAGS+=-DLIBZT_IPV4 -DLWIP_IPV4=1
 STACK_FLAGS+=LIBZT_IPV4=1
 endif
 ifeq ($(LIBZT_IPV6),1)
-CXXFLAGS+=-DLIBZT_IPV6 -DLWIP_IPV6=1
+STACK_DRIVER_FLAGS+=-DLIBZT_IPV6 -DLWIP_IPV6=1
 STACK_FLAGS+=LIBZT_IPV6=1
 endif
 else
-CXXFLAGS+=-DLIBZT_IPV4 -DLWIP_IPV4=1
+STACK_DRIVER_FLAGS+=-DLIBZT_IPV4 -DLWIP_IPV4=1
 STACK_FLAGS+=LIBZT_IPV4=1
 endif
 endif
 
 LIBZT_FILES:=src/VirtualTap.cpp src/libzt.cpp src/Utilities.cpp
 
+# picoTCP
 ifeq ($(STACK_PICO),1)
-CXXFLAGS+=-DSTACK_PICO
+STACK_DRIVER_FLAGS+=-DSTACK_PICO
 STACK_LIB:=libpicotcp.a
 STACK_DIR:=ext/picotcp
 STACK_LIB:=$(STACK_DIR)/build/lib/$(STACK_LIB)
 STACK_DRIVER_FILES:=src/picoTCP.cpp
-INCLUDES+=-Iext/picotcp/include -Iext/picotcp/build/include
+STACK_INCLUDES+=-Iext/picotcp/include -Iext/picotcp/build/include
 endif
 
+# lwIP
 ifeq ($(STACK_LWIP),1)
-STACK_DRIVER_FLAGS+=-DLWIP_PREFIX_BYTEORDER_FUNCS
-CXXFLAGS+=-DSTACK_LWIP
+STACK_DRIVER_FLAGS+=-DLWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS -DSTACK_LWIP
 STACK_DRIVER_FILES:=src/lwIP.cpp
-LWIPARCH=$(CONTRIBDIR)/ports/unix
+#LWIPARCH=$(CONTRIBDIR)/ports/unix
 LWIPDIR=ext/lwip/src
-INCLUDES+=-Iext/lwip/src/include/lwip \
-	-I$(LWIPDIR)/include \
-	-I$(LWIPARCH)/include \
+STACK_INCLUDES+=-I$(LWIPDIR)/include \
+	-I$(LWIPDIR)/include/lwip \
 	-I$(LWIPDIR)/include/ipv4 \
 	-I$(LWIPDIR) \
 	-Iext
 endif
 
 ifeq ($(NO_STACK),1)
-CXXFLAGS+=-DNO_STACK
+LIBZT_FLAGS+=-DNO_STACK
+endif
+
+##############################################################################
+## General Configuration                                                    ##
+##############################################################################
+
+ZT_DEFS+=-DZT_SDK -DZT_SOFTWARE_UPDATE_DEFAULT="\"disable\""
+
+ZT_INCLUDES+=-Izto/include \
+				-Izto/node \
+				-Izto/osdep \
+				-Izto/service
+
+LIBZT_INCLUDES+=-Iinclude
+
+CXXFLAGS=-Wno-format -fno-rtti -std=c++11
+
+COMMON_LIBS=-lpthread
+
+# Debug output for ZeroTier service
+ifeq ($(ZT_DEBUG),1)
+	DEFS+=-DZT_TRACE
+	CFLAGS+=-Wall -g -pthread $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(ZT_DEFS)
+	STRIP=echo
+	# The following line enables optimization for the crypto code, since
+	# C25519 in particular is almost UNUSABLE in heavy testing without it.
+#ext/lz4/lz4.o node/Salsa20.o node/SHA512.o node/C25519.o node/Poly1305.o: CFLAGS = -Wall -O2 -g -pthread $(INCLUDES) $(DEFS)
+else
+	CFLAGS?=-Ofast -g -fstack-protector
+	CFLAGS+=-Wall -fPIE -fvisibility=hidden -pthread $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(ZT_DEFS)
+	STRIP=strip
+endif
+
+# Build against address sanitization library for advanced debugging (clang)
+ifeq ($(LIBZT_SANITIZE),1)
+	SANFLAGS+=-fsanitize=address -DASAN_OPTIONS=symbolize=1 -DASAN_SYMBOLIZER_PATH=$(shell which llvm-symbolizer)
+endif
+ifeq ($(LIBZT_DEBUG),1)
+	CXXFLAGS+=-g -DLIBZT_DEBUG
+endif
+
+# JNI (Java Native Interface)
+ifeq ($(SDK_JNI), 1)
+	# jni.h
+	INCLUDES+=-I$(shell /usr/libexec/java_home)/include 
+	# jni_md.h
+	INCLUDES+=-I$(shell /usr/libexec/java_home)/include/$(SYSTEM)
+	CXXFLAGS+=-DSDK_JNI
 endif
 
 all: 
 
 %.o : %.cpp
 	@mkdir -p $(BUILD) obj
-	$(CXX) $(CXXFLAGS) -c $^ -o obj/$(@F)
+	$(CXX) $(CXXFLAGS) $(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) -c $^ -o obj/$(@F)
 
 %.o : %.c
 	@mkdir -p $(BUILD) obj
@@ -219,7 +203,7 @@ lwip:
 ifeq ($(STACK_PICO),1)
 static_lib: picotcp $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
-	$(CXX) $(CXXFLAGS) $(LIBZT_FILES) $(STACK_DRIVER_FILES) -c
+	$(CXX) $(CXXFLAGS) $(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(STACK_INCLUDES) $(STACK_DRIVER_FLAGS) $(LIBZT_FILES) $(STACK_DRIVER_FILES) -c 
 	mv *.o obj
 	mv ext/picotcp/build/lib/*.o obj
 	mv ext/picotcp/build/modules/*.o obj
@@ -228,7 +212,7 @@ endif
 ifeq ($(STACK_LWIP),1)
 static_lib: lwip $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
-	$(CXX) $(CXXFLAGS) $(STACK_DRIVER_FLAGS) $(STACK_INCLUDES) $(LIBZT_FILES) $(STACK_DRIVER_FILES) -c 
+	$(CXX) $(CXXFLAGS) $(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(STACK_INCLUDES) $(STACK_DRIVER_FLAGS) $(LIBZT_FILES) $(STACK_DRIVER_FILES) -c 
 	mv *.o obj
 	ar rcs -o $(STATIC_LIB) obj/*.o $(STACK_LIB)
 endif
@@ -252,29 +236,22 @@ shared_jni_lib: picotcp $(ZTO_OBJS)
 ## Unit Tests                                                               ##
 ##############################################################################
 
-UNIT_TEST_SRC_FILES := $(wildcard  $(UNIT_TEST_SRC_DIR)/*.cpp)
-UNIT_TEST_OBJ_FILES := $(addprefix $(TEST_BUILD_DIR)/,$(notdir $(UNIT_TEST_SRC_FILES:.cpp=)))
-UNIT_TEST_INCLUDES  := -Iinclude
-UNIT_TEST_LIBS      := -L$(BUILD) -lzt $(COMMON_LIBS)
+UNIT_TEST_LIBS := -L$(BUILD) -lzt $(COMMON_LIBS)
 
-#$(TEST_BUILD_DIR)/%: $(UNIT_TEST_SRC_DIR)/%.cpp
-#	@mkdir -p $(TEST_BUILD_DIR)
-#	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) $(INCLUDES) -o $@ $< $(UNIT_TEST_LIBS)
-#	@./check.sh $@
-
-tests: selftest nativetest ztproxy intercept
+tests: selftest nativetest ztproxy
+#intercept
 
 intercept:
-	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) examples/intercept/intercept.cpp -D_GNU_SOURCE -shared -o $(BUILD)/intercept.so $< $(UNIT_TEST_LIBS) -ldl
+	$(CXX) -std=c++11 -g -Ofast -fPIC $(SANFLAGS) $(STACK_DRIVER_FLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) examples/intercept/intercept.cpp -D_GNU_SOURCE -shared -o $(BUILD)/intercept.so $< $(UNIT_TEST_LIBS) -ldl
 	@./check.sh $(BUILD)/intercept.so
 ztproxy:
-	@$(CXX) $(CXXFLAGS) $(UNIT_TEST_INCLUDES) examples/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< $(UNIT_TEST_LIBS) -ldl
+	$(CXX) -std=c++11 -g -Ofast $(SANFLAGS) $(STACK_DRIVER_FLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) examples/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< $(UNIT_TEST_LIBS) -ldl
 	@./check.sh $(BUILD)/ztproxy
 selftest:
-	@$(CXX) $(CXXFLAGS) $(SANFLAGS) $(UNIT_TEST_INCLUDES) $(INCLUDES) test/selftest.cpp -D__SELFTEST__ -o $(BUILD)/selftest $(UNIT_TEST_LIBS)
+	$(CXX) -std=c++11 -g -Ofast $(SANFLAGS) $(STACK_DRIVER_FLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) test/selftest.cpp -D__SELFTEST__ -o $(BUILD)/selftest $(UNIT_TEST_LIBS)
 	@./check.sh $(BUILD)/selftest
 nativetest:
-	@$(CXX) $(CXXFLAGS) $(SANFLAGS) $(UNIT_TEST_INCLUDES) $(INCLUDES) test/selftest.cpp -D__NATIVETEST__ -o $(BUILD)/nativetest
+	$(CXX) -std=c++11 -g -Ofast $(SANFLAGS) $(STACK_DRIVER_FLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) test/selftest.cpp -D__NATIVETEST__ -o $(BUILD)/nativetest
 	@./check.sh $(BUILD)/nativetest
 
 	
@@ -286,7 +263,7 @@ standardize:
 	vera++ --transform trim_right src/*.cpp
 	vera++ --transform trim_right src/*.hpp
 	vera++ --transform trim_right include/*.cpp
-	
+
 clean:
 	-rm -rf $(BUILD)/*
 	-find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete

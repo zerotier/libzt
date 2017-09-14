@@ -64,10 +64,10 @@ void loadTestConfigFile(std::string filepath)
 	std::ifstream testFile;
 	testFile.open(filepath.c_str());
 	while (testFile >> key >> value) {
-		if(key == "name") {
+		if (key == "name") {
 			prefix = value;
 		}
-		if(key[0] != '#' && key[0] != ';') {
+		if (key[0] != '#' && key[0] != ';') {
 			testConf[prefix + "." + key] = value; // format: alice.ipv4 172.30.30.1
 			//fprintf(stderr, "%s.%s = %s\n", prefix.c_str(), key.c_str(), testConf[prefix + "." + key].c_str());
 		}
@@ -100,17 +100,17 @@ void start_echo_mode(std::string ipstr, int listen_port)
 	addr.sin_addr.s_addr = inet_addr(ipstr.c_str());
 	addr.sin_family = AF_INET;
 
-	if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		DEBUG_ERROR("error creating socket (err=%d, errno=%s)", err, strerror(errno));
-	if((err = bind(sockfd, (struct sockaddr *)&addr, (socklen_t)sizeof(struct sockaddr_in)) < 0))
+	if ((err = bind(sockfd, (struct sockaddr *)&addr, (socklen_t)sizeof(struct sockaddr_in)) < 0))
 		DEBUG_ERROR("error binding to interface (err=%d, errno=%s)\n", err, strerror(errno));
-	if((err = listen(sockfd, backlog)) < 0)
+	if ((err = listen(sockfd, backlog)) < 0)
 		DEBUG_ERROR("error placing socket in LISTENING state (err=%d, errno=%s)\n", err, strerror(errno));
 
 	DEBUG_TEST("accepting test connections...");
 	while(true)
 	{
-		if((accfd = accept(sockfd, (struct sockaddr *)&client, &clen)) < 0) {
+		if ((accfd = accept(sockfd, (struct sockaddr *)&client, &clen)) < 0) {
 			DEBUG_ERROR("error accepting connection (err=%d, errno=%s)", accfd, strerror(errno));
 			return;
 		}
@@ -128,7 +128,7 @@ void start_echo_mode(std::string ipstr, int listen_port)
 		memset(pbuf, 0, sizeof pbuf);
 
 		DEBUG_TEST("reading %d bytes (test parameters)", len);
-		if((err = read(accfd, pbuf, len)) < 0) {
+		if ((err = read(accfd, pbuf, len)) < 0) {
 			DEBUG_ERROR("error while reading test parameters from remote selftest host (err=%d, errno=%s)", err, strerror(errno));
 			return;
 		}
@@ -149,10 +149,10 @@ void start_echo_mode(std::string ipstr, int listen_port)
 		*/
 
 		// read 'count' bytes and send back before/after timestamps
-		if(mode == ECHOTEST_MODE_TX)
+		if (mode == ECHOTEST_MODE_TX)
 		{
 			DEBUG_TEST("entering READ mode, as soon as bytes are read we will start keeping time...");
-			if((err = read(accfd, rbuf, sizeof rbuf)) < 0) {
+			if ((err = read(accfd, rbuf, sizeof rbuf)) < 0) {
 				DEBUG_ERROR("there was an error reading the test stream. aborting (err=%d, errno=%s)", err, errno);
 				return;
 			}
@@ -165,7 +165,7 @@ void start_echo_mode(std::string ipstr, int listen_port)
 			DEBUG_TEST("Received first set of bytes in test stream. now keeping time");
 
 			while(tot < count) {
-				if((err = read(accfd, rbuf, sizeof rbuf)) < 0) {
+				if ((err = read(accfd, rbuf, sizeof rbuf)) < 0) {
 					DEBUG_ERROR("there was an error reading the test stream. aborting");
 					return;
 				}
@@ -184,7 +184,7 @@ void start_echo_mode(std::string ipstr, int listen_port)
 			memcpy(pbuf + sizeof start_time, &end_time, sizeof end_time);
 			DEBUG_TEST("copied test data, sending...");
 
-			if((err = write(accfd, pbuf, sizeof start_time + sizeof end_time)) < 0) {
+			if ((err = write(accfd, pbuf, sizeof start_time + sizeof end_time)) < 0) {
 				DEBUG_ERROR("error while sending test data to remote selftest host (err=%d, errno=%s)", err, strerror(errno));
 				return;
 			}
@@ -200,12 +200,12 @@ void start_echo_mode(std::string ipstr, int listen_port)
 		*/
 
 		// send 'count' bytes as quickly as possible
-		if(mode == ECHOTEST_MODE_RX)
+		if (mode == ECHOTEST_MODE_RX)
 		{
 			totKB=0;
 			totMB=0;
 			while(tot < count) {
-				if((err = write(accfd, rbuf, sizeof rbuf)) < 0) {
+				if ((err = write(accfd, rbuf, sizeof rbuf)) < 0) {
 					DEBUG_ERROR("error while sending test byte stream to echotest");
 					return;
 				}
@@ -225,7 +225,7 @@ void start_echo_mode(std::string ipstr, int listen_port)
 
 int main(int argc , char *argv[])
 {
-	if(argc < 5) {
+	if (argc < 5) {
 		fprintf(stderr, "usage: echotest <selftest.conf> <alice|bob|ted|carol> to <bob|alice|ted|carol>\n");
 		fprintf(stderr, "e.g. : echotest test/selftest.conf bob to alice\n");   
 		return 1;
@@ -245,7 +245,7 @@ int main(int argc , char *argv[])
 	std::string ipstr, ipstr6, local_ipstr, local_ipstr6, remote_ipstr, remote_ipstr6;
 
 	// loaf config file
-	if(path.find(".conf") == std::string::npos) {
+	if (path.find(".conf") == std::string::npos) {
 		fprintf(stderr, "Possibly invalid conf file. Exiting...\n");
 		exit(0);
 	}
@@ -261,10 +261,10 @@ int main(int argc , char *argv[])
 	remote_ipstr  = testConf[to + ".ipv4"];
 	remote_ipstr6 = testConf[to + ".ipv6"];
 
-	if(me == "alice" || me == "ted") {
+	if (me == "alice" || me == "ted") {
 		echo_listen_port = start_port + port_offset + 1;
 	}
-	if(me == "bob" || me == "carol") {
+	if (me == "bob" || me == "carol") {
 		echo_listen_port = start_port + port_offset;
 	}
 

@@ -100,7 +100,7 @@
 	#else
 		#define DEBUG_ERROR(fmt, args...)
 	#endif
-	 
+
 	#if ZT_DEBUG_LEVEL >= ZT_MSG_INFO
 		#if defined(__ANDROID__)
 			#define DEBUG_INFO(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,   \
@@ -154,7 +154,7 @@
 
 	#if ZT_DEBUG_LEVEL >= ZT_MSG_FLOW
 		#if defined(__ANDROID__)
-			#define DEBUG_FLOW(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \ 
+			#define DEBUG_FLOW(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
 				"FLOW : %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 		#else
 			#define DEBUG_FLOW(fmt, args...) fprintf(stderr, "FLOW : %17s:%5d:%25s: " fmt "\n", \

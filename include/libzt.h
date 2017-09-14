@@ -49,8 +49,8 @@
 #define SIOCGIFINDEX  101
 #define SIOCGIFHWADDR 102
 
-// Normally defined in linux/if_packet.h, defined here so we can offer a linux-like 
-// raw socket API on non-linux platforms 
+// Normally defined in linux/if_packet.h, defined here so we can offer a linux-like
+// raw socket API on non-linux platforms
 struct sockaddr_ll {
 		unsigned short sll_family;   /* Always AF_PACKET */
 		unsigned short sll_protocol; /* Physical layer protocol */
@@ -116,7 +116,7 @@ struct zts_ifreq {
 #define LWIP_TCP_TIMER_INTERVAL            25
 
 // How often we check VirtualSocket statuses (in ms)
-#define LWIP_STATUS_TMR_INTERVAL           500 
+#define LWIP_STATUS_TMR_INTERVAL           500
 
 // #define LWIP_CHKSUM <your_checksum_routine>, See: RFC1071 for inspiration
 #endif
@@ -196,15 +196,15 @@ struct zts_ifreq {
 // Wait time for socket closure if data is still present in the write queue
 #define ZT_SDK_CLTIME                      60
 
-// After closing a pico_socket, other threads might still try to use the 
-// VirtualSocket object for remaining data I/O, as a safety measure we will wait to 
+// After closing a pico_socket, other threads might still try to use the
+// VirtualSocket object for remaining data I/O, as a safety measure we will wait to
 // delete this VirtualSocket object until the socket has been closed for some arbitrary
 // amount of time and it is safe to assume any clients interacting with this
 // socket have read some sort of error code from the API.
 #define ZT_VirtualSocket_DELETE_WAIT_TIME     30 // s
 
 // Interval for performing cleanup tasks on Tap/Stack objects
-#define ZT_HOUSEKEEPING_INTERVAL           10 // s 
+#define ZT_HOUSEKEEPING_INTERVAL           10 // s
 
 // Whether or not we want libzt to shit its pants
 #define ZT_EXIT_ON_GENERAL_FAIL            false
@@ -400,7 +400,7 @@ int zts_connect(ZT_CONNECT_SIG);
  *     - nwid = 97afaf1963cc6a90 (10.9.0.0/24)
  *     - nwid = 23bfae5663c8b188 (192.168.0.0/24)
  *
- *  In order to accept a VirtualSocket on 97afaf1963cc6a90, you 
+ *  In order to accept a VirtualSocket on 97afaf1963cc6a90, you
  *  should bind to 10.9.0.0
  */
 int zts_bind(ZT_BIND_SIG);
@@ -454,7 +454,7 @@ int zts_sethostname(ZT_SETHOSTNAME_SIG);
 
 /**
  * Close a socket
- * TODO: Check that closing a socket immediately after writing doesn't behave in 
+ * TODO: Check that closing a socket immediately after writing doesn't behave in
  * an undefined manner
  */
 int zts_close(ZT_CLOSE_SIG);
@@ -513,7 +513,7 @@ ssize_t zts_recvmsg(ZT_RECVMSG_SIG);
  * Read bytes from socket onto buffer
  *  - Note, this function isn't strictly necessary, you can
  *    use a regular read() call as long as the socket fd was
- *    created via a zts_socket() call. 
+ *    created via a zts_socket() call.
  */
 int zts_read(ZT_READ_SIG);
 
@@ -521,7 +521,7 @@ int zts_read(ZT_READ_SIG);
  * Write bytes from buffer to socket
  *  - Note, this function isn't strictly necessary, you can
  *    use a regular write() call as long as the socket fd was
- *    created via a zts_socket() call. 
+ *    created via a zts_socket() call.
  */
 int zts_write(ZT_WRITE_SIG);
 

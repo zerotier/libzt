@@ -119,13 +119,13 @@ bool ipv6_in_subnet(ZeroTier::InetAddress *subnet, ZeroTier::InetAddress *addr)
 
 			nm[0] &= ZeroTier::Utils::hton((uint64_t)((bits >= 64) ? 0xffffffffffffffffULL : (0xffffffffffffffffULL << (64 - bits))));
 			nm[1] &= ZeroTier::Utils::hton((uint64_t)((bits <= 64) ? 0ULL : (0xffffffffffffffffULL << (128 - bits))));
-			
+
 			nm2[0] &= ZeroTier::Utils::hton((uint64_t)((bits >= 64) ? 0xffffffffffffffffULL : (0xffffffffffffffffULL << (64 - bits))));
 			nm2[1] &= ZeroTier::Utils::hton((uint64_t)((bits <= 64) ? 0ULL : (0xffffffffffffffffULL << (128 - bits))));
-			
+
 			memcpy(reinterpret_cast<struct sockaddr_in6 *>(&r)->sin6_addr.s6_addr,nm,16);
 			memcpy(reinterpret_cast<struct sockaddr_in6 *>(&b)->sin6_addr.s6_addr,nm2,16);
-		}	
+		}
 		break;
 	}
 	char b0[64], b1[64];
@@ -140,12 +140,12 @@ void sockaddr2inet(int socket_family, const struct sockaddr *addr, ZeroTier::Ine
 	char ipstr[INET6_ADDRSTRLEN];
 	memset(ipstr, 0, INET6_ADDRSTRLEN);
 	if(socket_family == AF_INET) {
-		inet_ntop(AF_INET, 
+		inet_ntop(AF_INET,
 			(const void *)&((struct sockaddr_in *)addr)->sin_addr.s_addr, ipstr, INET_ADDRSTRLEN);
 		inet->fromString(ipstr);
 	}
 	if(socket_family == AF_INET6) {
-		inet_ntop(AF_INET6, 
+		inet_ntop(AF_INET6,
 			(const void *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, ipstr, INET6_ADDRSTRLEN);
 		char addrstr[64];
 		sprintf(addrstr, "%s", ipstr);

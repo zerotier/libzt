@@ -81,7 +81,7 @@ namespace ZeroTier
 	int pico_eth_tx(struct pico_device *dev, void *buf, int len);
 
 	/*
-	 * Read raw frames from RX frame buffer into the stack 
+	 * Read raw frames from RX frame buffer into the stack
 	 */
 	int pico_eth_poll(struct pico_device *dev, int loop_score);
 
@@ -89,7 +89,7 @@ namespace ZeroTier
 	struct VirtualSocket;
 
 	class picoTCP
-	{		
+	{
 	public:
 
 		/*
@@ -111,7 +111,7 @@ namespace ZeroTier
 		 * Deletes a route from the picoTCP device
 		 */
 		bool pico_route_del(VirtualTap *tap, const InetAddress &addr, const InetAddress &nm, int metric);
-		
+
 		/*
 		 * Registers a DNS nameserver with the network stack
 		 */
@@ -151,7 +151,7 @@ namespace ZeroTier
 		 * Packets from the ZeroTier virtual wire enter the stack here
 		 */
 		void pico_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from,const ZeroTier::MAC &to,unsigned int etherType,const void *data,unsigned int len);
-		
+
 		/*
 		 * Creates a stack-specific "socket" or "VirtualSocket object"
 		 */
@@ -161,12 +161,12 @@ namespace ZeroTier
 		 * Connect to remote host via userspace network stack interface - Called from VirtualTap
 		 */
 		int pico_Connect(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
-		
+
 		/*
 		 * Bind to a userspace network stack interface - Called from VirtualTap
 		 */
 		int pico_Bind(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
-		
+
 		/*
 		 * Listen for incoming VirtualSockets - Called from VirtualTap
 		 */

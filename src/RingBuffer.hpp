@@ -46,7 +46,7 @@ namespace ZeroTier {
 		* create a RingBuffer with space for up to size elements.
 		*/
 		explicit RingBuffer(size_t size)
-			: size(size), 
+			: size(size),
 			begin(0),
 			end(0),
 			wrap(false)
@@ -156,10 +156,10 @@ namespace ZeroTier {
 		size_t count() {
 			if (end == begin) {
 				return wrap ? size : 0;
-			} 
+			}
 			else if (end > begin) {
 				return end - begin;
-			} 
+			}
 			else {
 				return size + end - begin;
 			}

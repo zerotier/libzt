@@ -107,7 +107,7 @@ namespace ZeroTier {
 		// set virtual tap interface name (abbreviated)
 		memset(vtap_abbr_name, 0, sizeof(vtap_abbr_name));
 		snprintf(vtap_abbr_name, sizeof(vtap_abbr_name), "libzt%d", devno);
-		
+
 		// start vtap thread and stack I/O loops
 		_thread = Thread::start(this);
 	}
@@ -202,7 +202,7 @@ namespace ZeroTier {
 #if defined(STACK_LWIP)
 		if(lwipstack)
 			lwipstack->lwip_eth_rx(this,from,to,etherType,data,len);
-#endif  
+#endif
 	}
 
 	std::string VirtualTap::deviceName() const
@@ -220,11 +220,11 @@ namespace ZeroTier {
 			return std::string(id);
 		}
 		else {
-			return std::string("----------"); 
+			return std::string("----------");
 		}
 	}
 
-	void VirtualTap::setFriendlyName(const char *friendlyName) 
+	void VirtualTap::setFriendlyName(const char *friendlyName)
 	{
 		DEBUG_INFO("%s", friendlyName);
 		// Someday
@@ -242,7 +242,7 @@ namespace ZeroTier {
 
 		std::sort(newGroups.begin(),newGroups.end());
 		std::unique(newGroups.begin(),newGroups.end());
-		
+
 		for(std::vector<MulticastGroup>::iterator m(newGroups.begin());m!=newGroups.end();++m) {
 			if (!std::binary_search(_multicastGroups.begin(),_multicastGroups.end(),*m))
 				added.push_back(*m);
@@ -282,7 +282,7 @@ namespace ZeroTier {
 #endif
 	}
 
-	void VirtualTap::phyOnUnixClose(PhySocket *sock,void **uptr) 
+	void VirtualTap::phyOnUnixClose(PhySocket *sock,void **uptr)
 	{
 		if(sock) {
 			VirtualSocket *vs = (VirtualSocket*)uptr;
@@ -290,7 +290,7 @@ namespace ZeroTier {
 				Close(vs);
 		}
 	}
-	
+
 	void VirtualTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
 	{
 		//DEBUG_ATTN("sock->fd=%d", _phy.getDescriptor(sock));
@@ -347,16 +347,16 @@ namespace ZeroTier {
 		return false;
 	}
 
-	void VirtualTap::addVirtualSocket(VirtualSocket *vs) 
+	void VirtualTap::addVirtualSocket(VirtualSocket *vs)
 	{
 		Mutex::Lock _l(_tcpconns_m);
 		_VirtualSockets.push_back(vs);
 	}
-	
+
 	void VirtualTap::removeVirtualSocket(VirtualSocket *vs)
 	{
 		Mutex::Lock _l(_tcpconns_m);
-		for(int i=0; i<_VirtualSockets.size(); i++) { 
+		for(int i=0; i<_VirtualSockets.size(); i++) {
 			if(vs == _VirtualSockets[i]) {
 				_VirtualSockets.erase(_VirtualSockets.begin() + i);
 				//DEBUG_EXTRA("Removed vs=%p from vt=%p", vs, this);
@@ -429,7 +429,7 @@ namespace ZeroTier {
 			Mutex::Lock _l(_tcpconns_m);
 			return lwipstack->lwip_Bind(this, vs, addr, addrlen);
 		}
-#endif	
+#endif
 		return -1;
 	}
 
@@ -458,7 +458,7 @@ namespace ZeroTier {
 #endif
 	}
 
-	// Accept a VirtualSocket 
+	// Accept a VirtualSocket
 	VirtualSocket* VirtualTap::Accept(VirtualSocket *vs) {
 #if defined(NO_STACK)
 		return NULL;
@@ -527,7 +527,7 @@ namespace ZeroTier {
 	// Send data to a specified host
 	int VirtualTap::SendTo(VirtualSocket *vs, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen)
 	{
-		/* FIXME: There is a call to *_Connect for each send, we should probably figure out a better way to do this, 
+		/* FIXME: There is a call to *_Connect for each send, we should probably figure out a better way to do this,
 		possibly consult the stack for "connection" state */
 
 		// TODO: flags
@@ -586,7 +586,7 @@ namespace ZeroTier {
 	int VirtualTap::Shutdown(VirtualSocket *vs, int how)
 	{
 		int err = 0;
-#if defined(STACK_PICO) 
+#if defined(STACK_PICO)
 		if(picostack) {
 			err = picostack->pico_Shutdown(vs, how);
 		}
@@ -604,8 +604,8 @@ namespace ZeroTier {
 		Mutex::Lock _l(_tcpconns_m);
 		std::time_t current_ts = std::time(nullptr);
 		if(current_ts > last_housekeeping_ts + ZT_HOUSEKEEPING_INTERVAL) {
-			// update managed routes (add/del from network stacks)	
-			ZeroTier::OneService *service = ((ZeroTier::OneService *)zt1ServiceRef);	
+			// update managed routes (add/del from network stacks)
+			ZeroTier::OneService *service = ((ZeroTier::OneService *)zt1ServiceRef);
 			if(service) {
 				std::vector<ZT_VirtualNetworkRoute> *managed_routes = service->getRoutes(this->_nwid);
 				ZeroTier::InetAddress target_addr;
@@ -634,8 +634,8 @@ namespace ZeroTier {
 					if(!found) {
 						if(!via_addr.ipsEqual(null_addr)) {
 							DEBUG_INFO("adding route <target=%s, nm=%s, via=%s>", target_addr.toString(ipbuf), nm.toString(ipbuf2), via_addr.toString(ipbuf3));
-							routes.push_back(std::pair<ZeroTier::InetAddress,ZeroTier::InetAddress>(target_addr, nm));							
-							routeAdd(target_addr, nm, via_addr);						
+							routes.push_back(std::pair<ZeroTier::InetAddress,ZeroTier::InetAddress>(target_addr, nm));
+							routeAdd(target_addr, nm, via_addr);
 						}
 					}
 				}
@@ -667,7 +667,7 @@ namespace ZeroTier {
 	/* Not used in this implementation                                          */
 	/****************************************************************************/
 
-	void VirtualTap::phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address, 
+	void VirtualTap::phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address,
 		const struct sockaddr *from,void *data,unsigned long len) {}
 	void VirtualTap::phyOnTcpConnect(PhySocket *sock,void **uptr,bool success) {}
 	void VirtualTap::phyOnTcpAccept(PhySocket *sockL,PhySocket *sockN,void **uptrL,void **uptrN,

@@ -55,7 +55,7 @@ void mac2str(char *macbuf, int len, unsigned char* addr);
                                                (ipaddr)->addr[3] = ZeroTier::Utils::hton(((g & 0xffff) << 16) | (h & 0xffff)); } while(0)
 
 /*
- * Convert from standard IPV6 address structure to an lwIP native structure                                               
+ * Convert from standard IPV6 address structure to an lwIP native structure
  */
 inline void in6_to_ip6(ip6_addr_t *ba, struct sockaddr_in6 *in6)
 {

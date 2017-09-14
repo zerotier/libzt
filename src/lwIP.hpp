@@ -24,7 +24,7 @@
  * of your own application.
  */
 
-// lwIP network stack driver 
+// lwIP network stack driver
 
 #ifndef ZT_LWIP_HPP
 #define ZT_LWIP_HPP
@@ -132,7 +132,7 @@ static const int lwip_err_to_errno_table[] = {
 
 #if defined(LIBZT_IPV4)
 	extern "C" err_t etharp_output(LWIP_ETHARP_OUTPUT_SIG);
-#endif            
+#endif
 #if defined(LIBZT_IPV6)
 	extern "C" void nd6_tmr(void);
 	//extern "C" void netif_ip6_addr_set_state(LWIP_NETIF_IP6_ADDR_SET_STATE_SIG);
@@ -188,7 +188,7 @@ extern "C" err_t tcp_shutdown(LWIP_TCP_SHUTDOWN_SIG);
 //extern "C" void netif_set_status_callback(NETIF_SET_STATUS_CALLBACK);
 
 namespace ZeroTier {
-	
+
 	class VirtualTap;
 	struct VirtualSocket;
 
@@ -240,7 +240,7 @@ namespace ZeroTier {
 		 * Packets from the ZeroTier virtual wire enter the stack here
 		 */
 		void lwip_eth_rx(VirtualTap *tap, const MAC &from,const MAC &to,unsigned int etherType,const void *data,unsigned int len);
-		
+
 		/*
 		 * Creates a stack-specific "socket" or "VirtualSocket object"
 		 */
@@ -325,6 +325,6 @@ namespace ZeroTier {
 		 */
 		static err_t lwip_cb_connected(void *arg, struct tcp_pcb *PCB, err_t err);
 	};
-} 
+}
 
 #endif

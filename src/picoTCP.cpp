@@ -100,7 +100,7 @@ namespace ZeroTier {
 		bool err = false;
 		_picostack_driver_lock.lock();
 		// give right to vtap to start the stack
-		// only one stack loop is permitted 
+		// only one stack loop is permitted
 		if(!picodev_initialized) {
 			tap->should_start_stack = true;
 			picodev.send = pico_eth_tx; // tx
@@ -126,7 +126,7 @@ namespace ZeroTier {
 		_picostack_driver_lock.lock();
 		bool err = false;
 		char ipbuf[INET6_ADDRSTRLEN];
-		uint8_t hwaddr[6];	
+		uint8_t hwaddr[6];
 		// register addresses
 		if(ip.isV4()) {
 			struct pico_ip4 ipaddr, netmask;
@@ -153,7 +153,7 @@ namespace ZeroTier {
 			char macbuf[ZT_MAC_ADDRSTRLEN];
 			mac2str(macbuf, ZT_MAC_ADDRSTRLEN, hwaddr);
 			DEBUG_INFO("mac=%s", macbuf);
-			err = true;    
+			err = true;
 		}
 		_picostack_driver_lock.unlock();
 		return err;
@@ -178,7 +178,7 @@ namespace ZeroTier {
 		}
 		return err;
 	}
-	
+
 	bool picoTCP::pico_route_del(VirtualTap *tap, const InetAddress &addr, const InetAddress &nm, int metric)
 	{
 		struct pico_ip4 address;
@@ -194,7 +194,7 @@ namespace ZeroTier {
 
 	int picoTCP::pico_add_dns_nameserver(struct sockaddr *addr)
 	{
-		int err = errno = 0; 
+		int err = errno = 0;
 		// TODO: De-complexify this
 		struct pico_ip4 ns;
 		memset(&ns, 0, sizeof (struct pico_ip4));
@@ -205,16 +205,16 @@ namespace ZeroTier {
 		pico_string_to_ipv4(ipv4_str, &ipval);
 		ns.addr = ipval;
 		if((err = pico_dns_client_nameserver(&ns, PICO_DNS_NS_ADD)) < 0) {
-			DEBUG_ERROR("error while adding DNS nameserver, err=%d, pico_err=%d, %s", 
+			DEBUG_ERROR("error while adding DNS nameserver, err=%d, pico_err=%d, %s",
 				err, pico_err, beautify_pico_error(pico_err));
 			map_pico_err_to_errno(pico_err);
 		}
 		return err;
 	}
-	
+
 	int picoTCP::pico_del_dns_nameserver(struct sockaddr *addr)
 	{
-		int err = errno = 0; 
+		int err = errno = 0;
 		// TODO: De-complexify this
 		struct pico_ip4 ns;
 		memset(&ns, 0, sizeof (struct pico_ip4));
@@ -225,7 +225,7 @@ namespace ZeroTier {
 		pico_string_to_ipv4(ipv4_str, &ipval);
 		ns.addr = ipval;
 		if((err = pico_dns_client_nameserver(&ns, PICO_DNS_NS_DEL)) < 0) {
-			DEBUG_ERROR("error while removing DNS nameserver, err=%d, pico_err=%d, %s", 
+			DEBUG_ERROR("error while removing DNS nameserver, err=%d, pico_err=%d, %s",
 				err, pico_err, beautify_pico_error(pico_err));
 		}
 		return err;
@@ -253,7 +253,7 @@ namespace ZeroTier {
 			return;
 		}
 		Mutex::Lock _l(vs->_rx_m);
-		
+
 		if(!tap) {
 			DEBUG_ERROR("invalid tap");
 			handle_general_failure();
@@ -264,18 +264,18 @@ namespace ZeroTier {
 			handle_general_failure();
 			return;
 		}
-		int r;		
+		int r;
 		uint16_t port = 0;
 		union {
 			struct pico_ip4 ip4;
 			struct pico_ip6 ip6;
 		} peer;
-		
+
 		do {
 			int n = 0;
 			int avail = ZT_TCP_RX_BUF_SZ - vs->RXbuf->count();
 			if(avail) {
-				r = pico_socket_recvfrom(s, vs->RXbuf->get_buf(), ZT_STACK_SOCKET_RD_MAX, 
+				r = pico_socket_recvfrom(s, vs->RXbuf->get_buf(), ZT_STACK_SOCKET_RD_MAX,
 					(void *)&peer.ip4.addr, &port);
 				if (r > 0)
 				{
@@ -289,8 +289,8 @@ namespace ZeroTier {
 					tap->_phy.setNotifyWritable(vs->sock, false);
 				}
 				else {
-					tap->_phy.setNotifyWritable(vs->sock, true);	
-				}				
+					tap->_phy.setNotifyWritable(vs->sock, true);
+				}
 			}
 			else {
 				//tap->_phy.setNotifyWritable(vs->sock, false);
@@ -394,7 +394,7 @@ namespace ZeroTier {
 
 		int r, max_write_len = std::min(std::min(txsz, ZT_SDK_MTU),ZT_STACK_SOCKET_WR_MAX);
 		if((r = pico_socket_write(vs->picosock, vs->TXbuf->get_buf(), max_write_len)) < 0) {
-			DEBUG_ERROR("unable to write to pico_socket=%p, err=%d, pico_err=%d, %s", 
+			DEBUG_ERROR("unable to write to pico_socket=%p, err=%d, pico_err=%d, %s",
 				vs->picosock, r, pico_err, beautify_pico_error(pico_err));
 			handle_general_failure();
 			return;
@@ -404,10 +404,10 @@ namespace ZeroTier {
 		}
 		if(r == 0) {
 			// DEBUG_ERROR("err=%d, pico_err=%d, %s", r, pico_err, beautify_pico_error(pico_err));
-			// This is a peciliarity of the picoTCP network stack, if we receive no error code, and the size of 
+			// This is a peciliarity of the picoTCP network stack, if we receive no error code, and the size of
 			// the byte stream written is 0, this is an indication that the buffer for this pico_socket is too small
 			// DEBUG_ERROR("pico_socket buffer is too small (adjust ZT_STACK_SOCKET_TX_SZ, ZT_STACK_SOCKET_RX_SZ)");
-			// handle_general_failure(); 
+			// handle_general_failure();
 		}
 		if(r>0)
 			vs->TXbuf->consume(r);
@@ -425,7 +425,7 @@ namespace ZeroTier {
 		if (ev & PICO_SOCK_EV_FIN) {
 			DEBUG_EXTRA("PICO_SOCK_EV_FIN (socket closed), picosock=%p", s);
 			//DEBUG_EXTRA("PICO_SOCK_EV_FIN (socket closed), picosock=%p, vs=%p, app_fd=%d, sdk_fd=%d", s, vs, vs->app_fd, vs->sdk_fd);
-			//vs->closure_ts = std::time(nullptr);	
+			//vs->closure_ts = std::time(nullptr);
 		}
 
 		// PICO_SOCK_EV_ERR - triggered when an error occurs.
@@ -433,8 +433,8 @@ namespace ZeroTier {
 			if(pico_err == PICO_ERR_ECONNRESET) {
 				DEBUG_ERROR("PICO_ERR_ECONNRESET");
 			}
-			//DEBUG_ERROR("PICO_SOCK_EV_ERR, err=%s, picosock=%p, app_fd=%d, sdk_fd=%d", 
-			//	beautify_pico_error(pico_err), s, vs->app_fd, vs->sdk_fd); 
+			//DEBUG_ERROR("PICO_SOCK_EV_ERR, err=%s, picosock=%p, app_fd=%d, sdk_fd=%d",
+			//	beautify_pico_error(pico_err), s, vs->app_fd, vs->sdk_fd);
 		}
 		// PICO_SOCK_EV_CLOSE - triggered when a FIN segment is received (TCP only). This event
 		// indicates that the oher endpont has closed the VirtualSocket, so the local TCP layer is only
@@ -446,8 +446,8 @@ namespace ZeroTier {
 				DEBUG_ERROR("pico_socket_close()=%d, pico_err=%d, %s", err, pico_err, beautify_pico_error(pico_err));
 			}
 			DEBUG_EXTRA("PICO_SOCK_EV_CLOSE (socket closure) err=%d (%s), picosock=%p", pico_err, beautify_pico_error(pico_err), s);
-			//DEBUG_EXTRA("PICO_SOCK_EV_CLOSE (socket closure) err=%d, picosock=%p, vs=%p, app_fd=%d, sdk_fd=%d", err, s, vs, vs->app_fd, vs->sdk_fd);            
-			//vs->closure_ts = std::time(nullptr);	
+			//DEBUG_EXTRA("PICO_SOCK_EV_CLOSE (socket closure) err=%d, picosock=%p, vs=%p, app_fd=%d, sdk_fd=%d", err, s, vs, vs->app_fd, vs->sdk_fd);
+			//vs->closure_ts = std::time(nullptr);
 			return;
 		}
 
@@ -488,16 +488,16 @@ namespace ZeroTier {
 				if(!client_psock) {
 					DEBUG_ERROR("pico_socket_accept(): pico_socket=%p, pico_err=%d, %s", s, pico_err, beautify_pico_error(pico_err));
 					return;
-				}	
+				}
 
 				// Create a new VirtualSocket and add it to the queue,
-				//   some time in the future a call to zts_multiplex_accept() will pick up 
+				//   some time in the future a call to zts_multiplex_accept() will pick up
 				//   this new VirtualSocket, add it to the VirtualSocket list and return its
 				//   VirtualSocket->sock to the application
 				VirtualSocket *new_vs = new VirtualSocket();
 				new_vs->socket_type = SOCK_STREAM;
 				new_vs->picosock = client_psock;
-				
+
 				// TODO: Condense this
 				if(vs->socket_family == AF_INET) {
 					char addrstr[INET_ADDRSTRLEN];
@@ -554,7 +554,7 @@ namespace ZeroTier {
 			pico_cb_tcp_write(tap, s);
 		}
 	}
-   
+
 	int pico_eth_tx(struct pico_device *dev, void *buf, int len)
 	{
 		//_picostack_driver_lock.lock();
@@ -581,7 +581,7 @@ namespace ZeroTier {
 			memset(&flagbuf, 0, 32);
 			struct pico_tcp_hdr *hdr;
 			void * tcp_hdr_ptr;
-			
+
 			if(Utils::ntoh(ethhdr->proto) == 0x86dd) { // tcp, ipv6
 				tcp_hdr_ptr = &ethhdr + PICO_SIZE_ETHHDR + PICO_SIZE_IP4HDR;
 			}
@@ -590,7 +590,7 @@ namespace ZeroTier {
 			{
 				tcp_hdr_ptr = &buf + PICO_SIZE_ETHHDR + PICO_SIZE_IP4HDR;
 				hdr = (struct pico_tcp_hdr *)tcp_hdr_ptr;
-				
+
 				if(hdr) {
 					char *flag_ptr = flagbuf;
 
@@ -604,7 +604,7 @@ namespace ZeroTier {
 					}
 					if (hdr->flags & PICO_TCP_ACK) {
 						sprintf(flag_ptr, "ACK ");
-						flag_ptr+=4;				
+						flag_ptr+=4;
 					}
 					if (hdr->flags & PICO_TCP_FIN) {
 						sprintf(flag_ptr, "FIN ");
@@ -617,11 +617,11 @@ namespace ZeroTier {
 				}
 			}
 
-			DEBUG_TRANS("len=%5d dst=%s [%s TX <-- %s] proto=0x%04x %s %s", len, macBuf, nodeBuf, tap->nodeId().c_str(), 
+			DEBUG_TRANS("len=%5d dst=%s [%s TX <-- %s] proto=0x%04x %s %s", len, macBuf, nodeBuf, tap->nodeId().c_str(),
 				Utils::ntoh(ethhdr->proto), beautify_eth_proto_nums(Utils::ntoh(ethhdr->proto)), flagbuf);
 		}
 		tap->_handler(tap->_arg,NULL,tap->_nwid,src_mac,dest_mac,
-			Utils::ntoh((uint16_t)ethhdr->proto), 0, ((char*)buf) 
+			Utils::ntoh((uint16_t)ethhdr->proto), 0, ((char*)buf)
 			+ sizeof(struct pico_eth_hdr),len - sizeof(struct pico_eth_hdr));
 		//_picostack_driver_lock.unlock();
 		return len;
@@ -646,7 +646,7 @@ namespace ZeroTier {
 		to.copyTo(ethhdr.daddr, 6);
 		ethhdr.proto = Utils::hton((uint16_t)etherType);
 		int32_t msg_len = len + sizeof(int32_t) + sizeof(struct pico_eth_hdr);
-		
+
 		if(ZT_DEBUG_LEVEL >= ZT_MSG_TRANSFER) {
 			char macBuf[ZT_MAC_ADDRSTRLEN], nodeBuf[ZT_ID_LEN];
 			mac2str(macBuf, sizeof(macBuf), ethhdr.saddr);
@@ -658,18 +658,18 @@ namespace ZeroTier {
 			memset(&flagbuf, 0, 32);
 			struct pico_tcp_hdr *hdr;
 			void * tcp_hdr_ptr;
-			
+
 			if(etherType == 0x86dd) { // tcp, ipv6
 				tcp_hdr_ptr = &ethhdr + PICO_SIZE_ETHHDR + PICO_SIZE_IP4HDR;
 			}
 
 			if(etherType == 0x0800) // tcp, ipv4
-			{				
+			{
 				tcp_hdr_ptr = &ethhdr + PICO_SIZE_ETHHDR + PICO_SIZE_IP4HDR;
 				hdr = (struct pico_tcp_hdr *)tcp_hdr_ptr;
 				if(hdr) {
 					char *flag_ptr = flagbuf;
-					
+
 					if (hdr->flags & PICO_TCP_PSH) {
 						sprintf(flag_ptr, "PSH ");
 						flag_ptr+=4;
@@ -680,7 +680,7 @@ namespace ZeroTier {
 					}
 					if (hdr->flags & PICO_TCP_ACK) {
 						sprintf(flag_ptr, "ACK ");
-						flag_ptr+=4;				
+						flag_ptr+=4;
 					}
 					if (hdr->flags & PICO_TCP_FIN) {
 						sprintf(flag_ptr, "FIN ");
@@ -692,11 +692,11 @@ namespace ZeroTier {
 					}
 				}
 			}
-			DEBUG_TRANS("len=%5d src=%s [%s RX --> %s] proto=0x%04x %s %s", len, macBuf, nodeBuf, tap->nodeId().c_str(), 
+			DEBUG_TRANS("len=%5d src=%s [%s RX --> %s] proto=0x%04x %s %s", len, macBuf, nodeBuf, tap->nodeId().c_str(),
 				etherType, beautify_eth_proto_nums(etherType), flagbuf);
 		}
 		// write virtual ethernet frame to guarded buffer (emptied by pico_eth_poll())
-		memcpy(tap->pico_frame_rxbuf + tap->pico_frame_rxbuf_tot, &msg_len, sizeof(int32_t));                     // size of frame + meta		
+		memcpy(tap->pico_frame_rxbuf + tap->pico_frame_rxbuf_tot, &msg_len, sizeof(int32_t));                     // size of frame + meta
 		memcpy(tap->pico_frame_rxbuf + tap->pico_frame_rxbuf_tot + sizeof(int32_t), &ethhdr, sizeof(ethhdr));     // new eth header
 		memcpy(tap->pico_frame_rxbuf + tap->pico_frame_rxbuf_tot + sizeof(int32_t) + sizeof(ethhdr), data, len);  // frame data
 		tap->pico_frame_rxbuf_tot += msg_len;
@@ -739,7 +739,7 @@ namespace ZeroTier {
 		}
 		return loop_score;
 	}
-	
+
 	int picoTCP::pico_Socket(struct pico_socket **p, int socket_family, int socket_type, int protocol)
 	{
 		int err = 0;
@@ -756,19 +756,19 @@ namespace ZeroTier {
 				protocol_version = PICO_PROTO_IPV4;
 			if(socket_family == AF_INET6)
 				protocol_version = PICO_PROTO_IPV6;
-			
+
 			if(socket_type == SOCK_DGRAM) {
 				psock = pico_socket_open(
 					protocol_version, PICO_PROTO_UDP, &ZeroTier::picoTCP::pico_cb_socket_ev);
-				if(psock) { 
+				if(psock) {
 					// configure size of UDP SND/RCV buffers
 					// TODO
 				}
 			}
-			if(socket_type == SOCK_STREAM) {	
+			if(socket_type == SOCK_STREAM) {
 				psock = pico_socket_open(
 					protocol_version, PICO_PROTO_TCP, &ZeroTier::picoTCP::pico_cb_socket_ev);
-				if(psock) { 
+				if(psock) {
 					// configure size of TCP SND/RCV buffers
 					int tx_buf_sz = ZT_STACK_TCP_SOCKET_TX_SZ;
 					int rx_buf_sz = ZT_STACK_TCP_SOCKET_RX_SZ;
@@ -778,16 +778,16 @@ namespace ZeroTier {
 					// pico_socket_setoption(psock, PICO_TCP_NODELAY, &value);
 
 					if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_SNDBUF, &tx_buf_sz)) < 0)
-						DEBUG_ERROR("unable to set SNDBUF size, err=%d, pico_err=%d, %s", 
+						DEBUG_ERROR("unable to set SNDBUF size, err=%d, pico_err=%d, %s",
 							t_err, pico_err, beautify_pico_error(pico_err));
 					if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_RCVBUF, &rx_buf_sz)) < 0)
-						DEBUG_ERROR("unable to set RCVBUF size, err=%d, pico_err=%d, %s", 
+						DEBUG_ERROR("unable to set RCVBUF size, err=%d, pico_err=%d, %s",
 							t_err, pico_err, beautify_pico_error(pico_err));
 
 					if(ZT_SOCK_BEHAVIOR_LINGER) {
 						int linger_time_ms = ZT_SOCK_BEHAVIOR_LINGER_TIME;
 						if((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_LINGER, &linger_time_ms)) < 0)
-							DEBUG_ERROR("unable to set LINGER, err=%d, pico_err=%d, %s", 
+							DEBUG_ERROR("unable to set LINGER, err=%d, pico_err=%d, %s",
 								t_err, pico_err, beautify_pico_error(pico_err));
 					}
 				}
@@ -798,7 +798,7 @@ namespace ZeroTier {
 	}
 
 	int picoTCP::pico_Connect(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen)
-	{		
+	{
 		if(!vs || !vs->picosock) {
 			DEBUG_ERROR("invalid vs or vs->picosock");
 			handle_general_failure();
@@ -831,7 +831,7 @@ namespace ZeroTier {
 			err = pico_socket_connect(vs->picosock, &zaddr, in6->sin6_port);
 		}
 		if(err) {
-			DEBUG_ERROR("error connecting pico_socket=%p, err=%d, pico_err=%d, %s", 
+			DEBUG_ERROR("error connecting pico_socket=%p, err=%d, pico_err=%d, %s",
 				vs->picosock, err, pico_err, beautify_pico_error(pico_err));
 			return map_pico_err_to_errno(pico_err);
 		}
@@ -847,7 +847,7 @@ namespace ZeroTier {
 			return ZT_ERR_GENERAL_FAILURE;
 		}
 		int err = 0;
-		if(vs->socket_family == AF_INET) { 
+		if(vs->socket_family == AF_INET) {
 			struct pico_ip4 zaddr;
 			uint32_t tempaddr;
 			memset(&zaddr, 0, sizeof (struct pico_ip4));
@@ -859,7 +859,7 @@ namespace ZeroTier {
 			DEBUG_EXTRA("binding to addr=%s port=%d", ipv4_str, Utils::ntoh(in4->sin_port));
 			err = pico_socket_bind(vs->picosock, &zaddr, (uint16_t *)&(in4->sin_port));
 		}
-		if(vs->socket_family == AF_INET6) { 
+		if(vs->socket_family == AF_INET6) {
 			struct pico_ip6 pip6;
 			struct sockaddr_in6 *in6 = (struct sockaddr_in6*)addr;
 			char ipv6_str[INET6_ADDRSTRLEN];
@@ -870,7 +870,7 @@ namespace ZeroTier {
 			err = pico_socket_bind(vs->picosock, &pip6, (uint16_t *)&(in6->sin6_port));
 		}
 		if(err < 0) {
-			DEBUG_ERROR("unable to bind pico_socket=%p, err=%d, pico_err=%d, %s", 
+			DEBUG_ERROR("unable to bind pico_socket=%p, err=%d, pico_err=%d, %s",
 				(vs->picosock), err, pico_err, beautify_pico_error(pico_err));
 			return map_pico_err_to_errno(pico_err);
 		}
@@ -886,7 +886,7 @@ namespace ZeroTier {
 		}
 		int err = 0;
 		if((err = pico_socket_listen(vs->picosock, backlog)) < 0) {
-			DEBUG_ERROR("error putting pico_socket=%p into listening state. err=%d, pico_err=%d, %s", 
+			DEBUG_ERROR("error putting pico_socket=%p into listening state. err=%d, pico_err=%d, %s",
 				vs->picosock, err, pico_err, beautify_pico_error(pico_err));
 			return map_pico_err_to_errno(pico_err);
 		}
@@ -945,7 +945,7 @@ namespace ZeroTier {
 		if(vs->socket_type == SOCK_DGRAM) {
 			int r;
 			if((r = pico_socket_write(vs->picosock, data, len)) < 0) {
-				DEBUG_ERROR("unable to write to picosock=%p, err=%d, pico_err=%d, %s", 
+				DEBUG_ERROR("unable to write to picosock=%p, err=%d, pico_err=%d, %s",
 					vs->picosock, r, pico_err, beautify_pico_error(pico_err));
 				err = -1;
 			}
@@ -969,9 +969,9 @@ namespace ZeroTier {
 				return ZT_ERR_GENERAL_FAILURE;
 			}
 			int txsz = vs->TXbuf->count();
-			int r, max_write_len = std::min(std::min(txsz, ZT_SDK_MTU),ZT_STACK_SOCKET_WR_MAX);			
+			int r, max_write_len = std::min(std::min(txsz, ZT_SDK_MTU),ZT_STACK_SOCKET_WR_MAX);
 			if((r = pico_socket_write(vs->picosock, vs->TXbuf->get_buf(), max_write_len)) < 0) {
-				DEBUG_ERROR("unable to write to picosock=%p, err=%d, pico_err=%d, %s", 
+				DEBUG_ERROR("unable to write to picosock=%p, err=%d, pico_err=%d, %s",
 					vs->picosock, r, pico_err, beautify_pico_error(pico_err));
 				err = -1;
 			}
@@ -996,18 +996,18 @@ namespace ZeroTier {
 		if(!vs) {
 			DEBUG_ERROR("invalid vs");
 			handle_general_failure();
-			return ZT_ERR_GENERAL_FAILURE;		
+			return ZT_ERR_GENERAL_FAILURE;
 		}
 		DEBUG_EXTRA("vs=%p, picosock=%p, fd=%d", vs, vs->picosock, vs->app_fd);
 		if(!vs || !vs->picosock)
 			return ZT_ERR_GENERAL_FAILURE;
 		int err = 0;
 		Mutex::Lock _l(vs->tap->_tcpconns_m);
-		if(vs->closure_ts != -1) // it was closed at some point in the past, it'll work itself out 
+		if(vs->closure_ts != -1) // it was closed at some point in the past, it'll work itself out
 			return ZT_ERR_OK;
 		if((err = pico_socket_close(vs->picosock)) < 0) {
 			errno = pico_err;
-			DEBUG_ERROR("error closing pico_socket, err=%d, pico_err=%s, %s", 
+			DEBUG_ERROR("error closing pico_socket, err=%d, pico_err=%s, %s",
 				err, pico_err, beautify_pico_error(pico_err));
 		}
 		return err;
@@ -1022,7 +1022,7 @@ namespace ZeroTier {
 		if(how == SHUT_WR) {
 			mode = PICO_SHUT_WR;
 		}
-		if(how == SHUT_RDWR) { 
+		if(how == SHUT_RDWR) {
 			mode = PICO_SHUT_RDWR;
 		}
 		if((err = pico_socket_shutdown(vs->picosock, mode)) < 0) {

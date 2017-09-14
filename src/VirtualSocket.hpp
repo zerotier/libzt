@@ -46,14 +46,14 @@
 #include "RingBuffer.hpp"
 
 namespace ZeroTier {
-	
+
 	class VirtualTap;
 
 	/*
-	 * Something analogous to a socket. This is a common object used by the 
-	 * libzt API, VirtualTap, and the userspace network stack driver implementations. 
+	 * Something analogous to a socket. This is a common object used by the
+	 * libzt API, VirtualTap, and the userspace network stack driver implementations.
 	 * In some situations the word 'Connection' would capture the meaning and
-	 * function of this object, however I'd like to discourage this since this 
+	 * function of this object, however I'd like to discourage this since this
 	 * object also handles non-connection-based traffic as well.
 	 */
 	struct VirtualSocket
@@ -61,9 +61,9 @@ namespace ZeroTier {
 		RingBuffer<unsigned char> *TXbuf;
 		RingBuffer<unsigned char> *RXbuf;
 		Mutex _tx_m, _rx_m;
-		PhySocket *sock = NULL;	
+		PhySocket *sock = NULL;
 
-#if defined(STACK_PICO)			
+#if defined(STACK_PICO)
 		struct pico_socket *picosock = NULL;
 #endif
 #if defined(STACK_LWIP)
@@ -121,9 +121,9 @@ namespace ZeroTier {
 			if (fcntl(sdk_fd, F_SETFL, O_NONBLOCK) < 0) {
 				DEBUG_ERROR("error while setting virtual socket to NONBLOCKING. exiting", errno);
 				exit(0);
-			} 
+			}
 		}
-		~VirtualSocket() { 
+		~VirtualSocket() {
 			close(app_fd);
 			close(sdk_fd);
 			delete TXbuf;

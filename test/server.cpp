@@ -12,7 +12,7 @@
 
 int main(int argc, char **argv)
 {
-	if(argc != 4) {
+	if (argc != 4) {
 		printf("\nlibzt example server\n");
 		printf("server [config_file_path] [nwid] [bind_port]\n");
 		exit(0);
@@ -40,19 +40,19 @@ int main(int argc, char **argv)
 	sleep(2);
 
 	// socket()
-	if((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	if ((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		DEBUG_ERROR("error creating ZeroTier socket");
 	
 	// bind()
-	if((err = zts_bind(sockfd, (struct sockaddr *)&in4, sizeof(struct sockaddr_in)) < 0))
+	if ((err = zts_bind(sockfd, (struct sockaddr *)&in4, sizeof(struct sockaddr_in)) < 0))
 		DEBUG_ERROR("error binding to interface (%d)", err);
 	
 	// listen()
-	if((err = zts_listen(sockfd, 100)) < 0)
+	if ((err = zts_listen(sockfd, 100)) < 0)
 		DEBUG_ERROR("error placing socket in LISTENING state (%d)", err);
 	
 	// accept()
-	if((accfd = zts_accept(sockfd, (struct sockaddr *)&acc_in4, (socklen_t *)sizeof(struct sockaddr_in))) < 0)
+	if ((accfd = zts_accept(sockfd, (struct sockaddr *)&acc_in4, (socklen_t *)sizeof(struct sockaddr_in))) < 0)
 		DEBUG_ERROR("error accepting connection (%d)", err);
 
 	// getpeername()

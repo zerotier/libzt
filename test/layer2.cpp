@@ -37,7 +37,7 @@ unsigned short csum(unsigned short *buf, int nwords)
 
 int main(int argc , char *argv[])
 {
-	if(argc < 3) {
+	if (argc < 3) {
 		fprintf(stderr, "usage: layer2 <zt_home_dir> <nwid>\n");
 		return 1;
 	}
@@ -51,7 +51,7 @@ int main(int argc , char *argv[])
 
 	// create socket
 	int fd;
-	if((fd = zts_socket(AF_INET, SOCK_RAW, IPPROTO_UDP)) < 0) {
+	if ((fd = zts_socket(AF_INET, SOCK_RAW, IPPROTO_UDP)) < 0) {
 		printf("There was a problem creating the raw socket\n");
 		exit(-1);
 	}

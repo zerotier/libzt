@@ -195,10 +195,12 @@ std::map<std::string, std::string> testConf;
 void displayResults(int *results, int size) {
 	int success = 0, failure = 0;
 	for(int i=0; i<size; i++) {
-		if(results[i] == 0)
+		if (results[i] == 0) {
 			success++;
-		else
+		}
+		else {
 			failure++;
+		}
 	}
 	std::cout << "tials: " << size << std::endl;
 	std::cout << " - success = " << (float)success / (float)size << std::endl;
@@ -210,10 +212,10 @@ void loadTestConfigFile(std::string filepath) {
 	std::ifstream testFile;
 	testFile.open(filepath.c_str());
 	while (testFile >> key >> value) {
-		if(key == "name") {
+		if (key == "name") {
 			prefix = value;
 		}
-		if(key[0] != '#' && key[0] != ';') {
+		if (key[0] != '#' && key[0] != ';') {
 			testConf[prefix + "." + key] = value;
 			fprintf(stderr, "%s.%s = %s\n", prefix.c_str(), key.c_str(), testConf[prefix + "." + key].c_str());
 		}
@@ -237,11 +239,11 @@ void wait_until_tplus(long int original_time, int tplus_ms) {
 void wait_until_tplus_s(long int original_time, int tplus_s) {
 	int current_time_offset = (get_now_ts() - original_time) / 1000;
 	fprintf(stderr, "\n\n--- WAITING FOR T+%d --- (current: T+%d)\n\n", tplus_s, current_time_offset);
-	if(current_time_offset > tplus_s) {
+	if (current_time_offset > tplus_s) {
 		DEBUG_ERROR("--- ABORTING TEST: Tests are out of sync and might not yield valid results. ---");
 		//exit(0);
 	}
-	if(current_time_offset == tplus_s) {
+	if (current_time_offset == tplus_s) {
 		DEBUG_ERROR("--- WARNING: Tests might be out of sync and might not yield valid results. ---");
 	}
 	wait_until_tplus(original_time, tplus_s * 1000);
@@ -256,13 +258,13 @@ void generate_random_data(void *buf, size_t n, int min, int max) {
 }
 
 void str2addr(std::string ipstr, int port, int ipv, struct sockaddr *saddr) {
-	if(ipv == 4) {
+	if (ipv == 4) {
 		struct sockaddr_in *in4 = (struct sockaddr_in*)saddr;
 		in4->sin_port = htons(port);
 		in4->sin_addr.s_addr = inet_addr(ipstr.c_str());
 		in4->sin_family = AF_INET;
 	}
-	if(ipv == 6) {
+	if (ipv == 6) {
 		struct sockaddr_in6 *in6 = (struct sockaddr_in6*)saddr;
 		inet_pton(AF_INET6, ipstr.c_str(), &(in6->sin6_addr));
 		in6->sin6_flowinfo = 0;
@@ -275,7 +277,7 @@ void RECORD_RESULTS(bool passed, char *details, std::vector<std::string> *result
 {
 	char *ok_str   = (char*)"[  OK  ]";
 	char *fail_str = (char*)"[ FAIL ]";
-	if(passed == PASSED) {
+	if (passed == PASSED) {
 		DEBUG_TEST("%s", ok_str);
 		results->push_back(std::string(ok_str) + " " + std::string(details));
 	}
@@ -283,7 +285,7 @@ void RECORD_RESULTS(bool passed, char *details, std::vector<std::string> *result
 		DEBUG_ERROR("%s", fail_str);		
 		results->push_back(std::string(fail_str) + " " + std::string(details));
 	}
-	if(EXIT_ON_FAIL && !passed) {
+	if (EXIT_ON_FAIL && !passed) {
 		fprintf(stderr, "%s\n", results->at(results->size()-1).c_str());
 		exit(0);
 	}
@@ -314,13 +316,13 @@ void tcp_client_4(TCP_UNIT_TEST_SIG_4)
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0) {
+	if ((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0) {
 		DEBUG_ERROR("error connecting to remote host (%d)", err);
 		perror("connect");
 		*passed = false;
@@ -331,7 +333,7 @@ void tcp_client_4(TCP_UNIT_TEST_SIG_4)
 	struct sockaddr_in *in4 = (struct sockaddr_in*)&peer_addr;
 	socklen_t peer_addrlen = sizeof(peer_addr);
 	
-	if((err = GETPEERNAME(fd, (struct sockaddr*)&peer_addr, &peer_addrlen)) < 0) {
+	if ((err = GETPEERNAME(fd, (struct sockaddr*)&peer_addr, &peer_addrlen)) < 0) {
 		perror("getpeername");
 		*passed = false;
 		return;
@@ -361,19 +363,19 @@ void tcp_server_4(TCP_UNIT_TEST_SIG_4)
 	int w=0, r=0, fd, client_fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if((err = BIND(fd, (struct sockaddr *)addr, sizeof(struct sockaddr_in)) < 0)) {
+	if ((err = BIND(fd, (struct sockaddr *)addr, sizeof(struct sockaddr_in)) < 0)) {
 		DEBUG_ERROR("error binding to interface (%d)", err);
 		perror("bind");
 		*passed = false;
 		return;
 	}
-	if((err = LISTEN(fd, 100)) < 0) {
+	if ((err = LISTEN(fd, 100)) < 0) {
 		printf("error placing socket in LISTENING state (%d)", err);
 		perror("listen");
 		*passed = false;
@@ -381,7 +383,7 @@ void tcp_server_4(TCP_UNIT_TEST_SIG_4)
 	}
 	struct sockaddr_in client;
 	socklen_t client_addrlen = sizeof(sockaddr_in);
-	if((client_fd = ACCEPT(fd, (struct sockaddr *)&client, &client_addrlen)) < 0) {
+	if ((client_fd = ACCEPT(fd, (struct sockaddr *)&client, &client_addrlen)) < 0) {
 		perror("accept");
 		*passed = false;
 		return;
@@ -392,7 +394,7 @@ void tcp_server_4(TCP_UNIT_TEST_SIG_4)
 	struct sockaddr_in *in4 = (struct sockaddr_in*)&peer_addr;
 	socklen_t peer_addrlen = sizeof(peer_addr);
 
-	if((err = GETPEERNAME(client_fd, (struct sockaddr*)&peer_addr, &peer_addrlen)) < 0) {
+	if ((err = GETPEERNAME(client_fd, (struct sockaddr*)&peer_addr, &peer_addrlen)) < 0) {
 		perror("getpeername");
 		*passed = false;
 		return;
@@ -421,13 +423,13 @@ void tcp_client_6(TCP_UNIT_TEST_SIG_6)
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if((fd = SOCKET(AF_INET6, SOCK_STREAM, 0)) < 0) {
+	if ((fd = SOCKET(AF_INET6, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0) {
+	if ((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0) {
 		DEBUG_ERROR("error connecting to remote host (%d)", err);
 		perror("connect");
 		*passed = false;
@@ -437,7 +439,7 @@ void tcp_client_6(TCP_UNIT_TEST_SIG_6)
 	struct sockaddr_storage peer_addr;
 	struct sockaddr_in6 *p6 = (struct sockaddr_in6*)&peer_addr;
 	socklen_t peer_addrlen = sizeof(peer_addr);
-	if((err = GETPEERNAME(fd, (struct sockaddr*)&peer_addr, &peer_addrlen)) < 0) {
+	if ((err = GETPEERNAME(fd, (struct sockaddr*)&peer_addr, &peer_addrlen)) < 0) {
 		perror("getpeername");
 		*passed = false;
 		return;
@@ -469,19 +471,19 @@ void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 	int w=0, r=0, fd, client_fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if((fd = SOCKET(AF_INET6, SOCK_STREAM, 0)) < 0) { 
+	if ((fd = SOCKET(AF_INET6, SOCK_STREAM, 0)) < 0) { 
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if((err = BIND(fd, (struct sockaddr *)addr, sizeof(struct sockaddr_in6)) < 0)) {
+	if ((err = BIND(fd, (struct sockaddr *)addr, sizeof(struct sockaddr_in6)) < 0)) {
 		DEBUG_ERROR("error binding to interface (%d)", err);
 		perror("bind");
 		*passed = false;
 		return;
 	}
-	if((err = LISTEN(fd, 100)) < 0) {
+	if ((err = LISTEN(fd, 100)) < 0) {
 		DEBUG_ERROR("error placing socket in LISTENING state (%d)", err);
 		perror("listen");
 		*passed = false;
@@ -489,7 +491,7 @@ void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 	}
 	struct sockaddr_in6 client;
 	socklen_t client_addrlen = sizeof(sockaddr_in6);
-	if((client_fd = ACCEPT(fd, (struct sockaddr *)&client, &client_addrlen)) < 0) {
+	if ((client_fd = ACCEPT(fd, (struct sockaddr *)&client, &client_addrlen)) < 0) {
 		perror("accept");
 		*passed = false;
 		return;
@@ -501,7 +503,7 @@ void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 	struct sockaddr_storage peer_addr;
 	struct sockaddr_in6 *p6 = (struct sockaddr_in6*)&peer_addr;
 	socklen_t peer_addrlen = sizeof(peer_addr);
-	if((err = GETPEERNAME(client_fd, (struct sockaddr*)&peer_addr, &peer_addrlen)) < 0) {
+	if ((err = GETPEERNAME(client_fd, (struct sockaddr*)&peer_addr, &peer_addrlen)) < 0) {
 		perror("getpeername");
 		*passed = false;
 		return;
@@ -534,20 +536,20 @@ void udp_client_4(UDP_UNIT_TEST_SIG_4)
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if((fd = SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
+	if ((fd = SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if((err = FCNTL(fd, F_SETFL, O_NONBLOCK) < 0)) {
+	if ((err = FCNTL(fd, F_SETFL, O_NONBLOCK) < 0)) {
 		fprintf(stderr, "error setting O_NONBLOCK (errno=%d)",  errno);
 		perror("fcntl");
 		*passed = false;
 		return;
 	}
 	DEBUG_TEST("sending UDP packets until I get a single response...");
-	if((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in)) < 0)) {
+	if ((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in)) < 0)) {
 		DEBUG_ERROR("error binding to interface (%d)", err);
 		perror("bind");
 		*passed = false;
@@ -555,17 +557,16 @@ void udp_client_4(UDP_UNIT_TEST_SIG_4)
 	}
 
 	struct sockaddr_storage saddr;
-	while(1) {
+	while(true) {
 		// tx
-		if((w = SENDTO(fd, msg.c_str(), strlen(msg.c_str()), 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
+		if ((w = SENDTO(fd, msg.c_str(), strlen(msg.c_str()), 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
 		}
-		sleep(1);
 		memset(rbuf, 0, sizeof(rbuf));
 		int serverlen = sizeof(struct sockaddr_storage);
 		// rx
 		r = RECVFROM(fd, rbuf, STR_SIZE, 0, (struct sockaddr *)&saddr, (socklen_t *)&serverlen);
-		if(r == strlen(msg.c_str())) {
+		if (r == strlen(msg.c_str())) {
 			err = CLOSE(fd);
 			DEBUG_TEST("%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
 			sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
@@ -591,13 +592,13 @@ void udp_server_4(UDP_UNIT_TEST_SIG_4)
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if((fd = SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
+	if ((fd = SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in)) < 0)) {
+	if ((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in)) < 0)) {
 		DEBUG_ERROR("error binding to interface (%d)", err);  
 		perror("bind");  
 		*passed = false;
@@ -609,7 +610,7 @@ void udp_server_4(UDP_UNIT_TEST_SIG_4)
 	struct sockaddr_in *in4 = (struct sockaddr_in*)&saddr;
 	int serverlen = sizeof(saddr);
 	memset(&saddr, 0, sizeof(saddr));
-	if((r = RECVFROM(fd, rbuf, STR_SIZE, 0, (struct sockaddr *)in4, (socklen_t *)&serverlen)) < 0) {
+	if ((r = RECVFROM(fd, rbuf, STR_SIZE, 0, (struct sockaddr *)in4, (socklen_t *)&serverlen)) < 0) {
 		perror("recvfrom");
 		*passed = false;
 		return;
@@ -621,12 +622,12 @@ void udp_server_4(UDP_UNIT_TEST_SIG_4)
 	DEBUG_TEST("sending DGRAM(s) to %s : %d", inet_ntoa(remote_addr->sin_addr), ntohs(remote_addr->sin_port));
 	// tx
 	long int tx_ti = get_now_ts();	
-	while(1) {
+	while(true) {
 		sleep(1);
-		if((w = SENDTO(fd, msg.c_str(), len, 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
+		if ((w = SENDTO(fd, msg.c_str(), len, 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
 		}
-		if(get_now_ts() >= tx_ti + 10000) {
+		if (get_now_ts() >= tx_ti + 10000) {
 			break;
 		}
 	}
@@ -653,20 +654,20 @@ void udp_client_6(UDP_UNIT_TEST_SIG_6)
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
 
-	if((fd = SOCKET(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+	if ((fd = SOCKET(AF_INET6, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if((err = FCNTL(fd, F_SETFL, O_NONBLOCK) < 0)) {
+	if ((err = FCNTL(fd, F_SETFL, O_NONBLOCK) < 0)) {
 		std::cout << "error setting O_NONBLOCK (errno=" << strerror(errno) << ")" << std::endl;
 		perror("fcntl");
 		*passed = false;
 		return;
 	}
 	DEBUG_TEST("[1] binding and sending UDP packets until I get a single response...");
-	if((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in6)) < 0)) {
+	if ((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in6)) < 0)) {
 		DEBUG_ERROR("error binding to interface (%d)", err);
 		perror("bind");
 		*passed = false;
@@ -675,9 +676,9 @@ void udp_client_6(UDP_UNIT_TEST_SIG_6)
 
 	// start sending UDP packets in the hopes that at least one will be picked up by the server
 	struct sockaddr_storage saddr;
-	while(1) {
+	while(true) {
 		// tx
-		if((w = SENDTO(fd, msg.c_str(), len, 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
+		if ((w = SENDTO(fd, msg.c_str(), len, 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
 		}
 		usleep(100000);
@@ -685,7 +686,7 @@ void udp_client_6(UDP_UNIT_TEST_SIG_6)
 		int serverlen = sizeof(struct sockaddr_storage);
 		// rx
 		r = RECVFROM(fd, rbuf, len, 0, (struct sockaddr *)&saddr, (socklen_t *)&serverlen);
-		if(r == len) {
+		if (r == len) {
 			DEBUG_TEST("[2] complete");
 			sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 			err = CLOSE(fd);
@@ -713,13 +714,13 @@ void udp_server_6(UDP_UNIT_TEST_SIG_6)
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
 
-	if((fd = SOCKET(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+	if ((fd = SOCKET(AF_INET6, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}	
-	if((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in6)) < 0)) {
+	if ((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in6)) < 0)) {
 		DEBUG_ERROR("error binding to interface (%d)", err); 
 		perror("bind");   
 		*passed = false;
@@ -731,7 +732,7 @@ void udp_server_6(UDP_UNIT_TEST_SIG_6)
 	struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&saddr;
 	int serverlen = sizeof(saddr);
 	memset(&saddr, 0, sizeof(saddr));
-	if((r = RECVFROM(fd, rbuf, len, 0, (struct sockaddr *)&saddr, (socklen_t *)&serverlen)) < 0) {
+	if ((r = RECVFROM(fd, rbuf, len, 0, (struct sockaddr *)&saddr, (socklen_t *)&serverlen)) < 0) {
 		perror("recvfrom");
 		*passed = false;
 		return;
@@ -744,13 +745,13 @@ void udp_server_6(UDP_UNIT_TEST_SIG_6)
 	// once we receive a UDP packet, spend 10 seconds sending responses in the hopes that the client will see
 	// tx
 	long int tx_ti = get_now_ts();
-	while(1) {
+	while(true) {
 		usleep(100000);
 		//DEBUG_TEST("sending UDP packet");
-		if((w = SENDTO(fd, msg.c_str(), len, 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
+		if ((w = SENDTO(fd, msg.c_str(), len, 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
 		}
-		if(get_now_ts() >= tx_ti + 10000) {
+		if (get_now_ts() >= tx_ti + 10000) {
 			// DEBUG_TEST("[3/4] get_now_ts()-tx_ti=%d", get_now_ts()-tx_ti);
 			break;
 		}
@@ -788,19 +789,19 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 	char *txbuf = (char*)malloc(cnt*sizeof(char));
 	generate_random_data(txbuf, cnt, 0, 9);
 
-	if((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0) {
+	if ((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0) {
 		DEBUG_ERROR("error connecting to remote host (%d)", err);
 		perror("connect");
 		*passed = false;
 		return;
 	}
-	if(op == TEST_OP_N_BYTES) {
+	if (op == TEST_OP_N_BYTES) {
 		int wrem = cnt, rrem = cnt;
 		// TX
 		long int tx_ti = get_now_ts();	
@@ -808,8 +809,7 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 			int next_write = std::min(4096, wrem);
 			signal(SIGPIPE, SIG_IGN);
 			n = WRITE(fd, &txbuf[w], next_write);
-			if (n > 0)
-			{
+			if (n > 0) {
 				w += n;
 				wrem -= n;
 				err = n;
@@ -822,11 +822,10 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 		long int rx_ti = 0;	
 		while(rrem) {
 			n = READ(fd, &rxbuf[r], rrem);
-			if(!rx_ti) { // wait for first message
+			if (rx_ti == 0) { // wait for first message
 				rx_ti = get_now_ts();	
 			}
-			if (n > 0)
-			{
+			if (n > 0) {
 				r += n;
 				rrem -= n;
 				err = n;
@@ -839,7 +838,7 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 		// Compare RX and TX buffer and detect mismatches
 		bool match = true;
 		for(int i=0; i<cnt; i++) {
-			if(rxbuf[i] != txbuf[i]) {
+			if (rxbuf[i] != txbuf[i]) {
 				DEBUG_ERROR("buffer mismatch found at idx=%d", i);
 				match=false;
 			}
@@ -871,28 +870,27 @@ void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 	char *rxbuf = (char*)malloc(cnt*sizeof(char));
 	char *txbuf = (char*)malloc(cnt*sizeof(char));
 	generate_random_data(txbuf, cnt, 0, 9);
-	if((fd = SOCKET(AF_INET6, SOCK_STREAM, 0)) < 0){
+	if ((fd = SOCKET(AF_INET6, SOCK_STREAM, 0)) < 0){
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0) {
+	if ((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0) {
 		DEBUG_ERROR("error connecting to remote host (%d)", err);
 		perror("connect");
 		*passed = false;
 		return;
 	}
 
-	if(op == TEST_OP_N_BYTES) {
+	if (op == TEST_OP_N_BYTES) {
 		int wrem = cnt, rrem = cnt;
 		// TX
 		long int tx_ti = get_now_ts();	
 		while(wrem) {
 			int next_write = std::min(4096, wrem);
 			n = WRITE(fd, &txbuf[w], next_write);
-			if (n > 0)
-			{
+			if (n > 0) {
 				w += n;
 				wrem -= n;
 				err = n;
@@ -904,11 +902,10 @@ void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 		long int rx_ti = 0;	
 		while(rrem) {
 			n = READ(fd, &rxbuf[r], rrem);
-			if(!rx_ti) { // wait for first message
+			if (rx_ti == 0) { // wait for first message
 				rx_ti = get_now_ts();	
 			}
-			if (n > 0)
-			{
+			if (n > 0) {
 				r += n;
 				rrem -= n;
 				err = n;
@@ -921,7 +918,7 @@ void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 		// Compare RX and TX buffer and detect mismatches
 		bool match = true;
 		for(int i=0; i<cnt; i++) {
-			if(rxbuf[i] != txbuf[i]) {
+			if (rxbuf[i] != txbuf[i]) {
 				DEBUG_ERROR("buffer mismatch found at idx=%d", i);
 				match=false;
 			}
@@ -932,7 +929,7 @@ void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 		float tx_rate = (float)cnt / (float)tx_dt;
 		float rx_rate = (float)cnt / (float)rx_dt;
 		sprintf(details, "%s, match=%d, n=%d, tx_dt=%.2f, rx_dt=%.2f, r=%d, w=%d, tx_rate=%.2f MB/s, rx_rate=%.2f MB/s", 
-			testname.c_str(), msg.c_str(), match, cnt, tx_dt, rx_dt, r, w, (tx_rate / float(ONE_MEGABYTE) ), (rx_rate / float(ONE_MEGABYTE) ));	
+			testname.c_str(), match, cnt, tx_dt, rx_dt, r, w, (tx_rate / float(ONE_MEGABYTE) ), (rx_rate / float(ONE_MEGABYTE) ));	
 		*passed = (r == cnt && w == cnt && match && err>=0);
 	}
 	free(rxbuf);
@@ -953,19 +950,19 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 	char *rxbuf = (char*)malloc(cnt*sizeof(char));
 	memset(rxbuf, 0, cnt);
 
-	if((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if((err = BIND(fd, (struct sockaddr *)addr, (socklen_t)sizeof(*addr)) < 0)) {
+	if ((err = BIND(fd, (struct sockaddr *)addr, (socklen_t)sizeof(*addr)) < 0)) {
 		DEBUG_ERROR("error binding to interface (%d)", err);
 		perror("bind");
 		*passed = false;
 		return;
 	}
-	if((err = LISTEN(fd, 1)) < 0) {
+	if ((err = LISTEN(fd, 1)) < 0) {
 		DEBUG_ERROR("error placing socket in LISTENING state (%d)", err);
 		perror("listen");
 		*passed = false;
@@ -974,19 +971,18 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 	struct sockaddr_storage client;
 	struct sockaddr_in *in4 = (struct sockaddr_in*)&client;
 	socklen_t client_addrlen = sizeof(sockaddr_storage);
-	if((client_fd = ACCEPT(fd, (struct sockaddr *)in4, &client_addrlen)) < 0) {
+	if ((client_fd = ACCEPT(fd, (struct sockaddr *)in4, &client_addrlen)) < 0) {
 		fprintf(stderr,"error accepting connection (%d)\n", err);
 		perror("accept");
 	}
 	DEBUG_TEST("accepted connection from %s, on port %d", inet_ntoa(in4->sin_addr), ntohs(in4->sin_port));
-	if(op == TEST_OP_N_BYTES) {
+	if (op == TEST_OP_N_BYTES) {
 		int wrem = cnt, rrem = cnt;
 		long int rx_ti = 0;
 		while(rrem) {
 			n = READ(client_fd, &rxbuf[r], rrem);
-			if (n > 0)
-			{
-				if(!rx_ti) { // wait for first message
+			if (n > 0) {
+				if (rx_ti == 0) { // wait for first message
 					rx_ti = get_now_ts();	
 				}
 				r += n;
@@ -1001,8 +997,7 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 		while(wrem) {
 			int next_write = std::min(1024, wrem);
 			n = WRITE(client_fd, &rxbuf[w], next_write);
-			if (n > 0)
-			{	
+			if (n > 0) {	
 				w += n;
 				wrem -= n;
 				err = n;
@@ -1039,19 +1034,19 @@ void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 	char *rxbuf = (char*)malloc(cnt*sizeof(char));
 	memset(rxbuf, 0, cnt);
 
-	if((fd = SOCKET(AF_INET6, SOCK_STREAM, 0)) < 0) {
+	if ((fd = SOCKET(AF_INET6, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if((err = BIND(fd, (struct sockaddr *)addr, (socklen_t)sizeof(struct sockaddr_in6)) < 0)) {
+	if ((err = BIND(fd, (struct sockaddr *)addr, (socklen_t)sizeof(struct sockaddr_in6)) < 0)) {
 		DEBUG_ERROR("error binding to interface (%d)", err);
 		perror("bind");
 		*passed = false;
 		return;
 	}
-	if((err = LISTEN(fd, 1)) < 0) {
+	if ((err = LISTEN(fd, 1)) < 0) {
 		DEBUG_ERROR("error placing socket in LISTENING state (%d)", err);
 		perror("listen");
 		*passed = false;
@@ -1059,7 +1054,7 @@ void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 	}
 	struct sockaddr_in6 client;
 	socklen_t client_addrlen = sizeof(sockaddr_in6);
-	if((client_fd = ACCEPT(fd, (struct sockaddr *)&client, &client_addrlen)) < 0) {
+	if ((client_fd = ACCEPT(fd, (struct sockaddr *)&client, &client_addrlen)) < 0) {
 		fprintf(stderr,"error accepting connection (%d)\n", err);
 		perror("accept");
 		*passed = false;
@@ -1069,14 +1064,13 @@ void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 	inet_ntop(AF_INET6, &client.sin6_addr, ipstr, sizeof ipstr);
 	DEBUG_TEST("accepted connection from %s, on port %d", ipstr, ntohs(client.sin6_port));
 
-	if(op == TEST_OP_N_BYTES) {
+	if (op == TEST_OP_N_BYTES) {
 		int wrem = cnt, rrem = cnt;
 		long int rx_ti = 0;
 		while(rrem) {
 			n = READ(client_fd, &rxbuf[r], rrem);
-			if (n > 0)
-			{
-				if(!rx_ti) { // wait for first message
+			if (n > 0) {
+				if (rx_ti == 0) { // wait for first message
 					rx_ti = get_now_ts();	
 				}
 				r += n;
@@ -1090,8 +1084,7 @@ void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 		while(wrem) {
 			int next_write = std::min(1024, wrem);
 			n = WRITE(client_fd, &rxbuf[w], next_write);
-			if (n > 0)
-			{	
+			if (n > 0) {	
 				w += n;
 				wrem -= n;
 				err = n;
@@ -1127,31 +1120,29 @@ void udp_client_sustained_4(UDP_UNIT_TEST_SIG_4)
 	int w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-
-	if((fd = SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
+	if ((fd = SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if((err = FCNTL(fd, F_SETFL, O_NONBLOCK) < 0)) {
+	if ((err = FCNTL(fd, F_SETFL, O_NONBLOCK) < 0)) {
 		fprintf(stderr, "error setting O_NONBLOCK (errno=%d)",  errno);
 		perror("fcntl");
 		*passed = false;
 		return;
 	}
 	DEBUG_TEST("sending UDP packets until I get a single response...");
-	if((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in)) < 0)) {
+	if ((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in)) < 0)) {
 		DEBUG_ERROR("error binding to interface (%d)", err);
 		perror("bind");
 		*passed = false;
 		return;
 	}
-
 	int num_to_send = 10;
 	for(int i=0; i<num_to_send; i++) {
 		// tx
-		if((w = SENDTO(fd, msg.c_str(), strlen(msg.c_str()), 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
+		if ((w = SENDTO(fd, msg.c_str(), strlen(msg.c_str()), 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
 		}
 	}
@@ -1177,20 +1168,18 @@ void udp_server_sustained_4(UDP_UNIT_TEST_SIG_4)
 	int r, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-
-	if((fd = SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
+	if ((fd = SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in)) < 0)) {
+	if ((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in)) < 0)) {
 		DEBUG_ERROR("error binding to interface (%d)", err);    
 		perror("bind");
 		*passed = false;
 		return;
 	}
-
 	int num_to_recv = 3;
 	DEBUG_TEST("waiting for UDP packet...");
 	for(int i=0; i<num_to_recv; i++) {
@@ -1210,7 +1199,7 @@ void udp_server_sustained_4(UDP_UNIT_TEST_SIG_4)
 	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 	//err = CLOSE(fd);
 	DEBUG_TEST("%s, n=%d, err=%d, r=%d", testname.c_str(), cnt, err, r);
-	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", testname.c_str(), cnt, err, r);
+	sprintf(details, "%s, n=%d, err=%d, r=%d", testname.c_str(), cnt, err, r);
 	DEBUG_TEST("Received : %s", rbuf);
 	*passed = (r == len && !err) && !strcmp(rbuf, msg.c_str());
 }
@@ -1228,20 +1217,20 @@ void udp_client_sustained_6(UDP_UNIT_TEST_SIG_6)
 	int w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if((fd = SOCKET(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+	if ((fd = SOCKET(AF_INET6, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if((err = FCNTL(fd, F_SETFL, O_NONBLOCK) < 0)) {
+	if ((err = FCNTL(fd, F_SETFL, O_NONBLOCK) < 0)) {
 		fprintf(stderr, "error setting O_NONBLOCK (errno=%d)",  errno);
 		perror("fcntl");
 		*passed = false;
 		return;
 	}
 	DEBUG_TEST("sending UDP packets until I get a single response...");
-	if((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in6)) < 0)) {
+	if ((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in6)) < 0)) {
 		DEBUG_ERROR("error binding to interface (%d)", err);
 		perror("bind");
 		*passed = false;
@@ -1251,7 +1240,7 @@ void udp_client_sustained_6(UDP_UNIT_TEST_SIG_6)
 	for(int i=0; i<num_to_send; i++) {
 		sleep(1);
 		// tx
-		if((w = SENDTO(fd, msg.c_str(), strlen(msg.c_str()), 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
+		if ((w = SENDTO(fd, msg.c_str(), strlen(msg.c_str()), 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
 		}
 	}
@@ -1277,13 +1266,13 @@ void udp_server_sustained_6(UDP_UNIT_TEST_SIG_6)
 	int r, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if((fd = SOCKET(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+	if ((fd = SOCKET(AF_INET6, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in6)) < 0)) {
+	if ((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in6)) < 0)) {
 		DEBUG_ERROR("error binding to interface (%d)", err);    
 		perror("bind");
 		*passed = false;
@@ -1307,7 +1296,7 @@ void udp_server_sustained_6(UDP_UNIT_TEST_SIG_6)
 	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
 	//err = CLOSE(fd);
 	DEBUG_TEST("%s, n=%d, err=%d, r=%d", testname.c_str(), cnt, err, r);
-	sprintf(details, "%s, n=%d, err=%d, r=%d, w=%d", testname.c_str(), cnt, err, r);
+	sprintf(details, "%s, n=%d, err=%d, r=%d", testname.c_str(), cnt, err, r);
 	DEBUG_TEST("Received : %s", rbuf);
 	*passed = (r == len && !err) && !strcmp(rbuf, msg.c_str());
 }
@@ -1330,9 +1319,9 @@ void tcp_client_perf_4(TCP_UNIT_TEST_SIG_4)
 
 	for (int i=arbitrary_chunk_sz_min; (i*2) < arbitrary_chunk_sz_max; i*=2) {
 
-		if((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
+		if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
 			DEBUG_ERROR("error creating ZeroTier socket");
-		if((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(addr))) < 0)
+		if ((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(addr))) < 0)
 			DEBUG_ERROR("error connecting to remote host (%d)", err);
 
 		DEBUG_TEST("[TX] Testing (%d) byte chunks: ", i);
@@ -1369,13 +1358,13 @@ void tcp_server_perf_4(TCP_UNIT_TEST_SIG_4)
 
 	for (int i=arbitrary_chunk_sz_min; (i*2) < arbitrary_chunk_sz_max; i*=2) {
 		DEBUG_ERROR("TESTING chunk size = %d", i);
-		if((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
+		if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
 			DEBUG_ERROR("error creating ZeroTier socket");
-		if((err = BIND(fd, (struct sockaddr *)addr, (socklen_t)sizeof(struct sockaddr_in)) < 0))
+		if ((err = BIND(fd, (struct sockaddr *)addr, (socklen_t)sizeof(struct sockaddr_in)) < 0))
 			DEBUG_ERROR("error binding to interface (%d)", err);
-		if((err = LISTEN(fd, 1)) < 0)
+		if ((err = LISTEN(fd, 1)) < 0)
 			DEBUG_ERROR("error placing socket in LISTENING state (%d)", err);
-		if((client_fd = ACCEPT(fd, (struct sockaddr *)&addr, (socklen_t *)sizeof(addr))) < 0)
+		if ((client_fd = ACCEPT(fd, (struct sockaddr *)&addr, (socklen_t *)sizeof(addr))) < 0)
 			DEBUG_ERROR("error accepting connection (%d)", err);
 
 		DEBUG_TEST("[RX] Testing (%d) byte chunks: ", i);
@@ -1426,11 +1415,11 @@ void tcp_perf_tx_echo_4(TCP_UNIT_TEST_SIG_4)
 	mode = ECHOTEST_MODE_TX;
 
 	// connect to remote echotest host
-	if((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		return;
 	}
-	if((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0) {
+	if ((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0) {
 		DEBUG_ERROR("error connecting to remote host (%d)", err);
 		return;
 	}
@@ -1441,7 +1430,7 @@ void tcp_perf_tx_echo_4(TCP_UNIT_TEST_SIG_4)
 	memcpy(pbuf + sizeof mode, &cnt, sizeof cnt);
 
 	DEBUG_TEST("sending test parameters to echotest");
-	if((w = WRITE(fd, pbuf, sizeof pbuf)) < 0) {
+	if ((w = WRITE(fd, pbuf, sizeof pbuf)) < 0) {
 		DEBUG_ERROR("error while sending test parameters to echotest (err=%d)", w);
 		return;
 	}
@@ -1449,7 +1438,7 @@ void tcp_perf_tx_echo_4(TCP_UNIT_TEST_SIG_4)
 	// begin
 	DEBUG_TEST("beginning test, sending test byte stream...");
 	while(tot < cnt) {
-		if((w = WRITE(fd, tbuf, sizeof tbuf)) < 0) {
+		if ((w = WRITE(fd, tbuf, sizeof tbuf)) < 0) {
 			DEBUG_ERROR("error while sending test byte stream to echotest (err=%d)", w);
 			return;
 		}
@@ -1459,7 +1448,7 @@ void tcp_perf_tx_echo_4(TCP_UNIT_TEST_SIG_4)
 	// read results
 	memset(pbuf, 0, sizeof pbuf);
 	DEBUG_TEST("reading test results from echotest");
-	if((w = READ(fd, pbuf, sizeof tbuf)) < 0) {
+	if ((w = READ(fd, pbuf, sizeof tbuf)) < 0) {
 		DEBUG_ERROR("error while reading results from echotest (err=%d)", w);
 		return;
 	}
@@ -1496,11 +1485,11 @@ void tcp_perf_rx_echo_4(TCP_UNIT_TEST_SIG_4)
 	mode = ECHOTEST_MODE_RX;
 
 	// connect to remote echotest host
-	if((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		return;
 	}
-	if((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0) {
+	if ((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0) {
 		DEBUG_ERROR("error connecting to remote host (%d)", err);
 		return;
 	}
@@ -1511,14 +1500,14 @@ void tcp_perf_rx_echo_4(TCP_UNIT_TEST_SIG_4)
 	memcpy(pbuf + sizeof mode, &cnt, sizeof cnt);
 
 	DEBUG_TEST("sending test parameters to echotest");
-	if((r = WRITE(fd, pbuf, sizeof pbuf)) < 0) {
+	if ((r = WRITE(fd, pbuf, sizeof pbuf)) < 0) {
 		DEBUG_ERROR("error while sending test parameters to echotest (err=%d)", r);
 		return;
 	}
 
 	// begin
 	DEBUG_TEST("beginning test, as soon as bytes are read we will start keeping time...");
-	if((r = read(fd, tbuf, sizeof tbuf)) < 0) {
+	if ((r = read(fd, tbuf, sizeof tbuf)) < 0) {
 		DEBUG_ERROR("there was an error reading the test stream. aborting (err=%d, errno=%s)", r, strerror(errno));
 		return;
 	}
@@ -1529,7 +1518,7 @@ void tcp_perf_rx_echo_4(TCP_UNIT_TEST_SIG_4)
 	DEBUG_TEST("Received first set of bytes in test stream. now keeping time");
 
 	while(tot < cnt) {
-		if((r = read(fd, tbuf, sizeof tbuf)) < 0) {
+		if ((r = read(fd, tbuf, sizeof tbuf)) < 0) {
 			DEBUG_ERROR("there was an error reading the test stream. aborting (err=%d)", r);
 			return;
 		}
@@ -1573,7 +1562,7 @@ int slam_api_test()
 	// TESTS:
 	// socket()
 	// close()
-	if(false)
+	if (false)
 	{
 		// open and close SLAM_NUMBER*SLAM_REPEAT sockets
 		for(int j=0; j<SLAM_REPEAT; j++) {
@@ -1582,9 +1571,9 @@ int slam_api_test()
 			// create sockets
 			int fds[SLAM_NUMBER];
 			for(int i = 0; i<SLAM_NUMBER; i++) {
-				if((err = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+				if ((err = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
 					std::cout << "error creating socket (errno = " << strerror(errno) << ")" << std::endl;
-					if(errno == EMFILE)
+					if (errno == EMFILE)
 						break;
 					else
 						return -1;
@@ -1597,7 +1586,7 @@ int slam_api_test()
 			// close sockets
 			for(int i = 0; i<SLAM_NUMBER; i++) {
 				//std::cout << "\tclosing " << i << " socket(s)" << std::endl;
-				if((err = CLOSE(fds[i])) < 0) {
+				if ((err = CLOSE(fds[i])) < 0) {
 					std::cout << "error closing socket (errno = " << strerror(errno) << ")" << std::endl;
 					//return -1;
 				}
@@ -1605,7 +1594,7 @@ int slam_api_test()
 					fds[i] = -1;
 			}
 		}
-		if(zts_nsockets() == 0)
+		if (zts_nsockets() == 0)
 			std::cout << "PASSED [slam open and close]" << std::endl;
 		else
 			std::cout << "FAILED [slam open and close] - sockets left unclosed" << std::endl;
@@ -1619,7 +1608,7 @@ int slam_api_test()
 	// listen()
 	// accept()
 	// close()
-	if(false) 
+	if (false) 
 	{
 		int sock = 0;
 		std::vector<int> used_ports;
@@ -1629,9 +1618,9 @@ int slam_api_test()
 			usleep(SLAM_INTERVAL);
 
 			for(int i = 0; i<SLAM_NUMBER; i++) {
-				if((sock = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+				if ((sock = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
 					std::cout << "error creating socket (errno = " << strerror(errno) << ")" << std::endl;
-					if(errno == EMFILE)
+					if (errno == EMFILE)
 						break;
 					else
 						return -1;
@@ -1640,13 +1629,13 @@ int slam_api_test()
 				usleep(SLAM_INTERVAL);
 
 				int port;
-				while(!(std::find(used_ports.begin(),used_ports.end(),port) == used_ports.end())) {
+				while((std::find(used_ports.begin(),used_ports.end(),port) == used_ports.end()) == false) {
 					port = MIN_PORT + (rand() % (int)(MAX_PORT - MIN_PORT + 1));
 				}
 				used_ports.push_back(port);
 				std::cout << "port = " << port << std::endl;
 				
-				if(false) {
+				if (false) {
 					server = gethostbyname2("::",AF_INET6);
 					memset((char *) &addr6, 0, sizeof(addr6));
 					addr6.sin6_flowinfo = 0;
@@ -1656,20 +1645,20 @@ int slam_api_test()
 					err = BIND(sock, (struct sockaddr *)&addr6, (socklen_t)(sizeof addr6));
 				}
 
-				if(true) {
+				if (true) {
 					addr.sin_port = htons(port);
 					addr.sin_addr.s_addr = inet_addr("10.9.9.50");
 					//addr.sin_addr.s_addr = htons(INADDR_ANY);
 					addr.sin_family = AF_INET;
 					err = BIND(sock, (struct sockaddr *)&addr, (socklen_t)(sizeof addr));
 				}
-				if(err < 0) {
+				if (err < 0) {
 					std::cout << "error binding socket (errno = " << strerror(errno) << ")" << std::endl;
 					return -1;
 				}
 				
-				if(sock > 0) {
-					if((err = CLOSE(sock)) < 0) {
+				if (sock > 0) {
+					if ((err = CLOSE(sock)) < 0) {
 						std::cout << "error closing socket (errno = " << strerror(errno) << ")" << std::endl;
 						//return -1;
 					}
@@ -1677,7 +1666,7 @@ int slam_api_test()
 			}
 		}
 		used_ports.clear();
-		if(zts_nsockets() == 0)
+		if (zts_nsockets() == 0)
 			std::cout << "PASSED [slam open, bind, listen, accept, close]" << std::endl;
 		else
 			std::cout << "FAILED [slam open, bind, listen, accept, close]" << std::endl;
@@ -1690,7 +1679,7 @@ int slam_api_test()
 	int num_times = zts_maxsockets();
 	std::cout << "socket/connect/close - " << num_times << " times" << std::endl;
 	for(int i=0;i<(SLAM_NUMBER*SLAM_REPEAT); i++) { results[i] = 0; }
-	if(true) 
+	if (true) 
 	{
 		int port = 4545;
 		
@@ -1703,17 +1692,17 @@ int slam_api_test()
 
 			// socket()
 			printf("creating socket... (%d)\n", j);
-			if((sock = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
+			if ((sock = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
 				std::cout << "error creating socket (errno = " << strerror(errno) << ")" << std::endl;
 			results[j] = std::min(results[j], sock);
 			
 			// set O_NONBLOCK
-			if((err = FCNTL(sock, F_SETFL, O_NONBLOCK) < 0))
+			if ((err = FCNTL(sock, F_SETFL, O_NONBLOCK) < 0))
 				std::cout << "error setting O_NONBLOCK (errno=" << strerror(errno) << ")" << std::endl;
 			results[j] = std::min(results[j], err);
 
 			// connect()
-			if(false) {
+			if (false) {
 				server = gethostbyname2("::",AF_INET6);
 				memset((char *) &addr6, 0, sizeof(addr6));
 				addr6.sin6_flowinfo = 0;
@@ -1722,7 +1711,7 @@ int slam_api_test()
 				addr6.sin6_addr = in6addr_any;
 				err = CONNECT(sock, (struct sockaddr *)&addr6, (socklen_t)(sizeof addr6));
 			}
-			if(true) {
+			if (true) {
 				addr.sin_port = htons(port);
 				addr.sin_addr.s_addr = inet_addr("10.9.9.51");
 				//addr.sin_addr.s_addr = htons(INADDR_ANY);
@@ -1730,20 +1719,20 @@ int slam_api_test()
 				err = CONNECT(sock, (struct sockaddr *)&addr, (socklen_t)(sizeof addr));
 			}
 
-			if(errno != EINPROGRESS) { // acceptable error for non-block mode
-				if(err < 0)
+			if (errno != EINPROGRESS) { // acceptable error for non-block mode
+				if (err < 0)
 					std::cout << "error connecting socket (errno = " << strerror(errno) << ")" << std::endl;
 				results[j] = std::min(results[j], err);
 			}
 
 			// close()
-			if((err = CLOSE(sock)) < 0)
+			if ((err = CLOSE(sock)) < 0)
 				std::cout << "error closing socket (errno = " << strerror(errno) << ")" << std::endl;
 			results[j] = std::min(results[j], err);
 		}
 
 		displayResults(results, num_times);
-		if(zts_nsockets() == 0)
+		if (zts_nsockets() == 0)
 			std::cout << "PASSED [slam open, connect, close]" << std::endl;
 		else
 			std::cout << "FAILED [slam open, connect, close]" << std::endl;
@@ -1762,16 +1751,16 @@ int obscure_api_test()
 	int fd, client_fd;
 
 	// after accept()
-	if((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
+	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
 		DEBUG_ERROR("error creating ZeroTier socket");
-	if((err = BIND(fd, (struct sockaddr *)addr, sizeof(struct sockaddr_in)) < 0))
+	if ((err = BIND(fd, (struct sockaddr *)addr, sizeof(struct sockaddr_in)) < 0))
 		DEBUG_ERROR("error binding to interface (%d)", err);
-	if((err = LISTEN(fd, 100)) < 0)
+	if ((err = LISTEN(fd, 100)) < 0)
 		printf("error placing socket in LISTENING state (%d)", err);
 	// accept
 	struct sockaddr_in client;
 	socklen_t client_addrlen = sizeof(sockaddr_in);
-	if((client_fd = accept(fd, (struct sockaddr *)&client, &client_addrlen)) < 0)
+	if ((client_fd = accept(fd, (struct sockaddr *)&client, &client_addrlen)) < 0)
 		fprintf(stderr,"error accepting connection (%d)\n", err);
 	fprintf(stderr, "accepted connection from %s, on port %d", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
 	// getpeername
@@ -1783,9 +1772,9 @@ int obscure_api_test()
 	// compate getpeername() result to address returned by accept()
 
 	// after connect
-	if((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
+	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
 		DEBUG_ERROR("error creating ZeroTier socket");
-	if((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0)
+	if ((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0)
 		DEBUG_ERROR("error connecting to remote host (%d)", err);
 	// TODO: Put this test in the general API section
 	struct sockaddr_storage peer_addr;
@@ -1991,7 +1980,7 @@ void test_bad_args()
 
 				err = SOCKET(protocol_family, socket_type, protocol);
 				usleep(100000);
-				if(err < 0) {
+				if (err < 0) {
 					DEBUG_ERROR("SOCKET(%d, %d, %d) = %d, errno=%d (%s)", protocol_family, socket_type, protocol, err, errno, strerror(errno));
 				}
 				else {
@@ -2036,7 +2025,7 @@ void* create_socket(void *arg)
 	unsigned long i = 0;
 	pthread_t id = pthread_self();
 
-	if(pthread_equal(id,tid[0]))
+	if (pthread_equal(id,tid[0]))
 	{
 		printf("\n First thread processing\n");
 	}
@@ -2085,15 +2074,15 @@ void close_test(struct sockaddr *bind_addr)
 	for(int i=0; i<tries; i++)
 	{
 		int fd;
-		if((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+		if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
 			DEBUG_ERROR("error creating socket. sleeping until timers are released");
 			sleep(30);
 		}
-		if((err = BIND(fd, (struct sockaddr *)bind_addr, sizeof(struct sockaddr_in)) < 0)) { 
+		if ((err = BIND(fd, (struct sockaddr *)bind_addr, sizeof(struct sockaddr_in)) < 0)) { 
 			DEBUG_ERROR("error binding to interface (%d)", err);
 		}
 		usleep(100000);
-		if((err = CLOSE(fd)) < 0) {
+		if ((err = CLOSE(fd)) < 0) {
 			DEBUG_ERROR("error closing socket (%d)", err);
 		}
 		DEBUG_TEST("i=%d, close() = %d", i, err);
@@ -2109,10 +2098,10 @@ void bind_to_localhost_test(int port)
 	struct sockaddr_storage bind_addr;
 	DEBUG_TEST("binding to 0.0.0.0");
 	str2addr("0.0.0.0", port, 4, (struct sockaddr *)&bind_addr);
-	if((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) > 0) {
-		if((err = BIND(fd, (struct sockaddr *)&bind_addr, sizeof(struct sockaddr_in))) == 0) { 
+	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) > 0) {
+		if ((err = BIND(fd, (struct sockaddr *)&bind_addr, sizeof(struct sockaddr_in))) == 0) { 
 			usleep(100000);
-			if((err = CLOSE(fd)) < 0) {
+			if ((err = CLOSE(fd)) < 0) {
 				DEBUG_ERROR("error closing socket (%d)", err);
 			}
 		}
@@ -2130,10 +2119,10 @@ void bind_to_localhost_test(int port)
 	// ipv4, 127.0.0.1
 	DEBUG_TEST("binding to 127.0.0.1");
 	str2addr("127.0.0.1", port, 4, (struct sockaddr *)&bind_addr);
-	if((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) > 0) {
-		if((err = BIND(fd, (struct sockaddr *)&bind_addr, sizeof(struct sockaddr_in))) == 0) { 
+	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) > 0) {
+		if ((err = BIND(fd, (struct sockaddr *)&bind_addr, sizeof(struct sockaddr_in))) == 0) { 
 			usleep(100000);
-			if((err = CLOSE(fd)) < 0) {
+			if ((err = CLOSE(fd)) < 0) {
 				DEBUG_ERROR("error closing socket (%d)", err);
 			}
 		}
@@ -2151,10 +2140,10 @@ void bind_to_localhost_test(int port)
 	// ipv6, [::]
 	DEBUG_TEST("binding to [::]");
 	str2addr("::", port, 6, (struct sockaddr *)&bind_addr);
-	if((fd = SOCKET(AF_INET6, SOCK_STREAM, 0)) > 0) {
-		if((err = BIND(fd, (struct sockaddr *)&bind_addr, sizeof(struct sockaddr_in))) == 0) { 
+	if ((fd = SOCKET(AF_INET6, SOCK_STREAM, 0)) > 0) {
+		if ((err = BIND(fd, (struct sockaddr *)&bind_addr, sizeof(struct sockaddr_in))) == 0) { 
 			usleep(100000);
-			if((err = CLOSE(fd)) < 0) {
+			if ((err = CLOSE(fd)) < 0) {
 				DEBUG_ERROR("error closing socket (%d)", err);
 			}
 		}
@@ -2175,7 +2164,7 @@ void bind_to_localhost_test(int port)
 
 int main(int argc , char *argv[])
 {
-	if(argc < 6) {
+	if (argc < 6) {
 		fprintf(stderr, "usage: selftest <num_repeats> <selftest.conf> <alice|bob|ted|carol> to <bob|alice|ted|carol>\n");
 		fprintf(stderr, "e.g. : selftest 3 test/test.conf alice to bob\n");
 		return 1;
@@ -2212,7 +2201,7 @@ int main(int argc , char *argv[])
 	struct sockaddr_storage remote_addr;
 
 	// load config file
-	if(path.find(".conf") == std::string::npos) {
+	if (path.find(".conf") == std::string::npos) {
 		fprintf(stderr, "Possibly invalid conf file. Exiting...\n");
 		exit(0);
 	}
@@ -2229,7 +2218,7 @@ int main(int argc , char *argv[])
 	remote_ipstr     = testConf[to + ".ipv4"];
 	remote_ipstr6    = testConf[to + ".ipv6"];
 
-	if(strcmp(smode.c_str(), "server") == 0)
+	if (strcmp(smode.c_str(), "server") == 0)
 		mode = TEST_MODE_SERVER;
 	else
 		mode = TEST_MODE_CLIENT;
@@ -2256,22 +2245,24 @@ int main(int argc , char *argv[])
 	char device_id[ZT_ID_LEN];
 	zts_get_device_id(device_id);
 	DEBUG_TEST("I am %s, %s", device_id, me.c_str());
-	if(mode == TEST_MODE_SERVER)
+	if (mode == TEST_MODE_SERVER) {
 		DEBUG_TEST("Ready. You should start selftest program on second host now...\n\n");
-	if(mode == TEST_MODE_CLIENT)
+	}
+	if (mode == TEST_MODE_CLIENT) {
 		DEBUG_TEST("Ready. Contacting selftest program on first host.\n\n");
+	}
 #endif // __SELFTEST__
 
 	// What follows is a long-form of zts_simple_start():
 	/*
 	 zts_start(path.c_str());
 	 printf("waiting for service to start...\n");
-	 while(!zts_running())
+	 while(zts_running() == false)
 		sleep(1);
 	 printf("joining network...\n");
 	 zts_join(nwid.c_str());
 	 printf("waiting for address assignment...\n");
-	 while(!zts_has_address(nwid.c_str()))
+	 while(zts_has_address(nwid.c_str()) == false)
 		sleep(1);
 	*/
 
@@ -2345,13 +2336,13 @@ for(int i=0; i<num_repeats; i++)
 		subtest_start_time_offset += subtest_expected_duration;
 		subtest_expected_duration = 30;
 
-		if(mode == TEST_MODE_SERVER) {
+		if (mode == TEST_MODE_SERVER) {
 			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
 			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
 			udp_server_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
 		}
-		else if(mode == TEST_MODE_CLIENT) {
+		else if (mode == TEST_MODE_CLIENT) {
 			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
 			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
@@ -2361,13 +2352,13 @@ for(int i=0; i<num_repeats; i++)
 		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
 		port++; // move up one port
 		subtest_start_time_offset+=subtest_expected_duration;
-		if(mode == TEST_MODE_SERVER) {
+		if (mode == TEST_MODE_SERVER) {
 			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
 			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
 			udp_server_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
 		}
-		else if(mode == TEST_MODE_CLIENT) {
+		else if (mode == TEST_MODE_CLIENT) {
 			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
 			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
@@ -2382,13 +2373,13 @@ for(int i=0; i<num_repeats; i++)
 		subtest_start_time_offset+=subtest_expected_duration;
 		subtest_expected_duration = 30;
 
-		if(mode == TEST_MODE_SERVER) {
+		if (mode == TEST_MODE_SERVER) {
 			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
 			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
 			udp_server_sustained_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
 		}
-		else if(mode == TEST_MODE_CLIENT) {
+		else if (mode == TEST_MODE_CLIENT) {
 			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
 			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
@@ -2398,13 +2389,13 @@ for(int i=0; i<num_repeats; i++)
 		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
 		port++; // move up one port
 		subtest_start_time_offset+=subtest_expected_duration;
-		if(mode == TEST_MODE_SERVER) {
+		if (mode == TEST_MODE_SERVER) {
 			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
 			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
 			udp_server_sustained_4((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
 		}
-		else if(mode == TEST_MODE_CLIENT) {
+		else if (mode == TEST_MODE_CLIENT) {
 			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
 			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
@@ -2419,12 +2410,12 @@ for(int i=0; i<num_repeats; i++)
 		subtest_start_time_offset+=subtest_expected_duration;
 		subtest_expected_duration = 30;
 
-		if(mode == TEST_MODE_SERVER) {
+		if (mode == TEST_MODE_SERVER) {
 			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
 			tcp_server_4((struct sockaddr_in *)&local_addr, op, cnt, details, &passed); 
 		}
-		else if(mode == TEST_MODE_CLIENT) {
+		else if (mode == TEST_MODE_CLIENT) {
 			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
 			tcp_client_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
@@ -2433,12 +2424,12 @@ for(int i=0; i<num_repeats; i++)
 		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
 		port++; // move up one port
 		subtest_start_time_offset+=subtest_expected_duration;
-		if(mode == TEST_MODE_SERVER) {
+		if (mode == TEST_MODE_SERVER) {
 			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
 			tcp_server_4((struct sockaddr_in *)&local_addr, op, cnt, details, &passed); 
 		}
-		else if(mode == TEST_MODE_CLIENT) {
+		else if (mode == TEST_MODE_CLIENT) {
 			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
 			tcp_client_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
@@ -2452,12 +2443,12 @@ for(int i=0; i<num_repeats; i++)
 		subtest_start_time_offset+=subtest_expected_duration;
 		subtest_expected_duration = 30;
 
-		if(mode == TEST_MODE_SERVER) {
+		if (mode == TEST_MODE_SERVER) {
 			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
 			tcp_server_sustained_4((struct sockaddr_in *)&local_addr, op, cnt, details, &passed); 
 		}
-		else if(mode == TEST_MODE_CLIENT) {
+		else if (mode == TEST_MODE_CLIENT) {
 			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
 			tcp_client_sustained_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
@@ -2466,12 +2457,12 @@ for(int i=0; i<num_repeats; i++)
 		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
 		port++;
 		subtest_start_time_offset+=subtest_expected_duration;
-		if(mode == TEST_MODE_SERVER) {
+		if (mode == TEST_MODE_SERVER) {
 			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
 			tcp_server_sustained_4((struct sockaddr_in *)&local_addr, op, cnt, details, &passed); 
 		}
-		else if(mode == TEST_MODE_CLIENT) {
+		else if (mode == TEST_MODE_CLIENT) {
 			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
 			tcp_client_sustained_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
@@ -2485,7 +2476,7 @@ for(int i=0; i<num_repeats; i++)
 		// ipv4 echo test (TCP)
 		/*
 		ipv = 4;	
-		if(me == "alice" || me == "ted") {
+		if (me == "alice" || me == "ted") {
 			port=start_port+100; // e.g. 7100
 			str2addr(remote_echo_ipv4, port, ipv, (struct sockaddr *)&remote_addr);
 			tcp_perf_tx_echo_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
@@ -2493,7 +2484,7 @@ for(int i=0; i<num_repeats; i++)
 			tcp_perf_rx_echo_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
 			RECORD_RESULTS(passed, details, &results);
 		}
-		if(me == "bob" || me == "carol") {
+		if (me == "bob" || me == "carol") {
 			DEBUG_TEST("waiting (15s) for other selftest to complete before continuing...");
 			port=start_port+101; // e.g. 7101
 			str2addr(remote_echo_ipv4, port, ipv, (struct sockaddr *)&remote_addr);
@@ -2517,13 +2508,13 @@ for(int i=0; i<num_repeats; i++)
 		subtest_start_time_offset+=subtest_expected_duration;
 		subtest_expected_duration = 30;
 
-		if(mode == TEST_MODE_SERVER) {
+		if (mode == TEST_MODE_SERVER) {
 			str2addr(local_ipstr6, port, ipv, (struct sockaddr*)&local_addr);
 			str2addr(remote_ipstr6, port, ipv, (struct sockaddr*)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
 			udp_server_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
 		}
-		else if(mode == TEST_MODE_CLIENT) {
+		else if (mode == TEST_MODE_CLIENT) {
 			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
 			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
@@ -2533,13 +2524,13 @@ for(int i=0; i<num_repeats; i++)
 		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
 		port++; // move up one port
 		subtest_start_time_offset+=subtest_expected_duration;
-		if(mode == TEST_MODE_SERVER) {
+		if (mode == TEST_MODE_SERVER) {
 			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
 			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
 			udp_server_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
 		}
-		else if(mode == TEST_MODE_CLIENT) {
+		else if (mode == TEST_MODE_CLIENT) {
 			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
 			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
@@ -2556,13 +2547,13 @@ for(int i=0; i<num_repeats; i++)
 		subtest_start_time_offset+=subtest_expected_duration;
 		subtest_expected_duration = 30;
 
-		if(mode == TEST_MODE_SERVER) {
+		if (mode == TEST_MODE_SERVER) {
 			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
 			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
 			udp_server_sustained_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
 		}
-		else if(mode == TEST_MODE_CLIENT) {
+		else if (mode == TEST_MODE_CLIENT) {
 			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
 			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
@@ -2572,13 +2563,13 @@ for(int i=0; i<num_repeats; i++)
 		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
 		port++; // move up one port
 		subtest_start_time_offset+=subtest_expected_duration;
-		if(mode == TEST_MODE_SERVER) {
+		if (mode == TEST_MODE_SERVER) {
 			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
 			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
 			udp_server_sustained_6((struct sockaddr_in6 *)&local_addr, (struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
 		}
-		else if(mode == TEST_MODE_CLIENT) {
+		else if (mode == TEST_MODE_CLIENT) {
 			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
 			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
@@ -2593,12 +2584,12 @@ for(int i=0; i<num_repeats; i++)
 		subtest_start_time_offset+=subtest_expected_duration;
 		subtest_expected_duration = 30;
 
-		if(mode == TEST_MODE_SERVER) {
+		if (mode == TEST_MODE_SERVER) {
 			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
 			tcp_server_6((struct sockaddr_in6 *)&local_addr, op, cnt, details, &passed); 
 		}
-		else if(mode == TEST_MODE_CLIENT) {
+		else if (mode == TEST_MODE_CLIENT) {
 			DEBUG_TEST("waiting (15s) for other selftest to complete before continuing...");
 			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
@@ -2608,12 +2599,12 @@ for(int i=0; i<num_repeats; i++)
 		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
 		port++; // move up one port
 		subtest_start_time_offset+=subtest_expected_duration;
-		if(mode == TEST_MODE_SERVER) {
+		if (mode == TEST_MODE_SERVER) {
 			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
 			tcp_server_6((struct sockaddr_in6 *)&local_addr, op, cnt, details, &passed); 
 		}
-		else if(mode == TEST_MODE_CLIENT) {
+		else if (mode == TEST_MODE_CLIENT) {
 			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
 			tcp_client_6((struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
@@ -2627,12 +2618,12 @@ for(int i=0; i<num_repeats; i++)
 		subtest_start_time_offset+=subtest_expected_duration;
 		subtest_expected_duration = 30;
 
-		if(mode == TEST_MODE_SERVER) {
+		if (mode == TEST_MODE_SERVER) {
 			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
 			tcp_server_sustained_6((struct sockaddr_in6 *)&local_addr, op, cnt, details, &passed); 
 		}
-		else if(mode == TEST_MODE_CLIENT) {
+		else if (mode == TEST_MODE_CLIENT) {
 			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
 			tcp_client_sustained_6((struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 
@@ -2641,12 +2632,12 @@ for(int i=0; i<num_repeats; i++)
 		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
 		port++;
 		subtest_start_time_offset+=subtest_expected_duration;
-		if(mode == TEST_MODE_SERVER) {
+		if (mode == TEST_MODE_SERVER) {
 			str2addr(local_ipstr6, port, ipv, (struct sockaddr *)&local_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
 			tcp_server_sustained_6((struct sockaddr_in6 *)&local_addr, op, cnt, details, &passed); 
 		}
-		else if(mode == TEST_MODE_CLIENT) {
+		else if (mode == TEST_MODE_CLIENT) {
 			str2addr(remote_ipstr6, port, ipv, (struct sockaddr *)&remote_addr);
 			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
 			tcp_client_sustained_6((struct sockaddr_in6 *)&remote_addr, op, cnt, details, &passed); 

@@ -14,7 +14,7 @@ char *msg = (char*)"welcome to the machine";
 
 int main(int argc, char **argv)
 {
-	if(argc != 5) {
+	if (argc != 5) {
 		printf("\nlibzt example client\n");
 		printf("client [config_file_path] [nwid] [remote_addr] [remote_port]\n");
 		exit(0);
@@ -43,11 +43,11 @@ int main(int argc, char **argv)
 	sleep(2);
 
 	// socket()
-	if((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	if ((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		DEBUG_ERROR("error creating ZeroTier socket");
 
 	// connect()
-	if((err = zts_connect(sockfd, (const struct sockaddr *)&in4, sizeof(in4))) < 0)
+	if ((err = zts_connect(sockfd, (const struct sockaddr *)&in4, sizeof(in4))) < 0)
 		DEBUG_ERROR("error connecting to remote host (%d)", err);
 
 	// tx

@@ -77,7 +77,6 @@
 #if defined(NS_DEBUG)
 	#define DEBUG_LWIP(fmt, args...) fprintf(stderr, ZT_YEL "LWIP : %17s:%5d:%25s: " fmt   \
 		ZT_RESET, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
-
 	#define DEBUG_STACK(fmt, args...) fprintf(stderr, ZT_YEL "STACK: %17s:%5d:%25s: " fmt   \
 		ZT_RESET, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 #else
@@ -116,8 +115,6 @@
 				"INFO : %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 			#define DEBUG_ATTN(fmt, args...) fprintf(stderr, ZT_CYN                                        \
 				"ATTN : %17s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
-			#define DEBUG_STACK(fmt, args...) fprintf(stderr, ZT_YEL                                       \
-				"STACK: %17s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 			#define DEBUG_BLANK(fmt, args...) fprintf(stderr,                                              \
 				"INFO : %17s:%5d:" fmt "\n", ZT_FILENAME, __LINE__, ##args)
 	#endif

@@ -35,6 +35,7 @@
 #include <utility>
 #include <stdexcept>
 #include <stdint.h>
+#include <errno.h>
 
 #include "Constants.hpp"
 #include "MulticastGroup.hpp"
@@ -58,7 +59,8 @@
 #include "pico_ipv6.h"
 #endif
 #if defined(STACK_LWIP)
-#include "lwIP.hpp"
+#include "lwip/netif.h"
+struct netif;
 #endif
 
 namespace ZeroTier {

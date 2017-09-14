@@ -31,6 +31,7 @@
 
 #include <stdio.h>
 #include <dlfcn.h>
+#include <errno.h>
 
 #include "lwip/mem.h"
 #include "lwip/pbuf.h"

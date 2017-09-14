@@ -27,13 +27,12 @@
 #include <netinet/in.h>
 #include <net/if_arp.h>
 #include <arpa/inet.h>
+#include <errno.h>
 
-#include <algorithm>
 #include <utility>
 #include <sys/poll.h>
 #include <stdint.h>
 #include <utility>
-#include <string>
 
 #include "VirtualTap.hpp"
 #include "libzt.h"
@@ -133,13 +132,13 @@ namespace ZeroTier {
 	bool VirtualTap::registerIpWithStack(const InetAddress &ip)
 	{
 #if defined(STACK_PICO)
-		if(picostack){
+		if (picostack) {
 			picostack->pico_register_address(this, ip);
 			return true;
 		}
 #endif
 #if defined(STACK_LWIP)
-		if(lwipstack){
+		if (lwipstack) {
 			lwipstack->lwip_init_interface(this, ip);
 			return true;
 		}
@@ -159,7 +158,7 @@ namespace ZeroTier {
 #if defined(STACK_PICO) || defined(STACK_LWIP)
 		char ipbuf[INET6_ADDRSTRLEN];
 		DEBUG_INFO("addIp (%s)", ip.toString(ipbuf));
-		if(registerIpWithStack(ip)) {
+		if (registerIpWithStack(ip)) {
 			if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
 				_ips.push_back(ip);
 				std::sort(_ips.begin(),_ips.end());
@@ -196,12 +195,14 @@ namespace ZeroTier {
 		const void *data,unsigned int len)
 	{
 #if defined(STACK_PICO)
-		if(picostack)
+		if (picostack) {
 			picostack->pico_eth_rx(this,from,to,etherType,data,len);
+		}
 #endif
 #if defined(STACK_LWIP)
-		if(lwipstack)
+		if (lwipstack) {
 			lwipstack->lwip_eth_rx(this,from,to,etherType,data,len);
+		}
 #endif
 	}
 
@@ -213,7 +214,7 @@ namespace ZeroTier {
 	std::string VirtualTap::nodeId() const
 	{
 		// TODO: This is inefficient and awkward, should be replaced with something more elegant
-		if(zt1ServiceRef) {
+		if (zt1ServiceRef) {
 			char id[ZT_ID_LEN];
 			memset(id, 0, sizeof(id));
 			sprintf(id, "%lx",((ZeroTier::OneService *)zt1ServiceRef)->getNode()->address());
@@ -265,9 +266,9 @@ namespace ZeroTier {
 		throw()
 	{
 #if defined(STACK_PICO)
-		if(picostack){
+		if (picostack) {
 			picostack->pico_init_interface(this);
-			if(should_start_stack) {
+			if (should_start_stack) {
 				// Add link to ipv4_link_add
 				//ZeroTier::InetAddress localhost;
 				//localhost.fromString("127.0.0.1");
@@ -277,17 +278,18 @@ namespace ZeroTier {
 		}
 #endif
 #if defined(STACK_LWIP)
-		if(lwipstack)
+		if (lwipstack)
 			lwipstack->lwip_loop(this);
 #endif
 	}
 
 	void VirtualTap::phyOnUnixClose(PhySocket *sock,void **uptr)
 	{
-		if(sock) {
+		if (sock) {
 			VirtualSocket *vs = (VirtualSocket*)uptr;
-			if(vs)
+			if (vs) {
 				Close(vs);
+			}
 		}
 	}
 
@@ -295,9 +297,10 @@ namespace ZeroTier {
 	{
 		//DEBUG_ATTN("sock->fd=%d", _phy.getDescriptor(sock));
 		VirtualSocket *vs = (VirtualSocket*)*uptr;
-		if(!vs)
+		if (vs == NULL) {
 			return;
-		if(len){
+		}
+		if (len > 0) {
 			Write(vs, data, len);
 		}
 		return;
@@ -305,7 +308,7 @@ namespace ZeroTier {
 
 	void VirtualTap::phyOnUnixWritable(PhySocket *sock, void **uptr, bool stack_invoked)
 	{
-		if(sock)
+		if (sock)
 			Read(sock,uptr,stack_invoked);
 	}
 
@@ -316,12 +319,12 @@ namespace ZeroTier {
 		return false;
 #endif
 #if defined(STACK_PICO)
-		if(picostack) {
+		if (picostack) {
 			return picostack->pico_route_add(this, addr, nm, gw, 0);
 		}
 #endif
 #if defined(STACK_LWIP)
-		if(lwipstack) {
+		if (lwipstack) {
 			return true;
 		}
 #endif
@@ -335,12 +338,12 @@ namespace ZeroTier {
 		return false;
 #endif
 #if defined(STACK_PICO)
-		if(picostack) {
+		if (picostack) {
 			return picostack->pico_route_del(this, addr, nm, 0);
 		}
 #endif
 #if defined(STACK_LWIP)
-		if(lwipstack) {
+		if (lwipstack) {
 			return true;
 		}
 #endif
@@ -357,7 +360,7 @@ namespace ZeroTier {
 	{
 		Mutex::Lock _l(_tcpconns_m);
 		for(int i=0; i<_VirtualSockets.size(); i++) {
-			if(vs == _VirtualSockets[i]) {
+			if (vs == _VirtualSockets[i]) {
 				_VirtualSockets.erase(_VirtualSockets.begin() + i);
 				//DEBUG_EXTRA("Removed vs=%p from vt=%p", vs, this);
 				break;
@@ -400,13 +403,13 @@ namespace ZeroTier {
 		return -1;
 #endif
 #if defined(STACK_PICO)
-		if(picostack) {
+		if (picostack) {
 			Mutex::Lock _l(_tcpconns_m);
 			return picostack->pico_Connect(vs, addr, addrlen);
 		}
 #endif
 #if defined(STACK_LWIP)
-		if(lwipstack) {
+		if (lwipstack) {
 			return lwipstack->lwip_Connect(vs, addr, addrlen);
 		}
 #endif
@@ -419,13 +422,13 @@ namespace ZeroTier {
 		return -1;
 #endif
 #if defined(STACK_PICO)
-		if(picostack) {
+		if (picostack) {
 			Mutex::Lock _l(_tcpconns_m);
 			return picostack->pico_Bind(vs, addr, addrlen);
 		}
 #endif
 #if defined(STACK_LWIP)
-		if(lwipstack) {
+		if (lwipstack) {
 			Mutex::Lock _l(_tcpconns_m);
 			return lwipstack->lwip_Bind(this, vs, addr, addrlen);
 		}
@@ -439,7 +442,7 @@ namespace ZeroTier {
 		return -1;
 #endif
 #if defined(STACK_PICO)
-		if(picostack) {
+		if (picostack) {
 			Mutex::Lock _l(_tcpconns_m);
 			return picostack->pico_Listen(vs, backlog);
 		}
@@ -448,7 +451,7 @@ namespace ZeroTier {
 		}
 #endif
 #if defined(STACK_LWIP)
-		if(lwipstack) {
+		if (lwipstack) {
 			Mutex::Lock _l(_tcpconns_m);
 			return lwipstack->lwip_Listen(vs, backlog);
 		}
@@ -465,7 +468,7 @@ namespace ZeroTier {
 #endif
 #if defined(STACK_PICO)
 		// TODO: separation of church and state
-		if(picostack) {
+		if (picostack) {
 			Mutex::Lock _l(_tcpconns_m);
 			return picostack->pico_Accept(vs);
 		}
@@ -474,7 +477,7 @@ namespace ZeroTier {
 		}
 #endif
 #if defined(STACK_LWIP)
-		if(lwipstack) {
+		if (lwipstack) {
 			Mutex::Lock _l(_tcpconns_m);
 			return lwipstack->lwip_Accept(vs);
 		}
@@ -487,12 +490,12 @@ namespace ZeroTier {
 	// Read from stack/buffers into the app's socket
 	int VirtualTap::Read(PhySocket *sock,void **uptr,bool stack_invoked) {
 #if defined(STACK_PICO)
-		if(picostack) {
+		if (picostack) {
 			return picostack->pico_Read(this, sock, (VirtualSocket*)uptr, stack_invoked);
 		}
 #endif
 #if defined(STACK_LWIP)
-		if(lwipstack) {
+		if (lwipstack) {
 			return lwipstack->lwip_Read((VirtualSocket*)*(_phy.getuptr(sock)), stack_invoked);
 		}
 #endif
@@ -502,7 +505,7 @@ namespace ZeroTier {
 	// Write data from app socket to the virtual wire, either raw over VL2, or via network stack
 	int VirtualTap::Write(VirtualSocket *vs, void *data, ssize_t len) {
 		// VL2, SOCK_RAW, no network stack
-		if(vs->socket_type == SOCK_RAW) {
+		if (vs->socket_type == SOCK_RAW) {
 			struct ether_header *eh = (struct ether_header *) data;
 			MAC src_mac;
 			MAC dest_mac;
@@ -512,12 +515,12 @@ namespace ZeroTier {
 			return len;
 		}
 #if defined(STACK_PICO)
-		if(picostack) {
+		if (picostack) {
 			return picostack->pico_Write(vs, data, len);
 		}
 #endif
 #if defined(STACK_LWIP)
-		if(lwipstack) {
+		if (lwipstack) {
 			return lwipstack->lwip_Write(vs, data, len);
 		}
 #endif
@@ -533,23 +536,23 @@ namespace ZeroTier {
 		// TODO: flags
 		int err = 0;
 #if defined(STACK_PICO)
-		if(picostack) {
-			if((err = picostack->pico_Connect(vs, addr, addrlen)) < 0) { // implicit
+		if (picostack) {
+			if ((err = picostack->pico_Connect(vs, addr, addrlen)) < 0) { // implicit
 				errno = ENOTCONN;
 				return err;
 			}
-			if((err = picostack->pico_Write(vs, (void*)buf, len)) < 0) {
+			if ((err = picostack->pico_Write(vs, (void*)buf, len)) < 0) {
 				errno = ENOBUFS; // TODO: translate pico err to something more useful
 				return err;
 			}
 		}
 #endif
 #if defined(STACK_LWIP)
-		if(lwipstack) {
-			if((err = lwipstack->lwip_Connect(vs, addr, addrlen)) < 0) { // implicit
+		if (lwipstack) {
+			if ((err = lwipstack->lwip_Connect(vs, addr, addrlen)) < 0) { // implicit
 				return err;
 			}
-			if((err = lwipstack->lwip_Write(vs, (void*)buf, len)) < 0) {
+			if ((err = lwipstack->lwip_Write(vs, (void*)buf, len)) < 0) {
 				return err;
 			}
 		}
@@ -561,22 +564,22 @@ namespace ZeroTier {
 	// respective protocol control structures
 	int VirtualTap::Close(VirtualSocket *vs) {
 		int err = 0;
-		if(!vs) {
+		if (vs == NULL) {
 			DEBUG_ERROR("invalid VirtualSocket");
 			return -1;
 		}
 		removeVirtualSocket(vs);
 #if defined(STACK_PICO)
-		if(picostack) {
+		if (picostack) {
 			err = picostack->pico_Close(vs);
 		}
 #endif
 #if defined(STACK_LWIP)
-		if(lwipstack) {
+		if (lwipstack) {
 			err = lwipstack->lwip_Close(vs);
 		}
 #endif
-		if(vs->sock) {
+		if (vs->sock) {
 			_phy.close(vs->sock, false);
 		}
 		return err;
@@ -587,12 +590,12 @@ namespace ZeroTier {
 	{
 		int err = 0;
 #if defined(STACK_PICO)
-		if(picostack) {
+		if (picostack) {
 			err = picostack->pico_Shutdown(vs, how);
 		}
 #endif
 #if defined(STACK_LWIP)
-		if(lwipstack) {
+		if (lwipstack) {
 			err = lwipstack->lwip_Shutdown(vs, how);
 		}
 #endif
@@ -603,10 +606,10 @@ namespace ZeroTier {
 	{
 		Mutex::Lock _l(_tcpconns_m);
 		std::time_t current_ts = std::time(nullptr);
-		if(current_ts > last_housekeeping_ts + ZT_HOUSEKEEPING_INTERVAL) {
+		if (current_ts > last_housekeeping_ts + ZT_HOUSEKEEPING_INTERVAL) {
 			// update managed routes (add/del from network stacks)
 			ZeroTier::OneService *service = ((ZeroTier::OneService *)zt1ServiceRef);
-			if(service) {
+			if (service) {
 				std::vector<ZT_VirtualNetworkRoute> *managed_routes = service->getRoutes(this->_nwid);
 				ZeroTier::InetAddress target_addr;
 				ZeroTier::InetAddress via_addr;
@@ -623,16 +626,16 @@ namespace ZeroTier {
 					via_addr = managed_routes->at(i).via;
 					nm = target_addr.netmask();
 					for(int j=0; j<routes.size(); j++) {
-						if(via_addr.ipsEqual(null_addr) || target_addr.ipsEqual(null_addr)) {
+						if (via_addr.ipsEqual(null_addr) || target_addr.ipsEqual(null_addr)) {
 							found=true;
 							continue;
 						}
-						if(routes[j].first.ipsEqual(target_addr) && routes[j].second.ipsEqual(nm)) {
+						if (routes[j].first.ipsEqual(target_addr) && routes[j].second.ipsEqual(nm)) {
 							found=true;
 						}
 					}
-					if(!found) {
-						if(!via_addr.ipsEqual(null_addr)) {
+					if (found == false) {
+						if (via_addr.ipsEqual(null_addr) == false) {
 							DEBUG_INFO("adding route <target=%s, nm=%s, via=%s>", target_addr.toString(ipbuf), nm.toString(ipbuf2), via_addr.toString(ipbuf3));
 							routes.push_back(std::pair<ZeroTier::InetAddress,ZeroTier::InetAddress>(target_addr, nm));
 							routeAdd(target_addr, nm, via_addr);
@@ -646,11 +649,11 @@ namespace ZeroTier {
 						target_addr = managed_routes->at(j).target;
 						via_addr = managed_routes->at(j).via;
 						nm = target_addr.netmask();
-						if(routes[i].first.ipsEqual(target_addr) && routes[i].second.ipsEqual(nm)) {
+						if (routes[i].first.ipsEqual(target_addr) && routes[i].second.ipsEqual(nm)) {
 							found=true;
 						}
 					}
-					if(!found) {
+					if (found == false) {
 						DEBUG_INFO("removing route to <target=%s>", routes[i].first.toString(ipbuf), routes[i].second.toString(ipbuf2));
 						routes.erase(routes.begin() + i);
 						routeDelete(routes[i].first, routes[i].second);

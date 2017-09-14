@@ -43,7 +43,6 @@
  * will be set to standard values. Override anything you dont like!
  */
 #include "lwip/debug.h"
-#include "Debug.hpp"
 
 // IP Protocol version
 #if defined(LIBZT_IPV6)

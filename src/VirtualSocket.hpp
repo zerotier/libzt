@@ -108,8 +108,8 @@ namespace ZeroTier {
 			// socketpair, I/O channel between app and stack drivers
 			closure_ts = -1;
 			ZT_PHY_SOCKFD_TYPE fdpair[2];
-			if(socketpair(PF_LOCAL, SOCK_STREAM, 0, fdpair) < 0) {
-				if(errno < 0) {
+			if (socketpair(PF_LOCAL, SOCK_STREAM, 0, fdpair) < 0) {
+				if (errno < 0) {
 					DEBUG_ERROR("unable to create socketpair, errno=%d", errno);
 					return;
 				}

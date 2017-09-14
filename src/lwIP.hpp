@@ -217,6 +217,11 @@ namespace ZeroTier {
 		static int lwip_num_current_raw_pcbs();
 
 		/*
+		 * Returns the total number of PCBs of any time or state
+ 		 */
+		int lwip_num_total_pcbs();
+
+		/*
 		 * Registers a DNS nameserver with the network stack
 		 */
 		int lwip_add_dns_nameserver(struct sockaddr *addr);

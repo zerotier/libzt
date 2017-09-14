@@ -1086,6 +1086,7 @@ int zts_close(ZT_CLOSE_SIG)
 	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
 	if(!vs) {
 		DEBUG_ERROR("no vs found for fd=%d", fd);
+		handle_general_failure();
 		errno = EBADF;
 		return -1;
 	}
@@ -2157,6 +2158,9 @@ ZeroTier::VirtualSocket *get_virtual_socket(int fd)
 		if(p) {
 			vs = p->first;
 		}
+		else {
+			DEBUG_ERROR("unable to locate virtual socket");
+		}
 	}
 	ZeroTier::_multiplexer_lock.unlock();
 	return vs;
@@ -2378,7 +2382,7 @@ void *zts_start_service(void *thread_id) {
 void handle_general_failure() {
 #ifdef ZT_EXIT_ON_GENERAL_FAIL
 	DEBUG_ERROR("exiting (ZT_EXIT_ON_GENERAL_FAIL==1)");
-	//exit(-1);
+	exit(-1);
 #endif
 }
 

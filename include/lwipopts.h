@@ -73,8 +73,6 @@
  */
 #define LWIP_DBG_HALT          0x08U
 
-#define LWIP_DEBUG      0
-
 //#define LWIP_DBG_TYPES_ON LWIP_DBG_TRACE | LWIP_DBG_STATE | LWIP_DBG_FRESH
 
 #define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_ALL

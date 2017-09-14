@@ -294,6 +294,11 @@ nativetest:
 ## Misc                                                                     ##
 ##############################################################################
 
+standardize:
+	vera++ --transform trim_right src/*.cpp
+	vera++ --transform trim_right src/*.hpp
+	vera++ --transform trim_right include/*.cpp
+
 clean:
 	-rm -rf $(BUILD)/*
 	-find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete

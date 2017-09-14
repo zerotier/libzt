@@ -1150,7 +1150,6 @@ void udp_client_sustained_4(UDP_UNIT_TEST_SIG_4)
 
 	int num_to_send = 10;
 	for(int i=0; i<num_to_send; i++) {
-		sleep(1);
 		// tx
 		if((w = SENDTO(fd, msg.c_str(), strlen(msg.c_str()), 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);

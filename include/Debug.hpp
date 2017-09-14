@@ -28,13 +28,13 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 
-#define ZT_DEBUG_LEVEL     6 // Set this to adjust what you'd like to see in the debug traces
+#define ZT_DEBUG_LEVEL     5 // Set this to adjust what you'd like to see in the debug traces
 
 #define ZT_MSG_TEST        1 // For use in selftest
 #define ZT_MSG_ERROR       2 // Errors
 #define ZT_MSG_INFO        3 // Information which is generally useful to any developer
-#define ZT_MSG_EXTRA       4 // If nothing in your world makes sense
-#define ZT_MSG_TRANSFER    5 // RX/TX specific statements
+#define ZT_MSG_TRANSFER    4 // RX/TX specific statements
+#define ZT_MSG_EXTRA       5 // If nothing in your world makes sense
 #define ZT_MSG_FLOW        6 // High-level flow messages
 
 #define ZT_COLOR           true

@@ -46,6 +46,7 @@ for applications to use. See also: include/libzt.h */
 #include <sys/socket.h>
 #include <linux/if_packet.h>
 #include <net/ethernet.h>
+#include <sys/resource.h>
 #endif
 
 #include <pthread.h>

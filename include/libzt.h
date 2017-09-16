@@ -84,6 +84,42 @@ struct zts_ifreq {
 
 #endif
 
+// Provide missing optnames for setsockopt() implementations
+#ifdef _WIN32
+   #ifdef _WIN64
+   #else
+   #endif
+#elif __APPLE__
+#define IP_BIND_ADDRESS_NO_PORT 201
+#define IP_FREEBIND             202
+#define IP_MTU                  203
+#define IP_MTU_DISCOVER         204
+#define IP_MULTICAST_ALL        205
+#define IP_NODEFRAG             206
+#define IP_RECVORIGDSTADDR      207
+#define IP_ROUTER_ALERT         208
+#define IP_TRANSPARENT          209
+#define TCP_INFO                210
+#define SO_STYLE                100
+#define TCP_CORK                101
+#define TCP_DEFER_ACCEPT        102
+#define TCP_KEEPIDLE            103
+#define TCP_LINGER2             104
+#define TCP_QUICKACK            105
+#define TCP_SYNCNT              106
+#define TCP_WINDOW_CLAMP        107
+#define UDP_CORK                108
+#elif __linux__
+#define SO_STYLE                100
+#define UDP_CORK                101
+#define IP_BIND_ADDRESS_NO_PORT 201
+#define IP_NODEFRAG             206
+#elif __unix__
+#elif defined(_POSIX_VERSION)
+#else
+#   error "Unknown platform"
+#endif
+
 /****************************************************************************/
 /* Legend                                                                   */
 /****************************************************************************/
@@ -574,12 +610,12 @@ bool can_provision_new_socket(int socket_type);
  * haven't passed that limit. Someday if multiple stacks are used simultaneously
  * the logic for this function should change accordingly.
  */
-int zts_nsockets();
+int zts_num_active_virt_sockets();
 
 /*
  * Returns maximum number of sockets allowed by network stack
  */
-int zts_maxsockets();
+int zts_maxsockets(int socket_type);
 
 int pico_ntimers();
 
@@ -596,31 +632,31 @@ ZeroTier::VirtualTap *getAnyTap();
 /*
  * Returns a pointer to a VirtualSocket for a given fd
  */
-ZeroTier::VirtualSocket *get_virtual_socket(int fd);
+ZeroTier::VirtualSocket *get_virt_socket(int fd);
 
 /*
  * Removes a VirtualSocket
  */
-int del_virtual_socket(int fd);
+int del_virt_socket(int fd);
 
 /*
  * Adds a virtualSocket
  */
-int add_unassigned_virtual_socket(int fd, ZeroTier::VirtualSocket *vs);
+int add_unassigned_virt_socket(int fd, ZeroTier::VirtualSocket *vs);
 /*
  * Removes unassigned VirtualSocket
  */
-int del_unassigned_virtual_socket(int fd);
+int del_unassigned_virt_socket(int fd);
 
 /*
  * Adds an assigned VirtualSocket
  */
-int add_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd);
+int add_assigned_virt_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd);
 
 /*
  * Removes an assigned VirtualSocket
  */
-int del_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd);
+int del_assigned_virt_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd);
 
 /*
  * Gets a pair of associated virtual objects (VirtualSocket bound to a VirtualTap)
@@ -628,9 +664,9 @@ int del_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSock
 std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *get_assigned_virtual_pair(int fd);
 
 /*
- * Destroys all virtual tap devices
+ * Disable all virtual tap devices
  */
-void dismantleTaps();
+void disableTaps();
 
 /*
  * Get device ID (from file)

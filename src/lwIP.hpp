@@ -287,6 +287,16 @@ namespace ZeroTier {
 		 */
 		int lwip_Shutdown(VirtualSocket *vs, int how);
 
+		/*
+		 *  Sets a property of a socket
+		 */
+		static int lwip_setsockopt(VirtualSocket *vs, int level, int optname, const void *optval, socklen_t optlen);
+
+		/*
+		 *  Gets a property of a socket
+		 */
+		static int lwip_getsockopt(VirtualSocket *vs, int level, int optname, void *optval, socklen_t *optlen);
+
 		// --- Callbacks from network stack ---
 
 		//static void netif_status_callback(struct netif *nif);

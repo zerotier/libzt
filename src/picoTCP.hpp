@@ -150,7 +150,8 @@ namespace ZeroTier
 		/*
 		 * Packets from the ZeroTier virtual wire enter the stack here
 		 */
-		void pico_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from,const ZeroTier::MAC &to,unsigned int etherType,const void *data,unsigned int len);
+		void pico_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC &to, 
+			unsigned int etherType, const void *data, unsigned int len);
 
 		/*
 		 * Creates a stack-specific "socket" or "VirtualSocket object"
@@ -180,7 +181,7 @@ namespace ZeroTier
 		/*
 		 * Read from RX buffer to application - Called from VirtualTap
 		 */
-		int pico_Read(VirtualTap *tap, ZeroTier::PhySocket *sock,VirtualSocket *vs,bool stack_invoked);
+		int pico_Read(VirtualTap *tap, ZeroTier::PhySocket *sock, VirtualSocket *vs, bool stack_invoked);
 
 		/*
 		 * Write to userspace network stack - Called from VirtualTap
@@ -196,6 +197,16 @@ namespace ZeroTier
 		 *  Shuts down some aspect of a VirtualSocket - Called from VirtualTap
 		 */
 		int pico_Shutdown(VirtualSocket *vs, int how);
+
+		/*
+		 *  Sets a property of a socket
+		 */
+		static int pico_setsockopt(VirtualSocket *vs, int level, int optname, const void *optval, socklen_t optlen);
+
+		/*
+		 *  Gets a property of a socket
+		 */
+		static int pico_getsockopt(VirtualSocket *vs, int level, int optname, void *optval, socklen_t *optlen);
 
 		/*
 		 * Converts a pico_err to its most closely-related errno, and sets errno

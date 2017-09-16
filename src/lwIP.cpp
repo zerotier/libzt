@@ -88,7 +88,7 @@ err_t lwip_eth_tx(struct netif *netif, struct pbuf *p)
 	int proto = ZeroTier::Utils::ntoh((uint16_t)ethhdr->type);
 	tap->_handler(tap->_arg, NULL, tap->_nwid, src_mac, dest_mac, proto, 0, data, len);
 
-	if (ZT_DEBUG_LEVEL >= ZT_MSG_TRANSFER) {
+	if (ZT_MSG_TRANSFER == true) {
 		char flagbuf[32];
 		memset(&flagbuf, 0, 32);
 		char macBuf[ZT_MAC_ADDRSTRLEN], nodeBuf[ZT_ID_LEN];
@@ -333,7 +333,11 @@ namespace ZeroTier
 				dataptr += q->len;
 			}
 		}
-		if (ZT_DEBUG_LEVEL >= ZT_MSG_TRANSFER) {
+		else {
+			DEBUG_ERROR("dropped packet: no pbufs available");
+			return;
+		}
+		if (ZT_MSG_TRANSFER == true) {
 			char flagbuf[32];
 			memset(&flagbuf, 0, 32);
 			char macBuf[ZT_MAC_ADDRSTRLEN], nodeBuf[ZT_ID_LEN];
@@ -343,10 +347,6 @@ namespace ZeroTier
 			mac.toAddress(tap->_nwid).toString(nodeBuf);
 			DEBUG_TRANS("len=%5d dst=%s [%s RX --> %s] proto=0x%04x %s %s", len, macBuf, nodeBuf, tap->nodeId().c_str(),
 				ZeroTier::Utils::ntoh(ethhdr.type), beautify_eth_proto_nums(ZeroTier::Utils::ntoh(ethhdr.type)), flagbuf);
-		}
-		else {
-			DEBUG_ERROR("dropped packet: no pbufs available");
-			return;
 		}
 		{
 #if defined(LIBZT_IPV4)
@@ -658,12 +658,12 @@ namespace ZeroTier
 			if (vs->pcb) {
 				struct tcp_pcb* tpcb = (struct tcp_pcb*)vs->pcb;
 				if (tpcb->state == CLOSED) {
-					DEBUG_ERROR("pcb is in CLOSED state");
+					DEBUG_EXTRA("pcb is in CLOSED state");
 					// calling tcp_close() here would be redundant
 					return 0;
 				}
 				if (tpcb->state == CLOSE_WAIT) {
-					DEBUG_ERROR("pcb is in CLOSE_WAIT state");
+					DEBUG_EXTRA("pcb is in CLOSE_WAIT state");
 					// calling tcp_close() here would be redundant
 				}
 				if (tpcb->state > TIME_WAIT) {
@@ -922,7 +922,7 @@ namespace ZeroTier
 
 	err_t lwIP::lwip_cb_connected(void *arg, struct tcp_pcb *PCB, err_t err)
 	{
-		DEBUG_ATTN("pcb=%p", PCB);
+		DEBUG_EXTRA("pcb=%p", PCB);
 		VirtualSocket *vs = (VirtualSocket *)arg;
 		if (vs == NULL) {
 			DEBUG_ERROR("invalid virtual socket");
@@ -992,6 +992,690 @@ namespace ZeroTier
 			}
 		}
 		return ERR_OK;
+	}
+
+	int lwIP::lwip_setsockopt(VirtualSocket *vs, int level, int optname, const void *optval, socklen_t optlen)
+	{
+		int err = -1;
+		errno = 0;
+		if (vs == NULL) {
+			DEBUG_ERROR("invalid vs");
+			return -1;
+		} else {
+			DEBUG_EXTRA("fd=%d, level=%d, optname=%d", vs->app_fd, level, optname);
+		}
+		if (level == SOL_SOCKET)
+		{
+			/* Turns on recording of debugging information. This option enables or disables debugging in the underlying 
+			protocol modules. This option takes an int value. This is a Boolean option.*/
+			if (optname == SO_DEBUG)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Specifies that the rules used in validating addresses supplied to bind() should allow reuse of local 
+			addresses, if this is supported by the protocol. This option takes an int value. This is a Boolean option.*/
+			if (optname == SO_REUSEADDR)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Keeps connections active by enabling the periodic transmission of messages, if this is supported by the 
+			protocol. This option takes an int value. */
+			if (optname == SO_KEEPALIVE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Requests that outgoing messages bypass the standard routing facilities. */
+			if (optname == SO_DONTROUTE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Lingers on a close() if data is present. */
+			if (optname == SO_LINGER)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Permits sending of broadcast messages, if this is supported by the protocol. This option takes an int 
+			value. This is a Boolean option. */
+			if (optname == SO_BROADCAST)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Leaves received out-of-band data (data marked urgent) inline. This option takes an int value. This is a 
+			Boolean option. */
+			if (optname == SO_OOBINLINE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Sets send buffer size. This option takes an int value. */
+			if (optname == SO_SNDBUF)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Sets receive buffer size. This option takes an int value. */
+			if (optname == SO_RCVBUF)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* */ 
+			if (optname == SO_STYLE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* */
+			if (optname == SO_TYPE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Get error status and clear */
+			if (optname == SO_ERROR)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+		}
+		if (level == IPPROTO_IP)
+		{
+			if (optname == IP_ADD_MEMBERSHIP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_ADD_SOURCE_MEMBERSHIP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_BIND_ADDRESS_NO_PORT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_BLOCK_SOURCE) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_DROP_MEMBERSHIP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_DROP_SOURCE_MEMBERSHIP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_FREEBIND) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_HDRINCL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MSFILTER) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MTU) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MTU_DISCOVER) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MULTICAST_ALL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MULTICAST_IF) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MULTICAST_LOOP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MULTICAST_TTL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_NODEFRAG) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_OPTIONS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_PKTINFO) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RECVOPTS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RECVORIGDSTADDR) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RECVTOS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RECVTTL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RETOPTS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_ROUTER_ALERT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_TOS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_TRANSPARENT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_TTL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_UNBLOCK_SOURCE) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			// TODO
+			return -1;
+		}
+		if (level == IPPROTO_TCP)
+		{
+			struct tcp_pcb *pcb = (struct tcp_pcb*)(vs->pcb);
+			if (pcb == NULL) {
+				handle_general_failure();
+				return -1;
+			}
+			/* If set, don't send out partial frames. */
+			if (optname == TCP_CORK) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Allow a listener to be awakened only when data arrives on the socket. */
+			if (optname == TCP_DEFER_ACCEPT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Used to collect information about this socket. The kernel returns a struct tcp_info as defined in the 
+			file /usr/include/linux/tcp.h.*/
+			if (optname == TCP_INFO) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* The maximum number of keepalive probes TCP should send before dropping the connection.*/
+			if (optname == TCP_KEEPCNT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* The time (in seconds) the connection needs to remain idle before TCP starts sending keepalive probes, 
+			if the socket option SO_KEEPALIVE has been set on this socket. */
+			if (optname == TCP_KEEPIDLE) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* The time (in seconds) between individual keepalive probes.*/
+			if (optname == TCP_KEEPINTVL) {
+				// TODO
+				return -1;
+			}
+			/* The lifetime of orphaned FIN_WAIT2 state sockets. */
+			if (optname == TCP_LINGER2) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* The maximum segment size for outgoing TCP packets. */
+			if (optname == TCP_MAXSEG) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* If set, disable the Nagle algorithm. */
+			if (optname == TCP_NODELAY) {
+				pcb->flags |= TF_NODELAY; 
+				return 0;
+			}
+			/* Enable quickack mode if set or disable quickack mode if cleared. */
+			if (optname == TCP_QUICKACK) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Set the number of SYN retransmits that TCP should send before aborting the attempt to connect. It 
+			cannot exceed 255. */
+			if (optname == TCP_SYNCNT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Bound the size of the advertised window to this value. The kernel imposes a minimum size of 
+			SOCK_MIN_RCVBUF/2. */
+			if (optname == TCP_WINDOW_CLAMP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+		}
+		if (level == IPPROTO_UDP)
+		{
+			/*If this option is enabled, then all data output on this socket is accumulated into a single 
+			datagram that is transmitted when the option is disabled. */
+			if (optname == UDP_CORK) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+		}
+		return err;
+	}
+
+	int lwIP::lwip_getsockopt(VirtualSocket *vs, int level, int optname, void *optval, socklen_t *optlen)
+	{
+		int err = -1, optval_tmp = 0;
+		errno = 0;
+		if (vs == NULL) {
+			DEBUG_ERROR("invalid vs");
+			return -1;
+		} else {
+			DEBUG_EXTRA("fd=%d, level=%d, optname=%d", vs->app_fd, level, optname);
+		}
+		if (level == SOL_SOCKET)
+		{
+			/* Turns on recording of debugging information. This option enables or disables debugging in the underlying 
+			protocol modules. This option takes an int value. This is a Boolean option.*/
+			if (optname == SO_DEBUG)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Specifies that the rules used in validating addresses supplied to bind() should allow reuse of local 
+			addresses, if this is supported by the protocol. This option takes an int value. This is a Boolean option.*/
+			if (optname == SO_REUSEADDR)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Keeps connections active by enabling the periodic transmission of messages, if this is supported by the 
+			protocol. This option takes an int value. */
+			if (optname == SO_KEEPALIVE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Requests that outgoing messages bypass the standard routing facilities. */
+			if (optname == SO_DONTROUTE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Lingers on a close() if data is present. */
+			if (optname == SO_LINGER)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Permits sending of broadcast messages, if this is supported by the protocol. This option takes an int 
+			value. This is a Boolean option. */
+			if (optname == SO_BROADCAST)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Leaves received out-of-band data (data marked urgent) inline. This option takes an int value. This is a 
+			Boolean option. */
+			if (optname == SO_OOBINLINE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Sets send buffer size. This option takes an int value. */
+			if (optname == SO_SNDBUF)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Sets receive buffer size. This option takes an int value. */
+			if (optname == SO_RCVBUF)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* */ 
+			if (optname == SO_STYLE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* */
+			if (optname == SO_TYPE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Get error status and clear */
+			if (optname == SO_ERROR)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+		}
+		if (level == IPPROTO_IP)
+		{
+			if (optname == IP_ADD_MEMBERSHIP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_ADD_SOURCE_MEMBERSHIP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_BIND_ADDRESS_NO_PORT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_BLOCK_SOURCE) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_DROP_MEMBERSHIP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_DROP_SOURCE_MEMBERSHIP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_FREEBIND) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_HDRINCL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MSFILTER) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MTU) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MTU_DISCOVER) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MULTICAST_ALL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MULTICAST_IF) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MULTICAST_LOOP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MULTICAST_TTL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_NODEFRAG) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_OPTIONS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_PKTINFO) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RECVOPTS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RECVORIGDSTADDR) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RECVTOS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RECVTTL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RETOPTS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_ROUTER_ALERT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_TOS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_TRANSPARENT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_TTL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_UNBLOCK_SOURCE) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			// TODO
+			return -1;
+		}
+		if (level == IPPROTO_TCP)
+		{
+			struct tcp_pcb *pcb = (struct tcp_pcb*)(vs->pcb);
+			if (pcb == NULL) {
+				handle_general_failure();
+				return -1;
+			}
+			/* If set, don't send out partial frames. */
+			if (optname == TCP_CORK) {
+				// TODO
+				errno = ENOPROTOOPT;
+				err = -1;
+			}
+			/* Allow a listener to be awakened only when data arrives on the socket. */
+			if (optname == TCP_DEFER_ACCEPT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				err = -1;
+			}
+			/* Used to collect information about this socket. */
+			if (optname == TCP_INFO) {
+				// TODO
+				errno = ENOPROTOOPT;
+				err = -1;
+			}
+			/* The maximum number of keepalive probes TCP should send before dropping the connection.*/
+			if (optname == TCP_KEEPCNT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				err = -1;
+			}
+			/* The time (in seconds) the connection needs to remain idle before TCP starts sending keepalive probes, 
+			if the socket option SO_KEEPALIVE has been set on this socket. */
+			if (optname == TCP_KEEPIDLE) {
+				// TODO
+				errno = ENOPROTOOPT;
+				err = -1;
+			}
+			/* The time (in seconds) between individual keepalive probes.*/
+			if (optname == TCP_KEEPINTVL) {
+				// TODO
+				err = -1;
+			}
+			/* The lifetime of orphaned FIN_WAIT2 state sockets. */
+			if (optname == TCP_LINGER2) {
+				// TODO
+				errno = ENOPROTOOPT;
+				err = -1;
+			}
+			/* The maximum segment size for outgoing TCP packets. */
+			if (optname == TCP_MAXSEG) {
+				// TODO
+				errno = ENOPROTOOPT;
+				err = -1;
+			}
+			/* If set, disable the Nagle algorithm. */
+			if (optname == TCP_NODELAY) {
+				optval_tmp = pcb->flags & TF_NODELAY;
+				memcpy(optval, &optval_tmp, *optlen);
+				err = 0;
+			}
+			/* Enable quickack mode if set or disable quickack mode if cleared. */
+			if (optname == TCP_QUICKACK) {
+				// TODO
+				errno = ENOPROTOOPT;
+				err = -1;
+			}
+			/* Set the number of SYN retransmits that TCP should send before aborting the attempt to connect. It 
+			cannot exceed 255. */
+			if (optname == TCP_SYNCNT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				err = -1;
+			}
+			/* Bound the size of the advertised window to this value. The kernel imposes a minimum size of 
+			SOCK_MIN_RCVBUF/2. */
+			if (optname == TCP_WINDOW_CLAMP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				err = -1;
+			}
+		}
+		if (level == IPPROTO_UDP)
+		{
+			/* If this option is enabled, then all data output on this socket is accumulated into a single 
+			datagram that is transmitted when the option is disabled. */
+			if (optname == UDP_CORK) {
+				// TODO
+				errno = ENOPROTOOPT;
+				err = -1;
+			}
+		}
+		return err;
 	}
 
 	void lwIP::lwip_cb_err(void *arg, err_t err)

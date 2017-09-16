@@ -564,7 +564,7 @@ namespace ZeroTier {
 		MAC dest_mac;
 		src_mac.setTo(ethhdr->saddr, 6);
 		dest_mac.setTo(ethhdr->daddr, 6);
-		if (ZT_DEBUG_LEVEL >= ZT_MSG_TRANSFER) {
+		if (ZT_MSG_TRANSFER == true) {
 			char macBuf[ZT_MAC_ADDRSTRLEN], nodeBuf[ZT_ID_LEN];
 			mac2str(macBuf, ZT_MAC_ADDRSTRLEN, ethhdr->daddr);
 			ZeroTier::MAC mac;
@@ -641,7 +641,7 @@ namespace ZeroTier {
 		ethhdr.proto = Utils::hton((uint16_t)etherType);
 		int32_t msg_len = len + sizeof(int32_t) + sizeof(struct pico_eth_hdr);
 
-		if (ZT_DEBUG_LEVEL >= ZT_MSG_TRANSFER) {
+		if (ZT_MSG_TRANSFER == true) {
 			char macBuf[ZT_MAC_ADDRSTRLEN], nodeBuf[ZT_ID_LEN];
 			mac2str(macBuf, sizeof(macBuf), ethhdr.saddr);
 			ZeroTier::MAC mac;
@@ -716,8 +716,11 @@ namespace ZeroTier {
 			// get frame len
 			memcpy(&len, tap->pico_frame_rxbuf, sizeof(int32_t));
 			if (len > sizeof(int32_t)) { // meaning, since we package the len in the msg, we don't want to recv a 0-(sizeof(int32_t)) sized frame
+				DEBUG_ERROR("tap->pico_frame_rxbuf + sizeof(int32_t)=%p, len=%d", tap->pico_frame_rxbuf + sizeof(int32_t), len-(sizeof(int32_t)));
 				memcpy(frame, tap->pico_frame_rxbuf + sizeof(int32_t), len-(sizeof(int32_t)) ); // get frame data
+				DEBUG_ERROR("tap->pico_frame_rxbuf=%p, tap->pico_frame_rxbuf + len=%p, MAX_PICO_FRAME_RX_BUF_SZ-len=%d", tap->pico_frame_rxbuf, tap->pico_frame_rxbuf + len, MAX_PICO_FRAME_RX_BUF_SZ-len);
 				memmove(tap->pico_frame_rxbuf, tap->pico_frame_rxbuf + len, MAX_PICO_FRAME_RX_BUF_SZ-len); // shift buffer
+				DEBUG_ERROR("dev=%p, frame=%p, len=%d", dev, frame, (len-sizeof(int32_t)));
 				if ((err = pico_stack_recv(dev, (uint8_t*)frame, (len-sizeof(int32_t)))) < 0) {
 					if (picostack) {
 						DEBUG_ERROR("pico_stack_recv(), err=%d, pico_err=%d, %s", err, pico_err, picostack->beautify_pico_error(pico_err));
@@ -745,44 +748,43 @@ namespace ZeroTier {
 		else {
 			int protocol_version = 0;
 			struct pico_socket *psock;
-			if (socket_family == AF_INET)
+			if (socket_family == AF_INET) {
 				protocol_version = PICO_PROTO_IPV4;
-			if (socket_family == AF_INET6)
+			}
+			if (socket_family == AF_INET6) {
 				protocol_version = PICO_PROTO_IPV6;
-
+			}
 			if (socket_type == SOCK_DGRAM) {
-				psock = pico_socket_open(
-					protocol_version, PICO_PROTO_UDP, &ZeroTier::picoTCP::pico_cb_socket_ev);
+				psock = pico_socket_open(protocol_version, PICO_PROTO_UDP, &ZeroTier::picoTCP::pico_cb_socket_ev);
 				if (psock) {
 					// configure size of UDP SND/RCV buffers
 					// TODO
 				}
 			}
 			if (socket_type == SOCK_STREAM) {
-				psock = pico_socket_open(
-					protocol_version, PICO_PROTO_TCP, &ZeroTier::picoTCP::pico_cb_socket_ev);
+				psock = pico_socket_open(protocol_version, PICO_PROTO_TCP, &ZeroTier::picoTCP::pico_cb_socket_ev);
 				if (psock) {
 					// configure size of TCP SND/RCV buffers
 					int tx_buf_sz = ZT_STACK_TCP_SOCKET_TX_SZ;
 					int rx_buf_sz = ZT_STACK_TCP_SOCKET_RX_SZ;
 					int t_err = 0;
-
-					// int value = 1;
-					// pico_socket_setoption(psock, PICO_TCP_NODELAY, &value);
-
-					if ((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_SNDBUF, &tx_buf_sz)) < 0)
+					if ((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_SNDBUF, &tx_buf_sz)) < 0) {
 						DEBUG_ERROR("unable to set SNDBUF size, err=%d, pico_err=%d, %s",
 							t_err, pico_err, beautify_pico_error(pico_err));
-					if ((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_RCVBUF, &rx_buf_sz)) < 0)
+					}
+					if ((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_RCVBUF, &rx_buf_sz)) < 0) {
 						DEBUG_ERROR("unable to set RCVBUF size, err=%d, pico_err=%d, %s",
 							t_err, pico_err, beautify_pico_error(pico_err));
-
+					}
+					/*
 					if (ZT_SOCK_BEHAVIOR_LINGER) {
 						int linger_time_ms = ZT_SOCK_BEHAVIOR_LINGER_TIME;
-						if ((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_LINGER, &linger_time_ms)) < 0)
+						if ((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_LINGER, &linger_time_ms)) < 0) {
 							DEBUG_ERROR("unable to set LINGER, err=%d, pico_err=%d, %s",
 								t_err, pico_err, beautify_pico_error(pico_err));
+						}
 					}
+					*/
 				}
 			}
 			*p = psock;
@@ -1020,6 +1022,727 @@ namespace ZeroTier {
 		}
 		if ((err = pico_socket_shutdown(vs->picosock, mode)) < 0) {
 			DEBUG_ERROR("error while shutting down socket, fd=%d, pico_err=%d, %s", vs->app_fd, pico_err, beautify_pico_error(pico_err));
+		}
+		return err;
+	}
+
+	int picoTCP::pico_setsockopt(VirtualSocket *vs, int level, int optname, const void *optval, socklen_t optlen)
+	{
+		int err = -1;
+		errno = 0;
+		if (vs == NULL) {
+			DEBUG_ERROR("invalid vs");
+			return -1;
+		} else {
+			DEBUG_EXTRA("fd=%d, level=%d, optname=%d", vs->app_fd, level, optname);
+		}
+		if (level == SOL_SOCKET)
+		{
+			/* Turns on recording of debugging information. This option enables or disables debugging in the underlying 
+			protocol modules. This option takes an int value. This is a Boolean option.*/
+			if (optname == SO_DEBUG)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Specifies that the rules used in validating addresses supplied to bind() should allow reuse of local 
+			addresses, if this is supported by the protocol. This option takes an int value. This is a Boolean option.*/
+			if (optname == SO_REUSEADDR)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Keeps connections active by enabling the periodic transmission of messages, if this is supported by the 
+			protocol. This option takes an int value. */
+			if (optname == SO_KEEPALIVE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Requests that outgoing messages bypass the standard routing facilities. */
+			if (optname == SO_DONTROUTE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Lingers on a close() if data is present. */
+			if (optname == SO_LINGER)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Permits sending of broadcast messages, if this is supported by the protocol. This option takes an int 
+			value. This is a Boolean option. */
+			if (optname == SO_BROADCAST)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Leaves received out-of-band data (data marked urgent) inline. This option takes an int value. This is a 
+			Boolean option. */
+			if (optname == SO_OOBINLINE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Sets send buffer size. This option takes an int value. */
+			if (optname == SO_SNDBUF)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Sets receive buffer size. This option takes an int value. */
+			if (optname == SO_RCVBUF)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* */ 
+			if (optname == SO_STYLE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* */
+			if (optname == SO_TYPE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Get error status and clear */
+			if (optname == SO_ERROR)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+		}
+		if (level == IPPROTO_IP)
+		{
+			if (optname == IP_ADD_MEMBERSHIP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_ADD_SOURCE_MEMBERSHIP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_BIND_ADDRESS_NO_PORT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_BLOCK_SOURCE) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_DROP_MEMBERSHIP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_DROP_SOURCE_MEMBERSHIP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_FREEBIND) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_HDRINCL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MSFILTER) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MTU) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MTU_DISCOVER) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MULTICAST_ALL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MULTICAST_IF) {
+				/*
+				if ((err = pico_socket_getoption(p, PICO_TCP_NODELAY, &optval_tmp)) < 0) {
+					if (err == PICO_ERR_EINVAL) {
+						DEBUG_ERROR("error while disabling Nagle's algorithm");
+						errno = ENOPROTOOPT;
+						err = -1;
+					}
+				}
+				memcpy(optval, &optval_tmp, *optlen);
+				*/
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MULTICAST_LOOP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MULTICAST_TTL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_NODEFRAG) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_OPTIONS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_PKTINFO) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RECVOPTS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RECVORIGDSTADDR) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RECVTOS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RECVTTL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RETOPTS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_ROUTER_ALERT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_TOS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_TRANSPARENT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_TTL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_UNBLOCK_SOURCE) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			// TODO
+			return -1;
+		}
+		if (level == IPPROTO_TCP)
+		{
+			struct pico_socket *p = vs->picosock;
+			if (p == NULL) {
+				handle_general_failure();
+				return -1;
+			}
+			/* If set, don't send out partial frames. */
+			if (optname == TCP_CORK) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Allow a listener to be awakened only when data arrives on the socket. */
+			if (optname == TCP_DEFER_ACCEPT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Used to collect information about this socket. The kernel returns a struct tcp_info as defined in the 
+			file /usr/include/linux/tcp.h.*/
+			if (optname == TCP_INFO) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* The maximum number of keepalive probes TCP should send before dropping the connection.*/
+			if (optname == TCP_KEEPCNT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* The time (in seconds) the connection needs to remain idle before TCP starts sending keepalive probes, 
+			if the socket option SO_KEEPALIVE has been set on this socket. */
+			if (optname == TCP_KEEPIDLE) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* The time (in seconds) between individual keepalive probes.*/
+			if (optname == TCP_KEEPINTVL) {
+				// TODO
+				return -1;
+			}
+			/* The lifetime of orphaned FIN_WAIT2 state sockets. */
+			if (optname == TCP_LINGER2) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* The maximum segment size for outgoing TCP packets. */
+			if (optname == TCP_MAXSEG) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* If set, disable the Nagle algorithm. */
+			if (optname == TCP_NODELAY) {
+				int no_delay = *((const int*)optval);
+				if ((err = pico_socket_setoption(p, PICO_TCP_NODELAY, &no_delay) < 0)) {
+					if (err == PICO_ERR_EINVAL) {
+						DEBUG_ERROR("error while disabling Nagle's algorithm");
+						errno = EINVAL;
+						err = -1;
+					}
+				}
+				return err;
+			}
+			/* Enable quickack mode if set or disable quickack mode if cleared. */
+			if (optname == TCP_QUICKACK) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Set the number of SYN retransmits that TCP should send before aborting the attempt to connect. It 
+			cannot exceed 255. */
+			if (optname == TCP_SYNCNT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Bound the size of the advertised window to this value. The kernel imposes a minimum size of 
+			SOCK_MIN_RCVBUF/2. */
+			if (optname == TCP_WINDOW_CLAMP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+		}
+		if (level == IPPROTO_UDP)
+		{
+			/*If this option is enabled, then all data output on this socket is accumulated into a single 
+			datagram that is transmitted when the option is disabled. */
+			if (optname == UDP_CORK) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+		}
+		return err;
+	}
+
+	int picoTCP::pico_getsockopt(VirtualSocket *vs, int level, int optname, void *optval, socklen_t *optlen)
+	{
+		int err = -1, optval_tmp = 0;
+		errno = 0;
+		if (vs == NULL) {
+			DEBUG_ERROR("invalid vs");
+			return -1;
+		} else {
+			DEBUG_EXTRA("fd=%d, level=%d, optname=%d", vs->app_fd, level, optname);
+		}
+		if (level == SOL_SOCKET)
+		{
+			/* Turns on recording of debugging information. This option enables or disables debugging in the underlying 
+			protocol modules. This option takes an int value. This is a Boolean option.*/
+			if (optname == SO_DEBUG)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Specifies that the rules used in validating addresses supplied to bind() should allow reuse of local 
+			addresses, if this is supported by the protocol. This option takes an int value. This is a Boolean option.*/
+			if (optname == SO_REUSEADDR)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Keeps connections active by enabling the periodic transmission of messages, if this is supported by the 
+			protocol. This option takes an int value. */
+			if (optname == SO_KEEPALIVE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Requests that outgoing messages bypass the standard routing facilities. */
+			if (optname == SO_DONTROUTE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Lingers on a close() if data is present. */
+			if (optname == SO_LINGER)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Permits sending of broadcast messages, if this is supported by the protocol. This option takes an int 
+			value. This is a Boolean option. */
+			if (optname == SO_BROADCAST)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Leaves received out-of-band data (data marked urgent) inline. This option takes an int value. This is a 
+			Boolean option. */
+			if (optname == SO_OOBINLINE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Sets send buffer size. This option takes an int value. */
+			if (optname == SO_SNDBUF)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Sets receive buffer size. This option takes an int value. */
+			if (optname == SO_RCVBUF)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* */ 
+			if (optname == SO_STYLE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* */
+			if (optname == SO_TYPE)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Get error status and clear */
+			if (optname == SO_ERROR)
+			{
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+		}
+		if (level == IPPROTO_IP)
+		{
+			if (optname == IP_ADD_MEMBERSHIP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_ADD_SOURCE_MEMBERSHIP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_BIND_ADDRESS_NO_PORT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_BLOCK_SOURCE) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_DROP_MEMBERSHIP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_DROP_SOURCE_MEMBERSHIP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_FREEBIND) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_HDRINCL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MSFILTER) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MTU) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MTU_DISCOVER) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MULTICAST_ALL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MULTICAST_IF) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MULTICAST_LOOP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_MULTICAST_TTL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_NODEFRAG) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_OPTIONS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_PKTINFO) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RECVOPTS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RECVORIGDSTADDR) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RECVTOS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RECVTTL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_RETOPTS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_ROUTER_ALERT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_TOS) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_TRANSPARENT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_TTL) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			if (optname == IP_UNBLOCK_SOURCE) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			// TODO
+			return -1;
+		}
+		if (level == IPPROTO_TCP)
+		{
+			struct pico_socket *p = vs->picosock;
+			if (p == NULL) {
+				handle_general_failure();
+				return -1;
+			}
+			/* If set, don't send out partial frames. */
+			if (optname == TCP_CORK) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Allow a listener to be awakened only when data arrives on the socket. */
+			if (optname == TCP_DEFER_ACCEPT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Used to collect information about this socket. */
+			if (optname == TCP_INFO) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* The maximum number of keepalive probes TCP should send before dropping the connection.*/
+			if (optname == TCP_KEEPCNT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* The time (in seconds) the connection needs to remain idle before TCP starts sending keepalive probes, 
+			if the socket option SO_KEEPALIVE has been set on this socket. */
+			if (optname == TCP_KEEPIDLE) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* The time (in seconds) between individual keepalive probes.*/
+			if (optname == TCP_KEEPINTVL) {
+				// TODO
+				return -1;
+			}
+			/* The lifetime of orphaned FIN_WAIT2 state sockets. */
+			if (optname == TCP_LINGER2) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* The maximum segment size for outgoing TCP packets. */
+			if (optname == TCP_MAXSEG) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* If set, disable the Nagle algorithm. */
+			if (optname == TCP_NODELAY) {
+
+				/*
+
+				TODO: 
+
+				PICO TCP NODELAY - Nagle algorithm, value casted to (int *) (0 = disabled, 1 = enabled)
+				• PICO SOCKET OPT RCVBUF - Read current receive buffer size for the socket
+				• PICO SOCKET OPT SNDBUF - Read current receive buffer size for the socket
+				• PICO IP MULTICAST IF - (Not supported) Link multicast datagrams are sent from
+				• PICO IP MULTICAST TTL - TTL (0-255) of multicast datagrams
+				• PICO IP MULTICAST LOOP - Loop back a copy of an outgoing multicast datagram, as long
+				as it is a member of the multicast group, or not
+
+				*/
+				if ((err = pico_socket_getoption(p, PICO_TCP_NODELAY, &optval_tmp)) < 0) {
+					if (err == PICO_ERR_EINVAL) {
+						DEBUG_ERROR("error while disabling Nagle's algorithm");
+						errno = ENOPROTOOPT;
+						err = -1;
+					}
+				}
+				memcpy(optval, &optval_tmp, *optlen);
+				return err;
+			}
+			/* Enable quickack mode if set or disable quickack mode if cleared. */
+			if (optname == TCP_QUICKACK) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Set the number of SYN retransmits that TCP should send before aborting the attempt to connect. It 
+			cannot exceed 255. */
+			if (optname == TCP_SYNCNT) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+			/* Bound the size of the advertised window to this value. The kernel imposes a minimum size of 
+			SOCK_MIN_RCVBUF/2. */
+			if (optname == TCP_WINDOW_CLAMP) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
+		}
+		if (level == IPPROTO_UDP)
+		{
+			/*If this option is enabled, then all data output on this socket is accumulated into a single 
+			datagram that is transmitted when the option is disabled. */
+			if (optname == UDP_CORK) {
+				// TODO
+				errno = ENOPROTOOPT;
+				return -1;
+			}
 		}
 		return err;
 	}

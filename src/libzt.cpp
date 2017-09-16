@@ -161,7 +161,7 @@ void zts_simple_start(const char *path, const char *nwid)
 void zts_stop() {
 	if (ZeroTier::zt1Service) {
 		ZeroTier::zt1Service->terminate();
-		dismantleTaps();
+		disableTaps();
 	}
 }
 
@@ -215,7 +215,8 @@ void zts_leave_soft(const char * filepath, const char * nwid) {
 void zts_get_homepath(char *homePath, int len) {
 	if (ZeroTier::homeDir.length()) {
 		memset(homePath, 0, len);
-		memcpy(homePath, ZeroTier::homeDir.c_str(), len < ZeroTier::homeDir.length() ? len : ZeroTier::homeDir.length());
+		int buf_len = len < ZeroTier::homeDir.length() ? len : ZeroTier::homeDir.length();
+		memcpy(homePath, ZeroTier::homeDir.c_str(), buf_len);
 	}
 }
 
@@ -414,7 +415,7 @@ int zts_socket(ZT_SOCKET_SIG) {
 		vs->socket_family = socket_family;
 		vs->socket_type = socket_type;
 		vs->protocol = protocol;
-		add_unassigned_virtual_socket(vs->app_fd, vs);
+		add_unassigned_virt_socket(vs->app_fd, vs);
 		return vs->app_fd;
 	}
 #if defined(STACK_PICO)
@@ -425,7 +426,7 @@ int zts_socket(ZT_SOCKET_SIG) {
 		vs->socket_family = socket_family;
 		vs->socket_type = socket_type;
 		vs->picosock = p;
-		add_unassigned_virtual_socket(vs->app_fd, vs);
+		add_unassigned_virt_socket(vs->app_fd, vs);
 		err = vs->app_fd; // return one end of the socketpair
 	}
 	else {
@@ -443,7 +444,7 @@ int zts_socket(ZT_SOCKET_SIG) {
 		vs->socket_family = socket_family;
 		vs->socket_type = socket_type;
 		vs->pcb = pcb;
-		add_unassigned_virtual_socket(vs->app_fd, vs);
+		add_unassigned_virt_socket(vs->app_fd, vs);
 		// return one end of the socketpair for the app to use
 		err = vs->app_fd;
 	}
@@ -523,7 +524,7 @@ int zts_connect(ZT_CONNECT_SIG) {
 		errno = EBADF;
 		return -1;
 	}
-	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
 	if (vs == NULL) {
 		DEBUG_ERROR("invalid socket, unable to locate VirtualSocket for fd=%d", fd);
 		errno = EBADF;
@@ -570,8 +571,8 @@ int zts_connect(ZT_CONNECT_SIG) {
 	vs->sock = tap->_phy.wrapSocket(vs->sdk_fd, vs);
 
 	// TODO: Consolidate these calls
-	del_unassigned_virtual_socket(fd);
-	add_assigned_virtual_socket(tap, vs, fd);
+	del_unassigned_virt_socket(fd);
+	add_assigned_virt_socket(tap, vs, fd);
 
 	// save peer addr, for calls like getpeername
 	memcpy(&(vs->peer_addr), addr, sizeof(vs->peer_addr));
@@ -652,7 +653,7 @@ int zts_bind(ZT_BIND_SIG) {
 		errno = EBADF;
 		return -1;
 	}
-	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
 	if (vs == NULL) {
 		DEBUG_ERROR("no VirtualSocket for fd=%d", fd);
 		errno = ENOTSOCK;
@@ -704,8 +705,8 @@ int zts_bind(ZT_BIND_SIG) {
 	err = tap->Bind(vs, addr, addrlen);
 	if (err == 0) { // success
 		vs->tap = tap;
-		del_unassigned_virtual_socket(fd);
-		add_assigned_virtual_socket(tap, vs, fd);
+		del_unassigned_virt_socket(fd);
+		add_assigned_virt_socket(tap, vs, fd);
 	}
 	return err;
 }
@@ -827,7 +828,7 @@ int zts_accept(ZT_ACCEPT_SIG) {
 				}
 			}
 			if (accepted_vs) {
-				add_assigned_virtual_socket(tap, accepted_vs, accepted_vs->app_fd);
+				add_assigned_virt_socket(tap, accepted_vs, accepted_vs->app_fd);
 				err = accepted_vs->app_fd;
 			}
 		}
@@ -908,43 +909,42 @@ int zts_accept4(ZT_ACCEPT4_SIG)
 							this error may also be returned if optlen is not in a
 							valid part of the process address space.
 	[  ] [EDOM]             The argument value is out of bounds.
+
+	int fd, int level, int optname, const void *optval, socklen_t optlen
 */
 int zts_setsockopt(ZT_SETSOCKOPT_SIG)
 {
-	// TODO: Move stack-specific logic into stack driver section
-	//DEBUG_INFO("fd=%d", fd);
+	DEBUG_EXTRA("fd=%d, level=%d, optname=%d", fd, level, optname);
 	int err = errno = 0;
 	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
 		return -1;
 	}
-#if defined(STACK_PICO)
-	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
 	if (vs == NULL) {
 		DEBUG_ERROR("invalid fd=%d", fd);
 		errno = EBADF;
 		return -1;
 	}
-	struct pico_socket *p = vs->picosock;
-	if (p) {
-		// Disable Nagle's algorithm
-		int value = 1;
-		if ((err = pico_socket_setoption(p, PICO_TCP_NODELAY, &value)) < 0) {
-			if (err == PICO_ERR_EINVAL) {
-				DEBUG_ERROR("error while disabling Nagle's algorithm");
-				errno = ENOPROTOOPT;
-				return -1;
-			}
-		}
-
+#if defined(STACK_PICO)
+	if (ZeroTier::picostack) {
+		err = ZeroTier::picostack->pico_setsockopt(vs, level, optname, optval, optlen);
+	} else {
+		handle_general_failure();
+		// TODO: errno?
+		err = -1;
 	}
-	err = setsockopt(fd, level, optname, optval, optlen);
-	return err;
 #endif
 #if defined(STACK_LWIP)
-	// TODO
+	if (ZeroTier::lwipstack) {
+		err = ZeroTier::lwipstack->lwip_setsockopt(vs, level, optname, optval, optlen);
+	} else {
+		handle_general_failure();
+		// TODO: errno?
+		err = -1;
+	}
 #endif
-	return 0;
+	return err;
 }
 
 /*
@@ -960,12 +960,36 @@ int zts_setsockopt(ZT_SETSOCKOPT_SIG)
 */
 int zts_getsockopt(ZT_GETSOCKOPT_SIG)
 {
+	DEBUG_EXTRA("fd=%d, level=%d, optname=%d", fd, level, optname);
 	int err = errno = 0;
 	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
 		return -1;
 	}
-	err = getsockopt(fd, level, optname, optval, optlen);
+	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
+	if (vs == NULL) {
+		DEBUG_ERROR("invalid fd=%d", fd);
+		errno = EBADF;
+		return -1;
+	}
+#if defined(STACK_PICO)
+	if (ZeroTier::picostack) {
+		err = ZeroTier::picostack->pico_getsockopt(vs, level, optname, optval, optlen);
+	} else {
+		handle_general_failure();
+		// TODO: errno?
+		err = -1;
+	}
+#endif
+#if defined(STACK_LWIP)
+	if (ZeroTier::lwipstack) {
+		err = ZeroTier::lwipstack->lwip_getsockopt(vs, level, optname, optval, optlen);
+	} else {
+		handle_general_failure();
+		// TODO: errno?
+		err = -1;
+	}
+#endif
 	return err;
 }
 
@@ -1008,7 +1032,7 @@ int zts_getpeername(ZT_GETPEERNAME_SIG)
 		errno = EBADF;
 		return -1;
 	}
-	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
 	if (vs == NULL) {
 		errno = ENOTCONN;
 		return -1;
@@ -1083,14 +1107,14 @@ int zts_close(ZT_CLOSE_SIG)
 		errno = EBADF;
 		return -1;
 	}
-	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
 	if (vs == NULL) {
 		DEBUG_ERROR("no vs found for fd=%d", fd);
 		handle_general_failure();
 		errno = EBADF;
 		return -1;
 	}
-	del_virtual_socket(fd);
+	del_virt_socket(fd);
 	if (vs->tap) {
 		vs->tap->Close(vs);
 	}
@@ -1231,7 +1255,7 @@ ssize_t zts_sendto(ZT_SENDTO_SIG)
 		errno = EINVAL;
 		return -1;
 	}
-	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
 	if (vs == NULL) {
 		DEBUG_ERROR("no vs found for fd=%x", fd);
 		handle_general_failure();
@@ -1356,7 +1380,7 @@ ssize_t zts_send(ZT_SEND_SIG)
 		errno = EMSGSIZE;
 		return -1;
 	}
-	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
 	if (vs == NULL) {
 		DEBUG_ERROR("invalid vs for fd=%d", fd);
 		errno = EBADF;
@@ -1468,7 +1492,7 @@ ssize_t zts_recv(ZT_RECV_SIG)
 		errno = EBADF;
 		return -1;
 	}
-	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
 	if (vs == NULL) {
 		DEBUG_ERROR("invalid vs for fd=%d", fd);
 		errno = EBADF;
@@ -1671,7 +1695,7 @@ int zts_shutdown(ZT_SHUTDOWN_SIG)
 		errno = EINVAL;
 		return -1;
 	}
-	ZeroTier::VirtualSocket *vs = get_virtual_socket(fd);
+	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
 	if (vs == NULL) {
 		DEBUG_ERROR("invalid vs for fd=%d", fd);
 		errno = EBADF;
@@ -1855,7 +1879,8 @@ namespace ZeroTier {
 		return rxbytes;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1write(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len)
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1write(JNIEnv *env, jobject thisObj, 
+		jint fd, jarray buf, jint len)
 	{
 		jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
 		char * bufp = (char *)malloc(sizeof(char)*len);
@@ -1865,7 +1890,8 @@ namespace ZeroTier {
 		return written_bytes;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1read(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len)
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1read(JNIEnv *env, jobject thisObj, 
+		jint fd, jarray buf, jint len)
 	{
 		jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
 		int read_bytes = read(fd, body, len);
@@ -1874,19 +1900,23 @@ namespace ZeroTier {
 	}
 
 	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1setsockopt(
-		JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen) {
+		JNIEnv *env, jobject thisObj, 
+		jint fd, jint level, jint optname, jint optval, jint optlen) {
 		return zts_setsockopt(fd, level, optname, (const void*)optval, optlen);
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1getsockopt(JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen) {
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1getsockopt(JNIEnv *env, jobject thisObj, 
+		jint fd, jint level, jint optname, jint optval, jint optlen) {
 		return zts_getsockopt(fd, level, optname, (void*)optval, (socklen_t *)optlen);
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1socket(JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol) {
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1socket(JNIEnv *env, jobject thisObj, 
+		jint family, jint type, jint protocol) {
 		return zts_socket(family, type, protocol);
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1connect(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1connect(JNIEnv *env, jobject thisObj, 
+		jint fd, jstring addrstr, jint port) {
 		struct sockaddr_in addr;
 		const char *str = (*env).GetStringUTFChars( addrstr, 0);
 		addr.sin_addr.s_addr = inet_addr(str);
@@ -1896,7 +1926,8 @@ namespace ZeroTier {
 		return zts_connect(fd, (struct sockaddr *)&addr, sizeof(addr));
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1bind(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1bind(JNIEnv *env, jobject thisObj, 
+		jint fd, jstring addrstr, jint port) {
 		struct sockaddr_in addr;
 		const char *str = (*env).GetStringUTFChars( addrstr, 0);
 		DEBUG_INFO("fd=%d, addr=%s, port=%d", fd, str, port);
@@ -1908,7 +1939,8 @@ namespace ZeroTier {
 	}
 
 #if defined(__linux__)
-	 JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1accept4(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port, jint flags) {
+	 JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1accept4(JNIEnv *env, jobject thisObj, 
+	 	jint fd, jstring addrstr, jint port, jint flags) {
 		struct sockaddr_in addr;
 		char *str;
 		// = env->GetStringUTFChars(addrstr, NULL);
@@ -1920,7 +1952,8 @@ namespace ZeroTier {
 	}
 #endif
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1accept(JNIEnv *env, jobject thisObj, jint fd, jstring addrstr, jint port) {
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1accept(JNIEnv *env, jobject thisObj, 
+		jint fd, jstring addrstr, jint port) {
 		struct sockaddr_in addr;
 		// TODO: Send addr info back to Javaland
 		addr.sin_addr.s_addr = inet_addr("");
@@ -1929,15 +1962,18 @@ namespace ZeroTier {
 		return zts_accept(fd, (struct sockaddr *)&addr, (socklen_t *)sizeof(addr));
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1listen(JNIEnv *env, jobject thisObj, jint fd, int backlog) {
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1listen(JNIEnv *env, jobject thisObj, 
+		jint fd, int backlog) {
 		return zts_listen(fd, backlog);
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1close(JNIEnv *env, jobject thisObj, jint fd) {
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1close(JNIEnv *env, jobject thisObj, 
+		jint fd) {
 		return zts_close(fd);
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1getsockname(JNIEnv *env, jobject thisObj, jint fd, jobject ztaddr) {
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1getsockname(JNIEnv *env, jobject thisObj, 
+		jint fd, jobject ztaddr) {
 		struct sockaddr_in addr;
 		int err = zts_getsockname(fd, (struct sockaddr *)&addr, (socklen_t *)sizeof(struct sockaddr));
 		jfieldID fid;
@@ -1949,7 +1985,8 @@ namespace ZeroTier {
 		return err;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1getpeername(JNIEnv *env, jobject thisObj, jint fd, jobject ztaddr) {
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1getpeername(JNIEnv *env, jobject thisObj, 
+		jint fd, jobject ztaddr) {
 		struct sockaddr_in addr;
 		int err = zts_getpeername(fd, (struct sockaddr *)&addr, (socklen_t *)sizeof(struct sockaddr));
 		jfieldID fid;
@@ -1961,7 +1998,8 @@ namespace ZeroTier {
 		return err;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1fcntl(JNIEnv *env, jobject thisObj, jint fd, jint cmd, jint flags) {
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1fcntl(JNIEnv *env, jobject thisObj, 
+		jint fd, jint cmd, jint flags) {
 		return zts_fcntl(fd,cmd,flags);
 	}
 }
@@ -1973,6 +2011,7 @@ namespace ZeroTier {
 
 bool can_provision_new_socket(int socket_type)
 {
+	int can = false;
 #if defined(STACK_PICO)
 	return !(pico_ntimers()+1 > PICO_MAX_TIMERS);
 #endif
@@ -1986,15 +2025,16 @@ bool can_provision_new_socket(int socket_type)
 	if (socket_type == SOCK_RAW) {
 		return !(ZeroTier::lwIP::lwip_num_current_raw_pcbs()+1 > MEMP_NUM_RAW_PCB);
 	}
-	return true;
+	can = true;
 #endif
 #if defined(NO_STACK)
 	// always true since there's no network stack timer/memory limitation
-	return true;
+	can = true;
 #endif
+	return can;
 }
 
-int zts_nsockets()
+int zts_num_active_virt_sockets()
 {
 	ZeroTier::_multiplexer_lock.lock();
 	int num = ZeroTier::unmap.size() + ZeroTier::fdmap.size();
@@ -2002,18 +2042,32 @@ int zts_nsockets()
 	return num;
 }
 
-int zts_maxsockets()
+int zts_maxsockets(int socket_type)
 {
+	int max = 0;
 #if defined(STACK_PICO)
 	// TODO: This is only an approximation
-	return PICO_MAX_TIMERS - 10;
+	// TODO: distinquish by type
+	max = PICO_MAX_TIMERS - 10;
 #endif
 #if defined(STACK_LWIP)
-	return 32;
+	if (socket_type == SOCK_STREAM) {
+		max = MEMP_NUM_TCP_PCB;
+	}
+	if (socket_type == SOCK_DGRAM) {
+		max = MEMP_NUM_UDP_PCB;
+	}
 #endif
 #if defined(NO_STACK)
-	return 1024; // arbitrary
+	// arbitrary
+#if defined(__linux__)
+	max = RLIMIT_NOFILE;
 #endif
+#if defined(__APPLE__)
+	max = 1024;
+#endif
+#endif
+	return max;
 }
 
 /****************************************************************************/
@@ -2124,7 +2178,7 @@ ZeroTier::VirtualTap *getAnyTap()
 /* VirtualSocket / VirtualTap helper functions - DON'T CALL THESE DIRECTLY  */
 /****************************************************************************/
 
-ZeroTier::VirtualSocket *get_virtual_socket(int fd)
+ZeroTier::VirtualSocket *get_virt_socket(int fd)
 {
 	ZeroTier::_multiplexer_lock.lock();
 	// try to locate in unmapped set
@@ -2143,7 +2197,7 @@ ZeroTier::VirtualSocket *get_virtual_socket(int fd)
 	return vs;
 }
 
-int del_virtual_socket(int fd)
+int del_virt_socket(int fd)
 {
 	int err = 0;
 	ZeroTier::_multiplexer_lock.lock();
@@ -2166,7 +2220,7 @@ int del_virtual_socket(int fd)
 	return err;
 }
 
-int add_unassigned_virtual_socket(int fd, ZeroTier::VirtualSocket *vs)
+int add_unassigned_virt_socket(int fd, ZeroTier::VirtualSocket *vs)
 {
 	int err = 0;
 	ZeroTier::_multiplexer_lock.lock();
@@ -2189,7 +2243,7 @@ int add_unassigned_virtual_socket(int fd, ZeroTier::VirtualSocket *vs)
 	return err;
 }
 
-int del_unassigned_virtual_socket(int fd)
+int del_unassigned_virt_socket(int fd)
 {
 	int err = 0;
 	ZeroTier::_multiplexer_lock.lock();
@@ -2208,12 +2262,13 @@ int del_unassigned_virtual_socket(int fd)
 	return err;
 }
 
-int add_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd)
+int add_assigned_virt_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd)
 {
 	int err = 0;
 	ZeroTier::_multiplexer_lock.lock();
 	try {
-		std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter = ZeroTier::fdmap.find(fd);
+		std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter;
+		fd_iter = ZeroTier::fdmap.find(fd);
 		if (fd_iter == ZeroTier::fdmap.end()) {
 			ZeroTier::fdmap[fd] = new std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>(vs, tap);
 		}
@@ -2231,12 +2286,13 @@ int add_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSock
 	return err;
 }
 
-int del_assigned_virtual_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd)
+int del_assigned_virt_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd)
 {
 	int err = 0;
 	ZeroTier::_multiplexer_lock.lock();
 	try {
-		std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter = ZeroTier::fdmap.find(fd);
+		std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter;
+		fd_iter = ZeroTier::fdmap.find(fd);
 		if (fd_iter != ZeroTier::fdmap.end()) {
 			ZeroTier::fdmap.erase(fd_iter);
 		}
@@ -2258,15 +2314,13 @@ std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *get_assigned_virtual
 	return p;
 }
 
-void dismantleTaps()
+void disableTaps()
 {
 	ZeroTier::_vtaps_lock.lock();
 	for(int i=0; i<ZeroTier::vtaps.size(); i++) {
-		DEBUG_ERROR("ZeroTier::vtapsf[i]=%p", ZeroTier::vtaps[i]);
-		delete (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
-		ZeroTier::vtaps[i] = NULL;
+		DEBUG_EXTRA("vt=%p", ZeroTier::vtaps[i]);
+		((ZeroTier::VirtualTap*)ZeroTier::vtaps[i])->_enabled = false;
 	}
-	ZeroTier::vtaps.clear();
 	ZeroTier::_vtaps_lock.unlock();
 }
 

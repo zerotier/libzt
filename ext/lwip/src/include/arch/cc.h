@@ -83,7 +83,7 @@ typedef unsigned long mem_ptr_t;
 /* Plaform specific diagnostic output */
 //#define LWIP_PLATFORM_DIAG(x)	do {printf x;} while(0)
 #include "Debug.hpp"
-#define LWIP_PLATFORM_DIAG(x) DEBUG_STACK(x);
+#define LWIP_PLATFORM_DIAG(x) DEBUG_STACK x;
 
 #define LWIP_PLATFORM_ASSERT(x) do {printf("Assertion \"%s\" failed at line %d in %s\n", \
                                      x, __LINE__, __FILE__); fflush(NULL); abort();} while(0)

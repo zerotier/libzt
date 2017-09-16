@@ -555,9 +555,9 @@ void udp_client_4(UDP_UNIT_TEST_SIG_4)
 		*passed = false;
 		return;
 	}
-
 	struct sockaddr_storage saddr;
 	while(true) {
+		sleep(1);
 		// tx
 		if ((w = SENDTO(fd, msg.c_str(), strlen(msg.c_str()), 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
@@ -1538,6 +1538,102 @@ void tcp_perf_rx_echo_4(TCP_UNIT_TEST_SIG_4)
 
 
 
+/****************************************************************************/
+/* OBSCURE API CALL TESTS                                                   */
+/****************************************************************************/
+
+int obscure_api_test(bool *passed)
+{
+	DEBUG_TEST("obscure_api_test");
+	/*
+	// ---
+	// getpeername()
+	int fd, client_fd;
+
+	// after accept()
+	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
+		DEBUG_ERROR("error creating ZeroTier socket");
+	if ((err = BIND(fd, (struct sockaddr *)addr, sizeof(struct sockaddr_in)) < 0))
+		DEBUG_ERROR("error binding to interface (%d)", err);
+	if ((err = LISTEN(fd, 100)) < 0)
+		printf("error placing socket in LISTENING state (%d)", err);
+	// accept
+	struct sockaddr_in client;
+	socklen_t client_addrlen = sizeof(sockaddr_in);
+	if ((client_fd = accept(fd, (struct sockaddr *)&client, &client_addrlen)) < 0)
+		fprintf(stderr,"error accepting connection (%d)\n", err);
+	fprintf(stderr, "accepted connection from %s, on port %d", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+	// getpeername
+	struct sockaddr_storage peer_addr;
+	struct sockaddr_in *in4 = (struct sockaddr_in*)&peer_addr;
+	socklen_t peer_addrlen = sizeof(peer_addr);
+	GETPEERNAME(fd, (struct sockaddr*)&peer_addr, &peer_addrlen);
+	DEBUG_TEST("getpeername() => %s : %d", inet_ntoa(in4->sin_addr), ntohs(in4->sin_port));
+	// compate getpeername() result to address returned by accept()
+
+	// after connect
+	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
+		DEBUG_ERROR("error creating ZeroTier socket");
+	if ((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0)
+		DEBUG_ERROR("error connecting to remote host (%d)", err);
+	// TODO: Put this test in the general API section
+	struct sockaddr_storage peer_addr;
+	struct sockaddr_in *in4 = (struct sockaddr_in*)&peer_addr;
+	socklen_t peer_addrlen = sizeof(peer_addr);
+	GETPEERNAME(fd, (struct sockaddr*)&peer_addr, &peer_addrlen);
+	DEBUG_TEST("getpeername() => %s : %d", inet_ntoa(in4->sin_addr), ntohs(in4->sin_port));
+	// compare result of getpeername to remote address
+
+	// TODO: write an ipv6 version of the above ^^^
+	*/
+
+	// ---
+	// Disable Nagle's Algorithm on a socket (TCP_NODELAY)
+	int level = IPPROTO_TCP;
+	int optname = TCP_NODELAY;
+	int optval = 1;
+	socklen_t flag_len = sizeof(optval);
+	int fd = SOCKET(AF_INET, SOCK_STREAM, 0);
+	DEBUG_TEST("setting level=%d, optname=%d, optval=%d...", level, optname, optval);
+	int err = SETSOCKOPT(fd, IPPROTO_TCP, TCP_NODELAY, (char *)&optval, sizeof(int));
+	if (err < 0) {
+		DEBUG_ERROR("error while setting optval on socket");
+		*passed = false;
+		err = -1;
+	}
+	optval = -99; // set junk value to test against
+	if ((err = GETSOCKOPT(fd, IPPROTO_TCP, TCP_NODELAY, &optval, &flag_len)) < 0) {
+		DEBUG_ERROR("error while getting the optval");
+		*passed = false;
+		err = -1;
+	}
+	DEBUG_TEST("flag_len=%d", flag_len);
+	if (optval <= 0) {
+		DEBUG_ERROR("incorrect optval=%d (from getsockopt)", optval);
+		*passed = false;
+		err = -1;
+	} else {
+		DEBUG_TEST("correctly read optval=%d, now reversing it", optval);
+		if (optval > 0) { // TODO: what should be expected for each platform? Should this mirror them?
+			optval = 0;
+			DEBUG_TEST("setting level=%d, optname=%d, optval=%d...", level, optname, optval);
+			if ((err = SETSOCKOPT(fd, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, (socklen_t)sizeof(int))) < 0) {
+				DEBUG_ERROR("error while setting on socket");
+				*passed = false;
+				err = -1;
+			}
+			else {
+				DEBUG_TEST("success");
+				*passed = true;
+			}
+		} else {
+			DEBUG_ERROR("the optval wasn't set correctly");
+			*passed = false;
+			err = -1;
+		}
+	}
+	return err;
+}
 
 /****************************************************************************/
 /* SLAM API (multiple of each api call and/or plausible call sequence)      */
@@ -1594,7 +1690,7 @@ int slam_api_test()
 					fds[i] = -1;
 			}
 		}
-		if (zts_nsockets() == 0)
+		if (zts_num_active_virt_sockets() == 0)
 			std::cout << "PASSED [slam open and close]" << std::endl;
 		else
 			std::cout << "FAILED [slam open and close] - sockets left unclosed" << std::endl;
@@ -1666,7 +1762,7 @@ int slam_api_test()
 			}
 		}
 		used_ports.clear();
-		if (zts_nsockets() == 0)
+		if (zts_num_active_virt_sockets() == 0)
 			std::cout << "PASSED [slam open, bind, listen, accept, close]" << std::endl;
 		else
 			std::cout << "FAILED [slam open, bind, listen, accept, close]" << std::endl;
@@ -1676,7 +1772,7 @@ int slam_api_test()
 	// (1) socket()
 	// (2) connect()
 	// (3) close()
-	int num_times = zts_maxsockets();
+	int num_times = zts_maxsockets(SOCK_STREAM);
 	std::cout << "socket/connect/close - " << num_times << " times" << std::endl;
 	for(int i=0;i<(SLAM_NUMBER*SLAM_REPEAT); i++) { results[i] = 0; }
 	if (true) 
@@ -1732,7 +1828,7 @@ int slam_api_test()
 		}
 
 		displayResults(results, num_times);
-		if (zts_nsockets() == 0)
+		if (zts_num_active_virt_sockets() == 0)
 			std::cout << "PASSED [slam open, connect, close]" << std::endl;
 		else
 			std::cout << "FAILED [slam open, connect, close]" << std::endl;
@@ -1740,62 +1836,6 @@ int slam_api_test()
 	return 0;
 }
 
-/****************************************************************************/
-/* OBSCURE API CALL TESTS                                                   */
-/****************************************************************************/
-
-int obscure_api_test()
-{
-	/*
-	// getpeername()
-	int fd, client_fd;
-
-	// after accept()
-	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
-		DEBUG_ERROR("error creating ZeroTier socket");
-	if ((err = BIND(fd, (struct sockaddr *)addr, sizeof(struct sockaddr_in)) < 0))
-		DEBUG_ERROR("error binding to interface (%d)", err);
-	if ((err = LISTEN(fd, 100)) < 0)
-		printf("error placing socket in LISTENING state (%d)", err);
-	// accept
-	struct sockaddr_in client;
-	socklen_t client_addrlen = sizeof(sockaddr_in);
-	if ((client_fd = accept(fd, (struct sockaddr *)&client, &client_addrlen)) < 0)
-		fprintf(stderr,"error accepting connection (%d)\n", err);
-	fprintf(stderr, "accepted connection from %s, on port %d", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
-	// getpeername
-	struct sockaddr_storage peer_addr;
-	struct sockaddr_in *in4 = (struct sockaddr_in*)&peer_addr;
-	socklen_t peer_addrlen = sizeof(peer_addr);
-	GETPEERNAME(fd, (struct sockaddr*)&peer_addr, &peer_addrlen);
-	DEBUG_TEST("getpeername() => %s : %d", inet_ntoa(in4->sin_addr), ntohs(in4->sin_port));
-	// compate getpeername() result to address returned by accept()
-
-	// after connect
-	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
-		DEBUG_ERROR("error creating ZeroTier socket");
-	if ((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0)
-		DEBUG_ERROR("error connecting to remote host (%d)", err);
-	// TODO: Put this test in the general API section
-	struct sockaddr_storage peer_addr;
-	struct sockaddr_in *in4 = (struct sockaddr_in*)&peer_addr;
-	socklen_t peer_addrlen = sizeof(peer_addr);
-	GETPEERNAME(fd, (struct sockaddr*)&peer_addr, &peer_addrlen);
-	DEBUG_TEST("getpeername() => %s : %d", inet_ntoa(in4->sin_addr), ntohs(in4->sin_port));
-	// compare result of getpeername to remote address
-
-	// TODO: write an ipv6 version of the above ^^^
-	*/
-
-	// Disable Nagle's Algorithm on a socket
-	int sock = SOCKET(AF_INET, SOCK_STREAM, 0);
-	int flag = 1;
-	int err = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(int));
-	if (err < 0) {
-		DEBUG_ERROR("error while disabling Nagle's algorithm on socket");
-	}
-	return err;
-}
 
 void get_network_routes(char *nwid)
 {
@@ -2110,7 +2150,7 @@ void bind_to_localhost_test(int port)
 		}
 	}
 	else {
-		DEBUG_ERROR("error creating socket", err);
+		DEBUG_ERROR("error creating socket (%d)", err);
 	}
 
 	port++;
@@ -2152,7 +2192,7 @@ void bind_to_localhost_test(int port)
 		}
 	}
 	else {
-		DEBUG_ERROR("error creating socket", err);
+		DEBUG_ERROR("error creating socket (%d)", err);
 	}
 }
 
@@ -2304,7 +2344,7 @@ for(int i=0; i<num_repeats; i++)
 			//test_bad_args();
 
 	// OBSCURE API TEST
-			//obscure_api_test();
+	obscure_api_test(&passed);
 
 	#endif // __SELFTEST__
 

@@ -205,8 +205,6 @@ static_lib: picotcp $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
 	$(CXX) $(CXXFLAGS) $(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(STACK_INCLUDES) $(STACK_DRIVER_FLAGS) $(LIBZT_FILES) $(STACK_DRIVER_FILES) -c 
 	mv *.o obj
-	#mv ext/picotcp/build/lib/*.o obj
-	#mv ext/picotcp/build/modules/*.o obj
 	libtool -static -o $(STATIC_LIB) obj/*.o $(STACK_LIB)
 endif
 ifeq ($(STACK_LWIP),1)
@@ -257,10 +255,10 @@ intercept:
 	$(CXX) -std=c++11 -g -Ofast -fPIC $(SANFLAGS) $(STACK_DRIVER_FLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) examples/intercept/intercept.cpp -D_GNU_SOURCE -shared -o $(BUILD)/intercept.so $< $(UNIT_TEST_LIBS) -ldl
 	@./check.sh $(BUILD)/intercept.so
 ztproxy:
-	$(CXX) -std=c++11 -g -Ofast $(SANFLAGS) $(STACK_DRIVER_FLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) examples/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< $(UNIT_TEST_LIBS) -ldl
+	$(CXX) -std=c++11 -g -Ofast $(STACK_DRIVER_FLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) examples/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< $(UNIT_TEST_LIBS) -ldl
 	@./check.sh $(BUILD)/ztproxy
 selftest:
-	$(CXX) -std=c++11 -g -Ofast $(SANFLAGS) $(STACK_DRIVER_FLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) test/selftest.cpp -D__SELFTEST__ -o $(BUILD)/selftest $(UNIT_TEST_LIBS)
+	$(CXX) -std=c++11 -g -Ofast $(STACK_DRIVER_FLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) test/selftest.cpp -D__SELFTEST__ -o $(BUILD)/selftest $(UNIT_TEST_LIBS)
 	@./check.sh $(BUILD)/selftest
 nativetest:
 	$(CXX) -std=c++11 -g -Ofast $(SANFLAGS) $(STACK_DRIVER_FLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) test/selftest.cpp -D__NATIVETEST__ -o $(BUILD)/nativetest
@@ -279,9 +277,5 @@ standardize:
 clean:
 	-rm -rf $(BUILD)/*
 	-find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.so' -o -name '*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
-
-check:
-	./check.sh $(PICO_LIB)
-	./check.sh $(STATIC_LIB)
 
 	

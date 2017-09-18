@@ -719,10 +719,11 @@ namespace ZeroTier {
 		Mutex::Lock _l(_tcpconns_m);
 		std::time_t current_ts = std::time(nullptr);
 		if (current_ts > last_housekeeping_ts + ZT_HOUSEKEEPING_INTERVAL) {
+			DEBUG_EXTRA();
 			// update managed routes (add/del from network stacks)
 			ZeroTier::OneService *service = ((ZeroTier::OneService *)zt1ServiceRef);
 			if (service) {
-				std::vector<ZT_VirtualNetworkRoute> *managed_routes = service->getRoutes(this->_nwid);
+				std::unique_ptr<std::vector<ZT_VirtualNetworkRoute>> managed_routes(service->getRoutes(this->_nwid));
 				ZeroTier::InetAddress target_addr;
 				ZeroTier::InetAddress via_addr;
 				ZeroTier::InetAddress null_addr;
@@ -772,6 +773,7 @@ namespace ZeroTier {
 					}
 				}
 			}
+
 			// TODO: Clean up VirtualSocket objects
 			last_housekeeping_ts = std::time(nullptr);
 		}

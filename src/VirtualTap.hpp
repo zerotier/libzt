@@ -251,7 +251,7 @@ namespace ZeroTier {
 		 * Timestamp of last run of housekeeping
 		 * SEE: ZT_HOUSEKEEPING_INTERVAL in libzt.h
 		 */
-		std::time_t last_housekeeping_ts;
+		std::time_t last_housekeeping_ts = 0;
 
 		/****************************************************************************/
 		/* In these, we will call the stack's corresponding functions, this is      */

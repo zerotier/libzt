@@ -716,11 +716,8 @@ namespace ZeroTier {
 			// get frame len
 			memcpy(&len, tap->pico_frame_rxbuf, sizeof(int32_t));
 			if (len > sizeof(int32_t)) { // meaning, since we package the len in the msg, we don't want to recv a 0-(sizeof(int32_t)) sized frame
-				DEBUG_ERROR("tap->pico_frame_rxbuf + sizeof(int32_t)=%p, len=%d", tap->pico_frame_rxbuf + sizeof(int32_t), len-(sizeof(int32_t)));
 				memcpy(frame, tap->pico_frame_rxbuf + sizeof(int32_t), len-(sizeof(int32_t)) ); // get frame data
-				DEBUG_ERROR("tap->pico_frame_rxbuf=%p, tap->pico_frame_rxbuf + len=%p, MAX_PICO_FRAME_RX_BUF_SZ-len=%d", tap->pico_frame_rxbuf, tap->pico_frame_rxbuf + len, MAX_PICO_FRAME_RX_BUF_SZ-len);
 				memmove(tap->pico_frame_rxbuf, tap->pico_frame_rxbuf + len, MAX_PICO_FRAME_RX_BUF_SZ-len); // shift buffer
-				DEBUG_ERROR("dev=%p, frame=%p, len=%d", dev, frame, (len-sizeof(int32_t)));
 				if ((err = pico_stack_recv(dev, (uint8_t*)frame, (len-sizeof(int32_t)))) < 0) {
 					if (picostack) {
 						DEBUG_ERROR("pico_stack_recv(), err=%d, pico_err=%d, %s", err, pico_err, picostack->beautify_pico_error(pico_err));

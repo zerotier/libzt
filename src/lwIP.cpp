@@ -850,6 +850,7 @@ namespace ZeroTier
 #endif
 
 		char udp_payload_buf[ZT_SOCKET_MSG_BUF_SZ];
+		memset(udp_payload_buf, 0, sizeof(ZT_SOCKET_MSG_BUF_SZ));
 		char *msg_ptr = udp_payload_buf;
 		int tot_len = 0;
 		while(p != NULL) {
@@ -861,21 +862,23 @@ namespace ZeroTier
 			tot_len += p->len;
 			p = p->next;
 		}
-		if (tot_len) {
+		if (tot_len > 0) {
 			int w = 0;
-			//DEBUG_INFO("tot_len=%d", tot_len);
-			char udp_msg_buf[ZT_SOCKET_MSG_BUF_SZ]; // [sz : addr : payload]
+			// [sz : addr : payload]
+			char udp_msg_buf[ZT_SOCKET_MSG_BUF_SZ]; 
+			memset(udp_msg_buf, 0, sizeof(ZT_SOCKET_MSG_BUF_SZ));
 			int32_t len = sizeof(struct sockaddr_storage) + tot_len;
 			int32_t msg_tot_len = sizeof(int32_t) + len;
-			memcpy(udp_msg_buf, &len, sizeof(int32_t)); // len: sockaddr+payload
-			memcpy(udp_msg_buf + sizeof(int32_t), &ss, sizeof(struct sockaddr_storage)); // sockaddr
-			memcpy(udp_msg_buf + sizeof(int32_t) + sizeof(struct sockaddr_storage), &udp_payload_buf, tot_len); // payload
+			// len: sockaddr+payload
+			memcpy(udp_msg_buf, &len, sizeof(int32_t)); 
+			// sockaddr
+			memcpy(udp_msg_buf + sizeof(int32_t), &ss, sizeof(struct sockaddr_storage)); 
+			// payload
+			memcpy(udp_msg_buf + sizeof(int32_t) + sizeof(struct sockaddr_storage), &udp_payload_buf, tot_len); 
 			if ((w = write(vs->sdk_fd, udp_msg_buf, msg_tot_len)) < 0) {
 				perror("write");
 				DEBUG_ERROR("write(fd=%d)=%d, errno=%d", vs->sdk_fd, w, errno);
 			}
-			//vs->tap->phyOnUnixWritable(vs->sock, NULL, true);
-			//vs->tap->_phy.setNotifyWritable(vs->sock, true);
 		}
 		pbuf_free(q);
 	}

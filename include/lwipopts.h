@@ -100,6 +100,7 @@
 #define SYS_DEBUG                       LWIP_DBG_OFF
 #define TIMERS_DEBUG                    LWIP_DBG_OFF
 // TCP
+#define TCP_DEBUG_TMR					LWIP_DBG_OFF // not standard in lwIP, added for debugging convenience
 #define TCP_DEBUG                       LWIP_DBG_OFF
 #define TCP_INPUT_DEBUG                 LWIP_DBG_OFF
 #define TCP_FR_DEBUG                    LWIP_DBG_OFF

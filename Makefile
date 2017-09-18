@@ -304,9 +304,11 @@ shared_jni_lib: picotcp $(ZTO_OBJS)
 tests: selftest nativetest ztproxy
 # intercept
 
+ZT_UTILS:=zto/node/Utils.cpp -Izto/node
+
 selftest:
 	$(CXX) $(CXXFLAGS) -D__SELFTEST__ $(STACK_DRIVER_FLAGS) $(LIBZT_FLAGS) \
-		$(SANFLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) test/selftest.cpp -o \
+		$(SANFLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) $(ZT_UTILS) test/selftest.cpp -o \
 		$(BUILD)/selftest -L$(BUILD) -lzt -lpthread
 	@./check.sh $(BUILD)/selftest
 nativetest:

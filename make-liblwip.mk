@@ -120,7 +120,7 @@ LWIPFILESW=$(wildcard $(LWIPFILES))
 LWIPOBJS=$(notdir $(LWIPFILESW:.c=.o))
 
 %.o:
-	$(CXX) $(CFLAGS) -c $(<:.o=.c) -o obj/$@
+	$(CXX) $(CFLAGS) -Wno-deprecated -c $(<:.o=.c) -o obj/$@
 
 all:
 .PHONY: all
@@ -136,4 +136,4 @@ liblwip.a: clean $(LWIPOBJS)
 	#libtool -static -o $@ $^
 
 .depend: $(LWIPFILES)
-	$(CCDEP) $(CFLAGS) -MM $^ > .depend || rm -f .depend
+	$(CCDEP) $(CFLAGS) -x c -MM $^ > .depend || rm -f .depend

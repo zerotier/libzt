@@ -49,7 +49,10 @@
 #include <signal.h>
 
 #include "libzt.h"
+
+#if defined(__SELFTEST__)
 #include "Utils.hpp"
+#endif
 
 #define EXIT_ON_FAIL           false
 
@@ -258,9 +261,13 @@ void wait_until_tplus_s(long int original_time, int tplus_s)
 
 int rand_in_range(int min, int max)
 {
+#if defined(__SELFTEST__)
 	unsigned int seed;
 	ZeroTier::Utils::getSecureRandom((void*)&seed,sizeof(seed));
 	srand(seed);
+#else
+	srand((unsigned int)time(NULL));
+#endif
 	return min + rand() % static_cast<int>(max - min + 1);
 }
 
@@ -2116,7 +2123,7 @@ void* worker_create_socket(void *arg)
 // test the core locking logic by creating large numbers of threads and performing random operations over an extended period of time
 void multithread_test(int num_iterations, bool *passed)
 {
-	int err = 0, i = 0;
+	int err = 0;
 	fprintf(stderr, "\n\nmultithread_socket_creation\n\n");
 	// test zts_socket() and zts_close()
 	for (int j=0; j<num_iterations; j++) {

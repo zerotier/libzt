@@ -249,17 +249,17 @@ namespace ZeroTier {
 		Mutex::Lock _l(_multicastGroups_m);
 		// TODO: get multicast subscriptions
 		std::vector<InetAddress> allIps(ips());
-		for(std::vector<InetAddress>::iterator ip(allIps.begin());ip!=allIps.end();++ip)
+		for (std::vector<InetAddress>::iterator ip(allIps.begin());ip!=allIps.end();++ip)
 			newGroups.push_back(MulticastGroup::deriveMulticastGroupForAddressResolution(*ip));
 
 		std::sort(newGroups.begin(),newGroups.end());
 		std::unique(newGroups.begin(),newGroups.end());
 
-		for(std::vector<MulticastGroup>::iterator m(newGroups.begin());m!=newGroups.end();++m) {
+		for (std::vector<MulticastGroup>::iterator m(newGroups.begin());m!=newGroups.end();++m) {
 			if (!std::binary_search(_multicastGroups.begin(),_multicastGroups.end(),*m))
 				added.push_back(*m);
 		}
-		for(std::vector<MulticastGroup>::iterator m(_multicastGroups.begin());m!=_multicastGroups.end();++m) {
+		for (std::vector<MulticastGroup>::iterator m(_multicastGroups.begin());m!=_multicastGroups.end();++m) {
 			if (!std::binary_search(newGroups.begin(),newGroups.end(),*m))
 				removed.push_back(*m);
 		}
@@ -388,7 +388,7 @@ namespace ZeroTier {
 	void VirtualTap::removeVirtualSocket(VirtualSocket *vs)
 	{
 		Mutex::Lock _l(_tcpconns_m);
-		for(int i=0; i<_VirtualSockets.size(); i++) {
+		for (int i=0; i<_VirtualSockets.size(); i++) {
 			if (vs == _VirtualSockets[i]) {
 				_VirtualSockets.erase(_VirtualSockets.begin() + i);
 				break;
@@ -733,12 +733,12 @@ namespace ZeroTier {
 				char ipbuf[INET6_ADDRSTRLEN], ipbuf2[INET6_ADDRSTRLEN], ipbuf3[INET6_ADDRSTRLEN];
 				// TODO: Rework this when we have time
 				// check if pushed route exists in tap (add)
-				for(int i=0; i<ZT_MAX_NETWORK_ROUTES; i++) {
+				for (int i=0; i<ZT_MAX_NETWORK_ROUTES; i++) {
 					found = false;
 					target_addr = managed_routes->at(i).target;
 					via_addr = managed_routes->at(i).via;
 					nm = target_addr.netmask();
-					for(int j=0; j<routes.size(); j++) {
+					for (int j=0; j<routes.size(); j++) {
 						if (via_addr.ipsEqual(null_addr) || target_addr.ipsEqual(null_addr)) {
 							found=true;
 							continue;
@@ -756,9 +756,9 @@ namespace ZeroTier {
 					}
 				}
 				// check if route exists in tap but not in pushed routes (remove)
-				for(int i=0; i<routes.size(); i++) {
+				for (int i=0; i<routes.size(); i++) {
 					found = false;
-					for(int j=0; j<ZT_MAX_NETWORK_ROUTES; j++) {
+					for (int j=0; j<ZT_MAX_NETWORK_ROUTES; j++) {
 						target_addr = managed_routes->at(j).target;
 						via_addr = managed_routes->at(j).via;
 						nm = target_addr.netmask();

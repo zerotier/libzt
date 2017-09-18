@@ -24,8 +24,6 @@
  * of your own application.
  */
 
- // Comprehensive stress test for socket-like API
-
 #include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -51,14 +49,15 @@
 #include <signal.h>
 
 #include "libzt.h"
+#include "Utils.hpp"
 
 #define EXIT_ON_FAIL           false
 
 #define PASSED                 1
 #define FAILED                 0
 
-#define ECHO_INTERVAL          1000000 // us
-#define SLAM_INTERVAL          500000
+#define ECHO_INTERVAL          1000000 // microseconds
+#define SLAM_INTERVAL          500000  // microseconds
 
 #define WAIT_FOR_TEST_TO_CONCLUDE         0
 #define WAIT_FOR_TRANSMISSION_TO_COMPLETE 5
@@ -80,12 +79,15 @@
 #define MIN_PORT               5000
 #define MAX_PORT               50000
 
-#define TCP_UNIT_TEST_SIG_4    struct sockaddr_in *addr, int op, int cnt, char *details, bool *passed
-#define UDP_UNIT_TEST_SIG_4    struct sockaddr_in *local_addr, struct sockaddr_in *remote_addr, int op, int cnt, char *details, bool *passed
+#define TCP_UNIT_TEST_SIG_4    struct sockaddr_in *addr, int op, int cnt, char *details, \
+									bool *passed
+#define UDP_UNIT_TEST_SIG_4    struct sockaddr_in *local_addr, struct sockaddr_in *remote_addr, \
+									int op, int cnt, char *details, bool *passed
 
-#define TCP_UNIT_TEST_SIG_6    struct sockaddr_in6 *addr, int op, int cnt, char *details, bool *passed
-#define UDP_UNIT_TEST_SIG_6    struct sockaddr_in6 *local_addr, struct sockaddr_in6 *remote_addr, int op, int cnt, char *details, bool *passed
-
+#define TCP_UNIT_TEST_SIG_6    struct sockaddr_in6 *addr, int op, int cnt, char *details, \
+									bool *passed
+#define UDP_UNIT_TEST_SIG_6    struct sockaddr_in6 *local_addr, struct sockaddr_in6 *remote_addr, \
+									int op, int cnt, char *details, bool *passed
 
 #define ECHOTEST_MODE_RX       333
 #define ECHOTEST_MODE_TX       666
@@ -192,9 +194,10 @@ std::map<std::string, std::string> testConf;
 /* Helper Functions                                                         */
 /****************************************************************************/
 
-void displayResults(int *results, int size) {
+void displayResults(int *results, int size) 
+{
 	int success = 0, failure = 0;
-	for(int i=0; i<size; i++) {
+	for (int i=0; i<size; i++) {
 		if (results[i] == 0) {
 			success++;
 		}
@@ -207,7 +210,8 @@ void displayResults(int *results, int size) {
 	std::cout << " - failure = " << (float)failure / (float)size << std::endl;
 }
 
-void loadTestConfigFile(std::string filepath) {
+void loadTestConfigFile(std::string filepath) 
+{
 	std::string key, value, prefix;
 	std::ifstream testFile;
 	testFile.open(filepath.c_str());
@@ -224,19 +228,22 @@ void loadTestConfigFile(std::string filepath) {
 	testFile.close();
 }
 
-long int get_now_ts() {
+long int get_now_ts() 
+{
 	struct timeval tp;
 	gettimeofday(&tp, NULL);
 	return tp.tv_sec * 1000 + tp.tv_usec / 1000;
 }
 
 // for syncronizing tests
-void wait_until_tplus(long int original_time, int tplus_ms) {
-	while(original_time + tplus_ms > get_now_ts()) { 
+void wait_until_tplus(long int original_time, int tplus_ms) 
+{
+	while (original_time + tplus_ms > get_now_ts()) { 
 		sleep(1);
 	}		
 }
-void wait_until_tplus_s(long int original_time, int tplus_s) {
+void wait_until_tplus_s(long int original_time, int tplus_s) 
+{
 	int current_time_offset = (get_now_ts() - original_time) / 1000;
 	fprintf(stderr, "\n\n--- WAITING FOR T+%d --- (current: T+%d)\n\n", tplus_s, current_time_offset);
 	if (current_time_offset > tplus_s) {
@@ -249,15 +256,24 @@ void wait_until_tplus_s(long int original_time, int tplus_s) {
 	wait_until_tplus(original_time, tplus_s * 1000);
 }
 
-void generate_random_data(void *buf, size_t n, int min, int max) {
+int rand_in_range(int min, int max)
+{
+	unsigned int seed;
+	ZeroTier::Utils::getSecureRandom((void*)&seed,sizeof(seed));
+	srand(seed);
+	return min + rand() % static_cast<int>(max - min + 1);
+}
+
+void generate_random_data(void *buf, size_t n, int min, int max) 
+{
 	char *b = (char*)buf;
-	srand((unsigned)time(0));
-	for(int i=0; i<n; i++) {
-		b[i] = min + (rand() % static_cast<int>(max - min + 1));
+	for (int i=0; i<n; i++) {
+		b[i] = rand_in_range(min, max);
 	}
 }
 
-void str2addr(std::string ipstr, int port, int ipv, struct sockaddr *saddr) {
+void str2addr(std::string ipstr, int port, int ipv, struct sockaddr *saddr) 
+{
 	if (ipv == 4) {
 		struct sockaddr_in *in4 = (struct sockaddr_in*)saddr;
 		in4->sin_port = htons(port);
@@ -556,7 +572,7 @@ void udp_client_4(UDP_UNIT_TEST_SIG_4)
 		return;
 	}
 	struct sockaddr_storage saddr;
-	while(true) {
+	while (true) {
 		sleep(1);
 		// tx
 		if ((w = SENDTO(fd, msg.c_str(), strlen(msg.c_str()), 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
@@ -622,7 +638,7 @@ void udp_server_4(UDP_UNIT_TEST_SIG_4)
 	DEBUG_TEST("sending DGRAM(s) to %s : %d", inet_ntoa(remote_addr->sin_addr), ntohs(remote_addr->sin_port));
 	// tx
 	long int tx_ti = get_now_ts();	
-	while(true) {
+	while (true) {
 		sleep(1);
 		if ((w = SENDTO(fd, msg.c_str(), len, 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
@@ -676,7 +692,7 @@ void udp_client_6(UDP_UNIT_TEST_SIG_6)
 
 	// start sending UDP packets in the hopes that at least one will be picked up by the server
 	struct sockaddr_storage saddr;
-	while(true) {
+	while (true) {
 		// tx
 		if ((w = SENDTO(fd, msg.c_str(), len, 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
@@ -745,7 +761,7 @@ void udp_server_6(UDP_UNIT_TEST_SIG_6)
 	// once we receive a UDP packet, spend 10 seconds sending responses in the hopes that the client will see
 	// tx
 	long int tx_ti = get_now_ts();
-	while(true) {
+	while (true) {
 		usleep(100000);
 		//DEBUG_TEST("sending UDP packet");
 		if ((w = SENDTO(fd, msg.c_str(), len, 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
@@ -805,7 +821,7 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 		int wrem = cnt, rrem = cnt;
 		// TX
 		long int tx_ti = get_now_ts();	
-		while(wrem) {
+		while (wrem) {
 			int next_write = std::min(4096, wrem);
 			signal(SIGPIPE, SIG_IGN);
 			n = WRITE(fd, &txbuf[w], next_write);
@@ -820,7 +836,7 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 		DEBUG_TEST("wrote=%d, reading next...", w);
 		// RX
 		long int rx_ti = 0;	
-		while(rrem) {
+		while (rrem) {
 			n = READ(fd, &rxbuf[r], rrem);
 			if (rx_ti == 0) { // wait for first message
 				rx_ti = get_now_ts();	
@@ -837,7 +853,7 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 		err = CLOSE(fd);
 		// Compare RX and TX buffer and detect mismatches
 		bool match = true;
-		for(int i=0; i<cnt; i++) {
+		for (int i=0; i<cnt; i++) {
 			if (rxbuf[i] != txbuf[i]) {
 				DEBUG_ERROR("buffer mismatch found at idx=%d", i);
 				match=false;
@@ -887,7 +903,7 @@ void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 		int wrem = cnt, rrem = cnt;
 		// TX
 		long int tx_ti = get_now_ts();	
-		while(wrem) {
+		while (wrem) {
 			int next_write = std::min(4096, wrem);
 			n = WRITE(fd, &txbuf[w], next_write);
 			if (n > 0) {
@@ -900,7 +916,7 @@ void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 		DEBUG_TEST("wrote=%d", w);
 		// RX
 		long int rx_ti = 0;	
-		while(rrem) {
+		while (rrem) {
 			n = READ(fd, &rxbuf[r], rrem);
 			if (rx_ti == 0) { // wait for first message
 				rx_ti = get_now_ts();	
@@ -917,7 +933,7 @@ void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 		err = CLOSE(fd);
 		// Compare RX and TX buffer and detect mismatches
 		bool match = true;
-		for(int i=0; i<cnt; i++) {
+		for (int i=0; i<cnt; i++) {
 			if (rxbuf[i] != txbuf[i]) {
 				DEBUG_ERROR("buffer mismatch found at idx=%d", i);
 				match=false;
@@ -979,7 +995,7 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 	if (op == TEST_OP_N_BYTES) {
 		int wrem = cnt, rrem = cnt;
 		long int rx_ti = 0;
-		while(rrem) {
+		while (rrem) {
 			n = READ(client_fd, &rxbuf[r], rrem);
 			if (n > 0) {
 				if (rx_ti == 0) { // wait for first message
@@ -994,7 +1010,7 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 		long int rx_tf = get_now_ts();	
 		DEBUG_TEST("read=%d, writing next...", r);
 		long int tx_ti = get_now_ts();	
-		while(wrem) {
+		while (wrem) {
 			int next_write = std::min(1024, wrem);
 			n = WRITE(client_fd, &rxbuf[w], next_write);
 			if (n > 0) {	
@@ -1067,7 +1083,7 @@ void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 	if (op == TEST_OP_N_BYTES) {
 		int wrem = cnt, rrem = cnt;
 		long int rx_ti = 0;
-		while(rrem) {
+		while (rrem) {
 			n = READ(client_fd, &rxbuf[r], rrem);
 			if (n > 0) {
 				if (rx_ti == 0) { // wait for first message
@@ -1081,7 +1097,7 @@ void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 		long int rx_tf = get_now_ts();	
 		DEBUG_TEST("read=%d", r);
 		long int tx_ti = get_now_ts();	
-		while(wrem) {
+		while (wrem) {
 			int next_write = std::min(1024, wrem);
 			n = WRITE(client_fd, &rxbuf[w], next_write);
 			if (n > 0) {	
@@ -1140,7 +1156,7 @@ void udp_client_sustained_4(UDP_UNIT_TEST_SIG_4)
 		return;
 	}
 	int num_to_send = 10;
-	for(int i=0; i<num_to_send; i++) {
+	for (int i=0; i<num_to_send; i++) {
 		// tx
 		if ((w = SENDTO(fd, msg.c_str(), strlen(msg.c_str()), 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
@@ -1182,7 +1198,7 @@ void udp_server_sustained_4(UDP_UNIT_TEST_SIG_4)
 	}
 	int num_to_recv = 3;
 	DEBUG_TEST("waiting for UDP packet...");
-	for(int i=0; i<num_to_recv; i++) {
+	for (int i=0; i<num_to_recv; i++) {
 		// rx
 		struct sockaddr_storage saddr;
 		struct sockaddr_in *in4 = (struct sockaddr_in*)&saddr;
@@ -1237,7 +1253,7 @@ void udp_client_sustained_6(UDP_UNIT_TEST_SIG_6)
 		return;
 	}
 	int num_to_send = 10;
-	for(int i=0; i<num_to_send; i++) {
+	for (int i=0; i<num_to_send; i++) {
 		sleep(1);
 		// tx
 		if ((w = SENDTO(fd, msg.c_str(), strlen(msg.c_str()), 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
@@ -1280,7 +1296,7 @@ void udp_server_sustained_6(UDP_UNIT_TEST_SIG_6)
 	}
 	int num_to_recv = 3;
 	DEBUG_TEST("waiting for UDP packet...");
-	for(int i=0; i<num_to_recv; i++) {
+	for (int i=0; i<num_to_recv; i++) {
 		// rx
 		struct sockaddr_storage saddr;
 		struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&saddr;
@@ -1331,7 +1347,7 @@ void tcp_client_perf_4(TCP_UNIT_TEST_SIG_4)
 		w = 0;
 
 		// TX
-		while(w < total_test_sz)
+		while (w < total_test_sz)
 			w += WRITE(fd, rbuf, chunk_sz);
 		
 		long int end_time = get_now_ts();
@@ -1374,7 +1390,7 @@ void tcp_server_perf_4(TCP_UNIT_TEST_SIG_4)
 		r = 0;
 
 		// RX
-		while(r < total_test_sz)
+		while (r < total_test_sz)
 			r += READ(client_fd, rbuf, chunk_sz);
 		
 		long int end_time = get_now_ts();
@@ -1437,7 +1453,7 @@ void tcp_perf_tx_echo_4(TCP_UNIT_TEST_SIG_4)
 
 	// begin
 	DEBUG_TEST("beginning test, sending test byte stream...");
-	while(tot < cnt) {
+	while (tot < cnt) {
 		if ((w = WRITE(fd, tbuf, sizeof tbuf)) < 0) {
 			DEBUG_ERROR("error while sending test byte stream to echotest (err=%d)", w);
 			return;
@@ -1517,7 +1533,7 @@ void tcp_perf_rx_echo_4(TCP_UNIT_TEST_SIG_4)
 	long int start_time = get_now_ts();	
 	DEBUG_TEST("Received first set of bytes in test stream. now keeping time");
 
-	while(tot < cnt) {
+	while (tot < cnt) {
 		if ((r = read(fd, tbuf, sizeof tbuf)) < 0) {
 			DEBUG_ERROR("there was an error reading the test stream. aborting (err=%d)", r);
 			return;
@@ -1544,7 +1560,8 @@ void tcp_perf_rx_echo_4(TCP_UNIT_TEST_SIG_4)
 
 int obscure_api_test(bool *passed)
 {
-	DEBUG_TEST("obscure_api_test");
+	fprintf(stderr, "\n\nobscure API test\n\n");	
+
 	/*
 	// ---
 	// getpeername()
@@ -1595,14 +1612,14 @@ int obscure_api_test(bool *passed)
 	socklen_t flag_len = sizeof(optval);
 	int fd = SOCKET(AF_INET, SOCK_STREAM, 0);
 	DEBUG_TEST("setting level=%d, optname=%d, optval=%d...", level, optname, optval);
-	int err = SETSOCKOPT(fd, IPPROTO_TCP, TCP_NODELAY, (char *)&optval, sizeof(int));
+	int err = SETSOCKOPT(fd, level, optname, (char *)&optval, sizeof(int));
 	if (err < 0) {
 		DEBUG_ERROR("error while setting optval on socket");
 		*passed = false;
 		err = -1;
 	}
 	optval = -99; // set junk value to test against
-	if ((err = GETSOCKOPT(fd, IPPROTO_TCP, TCP_NODELAY, &optval, &flag_len)) < 0) {
+	if ((err = GETSOCKOPT(fd, level, optname, &optval, &flag_len)) < 0) {
 		DEBUG_ERROR("error while getting the optval");
 		*passed = false;
 		err = -1;
@@ -1617,7 +1634,7 @@ int obscure_api_test(bool *passed)
 		if (optval > 0) { // TODO: what should be expected for each platform? Should this mirror them?
 			optval = 0;
 			DEBUG_TEST("setting level=%d, optname=%d, optval=%d...", level, optname, optval);
-			if ((err = SETSOCKOPT(fd, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, (socklen_t)sizeof(int))) < 0) {
+			if ((err = SETSOCKOPT(fd, level, optname, (char *) &optval, (socklen_t)sizeof(int))) < 0) {
 				DEBUG_ERROR("error while setting on socket");
 				*passed = false;
 				err = -1;
@@ -1661,12 +1678,12 @@ int slam_api_test()
 	if (false)
 	{
 		// open and close SLAM_NUMBER*SLAM_REPEAT sockets
-		for(int j=0; j<SLAM_REPEAT; j++) {
+		for (int j=0; j<SLAM_REPEAT; j++) {
 			std::cout << "slamming " << j << " time(s)" << std::endl;
 			usleep(SLAM_INTERVAL);
 			// create sockets
 			int fds[SLAM_NUMBER];
-			for(int i = 0; i<SLAM_NUMBER; i++) {
+			for (int i = 0; i<SLAM_NUMBER; i++) {
 				if ((err = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
 					std::cout << "error creating socket (errno = " << strerror(errno) << ")" << std::endl;
 					if (errno == EMFILE)
@@ -1680,7 +1697,7 @@ int slam_api_test()
 
 			}
 			// close sockets
-			for(int i = 0; i<SLAM_NUMBER; i++) {
+			for (int i = 0; i<SLAM_NUMBER; i++) {
 				//std::cout << "\tclosing " << i << " socket(s)" << std::endl;
 				if ((err = CLOSE(fds[i])) < 0) {
 					std::cout << "error closing socket (errno = " << strerror(errno) << ")" << std::endl;
@@ -1709,11 +1726,11 @@ int slam_api_test()
 		int sock = 0;
 		std::vector<int> used_ports;
 
-		for(int j=0; j<SLAM_REPEAT; j++) {
+		for (int j=0; j<SLAM_REPEAT; j++) {
 			std::cout << "slamming " << j << " time(s)" << std::endl;
 			usleep(SLAM_INTERVAL);
 
-			for(int i = 0; i<SLAM_NUMBER; i++) {
+			for (int i = 0; i<SLAM_NUMBER; i++) {
 				if ((sock = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
 					std::cout << "error creating socket (errno = " << strerror(errno) << ")" << std::endl;
 					if (errno == EMFILE)
@@ -1725,7 +1742,7 @@ int slam_api_test()
 				usleep(SLAM_INTERVAL);
 
 				int port;
-				while((std::find(used_ports.begin(),used_ports.end(),port) == used_ports.end()) == false) {
+				while ((std::find(used_ports.begin(),used_ports.end(),port) == used_ports.end()) == false) {
 					port = MIN_PORT + (rand() % (int)(MAX_PORT - MIN_PORT + 1));
 				}
 				used_ports.push_back(port);
@@ -1774,13 +1791,13 @@ int slam_api_test()
 	// (3) close()
 	int num_times = zts_maxsockets(SOCK_STREAM);
 	std::cout << "socket/connect/close - " << num_times << " times" << std::endl;
-	for(int i=0;i<(SLAM_NUMBER*SLAM_REPEAT); i++) { results[i] = 0; }
+	for (int i=0;i<(SLAM_NUMBER*SLAM_REPEAT); i++) { results[i] = 0; }
 	if (true) 
 	{
 		int port = 4545;
 		
 		// open, bind, listen, accept, close
-		for(int j=0; j<num_times; j++) {
+		for (int j=0; j<num_times; j++) {
 			int sock = 0;
 			errno = 0;
 
@@ -1842,7 +1859,7 @@ void get_network_routes(char *nwid)
 	// Retreive managed routes for a given ZeroTier network
 	std::vector<ZT_VirtualNetworkRoute> *routes = zts_get_network_routes(nwid);
 
-	for(int i=0; i<routes->size(); i++) {
+	for (int i=0; i<routes->size(); i++) {
 		struct sockaddr_in *target = (struct sockaddr_in*)&(routes->at(i).target);
 		struct sockaddr_in *via = (struct sockaddr_in*)&(routes->at(i).via);
 		char target_str[INET6_ADDRSTRLEN];
@@ -1882,7 +1899,7 @@ int random_api_test()
 	int num_operations = 100;
 	char *opbuf = (char*)malloc(num_operations*sizeof(char));
 	generate_random_data(opbuf, num_operations, 0, 9);
-	for(int i=0; i<num_operations; i++) {
+	for (int i=0; i<num_operations; i++) {
 		sleep(1);
 		DEBUG_TEST("[i=%d, op=%d] calling X", i, opbuf[i]);
 
@@ -2001,9 +2018,9 @@ void test_bad_args()
 	DEBUG_TEST("testing bad arguments for socket()");
 
 	// Try all plausible argument combinations
-	for(int i=0; i<num_proto_families; i++) {
-		for(int j=0; j<num_socket_types; j++) {
-			for(int k=0; k<max; k++) {
+	for (int i=0; i<num_proto_families; i++) {
+		for (int j=0; j<num_socket_types; j++) {
+			for (int k=0; k<max; k++) {
 
 				int protocol_family = proto_families[i];
 				int socket_type = socket_types[j];
@@ -2059,47 +2076,146 @@ void close_while_writing_test()
 	// TODO: Close a socket while another thread is writing to it or reading from it
 }
 
-void* create_socket(void *arg)
+/****************************************************************************/
+/* test thread model, and locking                                           */
+/****************************************************************************/
+
+#define CONCURRENCY_LEVEL   8     // how many threads we want to test with
+#define TIME_GRANULARITY    10000 // multiple in microseconds
+#define TIME_MULTIPLIER_MIN 1     // 
+#define TIME_MULTIPLIER_MAX 10    // 
+#define WORKER_ITERATIONS   100   // number of times a worker shall do its task
+#define MASTER_ITERATIONS   10    // number of times we will create a set of workers
+
+// for passing info to worker threads
+struct fd_addr_pair {
+	int fd;
+	struct sockaddr_in *remote_addr;
+};
+
+pthread_t tid[CONCURRENCY_LEVEL];
+
+// over num_iterations, wait a random time, create a socket, wait a random time, and close the socket
+void* worker_create_socket(void *arg)
 {
-	/*
-	unsigned long i = 0;
 	pthread_t id = pthread_self();
-
-	if (pthread_equal(id,tid[0]))
-	{
-		printf("\n First thread processing\n");
+	int fd, rs, rc;
+	// if (pthread_equal(id,tid[0])) { }
+	for (int i=0; i<WORKER_ITERATIONS; i++) {
+		rs = rand_in_range(TIME_MULTIPLIER_MIN, TIME_MULTIPLIER_MAX);
+		rc = rand_in_range(TIME_MULTIPLIER_MIN, TIME_MULTIPLIER_MAX);
+		fprintf(stderr, "id=%d, rs = %d, rc = %d\n", id, rs, rc);
+		usleep(rs * TIME_GRANULARITY);
+		fd = SOCKET(AF_INET, SOCK_STREAM, 0);
+		usleep(rc * TIME_GRANULARITY);
+		CLOSE(fd);
 	}
-	else
-	{
-		printf("\n Second thread processing\n");
-	}
-
-	for(i=0; i<(0xFFFFFFFF);i++);
-	*/
 	return NULL;
 }
 
-
-void multithread_socket_creation()
+// test the core locking logic by creating large numbers of threads and performing random operations over an extended period of time
+void multithread_test(int num_iterations, bool *passed)
 {
+	int err = 0, i = 0;
 	fprintf(stderr, "\n\nmultithread_socket_creation\n\n");
-	/*
-	pthread_t tid[2];
-
-	err = pthread_create(&(tid[i]), NULL, &create_socket, NULL);
-		if (err != 0)
-			printf("\ncan't create thread :[%s]", strerror(err));
-		else
-			printf("\n Thread created successfully\n");
-	*/
-	// TODO: 
+	// test zts_socket() and zts_close()
+	for (int j=0; j<num_iterations; j++) {
+		fprintf(stderr, "iteration=%d\n", j);
+		// create threads
+		for (int i=0; i<CONCURRENCY_LEVEL; i++) {
+			fprintf(stderr,"creating thread [%d]\n", i);
+			if ((err = pthread_create(&(tid[i]), NULL, &worker_create_socket, NULL)) < 0) {
+				fprintf(stderr, "there was a problem while creating thread [%d]\n", i);
+				*passed = false;
+				return;
+			}
+		}
+		// join all threads
+		char *b;
+		for (int i=0; i<CONCURRENCY_LEVEL; i++) {
+			if ((err = pthread_join(tid[i],(void**)&b)) < 0) {
+				fprintf(stderr, "error while joining thread [%d]\n", i);
+				*passed = false;
+				return;
+			}
+		}
+	}
+	*passed = true;
 }
 
-void multithread_rw()
+// write a simple string message to a SOCK_DGRAM socket
+void* worker_write_to_udp_socket(void *arg) {
+	fprintf(stderr, "\n\n\nwrite_to_udp_socket\n\n\n");
+	struct fd_addr_pair *fdp = (struct fd_addr_pair*)arg;
+	int fd = fdp->fd;
+	struct sockaddr_in *remote_addr = fdp->remote_addr;
+	//fprintf(stderr, "fd=%d\n", fd);
+	int w = 0;
+	for (int i=0; i<WORKER_ITERATIONS; i++) {
+		int r = rand_in_range(TIME_MULTIPLIER_MIN, TIME_MULTIPLIER_MAX);
+		usleep(r * TIME_GRANULARITY);
+		if ((w = SENDTO(fd, "hello", 5, 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
+			DEBUG_ERROR("error sending packet, err=%d", errno);
+		}
+	}
+	return NULL;
+}
+
+// create a single socket and many threads to write to that single socket
+void multithread_udp_write(struct sockaddr_in *local_addr, struct sockaddr_in *remote_addr, bool *passed)
 {
-	fprintf(stderr, "\n\nmultithread_rw\n\n");
+	fprintf(stderr, "\n\nmultithread_udp_broadcast\n\n");
+	int fd, err;
+	if((fd = SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		DEBUG_ERROR("error while creating socket");
+		*passed = false;
+		return;
+	}
+	if ((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in)) < 0)) {
+		DEBUG_ERROR("error binding to interface (%d)", err);
+		perror("bind");
+		*passed = false;
+		return;
+	}
+	// params to send to new threads
+	struct fd_addr_pair fdp;
+	fdp.fd = fd;
+	fdp.remote_addr = remote_addr;
+
+	for (int i=0; i<CONCURRENCY_LEVEL; i++) {
+		fprintf(stderr,"creating thread [%d]\n", i);
+		if ((err = pthread_create(&(tid[i]), NULL, &worker_write_to_udp_socket, (void*)&fdp)) < 0) {
+			fprintf(stderr, "there was a problem while creating thread [%d]\n", i);
+			*passed = false;
+			return;
+		}
+	}
+	// join all threads
+	char *b;
+	for (int i=0; i<CONCURRENCY_LEVEL; i++) {
+		if ((err = pthread_join(tid[i],(void**)&b)) < 0) {
+			fprintf(stderr, "error while joining thread [%d]\n", i);
+			*passed = false;
+			return;
+		}
+	}
+	CLOSE(fd);
+}
+
+void multithread_rw_server()
+{
+	fprintf(stderr, "\n\nmultithread_rw_server\n\n");
 	// TODO: Test read/writes from multiple threads
 }
+
+void multithread_rw_client()
+{
+	fprintf(stderr, "\n\nmultithread_rw_client\n\n");
+}
+
+/****************************************************************************/
+/* close()                                                                  */
+/****************************************************************************/
 
 // Tests rapid opening and closure of sockets
 void close_test(struct sockaddr *bind_addr)
@@ -2111,7 +2227,7 @@ void close_test(struct sockaddr *bind_addr)
 	bool extended = false;
 	int tries = !extended ? 8 : 1024;
 	int err = 0;
-	for(int i=0; i<tries; i++)
+	for (int i=0; i<tries; i++)
 	{
 		int fd;
 		if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -2297,28 +2413,29 @@ int main(int argc , char *argv[])
 	/*
 	 zts_start(path.c_str());
 	 printf("waiting for service to start...\n");
-	 while(zts_running() == false)
+	 while (zts_running() == false)
 		sleep(1);
 	 printf("joining network...\n");
 	 zts_join(nwid.c_str());
 	 printf("waiting for address assignment...\n");
-	 while(zts_has_address(nwid.c_str()) == false)
+	 while (zts_has_address(nwid.c_str()) == false)
 		sleep(1);
 	*/
 
-for(int i=0; i<num_repeats; i++)
+for (int i=0; i<num_repeats; i++)
 {
 	DEBUG_TEST("\n\n\n --- COMPREHENSIVE TEST ITERATION: %d out of %d ---\n\n\n", i, num_repeats);
 
-	// closure test
-
-	#if defined(__SELFTEST__)
+#if defined(__SELFTEST__)
+	if (false) {
 		port = 1000; 
+		// closure test
 		struct sockaddr_in in4;
 		DEBUG_TEST("testing closures by binding to: %s", local_ipstr.c_str());
 		str2addr(local_ipstr, port, 4, (struct sockaddr *)&in4);
 		close_test((struct sockaddr*)&in4);
 		port++;
+	}
 
 	// Test adding, resolving, and removing a DNS server
 
@@ -2344,13 +2461,24 @@ for(int i=0; i<num_repeats; i++)
 			//test_bad_args();
 
 	// OBSCURE API TEST
-	obscure_api_test(&passed);
+	//obscure_api_test(&passed);
 
-	#endif // __SELFTEST__
+	// 
+	ipv = 4;
+	port = start_port;
+	str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+	str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+	multithread_udp_write((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, &passed);
+	
+	//
+	multithread_test(10, &passed);
+	//exit(0);
 
-		port = start_port+(100*i); // arbitrary
-		cnt  = 1024*3;
-		op   = TEST_OP_N_BYTES;
+#endif // __SELFTEST__
+
+	port = start_port+(100*i); // arbitrary
+	cnt  = 1024*3;
+	op   = TEST_OP_N_BYTES;
 
 	/*
 	 int stack_array[100];
@@ -2688,7 +2816,7 @@ for(int i=0; i<num_repeats; i++)
 
 		// Print results of all tests
 		printf("--------------------------------------------------------------------------------\n");
-		for(int i=0;i<results.size(); i++) {
+		for (int i=0;i<results.size(); i++) {
 			fprintf(stderr, "%s\n", results[i].c_str());
 		}
 	}

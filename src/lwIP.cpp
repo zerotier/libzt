@@ -70,7 +70,7 @@ err_t lwip_eth_tx(struct netif *netif, struct pbuf *p)
 
 	ZeroTier::VirtualTap *tap = (ZeroTier::VirtualTap*)netif->state;
 	bufptr = buf;
-	for(q = p; q != NULL; q = q->next) {
+	for (q = p; q != NULL; q = q->next) {
 		memcpy(bufptr, q->payload, q->len);
 		bufptr += q->len;
 		totalLength += q->len;
@@ -196,24 +196,24 @@ namespace ZeroTier
 		// TODO: These will likely need some sort of locking protection
 		int count = 0;
 		struct tcp_pcb *pcb_ptr = tcp_active_pcbs; // PCBs that can RX/TX data
-		while(pcb_ptr) {
+		while (pcb_ptr) {
 			pcb_ptr = pcb_ptr->next;
 			count++;
 		}
 		pcb_ptr = tcp_tw_pcbs; // PCBs in TIME-WAIT state
-		while(pcb_ptr) {
+		while (pcb_ptr) {
 			pcb_ptr = pcb_ptr->next;
 			count++;
 		}
 		/* TODO
 		pcb_ptr = tcp_listen_pcbs;
-		while(pcb_ptr) {
+		while (pcb_ptr) {
 			pcb_ptr = pcb_ptr->next;
 			count++;
 			DEBUG_ERROR("FOUND --- tcp_listen_pcbs PCB COUNT = %d", count);
 		}*/
 		pcb_ptr = tcp_bound_pcbs; // PCBs in a bound state
-		while(pcb_ptr) {
+		while (pcb_ptr) {
 			pcb_ptr = pcb_ptr->next;
 			count++;
 		}
@@ -225,7 +225,7 @@ namespace ZeroTier
 		// TODO: These will likely need some sort of locking protection
 		int count = 0;
 		struct udp_pcb *pcb_ptr = udp_pcbs;
-		while(pcb_ptr) {
+		while (pcb_ptr) {
 			pcb_ptr = pcb_ptr->next;
 			count++;
 		}
@@ -238,7 +238,7 @@ namespace ZeroTier
 		/*
 		int count = 0;
 		struct raw_pcb *pcb_ptr = raw_pcbs;
-		while(pcb_ptr) {
+		while (pcb_ptr) {
 			pcb_ptr = pcb_ptr->next;
 			count++;
 			DEBUG_ERROR("FOUND --- raw_pcbs PCB COUNT = %d", count);
@@ -266,7 +266,7 @@ namespace ZeroTier
 	void lwIP::lwip_loop(VirtualTap *tap)
 	{
 		uint64_t prev_tcp_time = 0, prev_discovery_time = 0;
-		while(tap->_run)
+		while (tap->_run)
 		{
 			uint64_t now = OSUtils::now();
 			uint64_t since_tcp = now - prev_tcp_time;
@@ -745,7 +745,7 @@ namespace ZeroTier
 		vs->tap->_tcpconns_m.lock();
 		vs->_rx_m.lock();
 		// cycle through pbufs and write them to the RX buffer
-		while(p != NULL) {
+		while (p != NULL) {
 			if (p->len <= 0) {
 				break;
 			}
@@ -853,7 +853,7 @@ namespace ZeroTier
 		memset(udp_payload_buf, 0, sizeof(ZT_SOCKET_MSG_BUF_SZ));
 		char *msg_ptr = udp_payload_buf;
 		int tot_len = 0;
-		while(p != NULL) {
+		while (p != NULL) {
 			if (p->len <= 0) {
 				break;
 			}

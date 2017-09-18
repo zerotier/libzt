@@ -233,7 +233,7 @@ namespace ZeroTier {
 
 	void picoTCP::pico_loop(VirtualTap *tap)
 	{
-		while(tap->_run)
+		while (tap->_run)
 		{
 			tap->_phy.poll(ZT_PHY_POLL_INTERVAL);
 			//_picostack_driver_lock.lock();
@@ -297,7 +297,7 @@ namespace ZeroTier {
 				handle_general_failure();
 			}
 		}
-		while(r > 0);
+		while (r > 0);
 	}
 
 	// from stack socket to app socket

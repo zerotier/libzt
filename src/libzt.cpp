@@ -141,10 +141,10 @@ void zts_start(const char *path)
 void zts_simple_start(const char *path, const char *nwid)
 {
 	zts_start(path);
-	while(zts_running() == false) {
+	while (zts_running() == false) {
 		nanosleep((const struct timespec[]) {{0, (ZT_API_CHECK_INTERVAL * 1000000)}}, NULL);
 	}
-	while(true) {
+	while (true) {
 		try {
 			zts_join(nwid);
 			break;
@@ -154,7 +154,7 @@ void zts_simple_start(const char *path, const char *nwid)
 			handle_general_failure();
 		}
 	}
-	while(zts_has_address(nwid) == false) {
+	while (zts_has_address(nwid) == false) {
 		nanosleep((const struct timespec[]) {{0, (ZT_API_CHECK_INTERVAL * 1000000)}}, NULL);
 	}
 }
@@ -181,7 +181,7 @@ void zts_join(const char * nwid) {
 	}
 	// provide ZTO service reference to virtual taps
 	// TODO: This might prove to be unreliable, but it works for now
-	for(int i=0;i<ZeroTier::vtaps.size(); i++) {
+	for (int i=0;i<ZeroTier::vtaps.size(); i++) {
 		ZeroTier::VirtualTap *s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		s->zt1ServiceRef=(void*)ZeroTier::zt1Service;
 	}
@@ -283,7 +283,7 @@ void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen)
 		uint64_t nwid_int = strtoull(nwid, NULL, 16);
 		ZeroTier::VirtualTap *tap = getTapByNWID(nwid_int);
 		if (tap && tap->_ips.size()) {
-			for(int i=0; i<tap->_ips.size(); i++) {
+			for (int i=0; i<tap->_ips.size(); i++) {
 				if (tap->_ips[i].isV4()) {
 					char ipbuf[INET_ADDRSTRLEN];
 					std::string addr = tap->_ips[i].toString(ipbuf);
@@ -305,7 +305,7 @@ void zts_get_ipv6_address(const char *nwid, char *addrstr, const int addrlen)
 		uint64_t nwid_int = strtoull(nwid, NULL, 16);
 		ZeroTier::VirtualTap *tap = getTapByNWID(nwid_int);
 		if (tap && tap->_ips.size()) {
-			for(int i=0; i<tap->_ips.size(); i++) {
+			for (int i=0; i<tap->_ips.size(); i++) {
 				if (tap->_ips[i].isV6()) {
 					char ipbuf[INET6_ADDRSTRLEN];
 					std::string addr = tap->_ips[i].toString(ipbuf);
@@ -350,7 +350,7 @@ int zts_get_peer_address(char *peer, const char *devID) {
 	if (ZeroTier::zt1Service) {
 		ZT_PeerList *pl = ZeroTier::zt1Service->getNode()->peers();
 		// uint64_t addr;
-		for(int i=0; i<pl->peerCount; i++) {
+		for (int i=0; i<pl->peerCount; i++) {
 			// ZT_Peer *p = &(pl->peers[i]);
 			// DEBUG_INFO("peer[%d] = %lx", i, p->address);
 		}
@@ -395,6 +395,7 @@ Darwin:
 
 // int socket_family, int socket_type, int protocol
 int zts_socket(ZT_SOCKET_SIG) {
+	DEBUG_EXTRA();
 	int err = errno = 0;
 	if (socket_family < 0 || socket_type < 0 || protocol < 0) {
 		errno = EINVAL;
@@ -599,12 +600,12 @@ int zts_connect(ZT_CONNECT_SIG) {
 	}
 	if (blocking == true) {
 		bool complete = false;
-		while(true) {
+		while (true) {
 			// FIXME: locking and unlocking so often might cause significant performance overhead while outgoing VirtualSockets
 			// are being established (also applies to accept())
 			nanosleep((const struct timespec[]) {{0, (ZT_CONNECT_RECHECK_DELAY * 1000000)}}, NULL);
 			tap->_tcpconns_m.lock();
-			for(int i=0; i<tap->_VirtualSockets.size(); i++) {
+			for (int i=0; i<tap->_VirtualSockets.size(); i++) {
 #if defined(STACK_PICO)
 				if (tap->_VirtualSockets[i]->state == PICO_ERR_ECONNRESET) {
 					errno = ECONNRESET;
@@ -821,7 +822,7 @@ int zts_accept(ZT_ACCEPT_SIG) {
 				accepted_vs = tap->Accept(vs);
 			}
 			else { // blocking
-				while(true) {
+				while (true) {
 					nanosleep((const struct timespec[]) {{0, (ZT_ACCEPT_RECHECK_DELAY * 1000000)}}, NULL);
 					accepted_vs = tap->Accept(vs);
 					if (accepted_vs)
@@ -1097,7 +1098,7 @@ Linux / Darwin:
 
 int zts_close(ZT_CLOSE_SIG)
 {
-	//DEBUG_EXTRA("fd=%d", fd);
+	DEBUG_EXTRA("fd=%d", fd);
 	int err = errno = 0;
 	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
 		errno = EBADF;
@@ -1667,7 +1668,7 @@ int zts_read(ZT_READ_SIG) {
 }
 
 int zts_write(ZT_WRITE_SIG) {
-	//DEBUG_TRANS("fd=%d", fd);
+	DEBUG_TRANS("fd=%d", fd);
 	return write(fd, buf, len);
 }
 
@@ -2085,7 +2086,7 @@ ZeroTier::VirtualTap *getTapByNWID(uint64_t nwid)
 {
 	ZeroTier::_vtaps_lock.lock();
 	ZeroTier::VirtualTap *s, *tap = nullptr;
-	for(int i=0; i<ZeroTier::vtaps.size(); i++) {
+	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
 		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		if (s->_nwid == nwid) { tap = s; }
 	}
@@ -2098,19 +2099,19 @@ ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress *addr)
 	ZeroTier::_vtaps_lock.lock();
 	ZeroTier::VirtualTap *s, *tap = nullptr;
 	//char ipbuf[64], ipbuf2[64], ipbuf3[64];
-	for(int i=0; i<ZeroTier::vtaps.size(); i++) {
+	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
 		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		// check address schemes
-		for(int j=0; j<s->_ips.size(); j++) {
+		for (int j=0; j<s->_ips.size(); j++) {
 			if ((s->_ips[j].isV4() && addr->isV4()) || (s->_ips[j].isV6() && addr->isV6())) {
-				//DEBUG_INFO("looking at tap %s, <addr=%s> --- for <%s>", s->_dev.c_str(), s->_ips[j].toString(ipbuf), addr->toIpString(ipbuf2));
+				//DEBUG_EXTRA("looking at tap %s, <addr=%s> --- for <%s>", s->_dev.c_str(), s->_ips[j].toString(ipbuf), addr->toIpString(ipbuf2));
 				if (s->_ips[j].isEqualPrefix(addr)
 					|| s->_ips[j].ipsEqual(addr)
 					|| s->_ips[j].containsAddress(addr)
 					|| (addr->isV6() && ipv6_in_subnet(&s->_ips[j], addr))
 					)
 				{
-					//DEBUG_INFO("selected tap %s, <addr=%s>", s->_dev.c_str(), s->_ips[j].toString(ipbuf));
+					//DEBUG_EXTRA("selected tap %s, <addr=%s>", s->_dev.c_str(), s->_ips[j].toString(ipbuf));
 					ZeroTier::_vtaps_lock.unlock();
 					return s;
 				}
@@ -2120,12 +2121,12 @@ ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress *addr)
 		if (tap == NULL) {
 			std::vector<ZT_VirtualNetworkRoute> *managed_routes = ZeroTier::zt1Service->getRoutes(s->_nwid);
 			ZeroTier::InetAddress target, nm, via;
-			for(int i=0; i<managed_routes->size(); i++) {
+			for (int i=0; i<managed_routes->size(); i++) {
 				target = managed_routes->at(i).target;
 				nm = target.netmask();
 				via = managed_routes->at(i).via;
 				if (target.containsAddress(addr)) {
-					// DEBUG_INFO("chose tap with route <target=%s, nm=%s, via=%s>", target.toString(ipbuf), nm.toString(ipbuf2), via.toString(ipbuf3));
+					//DEBUG_EXTRA("chose tap with route <target=%s, nm=%s, via=%s>", target.toString(ipbuf), nm.toString(ipbuf2), via.toString(ipbuf3));
 					ZeroTier::_vtaps_lock.unlock();
 					return s;
 				}
@@ -2140,7 +2141,7 @@ ZeroTier::VirtualTap *getTapByName(char *ifname)
 {
 	ZeroTier::_vtaps_lock.lock();
 	ZeroTier::VirtualTap *s, *tap = nullptr;
-	for(int i=0; i<ZeroTier::vtaps.size(); i++) {
+	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
 		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		if (strcmp(s->_dev.c_str(), ifname) == false) {
 			tap = s;
@@ -2154,7 +2155,7 @@ ZeroTier::VirtualTap *getTapByIndex(int index)
 {
 	ZeroTier::_vtaps_lock.lock();
 	ZeroTier::VirtualTap *s, *tap = nullptr;
-	for(int i=0; i<ZeroTier::vtaps.size(); i++) {
+	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
 		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		if (s->ifindex == index) {
 			tap = s;
@@ -2318,7 +2319,7 @@ std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *get_assigned_virtual
 void disableTaps()
 {
 	ZeroTier::_vtaps_lock.lock();
-	for(int i=0; i<ZeroTier::vtaps.size(); i++) {
+	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
 		DEBUG_EXTRA("vt=%p", ZeroTier::vtaps[i]);
 		((ZeroTier::VirtualTap*)ZeroTier::vtaps[i])->_enabled = false;
 	}
@@ -2351,7 +2352,7 @@ void *zts_start_service(void *thread_id)
 		if (ZeroTier::homeDir[0] == ZT_PATH_SEPARATOR) {
 			ptmp.push_back(ZT_PATH_SEPARATOR);
 		}
-		for(std::vector<std::string>::iterator pi(hpsp.begin());pi!=hpsp.end();++pi) {
+		for (std::vector<std::string>::iterator pi(hpsp.begin());pi!=hpsp.end();++pi) {
 			if (ptmp.length() > 0) {
 				ptmp.push_back(ZT_PATH_SEPARATOR);
 			}
@@ -2376,7 +2377,7 @@ void *zts_start_service(void *thread_id)
 	ZeroTier::Utils::getSecureRandom(&randp,sizeof(randp));
 	// TODO: Better port random range selection
 	int servicePort = 9000 + (randp % 1000);
-	for(;;) {
+	for (;;) {
 		ZeroTier::zt1Service = ZeroTier::OneService::newInstance(ZeroTier::homeDir.c_str(),servicePort);
 		switch(ZeroTier::zt1Service->run()) {
 			case ZeroTier::OneService::ONE_STILL_RUNNING:

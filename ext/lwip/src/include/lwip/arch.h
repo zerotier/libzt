@@ -76,8 +76,7 @@
  * systems, this should be defined to something less resource-consuming.
  */
 #ifndef LWIP_PLATFORM_DIAG
-#include "Debug.hpp"
-#define LWIP_PLATFORM_DIAG(x) printf(x);
+#define LWIP_PLATFORM_DIAG(x) do {printf x;} while(0)
 #include <stdio.h>
 #include <stdlib.h>
 #endif

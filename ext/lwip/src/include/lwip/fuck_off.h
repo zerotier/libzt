@@ -43,8 +43,6 @@
 extern "C" {
 #endif
 
-#define LWIP_PROVIDE_ERRNO 0
-
 #ifdef LWIP_PROVIDE_ERRNO
 
 #define  EPERM            1  /* Operation not permitted */
@@ -176,13 +174,12 @@ extern "C" {
 #define  EMEDIUMTYPE    124  /* Wrong medium type */
 
 #ifndef errno
-//extern int errno;
+extern int errno;
 #endif
 
 #else /* LWIP_PROVIDE_ERRNO */
 
 /* Define LWIP_ERRNO_INCLUDE to <errno.h> to include the error defines here */
-#define LWIP_ERRNO_INCLUDE <errno.h>
 #ifdef LWIP_ERRNO_INCLUDE
 #include LWIP_ERRNO_INCLUDE
 #endif /* LWIP_ERRNO_INCLUDE */

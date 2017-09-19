@@ -268,7 +268,7 @@ endif
 ifeq ($(NO_STACK),1)
 static_lib: $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
-	$(CXX) $(CXXFLAGS) $(LIBZT_FILES) -c
+	$(CXX) $(CXXFLAGS) $(ZT_FLAGS) $(ZT_INCLUDES) $(LIBZT_FLAGS) $(LIBZT_INCLUDES) $(LIBZT_FILES) -c
 	mv *.o obj
 	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) obj/*.o
 endif
@@ -296,6 +296,14 @@ macos_app_framework:
 shared_jni_lib: picotcp $(ZTO_OBJS)
 	$(CXX) $(CXXFLAGS) $(TAP_FILES) $(STACK_DRIVER_FILES) $(ZTO_OBJS) $(INCLUDES) \
 		$(PICO_LIB) -dynamiclib -o $(SHARED_JNI_LIB)
+
+##############################################################################
+## Python module                                                            ##
+##############################################################################
+
+python_module:
+	swig -cpperraswarn -python -c++ -o examples/python/libzt.cc examples/python/swig_libzt.i
+	python examples/python/setup.py build_ext --inplace --swig-opts="-modern -I../../zto/include"
 
 ##############################################################################
 ## Unit Tests                                                               ##

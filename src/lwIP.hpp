@@ -191,7 +191,7 @@ extern "C" err_t tcp_shutdown(LWIP_TCP_SHUTDOWN_SIG);
 namespace ZeroTier {
 
 	class VirtualTap;
-	struct VirtualSocket;
+	class VirtualSocket;
 
 	class lwIP
 	{

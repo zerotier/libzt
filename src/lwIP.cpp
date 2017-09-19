@@ -643,51 +643,53 @@ namespace ZeroTier
 
 	int lwIP::lwip_Close(VirtualSocket *vs)
 	{
+		// requests to close non-LISTEN PCBs are handled lwip_cb_poll()
+		int err = -1;
 		if (vs == NULL) {
 			DEBUG_ERROR("invalid vs");
 			handle_general_failure();
 			return -1;
 		}
-		DEBUG_EXTRA("fd=%d, vs=%p", vs->app_fd, vs);
-		int err = 0;
-		errno = 0;
-		if (vs->socket_type == SOCK_DGRAM) {
-			udp_remove((struct udp_pcb*)vs->pcb);
-		}
 		if (vs->socket_type == SOCK_STREAM) {
-			if (vs->pcb) {
-				struct tcp_pcb* tpcb = (struct tcp_pcb*)vs->pcb;
-				if (tpcb->state == CLOSED) {
-					DEBUG_EXTRA("pcb is in CLOSED state");
-					// calling tcp_close() here would be redundant
-					return 0;
-				}
-				if (tpcb->state == CLOSE_WAIT) {
-					DEBUG_EXTRA("pcb is in CLOSE_WAIT state");
-					// calling tcp_close() here would be redundant
-				}
-				if (tpcb->state > TIME_WAIT) {
-					DEBUG_ERROR("warning, pcb=%p is in an invalid state=%d", vs->pcb, tpcb->state);
-					handle_general_failure();
-					err = -1;
-				}
-				// unregister callbacks for this PCB
-				tcp_arg(tpcb, NULL);
-				if (tpcb->state == LISTEN) {
-					tcp_accept(tpcb, NULL);
-				}
-				else {
-					tcp_recv(tpcb, NULL);
-					tcp_sent(tpcb, NULL);
-					tcp_poll(tpcb, NULL, 0);
-					tcp_err(tpcb,  NULL);
-				}
+			struct tcp_pcb *tpcb = (struct tcp_pcb*)(vs->pcb);
+			if (tpcb == NULL) {
+				DEBUG_ERROR("invalid pcb");
+				handle_general_failure();
+				return -1;
+			}
+			// should be safe to tcp_close() from application thread IF PCB is in LISTENING state (I think)
+			if (tpcb->state == LISTEN) {
+				DEBUG_EXTRA("PCB is in LISTEN, calling tcp_close() from application thread.");
+				tcp_accept(tpcb, NULL);
 				if ((err = tcp_close(tpcb)) < 0) {
 					DEBUG_ERROR("error while calling tcp_close, fd=%d, vs=%p, pcb=%p", vs->app_fd, vs, vs->pcb);
 					errno = lwip_err_to_errno(err);
 					err = -1;
 				}
+				return ERR_OK;
 			}
+			// handle junk state values
+			if (tpcb->state > TIME_WAIT) {
+				DEBUG_EXTRA("invalid TCP pcb state, already closed, report ERR_OK");
+				return ERR_OK;
+			}
+			else {
+				// place a request for the stack to close this VirtualSocket's PCB
+				vs->set_state(VS_SHOULD_STOP);
+				// wait for indication of success, this will block if the PCB can't close
+				while (true) {
+					sleep(1);
+					nanosleep((const struct timespec[]) {{0, (ZT_API_CHECK_INTERVAL * 1000000)}}, NULL);
+					DEBUG_EXTRA("checking closure state... pcb->state=%d", tpcb->state);
+					if (vs->get_state() == VS_STOPPED || tpcb->state == CLOSED) {
+						return ERR_OK;
+					}
+				}
+			}	
+		}
+		if (vs->socket_type == SOCK_DGRAM) {
+			// place a request for the stack to close this VirtualSocket's PCB
+			vs->set_state(VS_SHOULD_STOP);
 		}
 		return err;
 	}
@@ -740,6 +742,7 @@ namespace ZeroTier
 		struct pbuf* q = p;
 		if (p == NULL) {
 			DEBUG_INFO("p=0x0 for pcb=%p, vs->pcb=%p, this indicates a closure. No need to call tcp_close()", PCB, vs->pcb);
+			vs->set_state(VS_SHOULD_STOP);
 			return ERR_ABRT;
 		}
 		vs->tap->_tcpconns_m.lock();
@@ -876,7 +879,6 @@ namespace ZeroTier
 			// payload
 			memcpy(udp_msg_buf + sizeof(int32_t) + sizeof(struct sockaddr_storage), &udp_payload_buf, tot_len); 
 			if ((w = write(vs->sdk_fd, udp_msg_buf, msg_tot_len)) < 0) {
-				perror("write");
 				DEBUG_ERROR("write(fd=%d)=%d, errno=%d", vs->sdk_fd, w, errno);
 			}
 		}
@@ -933,7 +935,7 @@ namespace ZeroTier
 		}
 		// add to unhandled connection set for zts_connect to pick up on
 		vs->tap->_tcpconns_m.lock();
-		vs->state = ZT_SOCK_STATE_UNHANDLED_CONNECTED;
+		vs->set_state(VS_STATE_UNHANDLED_CONNECTED);
 		vs->tap->_VirtualSockets.push_back(vs);
 		vs->tap->_tcpconns_m.unlock();
 		return ERR_OK;
@@ -950,6 +952,58 @@ namespace ZeroTier
 		if (vs->socket_type == SOCK_DGRAM) {
 			DEBUG_INFO("fd=%d, vs=%p, pcb=%p", vs->app_fd, vs, PCB, vs->pcb);
 		}
+
+
+		// Handle PCB closure requests (set in lwip_Close())
+		if (vs->get_state() == VS_SHOULD_STOP) {
+			DEBUG_EXTRA("closing pcb=%p, fd=%d, vs=%p", PCB, vs->app_fd, vs);
+			int err = 0;
+			errno = 0;
+			if (vs->socket_type == SOCK_DGRAM) {
+				udp_remove((struct udp_pcb*)vs->pcb);
+			}
+			if (vs->socket_type == SOCK_STREAM) {
+				if (vs->pcb) {
+					struct tcp_pcb* tpcb = (struct tcp_pcb*)vs->pcb;
+					if (tpcb->state == CLOSED) {
+						DEBUG_EXTRA("pcb is in CLOSED state");
+						// calling tcp_close() here would be redundant
+						return 0;
+					}
+					//if (tpcb->state == CLOSE_WAIT) {
+					//	DEBUG_EXTRA("pcb is in CLOSE_WAIT state");
+					//	// calling tcp_close() here would be redundant
+					//}
+					if (tpcb->state > TIME_WAIT) {
+						DEBUG_ERROR("warning, pcb=%p is in an invalid state=%d", vs->pcb, tpcb->state);
+						handle_general_failure();
+						err = -1;
+					}
+					// unregister callbacks for this PCB
+					tcp_arg(tpcb, NULL);
+					if (tpcb->state == LISTEN) {
+						tcp_accept(tpcb, NULL);
+					}
+					else {
+						tcp_recv(tpcb, NULL);
+						tcp_sent(tpcb, NULL);
+						tcp_poll(tpcb, NULL, 0);
+						tcp_err(tpcb,  NULL);
+					}
+					if ((err = tcp_close(tpcb)) < 0) {
+						DEBUG_ERROR("error while calling tcp_close, fd=%d, vs=%p, pcb=%p", vs->app_fd, vs, vs->pcb);
+						errno = lwip_err_to_errno(err);
+						err = -1;
+					}
+					else {
+						vs->set_state(VS_STOPPED); // success
+					}
+				}
+			}
+		}
+
+
+		// Handle transmission and reception of data
 		if (vs->socket_type == SOCK_STREAM) {
 			DEBUG_INFO("fd=%d, vs=%p, PCB=%p, vs->pcb=%p, vs->pcb->state=%d", vs->app_fd, vs, PCB, (struct tcp_pcb*)(vs->pcb), ((struct tcp_pcb*)(vs->pcb))->state);
 			if (((struct tcp_pcb*)(vs->pcb))->state == CLOSE_WAIT) {

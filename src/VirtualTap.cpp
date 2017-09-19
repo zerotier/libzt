@@ -719,7 +719,7 @@ namespace ZeroTier {
 		Mutex::Lock _l(_tcpconns_m);
 		std::time_t current_ts = std::time(nullptr);
 		if (current_ts > last_housekeeping_ts + ZT_HOUSEKEEPING_INTERVAL) {
-			DEBUG_EXTRA();
+			// DEBUG_EXTRA();
 			// update managed routes (add/del from network stacks)
 			ZeroTier::OneService *service = ((ZeroTier::OneService *)zt1ServiceRef);
 			if (service) {

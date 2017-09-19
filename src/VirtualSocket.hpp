@@ -45,6 +45,13 @@
 #include "VirtualTap.hpp"
 #include "RingBuffer.hpp"
 
+#define VS_OK                         100
+#define VS_SHOULD_STOP                101
+#define VS_STOPPED                    102
+#define VS_STATE_UNHANDLED_CONNECTED  103
+#define VS_STATE_CONNECTED            104
+#define VS_STATE_LISTENING            105
+
 namespace ZeroTier {
 
 	class VirtualTap;
@@ -56,12 +63,28 @@ namespace ZeroTier {
 	 * function of this object, however I'd like to discourage this since this
 	 * object also handles non-connection-based traffic as well.
 	 */
-	struct VirtualSocket
+	class VirtualSocket
 	{
+	private:
+		int _state = VS_OK;
+	public:
 		RingBuffer<unsigned char> *TXbuf;
 		RingBuffer<unsigned char> *RXbuf;
-		Mutex _tx_m, _rx_m;
+		Mutex _tx_m, _rx_m, _op_m;
 		PhySocket *sock = NULL;
+
+		// State control
+		void set_state(int state) {
+			// states may be set by application or by stack callbacks, thus this must be guarded
+			_op_m.lock();
+			_state = state; 
+			//DEBUG_EXTRA("SET STATE = %d (vs=%p)", _state, this);
+			_op_m.unlock();
+		}
+		int get_state() {
+			//DEBUG_EXTRA("GET STATE = %d (vs=%p)", _state, this);
+			return _state; 
+		}
 
 #if defined(STACK_PICO)
 		struct pico_socket *picosock = NULL;
@@ -88,7 +111,6 @@ namespace ZeroTier {
 		int socket_family = 0;
 		int socket_type = 0;
 		int protocol = 0;
-		int state = 0; // See libzt.h for (ZT_SOCK_STATE_*)
 		int app_fd = 0; // used by app for I/O
 		int sdk_fd = 0; // used by lib for I/O
 

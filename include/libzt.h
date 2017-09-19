@@ -213,11 +213,6 @@ struct zts_ifreq {
 #define ZT_HOME_PATH_MAX_LEN               128
 #define ZT_MAC_ADDRSTRLEN                  18
 
-#define ZT_SOCK_STATE_NONE                 100
-#define ZT_SOCK_STATE_UNHANDLED_CONNECTED  101
-#define ZT_SOCK_STATE_CONNECTED            102
-#define ZT_SOCK_STATE_LISTENING            103
-
 #define ZT_ERR_OK                          0
 #define ZT_ERR_GENERAL_FAILURE             -88
 
@@ -594,7 +589,7 @@ namespace ZeroTier
 	extern ZeroTier::lwIP *lwipstack;
 
 	class VirtualTap;
-	struct VirtualSocket;
+	class VirtualSocket;
 	struct InetAddress;
 }
 

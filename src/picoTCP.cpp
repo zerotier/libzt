@@ -470,7 +470,7 @@ namespace ZeroTier {
 		// may now be issued in order to accept the incoming VirtualSocket from a remote host.
 		if (ev & PICO_SOCK_EV_CONN) {
 			DEBUG_EXTRA("PICO_SOCK_EV_CONN");
-			if (vs->state == ZT_SOCK_STATE_LISTENING) {
+			if (vs->state == VS_STATE_LISTENING) {
 				uint16_t port;
 				struct pico_socket *client_psock = nullptr;
 				struct pico_ip4 orig4;
@@ -529,9 +529,9 @@ namespace ZeroTier {
 				vs->_AcceptedConnections.push(new_vs);
 				new_vs->sock = new_vs->tap->_phy.wrapSocket(new_vs->sdk_fd, new_vs);
 			}
-			if (vs->state != ZT_SOCK_STATE_LISTENING) {
+			if (vs->state != VS_STATE_LISTENING) {
 				// set state so socket multiplexer logic will pick this up
-				vs->state = ZT_SOCK_STATE_UNHANDLED_CONNECTED;
+				vs->state = VS_STATE_UNHANDLED_CONNECTED;
 			}
 		}
 		// PICO_SOCK_EV_RD - triggered when new data arrives on the socket. A new receive action
@@ -882,7 +882,7 @@ namespace ZeroTier {
 				vs->picosock, err, pico_err, beautify_pico_error(pico_err));
 			return map_pico_err_to_errno(pico_err);
 		}
-		vs->state = ZT_SOCK_STATE_LISTENING;
+		vs->state = VS_STATE_LISTENING;
 		return ZT_ERR_OK;
 	}
 

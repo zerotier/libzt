@@ -86,7 +86,7 @@ namespace ZeroTier
 	int pico_eth_poll(struct pico_device *dev, int loop_score);
 
 	class VirtualTap;
-	struct VirtualSocket;
+	class VirtualSocket;
 
 	class picoTCP
 	{

@@ -75,12 +75,12 @@
 
 namespace ZeroTier
 {
-	/*
+	/**
 	 * Send raw frames from the stack to the ZeroTier virtual wire
 	 */
 	int pico_eth_tx(struct pico_device *dev, void *buf, int len);
 
-	/*
+	/**
 	 * Read raw frames from RX frame buffer into the stack
 	 */
 	int pico_eth_poll(struct pico_device *dev, int loop_score);
@@ -88,137 +88,140 @@ namespace ZeroTier
 	class VirtualTap;
 	class VirtualSocket;
 
+	/**
+	 * picoTCP network stack driver class
+	 */
 	class picoTCP
 	{
 	public:
 
-		/*
+		/**
 		 * Set up an interface in the network stack for the VirtualTap
 		 */
 		bool pico_init_interface(ZeroTier::VirtualTap *tap);
 
-		/*
+		/**
 		 * Register an address with the stack
 		 */
 		bool pico_register_address(VirtualTap *tap, const InetAddress &ip);
 
-		/*
+		/**
 		 * Adds a route to the picoTCP device
 		 */
 		bool pico_route_add(VirtualTap *tap, const InetAddress &addr, const InetAddress &nm, const InetAddress &gw, int metric);
 
-		/*
+		/**
 		 * Deletes a route from the picoTCP device
 		 */
 		bool pico_route_del(VirtualTap *tap, const InetAddress &addr, const InetAddress &nm, int metric);
 
-		/*
+		/**
 		 * Registers a DNS nameserver with the network stack
 		 */
 		int pico_add_dns_nameserver(struct sockaddr *addr);
 
-		/*
+		/**
 		 * Un-registers a DNS nameserver from the network stack
 		 */
 		int pico_del_dns_nameserver(struct sockaddr *addr);
 
-		/*
+		/**
 		 * Main stack loop
 		 */
 		void pico_loop(VirtualTap *tap);
 
-		/*
+		/**
 		 * Read bytes from the stack to the RX buffer (prepare to be read by app)
 		 */
 		static void pico_cb_tcp_read(VirtualTap *tap, struct pico_socket *s);
 
-		/*
+		/**
 		 * Read bytes from the stack to the RX buffer (prepare to be read by app)
 		 */
 		static void pico_cb_udp_read(VirtualTap *tap, struct pico_socket *s);
 
-		 /*
+		 /**
 		 * Write bytes from TX buffer to stack (prepare to be sent to ZT virtual wire)
 		 */
 		static void pico_cb_tcp_write(VirtualTap *tap, struct pico_socket *s);
 
-		/*
+		/**
 		 * Write bytes from TX buffer to stack (prepare to be sent to ZT virtual wire)
 		 */
 		static void pico_cb_socket_ev(uint16_t ev, struct pico_socket *s);
 
-		/*
+		/**
 		 * Packets from the ZeroTier virtual wire enter the stack here
 		 */
 		void pico_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC &to, 
 			unsigned int etherType, const void *data, unsigned int len);
 
-		/*
+		/**
 		 * Creates a stack-specific "socket" or "VirtualSocket object"
 		 */
 		int pico_Socket(struct pico_socket **p, int socket_family, int socket_type, int protocol);
 
-		/*
+		/**
 		 * Connect to remote host via userspace network stack interface - Called from VirtualTap
 		 */
 		int pico_Connect(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
 
-		/*
+		/**
 		 * Bind to a userspace network stack interface - Called from VirtualTap
 		 */
 		int pico_Bind(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
 
-		/*
+		/**
 		 * Listen for incoming VirtualSockets - Called from VirtualTap
 		 */
 		int pico_Listen(VirtualSocket *vs, int backlog);
 
-		/*
+		/**
 		 * Accept an incoming VirtualSocket - Called from VirtualTap
 		 */
 		VirtualSocket* pico_Accept(VirtualSocket *vs);
 
-		/*
+		/**
 		 * Read from RX buffer to application - Called from VirtualTap
 		 */
 		int pico_Read(VirtualTap *tap, ZeroTier::PhySocket *sock, VirtualSocket *vs, bool stack_invoked);
 
-		/*
+		/**
 		 * Write to userspace network stack - Called from VirtualTap
 		 */
 		int pico_Write(VirtualSocket *vs, void *data, ssize_t len);
 
-		/*
+		/**
 		 * Close a VirtualSocket - Called from VirtualTap
 		 */
 		int pico_Close(VirtualSocket *vs);
 
-		/*
+		/**
 		 *  Shuts down some aspect of a VirtualSocket - Called from VirtualTap
 		 */
 		int pico_Shutdown(VirtualSocket *vs, int how);
 
-		/*
+		/**
 		 *  Sets a property of a socket
 		 */
 		static int pico_setsockopt(VirtualSocket *vs, int level, int optname, const void *optval, socklen_t optlen);
 
-		/*
+		/**
 		 *  Gets a property of a socket
 		 */
 		static int pico_getsockopt(VirtualSocket *vs, int level, int optname, void *optval, socklen_t *optlen);
 
-		/*
+		/**
 		 * Converts a pico_err to its most closely-related errno, and sets errno
 		 */
 		static int map_pico_err_to_errno(int err);
 
-		/*
+		/**
 		 * Converts picoTCP error codes to pretty string
 		 */
 		static char *beautify_pico_error(int err);
 
-		/*
+		/**
 		 * Converts picoTCP socket states into pretty string
 		 */
 		static char *beautify_pico_state(int state);

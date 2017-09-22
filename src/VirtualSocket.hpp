@@ -45,12 +45,46 @@
 #include "VirtualTap.hpp"
 #include "RingBuffer.hpp"
 
-#define VS_OK                         100
-#define VS_SHOULD_STOP                101
-#define VS_STOPPED                    102
-#define VS_STATE_UNHANDLED_CONNECTED  103
-#define VS_STATE_CONNECTED            104
-#define VS_STATE_LISTENING            105
+#define VS_STATE_INACTIVE             0x000000u // Default value for newly created VirtualSocket
+#define VS_STATE_ACTIVE               0x000001u // VirtualSocket is RX'ing or TX'ing without issue 
+#define VS_STATE_SHOULD_SHUTDOWN      0x000002u // Application, stack driver, or stack marked this VirtualSocket for death
+#define VS_STATE_SHUTDOWN             0x000004u // VirtualSocket and underlying protocol control structures will not RX/TX
+#define VS_STATE_CLOSED               0x000008u // VirtualSocket and underlying protocol control structures are closed
+#define VS_STATE_UNHANDLED_CONNECTED  0x000010u // stack callback has received a connection but we haven't dealt with it
+#define VS_STATE_CONNECTED            0x000020u // stack driver has akwnowledged new connection
+#define VS_STATE_LISTENING            0x000040u // virtual socket is listening for incoming connections
+
+#define VS_OPT_TCP_NODELAY            0x000000u // Nagle's algorithm
+#define VS_OPT_SO_LINGER              0x000001u // VirtualSocket waits for data transmission before closure
+/*
+#define VS_RESERVED                   0x000002u // 
+#define VS_RESERVED                   0x000004u //
+#define VS_RESERVED                   0x000008u // 
+#define VS_RESERVED                   0x000010u // 
+#define VS_RESERVED                   0x000020u //
+#define VS_RESERVED                   0x000040u //
+*/
+#define VS_OPT_FD_NONBLOCKING         0x000080u // Whether the VirtualSocket exhibits non-blocking behaviour
+/*
+#define VS_RESERVED                   0x000100u //
+#define VS_RESERVED                   0x000200u //
+#define VS_RESERVED                   0x000400u //
+#define VS_RESERVED                   0x000800u //
+#define VS_RESERVED                   0x001000u //
+#define VS_RESERVED                   0x002000u //
+#define VS_RESERVED                   0x004000u //
+#define VS_RESERVED                   0x008000u //
+#define VS_RESERVED                   0x010000u //
+#define VS_RESERVED                   0x020000u //
+#define VS_RESERVED                   0x040000u //
+#define VS_RESERVED                   0x080000u //
+#define VS_RESERVED                   0x100000u //
+#define VS_RESERVED                   0x200000u //
+#define VS_RESERVED                   0x400000u // 
+#define VS_RESERVED                   0x800000u // 
+*/
+
+#define vs_is_nonblocking(vs)  (((vs)->optflags & VS_OPT_FD_NONBLOCKING) != 0)
 
 namespace ZeroTier {
 
@@ -58,20 +92,34 @@ namespace ZeroTier {
 
 	/**
 	 * An abstraction of a socket that operates between the application-exposed platform-sockets 
-	 * and the network stack's representation of a protocol control block. This object is used by
+	 * and the network stack's representation of a protocol control structure. This object is used by
 	 * the POSIX socket emulation layer and stack drivers.
 	 */
 	class VirtualSocket
 	{
 	private:
-		int _state = VS_OK;
+		int _state = VS_STATE_INACTIVE;
 	public:
 		RingBuffer<unsigned char> *TXbuf;
 		RingBuffer<unsigned char> *RXbuf;
 		Mutex _tx_m, _rx_m, _op_m;
 		PhySocket *sock = NULL;
 
-		// State control
+		/**
+		 * Sets the VirtualSocket's state value
+		 */
+		void apply_state(int state) {
+			// states may be set by application or by stack callbacks, thus this must be guarded
+			_op_m.lock();
+			_state &= state; 
+#if defined (STACK_PICO)
+			DEBUG_EXTRA("APPLY STATE=%d (state=%d, vs=%p, ps=%p)", _state, state, this, picosock);
+#endif
+#if defined (STACK_LWIP)
+			DEBUG_EXTRA("APPLY STATE=%d (state=%d, vs=%p, pcb=%p)", _state, state, this, pcb);
+#endif
+			_op_m.unlock();
+		}
 		/**
 		 * Sets the VirtualSocket's state value
 		 */
@@ -79,20 +127,32 @@ namespace ZeroTier {
 			// states may be set by application or by stack callbacks, thus this must be guarded
 			_op_m.lock();
 			_state = state; 
-			//DEBUG_EXTRA("SET STATE = %d (vs=%p)", _state, this);
+#if defined (STACK_PICO)
+			DEBUG_EXTRA("SET STATE=%d (state=%d, vs=%p, ps=%p)", _state, state, this, picosock);
+#endif
+#if defined (STACK_LWIP)
+			DEBUG_EXTRA("SET STATE=%d (state=%d, vs=%p, pcb=%p)", _state, state, this, pcb);
+#endif			
 			_op_m.unlock();
 		}
 		/**
 		 * Gets the VirtualSocket's state value
 		 */
 		int get_state() {
-			//DEBUG_EXTRA("GET STATE = %d (vs=%p)", _state, this);
+#if defined (STACK_PICO)
+			DEBUG_EXTRA("GET STATE=%d (vs=%p, ps=%p)", _state, this, picosock);
+#endif
+#if defined (STACK_LWIP)
+			DEBUG_EXTRA("GET STATE=%d (vs=%p, pcb=%p)", _state, this, pcb);
+#endif			
 			return _state; 
 		}
 #if defined(STACK_PICO)
 		struct pico_socket *picosock = NULL;
 #endif
 #if defined(STACK_LWIP)
+		int32_t optflags = 0;
+		int linger;
 		void *pcb = NULL; // Protocol Control Block
 		/*
 		  - TCP_WRITE_FLAG_COPY: indicates whether the new memory should be allocated
@@ -119,10 +179,9 @@ namespace ZeroTier {
 
 		std::queue<VirtualSocket*> _AcceptedConnections;
 		VirtualTap *tap = NULL;
-		std::time_t closure_ts = 0;
 
 		VirtualSocket() {
-
+			DEBUG_EXTRA("this=%p",this);
 			memset(&local_addr, 0, sizeof(sockaddr_storage));
 			memset(&peer_addr,  0, sizeof(sockaddr_storage));
 
@@ -131,7 +190,6 @@ namespace ZeroTier {
 			RXbuf = new RingBuffer<unsigned char>(ZT_TCP_RX_BUF_SZ);
 
 			// socketpair, I/O channel between app and stack drivers
-			closure_ts = -1;
 			ZT_PHY_SOCKFD_TYPE fdpair[2];
 			if (socketpair(PF_LOCAL, SOCK_STREAM, 0, fdpair) < 0) {
 				if (errno < 0) {
@@ -149,11 +207,19 @@ namespace ZeroTier {
 			}
 		}
 		~VirtualSocket() {
+			DEBUG_EXTRA("this=%p",this);
 			close(app_fd);
 			close(sdk_fd);
 			delete TXbuf;
 			delete RXbuf;
 			TXbuf = RXbuf = NULL;
+#if defined(STACK_PICO)
+			picosock->priv = NULL;
+			picosock = NULL;
+#endif			
+#if defined(STACK_LWIP)
+			pcb = NULL;
+#endif
 		}
 	};
 

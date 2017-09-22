@@ -296,18 +296,32 @@ namespace ZeroTier {
 
 	void VirtualTap::phyOnUnixClose(PhySocket *sock, void **uptr)
 	{
+		DEBUG_EXTRA();
+		/*
+		int err = 0;
 		if (sock) {
 			VirtualSocket *vs = (VirtualSocket*)uptr;
 			if (vs) {
-				Close(vs);
+				if (vs->get_state() != VS_STATE_CLOSED && vs->get_state() != VS_STATE_LISTENING) {
+					DEBUG_EXTRA("vs=%p, vs->get_state()=%d, vs->picosock->state=%d", vs, vs->get_state(), vs->picosock->state);
+					// doesn't make sense to shut down a listening socket, just close it
+					if ((err = vs->tap->Shutdown(vs, SHUT_RDWR)) < 0) {
+						DEBUG_ERROR("error while shutting down socket");
+						handle_general_failure();
+						return;
+					}
+				}
+				//picostack->pico_Close(vs);
 			}
 		} else {
 			handle_general_failure();
 		}
+		*/
 	}
 
 	void VirtualTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
 	{
+		DEBUG_EXTRA();
 		VirtualSocket *vs = (VirtualSocket*)*uptr;
 		if (vs == NULL) {
 			handle_general_failure();
@@ -588,6 +602,7 @@ namespace ZeroTier {
 	// Write data from app socket to the virtual wire, either raw over VL2, or via network stack
 	int VirtualTap::Write(VirtualSocket *vs, void *data, ssize_t len) 
 	{
+		DEBUG_EXTRA("vs=%p, fd=%d, data=%p, len=%d", vs, vs->app_fd, data, len);
 		int err = -1;
 #if defined(NO_STACK)
 #endif
@@ -668,14 +683,29 @@ namespace ZeroTier {
 			handle_general_failure();
 			return -1;
 		}
+		if (vs->sock) {
+			DEBUG_EXTRA("calling _phy.close()");
+			_phy.close(vs->sock, true);
+		}
 		removeVirtualSocket(vs);
 #if defined(STACK_PICO)
-		if (picostack) {
-			err = picostack->pico_Close(vs);
-		} else {
-			handle_general_failure();
-			return -1;
-		}
+			if (vs->get_state() != VS_STATE_CLOSED && vs->get_state() != VS_STATE_LISTENING) {
+				DEBUG_EXTRA("vs=%p, vs->get_state()=%d, vs->picosock->state=%d", vs, vs->get_state(), vs->picosock->state);
+				// doesn't make sense to shut down a listening socket, just close it
+				if ((err = vs->tap->Shutdown(vs, SHUT_RDWR)) < 0) {
+					DEBUG_ERROR("error while shutting down socket");
+					handle_general_failure();
+					return - 1;
+				}
+			}
+			picostack->pico_Close(vs);
+			removeVirtualSocket(vs);
+			if (vs->socket_type == SOCK_STREAM) {
+				while (!(vs->picosock->state & PICO_SOCKET_STATE_CLOSED)) {
+					nanosleep((const struct timespec[]) {{0, (ZT_ACCEPT_RECHECK_DELAY * 1000000)}}, NULL);
+					DEBUG_EXTRA("virtual lingering on socket, ps=%p, buf remaining=%d",vs->picosock, vs->TXbuf->count());
+				}
+			}
 #endif
 #if defined(STACK_LWIP)
 		if (lwipstack) {
@@ -685,9 +715,6 @@ namespace ZeroTier {
 			return -1;
 		}
 #endif
-		if (vs->sock) {
-			_phy.close(vs->sock, false);
-		}
 		return err;
 	}
 

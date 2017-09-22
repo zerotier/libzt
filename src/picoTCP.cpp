@@ -236,9 +236,7 @@ namespace ZeroTier {
 		while (tap->_run)
 		{
 			tap->_phy.poll(ZT_PHY_POLL_INTERVAL);
-			//_picostack_driver_lock.lock();
 			pico_stack_tick();
-			//_picostack_driver_lock.unlock();
 			tap->Housekeeping();
 		}
 	}
@@ -375,40 +373,15 @@ namespace ZeroTier {
 	{
 		VirtualSocket *vs = (VirtualSocket*)(((VirtualBindingPair*)s->priv)->vs);
 		if (vs == NULL) {
-			DEBUG_ERROR("s->priv yielded no valid vs");
-			handle_general_failure();
+			DEBUG_EXTRA("vs == NULL");
 			return;
 		}
-		Mutex::Lock _l(vs->_tx_m);
-		if (vs == NULL) {
-			DEBUG_ERROR("invalid VirtualSocket");
-			handle_general_failure();
+		if (vs->picosock != s) {
+			DEBUG_ERROR("vs->picosock != s, bad callback");
 			return;
 		}
-		int txsz = vs->TXbuf->count();
-		if (txsz <= 0)
-			return;
-		//DEBUG_INFO("TXbuf->count()=%d", vs->TXbuf->count());
-
-		int r, max_write_len = std::min(std::min(txsz, ZT_SDK_MTU),ZT_STACK_SOCKET_WR_MAX);
-		if ((r = pico_socket_write(vs->picosock, vs->TXbuf->get_buf(), max_write_len)) < 0) {
-			DEBUG_ERROR("unable to write to pico_socket=%p, err=%d, pico_err=%d, %s",
-				vs->picosock, r, pico_err, beautify_pico_error(pico_err));
-			handle_general_failure();
-			return;
-		}
-		if (vs->socket_type == SOCK_STREAM) {
-			DEBUG_TRANS("len=%5d buf_len=%13d [VSTXBF        -->     NSPICO] proto=0x%04x (TCP)", r, vs->TXbuf->count(), PICO_PROTO_TCP);
-		}
-		if (r == 0) {
-			// DEBUG_ERROR("err=%d, pico_err=%d, %s", r, pico_err, beautify_pico_error(pico_err));
-			// This is a peciliarity of the picoTCP network stack, if we receive no error code, and the size of
-			// the byte stream written is 0, this is an indication that the buffer for this pico_socket is too small
-			// DEBUG_ERROR("pico_socket buffer is too small (adjust ZT_STACK_SOCKET_TX_SZ, ZT_STACK_SOCKET_RX_SZ)");
-			// handle_general_failure();
-		}
-		if (r>0)
-			vs->TXbuf->consume(r);
+		// we will get the vs->TXBuf->get_buf() reference from within pico_Write
+		picostack->pico_Write(vs, NULL, vs->TXbuf->count()); 
 	}
 
 	void picoTCP::pico_cb_socket_ev(uint16_t ev, struct pico_socket *s)
@@ -423,7 +396,6 @@ namespace ZeroTier {
 		if (ev & PICO_SOCK_EV_FIN) {
 			DEBUG_EXTRA("PICO_SOCK_EV_FIN (socket closed), picosock=%p", s);
 			//DEBUG_EXTRA("PICO_SOCK_EV_FIN (socket closed), picosock=%p, vs=%p, app_fd=%d, sdk_fd=%d", s, vs, vs->app_fd, vs->sdk_fd);
-			//vs->closure_ts = std::time(nullptr);
 		}
 
 		// PICO_SOCK_EV_ERR - triggered when an error occurs.
@@ -439,26 +411,30 @@ namespace ZeroTier {
 		// allowed to send new data until a local shutdown or close is initiated. PicoTCP is able to
 		// keep the VirtualSocket half-open (only for sending) after the FIN packet has been received,
 		// allowing new data to be sent in the TCP CLOSE WAIT state.
-		if (ev & PICO_SOCK_EV_CLOSE) {
-			if ((err = pico_socket_close(s)) < 0) {
-				DEBUG_ERROR("pico_socket_close()=%d, pico_err=%d, %s", err, pico_err, beautify_pico_error(pico_err));
-			}
-			DEBUG_EXTRA("PICO_SOCK_EV_CLOSE (socket closure) err=%d (%s), picosock=%p", pico_err, beautify_pico_error(pico_err), s);
-			//DEBUG_EXTRA("PICO_SOCK_EV_CLOSE (socket closure) err=%d, picosock=%p, vs=%p, app_fd=%d, sdk_fd=%d", err, s, vs, vs->app_fd, vs->sdk_fd);
-			//vs->closure_ts = std::time(nullptr);
-			return;
-		}
-
-		// --- handle non-error events ---
 
 		VirtualBindingPair *vbp = (VirtualBindingPair*)(s->priv);
 		if (vbp == NULL) {
-			DEBUG_ERROR("s->priv yielded no valid VirtualBindingPair");
+			DEBUG_ERROR("s->priv yielded no valid vbp");
 			handle_general_failure();
 			return;
 		}
 		VirtualTap *tap = static_cast<VirtualTap*>(vbp->tap);
 		VirtualSocket *vs = static_cast<VirtualSocket*>(vbp->vs);
+
+		if (ev & PICO_SOCK_EV_CLOSE) {
+			vs->set_state(VS_STATE_CLOSED);
+			if ((err = pico_socket_shutdown(s, PICO_SHUT_RDWR)) < 0) {
+				DEBUG_ERROR("error while shutting down socket");
+			}
+			if ((err = pico_socket_close(s)) < 0) {
+				DEBUG_ERROR("pico_socket_close()=%d, pico_err=%d, %s", err, pico_err, beautify_pico_error(pico_err));
+			}
+			DEBUG_EXTRA("PICO_SOCK_EV_CLOSE (socket closure) err=%d (%s), picosock=%p", pico_err, beautify_pico_error(pico_err), s);
+			return;
+		}
+
+		// --- handle non-error events ---
+
 		if (vs == NULL) {
 			DEBUG_ERROR("invalid VirtualSocket");
 			handle_general_failure();
@@ -551,6 +527,7 @@ namespace ZeroTier {
 
 	int pico_eth_tx(struct pico_device *dev, void *buf, int len)
 	{
+		//DEBUG_TRANS();
 		//_picostack_driver_lock.lock();
 		VirtualTap *tap = static_cast<VirtualTap*>(dev->tap);
 		if (tap == NULL) {
@@ -573,9 +550,9 @@ namespace ZeroTier {
 
 			char flagbuf[32];
 			memset(&flagbuf, 0, 32);
+/*
 			struct pico_tcp_hdr *hdr;
 			void * tcp_hdr_ptr;
-
 			if (Utils::ntoh(ethhdr->proto) == 0x86dd) { // tcp, ipv6
 				tcp_hdr_ptr = &ethhdr + PICO_SIZE_ETHHDR + PICO_SIZE_IP4HDR;
 			}
@@ -610,7 +587,7 @@ namespace ZeroTier {
 					}
 				}
 			}
-
+*/
 			DEBUG_TRANS("len=%5d dst=%s [%s TX <-- %s] proto=0x%04x %s %s", len, macBuf, nodeBuf, tap->nodeId().c_str(),
 				Utils::ntoh(ethhdr->proto), beautify_eth_proto_nums(Utils::ntoh(ethhdr->proto)), flagbuf);
 		}
@@ -625,6 +602,7 @@ namespace ZeroTier {
 	void picoTCP::pico_eth_rx(VirtualTap *tap, const MAC &from,const MAC &to,unsigned int etherType,
 		const void *data,unsigned int len)
 	{
+		//DEBUG_TRANS();
 		//_picostack_driver_lock.lock();
 		if (tap == NULL) {
 			DEBUG_ERROR("invalid tap");
@@ -648,11 +626,11 @@ namespace ZeroTier {
 			mac.setTo(ethhdr.saddr, 6);
 			mac.toAddress(tap->_nwid).toString(nodeBuf);
 
-			char flagbuf[32];
-			memset(&flagbuf, 0, 32);
+			char flagbuf[64];
+			memset(&flagbuf, 0, 64);
+/*
 			struct pico_tcp_hdr *hdr;
 			void * tcp_hdr_ptr;
-
 			if (etherType == 0x86dd) { // tcp, ipv6
 				tcp_hdr_ptr = &ethhdr + PICO_SIZE_ETHHDR + PICO_SIZE_IP4HDR;
 			}
@@ -686,6 +664,7 @@ namespace ZeroTier {
 					}
 				}
 			}
+*/
 			DEBUG_TRANS("len=%5d src=%s [%s RX --> %s] proto=0x%04x %s %s", len, macBuf, nodeBuf, tap->nodeId().c_str(),
 				etherType, beautify_eth_proto_nums(etherType), flagbuf);
 		}
@@ -773,15 +752,6 @@ namespace ZeroTier {
 						DEBUG_ERROR("unable to set RCVBUF size, err=%d, pico_err=%d, %s",
 							t_err, pico_err, beautify_pico_error(pico_err));
 					}
-					/*
-					if (ZT_SOCK_BEHAVIOR_LINGER) {
-						int linger_time_ms = ZT_SOCK_BEHAVIOR_LINGER_TIME;
-						if ((t_err = pico_socket_setoption(psock, PICO_SOCKET_OPT_LINGER, &linger_time_ms)) < 0) {
-							DEBUG_ERROR("unable to set LINGER, err=%d, pico_err=%d, %s",
-								t_err, pico_err, beautify_pico_error(pico_err));
-						}
-					}
-					*/
 				}
 			}
 			*p = psock;
@@ -912,21 +882,27 @@ namespace ZeroTier {
 	int picoTCP::pico_Write(VirtualSocket *vs, void *data, ssize_t len)
 	{
 		int err = 0;
+		void *src_buf = NULL;
 		// TODO: Add RingBuffer overflow checks
-		// DEBUG_INFO("vs=%p, len=%d", vs, len);
+		DEBUG_EXTRA("vs=%p, fd=%d, data=%p, len=%d", vs, vs->app_fd, data, len);
 		if (vs == NULL) {
 			DEBUG_ERROR("invalid vs");
 			handle_general_failure();
 			return ZT_ERR_GENERAL_FAILURE;
 		}
 		Mutex::Lock _l(vs->_tx_m);
-		if (len <= 0) {
-			DEBUG_ERROR("invalid write length (len=%d)", len);
+		if (vs->picosock == NULL) {
+			DEBUG_ERROR("ps == NULL");
 			handle_general_failure();
 			return -1;
 		}
-		if (vs->picosock->state == PICO_SOCKET_STATE_CLOSED) {
-			DEBUG_ERROR("socket is CLOSED, this wrpico_cb_tcp_writeite() will fail");
+		if (vs->app_fd <= 0) {
+			DEBUG_EXTRA("invalid fd");
+			handle_general_failure();
+			return -1;
+		}
+		if (vs->picosock->state & PICO_SOCKET_STATE_CLOSED) {
+			DEBUG_ERROR("socket is PICO_SOCKET_STATE_CLOSED, this pico_tcp_write() will fail");
 			return -1;
 		}
 		if (vs == NULL) {
@@ -935,6 +911,16 @@ namespace ZeroTier {
 			return -1;
 		}
 		if (vs->socket_type == SOCK_DGRAM) {
+			if (data == NULL) {
+				DEBUG_ERROR("data == NULL");
+				handle_general_failure();
+				return -1;
+			}
+			if (len <= 0) {
+				DEBUG_ERROR("invalid write len=%d for SOCK_DGRAM", len);
+				handle_general_failure();
+				return -1;
+			}
 			int r;
 			if ((r = pico_socket_write(vs->picosock, data, len)) < 0) {
 				DEBUG_ERROR("unable to write to picosock=%p, err=%d, pico_err=%d, %s",
@@ -944,25 +930,43 @@ namespace ZeroTier {
 			else {
 				err = r; // successful write
 			}
+			if (vs->socket_type == SOCK_DGRAM) {
+				DEBUG_TRANS("len=%5d buf_len=N/A           [APPFDS        -->     NSPICO] proto=0x%04x (UDP)", r, PICO_PROTO_TCP);
+			}
 		}
 		if (vs->socket_type == SOCK_STREAM) {
-			int original_txsz = vs->TXbuf->count();
-			if (original_txsz + len >= ZT_TCP_TX_BUF_SZ) {
-				DEBUG_ERROR("txsz=%d, len=%d", original_txsz, len);
-				DEBUG_ERROR("TX buffer is too small, try increasing ZT_TCP_TX_BUF_SZ in libzt.h");
-				handle_general_failure();
-				return ZT_ERR_GENERAL_FAILURE;
-			}
-			int buf_w = vs->TXbuf->write((const unsigned char*)data, len);
+			if (len > 0 && data != NULL) {
+				
+				src_buf = data; // --- Data source: poll loop I/O buffer ---
+
+				// in this case, we've recieved data on the 'data' buffer, add it to TX ringbuffer, then try to handle it from there
+				int original_txsz = vs->TXbuf->count();
+				if (original_txsz + len >= ZT_TCP_TX_BUF_SZ) {
+					DEBUG_ERROR("txsz=%d, len=%d", original_txsz, len);
+					DEBUG_ERROR("TX buffer is too small, try increasing ZT_TCP_TX_BUF_SZ in libzt.h");
+					handle_general_failure();
+					return ZT_ERR_GENERAL_FAILURE;
+				}
+				int buf_w = vs->TXbuf->write((const unsigned char*)data, len);
 				if (buf_w != len) {
-				// because we checked ZT_TCP_TX_BUF_SZ above, this should not happen
-				DEBUG_ERROR("TX wrote only %d but expected to write %d", buf_w, len);
-				handle_general_failure();
-				return ZT_ERR_GENERAL_FAILURE;
+					// because we checked ZT_TCP_TX_BUF_SZ above, this should not happen
+					DEBUG_ERROR("wrote only len=%d but expected to write len=%d", buf_w, len);
+					handle_general_failure();
+					return ZT_ERR_GENERAL_FAILURE;
+				}
+			} else if (len == 0 && data == NULL) {
+				DEBUG_EXTRA("len=0 => write request from poll loop or callback");
+
+				src_buf = vs->TXbuf->get_buf(); // --- Data source: TX ringbuffer ---
+
+				// do nothing, all the data we need is already on the TX ringbuffer
+			} else if (len < 0) {
+				DEBUG_ERROR("invalid write len=%d for SOCK_STREAM", len);
 			}
+
 			int txsz = vs->TXbuf->count();
 			int r, max_write_len = std::min(std::min(txsz, ZT_SDK_MTU),ZT_STACK_SOCKET_WR_MAX);
-			if ((r = pico_socket_write(vs->picosock, vs->TXbuf->get_buf(), max_write_len)) < 0) {
+			if ((r = pico_socket_write(vs->picosock, src_buf, max_write_len)) < 0) {
 				DEBUG_ERROR("unable to write to picosock=%p, err=%d, pico_err=%d, %s",
 					vs->picosock, r, pico_err, beautify_pico_error(pico_err));
 				err = -1;
@@ -972,12 +976,9 @@ namespace ZeroTier {
 			}
 			if (r>0) {
 				vs->TXbuf->consume(r);
-			}
-			if (vs->socket_type == SOCK_STREAM) {
-				DEBUG_TRANS("len=%5d buf_len=%13d [VSTXBF        -->     NSPICO] proto=0x%04x (TCP)", r, vs->TXbuf->count(), PICO_PROTO_TCP);
-			}
-			if (vs->socket_type == SOCK_DGRAM) {
-				DEBUG_TRANS("len=%5d buf_len=               [APPFDS        -->     NSPICO] proto=0x%04x (UDP)", r, PICO_PROTO_TCP);
+				if (vs->socket_type == SOCK_STREAM) {
+					DEBUG_TRANS("len=%5d buf_len=%13d [VSTXBF        -->     NSPICO] proto=0x%04x (TCP)", r, vs->TXbuf->count(), PICO_PROTO_TCP);
+				}
 			}
 		}
 		return err;
@@ -985,21 +986,32 @@ namespace ZeroTier {
 
 	int picoTCP::pico_Close(VirtualSocket *vs)
 	{
+		DEBUG_EXTRA();
 		if (vs == NULL) {
 			DEBUG_ERROR("invalid vs");
 			handle_general_failure();
 			return ZT_ERR_GENERAL_FAILURE;
+		}
+		if (vs->get_state() == VS_STATE_CLOSED) {
+			DEBUG_EXTRA("socket already in VS_STATE_CLOSED state");
+			return 0;
+		}
+		if (vs->picosock == NULL) {
+			DEBUG_EXTRA("ps == NULL");
+			return 0;
+		}
+		if (vs->picosock->state & PICO_SOCKET_STATE_CLOSED) {
+			DEBUG_EXTRA("ps already closed, ps=%p", vs->picosock);
+			return 0;
 		}
 		DEBUG_EXTRA("vs=%p, picosock=%p, fd=%d", vs, vs->picosock, vs->app_fd);
 		if (vs == NULL || vs->picosock == NULL)
 			return ZT_ERR_GENERAL_FAILURE;
 		int err = 0;
 		Mutex::Lock _l(vs->tap->_tcpconns_m);
-		if (vs->closure_ts != -1) // it was closed at some point in the past, it'll work itself out
-			return ZT_ERR_OK;
 		if ((err = pico_socket_close(vs->picosock)) < 0) {
 			errno = pico_err;
-			DEBUG_ERROR("error closing pico_socket, err=%d, pico_err=%s, %s",
+			DEBUG_ERROR("error closing pico_socket, err=%d, pico_err=%d, %s",
 				err, pico_err, beautify_pico_error(pico_err));
 		}
 		return err;
@@ -1007,6 +1019,7 @@ namespace ZeroTier {
 
 	int picoTCP::pico_Shutdown(VirtualSocket *vs, int how)
 	{
+		DEBUG_EXTRA("vs=%p, how=%d", vs, how);
 		int err = 0, mode = 0;
 		if (how == SHUT_RD) {
 			mode = PICO_SHUT_RD;
@@ -1069,9 +1082,12 @@ namespace ZeroTier {
 			/* Lingers on a close() if data is present. */
 			if (optname == SO_LINGER)
 			{
-				// TODO
-				errno = ENOPROTOOPT;
-				return -1;
+				int linger_time_ms = *((const int*)optval);
+				if ((err = pico_socket_setoption(vs->picosock, PICO_SOCKET_OPT_LINGER, &linger_time_ms)) < 0) {
+					DEBUG_ERROR("unable to set LINGER, err=%d, pico_err=%d, %s",
+						err, pico_err, beautify_pico_error(pico_err));
+				}
+				return err;
 			}
 			/* Permits sending of broadcast messages, if this is supported by the protocol. This option takes an int 
 			value. This is a Boolean option. */
@@ -1092,16 +1108,28 @@ namespace ZeroTier {
 			/* Sets send buffer size. This option takes an int value. */
 			if (optname == SO_SNDBUF)
 			{
-				// TODO
-				errno = ENOPROTOOPT;
-				return -1;
+				int no_delay = *((const int*)optval);
+				if ((err = pico_socket_setoption(vs->picosock, PICO_SOCKET_OPT_SNDBUF, &no_delay) < 0)) {
+					if (err == PICO_ERR_EINVAL) {
+						DEBUG_ERROR("error while setting PICO_SOCKET_OPT_SNDBUF");
+						errno = EINVAL;
+						err = -1;
+					}
+				}
+				return err;
 			}
 			/* Sets receive buffer size. This option takes an int value. */
 			if (optname == SO_RCVBUF)
 			{
-				// TODO
-				errno = ENOPROTOOPT;
-				return -1;
+				int no_delay = *((const int*)optval);
+				if ((err = pico_socket_setoption(vs->picosock, PICO_SOCKET_OPT_RCVBUF, &no_delay) < 0)) {
+					if (err == PICO_ERR_EINVAL) {
+						DEBUG_ERROR("error while setting PICO_SOCKET_OPT_RCVBUF");
+						errno = EINVAL;
+						err = -1;
+					}
+				}
+				return err;
 			}
 			/* */ 
 			if (optname == SO_STYLE)
@@ -1188,29 +1216,31 @@ namespace ZeroTier {
 				return -1;
 			}
 			if (optname == IP_MULTICAST_IF) {
-				/*
-				if ((err = pico_socket_getoption(p, PICO_TCP_NODELAY, &optval_tmp)) < 0) {
-					if (err == PICO_ERR_EINVAL) {
-						DEBUG_ERROR("error while disabling Nagle's algorithm");
-						errno = ENOPROTOOPT;
-						err = -1;
-					}
-				}
-				memcpy(optval, &optval_tmp, *optlen);
-				*/
 				// TODO
 				errno = ENOPROTOOPT;
 				return -1;
 			}
 			if (optname == IP_MULTICAST_LOOP) {
-				// TODO
-				errno = ENOPROTOOPT;
-				return -1;
+				int loop = *((const int*)optval);
+				if ((err = pico_socket_setoption(vs->picosock, PICO_IP_MULTICAST_LOOP, &loop) < 0)) {
+					if (err == PICO_ERR_EINVAL) {
+						DEBUG_ERROR("error while setting PICO_IP_MULTICAST_TTL");
+						errno = EINVAL;
+						err = -1;
+					}
+				}
+				return err;
 			}
 			if (optname == IP_MULTICAST_TTL) {
-				// TODO
-				errno = ENOPROTOOPT;
-				return -1;
+				int ttl = *((const int*)optval);
+				if ((err = pico_socket_setoption(vs->picosock, PICO_IP_MULTICAST_TTL, &ttl) < 0)) {
+					if (err == PICO_ERR_EINVAL) {
+						DEBUG_ERROR("error while setting PICO_IP_MULTICAST_TTL");
+						errno = EINVAL;
+						err = -1;
+					}
+				}
+				return err;
 			}
 			if (optname == IP_NODEFRAG) {
 				// TODO
@@ -1339,7 +1369,7 @@ namespace ZeroTier {
 			/* If set, disable the Nagle algorithm. */
 			if (optname == TCP_NODELAY) {
 				int no_delay = *((const int*)optval);
-				if ((err = pico_socket_setoption(p, PICO_TCP_NODELAY, &no_delay) < 0)) {
+				if ((err = pico_socket_setoption(vs->picosock, PICO_TCP_NODELAY, &no_delay) < 0)) {
 					if (err == PICO_ERR_EINVAL) {
 						DEBUG_ERROR("error while disabling Nagle's algorithm");
 						errno = EINVAL;
@@ -1451,16 +1481,26 @@ namespace ZeroTier {
 			/* Sets send buffer size. This option takes an int value. */
 			if (optname == SO_SNDBUF)
 			{
-				// TODO
-				errno = ENOPROTOOPT;
-				return -1;
+				if ((err = pico_socket_getoption(vs->picosock, PICO_SOCKET_OPT_SNDBUF, &optval_tmp)) < 0) {
+					if (err == PICO_ERR_EINVAL) {
+						DEBUG_ERROR("error while getting PICO_SOCKET_OPT_SNDBUF");
+						errno = ENOPROTOOPT;
+						err = -1;
+					}
+				}
+				memcpy(optval, &optval_tmp, *optlen);
 			}
 			/* Sets receive buffer size. This option takes an int value. */
 			if (optname == SO_RCVBUF)
 			{
-				// TODO
-				errno = ENOPROTOOPT;
-				return -1;
+				if ((err = pico_socket_getoption(vs->picosock, PICO_SOCKET_OPT_SNDBUF, &optval_tmp)) < 0) {
+					if (err == PICO_ERR_EINVAL) {
+						DEBUG_ERROR("error while getting PICO_SOCKET_OPT_RCVBUF");
+						errno = ENOPROTOOPT;
+						err = -1;
+					}
+				}
+				memcpy(optval, &optval_tmp, *optlen);
 			}
 			/* */ 
 			if (optname == SO_STYLE)
@@ -1552,14 +1592,24 @@ namespace ZeroTier {
 				return -1;
 			}
 			if (optname == IP_MULTICAST_LOOP) {
-				// TODO
-				errno = ENOPROTOOPT;
-				return -1;
+				if ((err = pico_socket_getoption(vs->picosock, PICO_IP_MULTICAST_LOOP, &optval_tmp)) < 0) {
+					if (err == PICO_ERR_EINVAL) {
+						DEBUG_ERROR("error while getting PICO_IP_MULTICAST_TTL");
+						errno = ENOPROTOOPT;
+						err = -1;
+					}
+				}
+				memcpy(optval, &optval_tmp, *optlen);
 			}
 			if (optname == IP_MULTICAST_TTL) {
-				// TODO
-				errno = ENOPROTOOPT;
-				return -1;
+				if ((err = pico_socket_getoption(vs->picosock, PICO_IP_MULTICAST_TTL, &optval_tmp)) < 0) {
+					if (err == PICO_ERR_EINVAL) {
+						DEBUG_ERROR("error while getting PICO_IP_MULTICAST_TTL");
+						errno = ENOPROTOOPT;
+						err = -1;
+					}
+				}
+				memcpy(optval, &optval_tmp, *optlen);
 			}
 			if (optname == IP_NODEFRAG) {
 				// TODO
@@ -1686,21 +1736,7 @@ namespace ZeroTier {
 			}
 			/* If set, disable the Nagle algorithm. */
 			if (optname == TCP_NODELAY) {
-
-				/*
-
-				TODO: 
-
-				PICO TCP NODELAY - Nagle algorithm, value casted to (int *) (0 = disabled, 1 = enabled)
-				• PICO SOCKET OPT RCVBUF - Read current receive buffer size for the socket
-				• PICO SOCKET OPT SNDBUF - Read current receive buffer size for the socket
-				• PICO IP MULTICAST IF - (Not supported) Link multicast datagrams are sent from
-				• PICO IP MULTICAST TTL - TTL (0-255) of multicast datagrams
-				• PICO IP MULTICAST LOOP - Loop back a copy of an outgoing multicast datagram, as long
-				as it is a member of the multicast group, or not
-
-				*/
-				if ((err = pico_socket_getoption(p, PICO_TCP_NODELAY, &optval_tmp)) < 0) {
+				if ((err = pico_socket_getoption(vs->picosock, PICO_TCP_NODELAY, &optval_tmp)) < 0) {
 					if (err == PICO_ERR_EINVAL) {
 						DEBUG_ERROR("error while disabling Nagle's algorithm");
 						errno = ENOPROTOOPT;

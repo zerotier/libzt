@@ -33,7 +33,7 @@
 #define ZT_MSG_INFO        true // Information which is generally useful to any developer
 #define ZT_MSG_TEST        true // For use in selftest
 #define ZT_MSG_TRANSFER    true // RX/TX specific statements
-#define ZT_MSG_EXTRA       true // If nothing in your world makes sense
+#define ZT_MSG_EXTRA       false // If nothing in your world makes sense
 
 #define ZT_COLOR           true
 

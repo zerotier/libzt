@@ -63,7 +63,7 @@
 #define SLAM_INTERVAL          500000  // microseconds
 
 #define WAIT_FOR_TEST_TO_CONCLUDE         0
-#define WAIT_FOR_TRANSMISSION_TO_COMPLETE 5
+#define ARTIFICIAL_SOCKET_LINGER          1
 
 #define STR_SIZE               32
 
@@ -130,6 +130,19 @@
 
 // If running a native instance to test against, use system calls
 #if defined(__NATIVETEST__)
+inline unsigned int gettid()
+{
+#ifdef _WIN32
+    return GetCurrentThreadId();
+#elif defined(__unix__)
+    return static_cast<unsigned int>(::syscall(__NR_gettid));
+#elif defined(__APPLE__)
+    uint64_t tid64;
+    pthread_threadid_np(NULL, &tid64);
+    return static_cast<unsigned int>(tid64);
+#endif
+}
+
 #define SOCKET socket
 #define BIND bind
 #define LISTEN listen
@@ -334,7 +347,7 @@ void tcp_client_4(TCP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "tcp_client_4";
 	std::string msg = "tcp_cs_4";
-	fprintf(stderr, "\n\n%s\n", testname.c_str());
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
 	fprintf(stderr, "connect to remote host with IPv4 address, write string, read string, compare.\n");
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -367,6 +380,7 @@ void tcp_client_4(TCP_UNIT_TEST_SIG_4)
 	r = READ(fd, rbuf, len);
 	DEBUG_TEST("Sent     : %s", msg.c_str());
 	DEBUG_TEST("Received : %s", rbuf);
+	sleep(ARTIFICIAL_SOCKET_LINGER);
 	err = CLOSE(fd);
 	sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
 	*passed = (w == len && r == len && !err) && !strcmp(rbuf, msg.c_str());
@@ -381,7 +395,7 @@ void tcp_server_4(TCP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "tcp_server_4";
 	std::string msg = "tcp_cs_4";
-	fprintf(stderr, "\n\n%s\n", testname.c_str());	
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
 	fprintf(stderr, "accept connection with IPv4 address, read string, write string, compare.\n");
 	int w=0, r=0, fd, client_fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -426,6 +440,7 @@ void tcp_server_4(TCP_UNIT_TEST_SIG_4)
 	r = READ(client_fd, rbuf, len);
 	w = WRITE(client_fd, rbuf, len);
 	DEBUG_TEST("Received : %s, r=%d, w=%d", rbuf, r, w);
+	sleep(ARTIFICIAL_SOCKET_LINGER);
 	err = CLOSE(fd);
 	err = CLOSE(client_fd);
 	sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
@@ -441,7 +456,7 @@ void tcp_client_6(TCP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "tcp_client_6";
 	std::string msg = "tcp_cs_6";
-	fprintf(stderr, "\n\n%s\n", testname.c_str());
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
 	fprintf(stderr, "connect to remote host with IPv6 address, write string, read string, compare.\n");
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -473,6 +488,7 @@ void tcp_client_6(TCP_UNIT_TEST_SIG_6)
 
 	w = WRITE(fd, msg.c_str(), len);
 	r = READ(fd, rbuf, len);
+	sleep(ARTIFICIAL_SOCKET_LINGER);
 	err = CLOSE(fd);
 	sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
 	DEBUG_TEST("Sent     : %s", msg.c_str());
@@ -489,7 +505,7 @@ void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "tcp_server_6";
 	std::string msg = "tcp_cs_6";
-	fprintf(stderr, "\n\n%s\n", testname.c_str());	
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
 	fprintf(stderr, "accept connection with IPv6 address, read string, write string, compare.\n");
 	int w=0, r=0, fd, client_fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -537,6 +553,7 @@ void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 	r = READ(client_fd, rbuf, sizeof rbuf);
 	w = WRITE(client_fd, rbuf, len);
 	DEBUG_TEST("Received : %s", rbuf);
+	sleep(ARTIFICIAL_SOCKET_LINGER);
 	err = CLOSE(fd);
 	err = CLOSE(client_fd);
 	sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
@@ -554,7 +571,7 @@ void udp_client_4(UDP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "udp_client_4";
 	std::string msg = "udp_cs_4";
-	fprintf(stderr, "\n\n%s\n", testname.c_str());
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
 	fprintf(stderr, "bind to interface with IPv4 address, send string until response is seen. compare.\n");
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -590,6 +607,7 @@ void udp_client_4(UDP_UNIT_TEST_SIG_4)
 		// rx
 		r = RECVFROM(fd, rbuf, STR_SIZE, 0, (struct sockaddr *)&saddr, (socklen_t *)&serverlen);
 		if (r == strlen(msg.c_str())) {
+			sleep(ARTIFICIAL_SOCKET_LINGER);
 			err = CLOSE(fd);
 			DEBUG_TEST("%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
 			sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
@@ -610,7 +628,7 @@ void udp_server_4(UDP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "udp_server_4";
 	std::string msg = "udp_cs_4";
-	fprintf(stderr, "\n\n%s\n", testname.c_str());	
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
 	fprintf(stderr, "bind to interface with IPv4 address, read single string, send many responses. compare.\n");
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -654,6 +672,7 @@ void udp_server_4(UDP_UNIT_TEST_SIG_4)
 			break;
 		}
 	}
+	sleep(ARTIFICIAL_SOCKET_LINGER);
 	err = CLOSE(fd);
 	DEBUG_TEST("%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
 	sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
@@ -671,7 +690,7 @@ void udp_client_6(UDP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "udp_client_6";
 	std::string msg = "udp_cs_6";
-	fprintf(stderr, "\n\n%s\n", testname.c_str());
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
 	fprintf(stderr, "bind to interface with IPv6 address, send string until response is seen. compare.\n");
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -711,7 +730,7 @@ void udp_client_6(UDP_UNIT_TEST_SIG_6)
 		r = RECVFROM(fd, rbuf, len, 0, (struct sockaddr *)&saddr, (socklen_t *)&serverlen);
 		if (r == len) {
 			DEBUG_TEST("[2] complete");
-			sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
+			sleep(ARTIFICIAL_SOCKET_LINGER);
 			err = CLOSE(fd);
 			DEBUG_TEST("%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
 			sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
@@ -731,7 +750,7 @@ void udp_server_6(UDP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "udp_server_6";
 	std::string msg = "udp_cs_6";
-	fprintf(stderr, "\n\n%s\n", testname.c_str());
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
 	fprintf(stderr, "bind to interface with IPv6 address, read single string, send many responses. compare.\n");
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -779,8 +798,8 @@ void udp_server_6(UDP_UNIT_TEST_SIG_6)
 			break;
 		}
 	}
-	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
-	//err = CLOSE(fd);
+	sleep(ARTIFICIAL_SOCKET_LINGER);
+	err = CLOSE(fd);
 	DEBUG_TEST("[3/3] complete, %s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
 	sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
 	DEBUG_TEST("Sent     : %s", msg.c_str());
@@ -805,7 +824,7 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "tcp_client_sustained_4";
 	std::string msg = "tcp_sustained_4";
-	fprintf(stderr, "\n\n%s\n", testname.c_str());
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
 	fprintf(stderr, "connect to remote host with IPv4 address, exchange a sequence of packets, check order.\n");
 	int n=0, w=0, r=0, fd, err;	
 	char *rxbuf = (char*)malloc(cnt*sizeof(char));
@@ -831,7 +850,9 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 		while (wrem) {
 			int next_write = std::min(4096, wrem);
 			signal(SIGPIPE, SIG_IGN);
+			DEBUG_TEST("writing...");
 			n = WRITE(fd, &txbuf[w], next_write);
+			DEBUG_TEST("wrote=%d", n);
 			if (n > 0) {
 				w += n;
 				wrem -= n;
@@ -856,7 +877,7 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 		}
 		long int rx_tf = get_now_ts();	
 		DEBUG_TEST("read=%d", r);
-		sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
+		sleep(ARTIFICIAL_SOCKET_LINGER);
 		err = CLOSE(fd);
 		// Compare RX and TX buffer and detect mismatches
 		bool match = true;
@@ -887,7 +908,7 @@ void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "tcp_client_sustained_6";
 	std::string msg = "tcp_sustained_6";
-	fprintf(stderr, "\n\n%s\n", testname.c_str());
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
 	fprintf(stderr, "connect to remote host with IPv6 address, exchange a sequence of packets, check order.\n");
 	int n=0, w=0, r=0, fd, err;	
 	char *rxbuf = (char*)malloc(cnt*sizeof(char));
@@ -936,7 +957,7 @@ void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 		}
 		long int rx_tf = get_now_ts();	
 		DEBUG_TEST("read=%d", r);
-		sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
+		sleep(ARTIFICIAL_SOCKET_LINGER);
 		err = CLOSE(fd);
 		// Compare RX and TX buffer and detect mismatches
 		bool match = true;
@@ -967,7 +988,7 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "tcp_server_sustained_4";
 	std::string msg = "tcp_sustained_4";
-	fprintf(stderr, "\n\n%s\n", testname.c_str());
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
 	fprintf(stderr, "accept connection from host with IPv4 address, exchange a sequence of packets, check order.\n");
 	int n=0, w=0, r=0, fd, client_fd, err;
 	char *rxbuf = (char*)malloc(cnt*sizeof(char));
@@ -1028,6 +1049,7 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 		}
 		long int tx_tf = get_now_ts();	
 		DEBUG_TEST("wrote=%d", w);
+		sleep(ARTIFICIAL_SOCKET_LINGER);
 		err = CLOSE(fd);
 		err = CLOSE(client_fd);
 		// Compute time deltas and transfer rates
@@ -1037,7 +1059,6 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 		float rx_rate = (float)cnt / (float)rx_dt;
 		sprintf(details, "%s, n=%d, tx_dt=%.2f, rx_dt=%.2f, r=%d, w=%d, tx_rate=%.2f MB/s, rx_rate=%.2f MB/s", 
 			testname.c_str(), cnt, tx_dt, rx_dt, r, w, (tx_rate / float(ONE_MEGABYTE) ), (rx_rate / float(ONE_MEGABYTE) ));
-
 		*passed = (r == cnt && w == cnt && err>=0);
 	}
 	free(rxbuf);
@@ -1051,7 +1072,7 @@ void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "tcp_server_sustained_6";
 	std::string msg = "tcp_sustained_6";
-	fprintf(stderr, "\n\n%s\n", testname.c_str());
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
 	fprintf(stderr, "accept connection from host with IPv6 address, exchange a sequence of packets, check order.\n");
 	int n=0, w=0, r=0, fd, client_fd, err;
 	char *rxbuf = (char*)malloc(cnt*sizeof(char));
@@ -1115,6 +1136,7 @@ void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 		}
 		long int tx_tf = get_now_ts();	
 		DEBUG_TEST("wrote=%d", w);
+		sleep(ARTIFICIAL_SOCKET_LINGER);
 		err = CLOSE(fd);
 		err = CLOSE(client_fd);
 		// Compute time deltas and transfer rates
@@ -1138,7 +1160,7 @@ void udp_client_sustained_4(UDP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "udp_client_sustained_4";
 	std::string msg = "udp_sustained_4";
-	fprintf(stderr, "\n\n%s\n", testname.c_str());
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
 	fprintf(stderr, "bind to interface with IPv4 address, TX n-datagrams\n");
 	int w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -1169,7 +1191,7 @@ void udp_client_sustained_4(UDP_UNIT_TEST_SIG_4)
 			DEBUG_ERROR("error sending packet, err=%d", errno);
 		}
 	}
-	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
+	sleep(ARTIFICIAL_SOCKET_LINGER);
 	err = CLOSE(fd);
 	DEBUG_TEST("%s, n=%d, err=%d, w=%d", testname.c_str(), cnt, err, w);
 	sprintf(details, "%s, n=%d, err=%d, w=%d", testname.c_str(), cnt, err, w);
@@ -1186,7 +1208,7 @@ void udp_server_sustained_4(UDP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "udp_server_sustained_4";
 	std::string msg = "udp_sustained_4";
-	fprintf(stderr, "\n\n%s\n", testname.c_str());	
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
 	fprintf(stderr, "bind to interface with IPv4 address, RX (n/x)-datagrams\n");
 	int r, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -1218,8 +1240,7 @@ void udp_server_sustained_4(UDP_UNIT_TEST_SIG_4)
 		DEBUG_TEST("received DGRAM from %s : %d", inet_ntoa(in4->sin_addr), ntohs(in4->sin_port));
 		DEBUG_TEST("sending DGRAM(s) to %s : %d", inet_ntoa(remote_addr->sin_addr), ntohs(remote_addr->sin_port));
 	}
-	
-	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
+	sleep(ARTIFICIAL_SOCKET_LINGER);
 	//err = CLOSE(fd);
 	DEBUG_TEST("%s, n=%d, err=%d, r=%d", testname.c_str(), cnt, err, r);
 	sprintf(details, "%s, n=%d, err=%d, r=%d", testname.c_str(), cnt, err, r);
@@ -1235,7 +1256,7 @@ void udp_client_sustained_6(UDP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "udp_client_sustained_6";
 	std::string msg = "udp_sustained_6";
-	fprintf(stderr, "\n\n%s\n", testname.c_str());
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
 	fprintf(stderr, "bind to interface with IPv6 address, TX n-datagrams\n");
 	int w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -1267,7 +1288,7 @@ void udp_client_sustained_6(UDP_UNIT_TEST_SIG_6)
 			DEBUG_ERROR("error sending packet, err=%d", errno);
 		}
 	}
-	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
+	sleep(ARTIFICIAL_SOCKET_LINGER);
 	err = CLOSE(fd);
 	DEBUG_TEST("%s, n=%d, err=%d, w=%d", testname.c_str(), cnt, err, w);
 	sprintf(details, "%s, n=%d, err=%d, w=%d", testname.c_str(), cnt, err, w);
@@ -1284,7 +1305,7 @@ void udp_server_sustained_6(UDP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "udp_server_sustained_6";
 	std::string msg = "udp_sustained_6";
-	fprintf(stderr, "\n\n%s\n", testname.c_str());	
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
 	fprintf(stderr, "bind to interface with IPv6 address, RX (n/x)-datagrams\n");
 	int r, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -1316,8 +1337,8 @@ void udp_server_sustained_6(UDP_UNIT_TEST_SIG_6)
 		//DEBUG_TEST("received DGRAM from %s : %d", inet_ntoa(in6->sin6_addr), ntohs(in6->sin6_port));
 		//DEBUG_TEST("sending DGRAM(s) to %s : %d", inet_ntoa(remote_addr->sin6_addr), ntohs(remote_addr->sin6_port));
 	}
-	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
-	//err = CLOSE(fd);
+	sleep(ARTIFICIAL_SOCKET_LINGER);
+	err = CLOSE(fd);
 	DEBUG_TEST("%s, n=%d, err=%d, r=%d", testname.c_str(), cnt, err, r);
 	sprintf(details, "%s, n=%d, err=%d, r=%d", testname.c_str(), cnt, err, r);
 	DEBUG_TEST("Received : %s", rbuf);
@@ -1485,7 +1506,7 @@ void tcp_perf_tx_echo_4(TCP_UNIT_TEST_SIG_4)
 	float rate = (float)tot / (float)ts_delta;
 	sprintf(details, "%s, tot=%d, dt=%.2f, rate=%.2f MB/s", msg.c_str(), tot, ts_delta, (rate / float(ONE_MEGABYTE) ));
 
-	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
+	sleep(ARTIFICIAL_SOCKET_LINGER);
 	err = CLOSE(fd);
 	*passed = (tot == cnt && !err) ? PASSED : FAILED;
 }
@@ -1553,7 +1574,7 @@ void tcp_perf_rx_echo_4(TCP_UNIT_TEST_SIG_4)
 	float rate = (float)tot / (float)ts_delta;
 	sprintf(details, "%s, tot=%d, dt=%.2f, rate=%.2f MB/s", msg.c_str(), tot, ts_delta, (rate / float(ONE_MEGABYTE) ));		
 	
-	sleep(WAIT_FOR_TRANSMISSION_TO_COMPLETE);
+	sleep(ARTIFICIAL_SOCKET_LINGER);
 	err = CLOSE(fd);
 	*passed = (tot == cnt && !err) ? PASSED : FAILED;
 }
@@ -1567,6 +1588,7 @@ void tcp_perf_rx_echo_4(TCP_UNIT_TEST_SIG_4)
 
 int obscure_api_test(bool *passed)
 {
+	int err = -1;
 	fprintf(stderr, "\n\nobscure API test\n\n");	
 
 	/*
@@ -1610,52 +1632,71 @@ int obscure_api_test(bool *passed)
 
 	// TODO: write an ipv6 version of the above ^^^
 	*/
+/*
+int levels[] = {
+		IPPROTO_TCP, 
+		IPPROTO_UDP,
+		IPPROTO_IP
+	};
+	int num_levels = sizeof(levels) / sizeof(int);
 
-	// ---
-	// Disable Nagle's Algorithm on a socket (TCP_NODELAY)
-	int level = IPPROTO_TCP;
-	int optname = TCP_NODELAY;
-	int optval = 1;
-	socklen_t flag_len = sizeof(optval);
-	int fd = SOCKET(AF_INET, SOCK_STREAM, 0);
-	DEBUG_TEST("setting level=%d, optname=%d, optval=%d...", level, optname, optval);
-	int err = SETSOCKOPT(fd, level, optname, (char *)&optval, sizeof(int));
-	if (err < 0) {
-		DEBUG_ERROR("error while setting optval on socket");
-		*passed = false;
-		err = -1;
-	}
-	optval = -99; // set junk value to test against
-	if ((err = GETSOCKOPT(fd, level, optname, &optval, &flag_len)) < 0) {
-		DEBUG_ERROR("error while getting the optval");
-		*passed = false;
-		err = -1;
-	}
-	DEBUG_TEST("flag_len=%d", flag_len);
-	if (optval <= 0) {
-		DEBUG_ERROR("incorrect optval=%d (from getsockopt)", optval);
-		*passed = false;
-		err = -1;
-	} else {
-		DEBUG_TEST("correctly read optval=%d, now reversing it", optval);
-		if (optval > 0) { // TODO: what should be expected for each platform? Should this mirror them?
-			optval = 0;
-			DEBUG_TEST("setting level=%d, optname=%d, optval=%d...", level, optname, optval);
-			if ((err = SETSOCKOPT(fd, level, optname, (char *) &optval, (socklen_t)sizeof(int))) < 0) {
-				DEBUG_ERROR("error while setting on socket");
-				*passed = false;
-				err = -1;
-			}
-			else {
-				DEBUG_TEST("success");
-				*passed = true;
-			}
-		} else {
-			DEBUG_ERROR("the optval wasn't set correctly");
+	int optnames[] = {
+		TCP_NODELAY,
+		SO_LINGER
+	};
+	int num_optnames = sizeof(optnames) / sizeof(int);
+
+
+	for (int i=0; i<num_levels; i++) { // test all levels
+		for (int j=0; j<num_optnames; j++) { // test all optnames
+
+		// ---
+		// Disable Nagle's Algorithm on a socket (TCP_NODELAY)
+		int level = IPPROTO_TCP;
+		int optname = TCP_NODELAY;
+		int optval = 1;
+		socklen_t flag_len = sizeof(optval);
+		int fd = SOCKET(AF_INET, SOCK_STREAM, 0);
+		DEBUG_TEST("setting level=%d, optname=%d, optval=%d...", level, optname, optval);
+		err = SETSOCKOPT(fd, level, optname, (char *)&optval, sizeof(int));
+		if (err < 0) {
+			DEBUG_ERROR("error while setting optval on socket");
 			*passed = false;
 			err = -1;
 		}
+		optval = -99; // set junk value to test against
+		if ((err = GETSOCKOPT(fd, level, optname, &optval, &flag_len)) < 0) {
+			DEBUG_ERROR("error while getting the optval");
+			*passed = false;
+			err = -1;
+		}
+		DEBUG_TEST("flag_len=%d", flag_len);
+		if (optval <= 0) {
+			DEBUG_ERROR("incorrect optval=%d (from getsockopt)", optval);
+			*passed = false;
+			err = -1;
+		} else {
+			DEBUG_TEST("correctly read optval=%d, now reversing it", optval);
+			if (optval > 0) { // TODO: what should be expected for each platform? Should this mirror them?
+				optval = 0;
+				DEBUG_TEST("setting level=%d, optname=%d, optval=%d...", level, optname, optval);
+				if ((err = SETSOCKOPT(fd, level, optname, (char *) &optval, (socklen_t)sizeof(int))) < 0) {
+					DEBUG_ERROR("error while setting on socket");
+					*passed = false;
+					err = -1;
+				}
+				else {
+					DEBUG_TEST("success");
+					*passed = true;
+				}
+			} else {
+				DEBUG_ERROR("the optval wasn't set correctly");
+				*passed = false;
+				err = -1;
+			}
+		}
 	}
+	*/
 	return err;
 }
 
@@ -2468,18 +2509,23 @@ for (int i=0; i<num_repeats; i++)
 			//test_bad_args();
 
 	// OBSCURE API TEST
-	//obscure_api_test(&passed);
+	if (false) {
+		obscure_api_test(&passed);
+	}
 
-	// 
-	ipv = 4;
-	port = start_port;
-	str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
-	str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
-	multithread_udp_write((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, &passed);
+	// Spam a SOCK_DGRAM socket from many threads
+	if (false) {
+		ipv = 4;
+		port = start_port;
+		str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+		str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+		multithread_udp_write((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, &passed);
+	}
 	
 	//
-	multithread_test(10, &passed);
-	//exit(0);
+	if (false) {
+		multithread_test(10, &passed);
+	}
 
 #endif // __SELFTEST__
 
@@ -2506,7 +2552,7 @@ for (int i=0; i<num_repeats; i++)
 
 	#if defined(LIBZT_IPV4)
 		// UDP 4 client/server
-
+		
 		ipv = 4;
 		subtest_start_time_offset += subtest_expected_duration;
 		subtest_expected_duration = 30;

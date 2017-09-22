@@ -675,13 +675,13 @@ namespace ZeroTier
 			}
 			else {
 				// place a request for the stack to close this VirtualSocket's PCB
-				vs->set_state(VS_SHOULD_STOP);
+				vs->set_state(VS_STATE_SHOULD_SHUTDOWN);
 				// wait for indication of success, this will block if the PCB can't close
 				while (true) {
 					sleep(1);
 					nanosleep((const struct timespec[]) {{0, (ZT_API_CHECK_INTERVAL * 1000000)}}, NULL);
 					DEBUG_EXTRA("checking closure state... pcb->state=%d", tpcb->state);
-					if (vs->get_state() == VS_STOPPED || tpcb->state == CLOSED) {
+					if (vs->get_state() == VS_STATE_CLOSED || tpcb->state == CLOSED) {
 						return ERR_OK;
 					}
 				}
@@ -689,7 +689,7 @@ namespace ZeroTier
 		}
 		if (vs->socket_type == SOCK_DGRAM) {
 			// place a request for the stack to close this VirtualSocket's PCB
-			vs->set_state(VS_SHOULD_STOP);
+			vs->set_state(VS_STATE_SHOULD_SHUTDOWN);
 		}
 		return err;
 	}
@@ -742,7 +742,7 @@ namespace ZeroTier
 		struct pbuf* q = p;
 		if (p == NULL) {
 			DEBUG_INFO("p=0x0 for pcb=%p, vs->pcb=%p, this indicates a closure. No need to call tcp_close()", PCB, vs->pcb);
-			vs->set_state(VS_SHOULD_STOP);
+			vs->set_state(VS_STATE_SHOULD_SHUTDOWN);
 			return ERR_ABRT;
 		}
 		vs->tap->_tcpconns_m.lock();
@@ -953,9 +953,8 @@ namespace ZeroTier
 			DEBUG_INFO("fd=%d, vs=%p, pcb=%p", vs->app_fd, vs, PCB, vs->pcb);
 		}
 
-
 		// Handle PCB closure requests (set in lwip_Close())
-		if (vs->get_state() == VS_SHOULD_STOP) {
+		if (vs->get_state() == VS_STATE_SHOULD_SHUTDOWN) {
 			DEBUG_EXTRA("closing pcb=%p, fd=%d, vs=%p", PCB, vs->app_fd, vs);
 			int err = 0;
 			errno = 0;
@@ -996,7 +995,7 @@ namespace ZeroTier
 						err = -1;
 					}
 					else {
-						vs->set_state(VS_STOPPED); // success
+						vs->set_state(VS_STATE_CLOSED); // success
 					}
 				}
 			}
@@ -1097,9 +1096,9 @@ namespace ZeroTier
 			/* Lingers on a close() if data is present. */
 			if (optname == SO_LINGER)
 			{
-				// TODO
-				errno = ENOPROTOOPT;
-				return -1;
+				// we do this at the VirtualSocket layer since lwIP's raw API doesn't currently have a way to do this
+				vs->optflags &= VS_OPT_SO_LINGER;
+				return 0;
 			}
 			/* Permits sending of broadcast messages, if this is supported by the protocol. This option takes an int 
 			value. This is a Boolean option. */
@@ -1356,7 +1355,12 @@ namespace ZeroTier
 			}
 			/* If set, disable the Nagle algorithm. */
 			if (optname == TCP_NODELAY) {
-				pcb->flags |= TF_NODELAY; 
+				int enable_nagle = *((const int*)optval);
+				if (enable_nagle == true) {
+					tcp_nagle_enable(pcb);
+				} else {
+					tcp_nagle_disable(pcb);
+				}
 				return 0;
 			}
 			/* Enable quickack mode if set or disable quickack mode if cleared. */
@@ -1436,12 +1440,13 @@ namespace ZeroTier
 				errno = ENOPROTOOPT;
 				return -1;
 			}
-			/* Lingers on a close() if data is present. */
+			/* Get SO_LINGER flag value */
 			if (optname == SO_LINGER)
 			{
-				// TODO
-				errno = ENOPROTOOPT;
-				return -1;
+				// we do this at the VirtualSocket layer since lwIP's raw API doesn't currently have a way to do this
+				optval_tmp = (vs->optflags & VS_OPT_SO_LINGER);
+				memcpy(optval, &optval_tmp, *optlen);
+				return 0;
 			}
 			/* Permits sending of broadcast messages, if this is supported by the protocol. This option takes an int 
 			value. This is a Boolean option. */
@@ -1695,9 +1700,9 @@ namespace ZeroTier
 				errno = ENOPROTOOPT;
 				err = -1;
 			}
-			/* If set, disable the Nagle algorithm. */
+			/* Get value of Nagle algorithm flag */
 			if (optname == TCP_NODELAY) {
-				optval_tmp = pcb->flags & TF_NODELAY;
+				optval_tmp = tcp_nagle_disabled(pcb);
 				memcpy(optval, &optval_tmp, *optlen);
 				err = 0;
 			}

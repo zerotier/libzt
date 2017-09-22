@@ -27,6 +27,7 @@
 #include <pthread.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #define ZT_MSG_ERROR       true // Errors
 #define ZT_MSG_INFO        true // Information which is generally useful to any developer
@@ -62,6 +63,20 @@
 
 #define ZT_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__) // short
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+extern unsigned int gettid(); // defined in libzt.cpp
+#ifdef __cplusplus
+}
+#endif
+
+#ifdef __linux__
+  #define ZT_THREAD_ID syscall(SYS_gettid)
+#elif __APPLE__
+  #define ZT_THREAD_ID (long)gettid()
+#endif
+
 #if defined(__JNI_LIB__)
 		#include <jni.h>
 #endif
@@ -73,10 +88,10 @@
 // Network stack debugging
 #if defined(__ANDROID__)
 	#define DEBUG_STACK(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,      \
-			"STACK: %17s:%5d:%20s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+			"STACK[%ld]: %17s:%5d:%20s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 #else
-	#define DEBUG_STACK(fmt, args...) fprintf(stderr, ZT_YEL "STACK: %17s:%5d:%25s: " fmt              \
-		ZT_RESET, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+	#define DEBUG_STACK(fmt, args...) fprintf(stderr, ZT_YEL "STACK[%ld]: %17s:%5d:%25s: " fmt              \
+		ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 #endif
 
 // libzt POSIX socket emulation layer debugging
@@ -85,10 +100,10 @@
 	#if ZT_MSG_TEST == true
 		#if defined(__ANDROID__)
 			#define DEBUG_TEST(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG,  \
-				"TRANS: %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
+				"TEST : %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 		#else
-			#define DEBUG_TEST(fmt, args...) fprintf(stderr, ZT_CYN "TEST : %17s:%5d:%25s: " fmt   		  \
-				"\n" ZT_RESET, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+			#define DEBUG_TEST(fmt, args...) fprintf(stderr, ZT_CYN "TEST [%ld]: %17s:%5d:%25s: " fmt   		  \
+				"\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#endif
 	#else
 		#define DEBUG_TEST(fmt, args...)
@@ -101,7 +116,7 @@
 				"ERROR: %17s:%5d:%20s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 		#else
 			#define DEBUG_ERROR(fmt, args...) fprintf(stderr, ZT_RED                                       \
-				"ERROR: %17s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+				"ERROR[%ld]: %17s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#endif
 	#else
 		#define DEBUG_ERROR(fmt, args...)
@@ -114,7 +129,7 @@
 				"INFO : %17s:%5d:%20s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 		#else
 			#define DEBUG_INFO(fmt, args...) fprintf(stderr,                                              \
-				"INFO : %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+				"INFO [%ld]: %17s:%5d:%25s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#endif
 	#else
 		#define DEBUG_INFO(fmt, args...)
@@ -126,8 +141,8 @@
 			#define DEBUG_TRANS(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
 				"TRANS: %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 		#else
-			#define DEBUG_TRANS(fmt, args...) fprintf(stderr, ZT_GRN "TRANS: %17s:%5d:%25s: " fmt 		  \
-				"\n" ZT_RESET, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+			#define DEBUG_TRANS(fmt, args...) fprintf(stderr, ZT_GRN "TRANS[%ld]: %17s:%5d:%25s: " fmt 		  \
+				"\n" ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#endif
 	#else
 		#define DEBUG_TRANS(fmt, args...)
@@ -140,7 +155,7 @@
 				"EXTRA: %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 		#else
 			#define DEBUG_EXTRA(fmt, args...) fprintf(stderr,                                             \
-				"EXTRA: %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+				"EXTRA[%ld]: %17s:%5d:%25s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#endif
 	#else
 		#define DEBUG_EXTRA(fmt, args...)

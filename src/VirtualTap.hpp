@@ -65,8 +65,8 @@ struct netif;
 
 namespace ZeroTier {
 
-	/*
-	 * Socket Tap -- emulates an Ethernet tap device
+	/**
+	 * emulates an Ethernet tap device
 	 */
 	class VirtualTap
 	{
@@ -88,96 +88,96 @@ namespace ZeroTier {
 		void setEnabled(bool en);
 		bool enabled() const;
 
-		/*
+		/**
 		 * Registers a device with the given address
 		 */
 		bool registerIpWithStack(const InetAddress &ip);
 
-		/*
+		/**
 		 * Adds an address to the userspace stack interface associated with this VirtualTap
 		 * - Starts VirtualTap main thread ONLY if successful
 		 */
 		bool addIp(const InetAddress &ip);
 
-		/*
+		/**
 		 * Removes an address from the userspace stack interface associated with this VirtualTap
 		 */
 		bool removeIp(const InetAddress &ip);
 
-		/*
+		/**
 		 * Presents data to the userspace stack
 		 */
 		void put(const MAC &from,const MAC &to,unsigned int etherType,const void *data,
 			unsigned int len);
 
-		/*
+		/**
 		 * Get VirtualTap device name (e.g. 'libzt4-17d72843bc2c5760')
 		 */
 		std::string deviceName() const;
 
-		/*
+		/**
 		 * Get Node ID (ZT address)
 		 */
 		std::string nodeId() const;
 
-		/*
+		/**
 		 * Set friendly name
 		 */
 		void setFriendlyName(const char *friendlyName);
 
-		/*
+		/**
 		 * Scan multicast groups
 		 */
 		void scanMulticastGroups(std::vector<MulticastGroup> &added,std::vector<MulticastGroup> &removed);
 
-		/*
+		/**
 		 * Set MTU
 		 */
 		void setMtu(unsigned int mtu);
 
-		/*
+		/**
 		 * Calls main network stack loops
 		 */
 		void threadMain()
 			throw();
 
-		/*
+		/**
 		 * For moving data onto the ZeroTier virtual wire
 		 */
 		void (*_handler)(void *, void *, uint64_t, const MAC &, const MAC &, unsigned int, unsigned int,
 			const void *, unsigned int);
 
-		/*
+		/**
 		 * Signals us to close the TcpVirtualSocket associated with this PhySocket
 		 */
 		void phyOnUnixClose(PhySocket *sock, void **uptr);
 
-		/*
+		/**
 		 * Notifies us that there is data to be read from an application's socket
 		 */
 		void phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len);
 
-		/*
+		/**
 		 * Notifies us that we can write to an application's socket
 		 */
 		void phyOnUnixWritable(PhySocket *sock, void **uptr, bool stack_invoked);
 
-		/*
+		/**
 		 * Adds a route to the virtual tap
 		 */
 		bool routeAdd(const InetAddress &addr, const InetAddress &nm, const InetAddress &gw);
 
-		/*
+		/**
 		 * Deletes a route from the virtual tap
 		 */
 		bool routeDelete(const InetAddress &addr, const InetAddress &nm);
 
-		/*
+		/**
 		 * Assign a VirtualSocket to the VirtualTap
 		 */
 		void addVirtualSocket(VirtualSocket *vs);
 
-		/*
+		/**
 		 * Remove a VirtualSocket from the VirtualTap
 		 */
 		void removeVirtualSocket(VirtualSocket *vs);
@@ -186,12 +186,12 @@ namespace ZeroTier {
 		/* DNS                                                                      */
 		/****************************************************************************/
 
-		/*
+		/**
 		 * Registers a DNS nameserver with the network stack
 		 */
 		int add_DNS_Nameserver(struct sockaddr *addr);
 
-		/*
+		/**
 		 * Un-registers a DNS nameserver from the network stack
 		 */
 		int del_DNS_Nameserver(struct sockaddr *addr);
@@ -258,65 +258,55 @@ namespace ZeroTier {
 		/* where one would put logic to select between different stacks             */
 		/****************************************************************************/
 
-		/*
+		/**
 		 * Connect to a remote host via the userspace stack interface associated with this VirtualTap
 		 */
 		int Connect(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
 
-		/*
+		/**
 		 * Bind to the userspace stack interface associated with this VirtualTap
 		 */
 		int Bind(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
 
-		/*
+		/**
 		 * Listen for a VirtualSocket
 		 */
 		int Listen(VirtualSocket *vs, int backlog);
 
-		/*
+		/**
 		 * Accepts an incoming VirtualSocket
 		 */
 		VirtualSocket* Accept(VirtualSocket *vs);
 
-		/*
+		/**
 		 * Move data from RX buffer to application's "socket"
 		 */
 		int Read(PhySocket *sock,void **uptr,bool stack_invoked);
 
-		/*
+		/**
 		 * Move data from application's "socket" into network stack
 		 */
 		int Write(VirtualSocket *vs, void *data, ssize_t len);
 
-		/*
+		/**
 		 * Send data to specified host
 		 */
 		int SendTo(VirtualSocket *vs, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen);
 
-		/*
+		/**
 		 * Closes a VirtualSocket
 		 */
 		int Close(VirtualSocket *vs);
 
-		/*
+		/**
 		 * Shuts down some aspect of a VirtualSocket
 		 */
 		int Shutdown(VirtualSocket *vs, int how);
 
-		/*
+		/**
 		 * Disposes of previously-closed VirtualSockets
 		 */
 		void Housekeeping();
-
-		/*
-		 * Return the address that the socket is bound to
-		 */
-		void handleGetsockname(PhySocket *sock, PhySocket *rpcsock, void **uptr, struct getsockname_st *getsockname_rpc);
-
-		/*
-		 * Return the address of the peer connected to this socket
-		 */
-		void handleGetpeername(PhySocket *sock, PhySocket *rpcsock, void **uptr, struct getsockname_st *getsockname_rpc);
 
 		/****************************************************************************/
 		/* Not used in this implementation                                          */

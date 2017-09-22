@@ -27,23 +27,23 @@
 #ifndef UTILITIES_HPP
 #define UTILITIES_HPP
 
-/*
+/**
  * Returns masked address for subnet comparisons
  */
 //ZeroTier::InetAddress *ztipv6_mask(ZeroTier::InetAddress *addr, unsigned int bits);
 bool ipv6_in_subnet(ZeroTier::InetAddress *subnet, ZeroTier::InetAddress *addr);
 
-/*
+/**
  * Convert protocol numbers to human-readable strings
  */
 char *beautify_eth_proto_nums(int proto);
 
-/*
+/**
  * Convert a struct sockaddr to a ZeroTier::InetAddress
  */
 void sockaddr2inet(int socket_family, const struct sockaddr *addr, ZeroTier::InetAddress *inet);
 
-/*
+/**
  * Convert a raw MAC address byte array into a human-readable string
  */
 void mac2str(char *macbuf, int len, unsigned char* addr);
@@ -54,7 +54,7 @@ void mac2str(char *macbuf, int len, unsigned char* addr);
                                                (ipaddr)->addr[2] = ZeroTier::Utils::hton(((e & 0xffff) << 16) | (f & 0xffff)); \
                                                (ipaddr)->addr[3] = ZeroTier::Utils::hton(((g & 0xffff) << 16) | (h & 0xffff)); } while(0)
 
-/*
+/**
  * Convert from standard IPV6 address structure to an lwIP native structure
  */
 inline void in6_to_ip6(ip6_addr_t *ba, struct sockaddr_in6 *in6)

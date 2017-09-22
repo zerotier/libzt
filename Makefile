@@ -133,7 +133,7 @@ endif
 # Build with address sanitization library for advanced debugging (clang)
 # TODO: Add GCC version as well
 ifeq ($(LIBZT_SANITIZE),1)
-	SANFLAGS+=-x c++ -O -g -fsanitize=address -DASAN_OPTIONS=symbolize=1 \
+	SANFLAGS+=-x c++ -g -fsanitize=address -DASAN_OPTIONS=symbolize=1 \
 		-DASAN_SYMBOLIZER_PATH=$(shell which llvm-symbolizer)
 endif
 
@@ -254,6 +254,7 @@ static_lib: picotcp $(ZTO_OBJS)
 	mv ext/picotcp/build/lib/*.o obj
 	mv ext/picotcp/build/modules/*.o obj
 	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) obj/*.o
+	@date +"Build script finished on %F %T"
 endif
 ifeq ($(STACK_LWIP),1)
 static_lib: lwip $(ZTO_OBJS)
@@ -263,6 +264,7 @@ static_lib: lwip $(ZTO_OBJS)
 		$(STACK_DRIVER_FILES) -c  
 	mv *.o obj
 	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) $(STACK_LIB) obj/*.o 
+	@date +"Build script finished on %F %T"
 endif
 # for layer-2 only (this will omit all userspace network stack code)
 ifeq ($(NO_STACK),1)
@@ -271,6 +273,7 @@ static_lib: $(ZTO_OBJS)
 	$(CXX) $(CXXFLAGS) $(ZT_FLAGS) $(ZT_INCLUDES) $(LIBZT_FLAGS) $(LIBZT_INCLUDES) $(LIBZT_FILES) -c
 	mv *.o obj
 	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) obj/*.o
+	@date +"Build script finished on %F %T"
 endif
 
 ##############################################################################
@@ -319,19 +322,23 @@ selftest:
 		$(SANFLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) $(ZT_UTILS) test/selftest.cpp -o \
 		$(BUILD)/selftest -L$(BUILD) -lzt -lpthread
 	@./check.sh $(BUILD)/selftest
+	@date +"Build script finished on %F %T"
 nativetest:
 	$(CXX) $(CXXFLAGS) -D__NATIVETEST__ $(STACK_DRIVER_FLAGS) $(SANFLAGS) \
 		$(LIBZT_INCLUDES) $(ZT_INCLUDES) test/selftest.cpp -o $(BUILD)/nativetest
 	@./check.sh $(BUILD)/nativetest
+	@date +"Build script finished on %F %T"
 ztproxy:
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) \
 		examples/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< -L$(BUILD) -lzt
 	@./check.sh $(BUILD)/ztproxy
+	@date +"Build script finished on %F %T"
 intercept:
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(STACK_DRIVER_FLAGS) $(LIBZT_INCLUDES) \
 		$(ZT_INCLUDES) examples/intercept/intercept.cpp -D_GNU_SOURCE \
 		-shared -o $(BUILD)/intercept.so $< -ldl
 	@./check.sh $(BUILD)/intercept.so
+	@date +"Build script finished on %F %T"
 
 ##############################################################################
 ## Misc                                                                     ##
@@ -348,5 +355,7 @@ clean:
 	-rm -f *.o *.s .depend* *.core core
 	-rm -rf $(BUILD)/*
 	-find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.so' -o -name \
-		'*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete
+		'*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete	
 
+time:
+	@date +"Build script finished on %F %T"

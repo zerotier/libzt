@@ -56,12 +56,10 @@ namespace ZeroTier {
 
 	class VirtualTap;
 
-	/*
-	 * Something analogous to a socket. This is a common object used by the
-	 * libzt API, VirtualTap, and the userspace network stack driver implementations.
-	 * In some situations the word 'Connection' would capture the meaning and
-	 * function of this object, however I'd like to discourage this since this
-	 * object also handles non-connection-based traffic as well.
+	/**
+	 * An abstraction of a socket that operates between the application-exposed platform-sockets 
+	 * and the network stack's representation of a protocol control block. This object is used by
+	 * the POSIX socket emulation layer and stack drivers.
 	 */
 	class VirtualSocket
 	{
@@ -74,6 +72,9 @@ namespace ZeroTier {
 		PhySocket *sock = NULL;
 
 		// State control
+		/**
+		 * Sets the VirtualSocket's state value
+		 */
 		void set_state(int state) {
 			// states may be set by application or by stack callbacks, thus this must be guarded
 			_op_m.lock();
@@ -81,11 +82,13 @@ namespace ZeroTier {
 			//DEBUG_EXTRA("SET STATE = %d (vs=%p)", _state, this);
 			_op_m.unlock();
 		}
+		/**
+		 * Gets the VirtualSocket's state value
+		 */
 		int get_state() {
 			//DEBUG_EXTRA("GET STATE = %d (vs=%p)", _state, this);
 			return _state; 
 		}
-
 #if defined(STACK_PICO)
 		struct pico_socket *picosock = NULL;
 #endif
@@ -93,13 +96,13 @@ namespace ZeroTier {
 		void *pcb = NULL; // Protocol Control Block
 		/*
 		  - TCP_WRITE_FLAG_COPY: indicates whether the new memory should be allocated
-		    for the data to be copied into. If this flag is not given, no new memory
-		    should be allocated and the data should only be referenced by pointer. This
-		    also means that the memory behind dataptr must not change until the data is
-		    ACKed by the remote host
+			for the data to be copied into. If this flag is not given, no new memory
+			should be allocated and the data should only be referenced by pointer. This
+			also means that the memory behind dataptr must not change until the data is
+			ACKed by the remote host
 		  - TCP_WRITE_FLAG_MORE: indicates that more data follows. If this is omitted,
-		    the PSH flag is set in the last segment created by this call to tcp_write.
-		    If this flag is given, the PSH flag is not set.
+			the PSH flag is set in the last segment created by this call to tcp_write.
+			If this flag is given, the PSH flag is not set.
 		*/
 		// copy as default, processed via pointer reference if set to 0. See notes in lwip_cb_sent() and lwip_Write()
 		int8_t copymode = TCP_WRITE_FLAG_COPY;
@@ -154,7 +157,7 @@ namespace ZeroTier {
 		}
 	};
 
-	/*
+	/**
 	 * A helper object for passing VirtualTap(s) and VirtualSocket(s) through the stack
 	 */
 	struct VirtualBindingPair

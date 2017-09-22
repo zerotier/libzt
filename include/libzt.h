@@ -542,36 +542,34 @@ ssize_t zts_recvmsg(ZT_RECVMSG_SIG);
 
 /**
  * Read bytes from socket onto buffer
- *  - Note, this function isn't strictly necessary, you can
- *    use a regular read() call as long as the socket fd was
- *    created via a zts_socket() call.
+ *  - Note, this function isn't strictly necessary, you can use a regular read() 
+ * call as long as the socket file descriptor was created via a zts_socket() call.
  */
 int zts_read(ZT_READ_SIG);
 
 /**
  * Write bytes from buffer to socket
- *  - Note, this function isn't strictly necessary, you can
- *    use a regular write() call as long as the socket fd was
- *    created via a zts_socket() call.
+ *  - Note, this function isn't strictly necessary, you can use a regular write() 
+ * call as long as the socket file descriptor was created via a zts_socket() call.
  */
 int zts_write(ZT_WRITE_SIG);
 
-/*
+/**
  * Sends a FIN segment
  */
 int zts_shutdown(ZT_SHUTDOWN_SIG);
 
-/*
+/**
  * Returns a vector of network routes { target, via, metric, etc... }
  */
 std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(char *nwid);
 
-/*
+/**
  * Adds a DNS nameserver for the network stack to use
  */
 int zts_add_dns_nameserver(struct sockaddr *addr);
 
-/*
+/**
  * Removes a DNS nameserver
  */
 int zts_del_dns_nameserver(struct sockaddr *addr);
@@ -593,7 +591,7 @@ namespace ZeroTier
 	struct InetAddress;
 }
 
-/*
+/**
  * Whether we can add a new socket or not. Depends on stack in use
  */
 bool can_provision_new_socket(int socket_type);
@@ -607,7 +605,7 @@ bool can_provision_new_socket(int socket_type);
  */
 int zts_num_active_virt_sockets();
 
-/*
+/**
  * Returns maximum number of sockets allowed by network stack
  */
 int zts_maxsockets(int socket_type);
@@ -624,46 +622,47 @@ ZeroTier::VirtualTap *getTapByName(char *ifname);
 ZeroTier::VirtualTap *getTapByIndex(int index);
 ZeroTier::VirtualTap *getAnyTap();
 
-/*
- * Returns a pointer to a VirtualSocket for a given fd
+/**
+ * Returns a pointer to a VirtualSocket for a given file descriptor
  */
 ZeroTier::VirtualSocket *get_virt_socket(int fd);
 
-/*
+/**
  * Removes a VirtualSocket
  */
 int del_virt_socket(int fd);
 
-/*
+/**
  * Adds a virtualSocket
  */
 int add_unassigned_virt_socket(int fd, ZeroTier::VirtualSocket *vs);
-/*
+
+/**
  * Removes unassigned VirtualSocket
  */
 int del_unassigned_virt_socket(int fd);
 
-/*
+/**
  * Adds an assigned VirtualSocket
  */
 int add_assigned_virt_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd);
 
-/*
+/**
  * Removes an assigned VirtualSocket
  */
 int del_assigned_virt_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd);
 
-/*
+/**
  * Gets a pair of associated virtual objects (VirtualSocket bound to a VirtualTap)
  */
 std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *get_assigned_virtual_pair(int fd);
 
-/*
+/**
  * Disable all virtual tap devices
  */
 void disableTaps();
 
-/*
+/**
  * Get device ID (from file)
  */
 int zts_get_device_id_from_file(const char *filepath, char *devID);
@@ -673,8 +672,8 @@ int zts_get_device_id_from_file(const char *filepath, char *devID);
  */
 void *zts_start_service(void *thread_id);
 
-/*
- *
+/**
+ * Should be called wherever libzt enters a condition where undefined behaviour might occur 
  */
 void handle_general_failure();
 

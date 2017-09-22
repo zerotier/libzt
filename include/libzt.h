@@ -1,4 +1,10 @@
-/*
+/**
+ * @file
+ *
+ * libzt application-facing POSIX-like socket API
+ */
+
+ /*
  * ZeroTier SDK - Network Virtualization Everywhere
  * Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
  *
@@ -175,10 +181,10 @@ struct zts_ifreq {
 #define ZT_SOCKET_MSG_BUF_SZ               ZT_SDK_MTU + ZT_LEN_SZ + ZT_ADDR_SZ
 
 
-#define ZT_PHY_POLL_INTERVAL               2 // ms
+#define ZT_PHY_POLL_INTERVAL                2 // ms
 #define ZT_ACCEPT_RECHECK_DELAY            100 // ms (for blocking zts_accept() calls)
 #define ZT_CONNECT_RECHECK_DELAY           100 // ms (for blocking zts_connect() calls)
-#define ZT_API_CHECK_INTERVAL              500 // ms
+#define ZT_API_CHECK_INTERVAL              100 // ms
 
 #define MAX_PICO_FRAME_RX_BUF_SZ           ZT_MAX_MTU * 128
 
@@ -272,6 +278,7 @@ struct zts_ifreq {
 #define ZT_IOCTL_SIG int fd, unsigned long request, void *argp
 #define ZT_SYSCALL_SIG long number, ...
 
+
 /****************************************************************************/
 /* SDK Socket API (ZeroTier Service Controls)                               */
 /****************************************************************************/
@@ -280,129 +287,276 @@ struct zts_ifreq {
 extern "C" {
 #endif
 
-/**
- * Start core ZeroTier service (generates identity)
+/** \brief Start core ZeroTier service (generates cryptographic identity).
+ *         
+ *
+ * ...
+ * Errno values:
+ * ~~~
+ * Value  | Meaning
+ * ------ | ----------------
+ * EINVAL | Invalid argument
+ * ~~~
  */
 void zts_start(const char *path);
 
 /**
- * Convenience function: Starts, waits for service, joins one network, waits for address, returns
+ *  @brief      Should be called at the beginning of your application  
+ *
+ *  @usage      Blocks until all of the following conditions are met:
+ *                - ZeroTier core service has been initialized
+ *                - Cryptographic identity has been generated or loaded from directory specified by `path`
+ *                - Virtual network is successfully joined
+ *                - IP address is assigned by network controller service 
+ * 
+ *  @param      path directory where cryptographic identities and network configuration files are stored and retrieved 
+ *              (`identity.public`, `identity.secret`)
+ *  @param      nwid the 16-digit hexidecimal network identifier (e.g. Earth: `8056c2e21c000001`)
+ *
+ *  @return     0 if successful; or 1 if failed
  */
 void zts_simple_start(const char *path, const char *nwid);
 
 /**
- * Stops the core ZeroTier service
+ *  @brief      Stops the ZeroTier core service and disconnects from all virtual networks                
+ *
+ *  @usage      Called at the end of your application. This call will block until everything is shut down
+ *  
+ *  @return
+ * 
  */
 void zts_stop();
 
 /**
- * Join a network
+ *  @brief      Joins a virtual network                
+ *
+ *  @usage      Called after zts_start() or zts_simple_start()
+ * 
+ *  @param      nwid the 16-digit hexidecimal network identifier
+ *
+ *  @return
  */
 void zts_join(const char * nwid);
 
 /**
- * Join a network - Just create the dir and conf file required, don't instruct the core to do anything
+ *  @brief      Joins a network (eventually), this will create the dir and conf file required, don't instruct the core 
+ *              to do anything              
+ *
+ *  @usage      Candidate for deletion
+ * 
+ *  @param      filepath path to the `*.conf` file named after the network
+ *
+ *  @return
  */
 void zts_join_soft(const char * filepath, const char * nwid);
 
 /**
- * Leave a network
+ *  @brief      Leaves a virtual network.
+ *
+ *  @usage      
+ * 
+ *  @param      nwid
+ *
+ *  @return
+ *
  */
 void zts_leave(const char * nwid);
 
 /**
- * Leave a network - Only delete the .conf file, this will prevent the service from joining upon next startup
+ *  @brief      Leave a network - Only delete the .conf file, this will prevent the service from joining upon next startup
+ *
+ *  @usage      
+ * 
+ *  @param      filepath
+ *  @param      nwid
+ *
+ *  @return     
  */
 void zts_leave_soft(const char * filepath, const char * nwid);
 
 /**
- * Return the home path for this instance of ZeroTier
- * FIXME: double check this is correct on all platforms
+ *  @brief      Return the home path for this instance of ZeroTier
+ *
+ *  @usage      
+ * 
+ *  @param      homePath
+ *  @param      len
+ *
+ *  @return     
  */
 void zts_get_homepath(char *homePath, const int len);
 
 /**
- * Provides core ZeroTier service version
+ *  @brief      Copies ZeroTier core version string into `ver`
+ *
+ *  @usage      
+ * 
+ *  @param      ver
+ *
+ *  @return     
+ *
  */
 void zts_core_version(char *ver);
 
 /**
+ *  @brief      Copies libzt version string into `ver`
+ *
+ *  @usage      
+ * 
+ *  @param      ver
+ *
+ *  @return     
+ *
  * Provides core libzt service version
  */
 void zts_lib_version(char *ver);
 
 /**
- * Get device ID
- * 10-digit hex + NULL byte
+ *  @brief      Get device ID (10-digit hex + NULL byte)
+ *
+ *  @usage      
+ * 
+ *  @param      devID   
+ *
+ *  @return     
  */
 int zts_get_device_id(char *devID);
 
 /**
- * Check whether the service is running
+ *  @brief      Check whether the service is running
+ *
+ *  @usage      
+ *  @return     
  */
 int zts_running();
 
 /**
- * Returns whether any IPv6 address has been assigned to the SockTap for this network
- * - This is used as an indicator of readiness for service for the ZeroTier core and stack
+ *  @brief      Returns whether any IPv6 address has been assigned to the SockTap for this network
+ *
+ *  @usage      This is used as an indicator of readiness for service for the ZeroTier core and stack
+ * 
+ *  @param      nwid    
+ *
+ *  @return     
  */
 int zts_has_ipv4_address(const char *nwid);
 
 /**
- * Returns whether any IPv4 address has been assigned to the SockTap for this network
- * - This is used as an indicator of readiness for service for the ZeroTier core and stack
+ *  @brief      Returns whether any IPv4 address has been assigned to the SockTap for this network
+ *
+ *  @usage      This is used as an indicator of readiness for service for the ZeroTier core and stack
+ * 
+ *  @param      nwid
+ *  @return     
  */
 int zts_has_ipv6_address(const char *nwid);
 
 /**
- * Returns whether any address has been assigned to the SockTap for this network
- * - This is used as an indicator of readiness for service for the ZeroTier core and stack
+ *  @brief      Returns whether any address has been assigned to the SockTap for this network
+ *
+ *  @usage      This is used as an indicator of readiness for service for the ZeroTier core and stack
+ * 
+ *  @param      nwid
+ *  @return     
  */
 int zts_has_address(const char *nwid);
 
 /**
- * Get IPV4 Address for this device on a given network
- * FIXME: Only returns first address found for given protocol and network (should be enough for now)
+ *  @brief      Get IPV4 Address for this device on a given network
+ *
+ *  @usage      FIXME: Only returns first address found for given protocol and network (should be enough for now)
+ * 
+ *  @param      nwid
+ *  @param      addrstr
+ *  @param      addrlen
+ *
+ *  @return     
  */
 void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen);
 
 /**
- * Get IPV6 Address for this device on a given network
- * FIXME: Only returns first address found for given protocol and network (should be enough for now)
+ *  @brief      Get IPV6 Address for this device on a given network
+ *
+ *  @usage      FIXME: Only returns first address found for given protocol and network (should be enough for now)
+ * 
+ *  @param      
+ *  @param      
+ *  @param      
+ *
+ *  @return     
  */
 void zts_get_ipv6_address(const char *nwid, char *addrstr, const int addrlen);
 
 /**
- * Returns a 6PLANE IPv6 address given a network ID and zerotier ID
+ *  @brief      Returns a 6PLANE IPv6 address given a network ID and zerotier ID
+ *
+ *  @usage      
+ * 
+ *  @param      
+ *  @param      
+ *  @param      
+ *
+ *  @return     
  */
 void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID);
 
 /**
- * Returns an RFC 4193 IPv6 address given a network ID and zerotier ID
+ *  @brief      Returns an RFC 4193 IPv6 address given a network ID and zerotier ID
+ *
+ *  @usage      
+ * 
+ *  @param      
+ *  @param      
+ *  @param      
+ *
+ *  @return     
  */
 void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID);
 
 /**
- * Return the number of peers on this network
+ *  @brief      Return the number of peers on this network
+ *
+ *  @usage      
+ * 
+ *  @param      
+ *  @param      
+ *  @param      
+ *
+ *  @return     
  */
 unsigned long zts_get_peer_count();
 
 /**
- * Get the IP address of a peer if a direct path is available
+ *  @brief      Get the IP address of a peer if a direct path is available
+ *
+ *  @usage      
+ * 
+ *  @param      peer
+ *  @param      devID
+ *
+ *  @return     
  */
 int zts_get_peer_address(char *peer, const char *devID);
 
 /**
- * Enable HTTP control plane (traditionally used by zerotier-cli)
- * - Allows one to control the ZeroTier core via HTTP requests
- * FIXME: Implement
+ *  @brief      Enable HTTP control plane (traditionally used by zerotier-cli)
+ *              - Allows one to control the ZeroTier core via HTTP requests
+ *              FIXME: Implement
+ *
+ *  @usage          
+ *
+ *  @return     
  */
 void zts_enable_http_control_plane();
 
 /**
- * Disable HTTP control plane (traditionally used by zerotier-cli)
- * - Allows one to control the ZeroTier core via HTTP requests
- * FIXME: Implement
+ *  @brief      Disable HTTP control plane (traditionally used by zerotier-cli)
+ *              - Allows one to control the ZeroTier core via HTTP requests
+ *              FIXME: Implement
+ *
+ *  @usage          
+ *
+ *  @return     
  */
 void zts_disable_http_control_plane();
 
@@ -413,164 +567,388 @@ void zts_disable_http_control_plane();
 /****************************************************************************/
 
 /**
- * Creates a socket
- */
-int zts_socket(ZT_SOCKET_SIG);
-
- /**
- * Connect a socket to a remote host
- */
-int zts_connect(ZT_CONNECT_SIG);
-
-/**
- * Binds a socket to a specific address
- *  - To accept VirtualSockets on a specific ZeroTier network you must
- *    use this bind call with an address which is associated with that network
+ *  @brief      Create a socket
  *
- *  For instance, given the following networks:
- *     - nwid = 97afaf1963cc6a90 (10.9.0.0/24)
- *     - nwid = 23bfae5663c8b188 (192.168.0.0/24)
+ *  @usage      
+ * 
+ *  @param      
+ *  @param      
+ *  @param      
  *
- *  In order to accept a VirtualSocket on 97afaf1963cc6a90, you
- *  should bind to 10.9.0.0
+ *  @return     
  */
-int zts_bind(ZT_BIND_SIG);
+int zts_socket(int socket_family, int socket_type, int protocol);
 
 /**
- * Listen for incoming VirtualSockets
+ *  @brief      Connect a socket to a remote host
+ *
+ *  @usage      
+ * 
+ *  @param      
+ *  @param      
+ *  @param      
+ *
+ *  @return     
  */
-int zts_listen(ZT_LISTEN_SIG);
+int zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen);
 
 /**
- * Accept a VirtualSocket
+ *  @brief      Bind a socket to an interface (VirtualTap)
+ *
+ *  @usage      
+ * 
+ *  @param      
+ *  @param      
+ *  @param      
+ *
+ *  @return     
  */
-int zts_accept(ZT_ACCEPT_SIG);
+int zts_bind(int fd, const struct sockaddr *addr, socklen_t addrlen);
 
 /**
- * Accept a VirtualSocket
+ *  @brief      Listen for incoming VirtualSockets
+ *
+ *  @usage      
+ * 
+ *  @param      
+ *  @param      
+ *  @param      
+ *
+ *  @return     
+ */
+int zts_listen(int fd, int backlog);
+
+/**
+ *  @brief      Accept a VirtualSocket
+ *
+ *  @usage      
+ * 
+ *  @param      
+ *  @param      
+ *  @param      
+ *
+ *  @return     
+ */
+int zts_accept(int fd, struct sockaddr *addr, socklen_t *addrlen);
+
+/**
+ *  @brief      Accept a VirtualSocket
+ *
+ *  @usage      
+ * 
+ *  @param      
+ *  @param      
+ *  @param      
+ *
+ *  @return     
  */
 #if defined(__linux__)
-	int zts_accept4(ZT_ACCEPT4_SIG);
+	int zts_accept4(int fd, struct sockaddr *addr, socklen_t *addrlen, int flags);
 #endif
 
 /**
- * Set socket options
+ *  @brief      Set socket options
+ *
+ *  @usage      
+ * 
+ *  @param      
+ *  @param      
+ *  @param      
+ *
+ *  @return     
  */
-int zts_setsockopt(ZT_SETSOCKOPT_SIG);
+int zts_setsockopt(int fd, int level, int optname, const void *optval, socklen_t optlen);
 
 /**
- * Get socket options
+ *  @brief      Get socket options
+ *
+ *  @usage      
+ * 
+ *  @param      
+ *  @param      
+ *  @param      
+ *
+ *  @return     
  */
-int zts_getsockopt(ZT_GETSOCKOPT_SIG);
+int zts_getsockopt(int fd, int level, int optname, void *optval, socklen_t *optlen);
 
 /**
- * Get socket name
+ *  @brief      Get socket name
+ *
+ *  @usage      
+ * 
+ *  @param      
+ *  @param      
+ *  @param      
+ *
+ *  @return     
  */
-int zts_getsockname(ZT_GETSOCKNAME_SIG);
+int zts_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen);
 
 /**
- * Get a peer name
+ *  @brief      Get a peer name
+ *
+ *  @usage      
+ * 
+ *  @param      
+ *  @param      
+ *  @param      
+ *
+ *  @return     
  */
-int zts_getpeername(ZT_GETPEERNAME_SIG);
+int zts_getpeername(int fd, struct sockaddr *addr, socklen_t *addrlen);
 
 /**
- * Gets current hostname
+ *  @brief      Gets current hostname
+ *
+ *  @usage      
+ * 
+ *  @param      
+ *  @param      
+ *  @param      
+ *
+ *  @return     
  */
-int zts_gethostname(ZT_GETHOSTNAME_SIG);
+int zts_gethostname(char *name, size_t len);
 
 /**
- * Sets current hostname
+ *  @brief      Sets current hostname
+ *
+ *  @usage      
+ * 
+ *  @param      
+ *  @param      
+ *  @param      
+ *
+ *  @return     
  */
-int zts_sethostname(ZT_SETHOSTNAME_SIG);
+int zts_sethostname(const char *name, size_t len);
 
 /**
- * Close a socket
- * TODO: Check that closing a socket immediately after writing doesn't behave in
- * an undefined manner
+ *  @brief      lose a socket
+ *
+ *  @usage      
+ * 
+ *  @param      fd
+ *  @param      
+ *  @param      
+ *
+ *  @return     
  */
-int zts_close(ZT_CLOSE_SIG);
+int zts_close(int fd);
 
 /**
- * waits for one of a set of file descriptors to become ready to perform I/O.
+ *  @brief      waits for one of a set of file descriptors to become ready to perform I/O.
+ *
+ *  @usage      
+ * 
+ *  @param      fds
+ *  @param      nfds
+ *  @param      timeout
+ *
+ *  @return     
  */
-int zts_poll(ZT_POLL_SIG);
+int zts_poll(struct pollfd *fds, nfds_t nfds, int timeout);
 
 /**
- * monitor multiple file descriptors, waiting until one or more of the file descriptors become "ready"
+ *  @brief      monitor multiple file descriptors, waiting until one or more of the file descriptors become "ready"
+ *
+ *  @usage      
+ * 
+ *  @param      nfds
+ *  @param      readfds
+ *  @param      writefds
+ *  @param      exceptfds
+ *  @param      timeout
+ *
+ *  @return     
  */
-int zts_select(ZT_SELECT_SIG);
+int zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
 
 /**
- * Issue file control commands on a socket
+ *  @brief      Issue file control commands on a socket
+ *
+ *  @usage      
+ * 
+ *  @param      fd
+ *  @param      cmd
+ *  @param      flags
+ *
+ *  @return     
+ * 
  */
-int zts_fcntl(ZT_FCNTL_SIG);
+int zts_fcntl(int fd, int cmd, int flags);
 
 /**
- * Control a device
+ *  @brief    Control a device  
+ *
+ *  @usage      
+ * 
+ *  @param      fd
+ *  @param      request
+ *  @param      argp
+ *
+ *  @return     
  */
-int zts_ioctl(ZT_IOCTL_SIG);
+int zts_ioctl(int fd, unsigned long request, void *argp);
 
 /**
- * Send data to a remote host
+ *  @brief      Send data to remote host
+ *
+ *  @usage      
+ * 
+ *  @param      fd
+ *  @param      buf
+ *  @param      len
+ *  @param      flags
+ *
+ *  @return     
  */
-ssize_t zts_send(ZT_SEND_SIG);
+ssize_t zts_send(int fd, const void *buf, size_t len, int flags);
 
 /**
- * Send data to a remote host
+ *  @brief      Send data to remote host
+ *
+ *  @usage      
+ * 
+ *  @param      fd
+ *  @param      buf
+ *  @param      len
+ *  @param      flags
+ *  @param      addr
+ *  @param      addrlen
+ *
+ *  @return     
  */
-ssize_t zts_sendto(ZT_SENDTO_SIG);
+ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen);
 
 /**
- * Send a message to a remote host
+ *  @brief      Send message to remote host
+ *
+ *  @usage      
+ * 
+ *  @param      fd
+ *  @param      msg
+ *  @param      flags
+ *
+ *  @return     
  */
-ssize_t zts_sendmsg(ZT_SENDMSG_SIG);
+ssize_t zts_sendmsg(int fd, const struct msghdr *msg, int flags);
 
 /**
- * Receive data from a remote host
+ *  @brief      Receive data from remote host
+ *
+ *  @usage      
+ * 
+ *  @param      fd
+ *  @param      buf
+ *  @param      len
+ *  @param      flags
+ *
+ *  @return     
  */
-ssize_t zts_recv(ZT_RECV_SIG);
+ssize_t zts_recv(int fd, void *buf, size_t len, int flags);
 
 /**
- * Receive data from a remote host
+ *  @brief      Receive data from remote host
+ *
+ *  @usage      
+ * 
+ *  @param      fd
+ *  @param      buf
+ *  @param      len
+ *  @param      flags
+ *  @param      addr
+ *  @param      addrlen
+ *
+ *  @return     
  */
-ssize_t zts_recvfrom(ZT_RECVFROM_SIG);
+ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen);
 
 /**
- * Receive a message from a remote host
+ *  @brief      Receive a message from remote host
+ *
+ *  @usage      
+ * 
+ *  @param      fd
+ *  @param      msg
+ *  @param      flags
+ *
+ *  @return     
  */
-ssize_t zts_recvmsg(ZT_RECVMSG_SIG);
+ssize_t zts_recvmsg(int fd, struct msghdr *msg,int flags);
 
 /**
- * Read bytes from socket onto buffer
- *  - Note, this function isn't strictly necessary, you can use a regular read() 
- * call as long as the socket file descriptor was created via a zts_socket() call.
+ *  @brief      Read bytes from socket onto buffer
+ *
+ *  @usage      Note, this function isn't strictly necessary, you can use a regular read() 
+ *              call as long as the socket file descriptor was created via a zts_socket() call.
+ * 
+ *  @param      fd
+ *  @param      buf
+ *  @param      len
+ *
+ *  @return     
+ *
  */
-int zts_read(ZT_READ_SIG);
+int zts_read(int fd, void *buf, size_t len);
 
 /**
- * Write bytes from buffer to socket
- *  - Note, this function isn't strictly necessary, you can use a regular write() 
- * call as long as the socket file descriptor was created via a zts_socket() call.
+ *  @brief      Write bytes from buffer to socket
+ *
+ *  @usage      Note, this function isn't strictly necessary, you can use a regular write() 
+ *              call as long as the socket file descriptor was created via a zts_socket() call.
+ * 
+ *  @param      fd
+ *  @param      buf
+ *  @param      len
+ *
+ *  @return     
  */
-int zts_write(ZT_WRITE_SIG);
+int zts_write(int fd, const void *buf, size_t len);
 
 /**
- * Sends a FIN segment
+ *  @brief      Sends a FIN segment
+ *
+ *  @usage      
+ * 
+ *  @param      fd
+ *  @param      how
+ *
+ *  @return     
  */
-int zts_shutdown(ZT_SHUTDOWN_SIG);
+int zts_shutdown(int fd, int how);
 
 /**
- * Returns a vector of network routes { target, via, metric, etc... }
+ *  @brief      Returns a vector of network routes { target, via, metric, etc... }
+ *
+ *  @usage      
+ * 
+ *  @param      nwid   
+ *
+ *  @return     
  */
 std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(char *nwid);
 
 /**
- * Adds a DNS nameserver for the network stack to use
+ *  @brief      Adds a DNS nameserver for the network stack to use
+ *
+ *  @usage      
+ * 
+ *  @param      addr   
+ *
+ *  @return     
  */
 int zts_add_dns_nameserver(struct sockaddr *addr);
 
 /**
- * Removes a DNS nameserver
+ *  @brief      Removes a DNS nameserver
+ *
+ *  @usage      
+ * 
+ *  @param      addr     
+ *
+ *  @return     
  */
 int zts_del_dns_nameserver(struct sockaddr *addr);
 
@@ -592,21 +970,39 @@ namespace ZeroTier
 }
 
 /**
- * Whether we can add a new socket or not. Depends on stack in use
+ *  @brief      Whether we can add a new socket or not. Depends on stack in use
+ *
+ *  @usage      
+ * 
+ *  @param      socket_type
+ *  @param      
+ *  @param      
+ *
+ *  @return     
  */
 bool can_provision_new_socket(int socket_type);
 
 /**
- * Returns the number of sockets either already provisioned or waiting to be
+ *  @brief      Returns the number of sockets either already provisioned or waiting to be
  * Some network stacks may have a limit on the number of sockets that they can
  * safely handle due to timer construction, this is a way to check that we
  * haven't passed that limit. Someday if multiple stacks are used simultaneously
  * the logic for this function should change accordingly.
+ *
+ *  @usage          
+ *
+ *  @return     
  */
 int zts_num_active_virt_sockets();
 
 /**
- * Returns maximum number of sockets allowed by network stack
+ *  @brief      Returns maximum number of sockets allowed by network stack
+ *
+ *  @usage      
+ * 
+ *  @param      socket_type   
+ *
+ *  @return     
  */
 int zts_maxsockets(int socket_type);
 
@@ -623,57 +1019,134 @@ ZeroTier::VirtualTap *getTapByIndex(int index);
 ZeroTier::VirtualTap *getAnyTap();
 
 /**
- * Returns a pointer to a VirtualSocket for a given file descriptor
+ *  @brief      Returns a pointer to a VirtualSocket for a given file descriptor
+ *
+ *  @usage      Don't call this directly from application. For internal use only.  
+ * 
+ *  @return     
+ * 
  */
 ZeroTier::VirtualSocket *get_virt_socket(int fd);
 
 /**
- * Removes a VirtualSocket
+ *  @brief      Removes a VirtualSocket
+ *
+ *  @usage      Don't call this directly from application. For internal use only.  
+ * 
+ *  @param      fd   
+ *
+ *  @return     
+ * 
  */
 int del_virt_socket(int fd);
 
 /**
- * Adds a virtualSocket
+ *  @brief      Adds a virtualSocket
+ *
+ *  @usage      Don't call this directly from application. For internal use only.  
+ * 
+ *  @param      fd
+ *  @param      vs
+ *
+ *  @return     
+ * 
  */
 int add_unassigned_virt_socket(int fd, ZeroTier::VirtualSocket *vs);
 
 /**
- * Removes unassigned VirtualSocket
+ *  @brief      Removes unassigned VirtualSocket
+ *
+ *  @usage      Don't call this directly from application. For internal use only.  
+ * 
+ *  @param      fd
+ *
+ *  @return     
+ * 
  */
 int del_unassigned_virt_socket(int fd);
 
 /**
- * Adds an assigned VirtualSocket
+ *  @brief      Adds an assigned VirtualSocket
+ *
+ *  @usage      Don't call this directly from application. For internal use only.  
+ * 
+ *  @param      tap
+ *  @param      vs
+ *  @param      fd
+ *
+ *  @return     
+ * 
  */
 int add_assigned_virt_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd);
 
 /**
- * Removes an assigned VirtualSocket
+ *  @brief      Removes an assigned VirtualSocket
+ *
+ *  @usage      Don't call this directly from application. For internal use only.  
+ * 
+ *  @param      tap
+ *  @param      vs
+ *  @param      fd
+ *
+ *  @return     
+ * 
  */
 int del_assigned_virt_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd);
 
 /**
- * Gets a pair of associated virtual objects (VirtualSocket bound to a VirtualTap)
+ *  @brief      Gets a pair of associated virtual objects (VirtualSocket bound to a VirtualTap)
+ *
+ *  @usage      Don't call this directly from application. For internal use only.  
+ * 
+ *  @param      fd  
+ *
+ *  @return     
+ * 
  */
 std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *get_assigned_virtual_pair(int fd);
 
 /**
- * Disable all virtual tap devices
+ *  @brief      Disables all VirtualTap devices
+ *
+ *  @usage      Don't call this directly from application. For internal use only.    
+ *
+ *  @return     
+ * 
  */
 void disableTaps();
 
 /**
- * Get device ID (from file)
+ *  @brief      Reads a 10-digit hexidecimal device ID (aka. nodeId, ztAddress, etc. from file)
+ *
+ *  @usage      Don't call this directly from application. For internal use only.
+ * 
+ *  @param      filepath
+ *  @param      devID
+ *
+ *  @return     
+ * 
  */
 int zts_get_device_id_from_file(const char *filepath, char *devID);
 
 /**
- * Don't call this directly, use 'zts_start()'
+ *  @brief      Starts an instance of the ZeroTier core service.
+ *
+ *  @usage      Don't call this directly from application. For internal use only.
+ * 
+ *  @param      thread_id    
+ *
+ *  @return     
+ * 
  */
 void *zts_start_service(void *thread_id);
 
 /**
- * Should be called wherever libzt enters a condition where undefined behaviour might occur 
+ *  @brief      Should be called wherever libzt enters a condition where undefined behaviour might occur.  
+ *
+ *  @usage      Don't call this directly from application. For internal use only.  
+ *
+ *  @return     
+ *  
  */
 void handle_general_failure();
 

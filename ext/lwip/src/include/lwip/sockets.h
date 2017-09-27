@@ -40,13 +40,15 @@
 #define LWIP_HDR_SOCKETS_H
 
 #include "lwip/opt.h"
+#include "lwip/sockets.h"
 
 #if LWIP_SOCKET /* don't build if not configured for use in lwipopts.h */
 
 #include "lwip/ip_addr.h"
 #include "lwip/err.h"
 #include "lwip/inet.h"
-#include "lwip/errno.h"
+//#include "lwip/errno.h"
+#include <errno.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -508,42 +510,6 @@ int lwip_fcntl(int s, int cmd, int val);
 
 #if LWIP_COMPAT_SOCKETS
 #if LWIP_COMPAT_SOCKETS != 2
-/** @ingroup socket */
-#define accept(s,addr,addrlen)                    lwip_accept(s,addr,addrlen)
-/** @ingroup socket */
-#define bind(s,name,namelen)                      lwip_bind(s,name,namelen)
-/** @ingroup socket */
-#define shutdown(s,how)                           lwip_shutdown(s,how)
-/** @ingroup socket */
-#define getpeername(s,name,namelen)               lwip_getpeername(s,name,namelen)
-/** @ingroup socket */
-#define getsockname(s,name,namelen)               lwip_getsockname(s,name,namelen)
-/** @ingroup socket */
-#define setsockopt(s,level,optname,opval,optlen)  lwip_setsockopt(s,level,optname,opval,optlen)
-/** @ingroup socket */
-#define getsockopt(s,level,optname,opval,optlen)  lwip_getsockopt(s,level,optname,opval,optlen)
-/** @ingroup socket */
-#define closesocket(s)                            lwip_close(s)
-/** @ingroup socket */
-#define connect(s,name,namelen)                   lwip_connect(s,name,namelen)
-/** @ingroup socket */
-#define listen(s,backlog)                         lwip_listen(s,backlog)
-/** @ingroup socket */
-#define recv(s,mem,len,flags)                     lwip_recv(s,mem,len,flags)
-/** @ingroup socket */
-#define recvfrom(s,mem,len,flags,from,fromlen)    lwip_recvfrom(s,mem,len,flags,from,fromlen)
-/** @ingroup socket */
-#define send(s,dataptr,size,flags)                lwip_send(s,dataptr,size,flags)
-/** @ingroup socket */
-#define sendmsg(s,message,flags)                  lwip_sendmsg(s,message,flags)
-/** @ingroup socket */
-#define sendto(s,dataptr,size,flags,to,tolen)     lwip_sendto(s,dataptr,size,flags,to,tolen)
-/** @ingroup socket */
-#define socket(domain,type,protocol)              lwip_socket(domain,type,protocol)
-/** @ingroup socket */
-#define select(maxfdp1,readset,writeset,exceptset,timeout)     lwip_select(maxfdp1,readset,writeset,exceptset,timeout)
-/** @ingroup socket */
-#define ioctlsocket(s,cmd,argp)                   lwip_ioctl(s,cmd,argp)
 
 #if LWIP_POSIX_SOCKETS_IO_NAMES
 /** @ingroup socket */

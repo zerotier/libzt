@@ -1001,7 +1001,7 @@ tcp_slowtmr_start:
   prev = NULL;
   pcb = tcp_active_pcbs;
   if (pcb == NULL) {
-    LWIP_DEBUGF(TCP_DEBUG_TMR, ("tcp_slowtmr: no active pcbs\n"));
+    LWIP_DEBUGF(TCP_DEBUG, ("tcp_slowtmr: no active pcbs\n"));
   }
   while (pcb != NULL) {
     LWIP_DEBUGF(TCP_DEBUG, ("tcp_slowtmr: processing active pcb\n"));

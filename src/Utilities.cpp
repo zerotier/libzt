@@ -24,6 +24,12 @@
  * of your own application.
  */
 
+/**
+ * @file
+ *
+ * Misc utilities
+ */
+
 #include "InetAddress.hpp"
 #include "Debug.hpp"
 
@@ -82,26 +88,6 @@ char *beautify_eth_proto_nums(int proto)
 	return (char*)"UNKNOWN";
 }
 
-/*
-ZeroTier::InetAddress *ztipv6_mask(ZeroTier::InetAddress *addr, unsigned int bits)
-{
-	ZeroTier::InetAddress r(addr);
-	switch(r.ss_family) {
-		case AF_INET:
-			reinterpret_cast<struct sockaddr_in *>(&r)->sin_addr.s_addr &= ZeroTier::Utils::hton((uint32_t)(0xffffffff << (32 - bits)));
-			break;
-		case AF_INET6: {
-			uint64_t nm[2];
-			memcpy(nm,reinterpret_cast<struct sockaddr_in6 *>(&r)->sin6_addr.s6_addr,16);
-			nm[0] &= ZeroTier::Utils::hton((uint64_t)((bits >= 64) ? 0xffffffffffffffffULL : (0xffffffffffffffffULL << (64 - bits))));
-			nm[1] &= ZeroTier::Utils::hton((uint64_t)((bits <= 64) ? 0ULL : (0xffffffffffffffffULL << (128 - bits))));
-			memcpy(reinterpret_cast<struct sockaddr_in6 *>(&r)->sin6_addr.s6_addr,nm,16);
-		}	break;
-	}
-	return &r;
-}
-*/
-
 bool ipv6_in_subnet(ZeroTier::InetAddress *subnet, ZeroTier::InetAddress *addr)
 {
 	ZeroTier::InetAddress r(addr);
@@ -134,7 +120,6 @@ bool ipv6_in_subnet(ZeroTier::InetAddress *subnet, ZeroTier::InetAddress *addr)
 	return !strcmp(r.toIpString(b0), b.toIpString(b1));
 }
 
-
 void sockaddr2inet(int socket_family, const struct sockaddr *addr, ZeroTier::InetAddress *inet)
 {
 	char ipstr[INET6_ADDRSTRLEN];
@@ -158,3 +143,24 @@ void mac2str(char *macbuf, int len, unsigned char* addr)
 	snprintf(macbuf, len, "%02x:%02x:%02x:%02x:%02x:%02x",
          addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
 }
+
+
+/**
+ * Convert from standard IPV6 address structure to an lwIP native structure
+ */
+/*
+inline void in6_to_ip6(ip6_addr_t *ba, struct sockaddr_in6 *in6)
+{
+	uint8_t *ip = &(in6->sin6_addr).s6_addr[0];
+	IP6_ADDR2(ba,
+		(((ip[ 0] & 0xffff) << 8) | ((ip[ 1]) & 0xffff)),
+		(((ip[ 2] & 0xffff) << 8) | ((ip[ 3]) & 0xffff)),
+		(((ip[ 4] & 0xffff) << 8) | ((ip[ 5]) & 0xffff)),
+		(((ip[ 6] & 0xffff) << 8) | ((ip[ 7]) & 0xffff)),
+		(((ip[ 8] & 0xffff) << 8) | ((ip[ 9]) & 0xffff)),
+		(((ip[10] & 0xffff) << 8) | ((ip[11]) & 0xffff)),
+		(((ip[12] & 0xffff) << 8) | ((ip[13]) & 0xffff)),
+		(((ip[14] & 0xffff) << 8) | ((ip[15]) & 0xffff))
+	);
+}
+*/

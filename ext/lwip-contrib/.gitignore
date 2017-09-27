@@ -1,0 +1,25 @@
+*.o
+*.so
+*.a
+.depend
+/ports/unix/unixsim/simhost
+/ports/unix/unixsim/simrouter
+/ports/unix/unixsim/simnode
+/ports/unix/unixsim/makefsdata
+/ports/unix/minimal/echop
+/ports/win32/msvc/Debug
+/ports/win32/lwipcfg_msvc.h
+/ports/win32/msvc/Debug unittests
+/ports/win32/msvc/Release
+/ports/win32/msvc/Release unittests
+/ports/win32/msvc/*.user
+/ports/win32/msvc/*.ncb
+/ports/win32/msvc/*.cache
+/ports/win32/msvc/*.suo
+/ports/win32/msvc/ipch
+/ports/win32/msvc/*.opensdf
+/ports/win32/msvc/*.sdf
+/ports/unix/check/lwip_unittests
+/ports/win32/mingw/*.exe
+/ports/win32/mingw/*.map
+/ports/win32/mingw/cov-int

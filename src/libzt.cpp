@@ -24,759 +24,97 @@
  * of your own application.
  */
 
-/* This file implements the libzt library API, it talks to the network
-stack driver and core ZeroTier service to create a socket-like interface
-for applications to use. See also: include/libzt.h */
+/**
+ * @file
+ *
+ * Application-facing, partially-POSIX-compliant socket API
+ */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <unistd.h>
-#include <errno.h>
-#include <time.h>
-#include <stdint.h>
+#include <cstring>
 
-#if defined(__APPLE__)
-#include <net/ethernet.h>
-#include <net/if.h>
-#endif
-#if defined(__linux__)
-#include <netinet/ether.h>
-#include <sys/socket.h>
-#include <linux/if_packet.h>
-#include <net/ethernet.h>
-#include <sys/resource.h>
-#endif
+#include "lwip/sockets.h"
+#include "lwip/sys.h"
+#include "lwip/ip_addr.h"
 
-#include <pthread.h>
-#include <poll.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-
-#if defined(STACK_PICO)
-#include "pico_stack.h"
-#endif
-#if defined(STACK_LWIP)
-#include "lwIP.hpp"
-#endif
-
-#include "OneService.hpp"
-#include "Utils.hpp"
-#include "OSUtils.hpp"
-#include "InetAddress.hpp"
-#include "ZeroTierOne.h"
-
-#include "Utilities.hpp"
-#include "VirtualTap.hpp"
 #include "libzt.h"
-
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-namespace ZeroTier {
+void sys2lwip(int fd, const struct sockaddr *orig, struct sockaddr *modified) {
+	
+	/* Inelegant fix for lwIP 'sequential' API address error check (in sockets.c). For some reason
+	lwIP seems to lose track of the sa_family for the socket internally, when lwip_connect()
+	is called, it thus receives an AF_UNSPEC socket which fails. Here we use lwIP's own facilities
+	to get the sa_family ourselves and rebuild the address structure and pass it to lwip_connect().
+	I suspect this is due to a struct memory alignment issue. */
 
- /**
-	 * Reference to core ZeroTier One service
-	 */
-	static ZeroTier::OneService *zt1Service;
-
-	std::string homeDir; // Platform-specific dir we *must* use internally
-	std::string netDir;  // Where network .conf files are to be written
-
-#if defined(STACK_PICO)
- /**
-	 * Reference to picoTCP network stack
-	 */
-	picoTCP *picostack = NULL;
-#endif
-#if defined(STACK_LWIP)
- /**
-	 * Reference to lwIP network stack
-	 */
-	lwIP *lwipstack = NULL;
-#endif
-
-	/**
-	 * Set of VirtualSocket objects that have been created but not bound to a VirtualTap interface object yet.
-	 */
-	std::map<int, VirtualSocket*> unmap;
-
-	/**
-	 * Map of VirtualSocket objects to their respective VirtualTap objects. These have undergone bind(), or 
-	 * connected by use of a route associated with a specific VirtualTap.
-	 */
-	std::map<int, std::pair<VirtualSocket*,VirtualTap*>*> fdmap;
-
-	/**
-	 * Set of all VirtualTap interface objects that exist. One per virtual network.
-	 */
-	std::vector<void*> vtaps;
-
-	ZeroTier::Mutex _vtaps_lock;
-	ZeroTier::Mutex _multiplexer_lock;
-}
-
-/****************************************************************************/
-/* SDK Socket API - Language Bindings are written in terms of these         */
-/****************************************************************************/
-
-void zts_start(const char *path)
-{
-	if (ZeroTier::zt1Service) {
+	struct sockaddr_storage ss;
+	socklen_t namelen = sizeof(ss);
+	int err = 0;
+	if ((err = lwip_getsockname(fd, (struct sockaddr*)&ss, &namelen)) < 0) {
+		DEBUG_ERROR("error while determining socket family");
 		return;
 	}
-#if defined(STACK_PICO)
-	if (ZeroTier::picostack) {
-		return;
-	}
-	ZeroTier::picostack = new ZeroTier::picoTCP();
-	pico_stack_init();
+
+	if (ss.ss_family == AF_INET) {
+#if defined(__linux__)	
+		struct sockaddr_in *modified_ptr = (struct sockaddr_in *)modified;
+		struct sockaddr_in *addr4 = (struct sockaddr_in*)orig;
+		modified_ptr->sin_len = sizeof(struct sockaddr_in);
+		modified_ptr->sin_family = ss.ss_family;
+		modified_ptr->sin_port = addr4->sin_port;
+		modified_ptr->sin_addr.s_addr = addr4->sin_addr.s_addr;
+#else
+		memcpy(modified, orig, sizeof(struct sockaddr_in));
 #endif
-#if defined(STACK_LWIP)
-	ZeroTier::lwipstack = new ZeroTier::lwIP();
-	lwip_init();
+	}
+	if (ss.ss_family == AF_INET) {
+#if defined(__linux__)	
+#else
 #endif
-	if (path) {
-		ZeroTier::homeDir = path;
 	}
-	pthread_t service_thread;
-	pthread_create(&service_thread, NULL, zts_start_service, NULL);
 }
 
-void zts_simple_start(const char *path, const char *nwid)
+int zts_socket(int socket_family, int socket_type, int protocol) 
 {
-	zts_start(path);
-	while (zts_running() == false) {
-		nanosleep((const struct timespec[]) {{0, (ZT_API_CHECK_INTERVAL * 1000000)}}, NULL);
-	}
-	while (true) {
-		try {
-			zts_join(nwid);
-			break;
-		}
-		catch( ... ) {
-			DEBUG_ERROR("there was a problem joining the virtual network");
-			handle_general_failure();
-		}
-	}
-	while (zts_has_address(nwid) == false) {
-		nanosleep((const struct timespec[]) {{0, (ZT_API_CHECK_INTERVAL * 1000000)}}, NULL);
-	}
+	DEBUG_EXTRA("family=%d, type=%d, proto=%d", socket_family, socket_type, protocol);
+	return lwip_socket(socket_family, socket_type, protocol);
 }
 
-void zts_stop() {
-	if (ZeroTier::zt1Service) {
-		ZeroTier::zt1Service->terminate();
-		disableTaps();
-	}
-}
-
-void zts_join(const char * nwid) {
-	if (ZeroTier::zt1Service) {
-		std::string confFile = ZeroTier::zt1Service->givenHomePath() + "/networks.d/" + nwid + ".conf";
-		if (ZeroTier::OSUtils::mkdir(ZeroTier::netDir) == false) {
-			DEBUG_ERROR("unable to create: %s", ZeroTier::netDir.c_str());
-			handle_general_failure();
-		}
-		if (ZeroTier::OSUtils::writeFile(confFile.c_str(), "") == false) {
-			DEBUG_ERROR("unable to write network conf file: %s", confFile.c_str());
-			handle_general_failure();
-		}
-		ZeroTier::zt1Service->join(nwid);
-	}
-	// provide ZTO service reference to virtual taps
-	// TODO: This might prove to be unreliable, but it works for now
-	for (int i=0;i<ZeroTier::vtaps.size(); i++) {
-		ZeroTier::VirtualTap *s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
-		s->zt1ServiceRef=(void*)ZeroTier::zt1Service;
-	}
-}
-
-void zts_join_soft(const char * filepath, const char * nwid) {
-	std::string net_dir = std::string(filepath) + "/networks.d/";
-	std::string confFile = net_dir + std::string(nwid) + ".conf";
-	if (ZeroTier::OSUtils::mkdir(net_dir) == false) {
-		DEBUG_ERROR("unable to create: %s", net_dir.c_str());
-		handle_general_failure();
-	}
-	if (ZeroTier::OSUtils::fileExists(confFile.c_str(), false) == false) {
-		if (ZeroTier::OSUtils::writeFile(confFile.c_str(), "") == false) {
-			DEBUG_ERROR("unable to write network conf file: %s", confFile.c_str());
-			handle_general_failure();
-		}
-	}
-}
-
-void zts_leave(const char * nwid) {
-	if (ZeroTier::zt1Service) {
-		ZeroTier::zt1Service->leave(nwid);
-	}
-}
-
-void zts_leave_soft(const char * filepath, const char * nwid) {
-	std::string net_dir = std::string(filepath) + "/networks.d/";
-	ZeroTier::OSUtils::rm((net_dir + nwid + ".conf").c_str());
-}
-
-void zts_get_homepath(char *homePath, int len) {
-	if (ZeroTier::homeDir.length()) {
-		memset(homePath, 0, len);
-		int buf_len = len < ZeroTier::homeDir.length() ? len : ZeroTier::homeDir.length();
-		memcpy(homePath, ZeroTier::homeDir.c_str(), buf_len);
-	}
-}
-
-void zts_core_version(char *ver) {
-	int major, minor, revision;
-	ZT_version(&major, &minor, &revision);
-	sprintf(ver, "%d.%d.%d", major, minor, revision);
-}
-
-void zts_lib_version(char *ver) {
-	sprintf(ver, "%d.%d.%d", ZT_LIB_VERSION_MAJOR, ZT_LIB_VERSION_MINOR, ZT_LIB_VERSION_REVISION);
-}
-
-int zts_get_device_id(char *devID) {
-	if (ZeroTier::zt1Service) {
-		char id[ZT_ID_LEN];
-		sprintf(id, "%lx",ZeroTier::zt1Service->getNode()->address());
-		memcpy(devID, id, ZT_ID_LEN);
-		return 0;
-	}
-	else // Service isn't online, try to read ID from file
-	{
-		std::string fname("identity.public");
-		std::string fpath(ZeroTier::homeDir);
-		if (ZeroTier::OSUtils::fileExists((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),false)) {
-			std::string oldid;
-			ZeroTier::OSUtils::readFile((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),oldid);
-			memcpy(devID, oldid.c_str(), ZT_ID_LEN); // first 10 bytes of file
-			return 0;
-		}
-	}
-	return -1;
-}
-
-int zts_running() {
-	return ZeroTier::zt1Service == NULL ? false : ZeroTier::zt1Service->isRunning();
-}
-
-int zts_has_ipv4_address(const char *nwid)
+int zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen) 
 {
-	char ipv4_addr[INET_ADDRSTRLEN];
-	memset(ipv4_addr, 0, INET_ADDRSTRLEN);
-	zts_get_ipv4_address(nwid, ipv4_addr, INET_ADDRSTRLEN);
-	return strcmp(ipv4_addr, "\0");
+	DEBUG_EXTRA("fd=%d",fd);
+	struct sockaddr_storage ss;
+	sys2lwip(fd, addr, (struct sockaddr*)&ss);
+	return lwip_connect(fd, (struct sockaddr*)&ss, addrlen);
 }
 
-int zts_has_ipv6_address(const char *nwid)
+int zts_bind(int fd, const struct sockaddr *addr, socklen_t addrlen) 
 {
-	char ipv6_addr[INET6_ADDRSTRLEN];
-	memset(ipv6_addr, 0, INET6_ADDRSTRLEN);
-	zts_get_ipv6_address(nwid, ipv6_addr, INET6_ADDRSTRLEN);
-	return strcmp(ipv6_addr, "\0");
+	DEBUG_EXTRA("fd=%d", fd);	
+	struct sockaddr_storage ss;
+	sys2lwip(fd, addr, (struct sockaddr*)&ss);
+	return lwip_bind(fd, (struct sockaddr*)&ss, addrlen);
 }
 
-int zts_has_address(const char *nwid)
+int zts_listen(int fd, int backlog) 
 {
-	return zts_has_ipv4_address(nwid) || zts_has_ipv6_address(nwid);
-}
-
-void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen)
-{
-	if (ZeroTier::zt1Service) {
-		uint64_t nwid_int = strtoull(nwid, NULL, 16);
-		ZeroTier::VirtualTap *tap = getTapByNWID(nwid_int);
-		if (tap && tap->_ips.size()) {
-			for (int i=0; i<tap->_ips.size(); i++) {
-				if (tap->_ips[i].isV4()) {
-					char ipbuf[INET_ADDRSTRLEN];
-					std::string addr = tap->_ips[i].toString(ipbuf);
-					int len = addrlen < addr.length() ? addrlen : addr.length();
-					memset(addrstr, 0, len);
-					memcpy(addrstr, addr.c_str(), len);
-					return;
-				}
-			}
-		}
-	}
-	else
-		memcpy(addrstr, "\0", 1);
-}
-
-void zts_get_ipv6_address(const char *nwid, char *addrstr, const int addrlen)
-{
-	if (ZeroTier::zt1Service) {
-		uint64_t nwid_int = strtoull(nwid, NULL, 16);
-		ZeroTier::VirtualTap *tap = getTapByNWID(nwid_int);
-		if (tap && tap->_ips.size()) {
-			for (int i=0; i<tap->_ips.size(); i++) {
-				if (tap->_ips[i].isV6()) {
-					char ipbuf[INET6_ADDRSTRLEN];
-					std::string addr = tap->_ips[i].toString(ipbuf);
-					int len = addrlen < addr.length() ? addrlen : addr.length();
-					memset(addrstr, 0, len);
-					memcpy(addrstr, addr.c_str(), len);
-					return;
-				}
-			}
-		}
-	}
-	else
-		memcpy(addrstr, "\0", 1);
-}
-
-void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID)
-{
-	ZeroTier::InetAddress _6planeAddr = ZeroTier::InetAddress::makeIpv66plane(
-		ZeroTier::Utils::hexStrToU64(nwid),ZeroTier::Utils::hexStrToU64(devID));
-	char ipbuf[INET6_ADDRSTRLEN];
-	memcpy(addr, _6planeAddr.toIpString(ipbuf), 40);
-}
-
-void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID)
-{
-	ZeroTier::InetAddress _6planeAddr = ZeroTier::InetAddress::makeIpv6rfc4193(
-		ZeroTier::Utils::hexStrToU64(nwid),ZeroTier::Utils::hexStrToU64(devID));
-	char ipbuf[INET6_ADDRSTRLEN];
-	memcpy(addr, _6planeAddr.toIpString(ipbuf), 40);
-}
-
-unsigned long zts_get_peer_count() {
-	if (ZeroTier::zt1Service) {
-		return ZeroTier::zt1Service->getNode()->peers()->peerCount;
-	}
-	else {
-		return 0;
-	}
-}
-
-int zts_get_peer_address(char *peer, const char *devID) {
-	if (ZeroTier::zt1Service) {
-		ZT_PeerList *pl = ZeroTier::zt1Service->getNode()->peers();
-		// uint64_t addr;
-		for (int i=0; i<pl->peerCount; i++) {
-			// ZT_Peer *p = &(pl->peers[i]);
-			// DEBUG_INFO("peer[%d] = %lx", i, p->address);
-		}
-		return pl->peerCount;
-	}
-	else
-		return -1;
-}
-
-void zts_enable_http_control_plane()
-{
-	// TODO
-}
-
-void zts_disable_http_control_plane()
-{
-	// TODO
-}
-
-/****************************************************************************/
-/* VirtualTap Multiplexer Functionality                                      */
-/* - This section of the API is used to implement the general socket        */
-/*   controls. Basically this is designed to handle socket provisioning     */
-/*   requests when no VirtualTap is yet initialized, and as a way to         */
-/*   determine which VirtualTap is to be used for a particular connect() or  */
-/*   bind() call. This enables multi-network support                        */
-/****************************************************************************/
-
-// int socket_family, int socket_type, int protocol
-int zts_socket(int socket_family, int socket_type, int protocol) {
-	DEBUG_EXTRA();
-	int err = errno = 0;
-	if (socket_family < 0 || socket_type < 0 || protocol < 0) {
-		errno = EINVAL;
-		return -1;
-	}
-	if (ZeroTier::zt1Service == NULL) {
-		DEBUG_ERROR("cannot create socket, no service running. call zts_start() first.");
-		errno = EMFILE; // could also be ENFILE
-		return -1;
-	}
-	if (socket_type == SOCK_SEQPACKET) {
-		DEBUG_ERROR("SOCK_SEQPACKET not yet supported.");
-		errno = EPROTONOSUPPORT; // seemingly closest match
-		return -1;
-	}
-	if (socket_type == SOCK_RAW) {
-		// VirtualSocket is only used to associate a socket with a VirtualTap, it has no other implication
-		ZeroTier::VirtualSocket *vs = new ZeroTier::VirtualSocket();
-		vs->socket_family = socket_family;
-		vs->socket_type = socket_type;
-		vs->protocol = protocol;
-		add_unassigned_virt_socket(vs->app_fd, vs);
-		return vs->app_fd;
-	}
-#if defined(STACK_PICO)
-	struct pico_socket *p;
-	err = ZeroTier::picostack->pico_Socket(&p, socket_family, socket_type, protocol);
-	if (err == false && p) {
-		ZeroTier::VirtualSocket *vs = new ZeroTier::VirtualSocket();
-		vs->socket_family = socket_family;
-		vs->socket_type = socket_type;
-		vs->picosock = p;
-		add_unassigned_virt_socket(vs->app_fd, vs);
-		err = vs->app_fd; // return one end of the socketpair
-	}
-	else {
-		DEBUG_ERROR("failed to create pico_socket");
-		errno = ENOMEM;
-		err = -1;
-	}
-#endif
-#if defined(STACK_LWIP)
-	// TODO: check for max lwIP timers/sockets
-	void *pcb;
-	err = ZeroTier::lwipstack->lwip_Socket(&pcb, socket_family, socket_type, protocol);
-	if (pcb) {
-		ZeroTier::VirtualSocket *vs = new ZeroTier::VirtualSocket();
-		vs->socket_family = socket_family;
-		vs->socket_type = socket_type;
-		vs->pcb = pcb;
-		add_unassigned_virt_socket(vs->app_fd, vs);
-		// return one end of the socketpair for the app to use
-		err = vs->app_fd;
-	}
-	else {
-		DEBUG_ERROR("failed to create lwip pcb");
-		errno = ENOMEM;
-		err = -1;
-	}
-#endif
-
-//#if defined(DEFAULT_VS_LINGER)
-	/*
-	if (socket_type == SOCK_STREAM) {
-		linger lin;
-		unsigned int y=sizeof(lin);
-		lin.l_onoff=1;
-		lin.l_linger=10;
-		int fd = err;
-		if((err = zts_setsockopt(fd, SOL_SOCKET, SO_LINGER, (void*)(&lin), y)) < 0) {
-			DEBUG_ERROR("error while setting default linger time on socket");
-			errno = -1; // TODO
-			handle_general_failure();
-			return -1;
-		}  
-		err = fd;
-	}
-	*/
-//#endif
-	return err;
-}
-
-int zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen) {
-	DEBUG_INFO("fd=%d",fd);
-	int err = errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	if (ZeroTier::zt1Service == NULL) {
-		DEBUG_ERROR("service not started. call zts_start(path) first");
-		errno = EBADF;
-		return -1;
-	}
-	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
-	if (vs == NULL) {
-		DEBUG_ERROR("invalid socket, unable to locate VirtualSocket for fd=%d", fd);
-		errno = EBADF;
-		return -1;
-	}
-	if (addr == NULL) {
-		DEBUG_ERROR("invalid address for fd=%d", fd);
-		errno = EINVAL;
-		return -1;
-	}
-	if (addrlen <= 0) {
-		DEBUG_ERROR("invalid address length for fd=%d", fd);
-		errno = EINVAL;
-		return -1;
-	}
-	// TODO: Handle bad address lengths, right now this call will still
-	// succeed with a complete connect despite a bad address length.
-
-	// DEBUG_EXTRA("fd = %d, %s : %d", fd, ipstr, ntohs(port));
-	ZeroTier::InetAddress inet;
-	sockaddr2inet(vs->socket_family, addr, &inet);
-	ZeroTier::VirtualTap *tap = getTapByAddr(&inet);
-	if (tap == NULL) {
-		DEBUG_ERROR("no route to host, could not find appropriate VirtualTap for fd=%d", fd);
-		errno = ENETUNREACH;
-		return -1;
-	}
-
-#if defined(STACK_PICO)
-	// pointer to virtual tap we use in callbacks from the stack
-	vs->picosock->priv = new ZeroTier::VirtualBindingPair(tap, vs);
-#endif
-#if defined(STACK_LWIP)
-#endif
-
-	if ((err = tap->Connect(vs, addr, addrlen)) < 0) {
-		DEBUG_ERROR("error while connecting socket");
-		// errno will be set by tap->Connect
-		return -1;
-	}
-	// assign this VirtualSocket to the tap we decided on
-	tap->_VirtualSockets.push_back(vs);
-	vs->tap = tap;
-	vs->sock = tap->_phy.wrapSocket(vs->sdk_fd, vs);
-
-	// TODO: Consolidate these calls
-	del_unassigned_virt_socket(fd);
-	add_assigned_virt_socket(tap, vs, fd);
-
-	// save peer addr, for calls like getpeername
-	memcpy(&(vs->peer_addr), addr, sizeof(vs->peer_addr));
-
-	// Below will simulate BLOCKING/NON-BLOCKING behaviour
-
-	// NOTE: pico_socket_connect() will return 0 if no error happens immediately, but that doesn't indicate
-	// the connection was completed, for that we must wait for a callback from the stack. During that
-	// callback we will place the VirtualSocket in a VS_STATE_UNHANDLED_CONNECTED state to signal
-	// to the multiplexer logic that this connection is complete and a success value can be sent to the
-	// user application
-
-	int f_err, blocking = 1;
-	if ((f_err = fcntl(fd, F_GETFL, 0)) < 0) {
-		DEBUG_ERROR("fcntl error, err=%s, errno=%d", f_err, errno);
-		// errno will be set by fcntl
-		return -1;
-	}
-	blocking = !(f_err & O_NONBLOCK);
-	if (blocking == false) {
-		errno = EINPROGRESS; // can't connect immediately
-		err = -1;
-	}
-	if (blocking == true) {
-		bool complete = false;
-		while (true) {
-			// FIXME: locking and unlocking so often might cause significant performance overhead while outgoing VirtualSockets
-			// are being established (also applies to accept())
-			nanosleep((const struct timespec[]) {{0, (ZT_CONNECT_RECHECK_DELAY * 1000000)}}, NULL);
-			tap->_tcpconns_m.lock();
-			for (int i=0; i<tap->_VirtualSockets.size(); i++) {
-#if defined(STACK_PICO)
-				DEBUG_EXTRA("checking tap->_VirtualSockets[i]=%p", tap->_VirtualSockets[i]);
-				if (tap->_VirtualSockets[i]->get_state() == PICO_ERR_ECONNRESET) {
-					errno = ECONNRESET;
-					DEBUG_ERROR("ECONNRESET");
-					err = -1;
-				}
-#endif
-#if defined(STACK_LWIP)
-#endif
-				if (tap->_VirtualSockets[i]->get_state() == VS_STATE_UNHANDLED_CONNECTED) {
-					tap->_VirtualSockets[i]->set_state(VS_STATE_CONNECTED);
-					complete = true;
-				}
-			}
-			tap->_tcpconns_m.unlock();
-			if (complete) {
-				break;
-			}
-		}
-	}
-	return err;
-}
-
-int zts_bind(int fd, const struct sockaddr *addr, socklen_t addrlen) {
-	int err = errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	if (ZeroTier::zt1Service == NULL) {
-		DEBUG_ERROR("service not started. call zts_start(path) first");
-		errno = EBADF;
-		return -1;
-	}
-	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
-	if (vs == NULL) {
-		DEBUG_ERROR("no VirtualSocket for fd=%d", fd);
-		errno = ENOTSOCK;
-		return -1;
-	}
-	// detect local interface binds
-	ZeroTier::VirtualTap *tap = NULL;
-	if (vs->socket_family == AF_INET) {
-		struct sockaddr_in *in4 = (struct sockaddr_in *)addr;
-		if (in4->sin_addr.s_addr == INADDR_ANY) {
-			DEBUG_EXTRA("AF_INET, INADDR_ANY, binding to all interfaces");
-			// grab first vtap
-			if (ZeroTier::vtaps.size()) {
-				tap = (ZeroTier::VirtualTap*)(ZeroTier::vtaps[0]); // pick any vtap
-			}
-		}
-		if (in4->sin_addr.s_addr == 0x7f000001) {
-			DEBUG_EXTRA("127.0.0.1, will bind to appropriate vtap when connection is inbound");
-			if (ZeroTier::vtaps.size()) {
-				tap = (ZeroTier::VirtualTap*)(ZeroTier::vtaps[0]); // pick any vtap
-			}
-		}
-	}
-	if (vs->socket_family == AF_INET6) {
-		struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)addr;
-		if (memcmp((void*)&(in6->sin6_addr), (void*)&(in6addr_any), sizeof(in6addr_any)) == 0) {
-			DEBUG_EXTRA("AF_INET6, in6addr_any, binding to all interfaces");
-			if (ZeroTier::vtaps.size()) {
-				tap = (ZeroTier::VirtualTap*)(ZeroTier::vtaps[0]);  // pick any vtap
-			}
-		}
-	}
-
-	ZeroTier::InetAddress inet;
-	sockaddr2inet(vs->socket_family, addr, &inet);
-	if (tap == NULL) {
-		tap = getTapByAddr(&inet);
-	}
-	if (tap == NULL) {
-		DEBUG_ERROR("no matching interface to bind to, could not find appropriate VirtualTap for fd=%d", fd);
-		errno = ENETUNREACH;
-		return -1;
-	}
-#if defined(STACK_PICO)
-	// used in callbacks from network stack
-	vs->picosock->priv = new ZeroTier::VirtualBindingPair(tap, vs);
-#endif
-	tap->addVirtualSocket(vs);
-	err = tap->Bind(vs, addr, addrlen);
-	if (err == 0) { // success
-		vs->tap = tap;
-		del_unassigned_virt_socket(fd);
-		add_assigned_virt_socket(tap, vs, fd);
-	}
-	return err;
-}
-
-int zts_listen(int fd, int backlog) {
 	DEBUG_EXTRA("fd=%d", fd);
-	int err = errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	if (ZeroTier::zt1Service == NULL) {
-		DEBUG_ERROR("service not started. call zts_start(path) first");
-		errno = EACCES;
-		return -1;
-	}
-	std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *p = get_assigned_virtual_pair(fd);
-	ZeroTier::_multiplexer_lock.lock();
-	if (p == NULL) {
-		DEBUG_ERROR("unable to locate VirtualSocket pair. did you bind?");
-		errno = EDESTADDRREQ;
-		return -1;
-	}
-	ZeroTier::VirtualSocket *vs = p->first;
-	ZeroTier::VirtualTap *tap = p->second;
-	if (tap == NULL || vs == NULL) {
-		DEBUG_ERROR("unable to locate tap interface for file descriptor");
-		errno = EBADF;
-		return -1;
-	}
-	backlog = backlog > 128 ? 128 : backlog; // See: /proc/sys/net/core/somaxconn
-	err = tap->Listen(vs, backlog);
-	vs->set_state(VS_STATE_LISTENING);
-	ZeroTier::_multiplexer_lock.unlock();
-	return err;
+	return lwip_listen(fd, backlog);
 }
 
-int zts_accept(int fd, struct sockaddr *addr, socklen_t *addrlen) {
-	int err = errno = 0;
+int zts_accept(int fd, struct sockaddr *addr, socklen_t *addrlen) 
+{
 	DEBUG_EXTRA("fd=%d", fd);
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	if (addr && *addrlen <= 0) {
-		DEBUG_ERROR("invalid address length given");
-		errno = EINVAL; // TODO, not actually a valid error for this function
-		return -1;
-	}
-	if (can_provision_new_socket(SOCK_STREAM) == false) {
-		DEBUG_ERROR("cannot provision additional socket due to limitation of network stack");
-		errno = EMFILE;
-		return -1;
-	}
-	std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *p = get_assigned_virtual_pair(fd);
-	if (p == NULL) {
-		DEBUG_ERROR("unable to locate VirtualSocket pair (did you zts_bind())?");
-		errno = EBADF;
-		err = -1;
-	}
-	else {
-		ZeroTier::VirtualSocket *vs = p->first;
-		ZeroTier::VirtualTap *tap = p->second;
-		// BLOCKING: loop and keep checking until we find a newly accepted VirtualSocket
-		int f_err, blocking = 1;
-		if ((f_err = fcntl(fd, F_GETFL, 0)) < 0) {
-			DEBUG_ERROR("fcntl error, err = %s, errno = %d", f_err, errno);
-			err = -1;
-		}
-		else {
-			blocking = !(f_err & O_NONBLOCK);
-		}
-		ZeroTier::VirtualSocket *accepted_vs;
-		if (err == false) {
-			if (blocking == false) { // non-blocking
-				DEBUG_EXTRA("EWOULDBLOCK, assuming non-blocking mode");
-				errno = EWOULDBLOCK;
-				err = -1;
-				accepted_vs = tap->Accept(vs);
-			}
-			else { // blocking
-				while (true) {
-					nanosleep((const struct timespec[]) {{0, (ZT_ACCEPT_RECHECK_DELAY * 1000000)}}, NULL);
-					accepted_vs = tap->Accept(vs);
-					if (accepted_vs)
-						break; // accepted fd = err
-				}
-			}
-			if (accepted_vs) {
-				add_assigned_virt_socket(tap, accepted_vs, accepted_vs->app_fd);
-				err = accepted_vs->app_fd;
-			}
-		}
-		if (err > 0) {
-			if (addr && *addrlen) {
-				*addrlen = *addrlen < sizeof(accepted_vs->peer_addr) ? *addrlen : sizeof(accepted_vs->peer_addr);
-				// copy address into provided address buffer and len buffer
-				memcpy(addr, &(accepted_vs->peer_addr), *addrlen);
-			}
-		}
-	}
-	return err;
+	return lwip_accept(fd, addr, addrlen);
 }
 
 #if defined(__linux__)
 int zts_accept4(int fd, struct sockaddr *addr, socklen_t *addrlen, int flags)
 {
-	errno = 0;
-	//DEBUG_INFO("fd=%d", fd);
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	if (flags & SOCK_NONBLOCK) {
-		fcntl(fd, F_SETFL, O_NONBLOCK);
-	}
-	if (flags & SOCK_CLOEXEC) {
-		fcntl(fd, F_SETFL, FD_CLOEXEC);
-	}
-	addrlen = !addr ? 0 : addrlen;
+	DEBUG_EXTRA("fd=%d", fd);
 	return zts_accept(fd, addr, addrlen);
 }
 #endif
@@ -784,1322 +122,137 @@ int zts_accept4(int fd, struct sockaddr *addr, socklen_t *addrlen, int flags)
 int zts_setsockopt(int fd, int level, int optname, const void *optval, socklen_t optlen)
 {
 	DEBUG_EXTRA("fd=%d, level=%d, optname=%d", fd, level, optname);
-	int err = errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
-	if (vs == NULL) {
-		DEBUG_ERROR("invalid fd=%d", fd);
-		errno = EBADF;
-		return -1;
-	}
-#if defined(STACK_PICO)
-	if (ZeroTier::picostack) {
-		err = ZeroTier::picostack->pico_setsockopt(vs, level, optname, optval, optlen);
-	} else {
-		handle_general_failure();
-		// TODO: errno?
-		err = -1;
-	}
-#endif
-#if defined(STACK_LWIP)
-	if (ZeroTier::lwipstack) {
-		err = ZeroTier::lwipstack->lwip_setsockopt(vs, level, optname, optval, optlen);
-	} else {
-		handle_general_failure();
-		// TODO: errno?
-		err = -1;
-	}
-#endif
-	return err;
+	return lwip_setsockopt(fd, level, optname, optval, optlen);
 }
 
 int zts_getsockopt(int fd, int level, int optname, void *optval, socklen_t *optlen)
 {
 	DEBUG_EXTRA("fd=%d, level=%d, optname=%d", fd, level, optname);
-	int err = errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
-	if (vs == NULL) {
-		DEBUG_ERROR("invalid fd=%d", fd);
-		errno = EBADF;
-		return -1;
-	}
-#if defined(STACK_PICO)
-	if (ZeroTier::picostack) {
-		err = ZeroTier::picostack->pico_getsockopt(vs, level, optname, optval, optlen);
-	} else {
-		handle_general_failure();
-		// TODO: errno?
-		err = -1;
-	}
-#endif
-#if defined(STACK_LWIP)
-	if (ZeroTier::lwipstack) {
-		err = ZeroTier::lwipstack->lwip_getsockopt(vs, level, optname, optval, optlen);
-	} else {
-		handle_general_failure();
-		// TODO: errno?
-		err = -1;
-	}
-#endif
-	return err;
+	return lwip_getsockopt(fd, level, optname, optval, optlen);
 }
 
 int zts_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
-	int err = errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	// TODO
-	return err;
+	DEBUG_EXTRA("fd=%p", fd);
+	return lwip_getsockname(fd, addr, addrlen);
 }
 
 int zts_getpeername(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
-	DEBUG_INFO("fd=%d", fd);
-	int err = errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
-	if (vs == NULL) {
-		errno = ENOTCONN;
-		return -1;
-	}
-	memcpy(addr, &(vs->peer_addr), sizeof(struct sockaddr_storage));
-	return err;
+	DEBUG_EXTRA("fd=%d", fd);
+	return lwip_getpeername(fd, addr, addrlen);
 }
 
 int zts_gethostname(char *name, size_t len)
 {
-	errno = 0;
-	return gethostname(name, len);
+	DEBUG_EXTRA();
+	return -1;
 }
 
 int zts_sethostname(const char *name, size_t len)
 {
-	errno = 0;
-	return sethostname(name, len);
+	DEBUG_EXTRA();
+	return -1;
 }
 
 int zts_close(int fd)
 {
 	DEBUG_EXTRA("fd=%d", fd);
-	int err = errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	if (ZeroTier::zt1Service == NULL) {
-		DEBUG_ERROR("cannot close socket. service not started. call zts_start(path) first");
-		errno = EBADF;
-		return -1;
-	}
-	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
-	if (vs == NULL) {
-		DEBUG_ERROR("no vs found for fd=%d", fd);
-		handle_general_failure();
-		errno = EBADF;
-		return -1;
-	}
-	del_virt_socket(fd);
-	if (vs->tap) {
-		vs->tap->Close(vs);
-	}
-	delete vs;
-	vs = NULL;
-	return err;
+	return lwip_close(fd);
 }
 
 int zts_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
-	errno = 0;
+	DEBUG_EXTRA();
 	return poll(fds, nfds, timeout);
 }
 
 int zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
 {
-	errno = 0;
+	DEBUG_EXTRA();
 	return select(nfds, readfds, writefds, exceptfds, timeout);
 }
 
 int zts_fcntl(int fd, int cmd, int flags)
 {
-	int err = errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
+	DEBUG_EXTRA("fd=%p, cmd=%d, flags=%d", cmd, flags);
+	int translated_flags = 0;
+	if (flags == 2048) {
+		translated_flags = 1;
 	}
-	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
-	if (vs == NULL) {
-		DEBUG_ERROR("invalid vs for fd=%d", fd);
-		errno = EBADF;
-		return -1;
-	}
-	err = fcntl(fd, cmd, flags);
-	return err;
+	return lwip_fcntl(fd, cmd, translated_flags);
 }
 
 int zts_ioctl(int fd, unsigned long request, void *argp)
 {
-	int err = errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	else {
-#if defined(__linux__)
-		if (argp)
-		{
-			struct ifreq *ifr = (struct ifreq *)argp;
-			ZeroTier::VirtualTap *tap = getTapByName(ifr->ifr_name);
-			if (tap == NULL) {
-				DEBUG_ERROR("unable to locate tap interface with that name");
-				err = -1;
-				errno = EINVAL;
-			}
-			// index of VirtualTap interface
-			if (request == SIOCGIFINDEX) {
-				ifr->ifr_ifindex = tap->ifindex;
-				err = 0;
-			}
-			// MAC addres or VirtualTap
-			if (request == SIOCGIFHWADDR) {
-				tap->_mac.copyTo(&(ifr->ifr_hwaddr.sa_data), sizeof(ifr->ifr_hwaddr.sa_data));
-				err = 0;
-			}
-			// IP address of VirtualTap
-			if (request == SIOCGIFADDR) {
-				struct sockaddr_in *in4 = (struct sockaddr_in *)&(ifr->ifr_addr);
-				memcpy(&(in4->sin_addr.s_addr), tap->_ips[0].rawIpData(), sizeof(ifr->ifr_addr));
-				err = 0;
-			}
-		}
-		else {
-			DEBUG_INFO("!argp");
-		}
-#else
-		err = ioctl(fd, request, argp);
-#endif
-	}
-	return err;
+	DEBUG_EXTRA("fd=%d, req=%d", fd, request);
+	return lwip_ioctl(fd, request, argp);
 }
 
 ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen)
 {
-	//DEBUG_TRANS("fd=%d", fd);
-	int err = errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	if (len == 0) {
-		return 0;
-	}
-	if (len > ZT_SOCKET_MSG_BUF_SZ) {
-		DEBUG_ERROR("msg is too long to be sent atomically (len=%d)", len);
-		errno = EMSGSIZE;
-		return -1;
-	}
-	if (buf == NULL) {
-		DEBUG_ERROR("msg buf is null");
-		errno = EINVAL;
-		return -1;
-	}
-	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
-	if (vs == NULL) {
-		DEBUG_ERROR("no vs found for fd=%x", fd);
-		handle_general_failure();
-		errno = EBADF;
-		return -1;
-	}
-	ZeroTier::InetAddress iaddr;
-	ZeroTier::VirtualTap *tap;
-
-	if (vs->socket_type == SOCK_DGRAM) {
-		if (vs->socket_family == AF_INET)
-		{
-			char ipstr[INET_ADDRSTRLEN];
-			memset(ipstr, 0, INET_ADDRSTRLEN);
-			inet_ntop(AF_INET,
-				(const void *)&((struct sockaddr_in *)addr)->sin_addr.s_addr, ipstr, INET_ADDRSTRLEN);
-			iaddr.fromString(ipstr);
-		}
-		if (vs->socket_family == AF_INET6)
-		{
-			char ipstr[INET6_ADDRSTRLEN];
-			memset(ipstr, 0, INET6_ADDRSTRLEN);
-			inet_ntop(AF_INET6,
-				(const void *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, ipstr, INET6_ADDRSTRLEN);
-			// TODO: This is a hack, determine a proper way to do this
-			char addrstr[INET6_ADDRSTRLEN];
-			sprintf(addrstr, "%s%s", ipstr, std::string("/40").c_str());
-			iaddr.fromString(addrstr);
-		}
-		// get tap
-		tap = getTapByAddr(&iaddr);
-		if (tap == NULL) {
-			DEBUG_INFO("SOCK_DGRAM, tap not found");
-			errno = EDESTADDRREQ; // TODO: double check this is the best errno to report
-			return -1;
-		}
-		// write
-		if ((err = tap->SendTo(vs, buf, len, flags, addr, addrlen)) < 0) {
-			DEBUG_ERROR("error while attempting to sendto");
-			errno = EINVAL; // TODO: Not correct, but what else could we use?
-		}
-	}
-	if (vs->socket_type == SOCK_RAW)
-	{
-		struct sockaddr_ll *socket_address = (struct sockaddr_ll *)addr;
-		ZeroTier::VirtualTap *tap = getTapByIndex(socket_address->sll_ifindex);
-		if (tap) {
-			DEBUG_INFO("found interface of ifindex=%d", tap->ifindex);
-			err = tap->Write(vs, (void*)buf, len);
-		}
-		else {
-			DEBUG_ERROR("unable to locate tap of ifindex=%d", socket_address->sll_ifindex);
-			err = -1;
-			errno = EINVAL;
-		}
-	}
-	return err;
+	DEBUG_TRANS("fd=%d, len=%d", fd, len);
+	struct sockaddr_storage ss;
+	sys2lwip(fd, addr, (struct sockaddr*)&ss);
+	return lwip_sendto(fd, buf, len, flags, (struct sockaddr*)&ss, addrlen);
 }
 
 ssize_t zts_send(int fd, const void *buf, size_t len, int flags)
 {
-	// DEBUG_TRANS("fd=%d", fd);
-	int err = errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	if (len == 0) {
-		return 0;
-	}
-	if (len > ZT_SOCKET_MSG_BUF_SZ) {
-		DEBUG_ERROR("msg is too long to be sent atomically (len=%d)", len);
-		errno = EMSGSIZE;
-		return -1;
-	}
-	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
-	if (vs == NULL) {
-		DEBUG_ERROR("invalid vs for fd=%d", fd);
-		errno = EBADF;
-		return -1;
-	}
-	if (vs->socket_type != SOCK_STREAM) {
-		DEBUG_ERROR("the socket is not connection-mode, and no peer address is set for fd=%d", fd);
-		errno = EDESTADDRREQ;
-		return -1;
-	}
-	if (flags & MSG_DONTROUTE) {
-		DEBUG_INFO("MSG_DONTROUTE not implemented yet");
-		errno = EINVAL;
-		return -1;
-	}
-	if (flags & MSG_DONTWAIT) {
-		// The stack drivers and stack are inherently non-blocking by design, but we
-		// still need to modify the unix pipe connecting them to the application:
-		fcntl(fd, F_SETFL, O_NONBLOCK);
-	}
-	if (flags & MSG_EOR) {
-		DEBUG_INFO("MSG_EOR not implemented yet");
-		errno = EINVAL;
-		return -1;
-	}
-	if (flags & MSG_OOB) {
-		DEBUG_INFO("MSG_OOB not implemented yet");
-		errno = EINVAL;
-		return -1;
-	}
-#if defined(__linux__)
-	if (flags & MSG_CONFIRM) {
-		DEBUG_INFO("MSG_CONFIRM not implemented yet");
-		errno = EINVAL;
-		return -1;
-	}
-	if (flags & MSG_MORE) {
-		DEBUG_INFO("MSG_MORE not implemented yet");
-		errno = EINVAL;
-		return -1;
-	}
-	if (flags & MSG_NOSIGNAL) {
-		DEBUG_INFO("MSG_NOSIGNAL not implemented yet");
-		errno = EINVAL;
-		return -1;
-	}
-#endif
-
-	err = write(fd, buf, len);
-	// restore "per-call" flags
-
-	if (flags & MSG_DONTWAIT) {
-		int saved_flags = fcntl(fd, F_GETFL);
-		if (fcntl(fd, F_SETFL, saved_flags & ~O_NONBLOCK) < 0) { // mask out the blocking flag
-			handle_general_failure();
-			return -1;
-		}
-	}
-	return err;
+	DEBUG_TRANS("fd=%d, len=%d", fd, len);
+	return lwip_send(fd, buf, len, flags);
 }
 
-// TODO
 ssize_t zts_sendmsg(int fd, const struct msghdr *msg, int flags)
 {
 	DEBUG_TRANS("fd=%d", fd);
-	int err = errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	else {
-		err = sendmsg(fd, msg, flags);
-	}
-	return err;
+	return lwip_sendmsg(fd, msg, flags);
 }
 
 ssize_t zts_recv(int fd, void *buf, size_t len, int flags)
 {
 	DEBUG_TRANS("fd=%d", fd);
-	int err = errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
-	if (vs == NULL) {
-		DEBUG_ERROR("invalid vs for fd=%d", fd);
-		errno = EBADF;
-		return -1;
-	}
-	if (vs->socket_type != SOCK_STREAM) {
-		DEBUG_ERROR("the socket is not connection-mode, and no peer address is set for fd=%d", fd);
-		errno = EDESTADDRREQ;
-		return -1;
-	}
-	if (vs->get_state() != VS_STATE_CONNECTED) {
-		DEBUG_ERROR("the socket is not in a connected state, fd=%d", fd);
-		errno = ENOTCONN;
-		return -1;
-	}
-	if (flags & MSG_DONTWAIT) {
-		// The stack drivers and stack are inherently non-blocking by design, but we
-		// still need to modify the unix pipe connecting them to the application:
-		fcntl(fd, F_SETFL, O_NONBLOCK);
-	}
-	if (flags & MSG_OOB) {
-		DEBUG_INFO("MSG_OOB not implemented yet");
-		errno = EINVAL;
-		return -1;
-	}
-	if (flags & MSG_TRUNC) {
-		DEBUG_INFO("MSG_TRUNC not implemented yet");
-		errno = EINVAL;
-		return -1;
-	}
-	if (flags & MSG_WAITALL) {
-		DEBUG_INFO("MSG_WAITALL not implemented yet");
-		errno = EINVAL;
-		return -1;
-	}
-#if defined(__linux__)
-	if (flags & MSG_ERRQUEUE) {
-		DEBUG_INFO("MSG_ERRQUEUE not implemented yet");
-		errno = EINVAL;
-		return -1;
-	}
-#endif
-
-	if (flags & MSG_PEEK) {
-		// MSG_PEEK doesn't require any special stack-related machinery so we can just
-		// pass it to a regular recv() call with no issue
-		err = recv(fd, buf, len, MSG_PEEK);
-	}
-
-	// restore "per-call" flags
-
-	if (flags & MSG_DONTWAIT) {
-		int saved_flags = fcntl(fd, F_GETFL);
-		if (fcntl(fd, F_SETFL, saved_flags & ~O_NONBLOCK) < 0) { // mask out the blocking flag
-			handle_general_failure();
-			return -1;
-		}
-	}
-	return err;
+	return lwip_recv(fd, buf, len, flags);
 }
 
 ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen)
 {
-	//DEBUG_TRANS("fd=%d", fd);
-	int32_t r = 0;
-	errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	if (len == 0) {
-		return 0;
-	}
-	if (buf == NULL) {
-		DEBUG_ERROR("buf is null");
-		errno = EINVAL;
-		return -1;
-	}
-	char udp_msg_buf[ZT_SOCKET_MSG_BUF_SZ];
-	char *msg_ptr = udp_msg_buf;
-	memset(msg_ptr, 0, sizeof(int32_t)); // zero only len portion
-
-	int32_t udp_msg_len = 0;
-
-	// PEEK at the buffer and see if we can read a length, if not, err out
-	r = recv(fd, msg_ptr, sizeof(int32_t), MSG_PEEK);
-	if (r != sizeof(int32_t)) {
-		errno = EIO; // TODO: test for this
-		return -1;
-	}
-	// read of sizeof(int32_t) for the length of the datagram (including address)
-	r = read(fd, msg_ptr, sizeof(int32_t));
-	// copy to length variable
-	memcpy(&udp_msg_len, msg_ptr, sizeof(int32_t));
-	msg_ptr+=sizeof(int32_t);
-
-	if (udp_msg_len <= 0) {
-		DEBUG_ERROR("invalid datagram");
-		errno = EIO; // TODO: test for this
-		return -1;
-	}
-	// there is a datagram to read, so let's read it
-	// zero remainder of buffer
-	memset(msg_ptr, 0, ZT_SOCKET_MSG_BUF_SZ- sizeof(int32_t));
-	if ((r = read(fd, msg_ptr, udp_msg_len)) < 0) {
-		DEBUG_ERROR("invalid datagram");
-		errno = EIO; // TODO: test for this
-		return -1;
-	}
-	// get address
-	if (addr) {
-		if (*addrlen < sizeof(struct sockaddr_storage)) {
-			DEBUG_ERROR("invalid address length provided");
-			errno = EINVAL;
-			return -1;
-		}
-		*addrlen = sizeof(struct sockaddr_storage);
-		memcpy(addr, msg_ptr, *addrlen);
-	}
-	msg_ptr+=sizeof(struct sockaddr_storage);
-	// get payload
-	int32_t payload_sz = udp_msg_len - *addrlen;
-	int32_t write_sz = len < payload_sz ? len : payload_sz;
-	memcpy(buf, msg_ptr, write_sz);
-	return write_sz;
+	DEBUG_TRANS("fd=%d", fd);
+	return lwip_recvfrom(fd, buf, len, flags, addr, addrlen);
 }
 
-// TODO
 ssize_t zts_recvmsg(int fd, struct msghdr *msg,int flags)
 {
-	//DEBUG_TRANS("fd=%d", fd);
-	int err = errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	else {
-		err = recvmsg(fd, msg, flags);
-	}
-	return err;
+	DEBUG_TRANS("fd=%d", fd);
+	return -1;
 }
 
 int zts_read(int fd, void *buf, size_t len) {
-	DEBUG_TRANS("fd=%d", fd);
-	errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
-	if (vs == NULL) {
-		DEBUG_ERROR("invalid vs for fd=%d", fd);
-		errno = EBADF;
-		return -1;
-	}
-	return read(fd, buf, len);
+	DEBUG_TRANS("fd=%d, len=%d", fd, len);
+	return lwip_read(fd, buf, len);
 }
 
 int zts_write(int fd, const void *buf, size_t len) {
-	DEBUG_TRANS("fd=%d", fd);
-	errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
-	if (vs == NULL) {
-		DEBUG_ERROR("invalid vs for fd=%d", fd);
-		errno = EBADF;
-		return -1;
-	}
-	return write(fd, buf, len);
+	DEBUG_TRANS("fd=%d, len=%d", fd, len);
+	return lwip_write(fd, buf, len);
 }
 
 int zts_shutdown(int fd, int how)
 {
-	int err = errno = 0;
-	if (fd < 0 || fd >= ZT_MAX_SOCKETS) {
-		errno = EBADF;
-		return -1;
-	}
-	if (how != SHUT_RD && how != SHUT_WR && how != SHUT_RDWR) {
-		errno = EINVAL;
-		return -1;
-	}
-	ZeroTier::VirtualSocket *vs = get_virt_socket(fd);
-	if (vs == NULL) {
-		DEBUG_ERROR("invalid vs for fd=%d", fd);
-		errno = EBADF;
-		return -1;
-	}
-	if (vs->get_state() != VS_STATE_CONNECTED || vs->socket_type != SOCK_STREAM) {
-		DEBUG_ERROR("the socket is either not in a connected state, or isn't connection-based, fd=%d", fd);
-		errno = ENOTCONN;
-		return -1;
-	}
-	if (vs->tap) {
-		err = vs->tap->Shutdown(vs, how);
-	}
-	return err;
+	DEBUG_EXTRA("fd=%d, how=%d", fd, how);
+	return lwip_shutdown(fd, how);
 }
 
 int zts_add_dns_nameserver(struct sockaddr *addr)
 {
-	ZeroTier::VirtualTap *vtap = getAnyTap();
-	if (vtap) {
-		return vtap->add_DNS_Nameserver(addr);
-	}
-	DEBUG_ERROR("unable to locate virtual tap to add DNS nameserver");
+	DEBUG_EXTRA();
 	return -1;
 }
 
 int zts_del_dns_nameserver(struct sockaddr *addr)
 {
-	ZeroTier::VirtualTap *vtap = getAnyTap();
-	if (vtap) {
-		return vtap->del_DNS_Nameserver(addr);
-	}
-	DEBUG_ERROR("unable to locate virtual tap to remove DNS nameserver");
+	DEBUG_EXTRA();
 	return -1;
-}
-
-/****************************************************************************/
-/* SDK Socket API (Java Native Interface JNI)                               */
-/* JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME             */
-/****************************************************************************/
-
-
-#if defined(SDK_JNI)
-
-namespace ZeroTier {
-
-	#include <jni.h>
-
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1start(JNIEnv *env, jobject thisObj, jstring path) {
-		if (path) {
-			homeDir = env->GetStringUTFChars(path, NULL);
-			zts_start(homeDir.c_str());
-		}
-	}
-	// Shuts down ZeroTier service and SOCKS5 Proxy server
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1stop(JNIEnv *env, jobject thisObj) {
-		if (ZeroTier::zt1Service) {
-			zts_stop();
-		}
-	}
-
-	// Returns whether the ZeroTier service is running
-	JNIEXPORT jboolean JNICALL Java_zerotier_ZeroTier_ztjni_1running(
-		JNIEnv *env, jobject thisObj)
-	{
-		return  zts_running();
-	}
-	// Returns path for ZT config/data files
-	JNIEXPORT jstring JNICALL Java_zerotier_ZeroTier_ztjni_1homepath(
-		JNIEnv *env, jobject thisObj)
-	{
-		// TODO: fix, should copy into given arg
-		// return (*env).NewStringUTF(zts_get_homepath());
-		return (*env).NewStringUTF("");
-	}
-	// Join a network
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1join(
-		JNIEnv *env, jobject thisObj, jstring nwid)
-	{
-		const char *nwidstr;
-		if (nwid) {
-			nwidstr = env->GetStringUTFChars(nwid, NULL);
-			zts_join(nwidstr);
-		}
-	}
-	// Leave a network
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1leave(
-		JNIEnv *env, jobject thisObj, jstring nwid)
-	{
-		const char *nwidstr;
-		if (nwid) {
-			nwidstr = env->GetStringUTFChars(nwid, NULL);
-			zts_leave(nwidstr);
-		}
-	}
-	// FIXME: Re-implemented to make it play nicer with the C-linkage required for Xcode integrations
-	// Now only returns first assigned address per network. Shouldn't normally be a problem
-	JNIEXPORT jobject JNICALL Java_zerotier_ZeroTier_ztjni_1get_1ipv4_1address(
-		JNIEnv *env, jobject thisObj, jstring nwid)
-	{
-		const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
-		char address_string[INET_ADDRSTRLEN];
-		memset(address_string, 0, INET_ADDRSTRLEN);
-		zts_get_ipv4_address(nwid_str, address_string, INET_ADDRSTRLEN);
-		jclass clazz = (*env).FindClass("java/util/ArrayList");
-		jobject addresses = (*env).NewObject(clazz, (*env).GetMethodID(clazz, "<init>", "()V"));
-		jstring _str = (*env).NewStringUTF(address_string);
-		env->CallBooleanMethod(addresses, env->GetMethodID(clazz, "add", "(Ljava/lang/Object;)Z"), _str);
-		return addresses;
-	}
-
-	JNIEXPORT jobject JNICALL Java_zerotier_ZeroTier_ztjni_1get_1ipv6_1address(
-		JNIEnv *env, jobject thisObj, jstring nwid)
-	{
-		const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
-		char address_string[INET6_ADDRSTRLEN];
-		memset(address_string, 0, INET6_ADDRSTRLEN);
-		zts_get_ipv6_address(nwid_str, address_string, INET6_ADDRSTRLEN);
-		jclass clazz = (*env).FindClass("java/util/ArrayList");
-		jobject addresses = (*env).NewObject(clazz, (*env).GetMethodID(clazz, "<init>", "()V"));
-		jstring _str = (*env).NewStringUTF(address_string);
-		env->CallBooleanMethod(addresses, env->GetMethodID(clazz, "add", "(Ljava/lang/Object;)Z"), _str);
-		return addresses;
-	}
-
-	// Returns the device is in integer form
-	JNIEXPORT jint Java_zerotier_ZeroTier_ztjni_1get_1device_1id()
-	{
-		return zts_get_device_id(NULL); // TODO
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1send(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, int flags)
-	{
-		jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
-		char * bufp = (char *)malloc(sizeof(char)*len);
-		memcpy(bufp, body, len);
-		(*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);
-		int written_bytes = zts_write(fd, body, len);
-		return written_bytes;
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1sendto(
-		JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, jint flags, jobject ztaddr)
-	{
-		struct sockaddr_in addr;
-		jclass cls = (*env).GetObjectClass( ztaddr);
-		jfieldID f = (*env).GetFieldID( cls, "port", "I");
-		addr.sin_port = htons((*env).GetIntField( ztaddr, f));
-		f = (*env).GetFieldID( cls, "_rawAddr", "J");
-		addr.sin_addr.s_addr = (*env).GetLongField( ztaddr, f);
-		addr.sin_family = AF_INET;
-		//LOGV("zt_sendto(): fd = %d\naddr = %s\nport=%d", fd, inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
-		// TODO: Optimize this
-		jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
-		char * bufp = (char *)malloc(sizeof(char)*len);
-		memcpy(bufp, body, len);
-		(*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);
-		// "connect" and send buffer contents
-		int sent_bytes = zts_sendto(fd, body, len, flags, (struct sockaddr *)&addr, sizeof(addr));
-		return sent_bytes;
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1recvfrom(
-		JNIEnv *env, jobject thisObj, jint fd, jbyteArray buf, jint len, jint flags, jobject ztaddr)
-	{
-		struct sockaddr_in addr;
-		jbyte *body = (*env).GetByteArrayElements( buf, 0);
-		unsigned char buffer[ZT_SDK_MTU];
-		int payload_offset = sizeof(int32_t) + sizeof(struct sockaddr_storage);
-		int rxbytes = zts_recvfrom(fd, &buffer, len, flags, (struct sockaddr *)&addr, (socklen_t *)sizeof(struct sockaddr_storage));
-		if (rxbytes > 0)
-			memcpy(body, (jbyte*)buffer + payload_offset, rxbytes);
-		(*env).ReleaseByteArrayElements( buf, body, 0);
-		// Update fields of Java ZTAddress object
-		jfieldID fid;
-		jclass cls = (*env).GetObjectClass( ztaddr);
-		fid = (*env).GetFieldID( cls, "port", "I");
-		(*env).SetIntField( ztaddr, fid, addr.sin_port);
-		fid = (*env).GetFieldID( cls,"_rawAddr", "J");
-		(*env).SetLongField( ztaddr, fid,addr.sin_addr.s_addr);
-		return rxbytes;
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1write(JNIEnv *env, jobject thisObj, 
-		jint fd, jarray buf, jint len)
-	{
-		jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
-		char * bufp = (char *)malloc(sizeof(char)*len);
-		memcpy(bufp, body, len);
-		(*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);
-		int written_bytes = zts_write(fd, body, len);
-		return written_bytes;
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1read(JNIEnv *env, jobject thisObj, 
-		jint fd, jarray buf, jint len)
-	{
-		jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
-		int read_bytes = read(fd, body, len);
-		(*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);
-		return read_bytes;
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1setsockopt(
-		JNIEnv *env, jobject thisObj, 
-		jint fd, jint level, jint optname, jint optval, jint optlen) {
-		return zts_setsockopt(fd, level, optname, (const void*)optval, optlen);
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1getsockopt(JNIEnv *env, jobject thisObj, 
-		jint fd, jint level, jint optname, jint optval, jint optlen) {
-		return zts_getsockopt(fd, level, optname, (void*)optval, (socklen_t *)optlen);
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1socket(JNIEnv *env, jobject thisObj, 
-		jint family, jint type, jint protocol) {
-		return zts_socket(family, type, protocol);
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1connect(JNIEnv *env, jobject thisObj, 
-		jint fd, jstring addrstr, jint port) {
-		struct sockaddr_in addr;
-		const char *str = (*env).GetStringUTFChars( addrstr, 0);
-		addr.sin_addr.s_addr = inet_addr(str);
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons( port );
-		(*env).ReleaseStringUTFChars( addrstr, str);
-		return zts_connect(fd, (struct sockaddr *)&addr, sizeof(addr));
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1bind(JNIEnv *env, jobject thisObj, 
-		jint fd, jstring addrstr, jint port) {
-		struct sockaddr_in addr;
-		const char *str = (*env).GetStringUTFChars( addrstr, 0);
-		DEBUG_INFO("fd=%d, addr=%s, port=%d", fd, str, port);
-		addr.sin_addr.s_addr = inet_addr(str);
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons( port );
-		(*env).ReleaseStringUTFChars( addrstr, str);
-		return zts_bind(fd, (struct sockaddr *)&addr, sizeof(addr));
-	}
-
-#if defined(__linux__)
-	 JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1accept4(JNIEnv *env, jobject thisObj, 
-		jint fd, jstring addrstr, jint port, jint flags) {
-		struct sockaddr_in addr;
-		char *str;
-		// = env->GetStringUTFChars(addrstr, NULL);
-		(*env).ReleaseStringUTFChars( addrstr, str);
-		addr.sin_addr.s_addr = inet_addr(str);
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons( port );
-		return zts_accept4(fd, (struct sockaddr *)&addr, sizeof(addr), flags);
-	}
-#endif
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1accept(JNIEnv *env, jobject thisObj, 
-		jint fd, jstring addrstr, jint port) {
-		struct sockaddr_in addr;
-		// TODO: Send addr info back to Javaland
-		addr.sin_addr.s_addr = inet_addr("");
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons( port );
-		return zts_accept(fd, (struct sockaddr *)&addr, (socklen_t *)sizeof(addr));
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1listen(JNIEnv *env, jobject thisObj, 
-		jint fd, int backlog) {
-		return zts_listen(fd, backlog);
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1close(JNIEnv *env, jobject thisObj, 
-		jint fd) {
-		return zts_close(fd);
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1getsockname(JNIEnv *env, jobject thisObj, 
-		jint fd, jobject ztaddr) {
-		struct sockaddr_in addr;
-		int err = zts_getsockname(fd, (struct sockaddr *)&addr, (socklen_t *)sizeof(struct sockaddr));
-		jfieldID fid;
-		jclass cls = (*env).GetObjectClass(ztaddr);
-		fid = (*env).GetFieldID( cls, "port", "I");
-		(*env).SetIntField( ztaddr, fid, addr.sin_port);
-		fid = (*env).GetFieldID( cls,"_rawAddr", "J");
-		(*env).SetLongField( ztaddr, fid,addr.sin_addr.s_addr);
-		return err;
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1getpeername(JNIEnv *env, jobject thisObj, 
-		jint fd, jobject ztaddr) {
-		struct sockaddr_in addr;
-		int err = zts_getpeername(fd, (struct sockaddr *)&addr, (socklen_t *)sizeof(struct sockaddr));
-		jfieldID fid;
-		jclass cls = (*env).GetObjectClass( ztaddr);
-		fid = (*env).GetFieldID( cls, "port", "I");
-		(*env).SetIntField( ztaddr, fid, addr.sin_port);
-		fid = (*env).GetFieldID( cls,"_rawAddr", "J");
-		(*env).SetLongField( ztaddr, fid,addr.sin_addr.s_addr);
-		return err;
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1fcntl(JNIEnv *env, jobject thisObj, 
-		jint fd, jint cmd, jint flags) {
-		return zts_fcntl(fd,cmd,flags);
-	}
-}
-#endif
-
-/****************************************************************************/
-/* SDK Socket API Helper functions --- DON'T CALL THESE DIRECTLY            */
-/****************************************************************************/
-
-bool can_provision_new_socket(int socket_type)
-{
-	int can = false;
-#if defined(STACK_PICO)
-	return !(pico_ntimers()+1 > PICO_MAX_TIMERS);
-#endif
-#if defined(STACK_LWIP)
-	if (socket_type == SOCK_STREAM) {
-		return !(ZeroTier::lwIP::lwip_num_current_tcp_pcbs()+1 > MEMP_NUM_TCP_PCB);
-	}
-	if (socket_type == SOCK_DGRAM) {
-		return !(ZeroTier::lwIP::lwip_num_current_udp_pcbs()+1 > MEMP_NUM_UDP_PCB);
-	}
-	if (socket_type == SOCK_RAW) {
-		return !(ZeroTier::lwIP::lwip_num_current_raw_pcbs()+1 > MEMP_NUM_RAW_PCB);
-	}
-	can = true;
-#endif
-#if defined(NO_STACK)
-	// always true since there's no network stack timer/memory limitation
-	can = true;
-#endif
-	return can;
-}
-
-int zts_num_active_virt_sockets()
-{
-	ZeroTier::_multiplexer_lock.lock();
-	int num = ZeroTier::unmap.size() + ZeroTier::fdmap.size();
-	ZeroTier::_multiplexer_lock.unlock();
-	return num;
-}
-
-int zts_maxsockets(int socket_type)
-{
-	int max = 0;
-#if defined(STACK_PICO)
-	// TODO: This is only an approximation
-	// TODO: distinquish by type
-	max = PICO_MAX_TIMERS - 10;
-#endif
-#if defined(STACK_LWIP)
-	if (socket_type == SOCK_STREAM) {
-		max = MEMP_NUM_TCP_PCB;
-	}
-	if (socket_type == SOCK_DGRAM) {
-		max = MEMP_NUM_UDP_PCB;
-	}
-#endif
-#if defined(NO_STACK)
-	// arbitrary
-#if defined(__linux__)
-	max = RLIMIT_NOFILE;
-#endif
-#if defined(__APPLE__)
-	max = 1024;
-#endif
-#endif
-	return max;
-}
-
-/****************************************************************************/
-/* ZeroTier Core helper functions for libzt - DON'T CALL THESE DIRECTLY     */
-/****************************************************************************/
-
-std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(char *nwid)
-{
-	uint64_t nwid_int = strtoull(nwid, NULL, 16);
-	return ZeroTier::zt1Service->getRoutes(nwid_int);
-}
-
-ZeroTier::VirtualTap *getTapByNWID(uint64_t nwid)
-{
-	ZeroTier::_vtaps_lock.lock();
-	ZeroTier::VirtualTap *s, *tap = nullptr;
-	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
-		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
-		if (s->_nwid == nwid) { tap = s; }
-	}
-	ZeroTier::_vtaps_lock.unlock();
-	return tap;
-}
-
-ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress *addr)
-{
-	ZeroTier::_vtaps_lock.lock();
-	ZeroTier::VirtualTap *s, *tap = nullptr;
-	//char ipbuf[64], ipbuf2[64], ipbuf3[64];
-	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
-		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
-		// check address schemes
-		for (int j=0; j<s->_ips.size(); j++) {
-			if ((s->_ips[j].isV4() && addr->isV4()) || (s->_ips[j].isV6() && addr->isV6())) {
-				//DEBUG_EXTRA("looking at tap %s, <addr=%s> --- for <%s>", s->_dev.c_str(), s->_ips[j].toString(ipbuf), addr->toIpString(ipbuf2));
-				if (s->_ips[j].isEqualPrefix(addr)
-					|| s->_ips[j].ipsEqual(addr)
-					|| s->_ips[j].containsAddress(addr)
-					|| (addr->isV6() && ipv6_in_subnet(&s->_ips[j], addr))
-					)
-				{
-					//DEBUG_EXTRA("selected tap %s, <addr=%s>", s->_dev.c_str(), s->_ips[j].toString(ipbuf));
-					ZeroTier::_vtaps_lock.unlock();
-					return s;
-				}
-			}
-		}
-		// check managed routes
-		if (tap == NULL) {
-			std::vector<ZT_VirtualNetworkRoute> *managed_routes = ZeroTier::zt1Service->getRoutes(s->_nwid);
-			ZeroTier::InetAddress target, nm, via;
-			for (int i=0; i<managed_routes->size(); i++) {
-				target = managed_routes->at(i).target;
-				nm = target.netmask();
-				via = managed_routes->at(i).via;
-				if (target.containsAddress(addr)) {
-					//DEBUG_EXTRA("chose tap with route <target=%s, nm=%s, via=%s>", target.toString(ipbuf), nm.toString(ipbuf2), via.toString(ipbuf3));
-					ZeroTier::_vtaps_lock.unlock();
-					return s;
-				}
-			}
-		}
-	}
-	ZeroTier::_vtaps_lock.unlock();
-	return tap;
-}
-
-ZeroTier::VirtualTap *getTapByName(char *ifname)
-{
-	ZeroTier::_vtaps_lock.lock();
-	ZeroTier::VirtualTap *s, *tap = nullptr;
-	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
-		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
-		if (strcmp(s->_dev.c_str(), ifname) == false) {
-			tap = s;
-		}
-	}
-	ZeroTier::_vtaps_lock.unlock();
-	return tap;
-}
-
-ZeroTier::VirtualTap *getTapByIndex(int index)
-{
-	ZeroTier::_vtaps_lock.lock();
-	ZeroTier::VirtualTap *s, *tap = nullptr;
-	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
-		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
-		if (s->ifindex == index) {
-			tap = s;
-		}
-	}
-	ZeroTier::_vtaps_lock.unlock();
-	return tap;
-}
-
-ZeroTier::VirtualTap *getAnyTap()
-{
-	ZeroTier::_vtaps_lock.lock();
-	ZeroTier::VirtualTap *vtap = NULL;
-	if (ZeroTier::vtaps.size()) {
-		vtap = (ZeroTier::VirtualTap *)ZeroTier::vtaps[0];
-	}
-	ZeroTier::_vtaps_lock.unlock();
-	return vtap;
-}
-
-/****************************************************************************/
-/* VirtualSocket / VirtualTap helper functions - DON'T CALL THESE DIRECTLY  */
-/****************************************************************************/
-
-ZeroTier::VirtualSocket *get_virt_socket(int fd)
-{
-	DEBUG_EXTRA("fd=%d", fd);
-	ZeroTier::_multiplexer_lock.lock();
-	// try to locate in unmapped set
-	ZeroTier::VirtualSocket *vs = ZeroTier::unmap[fd];
-	if (vs == NULL) {
-		// if not, try to find in mapped set (bind to vtap has been performed)
-		std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *p = ZeroTier::fdmap[fd];
-		if (p) {
-			vs = p->first;
-		}
-		else {
-			DEBUG_ERROR("unable to locate virtual socket");
-		}
-	}
-	ZeroTier::_multiplexer_lock.unlock();
-	return vs;
-}
-
-int del_virt_socket(int fd)
-{
-	DEBUG_EXTRA("fd=%d", fd);
-	int err = 0;
-	ZeroTier::_multiplexer_lock.lock();
-	try {
-		std::map<int, ZeroTier::VirtualSocket*>::iterator un_iter = ZeroTier::unmap.find(fd);
-		if (un_iter != ZeroTier::unmap.end()) {
-			ZeroTier::unmap.erase(un_iter);
-		}
-		std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter = ZeroTier::fdmap.find(fd);
-		if (fd_iter != ZeroTier::fdmap.end()) {
-			ZeroTier::fdmap.erase(fd_iter);
-		}
-	}
-	catch( ... ) {
-		DEBUG_ERROR("unable to remove virtual socket");
-		handle_general_failure();
-		err = -1;
-	}
-	ZeroTier::_multiplexer_lock.unlock();
-	return err;
-}
-
-int add_unassigned_virt_socket(int fd, ZeroTier::VirtualSocket *vs)
-{
-	DEBUG_EXTRA("fd=%d, vs=%p", fd, vs);
-	int err = 0;
-	ZeroTier::_multiplexer_lock.lock();
-	try {
-		std::map<int, ZeroTier::VirtualSocket*>::iterator un_iter = ZeroTier::unmap.find(fd);
-		if (un_iter == ZeroTier::unmap.end()) {
-			ZeroTier::unmap[fd] = vs;
-		}
-		else {
-			DEBUG_ERROR("fd=%d already contained in <fd:vs> map", fd);
-			handle_general_failure();
-		}
-	}
-	catch( ... ) {
-		DEBUG_ERROR("unable to add virtual socket");
-		handle_general_failure();
-		err = -1;
-	}
-	ZeroTier::_multiplexer_lock.unlock();
-	return err;
-}
-
-int del_unassigned_virt_socket(int fd)
-{
-	DEBUG_EXTRA("fd=%d", fd);
-	int err = 0;
-	ZeroTier::_multiplexer_lock.lock();
-	try {
-		std::map<int, ZeroTier::VirtualSocket*>::iterator un_iter = ZeroTier::unmap.find(fd);
-		if (un_iter != ZeroTier::unmap.end()) {
-			ZeroTier::unmap.erase(un_iter);
-		}
-	}
-	catch( ... ) {
-		DEBUG_ERROR("unable to remove virtual socket");
-		handle_general_failure();
-		err = -1;
-	}
-	ZeroTier::_multiplexer_lock.unlock();
-	return err;
-}
-
-int add_assigned_virt_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd)
-{
-	DEBUG_EXTRA("tap=%p, vs=%p, fd=%d", tap, vs, fd);
-	int err = 0;
-	ZeroTier::_multiplexer_lock.lock();
-	try {
-		std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter;
-		fd_iter = ZeroTier::fdmap.find(fd);
-		if (fd_iter == ZeroTier::fdmap.end()) {
-			ZeroTier::fdmap[fd] = new std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>(vs, tap);
-		}
-		else {
-			DEBUG_ERROR("fd=%d already contained in <fd,<vs,vt>> map", fd);
-			handle_general_failure();
-		}
-	}
-	catch( ... ) {
-		DEBUG_ERROR("unable to add virtual socket");
-		handle_general_failure();
-		err = -1;
-	}
-	ZeroTier::_multiplexer_lock.unlock();
-	return err;
-}
-
-int del_assigned_virt_socket(ZeroTier::VirtualTap *tap, ZeroTier::VirtualSocket *vs, int fd)
-{
-	DEBUG_EXTRA("tap=%p, vs=%p, fd=%d", tap, vs, fd);
-	int err = 0;
-	ZeroTier::_multiplexer_lock.lock();
-	try {
-		std::map<int, std::pair<ZeroTier::VirtualSocket*,ZeroTier::VirtualTap*>*>::iterator fd_iter;
-		fd_iter = ZeroTier::fdmap.find(fd);
-		if (fd_iter != ZeroTier::fdmap.end()) {
-			ZeroTier::fdmap.erase(fd_iter);
-		}
-	}
-	catch( ... ) {
-		DEBUG_ERROR("unable to remove virtual socket");
-		handle_general_failure();
-		err = -1;
-	}
-	ZeroTier::_multiplexer_lock.unlock();
-	return err;
-}
-
-std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *get_assigned_virtual_pair(int fd)
-{
-	ZeroTier::_multiplexer_lock.lock();
-	std::pair<ZeroTier::VirtualSocket*, ZeroTier::VirtualTap*> *p = ZeroTier::fdmap[fd];
-	ZeroTier::_multiplexer_lock.unlock();
-	return p;
-}
-
-void disableTaps()
-{
-	ZeroTier::_vtaps_lock.lock();
-	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
-		DEBUG_EXTRA("vt=%p", ZeroTier::vtaps[i]);
-		((ZeroTier::VirtualTap*)ZeroTier::vtaps[i])->_enabled = false;
-	}
-	ZeroTier::_vtaps_lock.unlock();
-}
-
-int zts_get_device_id_from_file(const char *filepath, char *devID) {
-	std::string fname("identity.public");
-	std::string fpath(filepath);
-	if (ZeroTier::OSUtils::fileExists((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),false)) {
-		std::string oldid;
-		ZeroTier::OSUtils::readFile((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),oldid);
-		memcpy(devID, oldid.c_str(), 10); // first 10 bytes of file
-		return 0;
-	}
-	return -1;
-}
-
-// Starts a ZeroTier service in the background
-void *zts_start_service(void *thread_id) 
-{
-	DEBUG_INFO("homeDir=%s", ZeroTier::homeDir.c_str());
-	// Where network .conf files will be stored
-	ZeroTier::netDir = ZeroTier::homeDir + "/networks.d";
-	ZeroTier::zt1Service = (ZeroTier::OneService *)0;
-	// Construct path for network config and supporting service files
-	if (ZeroTier::homeDir.length()) {
-		std::vector<std::string> hpsp(ZeroTier::OSUtils::split(ZeroTier::homeDir.c_str(), ZT_PATH_SEPARATOR_S,"",""));
-		std::string ptmp;
-		if (ZeroTier::homeDir[0] == ZT_PATH_SEPARATOR) {
-			ptmp.push_back(ZT_PATH_SEPARATOR);
-		}
-		for (std::vector<std::string>::iterator pi(hpsp.begin());pi!=hpsp.end();++pi) {
-			if (ptmp.length() > 0) {
-				ptmp.push_back(ZT_PATH_SEPARATOR);
-			}
-			ptmp.append(*pi);
-			if ((*pi != ".")&&(*pi != "..")) {
-				if (ZeroTier::OSUtils::mkdir(ptmp) == false) {
-					DEBUG_ERROR("home path does not exist, and could not create");
-					handle_general_failure();
-					perror("error\n");
-				}
-			}
-		}
-	}
-	else {
-		DEBUG_ERROR("homeDir is empty, could not construct path");
-		handle_general_failure();
-		return NULL;
-	}
-
-	// Generate random port for new service instance
-	unsigned int randp = 0;
-	ZeroTier::Utils::getSecureRandom(&randp,sizeof(randp));
-	// TODO: Better port random range selection
-	int servicePort = 9000 + (randp % 1000);
-	for (;;) {
-		ZeroTier::zt1Service = ZeroTier::OneService::newInstance(ZeroTier::homeDir.c_str(),servicePort);
-		switch(ZeroTier::zt1Service->run()) {
-			case ZeroTier::OneService::ONE_STILL_RUNNING:
-			case ZeroTier::OneService::ONE_NORMAL_TERMINATION:
-				break;
-			case ZeroTier::OneService::ONE_UNRECOVERABLE_ERROR:
-				DEBUG_ERROR("ZTO service port = %d", servicePort);
-				DEBUG_ERROR("fatal error: %s",ZeroTier::zt1Service->fatalErrorMessage().c_str());
-				break;
-			case ZeroTier::OneService::ONE_IDENTITY_COLLISION: {
-				delete ZeroTier::zt1Service;
-				ZeroTier::zt1Service = (ZeroTier::OneService *)0;
-				std::string oldid;
-				ZeroTier::OSUtils::readFile((ZeroTier::homeDir + ZT_PATH_SEPARATOR_S
-					+ "identity.secret").c_str(),oldid);
-				if (oldid.length()) {
-					ZeroTier::OSUtils::writeFile((ZeroTier::homeDir + ZT_PATH_SEPARATOR_S
-						+ "identity.secret.saved_after_collision").c_str(),oldid);
-					ZeroTier::OSUtils::rm((ZeroTier::homeDir + ZT_PATH_SEPARATOR_S
-						+ "identity.secret").c_str());
-					ZeroTier::OSUtils::rm((ZeroTier::homeDir + ZT_PATH_SEPARATOR_S
-						+ "identity.public").c_str());
-				}
-			}
-			continue; // restart!
-		}
-		break; // terminate loop -- normally we don't keep restarting
-	}
-	delete ZeroTier::zt1Service;
-	ZeroTier::zt1Service = (ZeroTier::OneService *)0;
-	return NULL;
-}
-
-void handle_general_failure() {
-#ifdef ZT_EXIT_ON_GENERAL_FAIL
-	DEBUG_ERROR("exiting (ZT_EXIT_ON_GENERAL_FAIL==1)");
-	exit(-1);
-#endif
-}
-
-inline unsigned int gettid()
-{
-#ifdef _WIN32
-		return GetCurrentThreadId();
-#elif defined(__unix__)
-		return static_cast<unsigned int>(::syscall(__NR_gettid));
-#elif defined(__APPLE__)
-		uint64_t tid64;
-		pthread_threadid_np(NULL, &tid64);
-		return static_cast<unsigned int>(tid64);
-#endif
 }
 
 #ifdef __cplusplus

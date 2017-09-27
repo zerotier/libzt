@@ -78,8 +78,8 @@ APIFILES=$(LWIPDIR)/api/api_lib.c \
 	$(LWIPDIR)/api/tcpip.c
 
 # NETIFFILES: Files implementing various generic network interface functions
-NETIFFILES=$(LWIPDIR)/netif/ethernet.c \
-	$(LWIPDIR)/netif/slipif.c
+NETIFFILES=$(LWIPDIR)/netif/ethernet.c 
+#\ $(LWIPDIR)/netif/slipif.c
 
 # SIXLOWPAN: 6LoWPAN
 SIXLOWPAN=$(LWIPDIR)/netif/lowpan6.c \
@@ -122,8 +122,8 @@ LWIPNOAPPSFILES=$(COREFILES) \
 	$(CORE6FILES) \
 	$(APIFILES) \
 	$(NETIFFILES) \
-	$(PPPFILES) \
 	$(SIXLOWPAN)
+#	$(PPPFILES)
 
 # SNMPFILES: SNMPv2c agent
 SNMPFILES=$(LWIPDIR)/apps/snmp/snmp_asn1.c \

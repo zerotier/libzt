@@ -116,7 +116,7 @@ LIBZT_INCLUDES+=-Iinclude \
 #    NS_ Configuration options for userspace network stack
 
 ifeq ($(ZT_DEBUG),1)
-	ZT_FLAGS+=-DZT_TRACE
+	ZT_DEFS+=-DZT_TRACE
 	CFLAGS+=-Wall -g -pthread
 	STRIP=echo
 else
@@ -125,7 +125,7 @@ else
 	STRIP=strip
 endif
 ifeq ($(LIBZT_DEBUG),1)
-	LIBZT_FLAGS+=-DLIBZT_DEBUG
+	LIBZT_DEFS+=-DLIBZT_DEBUG
 endif
 ifeq ($(NS_DEBUG),1)
 	# specified in stack configuration section
@@ -147,8 +147,8 @@ ifeq ($(SDK_JNI), 1)
 endif
 
 CXXFLAGS=$(CFLAGS) -Wno-format -fno-rtti -std=c++11
-ZT_FLAGS+=-DZT_SDK -DZT_SOFTWARE_UPDATE_DEFAULT="\"disable\""
-LIBZT_FLAGS+=
+ZT_DEFS+=-DZT_SDK -DZT_SOFTWARE_UPDATE_DEFAULT="\"disable\""
+LIBZT_DEFS+=
 LIBZT_FILES:=src/VirtualTap.cpp src/libzt.cpp src/Utilities.cpp
 STATIC_LIB=$(BUILD)/libzt.a
 
@@ -166,22 +166,22 @@ endif
 ifeq ($(STACK_PICO),1)
 # picoTCP default protocol versions
 ifeq ($(NS_DEBUG),1)
-	STACK_FLAGS+=
+	STACK_DEFS+=
 endif
 ifeq ($(LIBZT_IPV4)$(LIBZT_IPV6),1)
 ifeq ($(LIBZT_IPV4),1)
-STACK_DRIVER_FLAGS+=-DLIBZT_IPV4
-STACK_FLAGS+=IPV4=1
+STACK_DRIVER_DEFS+=-DLIBZT_IPV4
+STACK_DEFS+=IPV4=1
 endif
 ifeq ($(LIBZT_IPV6),1)
-STACK_DRIVER_FLAGS+=-DLIBZT_IPV6
-STACK_FLAGS+=IPV6=1
+STACK_DRIVER_DEFS+=-DLIBZT_IPV6
+STACK_DEFS+=IPV6=1
 endif
 else
-STACK_DRIVER_FLAGS+=-DLIBZT_IPV4 -DLIBZT_IPV6
-STACK_FLAGS+=IPV6=1 IPV4=1
+STACK_DRIVER_DEFS+=-DLIBZT_IPV4 -DLIBZT_IPV6
+STACK_DEFS+=IPV6=1 IPV4=1
 endif
-STACK_DRIVER_FLAGS+=-DSTACK_PICO
+STACK_DRIVER_DEFS+=-DSTACK_PICO
 STACK_LIB:=libpicotcp.a
 STACK_DIR:=ext/picotcp
 STACK_LIB:=$(STACK_DIR)/build/lib/$(STACK_LIB)
@@ -193,23 +193,23 @@ endif
 ifeq ($(STACK_LWIP),1)
 # lwIP default protocol versions
 ifeq ($(NS_DEBUG),1)
-	STACK_FLAGS+=LWIP_DEBUG=1
+	STACK_DEFS+=LWIP_DEBUG=1
 endif
 ifeq ($(LIBZT_IPV4)$(LIBZT_IPV6),1)
 ifeq ($(LIBZT_IPV4),1)
-STACK_DRIVER_FLAGS+=-DLIBZT_IPV4 -DLWIP_IPV4=1
-STACK_FLAGS+=LIBZT_IPV4=1
+STACK_DRIVER_DEFS+=-DLIBZT_IPV4 -DLWIP_IPV4=1
+STACK_DEFS+=LIBZT_IPV4=1
 endif
 ifeq ($(LIBZT_IPV6),1)
-STACK_DRIVER_FLAGS+=-DLIBZT_IPV6 -DLWIP_IPV6=1
-STACK_FLAGS+=LIBZT_IPV6=1
+STACK_DRIVER_DEFS+=-DLIBZT_IPV6 -DLWIP_IPV6=1
+STACK_DEFS+=LIBZT_IPV6=1
 endif
 else
-STACK_DRIVER_FLAGS+=-DLIBZT_IPV4 -DLWIP_IPV4=1
-STACK_FLAGS+=LIBZT_IPV4=1
+STACK_DRIVER_DEFS+=-DLIBZT_IPV4 -DLWIP_IPV4=1
+STACK_DEFS+=LIBZT_IPV4=1
 endif
-STACK_DRIVER_FLAGS+=-DLWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS
-STACK_DRIVER_FLAGS+=-DSTACK_LWIP
+STACK_DRIVER_DEFS+=-DLWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS
+STACK_DRIVER_DEFS+=-DSTACK_LWIP
 STACK_DRIVER_FILES:=src/lwIP.cpp
 LWIPARCH=$(CONTRIBDIR)/ports/unix
 LWIPDIR=ext/lwip/src
@@ -222,7 +222,7 @@ STACK_INCLUDES+=-Iext/lwip/src/include/lwip \
 endif
 
 ifeq ($(NO_STACK),1)
-STACK_DRIVER_FLAGS+=-DNO_STACK
+STACK_DRIVER_DEFS+=-DNO_STACK
 endif
 
 ##############################################################################
@@ -231,8 +231,8 @@ endif
 
 %.o : %.cpp
 	@mkdir -p $(BUILD) obj
-	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(STACK_DRIVER_FLAGS) $(ZT_FLAGS) \
-		$(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_INCLUDES) -c $^ -o obj/$(@F)
+	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(STACK_DRIVER_DEFS) $(ZT_DEFS) \
+		$(ZT_INCLUDES) $(LIBZT_INCLUDES) -c $^ -o obj/$(@F)
 
 %.o : %.c
 	@mkdir -p $(BUILD) obj
@@ -242,13 +242,13 @@ picotcp:
 	cd ext/picotcp; make lib ARCH=shared IPV4=1 IPV6=1
 
 lwip:
-	make -f make-liblwip.mk liblwip.a $(STACK_FLAGS)
+	make -f make-liblwip.mk liblwip.a $(STACK_DEFS)
 
 ifeq ($(STACK_PICO),1)
 static_lib: picotcp $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
-	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(ZT_FLAGS) $(ZT_INCLUDES) $(LIBZT_FLAGS) \
-		$(LIBZT_INCLUDES) $(STACK_INCLUDES) $(STACK_DRIVER_FLAGS) $(LIBZT_FILES) \
+	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_DEFS) \
+		$(LIBZT_INCLUDES) $(STACK_INCLUDES) $(STACK_DRIVER_DEFS) $(LIBZT_FILES) \
 		$(STACK_DRIVER_FILES) -c 
 	mv *.o obj
 	mv ext/picotcp/build/lib/*.o obj
@@ -259,18 +259,23 @@ endif
 ifeq ($(STACK_LWIP),1)
 static_lib: lwip $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
-	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(ZT_FLAGS) $(ZT_INCLUDES) $(LIBZT_FLAGS) \
-		$(LIBZT_INCLUDES) $(STACK_INCLUDES) $(STACK_DRIVER_FLAGS) $(LIBZT_FILES) \
-		$(STACK_DRIVER_FILES) -c  
+	$(CXX) $(CXXFLAGS) -c src/VirtualSocket.cpp $(LIBZT_INCLUDES)
+	$(CXX) $(CXXFLAGS) -c src/VirtualBindingPair.cpp $(ZT_INCLUDES) $(LIBZT_INCLUDES)
+	$(CXX) $(CXXFLAGS) -c src/Platform.cpp $(LIBZT_INCLUDES)
+	$(CXX) $(CXXFLAGS) -c src/libzt.cpp $(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
+	$(CXX) $(CXXFLAGS) -c src/Utilities.cpp $(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
+	$(CXX) $(CXXFLAGS) -c src/ZT1Service.cpp $(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(LIBZT_DEFS) $(STACK_DRIVER_DEFS)
+	$(CXX) $(CXXFLAGS) -c src/VirtualTap.cpp $(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
+	$(CXX) $(CXXFLAGS) -c src/lwIP.cpp $(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
 	mv *.o obj
-	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) $(STACK_LIB) obj/*.o 
+	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) obj/*.o
 	@date +"Build script finished on %F %T"
 endif
 # for layer-2 only (this will omit all userspace network stack code)
 ifeq ($(NO_STACK),1)
 static_lib: $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
-	$(CXX) $(CXXFLAGS) $(ZT_FLAGS) $(ZT_INCLUDES) $(LIBZT_FLAGS) $(LIBZT_INCLUDES) $(LIBZT_FILES) -c
+	$(CXX) $(CXXFLAGS) $(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(LIBZT_FILES) -c
 	mv *.o obj
 	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) obj/*.o
 	@date +"Build script finished on %F %T"
@@ -318,13 +323,13 @@ tests: selftest nativetest ztproxy
 ZT_UTILS:=zto/node/Utils.cpp -Izto/node
 
 selftest:
-	$(CXX) $(CXXFLAGS) -D__SELFTEST__ $(STACK_DRIVER_FLAGS) $(LIBZT_FLAGS) \
+	$(CXX) $(CXXFLAGS) -D__SELFTEST__ $(STACK_DRIVER_DEFS) $(LIBZT_DEFS) \
 		$(SANFLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) $(ZT_UTILS) test/selftest.cpp -o \
 		$(BUILD)/selftest -L$(BUILD) -lzt -lpthread
 	@./check.sh $(BUILD)/selftest
 	@date +"Build script finished on %F %T"
 nativetest:
-	$(CXX) $(CXXFLAGS) -D__NATIVETEST__ $(STACK_DRIVER_FLAGS) $(SANFLAGS) \
+	$(CXX) $(CXXFLAGS) -D__NATIVETEST__ $(STACK_DRIVER_DEFS) $(SANFLAGS) \
 		$(LIBZT_INCLUDES) $(ZT_INCLUDES) test/selftest.cpp -o $(BUILD)/nativetest
 	@./check.sh $(BUILD)/nativetest
 	@date +"Build script finished on %F %T"
@@ -334,7 +339,7 @@ ztproxy:
 	@./check.sh $(BUILD)/ztproxy
 	@date +"Build script finished on %F %T"
 intercept:
-	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(STACK_DRIVER_FLAGS) $(LIBZT_INCLUDES) \
+	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(STACK_DRIVER_DEFS) $(LIBZT_INCLUDES) \
 		$(ZT_INCLUDES) examples/intercept/intercept.cpp -D_GNU_SOURCE \
 		-shared -o $(BUILD)/intercept.so $< -ldl
 	@./check.sh $(BUILD)/intercept.so

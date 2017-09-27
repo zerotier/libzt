@@ -1,3 +1,5 @@
+
+
 #
 # Copyright (c) 2001, 2002 Swedish Institute of Computer Science.
 # All rights reserved.
@@ -29,7 +31,7 @@
 # Author: Adam Dunkels <adam@sics.se>
 #
 
-CONTRIBDIR=ext/contrib
+CONTRIBDIR=ext/lwip-contrib
 LWIPARCH=$(CONTRIBDIR)/ports/unix
 
 #Set this to where you have the lwip core module checked out from CVS
@@ -37,103 +39,44 @@ LWIPARCH=$(CONTRIBDIR)/ports/unix
 LWIPDIR=ext/lwip/src
 
 CCDEP=clang++
-
 # Automagically pick clang or gcc, with preference for clang
 # This is only done if we have not overridden these with an environment or CLI variable
 ifeq ($(origin CCX),default)
 	CCX=$(shell if [ -e /usr/bin/clang++ ]; then echo clang++; else echo g++; fi)
 endif
 
-CFLAGS=-O3 -g -Wall -fPIC
+LWIPINCLUDES:=-I$(LWIPDIR)/include -I$(LWIPARCH) -I$(LWIPDIR) -I. -Iext -Iinclude
+CFLAGS=-Wno-format -Wno-deprecated -O3 -g -Wall -fPIC
+CFLAGS+=-DLWIP_IPV4 -DLWIP_IPV6=0 -DIPv4 -DLWIP_DEBUG=1 $(LWIPINCLUDES)
 
-CFLAGS:=$(CFLAGS) -I$(LWIPDIR)/include -I$(LWIPARCH)/include -I$(LWIPDIR) -I. -Iext -Iinclude
+UNIXLIB=liblwip.a
 
-# COREFILES, CORE4FILES: The minimum set of files needed for lwIP.
-COREFILES=$(LWIPDIR)/core/init.c \
-	$(LWIPDIR)/core/def.c \
-	$(LWIPDIR)/core/dns.c \
-	$(LWIPDIR)/core/inet_chksum.c \
-	$(LWIPDIR)/core/ip.c \
-	$(LWIPDIR)/core/mem.c \
-	$(LWIPDIR)/core/memp.c \
-	$(LWIPDIR)/core/netif.c \
-	$(LWIPDIR)/core/pbuf.c \
-	$(LWIPDIR)/core/raw.c \
-	$(LWIPDIR)/core/stats.c \
-	$(LWIPDIR)/core/sys.c \
-	$(LWIPDIR)/core/tcp.c \
-	$(LWIPDIR)/core/tcp_in.c \
-	$(LWIPDIR)/core/tcp_out.c \
-	$(LWIPDIR)/core/timeouts.c \
-	$(LWIPDIR)/core/udp.c
-CORE4FILES=$(LWIPDIR)/core/ipv4/autoip.c \
-	$(LWIPDIR)/core/ipv4/dhcp.c \
-	$(LWIPDIR)/core/ipv4/etharp.c \
-	$(LWIPDIR)/core/ipv4/icmp.c \
-	$(LWIPDIR)/core/ipv4/igmp.c \
-	$(LWIPDIR)/core/ipv4/ip4_frag.c \
-	$(LWIPDIR)/core/ipv4/ip4.c \
-	$(LWIPDIR)/core/ipv4/ip4_addr.c
-CORE6FILES=$(LWIPDIR)/core/ipv6/ethip6.c \
-	$(LWIPDIR)/core/ipv6/icmp6.c \
-	$(LWIPDIR)/core/ipv6/inet6.c \
-	$(LWIPDIR)/core/ipv6/ip6.c \
-	$(LWIPDIR)/core/ipv6/ip6_addr.c \
-	$(LWIPDIR)/core/ipv6/ip6_frag.c \
-	$(LWIPDIR)/core/ipv6/mld6.c \
-	$(LWIPDIR)/core/ipv6/dhcp6.c \
-	$(LWIPDIR)/core/ipv6/nd6.c
-	# APIFILES: The files which implement the sequential and socket APIs.
-APIFILES=$(LWIPDIR)/api/err.c
-#$(LWIPDIR)/api/api_lib.c \
-	$(LWIPDIR)/api/api_msg.c \
-	 \
-	$(LWIPDIR)/api/netbuf.c \
-	$(LWIPDIR)/api/netdb.c \
-	$(LWIPDIR)/api/netifapi.c \
-	$(LWIPDIR)/api/sockets.c \
-	$(LWIPDIR)/api/tcpip.c
-# NETIFFILES: Files implementing various generic network interface functions
-NETIFFILES=$(LWIPDIR)/netif/ethernet.c 
-# SIXLOWPAN: 6LoWPAN
-SIXLOWPAN=$(LWIPDIR)/netif/lowpan6.c \
-# ARCHFILES: Architecture specific files.
-ARCHFILES=$(wildcard $(LWIPARCH)/*.c $(LWIPARCH)tapif.c $(LWIPARCH)/netif/list.c $(LWIPARCH)/netif/tcpdump.c)
-# LWIPFILES: All the above.
-LWIPFILES=$(COREFILES) $(NETIFFILES) $(ARCHFILES) $(APIFILES)
-
-ifeq ($(LIBZT_IPV4),1)
-	LWIPFILES+=$(CORE4FILES)
-	CFLAGS+=-DLIBZT_IPV4=1 -DLWIP_IPV4 -DLWIP_IPV6=0 -DIPv4
-endif
-ifeq ($(LIBZT_IPV6),1)
-	LWIPFILES+=$(CORE6FILES)
-	CFLAGS+=-DLIBZT_IPV6=1 -DLWIP_IPV6 -DLWIP_IPV4=0 -DIPv6 
-endif
-ifeq ($(LWIP_DEBUG),1)
-	CFLAGS+=-DLWIP_DEBUG=1
-endif
-
-CFLAGS+=-DLWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS
-
-LWIPFILESW=$(wildcard $(LWIPFILES))
-LWIPOBJS=$(notdir $(LWIPFILESW:.c=.o))
-
-%.o:
-	$(CXX) $(CFLAGS) -Wno-deprecated -c $(<:.o=.c) -o obj/$@
-
-all:
+all: $(UNIXLIB)
 .PHONY: all
 
+include ext/lwip/src/Filelists.mk
+
+# ARCHFILES: Architecture specific files.
+ARCHFILES=$(wildcard $(LWIPARCH)/port/*.c $(LWIPARCH)/*.c $(LWIPARCH)tapif.c $(LWIPARCH)/netif/list.c $(LWIPARCH)/netif/tcpdump.c)
+
+LWIPNOAPPSFILES+=$(ARCHFILES)
+LWIPNOAPPSFILESW=$(wildcard $(LWIPNOAPPSFILES))
+LWIPNOAPPSOBJS=$(notdir $(LWIPNOAPPSFILESW:.c=.o))
+
+CCX=clang++
+
+%.o:
+	$(CCX) $(CFLAGS) -c $(<:.o=.c)
+
 clean:
-	rm -rf .depend
-	rm -f *.o *.s .depend* *.core core
+	rm -f *.o $(LWIPNOAPPSOBJS) *.s .depend* *.core core
 
 depend dep: .depend
+
 include .depend
 
-liblwip.a: clean $(LWIPOBJS)
-	#libtool -static -o $@ $^
+$(UNIXLIB): $(LWIPNOAPPSOBJS)
+	$(CCX) $(CFLAGS) -g -nostartfiles -shared -o $@ $^
 
-.depend: $(LWIPFILES)
-	$(CCDEP) $(CFLAGS) -x c -MM $^ > .depend || rm -f .depend
+.depend: $(LWIPNOAPPSFILES)
+	$(CCX) $(CFLAGS) -MM $^ > .depend || rm -f .depend

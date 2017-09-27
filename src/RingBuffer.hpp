@@ -24,6 +24,12 @@
  * of your own application.
  */
 
+/**
+ * @file
+ *
+ * Ring buffer implementation for network stack drivers
+ */
+
 #ifndef ZT_RINGBUFFER_HPP
 #define ZT_RINGBUFFER_HPP
 

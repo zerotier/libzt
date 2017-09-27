@@ -24,44 +24,22 @@
  * of your own application.
  */
 
+/**
+ * @file
+ *
+ * Virtual Ethernet tap device
+ */
+
 #ifndef ZT_VIRTUALTAP_HPP
 #define ZT_VIRTUALTAP_HPP
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string>
-#include <vector>
-#include <queue>
-#include <utility>
-#include <stdexcept>
-#include <stdint.h>
-#include <errno.h>
+#include <ctime>
 
-#include "Constants.hpp"
-#include "MulticastGroup.hpp"
 #include "Mutex.hpp"
+#include "MulticastGroup.hpp"
 #include "InetAddress.hpp"
 #include "Thread.hpp"
 #include "Phy.hpp"
-
-#include "libzt.h"
-#include "VirtualSocket.hpp"
-
-#if defined(STACK_PICO)
-#include "picoTCP.hpp"
-#include "pico_protocol.h"
-#include "pico_stack.h"
-#include "pico_ipv4.h"
-#include "pico_icmp4.h"
-#include "pico_dev_tap.h"
-#include "pico_protocol.h"
-#include "pico_device.h"
-#include "pico_ipv6.h"
-#endif
-#if defined(STACK_LWIP)
-#include "lwip/netif.h"
-struct netif;
-#endif
 
 namespace ZeroTier {
 
@@ -175,12 +153,12 @@ namespace ZeroTier {
 		/**
 		 * Assign a VirtualSocket to the VirtualTap
 		 */
-		void addVirtualSocket(VirtualSocket *vs);
+		void addVirtualSocket();
 
 		/**
 		 * Remove a VirtualSocket from the VirtualTap
 		 */
-		void removeVirtualSocket(VirtualSocket *vs);
+		void removeVirtualSocket();
 
 		/****************************************************************************/
 		/* DNS                                                                      */
@@ -200,22 +178,6 @@ namespace ZeroTier {
 		/* Vars                                                                     */
 		/****************************************************************************/
 
-#if defined(STACK_PICO)
-		bool should_start_stack = false;
-		struct pico_device *picodev = NULL;
-
-		/****************************************************************************/
-		/* Guarded RX Frame Buffer for picoTCP                                      */
-		/****************************************************************************/
-
-		unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
-		int pico_frame_rxbuf_tot = 0;
-		Mutex _pico_frame_rxbuf_m;
-#endif
-#if defined(STACK_LWIP)
-		netif lwipdev;
-		netif lwipdev6;
-#endif
 		std::vector<std::pair<ZeroTier::InetAddress, ZeroTier::InetAddress>> routes;
 		void *zt1ServiceRef = NULL;
 
@@ -238,7 +200,7 @@ namespace ZeroTier {
 		PhySocket *_unixListenSocket;
 		Phy<VirtualTap *> _phy;
 
-		std::vector<VirtualSocket*> _VirtualSockets;
+		//std::vector<VirtualSocket*> _VirtualSockets;
 
 		Thread _thread;
 		std::string _dev; // path to Unix domain socket
@@ -261,22 +223,22 @@ namespace ZeroTier {
 		/**
 		 * Connect to a remote host via the userspace stack interface associated with this VirtualTap
 		 */
-		int Connect(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
+		int Connect( const struct sockaddr *addr, socklen_t addrlen);
 
 		/**
 		 * Bind to the userspace stack interface associated with this VirtualTap
 		 */
-		int Bind(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
+		int Bind(const struct sockaddr *addr, socklen_t addrlen);
 
 		/**
 		 * Listen for a VirtualSocket
 		 */
-		int Listen(VirtualSocket *vs, int backlog);
+		int Listen(int backlog);
 
 		/**
 		 * Accepts an incoming VirtualSocket
 		 */
-		VirtualSocket* Accept(VirtualSocket *vs);
+		void Accept();
 
 		/**
 		 * Move data from RX buffer to application's "socket"
@@ -286,22 +248,22 @@ namespace ZeroTier {
 		/**
 		 * Move data from application's "socket" into network stack
 		 */
-		int Write(VirtualSocket *vs, void *data, ssize_t len);
+		int Write(void *data, ssize_t len);
 
 		/**
 		 * Send data to specified host
 		 */
-		int SendTo(VirtualSocket *vs, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen);
+		int SendTo(const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen);
 
 		/**
 		 * Closes a VirtualSocket
 		 */
-		int Close(VirtualSocket *vs);
+		int Close();
 
 		/**
 		 * Shuts down some aspect of a VirtualSocket
 		 */
-		int Shutdown(VirtualSocket *vs, int how);
+		int Shutdown(int how);
 
 		/**
 		 * Disposes of previously-closed VirtualSockets

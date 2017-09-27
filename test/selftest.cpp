@@ -47,6 +47,7 @@
 #include <sys/time.h>
 #include <pthread.h>
 #include <signal.h>
+#include <cstring>
 
 #include "libzt.h"
 
@@ -1755,10 +1756,10 @@ int slam_api_test()
 					fds[i] = -1;
 			}
 		}
-		if (zts_num_active_virt_sockets() == 0)
-			std::cout << "PASSED [slam open and close]" << std::endl;
-		else
-			std::cout << "FAILED [slam open and close] - sockets left unclosed" << std::endl;
+		//if (zts_num_active_virt_sockets() == 0)
+		//	std::cout << "PASSED [slam open and close]" << std::endl;
+		//else
+		//	std::cout << "FAILED [slam open and close] - sockets left unclosed" << std::endl;
 	}
 
 	// ---
@@ -1827,17 +1828,17 @@ int slam_api_test()
 			}
 		}
 		used_ports.clear();
-		if (zts_num_active_virt_sockets() == 0)
-			std::cout << "PASSED [slam open, bind, listen, accept, close]" << std::endl;
-		else
-			std::cout << "FAILED [slam open, bind, listen, accept, close]" << std::endl;
+		//if (zts_num_active_virt_sockets() == 0)
+		//	std::cout << "PASSED [slam open, bind, listen, accept, close]" << std::endl;
+		//else
+		//	std::cout << "FAILED [slam open, bind, listen, accept, close]" << std::endl;
 	}
 
 	// TESTS:
 	// (1) socket()
 	// (2) connect()
 	// (3) close()
-	int num_times = zts_maxsockets(SOCK_STREAM);
+	int num_times = 3;//zts_maxsockets(SOCK_STREAM);
 	std::cout << "socket/connect/close - " << num_times << " times" << std::endl;
 	for (int i=0;i<(SLAM_NUMBER*SLAM_REPEAT); i++) { results[i] = 0; }
 	if (true) 
@@ -1893,15 +1894,15 @@ int slam_api_test()
 		}
 
 		displayResults(results, num_times);
-		if (zts_num_active_virt_sockets() == 0)
-			std::cout << "PASSED [slam open, connect, close]" << std::endl;
-		else
-			std::cout << "FAILED [slam open, connect, close]" << std::endl;
+		//if (zts_num_active_virt_sockets() == 0)
+		//	std::cout << "PASSED [slam open, connect, close]" << std::endl;
+		//else
+		//	std::cout << "FAILED [slam open, connect, close]" << std::endl;
 	}
 	return 0;
 }
 
-
+/*
 void get_network_routes(char *nwid)
 {
 	// Retreive managed routes for a given ZeroTier network
@@ -1919,6 +1920,7 @@ void get_network_routes(char *nwid)
 		DEBUG_TEST("<target=%s, via=%s, flags=%d>", target_str, via_str, routes->at(i).flags);
 	}
 }
+*/
 
 /****************************************************************************/
 /* RANDOMIZED API TEST                                                      */
@@ -2534,9 +2536,10 @@ for (int i=0; i<num_repeats; i++)
 	op   = TEST_OP_N_BYTES;
 
 	/*
-	 int stack_array[100];
-  	stack_array[1] = 0;
-  	return stack_array[argc + 100];  // BOOM
+	// Deliberately create a bad read to trigger address sanitizer
+	int stack_array[100];
+	stack_array[1] = 0;
+	return stack_array[argc + 100];  // BOOM
 
 	int mybuf[10];
 	mybuf[11] = 9;
@@ -2546,9 +2549,8 @@ for (int i=0; i<num_repeats; i++)
 	// set start time here since we aren't waiting for libzt to come online in NATIVETEST mode
 	#if defined(__NATIVETEST__)	
 		long int selftest_start_time = get_now_ts();
-		subtest_expected_duration = 5; // initial value, wait for other instance to come online
+		subtest_expected_duration = 20; // initial value, wait for other instance to come online
 	#endif
-
 
 	#if defined(LIBZT_IPV4)
 		// UDP 4 client/server

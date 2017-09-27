@@ -1,9 +1,3 @@
-/**
- * @file
- *
- * lwIP Options Configuration
- */
-
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved.
@@ -35,8 +29,47 @@
  * Author: Adam Dunkels <adam@sics.se>
  *
  */
+
+/**
+ * @file
+ *
+ * lwIP Options Configuration
+ */
+
 #ifndef __LWIPOPTS_H__
 #define __LWIPOPTS_H__
+
+/*
+ *  Provides its own errno 
+ */
+#define LWIP_PROVIDE_ERRNO          0
+
+/*
+ * Provides core locking machinery
+ */
+#define LWIP_TCPIP_CORE_LOCKING     1
+
+/*
+ * Provides a macro to spoof the names of the lwip socket functions
+ */ 
+#define LWIP_POSIX_SOCKETS_IO_NAMES 0 
+
+/*
+ * 
+ */
+#define LWIP_TIMERS                 1
+
+/*
+ *
+ */
+//#define LWIP_COMPAT_MUTEX 1
+//#define LWIP_COMPAT_MUTEX_ALLOWED 1
+
+/* 
+ * Provides network/host byte transformation macros
+ */
+#define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS 1
+
 
 /*
  * Include user defined options first. Anything not defined in these files
@@ -55,6 +88,9 @@
 #endif
 
 // --- DEBUG ---
+
+
+#define LWIP_DEBUG 1
 
 /* flag for LWIP_DEBUGF indicating a tracing message
  * (to follow program flow)
@@ -124,8 +160,6 @@
 #define DNS_DEBUG                       LWIP_DBG_OFF
 
 
-#define LWIP_UDP        1
-#define LWIP_TCP        1
 #define LWIP_ETHERNET   1
 
 #define LWIP_CHKSUM_ALGORITHM 2
@@ -187,7 +221,7 @@ happening sooner than they should.
  * critical regions during buffer allocation, deallocation and memory
  * allocation and deallocation.
  */
-#define SYS_LIGHTWEIGHT_PROT            0
+#define SYS_LIGHTWEIGHT_PROT            1
 
 /**
  * NO_SYS==1: Provides VERY minimal functionality. Otherwise,
@@ -195,10 +229,10 @@ happening sooner than they should.
  */
 
 /* set to 1 so we have no thread behaviour */
-#define NO_SYS                          1
+#define NO_SYS                          0
 
 /* set to 1 so we can use our own timers */
-#define NO_SYS_NO_TIMERS                1
+#define NO_SYS_NO_TIMERS                0
 
 
 /*------------------------------------------------------------------------------
@@ -218,7 +252,7 @@ happening sooner than they should.
  *    4 byte alignment -> #define MEM_ALIGNMENT 4
  *    2 byte alignment -> #define MEM_ALIGNMENT 2
  */
-#define MEM_ALIGNMENT                   1
+#define MEM_ALIGNMENT                   4
 
 /**
  * MEM_SIZE: the size of the heap memory. If the application will send
@@ -526,7 +560,7 @@ happening sooner than they should.
 /**
  * LWIP_NETCONN==1: Enable Netconn API (require to use api_lib.c)
  */
-#define LWIP_NETCONN                    0
+#define LWIP_NETCONN                    1//(NO_SYS==0)
 
 
 /*------------------------------------------------------------------------------
@@ -535,7 +569,8 @@ happening sooner than they should.
 /**
  * LWIP_SOCKET==1: Enable Socket API (require to use sockets.c)
  */
-#define LWIP_SOCKET                     0
+
+#define LWIP_SOCKET                     1//(NO_SYS==0)
 
 
 /*------------------------------------------------------------------------------

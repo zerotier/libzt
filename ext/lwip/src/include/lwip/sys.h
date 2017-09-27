@@ -42,7 +42,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+  
 #if NO_SYS
 
 /* For a totally minimal and standalone system, we provide null

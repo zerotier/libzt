@@ -36,46 +36,42 @@
 #include "InetAddress.hpp"
 
 /**
- *  @brief      Returns masked address for subnet comparisons
+ * @brief Returns masked address for subnet comparisons
  *
- *  @usage      For internal use only.
- * 
- *  @param         
- *
- *  @return     
+ * @usage For internal use only.
+ * @param socket_type
+ * @return
  */
 bool ipv6_in_subnet(ZeroTier::InetAddress *subnet, ZeroTier::InetAddress *addr);
 
 /**
- *  @brief      Convert protocol numbers to human-readable strings
+ * @brief Convert protocol numbers to human-readable strings
  *
- *  @usage      For internal use only.
- * 
- *  @param         
- *
- *  @return     
+ * @usage For internal use only.
+ * @param proto
+ * @return
  */
 char *beautify_eth_proto_nums(int proto);
 
 /**
- *  @brief      Convert a struct sockaddr to a ZeroTier::InetAddress
+ * @brief Convert a struct sockaddr to a ZeroTier::InetAddress
  *
- *  @usage      For internal use only.
- * 
- *  @param         
- *
- *  @return     
+ * @usage For internal use only.
+ * @param socket_family
+ * @param addr
+ * @param inet
+ * @return
  */
 void sockaddr2inet(int socket_family, const struct sockaddr *addr, ZeroTier::InetAddress *inet);
 
 /**
- *  @brief      Convert a raw MAC address byte array into a human-readable string
+ * @brief Convert a raw MAC address byte array into a human-readable string
  *
- *  @usage      For internal use only.
- * 
- *  @param         
- *
- *  @return     
+ * @usage For internal use only.
+ * @param macbuf
+ * @param len
+ * @param addr
+ * @return
  */
 void mac2str(char *macbuf, int len, unsigned char* addr);
 
@@ -87,4 +83,4 @@ void mac2str(char *macbuf, int len, unsigned char* addr);
 
 #endif
 
-#endif // UTILITIES_HPP
+#endif // _H

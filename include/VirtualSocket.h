@@ -38,7 +38,7 @@ extern "C" {
 #endif
 
 /**
- * An abstraction of a socket that operates between the application-exposed platform-sockets 
+ * An abstraction of a socket that operates between the application-exposed platform-sockets
  * and the network stack's representation of a protocol control structure. This object is used by
  * the POSIX socket emulation layer and stack drivers.
  */
@@ -48,4 +48,4 @@ class VirtualSocket;
 }
 #endif
 
-#endif
+#endif // _H

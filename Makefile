@@ -120,11 +120,12 @@ ifeq ($(ZT_DEBUG),1)
 	CFLAGS+=-Wall -g -pthread
 	STRIP=echo
 else
-	CFLAGS?=-Ofast -g -fstack-protector
+	CFLAGS?=-Ofast -fstack-protector
 	CFLAGS+=-Wall -fPIE -fvisibility=hidden -pthread
 	STRIP=strip
 endif
 ifeq ($(LIBZT_DEBUG),1)
+	CFLAGS+=-g
 	LIBZT_DEFS+=-DLIBZT_DEBUG
 endif
 ifeq ($(NS_DEBUG),1)

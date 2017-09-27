@@ -43,7 +43,7 @@ extern "C" {
 #endif
 
 void sys2lwip(int fd, const struct sockaddr *orig, struct sockaddr *modified) {
-	
+
 	/* Inelegant fix for lwIP 'sequential' API address error check (in sockets.c). For some reason
 	lwIP seems to lose track of the sa_family for the socket internally, when lwip_connect()
 	is called, it thus receives an AF_UNSPEC socket which fails. Here we use lwIP's own facilities
@@ -59,7 +59,7 @@ void sys2lwip(int fd, const struct sockaddr *orig, struct sockaddr *modified) {
 	}
 
 	if (ss.ss_family == AF_INET) {
-#if defined(__linux__)	
+#if defined(__linux__)
 		struct sockaddr_in *modified_ptr = (struct sockaddr_in *)modified;
 		struct sockaddr_in *addr4 = (struct sockaddr_in*)orig;
 		modified_ptr->sin_len = sizeof(struct sockaddr_in);
@@ -71,19 +71,19 @@ void sys2lwip(int fd, const struct sockaddr *orig, struct sockaddr *modified) {
 #endif
 	}
 	if (ss.ss_family == AF_INET) {
-#if defined(__linux__)	
+#if defined(__linux__)
 #else
 #endif
 	}
 }
 
-int zts_socket(int socket_family, int socket_type, int protocol) 
+int zts_socket(int socket_family, int socket_type, int protocol)
 {
 	DEBUG_EXTRA("family=%d, type=%d, proto=%d", socket_family, socket_type, protocol);
 	return lwip_socket(socket_family, socket_type, protocol);
 }
 
-int zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen) 
+int zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen)
 {
 	DEBUG_EXTRA("fd=%d",fd);
 	struct sockaddr_storage ss;
@@ -91,21 +91,21 @@ int zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen)
 	return lwip_connect(fd, (struct sockaddr*)&ss, addrlen);
 }
 
-int zts_bind(int fd, const struct sockaddr *addr, socklen_t addrlen) 
+int zts_bind(int fd, const struct sockaddr *addr, socklen_t addrlen)
 {
-	DEBUG_EXTRA("fd=%d", fd);	
+	DEBUG_EXTRA("fd=%d", fd);
 	struct sockaddr_storage ss;
 	sys2lwip(fd, addr, (struct sockaddr*)&ss);
 	return lwip_bind(fd, (struct sockaddr*)&ss, addrlen);
 }
 
-int zts_listen(int fd, int backlog) 
+int zts_listen(int fd, int backlog)
 {
 	DEBUG_EXTRA("fd=%d", fd);
 	return lwip_listen(fd, backlog);
 }
 
-int zts_accept(int fd, struct sockaddr *addr, socklen_t *addrlen) 
+int zts_accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
 	DEBUG_EXTRA("fd=%d", fd);
 	return lwip_accept(fd, addr, addrlen);

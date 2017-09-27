@@ -40,7 +40,7 @@
 #define __LWIPOPTS_H__
 
 /*
- *  Provides its own errno 
+ *  Provides its own errno
  */
 #define LWIP_PROVIDE_ERRNO          0
 
@@ -51,11 +51,11 @@
 
 /*
  * Provides a macro to spoof the names of the lwip socket functions
- */ 
-#define LWIP_POSIX_SOCKETS_IO_NAMES 0 
+ */
+#define LWIP_POSIX_SOCKETS_IO_NAMES 0
 
 /*
- * 
+ *
  */
 #define LWIP_TIMERS                 1
 
@@ -65,7 +65,7 @@
 //#define LWIP_COMPAT_MUTEX 1
 //#define LWIP_COMPAT_MUTEX_ALLOWED 1
 
-/* 
+/*
  * Provides network/host byte transformation macros
  */
 #define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS 1

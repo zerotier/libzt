@@ -27,10 +27,9 @@
 /**
  * @file
  *
- * 
+ *
  */
 
-/*
 #ifndef LIBZT_VIRTUALBINDINGPAIR_H
 #define LIBZT_VIRTUALBINDINGPAIR_H
 
@@ -44,5 +43,4 @@ struct VirtualBindingPair;
 }
 #endif
 
-#endif
-*/
+#endif // _H

@@ -172,7 +172,7 @@ int zts_get_device_id_from_file(const char *filepath, char *devID) {
 }
 
 // Starts a ZeroTier service in the background
-void *zts_start_service(void *thread_id) 
+void *zts_start_service(void *thread_id)
 {
 	DEBUG_INFO("homeDir=%s", ZeroTier::homeDir.c_str());
 	// Where network .conf files will be stored
@@ -439,16 +439,6 @@ void zts_get_homepath(char *homePath, int len) {
 	}
 }
 
-void zts_core_version(char *ver) {
-	int major, minor, revision;
-	ZT_version(&major, &minor, &revision);
-	sprintf(ver, "%d.%d.%d", major, minor, revision);
-}
-
-void zts_lib_version(char *ver) {
-	//sprintf(ver, "%d.%d.%d", ZT_LIB_VERSION_MAJOR, ZT_LIB_VERSION_MINOR, ZT_LIB_VERSION_REVISION);
-}
-
 int zts_get_device_id(char *devID) {
 	if (ZeroTier::zt1Service) {
 		char id[ZTO_ID_LEN];
@@ -493,12 +483,7 @@ int zts_get_peer_address(char *peer, const char *devID) {
 		return -1;
 }
 
-void zts_enable_http_control_plane()
-{
-	// TODO
-}
-
-void zts_disable_http_control_plane()
+void zts_allow_http_control(bool allowed)
 {
 	// TODO
 }

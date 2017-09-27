@@ -40,34 +40,44 @@
 /**
  * @brief Initialize network stack semaphores, threads, and timers.
  *
- * @param 
- * @return 
+ * @return
  */
 void lwip_driver_init();
 
 /**
  * @brief Set up an interface in the network stack for the VirtualTap.
  *
- * @param 
- * @return 
+ * @param
+ * @param tapref Reference to VirtualTap that will be responsible for sending and receiving data
+ * @param mac Virtual hardware address for this ZeroTier VirtualTap interface
+ * @param ip Virtual IP address for this ZeroTier VirtualTap interface
+ * @return
  */
 void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier::InetAddress &ip);
 
 /**
  * @brief Called from the stack, outbound ethernet frames from the network stack enter the ZeroTier virtual wire here.
  *
- * @param 
- * @return 
+ * @usage This shall only be called from the stack or the stack driver. Not the application thread.
+ * @param netif Transmits an outgoing Ethernet fram from the network stack onto the ZeroTier virtual wire
+ * @param p A pointer to the beginning of a chain pf struct pbufs
+ * @return
  */
 err_t lwip_eth_tx(struct netif *netif, struct pbuf *p);
 
 /**
- * @brief Packets from the ZeroTier virtual wire enter the stack here.
+ * @brief Receives incoming Ethernet frames from the ZeroTier virtual wire
  *
- * @param 
- * @return 
+ * @usage This shall be called from the VirtualTap's I/O thread (via VirtualTap::put())
+ * @param tap Pointer to VirtualTap from which this data comes
+ * @param from Origin address (virtual ZeroTier hardware address)
+ * @param to Intended destination address (virtual ZeroTier hardware address)
+ * @param etherType Protocol type
+ * @param data Pointer to Ethernet frame
+ * @param len Length of Ethernet frame
+ * @return
  */
-void lwip_eth_rx(ZeroTier::VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC &to, unsigned int etherType, 
+void lwip_eth_rx(ZeroTier::VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC &to, unsigned int etherType,
 	const void *data, unsigned int len);
 
 #endif

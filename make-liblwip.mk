@@ -54,7 +54,7 @@ UNIXLIB=liblwip.a
 all: $(UNIXLIB)
 .PHONY: all
 
-include ext/lwip/src/Filelists.mk
+include $(LWIPDIR)/Filelists.mk
 
 # ARCHFILES: Architecture specific files.
 ARCHFILES=$(wildcard $(LWIPARCH)/port/*.c $(LWIPARCH)/*.c $(LWIPARCH)tapif.c $(LWIPARCH)/netif/list.c $(LWIPARCH)/netif/tcpdump.c)
@@ -76,7 +76,7 @@ depend dep: .depend
 include .depend
 
 $(UNIXLIB): $(LWIPNOAPPSOBJS)
-	$(CCX) $(CFLAGS) -g -nostartfiles -shared -o $@ $^
+	$(CCX) $(CFLAGS) -g -nostartfiles -shared -o obj/$@ $^
 
 .depend: $(LWIPNOAPPSFILES)
 	$(CCX) $(CFLAGS) -MM $^ > .depend || rm -f .depend

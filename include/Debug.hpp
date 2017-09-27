@@ -183,4 +183,4 @@ extern unsigned int gettid(); // defined in libzt.cpp
 	#define DEBUG_EXTRA(fmt, args...)
 #endif
 
-#endif // LIBZT_DEBUG_HPP
+#endif // _H

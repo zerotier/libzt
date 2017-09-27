@@ -42,7 +42,7 @@
 extern "C" {
 #endif
 
-namespace ZeroTier 
+namespace ZeroTier
 {
 	extern std::vector<void*> vtaps;
 
@@ -59,288 +59,246 @@ namespace ZeroTier
 
 /**
  * @brief Returns a vector of network routes { target, via, metric, etc... }
- * 
- * @usage 
+ *
+ * @usage
  * @param nwid
- * @return 
+ * @return
  */
 std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(char *nwid);
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @usage For internal use only.
- * @param 
- * @return 
+ * @param
+ * @return
  */
 int zts_get_device_id_from_file(const char *filepath, char *devID);
 
 /**
  * @brief Starts a ZeroTier service in the background
- * 
+ *
  * @usage For internal use only.
- * @param 
- * @return 
+ * @param
+ * @return
  */
-void *zts_start_service(void *thread_id); 
+void *zts_start_service(void *thread_id);
 
 /**
- * @brief 
- * 
+ * @brief Stops all VirtualTap interfaces and associated I/O loops
+ *
  * @usage For internal use only.
- * @param 
- * @return 
+ * @param
+ * @return
  */
 void disableTaps();
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @usage For internal use only.
- * @param 
- * @return 
+ * @param
+ * @return
  */
 void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen);
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @usage For internal use only.
- * @param 
- * @return 
+ * @param
+ * @return
  */
 void zts_get_ipv6_address(const char *nwid, char *addrstr, const int addrlen);
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @usage For internal use only.
- * @param 
- * @return 
+ * @param
+ * @return
  */
 int zts_has_ipv4_address(const char *nwid);
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @usage For internal use only.
- * @param 
- * @return 
+ * @param
+ * @return
  */
 int zts_has_ipv6_address(const char *nwid);
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @usage For internal use only.
- * @param 
- * @return 
+ * @param
+ * @return
  */
 int zts_has_address(const char *nwid);
 
 /**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
+ * @brief
+ *
+ * @usage
+ * @param
+ * @return
  */
 void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID);
 
 /**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
+ * @brief
+ *
+ * @usage
+ * @param
+ * @return
  */
 void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID);
 
 /**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
+ * @brief Join a network
+ *
+ * @usage Call this from application thread. Only after zts_start() has succeeded
+ * @param nwid A 16-digit hexidecimal virtual network ID
+ * @return
  */
 void zts_join(const char * nwid);
 
 /**
- * @brief 
- * 
- * @usage For internal use only.
- * @param 
- * @return 
+ * @brief Leave a network
+ *
+ * @usage Call this from application thread. Only after zts_start() has succeeded
+ * @param nwid A 16-digit hexidecimal virtual network ID
+ * @return
  */
-void zts_join_soft(const char * filepath, const char * nwid);
+void zts_leave(const char * nwid);
 
 /**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
- */
-void zts_leave(const char * nwid); 
-
-/**
- * @brief 
- * 
- * @usage For internal use only.
- * @param 
- * @return 
- */
-void zts_leave_soft(const char * filepath, const char * nwid); 
-
-/**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
+ * @brief Return whether libzt (specifically the ZeroTier core service) is currently running
+ *
+ * @usage Call this before, during, or after zts_start()
+ * @return
  */
 int zts_running();
 
 /**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
+ * @brief Start an instance of libzt (ZeroTier core service, network stack drivers, network stack threads, etc)
+ *
+ * @usage Call this when you anticipate needing to communicate over ZeroTier virtual networks. It is recommended
+ * that one call this at the beginning of your application code since it may take several seconds to fully
+ * come online.
+ * @param path Where this instance of ZeroTier will store its identity and configuration files
+ * @return
  */
 void zts_start(const char *path);
 
 /**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
+ * @brief Alternative to zts_start(). Start an instance of libzt, wait for an address to be issues, and join
+ * given network
+ *
+ * @usage Call this when you anticipate needing to communicate over ZeroTier virtual networks. It is recommended
+ * that one call this at the beginning of your application code since it may take several seconds to fully
+ * come online.
+ * @param path
+ * @param nwid A 16-digit hexidecimal virtual network ID
+ * @return
  */
 void zts_simple_start(const char *path, const char *nwid);
 
 /**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
+ * @brief
+ *
+ * @usage
+ * @param
+ * @return
  */
-void zts_stop(); 
+void zts_stop();
 
 /**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
- */void zts_get_homepath(char *homePath, int len); 
+ * @brief
+ *
+ * @usage
+ * @param
+ * @return
+ */void zts_get_homepath(char *homePath, int len);
 
 /**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
+ * @brief Copies the hexidecimal representation of this nodeID into the provided buffer
+ *
+ * @usage Call this after zts_start() and/or when zts_running() returns true
+ * @param devID Buffer to which id string is copied
+ * @return
  */
-void zts_core_version(char *ver); 
+int zts_get_device_id(char *devID);
 
 /**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
- */
-void zts_lib_version(char *ver); 
-
-/**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
- */
-int zts_get_device_id(char *devID); 
-
-/**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
+ * @brief Return the number of peers
+ *
+ * @usage Call this after zts_start() has succeeded
+ * @param
+ * @return
  */
 unsigned long zts_get_peer_count();
 
 /**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
+ * @brief Get the virtual address of a perr given it's ztAddress/nodeID
+ *
+ * @usage Call this after zts_start() has succeeded
+ * @param
+ * @return
  */
 int zts_get_peer_address(char *peer, const char *devID);
 
 /**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
+ * @brief Allow or disallow this instance of libzt to be controlled via HTTP requests
+ *
+ * @usage Call this after zts_start() has succeeded
+ * @param allowed True or false value
+ * @return
  */
-void zts_enable_http_control_plane();
+void zts_allow_http_control(bool allowed);
 
 /**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
- */
-void zts_disable_http_control_plane();
-
-/**
- * @brief Whether we can add a new socket or not. Depends on stack in use
- * 
- * @usage 
+ * @brief Returns whether one can add a new socket or not. This depends on network stack in use.
+ *
+ * @usage Call this after zts_start() has succeeded
  * @param socket_type
- * @return 
+ * @return
  */
 bool can_provision_new_socket(int socket_type);
 
 /**
- * @brief Returns the number of sockets either already provisioned or waiting to be
+ * @brief Returns the number of VirtualSockets either already provisioned or waiting to be
  * Some network stacks may have a limit on the number of sockets that they can
  * safely handle due to timer construction, this is a way to check that we
  * haven't passed that limit. Someday if multiple stacks are used simultaneously
  * the logic for this function should change accordingly.
- * 
- * @usage 
- * @param 
- * @return 
+ *
+ * @usage Call this after zts_start() has succeeded
+ * @return
  */
 int zts_num_active_virt_sockets();
 
 /**
- * @brief Returns maximum number of sockets allowed by network stack
- * 
- * @usage 
+ * @brief Return the maximum number of sockets allowable by platform/stack configuration
+ *
+ * @usage Call this after zts_start() has succeeded
  * @param socket_type
- * @return 
+ * @return
  */
 int zts_maxsockets(int socket_type);
 
 /**
- * @brief 
- * 
- * @usage 
- * @param 
- * @return 
+ * @brief Return the number of currently active picoTCP timers
+ *
+ * @usage Call this after zts_start() has succeeded
+ * @return
  */
 int pico_ntimers();
-
-#endif // ZT1SERVICE_H
 
 #ifdef __cplusplus
 }
 #endif
+
+#endif // _H

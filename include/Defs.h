@@ -33,6 +33,9 @@
 #ifndef LIBZT_DEFINES_H
 #define LIBZT_DEFINES_H
 
+/**
+ * Maximum MTU size for ZeroTier
+ */
 #define ZT_MAX_MTU 10000
 
 /**
@@ -41,7 +44,7 @@
 #define ZTO_WRAPPER_CHECK_INTERVAL 50
 
 /**
- * 
+ * Length of buffer required to hold a ztAddress/nodeID
  */
 #define ZTO_ID_LEN                  16
 
@@ -132,22 +135,22 @@ struct sockaddr_ll {
 
 typedef signed char err_t;
 
-/*
+/**
   Specifies the polling interval and the callback function that should
   be called to poll the application. The interval is specified in
   number of TCP coarse grained timer shots, which typically occurs
   twice a second. An interval of 10 means that the application would
-  be polled every 5 seconds. 
+  be polled every 5 seconds. (only for raw lwIP driver)
   */
 #define LWIP_APPLICATION_POLL_FREQ         2
 
 /**
- * 
+ * TCP timer interval in milliseconds (only for raw lwIP driver)
  */
 #define LWIP_TCP_TIMER_INTERVAL            25
 
 /**
- * How often we check VirtualSocket statuses (in ms)
+ * How often we check VirtualSocket statuses in milliseconds (only for raw lwIP driver)
  */
 #define LWIP_STATUS_TMR_INTERVAL           500
 
@@ -166,72 +169,72 @@ typedef signed char err_t;
 /****************************************************************************/
 
 /**
- * 
+ * Maximum number of sockets that libzt can administer
  */
 #define ZT_MAX_SOCKETS                     1024
 
 /**
- * 
+ * Maximum MTU size for libzt (must be less than or equal to ZT_MAX_MTU)
  */
 #define ZT_SDK_MTU                         ZT_MAX_MTU
 
 /**
- * 
+ *
  */
 #define ZT_LEN_SZ                          4
 
 /**
- * 
+ *
  */
 #define ZT_ADDR_SZ                         128
 
 /**
- * 
+ * Size of message buffer for VirtualSockets
  */
 #define ZT_SOCKET_MSG_BUF_SZ               ZT_SDK_MTU + ZT_LEN_SZ + ZT_ADDR_SZ
 
 /**
- * 
+ * Polling interval (in ms) for file descriptors wrapped in the Phy I/O loop (for raw drivers only)
  */
-#define ZT_PHY_POLL_INTERVAL                 5 // ms
+#define ZT_PHY_POLL_INTERVAL               5
 
 /**
- * 
+ * State check interval (in ms) for VirtualSocket state
  */
-#define ZT_ACCEPT_RECHECK_DELAY            100 // ms (for blocking zts_accept() calls)
+#define ZT_ACCEPT_RECHECK_DELAY            50
 
 /**
- * 
+ * State check interval (in ms) for VirtualSocket state
  */
-#define ZT_CONNECT_RECHECK_DELAY           100 // ms (for blocking zts_connect() calls)
+#define ZT_CONNECT_RECHECK_DELAY           50
 
 /**
- * 
+ * State check interval (in ms) for VirtualSocket state
  */
-#define ZT_API_CHECK_INTERVAL              100 // ms
+#define ZT_API_CHECK_INTERVAL              50
 
 /**
- * 
+ * Maximum size of guarded RX buffer (for picoTCP raw driver only)
  */
 #define MAX_PICO_FRAME_RX_BUF_SZ           ZT_MAX_MTU * 128
 
 /**
- * 
+ * Size of TCP TX buffer for VirtualSockets used in raw network stack drivers
  */
 #define ZT_TCP_TX_BUF_SZ                   1024 * 1024 * 128
 
 /**
- * 
+ * Size of TCP RX buffer for VirtualSockets used in raw network stack drivers
  */
 #define ZT_TCP_RX_BUF_SZ                   1024 * 1024 * 128
 
 /**
- * 
+ * Size of UDP TX buffer for VirtualSockets used in raw network stack drivers
  */
 #define ZT_UDP_TX_BUF_SZ                   ZT_MAX_MTU
 
 /**
- * 
+ * Size of UDP RX buffer for VirtualSockets used in raw network stack drivers
  */
 #define ZT_UDP_RX_BUF_SZ                   ZT_MAX_MTU * 10
 
@@ -241,12 +244,12 @@ typedef signed char err_t;
 // applications.
 
 /**
- * 
+ *
  */
 #define ZT_STACK_TCP_SOCKET_TX_SZ          ZT_TCP_TX_BUF_SZ
 
 /**
- * 
+ *
  */
 #define ZT_STACK_TCP_SOCKET_RX_SZ          ZT_TCP_RX_BUF_SZ
 
@@ -255,93 +258,94 @@ typedef signed char err_t;
 // If you use another stack you can probably bump this up a bit.
 
 /**
- * 
+ * Maximum size of write operation to a network stack
  */
 #define ZT_STACK_SOCKET_WR_MAX             4096
 
 /**
- * 
+ * Maximum size of read operation from a network stack
  */
 #define ZT_STACK_SOCKET_RD_MAX             4096*4
 
-/**
- * 
- */
-#define ZT_CORE_VERSION_MAJOR              1
-#define ZT_CORE_VERSION_MINOR              2
-#define ZT_CORE_VERSION_REVISION           5
+#define ZT_CORE_VERSION                    "1.2.5"
+#define ZT_LIB_VERSION                     "1.1.5"
 
 /**
- * 
- */
-#define ZT_LIB_VERSION_MAJOR               1
-#define ZT_LIB_VERSION_MINOR               1
-#define ZT_LIB_VERSION_REVISION            4
-
-/**
- * 
- */
-#define ZT_ID_LEN                          16
-
-/**
- * 
- */
-#define ZT_VER_STR_LEN                     6
-
-/**
- * 
+ * Maximum length of libzt/ZeroTier home path (where keys, and config files are stored)
  */
 #define ZT_HOME_PATH_MAX_LEN               128
 
 /**
- * 
+ * Length of human-readable MAC address string
  */
 #define ZT_MAC_ADDRSTRLEN                  18
 
 /**
- * 
+ * Everything is ok
  */
 #define ZT_ERR_OK                          0
 
 /**
- * 
+ * Value returned during an internal failure at the VirtualSocket/VirtualTap layer
  */
 #define ZT_ERR_GENERAL_FAILURE             -88
 
-// Since extra time is required to send a mesage via a socket through the
-// stack and ZT service, calling a zts_close() immediately after a "successful"
-// zts_write() might cause data loss, for this reason, sockets will SO_LINGER for
-// a short period of time by default as a precaution.
-
 /**
- * 
+ * Whether sockets created will have SO_LINGER set by default
  */
-#define ZT_SOCK_BEHAVIOR_LINGER            true
+#define ZT_SOCK_BEHAVIOR_LINGER            false
 
 /**
- * 
+ * Length of time that VirtualSockets should linger (in seconds)
  */
-#define ZT_SOCK_BEHAVIOR_LINGER_TIME       3  // s
+#define ZT_SOCK_BEHAVIOR_LINGER_TIME       3
 
 /**
- * Wait time for socket closure if data is still present in the write queue
+ * Maximum wait time for socket closure if data is still present in the write queue
  */
 #define ZT_SDK_CLTIME                      60
 
-// After closing a pico_socket, other threads might still try to use the
-// VirtualSocket object for remaining data I/O, as a safety measure we will wait to
-// delete this VirtualSocket object until the socket has been closed for some arbitrary
-// amount of time and it is safe to assume any clients interacting with this
-// socket have read some sort of error code from the API.
-
 /**
- * Interval for performing cleanup tasks on Tap/Stack objects (in seconds)
+ * Interval for performing background tasks (such as adding routes) on VirtualTap objects (in seconds)
  */
-#define ZT_HOUSEKEEPING_INTERVAL           10
+#define ZT_HOUSEKEEPING_INTERVAL           5
 
 /**
  * Whether or not we want libzt to exit on internal failure
  */
 #define ZT_EXIT_ON_GENERAL_FAIL            false
 
-#endif // LIBZT_DEFINES_H
+
+/****************************************************************************/
+/* Socket API Signatures                                                    */
+/****************************************************************************/
+
+#define ZT_SETSOCKOPT_SIG int fd, int level, int optname, const void *optval, socklen_t optlen
+#define ZT_GETSOCKOPT_SIG int fd, int level, int optname, void *optval, socklen_t *optlen
+#define ZT_SENDMSG_SIG int fd, const struct msghdr *msg, int flags
+#define ZT_SENDTO_SIG int fd, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen
+#define ZT_RECV_SIG int fd, void *buf, size_t len, int flags
+#define ZT_RECVFROM_SIG int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen
+#define ZT_RECVMSG_SIG int fd, struct msghdr *msg,int flags
+#define ZT_SEND_SIG int fd, const void *buf, size_t len, int flags
+#define ZT_READ_SIG int fd, void *buf, size_t len
+#define ZT_WRITE_SIG int fd, const void *buf, size_t len
+#define ZT_SHUTDOWN_SIG int fd, int how
+#define ZT_SOCKET_SIG int socket_family, int socket_type, int protocol
+#define ZT_CONNECT_SIG int fd, const struct sockaddr *addr, socklen_t addrlen
+#define ZT_BIND_SIG int fd, const struct sockaddr *addr, socklen_t addrlen
+#define ZT_LISTEN_SIG int fd, int backlog
+#define ZT_ACCEPT4_SIG int fd, struct sockaddr *addr, socklen_t *addrlen, int flags
+#define ZT_ACCEPT_SIG int fd, struct sockaddr *addr, socklen_t *addrlen
+#define ZT_CLOSE_SIG int fd
+#define ZT_POLL_SIG struct pollfd *fds, nfds_t nfds, int timeout
+#define ZT_SELECT_SIG int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout
+#define ZT_GETSOCKNAME_SIG int fd, struct sockaddr *addr, socklen_t *addrlen
+#define ZT_GETPEERNAME_SIG int fd, struct sockaddr *addr, socklen_t *addrlen
+#define ZT_GETHOSTNAME_SIG char *name, size_t len
+#define ZT_SETHOSTNAME_SIG const char *name, size_t len
+#define ZT_FCNTL_SIG int fd, int cmd, int flags
+#define ZT_IOCTL_SIG int fd, unsigned long request, void *argp
+#define ZT_SYSCALL_SIG long number, ...
+
+#endif // _H

@@ -41,7 +41,7 @@
 #include "RingBuffer.hpp"
 
 #define VS_STATE_INACTIVE             0x000000u // Default value for newly created VirtualSocket
-#define VS_STATE_ACTIVE               0x000001u // VirtualSocket is RX'ing or TX'ing without issue 
+#define VS_STATE_ACTIVE               0x000001u // VirtualSocket is RX'ing or TX'ing without issue
 #define VS_STATE_SHOULD_SHUTDOWN      0x000002u // Application, stack driver, or stack marked this VirtualSocket for death
 #define VS_STATE_SHUTDOWN             0x000004u // VirtualSocket and underlying protocol control structures will not RX/TX
 #define VS_STATE_CLOSED               0x000008u // VirtualSocket and underlying protocol control structures are closed
@@ -52,10 +52,10 @@
 #define VS_OPT_TCP_NODELAY            0x000000u // Nagle's algorithm
 #define VS_OPT_SO_LINGER              0x000001u // VirtualSocket waits for data transmission before closure
 /*
-#define VS_RESERVED                   0x000002u // 
+#define VS_RESERVED                   0x000002u //
 #define VS_RESERVED                   0x000004u //
-#define VS_RESERVED                   0x000008u // 
-#define VS_RESERVED                   0x000010u // 
+#define VS_RESERVED                   0x000008u //
+#define VS_RESERVED                   0x000010u //
 #define VS_RESERVED                   0x000020u //
 #define VS_RESERVED                   0x000040u //
 */
@@ -75,8 +75,8 @@
 #define VS_RESERVED                   0x080000u //
 #define VS_RESERVED                   0x100000u //
 #define VS_RESERVED                   0x200000u //
-#define VS_RESERVED                   0x400000u // 
-#define VS_RESERVED                   0x800000u // 
+#define VS_RESERVED                   0x400000u //
+#define VS_RESERVED                   0x800000u //
 */
 
 #define vs_is_nonblocking(vs)  (((vs)->optflags & VS_OPT_FD_NONBLOCKING) != 0)
@@ -95,19 +95,19 @@ namespace ZeroTier {
 		 * Sets the VirtualSocket's state value
 		 */
 		void apply_state(int state) {
-			_state &= state; 
+			_state &= state;
 		}
 		/**
 		 * Sets the VirtualSocket's state value
 		 */
 		void set_state(int state) {
-			_state = state; 
+			_state = state;
 		}
 		/**
 		 * Gets the VirtualSocket's state value
 		 */
 		int get_state() {
-			return _state; 
+			return _state;
 		}
 
 		VirtualSocket() {

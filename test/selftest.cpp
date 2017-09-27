@@ -2448,7 +2448,7 @@ int main(int argc , char *argv[])
 
 	DEBUG_TEST("Waiting for libzt to come online...\n");
 	zts_simple_start(path.c_str(), nwid.c_str());
-	char device_id[ZT_ID_LEN];
+	char device_id[ZTO_ID_LEN];
 	zts_get_device_id(device_id);
 	DEBUG_TEST("I am %s, %s", device_id, me.c_str());
 	if (mode == TEST_MODE_SERVER) {

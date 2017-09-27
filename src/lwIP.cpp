@@ -68,9 +68,9 @@ static void tcp_timeout(void *data)
 {
 	DEBUG_EXTRA();
 	LWIP_UNUSED_ARG(data);
-#if TCP_DEBUG && LWIP_TCP 
+#if TCP_DEBUG && LWIP_TCP
 	// tcp_debug_print_pcbs();
-#endif 
+#endif
 	sys_timeout(5000, tcp_timeout, NULL);
 }
 */
@@ -113,7 +113,7 @@ void lwip_driver_init()
 	else {
 		return;
 	}
-	sys_thread_new("main_network_stack_thread", main_network_stack_thread, 
+	sys_thread_new("main_network_stack_thread", main_network_stack_thread,
 		NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
 }
 
@@ -147,7 +147,7 @@ err_t lwip_eth_tx(struct netif *netif, struct pbuf *p)
 	if (ZT_MSG_TRANSFER == true) {
 		char flagbuf[32];
 		memset(&flagbuf, 0, 32);
-		char macBuf[ZT_MAC_ADDRSTRLEN], nodeBuf[ZT_ID_LEN];
+		char macBuf[ZT_MAC_ADDRSTRLEN], nodeBuf[ZTO_ID_LEN];
 		mac2str(macBuf, ZT_MAC_ADDRSTRLEN, ethhdr->dest.addr);
 		ZeroTier::MAC mac;
 		mac.setTo(ethhdr->dest.addr, 6);
@@ -225,7 +225,7 @@ void lwip_eth_rx(ZeroTier::VirtualTap *tap, const ZeroTier::MAC &from, const Zer
 	if (ZT_MSG_TRANSFER == true) {
 		char flagbuf[32];
 		memset(&flagbuf, 0, 32);
-		char macBuf[ZT_MAC_ADDRSTRLEN], nodeBuf[ZT_ID_LEN];
+		char macBuf[ZT_MAC_ADDRSTRLEN], nodeBuf[ZTO_ID_LEN];
 		mac2str(macBuf, ZT_MAC_ADDRSTRLEN, ethhdr.dest.addr);
 		ZeroTier::MAC mac;
 		mac.setTo(ethhdr.src.addr, 6);

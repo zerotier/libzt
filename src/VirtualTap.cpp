@@ -190,7 +190,7 @@ namespace ZeroTier {
 	std::string VirtualTap::nodeId() const
 	{
 		if (zt1ServiceRef) {
-			char id[ZT_ID_LEN];
+			char id[ZTO_ID_LEN];
 			memset(id, 0, sizeof(id));
 			sprintf(id, "%lx",((ZeroTier::OneService *)zt1ServiceRef)->getNode()->address());
 			return std::string(id);
@@ -302,41 +302,41 @@ namespace ZeroTier {
 	/****************************************************************************/
 
 	// Connect
-	int VirtualTap::Connect(const struct sockaddr *addr, socklen_t addrlen) 
+	int VirtualTap::Connect(const struct sockaddr *addr, socklen_t addrlen)
 	{
 		DEBUG_EXTRA();
 		return -1;
 	}
 
 	// Bind VirtualSocket to a network stack's interface
-	int VirtualTap::Bind(const struct sockaddr *addr, socklen_t addrlen) 
+	int VirtualTap::Bind(const struct sockaddr *addr, socklen_t addrlen)
 	{
 		DEBUG_EXTRA();
 		return -1;
 	}
 
 	// Listen for an incoming VirtualSocket
-	int VirtualTap::Listen(int backlog) 
+	int VirtualTap::Listen(int backlog)
 	{
 		DEBUG_EXTRA();
 		return -1;
 	}
 
 	// Accept a VirtualSocket
-	void VirtualTap::Accept() 
+	void VirtualTap::Accept()
 	{
 		DEBUG_EXTRA();
 	}
 
 	// Read from stack/buffers into the app's socket
-	int VirtualTap::Read(PhySocket *sock,void **uptr,bool stack_invoked) 
+	int VirtualTap::Read(PhySocket *sock,void **uptr,bool stack_invoked)
 	{
 		DEBUG_EXTRA();
 		return -1;
 	}
 
 	// Write data from app socket to the virtual wire, either raw over VL2, or via network stack
-	int VirtualTap::Write(void *data, ssize_t len) 
+	int VirtualTap::Write(void *data, ssize_t len)
 	{
 		DEBUG_EXTRA("data=%p, len=%d", data, len);
 		return -1;
@@ -351,7 +351,7 @@ namespace ZeroTier {
 
 	// Remove VritualSocket from VirtualTap, and instruct network stacks to dismantle their
 	// respective protocol control structures
-	int VirtualTap::Close() 
+	int VirtualTap::Close()
 	{
 		DEBUG_EXTRA();
 		return -1;

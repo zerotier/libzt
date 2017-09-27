@@ -38,20 +38,18 @@ extern "C" {
 #endif
 
 /**
- * @brief 
- * 
+ * @brief Used to perform a common action upon a failure in the VirtualSocket/VirtualTap layer.
+ *
  * @usage For internal use only.
- * @param 
- * @return 
+ * @return
  */
 void handle_general_failure();
 
 /**
- * @brief 
- * 
+ * @brief Returns the thread-id. Used in debug traces.
+ *
  * @usage For internal use only.
- * @param 
- * @return 
+ * @return
  */
 inline unsigned int gettid();
 
@@ -59,4 +57,4 @@ inline unsigned int gettid();
 }
 #endif
 
-#endif
+#endif // _H

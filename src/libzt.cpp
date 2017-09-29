@@ -163,14 +163,14 @@ int zts_close(int fd)
 
 int zts_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
-	DEBUG_EXTRA();
+	DEBUG_ERROR("warning, this is not implemented");
 	return poll(fds, nfds, timeout);
 }
 
 int zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
 {
-	DEBUG_EXTRA();
-	return select(nfds, readfds, writefds, exceptfds, timeout);
+	//DEBUG_EXTRA();
+	return lwip_select(nfds, readfds, writefds, exceptfds, timeout);
 }
 
 int zts_fcntl(int fd, int cmd, int flags)
@@ -228,12 +228,12 @@ ssize_t zts_recvmsg(int fd, struct msghdr *msg,int flags)
 }
 
 int zts_read(int fd, void *buf, size_t len) {
-	DEBUG_TRANS("fd=%d, len=%d", fd, len);
+	//DEBUG_TRANS("fd=%d, len=%d", fd, len);
 	return lwip_read(fd, buf, len);
 }
 
 int zts_write(int fd, const void *buf, size_t len) {
-	DEBUG_TRANS("fd=%d, len=%d", fd, len);
+	//DEBUG_TRANS("fd=%d, len=%d", fd, len);
 	return lwip_write(fd, buf, len);
 }
 

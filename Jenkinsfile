@@ -43,6 +43,7 @@ parallel 'centos7': {
 	// ------------------------------------ picoTCP ---------------------------------
 	// ------------------------------------------------------------------------------
 
+/*
 		try {
 			checkout scm
 			sh 'git submodule update --init'
@@ -81,6 +82,7 @@ parallel 'centos7': {
 			slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on linux (<${env.BUILD_URL}|Open>)"
 			throw err
 		}
+*/
 
 	// ------------------------------------------------------------------------------
 	// ---------------------------- static library (Linux) --------------------------
@@ -143,7 +145,7 @@ parallel 'centos7': {
 			throw err
 		}
 
-
+/* 
 // picoTCP
 
 		try {
@@ -200,7 +202,7 @@ parallel 'centos7': {
 			slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on linux (<${env.BUILD_URL}|Open>)"
 			throw err
 		}
-
+*/
 
 // lwIP
 
@@ -289,6 +291,7 @@ parallel 'centos7': {
 	// ------------------------------------ picoTCP ---------------------------------
 	// ------------------------------------------------------------------------------
 
+/*
 		try {
 			checkout scm
 			sh 'git submodule update --init'
@@ -327,6 +330,7 @@ parallel 'centos7': {
 			slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
 			throw err
 		}
+*/
 
 	// ------------------------------------------------------------------------------
 	// -------------------------- Intercept Library (macOS) -------------------------
@@ -401,6 +405,8 @@ parallel 'centos7': {
 			throw err
 		}
 
+/* 
+
 // picoTCP
 
 		try {
@@ -458,6 +464,7 @@ parallel 'centos7': {
 			throw err
 		}
 
+*/
 
 // lwIP
 

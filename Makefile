@@ -158,9 +158,9 @@ STATIC_LIB=$(BUILD)/libzt.a
 ##############################################################################
 
 # default stack (picoTCP)
-STACK_PICO=1
-ifeq ($(NO_STACK)$(STACK_LWIP),1)
-STACK_PICO=0
+STACK_LWIP=1
+ifeq ($(NO_STACK)$(STACK_PICO),1)
+STACK_LWIP=0
 endif
 
 # picoTCP
@@ -245,12 +245,35 @@ picotcp:
 lwip:
 	make -f make-liblwip.mk liblwip.a $(STACK_DEFS)
 
+lwip_driver:
+	$(CXX) $(CXXFLAGS) -c src/lwIP.cpp \
+		$(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
+
+picotcp_driver:
+	$(CXX) $(CXXFLAGS) -c src/picoTCP.cpp \
+		$(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
+
+libzt_socket_layer:
+	$(CXX) $(CXXFLAGS) -c src/VirtualSocket.cpp \
+		$(LIBZT_INCLUDES)
+	$(CXX) $(CXXFLAGS) -c src/VirtualBindingPair.cpp \
+		$(ZT_INCLUDES) $(LIBZT_INCLUDES)
+	$(CXX) $(CXXFLAGS) -c src/VirtualTap.cpp \
+		$(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
+	$(CXX) $(CXXFLAGS) -c src/ZT1Service.cpp \
+		$(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(LIBZT_DEFS) $(STACK_DRIVER_DEFS)
+	$(CXX) $(CXXFLAGS) -c src/libzt.cpp \
+		$(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
+
+utilities:
+	$(CXX) $(CXXFLAGS) -c src/Platform.cpp \
+		$(LIBZT_INCLUDES)
+	$(CXX) $(CXXFLAGS) -c src/Utilities.cpp \
+		$(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
+
 ifeq ($(STACK_PICO),1)
-static_lib: picotcp $(ZTO_OBJS)
+static_lib: picotcp picotcp_driver libzt_socket_layer utilities $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
-	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_DEFS) \
-		$(LIBZT_INCLUDES) $(STACK_INCLUDES) $(STACK_DRIVER_DEFS) $(LIBZT_FILES) \
-		$(STACK_DRIVER_FILES) -c 
 	mv *.o obj
 	mv ext/picotcp/build/lib/*.o obj
 	mv ext/picotcp/build/modules/*.o obj
@@ -258,25 +281,16 @@ static_lib: picotcp $(ZTO_OBJS)
 	@date +"Build script finished on %F %T"
 endif
 ifeq ($(STACK_LWIP),1)
-static_lib: lwip $(ZTO_OBJS)
+static_lib: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
-	$(CXX) $(CXXFLAGS) -c src/VirtualSocket.cpp $(LIBZT_INCLUDES)
-	$(CXX) $(CXXFLAGS) -c src/VirtualBindingPair.cpp $(ZT_INCLUDES) $(LIBZT_INCLUDES)
-	$(CXX) $(CXXFLAGS) -c src/Platform.cpp $(LIBZT_INCLUDES)
-	$(CXX) $(CXXFLAGS) -c src/libzt.cpp $(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
-	$(CXX) $(CXXFLAGS) -c src/Utilities.cpp $(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
-	$(CXX) $(CXXFLAGS) -c src/ZT1Service.cpp $(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(LIBZT_DEFS) $(STACK_DRIVER_DEFS)
-	$(CXX) $(CXXFLAGS) -c src/VirtualTap.cpp $(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
-	$(CXX) $(CXXFLAGS) -c src/lwIP.cpp $(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
 	mv *.o obj
 	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) obj/*.o
 	@date +"Build script finished on %F %T"
 endif
 # for layer-2 only (this will omit all userspace network stack code)
 ifeq ($(NO_STACK),1)
-static_lib: $(ZTO_OBJS)
+static_lib: libzt_socket_layer utilities $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
-	$(CXX) $(CXXFLAGS) $(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(LIBZT_FILES) -c
 	mv *.o obj
 	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) obj/*.o
 	@date +"Build script finished on %F %T"

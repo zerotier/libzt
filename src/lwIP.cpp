@@ -62,7 +62,7 @@ ZeroTier::Mutex driver_m;
 
 err_t tapif_init(struct netif *netif)
 {
-	// we do the actual initialization in lwip_init_interface
+	// we do the actual initialization in elsewhere
 	return ERR_OK;
 }
 

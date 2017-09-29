@@ -54,7 +54,7 @@ void sys2lwip(int fd, const struct sockaddr *orig, struct sockaddr *modified)
 	lwIP seems to lose track of the sa_family for the socket internally, when lwip_connect()
 	is called, it thus receives an AF_UNSPEC socket which fails. Here we use lwIP's own facilities
 	to get the sa_family ourselves and rebuild the address structure and pass it to lwip_connect().
-	I suspect this is due to a struct memory alignment issue. */
+	I suspect this is due to a struct memory alignment issue or my own misuse of the API */
 	struct sockaddr_storage ss;
 	socklen_t namelen = sizeof(ss);
 	int err = 0;
@@ -62,28 +62,34 @@ void sys2lwip(int fd, const struct sockaddr *orig, struct sockaddr *modified)
 		DEBUG_ERROR("error while determining socket family");
 		return;
 	}
-	if (ss.ss_family == AF_INET) {
-#if defined(__linux__)
-		struct sockaddr_in *modified_ptr = (struct sockaddr_in *)modified;
-		struct sockaddr_in *addr4 = (struct sockaddr_in*)orig;
-		modified_ptr->sin_len = sizeof(struct sockaddr_in);
-		modified_ptr->sin_family = ss.ss_family;
-		modified_ptr->sin_port = addr4->sin_port;
-		modified_ptr->sin_addr.s_addr = addr4->sin_addr.s_addr;
-#else
 #if defined(LIBZT_IPV4)
-		memcpy(modified, orig, sizeof(struct sockaddr_in));
-#endif
-#if defined(LIBZT_IPV6)
-		memcpy(modified, orig, sizeof(struct sockaddr_in6));
-#endif
-#endif
-	}
 	if (ss.ss_family == AF_INET) {
 #if defined(__linux__)
-#else
-#endif
+		struct sockaddr_in *p4 = (struct sockaddr_in *)modified;
+		struct sockaddr_in *addr4 = (struct sockaddr_in*)orig;
+		p4->sin_len = sizeof(struct sockaddr_in);
+		p4->sin_family = ss.ss_family;
+		p4->sin_port = addr4->sin_port;
+		p4->sin_addr.s_addr = addr4->sin_addr.s_addr;
+#endif // __linux__
+		memcpy(modified, orig, sizeof(struct sockaddr_in));
 	}
+#endif // LIBZT_IPV4
+
+#if defined(LIBZT_IPV6)
+	if (ss.ss_family == AF_INET6) {
+#if defined(__linux__)
+		struct sockaddr_in6 *p6 = (struct sockaddr_in6 *)modified;
+		struct sockaddr_in6 *addr6 = (struct sockaddr_in6*)orig;
+		p6->sin6_len = sizeof(struct sockaddr_in6);
+		p6->sin6_family = ss.ss_family;
+		p6->sin6_port = addr6->sin6_port;
+		//p6->sin6_addr.s6_addr = addr6->sin6_addr.s6_addr;
+#endif // __linux__
+		memcpy(modified, orig, sizeof(struct sockaddr_in6));
+	}
+#endif // LIBZT_IPV6
+
 }
 #endif // STACK_LWIP
 

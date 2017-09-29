@@ -2725,12 +2725,12 @@ for (int i=0; i<num_repeats; i++)
 	*/
 
 	// set start time here since we aren't waiting for libzt to come online in NATIVETEST mode
-	#if defined(__NATIVETEST__)	
+#if defined(__NATIVETEST__)	
 		long int selftest_start_time = get_now_ts();
 		subtest_expected_duration = 20; // initial value, wait for other instance to come online
-	#endif
+#endif
 
-	#if defined(LIBZT_IPV4)
+#if defined(LIBZT_IPV4)
 		// UDP 4 client/server
 
 		ipv = 4;
@@ -2929,13 +2929,13 @@ for (int i=0; i<num_repeats; i++)
 		}
 		*/
 
-	#endif // LIBZT_IPV4
+#endif // LIBZT_IPV4
 
 
 
 
 
-	#if defined(LIBZT_IPV6)
+#if defined(LIBZT_IPV6)
 		// UDP 6 client/server
 
 		ipv = 6;
@@ -3078,7 +3078,7 @@ for (int i=0; i<num_repeats; i++)
 		}
 		RECORD_RESULTS(passed, details, &results);
 		port++;
-	#endif // LIBZT_IPV6
+#endif // LIBZT_IPV6
 
 		// Print results of all tests
 		printf("--------------------------------------------------------------------------------\n");
@@ -3088,5 +3088,3 @@ for (int i=0; i<num_repeats; i++)
 	}
 	return err;
 }
-
-// FCNTL(client_fd, F_SETFL, O_NONBLOCK);

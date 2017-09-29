@@ -98,6 +98,12 @@ namespace ZeroTier {
 			return n;
 		}
 
+		// merely reset the buffer pointer, doesn't erase contents
+		void reset()
+		{
+			consume(count());
+		}
+
 		// adjust buffer index pointer as if we copied data out
 		size_t consume(size_t n)
 		{

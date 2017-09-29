@@ -110,7 +110,7 @@ static void main_network_stack_thread(void *arg)
 void lwip_driver_init()
 {
 	DEBUG_EXTRA("getting lock..");
-	driver_m.lock(); // unlocked from callback indicating completion of init
+	driver_m.lock(); // unlocked from callback indicating completion of driver init
 	DEBUG_EXTRA("got lock");
 	if (lwip_driver_initialized == true) {
 		return;
@@ -162,6 +162,7 @@ err_t lwip_eth_tx(struct netif *netif, struct pbuf *p)
 
 void general_lwip_init_interface(void *tapref, struct netif *interface, const char *name, const ZeroTier::MAC &mac, const ZeroTier::InetAddress &addr, const ZeroTier::InetAddress &nm, const ZeroTier::InetAddress &gw)
 {
+#if defined(LIBZT_IPV4)
 	char ipbuf[INET6_ADDRSTRLEN], nmbuf[INET6_ADDRSTRLEN], gwbuf[INET6_ADDRSTRLEN];
 	static ip_addr_t _addr, _nm, _gw;
 	IP4_ADDR(&_gw,127,0,0,1);
@@ -186,6 +187,9 @@ void general_lwip_init_interface(void *tapref, struct netif *interface, const ch
 	char macbuf[ZT_MAC_ADDRSTRLEN];
 	mac2str(macbuf, ZT_MAC_ADDRSTRLEN, n1.hwaddr);
 	DEBUG_INFO("initialized netif as [mac=%s, addr=%s, nm=%s, gw=%s]", macbuf, addr.toString(ipbuf), addr.netmask().toString(nmbuf), gw.toString(gwbuf));
+#endif
+#if defined(LIBZT_IPV6)
+#endif
 }
 
 void general_turn_on_interface(struct netif *interface)
@@ -193,16 +197,14 @@ void general_turn_on_interface(struct netif *interface)
 	//netif_set_up(&n1);
 	//netif_set_default(&n1);
 	//lwipdev.linkoutput = NULL;
-	//sleep(2);
 	//netif_set_down(&lwipdev);
 	//netif_set_link_down(&lwipdev);
 }
 
 void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier::InetAddress &ip)
 {
-	/* NOTE: It is a known issue that when assigned more than one IP address via
-	Central, this interface will be unable to transmit (including ARP). */
 	char ipbuf[INET6_ADDRSTRLEN], nmbuf[INET6_ADDRSTRLEN];
+#if defined(LIBZT_IPV4)
 	if (ip.isV4()) {
 		static ip_addr_t ipaddr, netmask, gw;
 		IP4_ADDR(&gw,127,0,0,1);
@@ -229,6 +231,9 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 		mac2str(macbuf, ZT_MAC_ADDRSTRLEN, lwipdev.hwaddr);
 		DEBUG_INFO("initialized netif as [mac=%s, addr=%s, nm=%s]", macbuf, ip.toString(ipbuf), ip.netmask().toString(nmbuf));
 	}
+#endif
+#if defined(LIBZT_IPV6)
+#endif
 }
 
 void lwip_eth_rx(ZeroTier::VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC &to, unsigned int etherType,
@@ -274,24 +279,9 @@ void lwip_eth_rx(ZeroTier::VirtualTap *tap, const ZeroTier::MAC &from, const Zer
 			ZeroTier::Utils::ntoh(ethhdr.type), beautify_eth_proto_nums(ZeroTier::Utils::ntoh(ethhdr.type)), flagbuf);
 	}
 	{
+		// TODO: Routing logic
 
-		// Here we select which interface shall receive the Ethernet frames coming in off the ZeroTier virtual wire
-
-		// ROUTING CODE SHALL GO HERE
-/*
-		for (int i=0; i<num_netif; i++) {
-			if (netifs[i].hwaddr == ethhdr.dest.addr) {
-				// we will use this interface
-				this->hwaddr;
-
-			}
-		}
-*/
 #if defined(LIBZT_IPV4)
-		if (lwipdev.input == NULL)
-		{
-			return;
-		}
 			if (lwipdev.input(p, &(lwipdev)) != ERR_OK) {
 				DEBUG_ERROR("error while feeding frame into stack interface (ipv4)");
 			}

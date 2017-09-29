@@ -48,14 +48,13 @@ extern "C" {
 #endif
 
 #if defined(STACK_LWIP)
-void sys2lwip(int fd, const struct sockaddr *orig, struct sockaddr *modified) {
-
+void sys2lwip(int fd, const struct sockaddr *orig, struct sockaddr *modified) 
+{
 	/* Inelegant fix for lwIP 'sequential' API address error check (in sockets.c). For some reason
 	lwIP seems to lose track of the sa_family for the socket internally, when lwip_connect()
 	is called, it thus receives an AF_UNSPEC socket which fails. Here we use lwIP's own facilities
 	to get the sa_family ourselves and rebuild the address structure and pass it to lwip_connect().
 	I suspect this is due to a struct memory alignment issue. */
-
 	struct sockaddr_storage ss;
 	socklen_t namelen = sizeof(ss);
 	int err = 0;
@@ -63,7 +62,6 @@ void sys2lwip(int fd, const struct sockaddr *orig, struct sockaddr *modified) {
 		DEBUG_ERROR("error while determining socket family");
 		return;
 	}
-
 	if (ss.ss_family == AF_INET) {
 #if defined(__linux__)
 		struct sockaddr_in *modified_ptr = (struct sockaddr_in *)modified;
@@ -73,7 +71,12 @@ void sys2lwip(int fd, const struct sockaddr *orig, struct sockaddr *modified) {
 		modified_ptr->sin_port = addr4->sin_port;
 		modified_ptr->sin_addr.s_addr = addr4->sin_addr.s_addr;
 #else
+#if defined(LIBZT_IPV4)
 		memcpy(modified, orig, sizeof(struct sockaddr_in));
+#endif
+#if defined(LIBZT_IPV6)
+		memcpy(modified, orig, sizeof(struct sockaddr_in6));
+#endif
 #endif
 	}
 	if (ss.ss_family == AF_INET) {

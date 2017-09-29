@@ -2838,7 +2838,6 @@ for (int i=0; i<num_repeats; i++)
 		RECORD_RESULTS(passed, details, &results);
 		port++;
 
-exit(0);
 	// TCP 4 client/server
 
 		ipv = 4;

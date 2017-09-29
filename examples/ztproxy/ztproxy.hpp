@@ -35,6 +35,9 @@
 #include "OSUtils.hpp"
 
 #include <queue>
+#include <vector>
+#include <stdio.h>
+#include <sys/select.h>
 
 #define BUF_SZ 1024*1024
 
@@ -43,18 +46,29 @@ namespace ZeroTier {
 	typedef void PhySocket;
 	class ZTProxy;
 
-	struct TcpConnection
+	class TcpConnection
 	{
-		PhySocket *origin_sock;
-		PhySocket *destination_sock;
-		char client_buf[BUF_SZ];
-		int client_buf_len;
+	public:
+		int zfd;
+		PhySocket *client_sock;
+		RingBuffer<unsigned char> *TXbuf;
+		RingBuffer<unsigned char> *RXbuf;
+		Mutex tx_m, rx_m;
 
-		char server_buf[BUF_SZ];
-		int server_buf_len;
+		TcpConnection() {
+			printf("TcpConnection()\n");
+			zfd = -1;			
+			TXbuf = new RingBuffer<unsigned char>(BUF_SZ);
+			RXbuf = new RingBuffer<unsigned char>(BUF_SZ);
+		}
 
-		Mutex tcp_client_m;
-		Mutex tcp_server_m;
+		~TcpConnection() {
+			printf("~TcpConnection()\n");
+			delete TXbuf;
+			delete RXbuf;
+			TXbuf = NULL;
+			RXbuf = NULL;
+		}
 	};
 
 	class ZTProxy
@@ -90,6 +104,10 @@ namespace ZeroTier {
 		volatile bool _enabled;
 		volatile bool _run;	
 
+		Mutex conn_m;
+		fd_set read_set, write_set;
+		int nfds = 0;
+
 		int _proxy_listen_port;
 		int _internal_port;
 		std::string _nwid;
@@ -100,10 +118,12 @@ namespace ZeroTier {
 		PhySocket *_tcpListenSocket;
 		PhySocket *_tcpListenSocket6;
 
+		// mapping from ZeroTier VirtualSocket fd to TcpConnection pointer
+		std::map<int, TcpConnection*> zmap;
+		// mapping from ZeroTier PhySocket to TcpConnection pointer
 		std::map<PhySocket*, TcpConnection*> cmap;
-		std::map<PhySocket*, PhySocket*> dmap;
 
-		std::queue<TcpConnection*> cqueue; // for recycling TcpConnection objects
+		std::vector<TcpConnection*> clist;
 	};
 }
 

@@ -100,11 +100,13 @@ namespace ZeroTier {
 		snprintf(vtap_full_name, sizeof(vtap_full_name), "libzt%d-%lx", devno++, _nwid);
 		_dev = vtap_full_name;
 		DEBUG_INFO("set VirtualTap interface name to: %s", _dev.c_str());
-
 		// set virtual tap interface name (abbreviated)
 		memset(vtap_abbr_name, 0, sizeof(vtap_abbr_name));
 		snprintf(vtap_abbr_name, sizeof(vtap_abbr_name), "libzt%d", devno);
-
+#if defined(STACK_LWIP)
+		// initialize network stacks
+		lwip_driver_init();
+#endif
 		// start vtap thread and stack I/O loops
 		_thread = Thread::start(this);
 	}
@@ -129,18 +131,16 @@ namespace ZeroTier {
 
 	bool VirtualTap::registerIpWithStack(const InetAddress &ip)
 	{
-		DEBUG_EXTRA();
-		lwip_driver_init();
+#if defined(STACK_LWIP)
 		lwip_init_interface((void*)this, this->_mac, ip);
+#endif
 		return true;
 	}
 
 	bool VirtualTap::addIp(const InetAddress &ip)
 	{
-		int err = false;
 		char ipbuf[INET6_ADDRSTRLEN];
-		DEBUG_EXTRA("addIp (%s)", ip.toString(ipbuf));
-
+		DEBUG_EXTRA("addr=%s", ip.toString(ipbuf));
 		Mutex::Lock _l(_ips_m);
 		if (registerIpWithStack(ip)) {
 			if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
@@ -149,7 +149,7 @@ namespace ZeroTier {
 			}
 			return true;
 		}
-		return err;
+		return false;
 	}
 
 	bool VirtualTap::removeIp(const InetAddress &ip)
@@ -179,7 +179,9 @@ namespace ZeroTier {
 	void VirtualTap::put(const MAC &from,const MAC &to,unsigned int etherType,
 		const void *data,unsigned int len)
 	{
+#if defined(STACK_LWIP)
 		lwip_eth_rx(this, from, to, etherType, data, len);
+#endif
 	}
 
 	std::string VirtualTap::deviceName() const
@@ -237,7 +239,6 @@ namespace ZeroTier {
 	void VirtualTap::threadMain()
 		throw()
 	{
-		DEBUG_EXTRA();
 		while (true) {
 			_phy.poll(ZT_PHY_POLL_INTERVAL);
 			Housekeeping();
@@ -259,16 +260,48 @@ namespace ZeroTier {
 		DEBUG_EXTRA();
 	}
 
-	bool VirtualTap::routeAdd(const InetAddress &addr, const InetAddress &nm, const InetAddress &gw)
+	bool VirtualTap::routeAdd(const InetAddress &ip, const InetAddress &nm, const InetAddress &gw)
 	{
+		bool err = false;
 		DEBUG_EXTRA();
-		return false;
+#if defined(STACK_LWIP)
+		//general_lwip_init_interface(this, NULL, "n1", _mac, ip, nm, gw);
+		//general_turn_on_interface(NULL);
+#endif
+#if defined(STACK_PICO)
+		if (picostack) {
+			return picostack->pico_route_add(this, ip, nm, gw, 0);
+		} else {
+			handle_general_failure();
+			return false;
+		}
+#endif
+#if defined(NO_STACK)
+		// nothing to do
+#endif
+		return err;
 	}
 
-	bool VirtualTap::routeDelete(const InetAddress &addr, const InetAddress &nm)
+	bool VirtualTap::routeDelete(const InetAddress &ip, const InetAddress &nm)
 	{
+		bool err = false;
 		DEBUG_EXTRA();
-		return false;
+#if defined(STACK_LWIP)
+		//general_lwip_init_interface(this, NULL, "n1", _mac, ip, nm, gw);
+		//general_turn_on_interface(NULL);
+#endif
+#if defined(STACK_PICO)
+		if (picostack) {
+			return picostack->pico_route_del(this, ip, nm, 0);
+		} else {
+			handle_general_failure();
+			return false;
+		}
+#endif
+#if defined(NO_STACK)
+		// nothing to do
+#endif		
+		return err;
 	}
 
 	void VirtualTap::addVirtualSocket()
@@ -369,7 +402,7 @@ namespace ZeroTier {
 		Mutex::Lock _l(_tcpconns_m);
 		std::time_t current_ts = std::time(nullptr);
 		if (current_ts > last_housekeeping_ts + ZT_HOUSEKEEPING_INTERVAL) {
-			DEBUG_EXTRA();
+			// DEBUG_EXTRA();
 			// update managed routes (add/del from network stacks)
 			ZeroTier::OneService *service = ((ZeroTier::OneService *)zt1ServiceRef);
 			if (service) {

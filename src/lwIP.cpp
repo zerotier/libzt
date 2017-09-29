@@ -53,9 +53,12 @@
 
 #include "lwIP.hpp"
 
-netif lwipdev, lwipdev6;
+netif lwipdev, lwipdev6, n1;
 
-static bool started = false;
+struct netif netifs[10];
+
+bool lwip_driver_initialized = false;
+ZeroTier::Mutex driver_m;
 
 err_t tapif_init(struct netif *netif)
 {
@@ -78,11 +81,13 @@ static void tcp_timeout(void *data)
 // callback for when the TCPIP thread has been successfully started
 static void tcpip_init_done(void *arg)
 {
-	DEBUG_EXTRA();
 	sys_sem_t *sem;
 	sem = (sys_sem_t *)arg;
 	netif_set_up(&lwipdev);
-	DEBUG_INFO("Applications started.");
+	DEBUG_EXTRA("lwIP stack driver initialized");
+	lwip_driver_initialized = true;
+	driver_m.unlock();
+	DEBUG_EXTRA("released lock");
 	// sys_timeout(5000, tcp_timeout, NULL);
 	sys_sem_signal(sem);
 }
@@ -90,27 +95,24 @@ static void tcpip_init_done(void *arg)
 // main thread which starts the initialization process
 static void main_network_stack_thread(void *arg)
 {
-	DEBUG_EXTRA();
 	sys_sem_t sem;
 	LWIP_UNUSED_ARG(arg);
 	if (sys_sem_new(&sem, 0) != ERR_OK) {
-		DEBUG_ERROR("Failed to create semaphore", 0);
+		DEBUG_ERROR("failed to create semaphore", 0);
 	}
 	tcpip_init(tcpip_init_done, &sem);
 	sys_sem_wait(&sem);
-	DEBUG_INFO("TCP/IP initialized.");
+	DEBUG_EXTRA("tcpip thread started");
 	sys_sem_wait(&sem);
 }
 
 // initialize the lwIP stack
 void lwip_driver_init()
 {
-	DEBUG_EXTRA();
-	// TODO: this should be replaced with something thread-safe
-	if (started == false) {
-		started=true;
-	}
-	else {
+	DEBUG_EXTRA("getting lock..");
+	driver_m.lock(); // unlocked from callback indicating completion of init
+	DEBUG_EXTRA("got lock");
+	if (lwip_driver_initialized == true) {
 		return;
 	}
 	sys_thread_new("main_network_stack_thread", main_network_stack_thread,
@@ -158,6 +160,44 @@ err_t lwip_eth_tx(struct netif *netif, struct pbuf *p)
 	return ERR_OK;
 }
 
+void general_lwip_init_interface(void *tapref, struct netif *interface, const char *name, const ZeroTier::MAC &mac, const ZeroTier::InetAddress &addr, const ZeroTier::InetAddress &nm, const ZeroTier::InetAddress &gw)
+{
+	char ipbuf[INET6_ADDRSTRLEN], nmbuf[INET6_ADDRSTRLEN], gwbuf[INET6_ADDRSTRLEN];
+	static ip_addr_t _addr, _nm, _gw;
+	IP4_ADDR(&_gw,127,0,0,1);
+	IP4_ADDR(&_addr,10,6,6,86);
+	//_addr.addr = *((u32_t *)addr.rawIpData());
+	_nm.addr = *((u32_t *)addr.netmask().rawIpData());
+	netif_add(&(n1),&_addr, &_nm, &_gw, NULL, tapif_init, tcpip_input);
+	n1.state = tapref;
+	n1.output = etharp_output;
+	n1.mtu = ZT_MAX_MTU;
+	n1.name[0] = name[0];
+	n1.name[1] = name[1];
+	n1.linkoutput = lwip_eth_tx;
+	n1.hwaddr_len = 6;
+	mac.copyTo(n1.hwaddr, n1.hwaddr_len);
+	n1.flags = NETIF_FLAG_BROADCAST
+		| NETIF_FLAG_ETHARP
+		| NETIF_FLAG_IGMP
+		| NETIF_FLAG_LINK_UP
+		| NETIF_FLAG_UP;
+	netif_set_link_up(&n1);
+	char macbuf[ZT_MAC_ADDRSTRLEN];
+	mac2str(macbuf, ZT_MAC_ADDRSTRLEN, n1.hwaddr);
+	DEBUG_INFO("initialized netif as [mac=%s, addr=%s, nm=%s, gw=%s]", macbuf, addr.toString(ipbuf), addr.netmask().toString(nmbuf), gw.toString(gwbuf));
+}
+
+void general_turn_on_interface(struct netif *interface)
+{
+	//netif_set_up(&n1);
+	//netif_set_default(&n1);
+	//lwipdev.linkoutput = NULL;
+	//sleep(2);
+	//netif_set_down(&lwipdev);
+	//netif_set_link_down(&lwipdev);
+}
+
 void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier::InetAddress &ip)
 {
 	/* NOTE: It is a known issue that when assigned more than one IP address via
@@ -184,10 +224,10 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 			| NETIF_FLAG_UP;
 		netif_set_default(&(lwipdev));
 		netif_set_link_up(&(lwipdev));
-		//netif_set_up(&(lwipdev));
+		netif_set_up(&(lwipdev));
 		char macbuf[ZT_MAC_ADDRSTRLEN];
 		mac2str(macbuf, ZT_MAC_ADDRSTRLEN, lwipdev.hwaddr);
-		DEBUG_INFO("mac=%s, addr=%s, nm=%s", macbuf, ip.toString(ipbuf), ip.netmask().toString(nmbuf));
+		DEBUG_INFO("initialized netif as [mac=%s, addr=%s, nm=%s]", macbuf, ip.toString(ipbuf), ip.netmask().toString(nmbuf));
 	}
 }
 
@@ -234,7 +274,24 @@ void lwip_eth_rx(ZeroTier::VirtualTap *tap, const ZeroTier::MAC &from, const Zer
 			ZeroTier::Utils::ntoh(ethhdr.type), beautify_eth_proto_nums(ZeroTier::Utils::ntoh(ethhdr.type)), flagbuf);
 	}
 	{
+
+		// Here we select which interface shall receive the Ethernet frames coming in off the ZeroTier virtual wire
+
+		// ROUTING CODE SHALL GO HERE
+/*
+		for (int i=0; i<num_netif; i++) {
+			if (netifs[i].hwaddr == ethhdr.dest.addr) {
+				// we will use this interface
+				this->hwaddr;
+
+			}
+		}
+*/
 #if defined(LIBZT_IPV4)
+		if (lwipdev.input == NULL)
+		{
+			return;
+		}
 			if (lwipdev.input(p, &(lwipdev)) != ERR_OK) {
 				DEBUG_ERROR("error while feeding frame into stack interface (ipv4)");
 			}

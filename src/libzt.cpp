@@ -32,9 +32,14 @@
 
 #include <cstring>
 
+#if defined(STACK_LWIP)
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
 #include "lwip/ip_addr.h"
+#endif
+#if defined(NO_STACK)
+#include <sys/socket.h>
+#endif
 
 #include "libzt.h"
 
@@ -42,6 +47,7 @@
 extern "C" {
 #endif
 
+#if defined(STACK_LWIP)
 void sys2lwip(int fd, const struct sockaddr *orig, struct sockaddr *modified) {
 
 	/* Inelegant fix for lwIP 'sequential' API address error check (in sockets.c). For some reason
@@ -76,183 +82,409 @@ void sys2lwip(int fd, const struct sockaddr *orig, struct sockaddr *modified) {
 #endif
 	}
 }
+#endif // STACK_LWIP
 
 int zts_socket(int socket_family, int socket_type, int protocol)
 {
+	int err = -1;
 	DEBUG_EXTRA("family=%d, type=%d, proto=%d", socket_family, socket_type, protocol);
-	return lwip_socket(socket_family, socket_type, protocol);
+#if defined(STACK_LWIP)
+	err = lwip_socket(socket_family, socket_type, protocol);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 int zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen)
 {
+	int err = -1;
 	DEBUG_EXTRA("fd=%d",fd);
+#if defined(STACK_LWIP)
 	struct sockaddr_storage ss;
 	sys2lwip(fd, addr, (struct sockaddr*)&ss);
-	return lwip_connect(fd, (struct sockaddr*)&ss, addrlen);
+	err = lwip_connect(fd, (struct sockaddr*)&ss, addrlen);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 int zts_bind(int fd, const struct sockaddr *addr, socklen_t addrlen)
 {
+	int err = -1;
 	DEBUG_EXTRA("fd=%d", fd);
+#if defined(STACK_LWIP)
 	struct sockaddr_storage ss;
 	sys2lwip(fd, addr, (struct sockaddr*)&ss);
-	return lwip_bind(fd, (struct sockaddr*)&ss, addrlen);
+	err = lwip_bind(fd, (struct sockaddr*)&ss, addrlen);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 int zts_listen(int fd, int backlog)
 {
+	int err = -1;
 	DEBUG_EXTRA("fd=%d", fd);
-	return lwip_listen(fd, backlog);
+#if defined(STACK_LWIP)
+	err = lwip_listen(fd, backlog);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 int zts_accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
+	int err = -1;
 	DEBUG_EXTRA("fd=%d", fd);
-	return lwip_accept(fd, addr, addrlen);
+#if defined(STACK_LWIP)
+	err = lwip_accept(fd, addr, addrlen);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 #if defined(__linux__)
 int zts_accept4(int fd, struct sockaddr *addr, socklen_t *addrlen, int flags)
 {
+	int err = -1;
 	DEBUG_EXTRA("fd=%d", fd);
-	return zts_accept(fd, addr, addrlen);
+#if defined(STACK_LWIP)
+	err = zts_accept(fd, addr, addrlen);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 #endif
 
 int zts_setsockopt(int fd, int level, int optname, const void *optval, socklen_t optlen)
 {
+	int err = -1;
 	DEBUG_EXTRA("fd=%d, level=%d, optname=%d", fd, level, optname);
-	return lwip_setsockopt(fd, level, optname, optval, optlen);
+#if defined(STACK_LWIP)
+	err = lwip_setsockopt(fd, level, optname, optval, optlen);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 int zts_getsockopt(int fd, int level, int optname, void *optval, socklen_t *optlen)
 {
+	int err = -1;
 	DEBUG_EXTRA("fd=%d, level=%d, optname=%d", fd, level, optname);
-	return lwip_getsockopt(fd, level, optname, optval, optlen);
+#if defined(STACK_LWIP)
+	err = lwip_getsockopt(fd, level, optname, optval, optlen);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 int zts_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
+	int err = -1;
 	DEBUG_EXTRA("fd=%p", fd);
-	return lwip_getsockname(fd, addr, addrlen);
+#if defined(STACK_LWIP)
+	err = lwip_getsockname(fd, addr, addrlen);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 int zts_getpeername(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
+	int err = -1;
 	DEBUG_EXTRA("fd=%d", fd);
-	return lwip_getpeername(fd, addr, addrlen);
+#if defined(STACK_LWIP)
+	err = lwip_getpeername(fd, addr, addrlen);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 int zts_gethostname(char *name, size_t len)
 {
 	DEBUG_EXTRA();
-	return -1;
+	int err = -1;
+#if defined(STACK_LWIP)
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 int zts_sethostname(const char *name, size_t len)
 {
 	DEBUG_EXTRA();
-	return -1;
+	int err = -1;
+#if defined(STACK_LWIP)
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 int zts_close(int fd)
 {
+	int err = -1;
 	DEBUG_EXTRA("fd=%d", fd);
-	return lwip_close(fd);
+#if defined(STACK_LWIP)
+	err = lwip_close(fd);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 int zts_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
+	int err = -1;
+#if defined(STACK_LWIP)
 	DEBUG_ERROR("warning, this is not implemented");
 	return poll(fds, nfds, timeout);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
-int zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
+int zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, 
+	struct timeval *timeout)
 {
+	int err = -1;
 	//DEBUG_EXTRA();
-	return lwip_select(nfds, readfds, writefds, exceptfds, timeout);
+#if defined(STACK_LWIP)
+	err = lwip_select(nfds, readfds, writefds, exceptfds, timeout);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 int zts_fcntl(int fd, int cmd, int flags)
 {
+	int err = -1;
 	DEBUG_EXTRA("fd=%p, cmd=%d, flags=%d", cmd, flags);
+#if defined(STACK_LWIP)
+	// translation required since lwIP uses different flag values
 	int translated_flags = 0;
 	if (flags == 2048) {
 		translated_flags = 1;
 	}
-	return lwip_fcntl(fd, cmd, translated_flags);
+	err = lwip_fcntl(fd, cmd, translated_flags);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 int zts_ioctl(int fd, unsigned long request, void *argp)
 {
+	int err = -1;
 	DEBUG_EXTRA("fd=%d, req=%d", fd, request);
-	return lwip_ioctl(fd, request, argp);
+#if defined(STACK_LWIP)
+	err = lwip_ioctl(fd, request, argp);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
-ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen)
+ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags, 
+	const struct sockaddr *addr, socklen_t addrlen)
 {
+	int err = -1;
 	DEBUG_TRANS("fd=%d, len=%d", fd, len);
+#if defined(STACK_LWIP)
 	struct sockaddr_storage ss;
 	sys2lwip(fd, addr, (struct sockaddr*)&ss);
-	return lwip_sendto(fd, buf, len, flags, (struct sockaddr*)&ss, addrlen);
+	err = lwip_sendto(fd, buf, len, flags, (struct sockaddr*)&ss, addrlen);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 ssize_t zts_send(int fd, const void *buf, size_t len, int flags)
 {
+	int err = -1;
 	DEBUG_TRANS("fd=%d, len=%d", fd, len);
-	return lwip_send(fd, buf, len, flags);
+#if defined(STACK_LWIP)
+	err = lwip_send(fd, buf, len, flags);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 ssize_t zts_sendmsg(int fd, const struct msghdr *msg, int flags)
 {
+	int err = -1;
 	DEBUG_TRANS("fd=%d", fd);
-	return lwip_sendmsg(fd, msg, flags);
+#if defined(STACK_LWIP)
+	err = lwip_sendmsg(fd, msg, flags);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 ssize_t zts_recv(int fd, void *buf, size_t len, int flags)
 {
+	int err = -1;
 	DEBUG_TRANS("fd=%d", fd);
-	return lwip_recv(fd, buf, len, flags);
+#if defined(STACK_LWIP)
+	err = lwip_recv(fd, buf, len, flags);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
-ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen)
+ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags, 
+	struct sockaddr *addr, socklen_t *addrlen)
 {
+	int err = -1;
 	DEBUG_TRANS("fd=%d", fd);
-	return lwip_recvfrom(fd, buf, len, flags, addr, addrlen);
+#if defined(STACK_LWIP)
+	err = lwip_recvfrom(fd, buf, len, flags, addr, addrlen);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 ssize_t zts_recvmsg(int fd, struct msghdr *msg,int flags)
 {
 	DEBUG_TRANS("fd=%d", fd);
-	return -1;
+	int err = -1;
+#if defined(STACK_LWIP)
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
-int zts_read(int fd, void *buf, size_t len) {
+int zts_read(int fd, void *buf, size_t len)
+{
+	int err = -1;
 	//DEBUG_TRANS("fd=%d, len=%d", fd, len);
-	return lwip_read(fd, buf, len);
+#if defined(STACK_LWIP)
+	err = lwip_read(fd, buf, len);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
-int zts_write(int fd, const void *buf, size_t len) {
+int zts_write(int fd, const void *buf, size_t len) 
+{
 	//DEBUG_TRANS("fd=%d, len=%d", fd, len);
-	return lwip_write(fd, buf, len);
+	int err = -1;
+#if defined(STACK_LWIP)
+	err = lwip_write(fd, buf, len);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 int zts_shutdown(int fd, int how)
 {
+	int err = -1;
 	DEBUG_EXTRA("fd=%d, how=%d", fd, how);
-	return lwip_shutdown(fd, how);
+#if defined(STACK_LWIP)
+	err = lwip_shutdown(fd, how);
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 int zts_add_dns_nameserver(struct sockaddr *addr)
 {
 	DEBUG_EXTRA();
-	return -1;
+	int err = -1;
+#if defined(STACK_LWIP)
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 int zts_del_dns_nameserver(struct sockaddr *addr)
 {
 	DEBUG_EXTRA();
-	return -1;
+	int err = -1;
+#if defined(STACK_LWIP)
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+#endif
+	return err;
 }
 
 #ifdef __cplusplus

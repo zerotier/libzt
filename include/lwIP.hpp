@@ -36,13 +36,20 @@
 #include "MAC.hpp"
 #include "InetAddress.hpp"
 #include "Defs.h"
+#include "Mutex.hpp"
 
 /**
  * @brief Initialize network stack semaphores, threads, and timers.
  *
+ * @usage This is called during the initial setup of each VirtualTap but is only allowed to execute once
  * @return
  */
 void lwip_driver_init();
+
+void general_lwip_init_interface(void *tapref, struct netif *interface, const char *name, const ZeroTier::MAC &mac,
+	const ZeroTier::InetAddress &addr, const ZeroTier::InetAddress &nm, const ZeroTier::InetAddress &gw);
+
+void general_turn_on_interface(struct netif *interface);
 
 /**
  * @brief Set up an interface in the network stack for the VirtualTap.

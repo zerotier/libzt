@@ -143,12 +143,12 @@ namespace ZeroTier {
 		/**
 		 * Adds a route to the virtual tap
 		 */
-		bool routeAdd(const InetAddress &addr, const InetAddress &nm, const InetAddress &gw);
+		bool routeAdd(const InetAddress &ip, const InetAddress &nm, const InetAddress &gw);
 
 		/**
 		 * Deletes a route from the virtual tap
 		 */
-		bool routeDelete(const InetAddress &addr, const InetAddress &nm);
+		bool routeDelete(const InetAddress &ip, const InetAddress &nm);
 
 		/**
 		 * Assign a VirtualSocket to the VirtualTap

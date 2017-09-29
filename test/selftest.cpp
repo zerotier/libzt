@@ -125,6 +125,7 @@
 #define GETSOCKOPT zts_getsockopt
 #define IOCTL zts_ioctl
 #define FCNTL zts_fcntl
+#define SELECT zts_select
 #define CLOSE zts_close
 #define GETPEERNAME zts_getpeername
 #endif
@@ -161,6 +162,7 @@ inline unsigned int gettid()
 #define GETSOCKOPT getsockopt
 #define IOCTL ioctl
 #define FCNTL fcntl
+#define SELECT select
 #define CLOSE close
 #define GETPEERNAME getpeername
 #endif
@@ -329,6 +331,182 @@ void RECORD_RESULTS(bool passed, char *details, std::vector<std::string> *result
 	memset(details, 0, DETAILS_STR_LEN);
 }
 
+
+
+/****************************************************************************/
+/* POLL/SELECT                                                              */
+/****************************************************************************/
+
+void tcp_select_server(TCP_UNIT_TEST_SIG_4)
+{
+	std::string testname = "tcp_select_server";
+	std::string msg = "tcp_select";
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "accept connection, create poll/select loop, read and write strings back and forth\n");
+	int w=0, r=0, fd, client_fd, err, len = strlen(msg.c_str());
+	char rbuf[STR_SIZE];
+	memset(rbuf, 0, sizeof rbuf);
+	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+		DEBUG_ERROR("error creating ZeroTier socket");
+		perror("socket");
+		*passed = false;
+		return;
+	}
+	if ((err = BIND(fd, (struct sockaddr *)addr, sizeof(struct sockaddr_in)) < 0)) {
+		DEBUG_ERROR("error binding to interface (%d)", err);
+		perror("bind");
+		*passed = false;
+		return;
+	}
+	if ((err = LISTEN(fd, 100)) < 0) {
+		printf("error placing socket in LISTENING state (%d)", err);
+		perror("listen");
+		*passed = false;
+		return;
+	}
+	struct sockaddr_in client;
+	socklen_t client_addrlen = sizeof(sockaddr_in);
+	if ((client_fd = ACCEPT(fd, (struct sockaddr *)&client, &client_addrlen)) < 0) {
+		perror("accept");
+		*passed = false;
+		return;
+	}
+
+	DEBUG_TEST("accepted connection fd=%d", client_fd);
+
+	fd_set read_set, write_set;
+
+	uint32_t msecs = 5;
+	struct timeval tv;
+	tv.tv_sec = msecs / 1000;
+	tv.tv_usec = (msecs % 1000) * 1000;
+	int ret = 0;
+
+	FD_SET(client_fd, &read_set);
+	FD_SET(client_fd, &write_set);
+
+	int tot = 1000, rx_num = 0, tx_num = 0;
+
+	while(rx_num < tot && tx_num < tot) {
+
+		FD_ZERO(&read_set);
+		FD_ZERO(&write_set);
+
+		FD_SET(client_fd, &read_set);
+		FD_SET(client_fd, &write_set);
+
+		ret = SELECT(client_fd + 1, &read_set, &write_set, NULL, &tv);
+
+		if (ret > 0) {
+			for (int fd_i=0; fd_i<client_fd+1; fd_i++) {
+
+				// process incoming messages
+				if (FD_ISSET(fd_i, &read_set)) {
+					r = READ(fd_i, rbuf, len);
+					if (r == msg.length()) {
+						rx_num++;
+						DEBUG_TEST("rx=%d", rx_num);
+					}
+				}
+				// write a message to the socket if allowed
+				if (FD_ISSET(fd_i, &write_set)) {
+					w = WRITE(fd_i, msg.c_str(), len);
+					if (w == msg.length()) {
+						tx_num++;
+						DEBUG_TEST("tx=%d", tx_num);
+					}
+				}
+			}
+		}
+	}
+	
+	DEBUG_TEST("complete");
+	sleep(ARTIFICIAL_SOCKET_LINGER);
+	err = CLOSE(fd);
+	sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
+	*passed = (w == len && r == len && !err) && !strcmp(rbuf, msg.c_str());
+		exit(0);
+
+}
+
+void tcp_select_client(TCP_UNIT_TEST_SIG_4)
+{
+	std::string testname = "tcp_select_client";
+	std::string msg = "tcp_select";
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "connect to remote host, create poll/select loop, read and write strings back and forth\n");
+	int r, w, fd, err, len = strlen(msg.c_str());
+	char rbuf[STR_SIZE];
+	memset(rbuf, 0, sizeof rbuf);
+	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+		DEBUG_ERROR("error creating ZeroTier socket");
+		perror("socket");
+		*passed = false;
+		return;
+	}
+	if ((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0) {
+		DEBUG_ERROR("error connecting to remote host (%d)", err);
+		perror("connect");
+		*passed = false;
+		return;
+	}
+
+	DEBUG_TEST("connected fd=%d", fd);
+
+	fd_set read_set, write_set;
+
+	uint32_t msecs = 5;
+	struct timeval tv;
+	tv.tv_sec = msecs / 1000;
+	tv.tv_usec = (msecs % 1000) * 1000;
+	int ret = 0;
+
+	FD_SET(fd, &read_set);
+	FD_SET(fd, &write_set);
+
+	int tot = 1000, rx_num = 0, tx_num = 0;
+
+	while(rx_num < tot && tx_num < tot) {
+
+		FD_ZERO(&read_set);
+		FD_ZERO(&write_set);
+
+		FD_SET(fd, &read_set);
+		FD_SET(fd, &write_set);
+
+		ret = SELECT(fd + 1, &read_set, &write_set, NULL, &tv);
+
+		if (ret > 0) {
+			DEBUG_TEST("socket activity");
+			for (int fd_i=0; fd_i<fd+1; fd_i++) {
+				// process incoming messages
+				if (FD_ISSET(fd_i, &read_set)) {
+					r = READ(fd_i, rbuf, len);
+					if (r == msg.length()) {
+						rx_num++;
+						DEBUG_TEST("rx=%d", rx_num);
+					}
+				}
+				// write a message to the socket if allowed
+				if (FD_ISSET(fd_i, &write_set)) {
+					w = WRITE(fd_i, msg.c_str(), len);
+					if (w == msg.length()) {
+						tx_num++;
+						DEBUG_TEST("tx=%d", tx_num);
+					}
+				}
+			}
+		}
+	}
+	
+	DEBUG_TEST("complete");
+	sleep(ARTIFICIAL_SOCKET_LINGER);
+	err = CLOSE(fd);
+	sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
+	*passed = (w == len && r == len && !err) && !strcmp(rbuf, msg.c_str());
+		exit(0);
+
+}
 
 
 
@@ -2554,7 +2732,7 @@ for (int i=0; i<num_repeats; i++)
 
 	#if defined(LIBZT_IPV4)
 		// UDP 4 client/server
-		
+
 		ipv = 4;
 		subtest_start_time_offset += subtest_expected_duration;
 		subtest_expected_duration = 30;
@@ -2627,6 +2805,40 @@ for (int i=0; i<num_repeats; i++)
 		RECORD_RESULTS(passed, details, &results);
 		port++;
 
+	// TCP 4 client/server (POLL/SELECT TEST)
+
+		ipv = 4;
+		subtest_start_time_offset+=subtest_expected_duration;
+		subtest_expected_duration = 30;
+
+		if (mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			tcp_select_server((struct sockaddr_in *)&local_addr, op, cnt, details, &passed); 
+		}
+		else if (mode == TEST_MODE_CLIENT) {
+			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			tcp_select_client((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		mode = mode == TEST_MODE_SERVER ? TEST_MODE_CLIENT : TEST_MODE_SERVER; // switch roles
+		port++; // move up one port
+		subtest_start_time_offset+=subtest_expected_duration;
+		if (mode == TEST_MODE_SERVER) {
+			str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset);
+			tcp_select_server((struct sockaddr_in *)&local_addr, op, cnt, details, &passed); 
+		}
+		else if (mode == TEST_MODE_CLIENT) {
+			str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+			wait_until_tplus_s(selftest_start_time, subtest_start_time_offset+5);
+			tcp_select_client((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
+		}
+		RECORD_RESULTS(passed, details, &results);
+		port++;
+
+exit(0);
 	// TCP 4 client/server
 
 		ipv = 4;

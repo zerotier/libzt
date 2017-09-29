@@ -2,13 +2,12 @@
 
 ### Linux
  
- - `make static_lib`
+ - `make static_lib LIBZT_IPV4=1`
  - `make tests`
 
 ### macOS
  
- - `make static_lib`
- - `make macos_framework` 
+ - `make static_lib LIBZT_IPV4=1`
  - `make tests`
 
 ### iOS
@@ -17,7 +16,7 @@
 
 ### FreeBSD
  
- - `make static_lib`
+ - `make static_lib LIBZT_IPV4=1`
  - `make tests`
 
 ### Windows

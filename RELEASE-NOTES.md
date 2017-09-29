@@ -1,11 +1,11 @@
-### 2017-09-15 -- Version 1.1.5
+### 2017-??-?? -- Version 1.1.5
 
  - Improvements in API consistency and coverage
- - Re-introduction of lwIP driver, also upgraded lwIP to 2.0.2-STABLE
- - Additional safety checks
+ - Re-introduction of lwIP driver, also upgraded lwIP to 2.0.3
+ - Added lwIP sequential driver (basically a wrapper), and downgraded previous raw driver to experimental
  - Various bug fixes for POSIX socket emulation layer
- - Rework of Connection lock scheme
- - Performance (RX and TX) upgrades
+ - Rework of VirtualSocket lock scheme
+ - Performance upgrades for RX and TX
 
 ### 2017-06-07 -- Version  1.1.4    
 

@@ -407,18 +407,15 @@ void zts_simple_start(const char *path, const char *nwid)
 		nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 1000000)}}, NULL);
 	}
 	while (true) {
-		DEBUG_EXTRA("trying join");
 		try {
 			zts_join(nwid);
-			DEBUG_EXTRA("joined");
 			break;
 		}
 		catch( ... ) {
-			DEBUG_ERROR("there was a problem joining the virtual network");
+			DEBUG_ERROR("there was a problem joining the virtual network %s", nwid);
 			handle_general_failure();
 		}
 	}
-	DEBUG_EXTRA("waiting for addresss");
 	while (zts_has_address(nwid) == false) {
 		nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 1000000)}}, NULL);
 	}

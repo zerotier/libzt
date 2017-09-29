@@ -61,7 +61,7 @@ namespace ZeroTier
  * @brief Returns a vector of network routes { target, via, metric, etc... }
  *
  * @usage
- * @param nwid
+ * @param nwid 16-digit hexidecimal network identifier
  * @return
  */
 std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(char *nwid);
@@ -70,7 +70,8 @@ std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(char *nwid);
  * @brief
  *
  * @usage For internal use only.
- * @param
+ * @param filepath Path to configuration files
+ * @param devID buffer to which the device ID (nodeID, ztAddress) should be copied
  * @return
  */
 int zts_get_device_id_from_file(const char *filepath, char *devID);
@@ -94,64 +95,72 @@ void *zts_start_service(void *thread_id);
 void disableTaps();
 
 /**
- * @brief
+ * @brief Gets the VirtualTap's (interface) IPv4 address
  *
  * @usage For internal use only.
- * @param
+ * @param nwid
+ * @param addrstr
+ * @param addrlen
  * @return
  */
 void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen);
 
 /**
- * @brief
+ * @brief Gets the VirtualTap's (interface) IPv6 address
  *
  * @usage For internal use only.
- * @param
+ * @param nwid
+ * @param addrstr
+ * @param addrlen
  * @return
  */
 void zts_get_ipv6_address(const char *nwid, char *addrstr, const int addrlen);
 
 /**
- * @brief
+ * @brief Returns whether the VirtualTap has an assigned IPv4 address
  *
  * @usage For internal use only.
- * @param
+ * @param nwid
  * @return
  */
 int zts_has_ipv4_address(const char *nwid);
 
 /**
- * @brief
+ * @brief Returns whether the VirtualTap has an assigned IPv6 address
  *
  * @usage For internal use only.
- * @param
+ * @param nwid
  * @return
  */
 int zts_has_ipv6_address(const char *nwid);
 
 /**
- * @brief
+ * @brief Returns whether the VirtualTap has an assigned address of any protocol version
  *
  * @usage For internal use only.
- * @param
+ * @param nwid
  * @return
  */
 int zts_has_address(const char *nwid);
 
 /**
- * @brief
+ * @brief Copies the 6PLANE IPv6 address for the VirtualTap into the provided buffer
  *
  * @usage
- * @param
+ * @param addr
+ * @param nwid
+ * @param devID
  * @return
  */
 void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID);
 
 /**
- * @brief
+ * @brief Copies the RFC4193 IPv6 address for the VirtualTap into the provided buffer
  *
  * @usage
- * @param
+ * @param addr
+ * @param nwid
+ * @param devID 
  * @return
  */
 void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID);
@@ -207,21 +216,22 @@ void zts_start(const char *path);
 void zts_simple_start(const char *path, const char *nwid);
 
 /**
- * @brief
+ * @brief Stops libzt (ZeroTier core services, stack drivers, stack threads, etc)
  *
- * @usage
- * @param
+ * @usage This should be called at the end of your program or when you do not anticipate communicating over ZeroTier
  * @return
  */
 void zts_stop();
 
 /**
- * @brief
+ * @brief Copies the configuration path used by ZeroTier into the provided buffer
  *
- * @usage
- * @param
+ * @usage 
+ * @param homePath
+ * @param len
  * @return
- */void zts_get_homepath(char *homePath, int len);
+ */
+void zts_get_homepath(char *homePath, int len);
 
 /**
  * @brief Copies the hexidecimal representation of this nodeID into the provided buffer

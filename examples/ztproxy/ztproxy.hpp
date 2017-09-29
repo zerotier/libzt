@@ -56,16 +56,15 @@ namespace ZeroTier {
 		Mutex tx_m, rx_m;
 
 		TcpConnection() {
-			printf("TcpConnection()\n");
 			zfd = -1;			
 			TXbuf = new RingBuffer<unsigned char>(BUF_SZ);
 			RXbuf = new RingBuffer<unsigned char>(BUF_SZ);
 		}
 
 		~TcpConnection() {
-			printf("~TcpConnection()\n");
 			delete TXbuf;
 			delete RXbuf;
+		    client_sock = NULL;
 			TXbuf = NULL;
 			RXbuf = NULL;
 		}
@@ -106,7 +105,7 @@ namespace ZeroTier {
 
 		Mutex conn_m;
 		fd_set read_set, write_set;
-		int nfds = 0;
+		int nfds;
 
 		int _proxy_listen_port;
 		int _internal_port;

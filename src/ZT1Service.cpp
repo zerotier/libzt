@@ -485,6 +485,101 @@ void zts_allow_http_control(bool allowed)
 	// TODO
 }
 
+
+
+
+#if defined(SDK_JNI)
+
+namespace ZeroTier {
+
+	#include <jni.h>
+
+	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1start(JNIEnv *env, jobject thisObj, jstring path) {
+		if (path) {
+			homeDir = env->GetStringUTFChars(path, NULL);
+			zts_start(homeDir.c_str());
+		}
+	}
+	// Shuts down ZeroTier service and SOCKS5 Proxy server
+	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1stop(JNIEnv *env, jobject thisObj) {
+		if (ZeroTier::zt1Service) {
+			zts_stop();
+		}
+	}
+
+	// Returns whether the ZeroTier service is running
+	JNIEXPORT jboolean JNICALL Java_zerotier_ZeroTier_ztjni_1running(
+		JNIEnv *env, jobject thisObj)
+	{
+		return  zts_running();
+	}
+	// Returns path for ZT config/data files
+	JNIEXPORT jstring JNICALL Java_zerotier_ZeroTier_ztjni_1homepath(
+		JNIEnv *env, jobject thisObj)
+	{
+		// TODO: fix, should copy into given arg
+		// return (*env).NewStringUTF(zts_get_homepath());
+		return (*env).NewStringUTF("");
+	}
+	// Join a network
+	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1join(
+		JNIEnv *env, jobject thisObj, jstring nwid)
+	{
+		const char *nwidstr;
+		if (nwid) {
+			nwidstr = env->GetStringUTFChars(nwid, NULL);
+			zts_join(nwidstr);
+		}
+	}
+	// Leave a network
+	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1leave(
+		JNIEnv *env, jobject thisObj, jstring nwid)
+	{
+		const char *nwidstr;
+		if (nwid) {
+			nwidstr = env->GetStringUTFChars(nwid, NULL);
+			zts_leave(nwidstr);
+		}
+	}
+	// FIXME: Re-implemented to make it play nicer with the C-linkage required for Xcode integrations
+	// Now only returns first assigned address per network. Shouldn't normally be a problem
+	JNIEXPORT jobject JNICALL Java_zerotier_ZeroTier_ztjni_1get_1ipv4_1address(
+		JNIEnv *env, jobject thisObj, jstring nwid)
+	{
+		const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
+		char address_string[INET_ADDRSTRLEN];
+		memset(address_string, 0, INET_ADDRSTRLEN);
+		zts_get_ipv4_address(nwid_str, address_string, INET_ADDRSTRLEN);
+		jclass clazz = (*env).FindClass("java/util/ArrayList");
+		jobject addresses = (*env).NewObject(clazz, (*env).GetMethodID(clazz, "<init>", "()V"));
+		jstring _str = (*env).NewStringUTF(address_string);
+		env->CallBooleanMethod(addresses, env->GetMethodID(clazz, "add", "(Ljava/lang/Object;)Z"), _str);
+		return addresses;
+	}
+
+	JNIEXPORT jobject JNICALL Java_zerotier_ZeroTier_ztjni_1get_1ipv6_1address(
+		JNIEnv *env, jobject thisObj, jstring nwid)
+	{
+		const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
+		char address_string[INET6_ADDRSTRLEN];
+		memset(address_string, 0, INET6_ADDRSTRLEN);
+		zts_get_ipv6_address(nwid_str, address_string, INET6_ADDRSTRLEN);
+		jclass clazz = (*env).FindClass("java/util/ArrayList");
+		jobject addresses = (*env).NewObject(clazz, (*env).GetMethodID(clazz, "<init>", "()V"));
+		jstring _str = (*env).NewStringUTF(address_string);
+		env->CallBooleanMethod(addresses, env->GetMethodID(clazz, "add", "(Ljava/lang/Object;)Z"), _str);
+		return addresses;
+	}
+
+	// Returns the device is in integer form
+	JNIEXPORT jint Java_zerotier_ZeroTier_ztjni_1get_1device_1id()
+	{
+		return zts_get_device_id(NULL); // TODO
+	}
+}
+
+#endif // SDK_JNI
+
 #ifdef __cplusplus
 }
 #endif

@@ -141,15 +141,14 @@ endif
 # JNI (Java Native Interface)
 ifeq ($(SDK_JNI), 1)
 	# jni.h
-	INCLUDES+=-I$(shell /usr/libexec/java_home)/include 
+	LIBZT_INCLUDES+=-I$(shell /usr/libexec/java_home)/include 
 	# jni_md.h
-	INCLUDES+=-I$(shell /usr/libexec/java_home)/include/$(SYSTEM)
-	CXXFLAGS+=-DSDK_JNI
+	LIBZT_INCLUDES+=-I$(shell /usr/libexec/java_home)/include/$(OSTYPE)
+	LIBZT_DEFS+=-DSDK_JNI
 endif
 
 CXXFLAGS=$(CFLAGS) -Wno-format -fno-rtti -std=c++11
 ZT_DEFS+=-DZT_SDK -DZT_SOFTWARE_UPDATE_DEFAULT="\"disable\""
-LIBZT_DEFS+=
 LIBZT_FILES:=src/VirtualTap.cpp src/libzt.cpp src/Utilities.cpp
 STATIC_LIB=$(BUILD)/libzt.a
 

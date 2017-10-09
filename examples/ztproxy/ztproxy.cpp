@@ -52,9 +52,9 @@ namespace ZeroTier {
 			_run(true),
 			_proxy_listen_port(proxy_listen_port),
 			_internal_port(internal_port),
-			_dns_nameserver(dns_nameserver),
 			_nwid(nwid),
 			_internal_addr(internal_addr),
+			_dns_nameserver(dns_nameserver),
 			_phy(this,false,true)
 	{
 		// Start ZeroTier Node

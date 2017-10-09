@@ -46,6 +46,22 @@
  */
 void lwip_driver_init();
 
+/**
+ * @brief Initialize and start the DNS client
+ *
+ * @usage Called after lwip_driver_init()
+ * @return
+ */
+void lwip_dns_init();
+
+/**
+ * @brief Starts DHCP timers
+ *
+ * @usage lwip_driver_init()
+ * @return
+ */
+void lwip_start_dhcp(struct netif *interface);
+
 void general_lwip_init_interface(void *tapref, struct netif *interface, const char *name, const ZeroTier::MAC &mac,
 	const ZeroTier::InetAddress &addr, const ZeroTier::InetAddress &nm, const ZeroTier::InetAddress &gw);
 

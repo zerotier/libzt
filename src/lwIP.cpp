@@ -51,6 +51,9 @@
 #include "lwip/timeouts.h"
 #include "lwip/stats.h"
 
+#include "dns.h"
+#include "netifapi.h"
+
 #include "lwIP.hpp"
 
 netif lwipdev, lwipdev6, n1;
@@ -87,7 +90,6 @@ static void tcpip_init_done(void *arg)
 	DEBUG_EXTRA("lwIP stack driver initialized");
 	lwip_driver_initialized = true;
 	driver_m.unlock();
-	DEBUG_EXTRA("released lock");
 	// sys_timeout(5000, tcp_timeout, NULL);
 	sys_sem_signal(sem);
 }
@@ -109,9 +111,7 @@ static void main_network_stack_thread(void *arg)
 // initialize the lwIP stack
 void lwip_driver_init()
 {
-	DEBUG_EXTRA("getting lock..");
 	driver_m.lock(); // unlocked from callback indicating completion of driver init
-	DEBUG_EXTRA("got lock");
 	if (lwip_driver_initialized == true) {
 		return;
 	}
@@ -199,6 +199,16 @@ void general_turn_on_interface(struct netif *interface)
 	//lwipdev.linkoutput = NULL;
 	//netif_set_down(&lwipdev);
 	//netif_set_link_down(&lwipdev);
+}
+
+void lwip_dns_init()
+{
+	dns_init();
+}
+
+void lwip_start_dhcp(struct netif *interface)
+{
+	netifapi_dhcp_start(interface);
 }
 
 void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier::InetAddress &ip)

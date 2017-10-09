@@ -75,7 +75,7 @@ namespace ZeroTier {
 		friend class Phy<ZTProxy *>;
 
 	public:
-		ZTProxy(int proxy_listen_port, std::string nwid, std::string path, std::string internal_addr, int internal_port);
+		ZTProxy(int proxy_listen_port, std::string nwid, std::string path, std::string internal_addr, int internal_port, std::string _dns_nameserver);
 		~ZTProxy();
 
 		// Send incoming data to intended host
@@ -111,6 +111,7 @@ namespace ZeroTier {
 		int _internal_port;
 		std::string _nwid;
 		std::string _internal_addr;
+		std::string _dns_nameserver;
 
 		Thread _thread;
 		Phy<ZTProxy*> _phy;

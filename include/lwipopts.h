@@ -167,6 +167,7 @@
 #undef TCP_MSS
 #define TCP_MSS 1460
 
+#define LWIP_NETIF_API 1
 /*
 The TCP window size can be adjusted by changing the define TCP_WND. However,
 do keep in mind that this should be at least twice the size of TCP_MSS (thus
@@ -356,26 +357,26 @@ happening sooner than they should.
  * MEMP_NUM_NETCONN: the number of struct netconns.
  * (only needed if you use the sequential API, like api_lib.c)
  */
-#define MEMP_NUM_NETCONN                4
+#define MEMP_NUM_NETCONN                32
 
 /**
  * MEMP_NUM_TCPIP_MSG_API: the number of struct tcpip_msg, which are used
  * for callback/timeout API communication.
  * (only needed if you use tcpip.c)
  */
-#define MEMP_NUM_TCPIP_MSG_API          8
+#define MEMP_NUM_TCPIP_MSG_API          64
 
 /**
  * MEMP_NUM_TCPIP_MSG_INPKT: the number of struct tcpip_msg, which are used
  * for incoming packets.
  * (only needed if you use tcpip.c)
  */
-#define MEMP_NUM_TCPIP_MSG_INPKT        8
+#define MEMP_NUM_TCPIP_MSG_INPKT        32
 
 /**
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
-#define PBUF_POOL_SIZE                  8000 /* was 32 */
+#define PBUF_POOL_SIZE                  4092 /* was 32 */
 
 
 /*------------------------------------------------------------------------------
@@ -433,7 +434,7 @@ happening sooner than they should.
  * PBUF_POOL_SIZE > IP_REASS_MAX_PBUFS so that the stack is still able to receive
  * packets even if the maximum amount of fragments is enqueued for reassembly!
  */
-#define IP_REASS_MAX_PBUFS              4
+#define IP_REASS_MAX_PBUFS              32
 
 /**
  * IP_FRAG_USES_STATIC_BUF==1: Use a static MTU-sized buffer for IP
@@ -476,7 +477,7 @@ happening sooner than they should.
 /**
  * LWIP_DHCP==1: Enable DHCP module.
  */
-#define LWIP_DHCP                       0
+#define LWIP_DHCP                       1
 
 
 /*------------------------------------------------------------------------------
@@ -518,7 +519,7 @@ happening sooner than they should.
  * LWIP_DNS==1: Turn on DNS module. UDP must be available for DNS
  * transport.
  */
-#define LWIP_DNS                        0
+#define LWIP_DNS                        1
 
 
 /*------------------------------------------------------------------------------

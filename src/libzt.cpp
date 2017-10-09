@@ -36,6 +36,8 @@
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
 #include "lwip/ip_addr.h"
+#include "lwip/netdb.h"
+#include "dns.h"
 #endif
 #if defined(NO_STACK)
 #include <sys/socket.h>
@@ -265,6 +267,36 @@ int zts_sethostname(const char *name, size_t len)
 	return err;
 }
 
+struct hostent *zts_gethostbyname(const char *name)
+{
+#if defined(STACK_LWIP)
+	// TODO:
+	char buf[256];
+	int buflen = 256;
+	int h_err = 0;
+	struct hostent hret;
+	struct hostent **result = NULL;
+	int err = 0;
+	/*
+	if ((err = lwip_gethostbyname_r(name, &hret, buf, buflen, result, &h_err)) != 0) {
+		DEBUG_ERROR("err = %d", err);
+		DEBUG_ERROR("h_err = %d", h_err);
+		errno = h_err;
+		return NULL; // failure
+	}
+	return *result;
+	*/
+	return lwip_gethostbyname(name);
+
+
+#endif
+#if defined(STCK_PICO)
+#endif
+#if defined(NO_STACK)
+	return NULL;
+#endif
+}
+
 int zts_close(int fd)
 {
 	int err = -1;
@@ -475,6 +507,12 @@ int zts_add_dns_nameserver(struct sockaddr *addr)
 	DEBUG_EXTRA();
 	int err = -1;
 #if defined(STACK_LWIP)
+	struct sockaddr_in *in4 = (struct sockaddr_in*)&addr;
+	static ip_addr_t ipaddr;
+	ipaddr.addr = in4->sin_addr.s_addr;
+	// TODO: manage DNS server indices 
+	dns_setserver(0, &ipaddr);
+	err = 0;
 #endif
 #if defined(STCK_PICO)
 #endif

@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <string>
 #include <fcntl.h>
+#include <regex.h>
 
 #include <vector>
 #include <algorithm>
@@ -45,12 +46,13 @@ namespace ZeroTier {
 	typedef void PhySocket;
 
 	ZTProxy::ZTProxy(int proxy_listen_port, std::string nwid, std::string path, std::string internal_addr, 
-		int internal_port) 
+		int internal_port, std::string dns_nameserver) 
 		:
 			_enabled(true),
 			_run(true),
 			_proxy_listen_port(proxy_listen_port),
 			_internal_port(internal_port),
+			_dns_nameserver(dns_nameserver),
 			_nwid(nwid),
 			_internal_addr(internal_addr),
 			_phy(this,false,true)
@@ -97,6 +99,14 @@ namespace ZeroTier {
 	void ZTProxy::threadMain()
 		throw()
 	{
+		// Add DNS nameserver
+		if (_dns_nameserver.length() > 0) {
+			DEBUG_INFO("setting DNS nameserver (%s)", _dns_nameserver.c_str());
+			struct sockaddr_in dns_address;
+			dns_address.sin_addr.s_addr = inet_addr(_dns_nameserver.c_str());
+			zts_add_dns_nameserver((struct sockaddr*)&dns_address);
+		}
+
 		TcpConnection *conn = NULL;
 		uint32_t msecs = 1;
 		struct timeval tv;
@@ -185,63 +195,89 @@ namespace ZeroTier {
 		}
 	}
 
+	bool isValidIPAddress(const char *ip)
+	{
+		struct sockaddr_in sa;
+		return inet_pton(AF_INET, ip, &(sa.sin_addr)) == 1;
+	}
+
 	void ZTProxy::phyOnTcpData(PhySocket *sock, void **uptr, void *data, unsigned long len)
 	{
 		int wr = 0, zfd = -1, err = 0;
 		DEBUG_EXTRA("sock=%p, len=%lu", sock, len);
 		std::string host = _internal_addr;
-		// Get the TcpConnection object 
 		TcpConnection *conn = cmap[sock];
 		if (conn == NULL) {
 			DEBUG_ERROR("invalid conn");
 			exit(0);
 		}
 		if (conn->zfd < 0) { // no connection yet
+			DEBUG_INFO("no connection yet, will establish...");
+			if (host == "") {
+				DEBUG_ERROR("invalid hostname or address (empty)");
+				return;
+			}
 			DEBUG_INFO("establishing proxy connection...");
-			if (host != "")
-			{
-				uint16_t dest_port, ipv;
-				dest_port = _internal_port;
-				host = _internal_addr;
+		
+			uint16_t dest_port, ipv;
+			dest_port = _internal_port;
+			host = _internal_addr;
 
-				ipv = host.find(":") != std::string::npos ? 6 : 4;
+			if (isValidIPAddress(host.c_str()) == false) {
+				// try to resolve this if it isn't an IP address
+				struct hostent *h = zts_gethostbyname(host.c_str());
+				if (h == NULL) {
+					DEBUG_ERROR("unable to resolve hostname (%s) (errno=%d)", host.c_str(), errno);
+					return;
+				}
+				// TODO
+				// host = h->h_addr_list[0];
+			}
 
-				if (ipv == 4) {
-					// Connect to proxied host via libzt
-					DEBUG_INFO("attempting to proxy [0.0.0.0:%d -> %s:%d]", _proxy_listen_port, host.c_str(), dest_port);
-					struct sockaddr_in in4;
-					memset(&in4,0,sizeof(in4));
-					in4.sin_family = AF_INET;
-					in4.sin_addr.s_addr = inet_addr(host.c_str());
-					in4.sin_port = Utils::hton(dest_port);				
-					zfd = zts_socket(AF_INET, SOCK_STREAM, 0);
-					err = zts_connect(zfd, (const struct sockaddr *)&in4, sizeof(in4));		
+			// determine address type
+			ipv = host.find(":") != std::string::npos ? 6 : 4;
+
+			// connect to remote host
+			if (ipv == 4) {
+				DEBUG_INFO("attempting to proxy [0.0.0.0:%d -> %s:%d]", _proxy_listen_port, host.c_str(), dest_port);
+				struct sockaddr_in in4;
+				memset(&in4,0,sizeof(in4));
+				in4.sin_family = AF_INET;
+				in4.sin_addr.s_addr = inet_addr(host.c_str());
+				in4.sin_port = Utils::hton(dest_port);				
+				if ((zfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+					DEBUG_ERROR("unable to create socket (errno=%d)", errno);
+					return;
 				}
-				if (ipv == 6) {
-					// Connect to proxied host via libzt
-					//DEBUG_INFO("attempting to proxy [0.0.0.0:%d -> %s:%d]", _proxy_listen_port, host.c_str(), dest_port);
-					struct sockaddr_in6 in6;
-					memset(&in6,0,sizeof(in6));
-					in6.sin6_family = AF_INET;
-					struct hostent *server;
-					server = gethostbyname2((char*)host.c_str(),AF_INET6);
-					memmove((char *) &in6.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
-					in6.sin6_port = Utils::hton(dest_port);			
-					zfd = zts_socket(AF_INET, SOCK_STREAM, 0);
-					err = zts_connect(zfd, (const struct sockaddr *)&in6, sizeof(in6));
-				}
-				if (zfd < 0 || err < 0) {
-					// now release TX buffer contents we previously saved, since we can't connect
-					DEBUG_ERROR("error while connecting to remote host (zfd=%d, err=%d)", zfd, err);
-					conn->tx_m.lock();
-					conn->TXbuf->reset();
-					conn->tx_m.unlock();
+				if ((err = zts_connect(zfd, (const struct sockaddr *)&in4, sizeof(in4))) < 0) {
+					DEBUG_ERROR("unable to connect to remote host (errno=%d)", errno);
 					return;
 				}		
-				else {
-					DEBUG_INFO("successfully connected to remote host");
-				}	
 			}
+			if (ipv == 6) {
+				//DEBUG_INFO("attempting to proxy [0.0.0.0:%d -> %s:%d]", _proxy_listen_port, host.c_str(), dest_port);
+				struct sockaddr_in6 in6;
+				memset(&in6,0,sizeof(in6));
+				in6.sin6_family = AF_INET;
+				struct hostent *server;
+				server = gethostbyname2((char*)host.c_str(),AF_INET6);
+				memmove((char *) &in6.sin6_addr.s6_addr, (char *) server->h_addr, server->h_length);
+				in6.sin6_port = Utils::hton(dest_port);			
+				zfd = zts_socket(AF_INET, SOCK_STREAM, 0);
+				err = zts_connect(zfd, (const struct sockaddr *)&in6, sizeof(in6));
+			}
+			if (zfd < 0 || err < 0) {
+				// now release TX buffer contents we previously saved, since we can't connect
+				DEBUG_ERROR("error while connecting to remote host (zfd=%d, err=%d)", zfd, err);
+				conn->tx_m.lock();
+				conn->TXbuf->reset();
+				conn->tx_m.unlock();
+				return;
+			}		
+			else {
+				DEBUG_INFO("successfully connected to remote host");
+			}	
+			
 			conn_m.lock();
 			// on success, add connection entry to map, set physock for later
 			clist.push_back(conn);
@@ -250,6 +286,9 @@ namespace ZeroTier {
 			cmap[conn->client_sock] = conn;	
 			zmap[zfd] = conn;
 			conn_m.unlock();			
+		}
+		else {
+			DEBUG_INFO("connection already established, reusing...");
 		}
 		// Write data coming from client TCP connection to its TX buffer, later emptied into libzt by threadMain I/O loop
 		conn->tx_m.lock();
@@ -278,6 +317,9 @@ namespace ZeroTier {
 		TcpConnection *conn = cmap[sock];
 		if (conn) {
 			conn->client_sock=NULL;
+			if (conn->zfd >= 0) {
+				zts_close(conn->zfd);
+			}
 			cmap.erase(sock);
 			for (int i=0; i<clist.size(); i++) {
 				if (conn == clist[i]) {
@@ -319,9 +361,9 @@ namespace ZeroTier {
 
 int main(int argc, char **argv)
 {
-	if (argc != 6) {
+	if (argc < 6 || argc > 7) {
 		printf("\nZeroTier TCP Proxy Service\n");
-		printf("ztproxy [config_file_path] [local_listen_port] [nwid] [zt_host_addr] [zt_resource_port]\n");
+		printf("ztproxy [config_file_path] [local_listen_port] [nwid] [zt_host_addr] [zt_resource_port] [optional_dns_nameserver]\n");
 		exit(0);
 	}
 	std::string path          = argv[1];
@@ -329,8 +371,9 @@ int main(int argc, char **argv)
 	std::string nwid          = argv[3];
 	std::string internal_addr = argv[4];
 	int internal_port         = atoi(argv[5]);
+	std::string dns_nameserver= argv[6];
 
-	ZeroTier::ZTProxy *proxy = new ZeroTier::ZTProxy(proxy_listen_port, nwid, path, internal_addr, internal_port);
+	ZeroTier::ZTProxy *proxy = new ZeroTier::ZTProxy(proxy_listen_port, nwid, path, internal_addr, internal_port, dns_nameserver);
 	
 	if (proxy) {
 		printf("\nZTProxy started. Listening on %d\n", proxy_listen_port);

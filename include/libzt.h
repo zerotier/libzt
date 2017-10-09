@@ -414,6 +414,15 @@ int zts_gethostname(char *name, size_t len);
 int zts_sethostname(const char *name, size_t len);
 
 /**
+ * @brief Return a pointer to an object with the following structure describing an internet host referenced by name
+ *
+ * @usage Call this after zts_start() has succeeded
+ * @param name
+ * @return Returns pointer to hostent structure otherwise NULL if failure
+ */
+struct hostent *zts_gethostbyname(const char *name);
+
+/**
  * @brief Close a socket
  *
  * @usage Call this after zts_start() has succeeded

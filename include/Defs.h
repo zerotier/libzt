@@ -308,7 +308,7 @@ typedef signed char err_t;
 /**
  * Interval for performing background tasks (such as adding routes) on VirtualTap objects (in seconds)
  */
-#define ZT_HOUSEKEEPING_INTERVAL           5
+#define ZT_HOUSEKEEPING_INTERVAL           3
 
 /**
  * Whether or not we want libzt to exit on internal failure

@@ -63,10 +63,6 @@ namespace ZeroTier {
 			_internal_addr(internal_addr),
 			_phy(this,false,true)
 	{
-		// Start ZeroTier Node
-		// Join Network which contains resources we need to proxy
-		DEBUG_INFO("waiting for libzt to come online");
-		zts_simple_start(path.c_str(), nwid.c_str());
 		// Set up TCP listen sockets
 		// IPv4
 		struct sockaddr_in in4;
@@ -380,6 +376,11 @@ int main(int argc, char **argv)
 	int internal_port         = atoi(argv[5]);
 	std::string dns_nameserver= "";//argv[6];
 
+	// Start ZeroTier Node
+	// Join Network which contains resources we need to proxy
+	DEBUG_INFO("waiting for libzt to come online");
+	zts_simple_start(path.c_str(), nwid.c_str());
+		
 	ZeroTier::ZTProxy *proxy = new ZeroTier::ZTProxy(proxy_listen_port, nwid, path, internal_addr, internal_port, dns_nameserver);
 	
 	if (proxy) {

@@ -103,7 +103,7 @@ void disableTaps();
  * @param addrlen
  * @return
  */
-void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen);
+void zts_get_ipv4_address(const char *nwid, char *addrstr, const size_t addrlen);
 
 /**
  * @brief Gets the VirtualTap's (interface) IPv6 address
@@ -114,7 +114,7 @@ void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen);
  * @param addrlen
  * @return
  */
-void zts_get_ipv6_address(const char *nwid, char *addrstr, const int addrlen);
+void zts_get_ipv6_address(const char *nwid, char *addrstr, const size_t addrlen);
 
 /**
  * @brief Returns whether the VirtualTap has an assigned IPv4 address
@@ -198,9 +198,9 @@ int zts_running();
  * that one call this at the beginning of your application code since it may take several seconds to fully
  * come online.
  * @param path Where this instance of ZeroTier will store its identity and configuration files
- * @return
+ * @return Returns 1 if ZeroTier is currently running, and 0 if it is not
  */
-void zts_start(const char *path);
+int zts_start(const char *path);
 
 /**
  * @brief Alternative to zts_start(). Start an instance of libzt, wait for an address to be issues, and join
@@ -211,15 +211,15 @@ void zts_start(const char *path);
  * come online.
  * @param path
  * @param nwid A 16-digit hexidecimal virtual network ID
- * @return
+ * @return Returns 0 on success, -1 on failure
  */
-void zts_simple_start(const char *path, const char *nwid);
+int zts_simple_start(const char *path, const char *nwid);
 
 /**
  * @brief Stops libzt (ZeroTier core services, stack drivers, stack threads, etc)
  *
  * @usage This should be called at the end of your program or when you do not anticipate communicating over ZeroTier
- * @return
+ * @return Returns 0 on success, -1 on failure
  */
 void zts_stop();
 
@@ -231,7 +231,7 @@ void zts_stop();
  * @param len
  * @return
  */
-void zts_get_homepath(char *homePath, int len);
+void zts_get_homepath(char *homePath, size_t len);
 
 /**
  * @brief Copies the hexidecimal representation of this nodeID into the provided buffer

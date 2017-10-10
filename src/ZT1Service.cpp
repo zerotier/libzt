@@ -258,7 +258,7 @@ void disableTaps()
 	ZeroTier::_vtaps_lock.unlock();
 }
 
-void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen)
+void zts_get_ipv4_address(const char *nwid, char *addrstr, const size_t addrlen)
 {
 	if (ZeroTier::zt1Service) {
 		uint64_t nwid_int = strtoull(nwid, NULL, 16);
@@ -280,7 +280,7 @@ void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen)
 		memcpy(addrstr, "\0", 1);
 }
 
-void zts_get_ipv6_address(const char *nwid, char *addrstr, const int addrlen)
+void zts_get_ipv6_address(const char *nwid, char *addrstr, size_t addrlen)
 {
 	if (ZeroTier::zt1Service) {
 		uint64_t nwid_int = strtoull(nwid, NULL, 16);
@@ -391,10 +391,10 @@ int zts_running() {
 	return ZeroTier::zt1Service == NULL ? false : ZeroTier::zt1Service->isRunning();
 }
 
-void zts_start(const char *path)
+int zts_start(const char *path)
 {
 	if (ZeroTier::zt1Service) {
-		return;
+		return 0; // already initialized, ok
 	}
 	if (path) {
 		ZeroTier::homeDir = path;
@@ -403,12 +403,12 @@ void zts_start(const char *path)
 		WSAStartup(MAKEWORD(2, 2), &wsaData); // initialize WinSock. Used in Phy for loopback pipe
 #endif
 	pthread_t service_thread;
-	pthread_create(&service_thread, NULL, zts_start_service, NULL);
+	return pthread_create(&service_thread, NULL, zts_start_service, NULL);
 }
 
-void zts_simple_start(const char *path, const char *nwid)
+int zts_simple_start(const char *path, const char *nwid)
 {
-	zts_start(path);
+	int err = zts_start(path);
 	while (zts_running() == false) {
 		DEBUG_EXTRA("waiting for service to start");
 		nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 1000000)}}, NULL);
@@ -426,6 +426,7 @@ void zts_simple_start(const char *path, const char *nwid)
 	while (zts_has_address(nwid) == false) {
 		nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 1000000)}}, NULL);
 	}
+	return err;
 }
 
 void zts_stop() {
@@ -438,10 +439,10 @@ void zts_stop() {
 #endif
 }
 
-void zts_get_homepath(char *homePath, int len) {
+void zts_get_homepath(char *homePath, size_t len) {
 	if (ZeroTier::homeDir.length()) {
 		memset(homePath, 0, len);
-		int buf_len = len < ZeroTier::homeDir.length() ? len : ZeroTier::homeDir.length();
+		size_t buf_len = len < ZeroTier::homeDir.length() ? len : ZeroTier::homeDir.length();
 		memcpy(homePath, ZeroTier::homeDir.c_str(), buf_len);
 	}
 }

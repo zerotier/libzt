@@ -53,7 +53,6 @@ extern "C" {
 #endif
 
 // forward declarations from ZT1Service.h
-void zts_simple_start(const char *path, const char *nwid);
 int zts_get_device_id(char *devID);
 
 void init_network_stack();
@@ -71,7 +70,7 @@ void init_network_stack();
  * @param nwid A 16-digit hexidecimal network identifier (e.g. Earth: `8056c2e21c000001`)
  * @return 0 if successful; or 1 if failed
  */
-void zts_start(const char *path);
+int zts_start(const char *path);
 
 /**
  * @brief Starts libzt
@@ -86,7 +85,7 @@ void zts_start(const char *path);
  * @param nwid A 16-digit hexidecimal network identifier (e.g. Earth: `8056c2e21c000001`)
  * @return 0 if successful; or 1 if failed
  */
-void zts_simple_start(const char *path, const char *nwid);
+int zts_simple_start(const char *path, const char *nwid);
 
 /**
  * @brief Stops the ZeroTier core service and disconnects from all virtual networks
@@ -143,7 +142,7 @@ void zts_leave_soft(const char * filepath, const char * nwid);
  * @param len
  * @return
  */
-void zts_get_homepath(char *homePath, const int len);
+void zts_get_homepath(char *homePath, const size_t len);
 
 /**
  * @brief Get device ID (10-digit hex + NULL byte)
@@ -198,7 +197,7 @@ int zts_has_address(const char *nwid);
  * @param addrlen
  * @return
  */
-void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen);
+void zts_get_ipv4_address(const char *nwid, char *addrstr, const size_t addrlen);
 
 /**
  * @brief Get IPV6 Address for this device on a given network
@@ -209,7 +208,7 @@ void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen);
  * @param addrlen
  * @return
  */
-void zts_get_ipv6_address(const char *nwid, char *addrstr, const int addrlen);
+void zts_get_ipv6_address(const char *nwid, char *addrstr, const size_t addrlen);
 
 /**
  * @brief Returns a 6PLANE IPv6 address given a network ID and zerotier ID

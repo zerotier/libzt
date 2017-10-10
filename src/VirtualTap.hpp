@@ -206,7 +206,7 @@ namespace ZeroTier {
 		char vtap_abbr_name[16];
 
 		static int devno;
-		int ifindex = 0;
+		size_t ifindex = 0;
 
 		std::vector<InetAddress> ips() const;
 		std::vector<InetAddress> _ips;

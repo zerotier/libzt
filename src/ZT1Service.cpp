@@ -55,6 +55,10 @@ namespace ZeroTier {
 	ZeroTier::Mutex _multiplexer_lock;
 }
 
+#if defined(__MINGW32__) || defined(__MINGW64__)
+WSADATA wsaData;
+#endif
+
 /****************************************************************************/
 /* ZeroTier Core helper functions for libzt - DON'T CALL THESE DIRECTLY     */
 /****************************************************************************/
@@ -395,6 +399,9 @@ void zts_start(const char *path)
 	if (path) {
 		ZeroTier::homeDir = path;
 	}
+#if defined(__MINGW32__) || defined(__MINGW64__)
+		WSAStartup(MAKEWORD(2, 2), &wsaData) // initialize WinSock. Used in Phy for loopback pipe
+#endif
 	pthread_t service_thread;
 	pthread_create(&service_thread, NULL, zts_start_service, NULL);
 }
@@ -426,6 +433,9 @@ void zts_stop() {
 		ZeroTier::zt1Service->terminate();
 		disableTaps();
 	}
+#if defined(__MINGW32__) || defined(__MINGW64__)
+	WSACleanup(); // clean up WinSock
+#endif
 }
 
 void zts_get_homepath(char *homePath, int len) {

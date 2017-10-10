@@ -84,6 +84,7 @@ namespace ZeroTier {
 			_handler(handler),
 			_homePath(homePath),
 			_arg(arg),
+			_initialized(false),
 			_enabled(true),
 			_run(true),
 			_mac(mac),

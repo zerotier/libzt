@@ -206,6 +206,7 @@ namespace ZeroTier {
 
 		std::string _homePath;
 		void *_arg;
+		volatile bool _initialized;
 		volatile bool _enabled;
 		volatile bool _run;
 		MAC _mac;

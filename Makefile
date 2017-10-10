@@ -43,7 +43,7 @@ ARTOOL=ar
 ARFLAGS=rcs
 CC=gcc
 CXX=g++
-CXXFLAGS+=-Wno-unknown-pragmas -Wno-pointer-arith -Wno-deprecated-declarations -Wno-conversion-null
+CXXFLAGS+=-fpermissive -Wno-unknown-pragmas -Wno-pointer-arith -Wno-deprecated-declarations -Wno-conversion-null
 WINDEFS=-lws2_32 -lshlwapi -liphlpapi -static -static-libgcc -static-libstdc++
 LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/win32/include
 endif

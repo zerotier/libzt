@@ -270,14 +270,14 @@ int zts_sethostname(const char *name, size_t len)
 struct hostent *zts_gethostbyname(const char *name)
 {
 #if defined(STACK_LWIP)
-	// TODO:
+	// TODO: Test thread safety
+	/*
 	char buf[256];
 	int buflen = 256;
 	int h_err = 0;
 	struct hostent hret;
 	struct hostent **result = NULL;
 	int err = 0;
-	/*
 	if ((err = lwip_gethostbyname_r(name, &hret, buf, buflen, result, &h_err)) != 0) {
 		DEBUG_ERROR("err = %d", err);
 		DEBUG_ERROR("h_err = %d", h_err);
@@ -287,8 +287,6 @@ struct hostent *zts_gethostbyname(const char *name)
 	return *result;
 	*/
 	return lwip_gethostbyname(name);
-
-
 #endif
 #if defined(STCK_PICO)
 #endif

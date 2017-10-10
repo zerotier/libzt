@@ -35,6 +35,7 @@ endif
 
 OSTYPE=$(shell uname -s | tr '[A-Z]' '[a-z]')
 BUILD=build/$(OSTYPE)
+LWIPCONTRIBDIR=ext/lwip-contrib
 
 # Windows
 ifeq ($(OSTYPE),mingw32_nt-6.2)
@@ -44,29 +45,31 @@ CC=gcc
 CXX=g++
 CXXFLAGS+=-Wno-unknown-pragmas -Wno-pointer-arith -Wno-deprecated-declarations -Wno-conversion-null
 WINDEFS=-lws2_32 -lshlwapi -liphlpapi -static -static-libgcc -static-libstdc++
-CONTRIBDIR=ext/lwip-contrib
-LWIPARCH=$(CONTRIBDIR)/ports/win32
-LWIPARCHINCLUDE=$(LWIPARCH)/include
+LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/win32/include
 endif
 # Darwin
 ifeq ($(OSTYPE),darwin)
 ARTOOL=libtool
 ARFLAGS=-static
+LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/unix/include
 endif
 # Linux
 ifeq ($(OSTYPE),linux)
 ARTOOL=ar
 ARFLAGS=rcs
+LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/unix/include
 endif
 # FreeBSD
 ifeq ($(OSTYPE),freebsd)
 ARTOOL=ar
 ARFLAGS=rcs
+LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/unix/include
 endif
 # OpenBSD
 ifeq ($(OSTYPE),openbsd)
 ARTOOL=ar
 ARFLAGS=rcs
+LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/unix/include
 endif
 
 ##############################################################################
@@ -224,7 +227,7 @@ STACK_DRIVER_DEFS+=-DLWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS
 STACK_DRIVER_DEFS+=-DSTACK_LWIP
 STACK_DRIVER_FILES:=src/lwIP.cpp
 LWIPDIR=ext/lwip/src
-STACK_INCLUDES+=$(LWIPARCHINCLUDE) -Iext/lwip/src/include/lwip \
+STACK_INCLUDES+=-I$(LWIPARCHINCLUDE) -Iext/lwip/src/include/lwip \
 	-I$(LWIPDIR)/include \
 	-I$(LWIPARCH)/include \
 	-I$(LWIPDIR)/include/ipv4 \

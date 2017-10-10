@@ -119,6 +119,20 @@ namespace ZeroTier {
 		void threadMain()
 			throw();
 
+#if defined(__MINGW32__) 
+		/* The following is merely to make ZeroTier's OneService happy while building on Windows.
+			we won't use these in libzt */
+		NET_LUID _deviceLuid;
+		std::string _deviceInstanceId;
+		
+		/**
+		 * Returns whether the VirtualTap interface has been initialized
+		 */
+		bool isInitialized() const { return _initialized; };
+
+		inline const NET_LUID &luid() const { return _deviceLuid; }
+		inline const std::string &instanceId() const { return _deviceInstanceId; }
+#endif
 		/**
 		 * For moving data onto the ZeroTier virtual wire
 		 */

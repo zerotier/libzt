@@ -35,7 +35,7 @@
 
 #include <ctime>
 
-#if defined(__linux__) || #defined(__APPLE__)
+#if defined(__linux__) || defined(__APPLE__)
 #include <sys/socket.h>
 #endif
 

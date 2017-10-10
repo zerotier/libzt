@@ -400,7 +400,7 @@ void zts_start(const char *path)
 		ZeroTier::homeDir = path;
 	}
 #if defined(__MINGW32__) || defined(__MINGW64__)
-		WSAStartup(MAKEWORD(2, 2), &wsaData) // initialize WinSock. Used in Phy for loopback pipe
+		WSAStartup(MAKEWORD(2, 2), &wsaData); // initialize WinSock. Used in Phy for loopback pipe
 #endif
 	pthread_t service_thread;
 	pthread_create(&service_thread, NULL, zts_start_service, NULL);

@@ -69,7 +69,7 @@ ZeroTier::VirtualTap *getTapByNWID(uint64_t nwid)
 {
 	ZeroTier::_vtaps_lock.lock();
 	ZeroTier::VirtualTap *s, *tap = nullptr;
-	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
+	for (size_t i=0; i<ZeroTier::vtaps.size(); i++) {
 		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		if (s->_nwid == nwid) { tap = s; }
 	}
@@ -82,7 +82,7 @@ ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress *addr)
 	ZeroTier::_vtaps_lock.lock();
 	ZeroTier::VirtualTap *s, *tap = nullptr;
 	//char ipbuf[64], ipbuf2[64], ipbuf3[64];
-	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
+	for (size_t i=0; i<ZeroTier::vtaps.size(); i++) {
 		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		// check address schemes
 		for (int j=0; j<s->_ips.size(); j++) {
@@ -104,7 +104,7 @@ ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress *addr)
 		if (tap == NULL) {
 			std::vector<ZT_VirtualNetworkRoute> *managed_routes = ZeroTier::zt1Service->getRoutes(s->_nwid);
 			ZeroTier::InetAddress target, nm, via;
-			for (int i=0; i<managed_routes->size(); i++) {
+			for (size_t i=0; i<managed_routes->size(); i++) {
 				target = managed_routes->at(i).target;
 				nm = target.netmask();
 				via = managed_routes->at(i).via;
@@ -124,7 +124,7 @@ ZeroTier::VirtualTap *getTapByName(char *ifname)
 {
 	ZeroTier::_vtaps_lock.lock();
 	ZeroTier::VirtualTap *s, *tap = nullptr;
-	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
+	for (size_t i=0; i<ZeroTier::vtaps.size(); i++) {
 		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		if (strcmp(s->_dev.c_str(), ifname) == false) {
 			tap = s;
@@ -134,11 +134,11 @@ ZeroTier::VirtualTap *getTapByName(char *ifname)
 	return tap;
 }
 
-ZeroTier::VirtualTap *getTapByIndex(int index)
+ZeroTier::VirtualTap *getTapByIndex(size_t index)
 {
 	ZeroTier::_vtaps_lock.lock();
 	ZeroTier::VirtualTap *s, *tap = nullptr;
-	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
+	for (size_t i=0; i<ZeroTier::vtaps.size(); i++) {
 		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		if (s->ifindex == index) {
 			tap = s;
@@ -247,7 +247,7 @@ void *zts_start_service(void *thread_id)
 void disableTaps()
 {
 	ZeroTier::_vtaps_lock.lock();
-	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
+	for (size_t i=0; i<ZeroTier::vtaps.size(); i++) {
 		DEBUG_EXTRA("vt=%p", ZeroTier::vtaps[i]);
 		((ZeroTier::VirtualTap*)ZeroTier::vtaps[i])->_enabled = false;
 	}
@@ -260,7 +260,7 @@ void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen)
 		uint64_t nwid_int = strtoull(nwid, NULL, 16);
 		ZeroTier::VirtualTap *tap = getTapByNWID(nwid_int);
 		if (tap && tap->_ips.size()) {
-			for (int i=0; i<tap->_ips.size(); i++) {
+			for (size_t i=0; i<tap->_ips.size(); i++) {
 				if (tap->_ips[i].isV4()) {
 					char ipbuf[INET_ADDRSTRLEN];
 					std::string addr = tap->_ips[i].toString(ipbuf);
@@ -282,7 +282,7 @@ void zts_get_ipv6_address(const char *nwid, char *addrstr, const int addrlen)
 		uint64_t nwid_int = strtoull(nwid, NULL, 16);
 		ZeroTier::VirtualTap *tap = getTapByNWID(nwid_int);
 		if (tap && tap->_ips.size()) {
-			for (int i=0; i<tap->_ips.size(); i++) {
+			for (size_t i=0; i<tap->_ips.size(); i++) {
 				if (tap->_ips[i].isV6()) {
 					char ipbuf[INET6_ADDRSTRLEN];
 					std::string addr = tap->_ips[i].toString(ipbuf);
@@ -351,7 +351,7 @@ void zts_join(const char * nwid) {
 	}
 	// provide ZTO service reference to virtual taps
 	// TODO: This might prove to be unreliable, but it works for now
-	for (int i=0;i<ZeroTier::vtaps.size(); i++) {
+	for (size_t i=0;i<ZeroTier::vtaps.size(); i++) {
 		ZeroTier::VirtualTap *s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		s->zt1ServiceRef=(void*)ZeroTier::zt1Service;
 	}
@@ -470,7 +470,7 @@ int zts_get_peer_address(char *peer, const char *devID) {
 	if (ZeroTier::zt1Service) {
 		ZT_PeerList *pl = ZeroTier::zt1Service->getNode()->peers();
 		// uint64_t addr;
-		for (int i=0; i<pl->peerCount; i++) {
+		for (size_t i=0; i<pl->peerCount; i++) {
 			// ZT_Peer *p = &(pl->peers[i]);
 			// DEBUG_INFO("peer[%d] = %lx", i, p->address);
 		}

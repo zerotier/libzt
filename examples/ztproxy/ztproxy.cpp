@@ -129,7 +129,7 @@ namespace ZeroTier {
 			FD_ZERO(&read_set);
   			FD_ZERO(&write_set);
 			nfds = 0;
-  			for (int i=0; i<clist.size(); i++) {
+  			for (size_t i=0; i<clist.size(); i++) {
   				FD_SET(clist[i]->zfd, &read_set);
   				FD_SET(clist[i]->zfd, &write_set);
   				nfds = clist[i]->zfd > nfds ? clist[i]->zfd : nfds;
@@ -324,7 +324,7 @@ namespace ZeroTier {
 				zts_close(conn->zfd);
 			}
 			cmap.erase(sock);
-			for (int i=0; i<clist.size(); i++) {
+			for (size_t i=0; i<clist.size(); i++) {
 				if (conn == clist[i]) {
 					clist.erase(clist.begin()+i);
 					break;
@@ -380,7 +380,7 @@ int main(int argc, char **argv)
 	// Join Network which contains resources we need to proxy
 	DEBUG_INFO("waiting for libzt to come online");
 	zts_simple_start(path.c_str(), nwid.c_str());
-		
+
 	ZeroTier::ZTProxy *proxy = new ZeroTier::ZTProxy(proxy_listen_port, nwid, path, internal_addr, internal_port, dns_nameserver);
 	
 	if (proxy) {

@@ -32,21 +32,38 @@
 #
 
 CONTRIBDIR=ext/lwip-contrib
-LWIPARCH=$(CONTRIBDIR)/ports/unix
-
-#Set this to where you have the lwip core module checked out from CVS
-#default assumes it's a dir named lwip at the same level as the contrib module
 LWIPDIR=ext/lwip/src
-
 CCDEP=clang++
+
 # Automagically pick clang or gcc, with preference for clang
 # This is only done if we have not overridden these with an environment or CLI variable
-ifeq ($(origin CCX),default)
-	CCX=$(shell if [ -e /usr/bin/clang++ ]; then echo clang++; else echo g++; fi)
+ifeq ($(origin CXX),default)
+	CXX=$(shell if [ -e /usr/bin/clang++ ]; then echo clang++; else echo g++; fi)
 endif
 
-LWIPINCLUDES:=-I$(LWIPDIR)/include -I$(LWIPARCH) -I$(LWIPDIR) -I. -Iext -Iinclude
-CFLAGS=-Wno-format -Wno-deprecated -O3 -g -Wall -fPIC
+OSTYPE=$(shell uname -s | tr '[A-Z]' '[a-z]')
+BUILD=build/$(OSTYPE)
+
+CCX=clang++
+
+# Windows
+ifeq ($(OSTYPE),mingw32_nt-6.2)
+CCX=g++
+WINDEFS=-Wno-c++11-compat -std=c++98
+LWIPARCH=$(CONTRIBDIR)/ports/win32
+endif
+ifeq ($(OSTYPE),linux)
+LWIPARCH=$(CONTRIBDIR)/ports/unix
+endif
+ifeq ($(OSTYPE),darwin)
+LWIPARCH=$(CONTRIBDIR)/ports/unix
+endif
+ifeq ($(OSTYPE),freebsd)
+LWIPARCH=$(CONTRIBDIR)/ports/unix
+endif
+
+LWIPINCLUDES:=-I$(LWIPDIR)/include -I$(LWIPARCH) -I$(LWIPARCH)/include -I$(LWIPDIR) -I. -Iext -Iinclude
+CFLAGS= $(WINDEFS) -Wno-format -Wno-deprecated -O3 -g -Wall -fPIC
 CFLAGS+=-DLWIP_IPV4 -DLWIP_IPV6=0 -DIPv4 -DLWIP_DEBUG=1 $(LWIPINCLUDES)
 
 UNIXLIB=liblwip.a
@@ -62,8 +79,6 @@ ARCHFILES=$(wildcard $(LWIPARCH)/port/*.c $(LWIPARCH)/*.c $(LWIPARCH)tapif.c $(L
 LWIPNOAPPSFILES+=$(ARCHFILES)
 LWIPNOAPPSFILESW=$(wildcard $(LWIPNOAPPSFILES))
 LWIPNOAPPSOBJS=$(notdir $(LWIPNOAPPSFILESW:.c=.o))
-
-CCX=clang++
 
 %.o:
 	$(CCX) $(CFLAGS) -c $(<:.o=.c)

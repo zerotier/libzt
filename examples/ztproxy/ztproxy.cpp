@@ -26,12 +26,17 @@
 
 #include <unistd.h>
 #include <string.h>
-#include <netdb.h>
+
+#if defined(__linux__) || defined(__APPLE__)
+ #include <netdb.h>
+#endif
+
+//#include "Winsock2.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
 #include <fcntl.h>
-#include <regex.h>
 
 #include <vector>
 #include <algorithm>
@@ -39,6 +44,7 @@
 
 #include "RingBuffer.hpp"
 #include "ztproxy.hpp"
+#include "Utilities.h"
 #include "libzt.h"
 
 namespace ZeroTier {
@@ -57,10 +63,6 @@ namespace ZeroTier {
 			_dns_nameserver(dns_nameserver),
 			_phy(this,false,true)
 	{
-		// Start ZeroTier Node
-		// Join Network which contains resources we need to proxy
-		DEBUG_INFO("waiting for libzt to come online");
-		zts_simple_start(path.c_str(), nwid.c_str());
 		// Set up TCP listen sockets
 		// IPv4
 		struct sockaddr_in in4;
@@ -69,7 +71,11 @@ namespace ZeroTier {
 		in4.sin_addr.s_addr = Utils::hton((uint32_t)(0x7f000001)); // listen for TCP @127.0.0.1
 		in4.sin_port = Utils::hton((uint16_t)proxy_listen_port);
 		_tcpListenSocket = _phy.tcpListen((const struct sockaddr *)&in4,this);
+		if (!_tcpListenSocket) {
+			DEBUG_ERROR("Error binding on port %d for IPv4 HTTP listen socket", proxy_listen_port);
+		}
 		// IPv6
+		/*
 		struct sockaddr_in6 in6;
 		memset((void *)&in6,0,sizeof(in6));
 		in6.sin6_family = AF_INET6;
@@ -77,13 +83,12 @@ namespace ZeroTier {
 		in6.sin6_addr.s6_addr[15] = 1; // IPv6 localhost == ::1
 		in6.sin6_port = Utils::hton((uint16_t)proxy_listen_port);
 		_tcpListenSocket6 = _phy.tcpListen((const struct sockaddr *)&in6,this);
-
-		if (!_tcpListenSocket) {
-			DEBUG_ERROR("Error binding on port %d for IPv4 HTTP listen socket", proxy_listen_port);
-		}
+		*/
+		/*
 		if (!_tcpListenSocket6) {
 			DEBUG_ERROR("Error binding on port %d for IPv6 HTTP listen socket", proxy_listen_port);
 		}
+		*/
 		_thread = Thread::start(this);
 	} 
 
@@ -117,14 +122,14 @@ namespace ZeroTier {
   		// Moves data between client application socket and libzt VirtualSocket 
 		while(_run) {
 
-			_phy.poll(5);
+			_phy.poll(1);
 
 			conn_m.lock();
 			// build fd_sets to select upon
 			FD_ZERO(&read_set);
   			FD_ZERO(&write_set);
 			nfds = 0;
-  			for (int i=0; i<clist.size(); i++) {
+  			for (size_t i=0; i<clist.size(); i++) {
   				FD_SET(clist[i]->zfd, &read_set);
   				FD_SET(clist[i]->zfd, &write_set);
   				nfds = clist[i]->zfd > nfds ? clist[i]->zfd : nfds;
@@ -212,7 +217,6 @@ namespace ZeroTier {
 			exit(0);
 		}
 		if (conn->zfd < 0) { // no connection yet
-			DEBUG_INFO("no connection yet, will establish...");
 			if (host == "") {
 				DEBUG_ERROR("invalid hostname or address (empty)");
 				return;
@@ -256,6 +260,7 @@ namespace ZeroTier {
 			}
 			if (ipv == 6) {
 				//DEBUG_INFO("attempting to proxy [0.0.0.0:%d -> %s:%d]", _proxy_listen_port, host.c_str(), dest_port);
+				/*
 				struct sockaddr_in6 in6;
 				memset(&in6,0,sizeof(in6));
 				in6.sin6_family = AF_INET;
@@ -265,6 +270,7 @@ namespace ZeroTier {
 				in6.sin6_port = Utils::hton(dest_port);			
 				zfd = zts_socket(AF_INET, SOCK_STREAM, 0);
 				err = zts_connect(zfd, (const struct sockaddr *)&in6, sizeof(in6));
+				*/
 			}
 			if (zfd < 0 || err < 0) {
 				// now release TX buffer contents we previously saved, since we can't connect
@@ -286,9 +292,6 @@ namespace ZeroTier {
 			cmap[conn->client_sock] = conn;	
 			zmap[zfd] = conn;
 			conn_m.unlock();			
-		}
-		else {
-			DEBUG_INFO("connection already established, reusing...");
 		}
 		// Write data coming from client TCP connection to its TX buffer, later emptied into libzt by threadMain I/O loop
 		conn->tx_m.lock();
@@ -321,7 +324,7 @@ namespace ZeroTier {
 				zts_close(conn->zfd);
 			}
 			cmap.erase(sock);
-			for (int i=0; i<clist.size(); i++) {
+			for (size_t i=0; i<clist.size(); i++) {
 				if (conn == clist[i]) {
 					clist.erase(clist.begin()+i);
 					break;
@@ -371,7 +374,12 @@ int main(int argc, char **argv)
 	std::string nwid          = argv[3];
 	std::string internal_addr = argv[4];
 	int internal_port         = atoi(argv[5]);
-	std::string dns_nameserver= argv[6];
+	std::string dns_nameserver= "";//argv[6];
+
+	// Start ZeroTier Node
+	// Join Network which contains resources we need to proxy
+	DEBUG_INFO("waiting for libzt to come online");
+	zts_simple_start(path.c_str(), nwid.c_str());
 
 	ZeroTier::ZTProxy *proxy = new ZeroTier::ZTProxy(proxy_listen_port, nwid, path, internal_addr, internal_port, dns_nameserver);
 	

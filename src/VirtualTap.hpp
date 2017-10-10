@@ -41,6 +41,13 @@
 #include "Thread.hpp"
 #include "Phy.hpp"
 
+#if defined(__MINGW32__) || defined(__MINGW64__)
+#include <WinSock2.h>
+#include <Windows.h>
+#include <IPHlpApi.h>
+#include <Ifdef.h>
+#endif
+
 namespace ZeroTier {
 
 	/**
@@ -119,6 +126,20 @@ namespace ZeroTier {
 		void threadMain()
 			throw();
 
+#if defined(__MINGW32__) 
+		/* The following is merely to make ZeroTier's OneService happy while building on Windows.
+			we won't use these in libzt */
+		NET_LUID _deviceLuid;
+		std::string _deviceInstanceId;
+		
+		/**
+		 * Returns whether the VirtualTap interface has been initialized
+		 */
+		bool isInitialized() const { return _initialized; };
+
+		inline const NET_LUID &luid() const { return _deviceLuid; }
+		inline const std::string &instanceId() const { return _deviceInstanceId; }
+#endif
 		/**
 		 * For moving data onto the ZeroTier virtual wire
 		 */
@@ -185,13 +206,14 @@ namespace ZeroTier {
 		char vtap_abbr_name[16];
 
 		static int devno;
-		int ifindex = 0;
+		size_t ifindex = 0;
 
 		std::vector<InetAddress> ips() const;
 		std::vector<InetAddress> _ips;
 
 		std::string _homePath;
 		void *_arg;
+		volatile bool _initialized;
 		volatile bool _enabled;
 		volatile bool _run;
 		MAC _mac;

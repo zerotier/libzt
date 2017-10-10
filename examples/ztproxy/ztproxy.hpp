@@ -34,10 +34,13 @@
 #include "Phy.hpp"
 #include "OSUtils.hpp"
 
+#if defined(__linux__) || defined(__APPLE__)
+ #include <sys/select.h>
+#endif
+
 #include <queue>
 #include <vector>
 #include <stdio.h>
-#include <sys/select.h>
 
 #define BUF_SZ 1024*1024
 

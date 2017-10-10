@@ -35,26 +35,41 @@ endif
 
 OSTYPE=$(shell uname -s | tr '[A-Z]' '[a-z]')
 BUILD=build/$(OSTYPE)
+LWIPCONTRIBDIR=ext/lwip-contrib
 
+# Windows
+ifeq ($(OSTYPE),mingw32_nt-6.2)
+ARTOOL=ar
+ARFLAGS=rcs
+CC=gcc
+CXX=g++
+CXXFLAGS+=-Wno-unknown-pragmas -Wno-pointer-arith -Wno-deprecated-declarations -Wno-conversion-null
+WINDEFS=-lws2_32 -lshlwapi -liphlpapi -static -static-libgcc -static-libstdc++
+LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/win32/include
+endif
 # Darwin
 ifeq ($(OSTYPE),darwin)
 ARTOOL=libtool
 ARFLAGS=-static
+LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/unix/include
 endif
 # Linux
 ifeq ($(OSTYPE),linux)
 ARTOOL=ar
 ARFLAGS=rcs
+LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/unix/include
 endif
 # FreeBSD
 ifeq ($(OSTYPE),freebsd)
 ARTOOL=ar
 ARFLAGS=rcs
+LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/unix/include
 endif
 # OpenBSD
 ifeq ($(OSTYPE),openbsd)
 ARTOOL=ar
 ARFLAGS=rcs
+LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/unix/include
 endif
 
 ##############################################################################
@@ -147,7 +162,7 @@ ifeq ($(SDK_JNI), 1)
 	LIBZT_DEFS+=-DSDK_JNI
 endif
 
-CXXFLAGS=$(CFLAGS) -Wno-format -fno-rtti -std=c++11
+CXXFLAGS+=$(CFLAGS) -Wno-format -fno-rtti -std=c++11
 ZT_DEFS+=-DZT_SDK -DZT_SOFTWARE_UPDATE_DEFAULT="\"disable\""
 LIBZT_FILES:=src/VirtualTap.cpp src/libzt.cpp src/Utilities.cpp
 STATIC_LIB=$(BUILD)/libzt.a
@@ -211,9 +226,8 @@ endif
 STACK_DRIVER_DEFS+=-DLWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS
 STACK_DRIVER_DEFS+=-DSTACK_LWIP
 STACK_DRIVER_FILES:=src/lwIP.cpp
-LWIPARCH=$(CONTRIBDIR)/ports/unix
 LWIPDIR=ext/lwip/src
-STACK_INCLUDES+=-Iext/lwip/src/include/lwip \
+STACK_INCLUDES+=-I$(LWIPARCHINCLUDE) -Iext/lwip/src/include/lwip \
 	-I$(LWIPDIR)/include \
 	-I$(LWIPARCH)/include \
 	-I$(LWIPDIR)/include/ipv4 \
@@ -349,7 +363,7 @@ nativetest:
 	@date +"Build script finished on %F %T"
 ztproxy:
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) $(ZT_INCLUDES) \
-		examples/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< -L$(BUILD) -lzt
+		examples/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< -L$(BUILD) -lzt $(WINDEFS)
 	@./check.sh $(BUILD)/ztproxy
 	@date +"Build script finished on %F %T"
 intercept:

@@ -115,6 +115,9 @@ void lwip_driver_init()
 	if (lwip_driver_initialized == true) {
 		return;
 	}
+#if defined(__MINGW32__)
+	sys_init(); // required for win32 initializtion of critical sections
+#endif
 	sys_thread_new("main_network_stack_thread", main_network_stack_thread,
 		NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
 }
@@ -160,7 +163,7 @@ err_t lwip_eth_tx(struct netif *netif, struct pbuf *p)
 	return ERR_OK;
 }
 
-void general_lwip_init_interface(void *tapref, struct netif *interface, const char *name, const ZeroTier::MAC &mac, const ZeroTier::InetAddress &addr, const ZeroTier::InetAddress &nm, const ZeroTier::InetAddress &gw)
+void general_lwip_init_interface(void *tapref, void *netif, const char *name, const ZeroTier::MAC &mac, const ZeroTier::InetAddress &addr, const ZeroTier::InetAddress &nm, const ZeroTier::InetAddress &gw)
 {
 #if defined(LIBZT_IPV4)
 	char ipbuf[INET6_ADDRSTRLEN], nmbuf[INET6_ADDRSTRLEN], gwbuf[INET6_ADDRSTRLEN];
@@ -192,7 +195,7 @@ void general_lwip_init_interface(void *tapref, struct netif *interface, const ch
 #endif
 }
 
-void general_turn_on_interface(struct netif *interface)
+void general_turn_on_interface(void *netif)
 {
 	//netif_set_up(&n1);
 	//netif_set_default(&n1);
@@ -206,9 +209,9 @@ void lwip_dns_init()
 	dns_init();
 }
 
-void lwip_start_dhcp(struct netif *interface)
+void lwip_start_dhcp(void *netif)
 {
-	netifapi_dhcp_start(interface);
+	netifapi_dhcp_start((struct netif *)netif);
 }
 
 void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier::InetAddress &ip)

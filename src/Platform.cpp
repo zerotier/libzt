@@ -53,7 +53,8 @@ void handle_general_failure() {
 inline unsigned int gettid()
 {
 #ifdef _WIN32
-		return GetCurrentThreadId();
+		//return GetCurrentThreadId();
+		return 0;
 #elif defined(__linux__)
 		return static_cast<unsigned int>(syscall(__NR_gettid));
 #elif defined(__APPLE__)

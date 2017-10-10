@@ -66,7 +66,7 @@ void sys2lwip(int fd, const struct sockaddr *orig, struct sockaddr *modified)
 	}
 #if defined(LIBZT_IPV4)
 	if (ss.ss_family == AF_INET) {
-#if defined(__linux__)
+#if defined(__linux__) || defined(__MINGW32__)
 		struct sockaddr_in *p4 = (struct sockaddr_in *)modified;
 		struct sockaddr_in *addr4 = (struct sockaddr_in*)orig;
 		p4->sin_len = sizeof(struct sockaddr_in);
@@ -80,7 +80,7 @@ void sys2lwip(int fd, const struct sockaddr *orig, struct sockaddr *modified)
 
 #if defined(LIBZT_IPV6)
 	if (ss.ss_family == AF_INET6) {
-#if defined(__linux__)
+#if defined(__linux__) || defined(__MINGW32__)
 		struct sockaddr_in6 *p6 = (struct sockaddr_in6 *)modified;
 		struct sockaddr_in6 *addr6 = (struct sockaddr_in6*)orig;
 		p6->sin6_len = sizeof(struct sockaddr_in6);
@@ -311,6 +311,7 @@ int zts_close(int fd)
 	return err;
 }
 
+#if defined(__linux__)
 int zts_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
 	int err = -1;
@@ -324,6 +325,7 @@ int zts_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 #endif
 	return err;
 }
+#endif
 
 int zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, 
 	struct timeval *timeout)

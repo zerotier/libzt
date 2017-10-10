@@ -55,6 +55,10 @@ namespace ZeroTier {
 	ZeroTier::Mutex _multiplexer_lock;
 }
 
+#if defined(__MINGW32__) || defined(__MINGW64__)
+WSADATA wsaData;
+#endif
+
 /****************************************************************************/
 /* ZeroTier Core helper functions for libzt - DON'T CALL THESE DIRECTLY     */
 /****************************************************************************/
@@ -69,7 +73,7 @@ ZeroTier::VirtualTap *getTapByNWID(uint64_t nwid)
 {
 	ZeroTier::_vtaps_lock.lock();
 	ZeroTier::VirtualTap *s, *tap = nullptr;
-	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
+	for (size_t i=0; i<ZeroTier::vtaps.size(); i++) {
 		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		if (s->_nwid == nwid) { tap = s; }
 	}
@@ -82,7 +86,7 @@ ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress *addr)
 	ZeroTier::_vtaps_lock.lock();
 	ZeroTier::VirtualTap *s, *tap = nullptr;
 	//char ipbuf[64], ipbuf2[64], ipbuf3[64];
-	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
+	for (size_t i=0; i<ZeroTier::vtaps.size(); i++) {
 		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		// check address schemes
 		for (int j=0; j<s->_ips.size(); j++) {
@@ -104,7 +108,7 @@ ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress *addr)
 		if (tap == NULL) {
 			std::vector<ZT_VirtualNetworkRoute> *managed_routes = ZeroTier::zt1Service->getRoutes(s->_nwid);
 			ZeroTier::InetAddress target, nm, via;
-			for (int i=0; i<managed_routes->size(); i++) {
+			for (size_t i=0; i<managed_routes->size(); i++) {
 				target = managed_routes->at(i).target;
 				nm = target.netmask();
 				via = managed_routes->at(i).via;
@@ -124,7 +128,7 @@ ZeroTier::VirtualTap *getTapByName(char *ifname)
 {
 	ZeroTier::_vtaps_lock.lock();
 	ZeroTier::VirtualTap *s, *tap = nullptr;
-	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
+	for (size_t i=0; i<ZeroTier::vtaps.size(); i++) {
 		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		if (strcmp(s->_dev.c_str(), ifname) == false) {
 			tap = s;
@@ -134,11 +138,11 @@ ZeroTier::VirtualTap *getTapByName(char *ifname)
 	return tap;
 }
 
-ZeroTier::VirtualTap *getTapByIndex(int index)
+ZeroTier::VirtualTap *getTapByIndex(size_t index)
 {
 	ZeroTier::_vtaps_lock.lock();
 	ZeroTier::VirtualTap *s, *tap = nullptr;
-	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
+	for (size_t i=0; i<ZeroTier::vtaps.size(); i++) {
 		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		if (s->ifindex == index) {
 			tap = s;
@@ -247,20 +251,20 @@ void *zts_start_service(void *thread_id)
 void disableTaps()
 {
 	ZeroTier::_vtaps_lock.lock();
-	for (int i=0; i<ZeroTier::vtaps.size(); i++) {
+	for (size_t i=0; i<ZeroTier::vtaps.size(); i++) {
 		DEBUG_EXTRA("vt=%p", ZeroTier::vtaps[i]);
 		((ZeroTier::VirtualTap*)ZeroTier::vtaps[i])->_enabled = false;
 	}
 	ZeroTier::_vtaps_lock.unlock();
 }
 
-void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen)
+void zts_get_ipv4_address(const char *nwid, char *addrstr, const size_t addrlen)
 {
 	if (ZeroTier::zt1Service) {
 		uint64_t nwid_int = strtoull(nwid, NULL, 16);
 		ZeroTier::VirtualTap *tap = getTapByNWID(nwid_int);
 		if (tap && tap->_ips.size()) {
-			for (int i=0; i<tap->_ips.size(); i++) {
+			for (size_t i=0; i<tap->_ips.size(); i++) {
 				if (tap->_ips[i].isV4()) {
 					char ipbuf[INET_ADDRSTRLEN];
 					std::string addr = tap->_ips[i].toString(ipbuf);
@@ -276,13 +280,13 @@ void zts_get_ipv4_address(const char *nwid, char *addrstr, const int addrlen)
 		memcpy(addrstr, "\0", 1);
 }
 
-void zts_get_ipv6_address(const char *nwid, char *addrstr, const int addrlen)
+void zts_get_ipv6_address(const char *nwid, char *addrstr, size_t addrlen)
 {
 	if (ZeroTier::zt1Service) {
 		uint64_t nwid_int = strtoull(nwid, NULL, 16);
 		ZeroTier::VirtualTap *tap = getTapByNWID(nwid_int);
 		if (tap && tap->_ips.size()) {
-			for (int i=0; i<tap->_ips.size(); i++) {
+			for (size_t i=0; i<tap->_ips.size(); i++) {
 				if (tap->_ips[i].isV6()) {
 					char ipbuf[INET6_ADDRSTRLEN];
 					std::string addr = tap->_ips[i].toString(ipbuf);
@@ -351,7 +355,7 @@ void zts_join(const char * nwid) {
 	}
 	// provide ZTO service reference to virtual taps
 	// TODO: This might prove to be unreliable, but it works for now
-	for (int i=0;i<ZeroTier::vtaps.size(); i++) {
+	for (size_t i=0;i<ZeroTier::vtaps.size(); i++) {
 		ZeroTier::VirtualTap *s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		s->zt1ServiceRef=(void*)ZeroTier::zt1Service;
 	}
@@ -387,21 +391,24 @@ int zts_running() {
 	return ZeroTier::zt1Service == NULL ? false : ZeroTier::zt1Service->isRunning();
 }
 
-void zts_start(const char *path)
+int zts_start(const char *path)
 {
 	if (ZeroTier::zt1Service) {
-		return;
+		return 0; // already initialized, ok
 	}
 	if (path) {
 		ZeroTier::homeDir = path;
 	}
+#if defined(__MINGW32__) || defined(__MINGW64__)
+		WSAStartup(MAKEWORD(2, 2), &wsaData); // initialize WinSock. Used in Phy for loopback pipe
+#endif
 	pthread_t service_thread;
-	pthread_create(&service_thread, NULL, zts_start_service, NULL);
+	return pthread_create(&service_thread, NULL, zts_start_service, NULL);
 }
 
-void zts_simple_start(const char *path, const char *nwid)
+int zts_simple_start(const char *path, const char *nwid)
 {
-	zts_start(path);
+	int err = zts_start(path);
 	while (zts_running() == false) {
 		DEBUG_EXTRA("waiting for service to start");
 		nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 1000000)}}, NULL);
@@ -419,6 +426,7 @@ void zts_simple_start(const char *path, const char *nwid)
 	while (zts_has_address(nwid) == false) {
 		nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 1000000)}}, NULL);
 	}
+	return err;
 }
 
 void zts_stop() {
@@ -426,12 +434,15 @@ void zts_stop() {
 		ZeroTier::zt1Service->terminate();
 		disableTaps();
 	}
+#if defined(__MINGW32__) || defined(__MINGW64__)
+	WSACleanup(); // clean up WinSock
+#endif
 }
 
-void zts_get_homepath(char *homePath, int len) {
+void zts_get_homepath(char *homePath, size_t len) {
 	if (ZeroTier::homeDir.length()) {
 		memset(homePath, 0, len);
-		int buf_len = len < ZeroTier::homeDir.length() ? len : ZeroTier::homeDir.length();
+		size_t buf_len = len < ZeroTier::homeDir.length() ? len : ZeroTier::homeDir.length();
 		memcpy(homePath, ZeroTier::homeDir.c_str(), buf_len);
 	}
 }
@@ -470,7 +481,7 @@ int zts_get_peer_address(char *peer, const char *devID) {
 	if (ZeroTier::zt1Service) {
 		ZT_PeerList *pl = ZeroTier::zt1Service->getNode()->peers();
 		// uint64_t addr;
-		for (int i=0; i<pl->peerCount; i++) {
+		for (size_t i=0; i<pl->peerCount; i++) {
 			// ZT_Peer *p = &(pl->peers[i]);
 			// DEBUG_INFO("peer[%d] = %lx", i, p->address);
 		}

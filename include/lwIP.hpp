@@ -60,12 +60,12 @@ void lwip_dns_init();
  * @usage lwip_driver_init()
  * @return
  */
-void lwip_start_dhcp(struct netif *interface);
+void lwip_start_dhcp(void *netif);
 
-void general_lwip_init_interface(void *tapref, struct netif *interface, const char *name, const ZeroTier::MAC &mac,
+void general_lwip_init_interface(void *tapref, void *netif, const char *name, const ZeroTier::MAC &mac,
 	const ZeroTier::InetAddress &addr, const ZeroTier::InetAddress &nm, const ZeroTier::InetAddress &gw);
 
-void general_turn_on_interface(struct netif *interface);
+void general_turn_on_interface(void *netif);
 
 /**
  * @brief Set up an interface in the network stack for the VirtualTap.

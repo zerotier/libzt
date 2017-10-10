@@ -41,6 +41,13 @@
 #include "Thread.hpp"
 #include "Phy.hpp"
 
+#if defined(__MINGW32__) || defined(__MINGW64__)
+#include <WinSock2.h>
+#include <Windows.h>
+#include <IPHlpApi.h>
+#include <Ifdef.h>
+#endif
+
 namespace ZeroTier {
 
 	/**

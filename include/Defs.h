@@ -48,7 +48,9 @@
  */
 #define ZTO_ID_LEN                  16
 
+#if !defined(__MINGW32__)
 typedef uint32_t socklen_t;
+#endif
 
 /****************************************************************************/
 /* For SOCK_RAW support, it will initially be modeled after linux's API, so */

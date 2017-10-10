@@ -658,10 +658,19 @@ lwip_connect(int s, const struct sockaddr *name, socklen_t namelen)
   }
 
   LWIP_UNUSED_ARG(namelen);
-  if (name->sa_family == AF_UNSPEC) {
+
+  if ( 
+#ifdef __MINGW32__
+        false
+#else
+    name->sa_family == AF_UNSPEC 
+#endif
+    ) 
+  {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_connect(%d, AF_UNSPEC)\n", s));
     err = netconn_disconnect(sock->conn);
-  } else {
+  } 
+  else {
     ip_addr_t remote_addr;
     u16_t remote_port;
 

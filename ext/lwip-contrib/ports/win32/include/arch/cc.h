@@ -39,7 +39,7 @@
 #pragma warning (disable: 4820) /* 'x' bytes padding added after data member 'y' */
 #endif
 
-#define LWIP_PROVIDE_ERRNO
+#define LWIP_PROVIDE_ERRNO 0
 
 /* Define platform endianness (might already be defined) */
 #ifndef BYTE_ORDER

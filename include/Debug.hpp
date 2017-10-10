@@ -34,10 +34,13 @@
 #define LIBZT_DEBUG_HPP
 
 #include <pthread.h>
-#include <sys/syscall.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <cstring>
+
+#if defined(__linux__)
+#include <sys/syscall.h>
+#endif
 
 #include "Platform.h"
 
@@ -53,7 +56,7 @@
 #if defined(__APPLE__)
 		#include "TargetConditionals.h"
 #endif
-#if defined(ZT_COLOR) && !defined(__ANDROID__) && !defined(TARGET_OS_IPHONE) && !defined(TARGET_IPHONE_SIMULATOR) && !defined(__APP_FRAMEWORK__)
+#if defined(ZT_COLOR) && !defined(__MINGW32__) && !defined(__ANDROID__) && !defined(TARGET_OS_IPHONE) && !defined(TARGET_IPHONE_SIMULATOR) && !defined(__APP_FRAMEWORK__)
 	#define ZT_RED   "\x1B[31m"
 	#define ZT_GRN   "\x1B[32m"
 	#define ZT_YEL   "\x1B[33m"
@@ -87,6 +90,9 @@ extern unsigned int gettid(); // defined in libzt.cpp
   #define ZT_THREAD_ID syscall(SYS_gettid)
 #elif __APPLE__
   #define ZT_THREAD_ID (long)0//(long)gettid()
+#endif
+#ifdef __MINGW32__
+  #define ZT_THREAD_ID (long)0
 #endif
 
 #if defined(__JNI_LIB__)

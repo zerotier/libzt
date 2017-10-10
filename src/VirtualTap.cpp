@@ -421,7 +421,7 @@ namespace ZeroTier {
 					target_addr = managed_routes->at(i).target;
 					via_addr = managed_routes->at(i).via;
 					nm = target_addr.netmask();
-					for (int j=0; j<routes.size(); j++) {
+					for (size_t j=0; j<routes.size(); j++) {
 						if (via_addr.ipsEqual(null_addr) || target_addr.ipsEqual(null_addr)) {
 							found=true;
 							continue;
@@ -439,7 +439,7 @@ namespace ZeroTier {
 					}
 				}
 				// check if route exists in tap but not in pushed routes (remove)
-				for (int i=0; i<routes.size(); i++) {
+				for (size_t i=0; i<routes.size(); i++) {
 					found = false;
 					for (int j=0; j<ZT_MAX_NETWORK_ROUTES; j++) {
 						target_addr = managed_routes->at(j).target;

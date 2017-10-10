@@ -35,6 +35,17 @@
 
 #include "InetAddress.hpp"
 
+#if defined(__MINGW32__)
+ 
+#define NS_INADDRSZ  4
+#define NS_IN6ADDRSZ 16
+#define NS_INT16SZ   2
+
+int inet_pton4(const char *src, void *dst);
+int inet_pton6(const char *src, void *dst);
+int inet_pton(int af, const char *src, void *dst);
+#endif
+
 /**
  * @brief Returns masked address for subnet comparisons
  *
@@ -62,7 +73,7 @@ char *beautify_eth_proto_nums(int proto);
  * @param inet
  * @return
  */
-void sockaddr2inet(int socket_family, const struct sockaddr *addr, ZeroTier::InetAddress *inet);
+//void sockaddr2inet(int socket_family, const struct sockaddr *addr, ZeroTier::InetAddress *inet);
 
 /**
  * @brief Convert a raw MAC address byte array into a human-readable string

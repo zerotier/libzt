@@ -33,10 +33,13 @@
 #ifndef LIBZT_H
 #define LIBZT_H
 
-#include <poll.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <vector>
+
+#if defined(__linux__)
+ #include <poll.h>
+#endif
 
 #include "Debug.hpp"
 #include "Defs.h"
@@ -440,7 +443,9 @@ int zts_close(int fd);
  * @param timeout
  * @return
  */
+#if defined(__linux__)
 int zts_poll(struct pollfd *fds, nfds_t nfds, int timeout);
+#endif
 
 /**
  * @brief Monitor multiple file descriptors, waiting until one or more of the file descriptors become "ready"

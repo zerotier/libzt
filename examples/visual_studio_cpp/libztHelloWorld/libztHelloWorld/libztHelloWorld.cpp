@@ -6,7 +6,7 @@
 #include <windows.h>
 #include <strsafe.h>
 
-#include "C:\msys\home\ZeroTier\libzt\include\libzt.h"
+#include "..\..\..\..\include\libzt.h"
 
 int main()
 {

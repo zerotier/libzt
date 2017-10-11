@@ -33,18 +33,6 @@
 #ifndef LIBZT_H
 #define LIBZT_H
 
-#if defined(__MING32__) || defined(__MING64__)
-  #ifdef ADD_EXPORTS
-    #define ZT_SOCKET_API __declspec(dllexport)
-  #else
-    #define ZT_SOCKET_API __declspec(dllimport)
-  #endif
-  #define ZTCALL __cdecl
-#else
-  #define ZT_SOCKET_API
-  #define ZTCALL
-#endif
-
 #include <stdlib.h>
 #include <stdint.h>
 #include <vector>
@@ -57,6 +45,26 @@
 #include "Defs.h"
 
 /****************************************************************************/
+/* DLL export for Windows (and other cruft)                                 */
+/****************************************************************************/
+
+#if (defined(_WIN32) || defined(_WIN64)) && !(defined(__MINGW32__) || defined(__MINGW64__))
+typedef int ssize_t;
+#endif
+
+#if defined(__MING32__) || defined(__MING64__)
+#ifdef ADD_EXPORTS
+#define ZT_SOCKET_API __declspec(dllexport)
+#else
+#define ZT_SOCKET_API __declspec(dllimport)
+#endif
+#define ZTCALL __cdecl
+#else
+#define ZT_SOCKET_API
+#define ZTCALL
+#endif
+
+/****************************************************************************/
 /* ZeroTier Service Controls                                                */
 /****************************************************************************/
 
@@ -66,7 +74,6 @@ extern "C" {
 
 // forward declarations from ZT1Service.h
 ZT_SOCKET_API int ZTCALL zts_get_device_id(char *devID);
-
 ZT_SOCKET_API void ZTCALL init_network_stack();
 
 /**

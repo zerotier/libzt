@@ -140,7 +140,7 @@ else
 	STRIP=strip
 endif
 ifeq ($(LIBZT_DEBUG),1)
-	CFLAGS+=-g
+	#CFLAGS+=-g
 	LIBZT_DEFS+=-DLIBZT_DEBUG
 endif
 ifeq ($(NS_DEBUG),1)
@@ -285,11 +285,14 @@ utilities:
 		$(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
 
 
-dll: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
+win_dll: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
+	# First we use mingw to build our DLL
 	@mkdir -p $(BUILD) obj
 	mv *.o obj
-	windres -i src/dll_desc.rc -o obj/dll_desc.o
-	$(CXX) $(CXXFLAGS) -shared -o libzt.dll obj/*.o -s -shared -Wl,--subsystem,windows $(WINDEFS)
+	windres -i res/libztdll.rc -o obj/libztdllres.o
+	$(CXX) $(CXXFLAGS) -shared -o $(BUILD)/libzt.dll obj/*.o -Wl,--output-def,$(BUILD)/libzt.def,--out-implib,$(BUILD)/libzt.a $(WINDEFS)
+	# Then do the following to generate the mSVC DLL from the def file (which was generated from the MinGW DLL): 
+	# lib /machine:x64 /def:libzt.def
 
 ifeq ($(STACK_PICO),1)
 static_lib: picotcp picotcp_driver libzt_socket_layer utilities $(ZTO_OBJS)
@@ -379,6 +382,9 @@ intercept:
 		-shared -o $(BUILD)/intercept.so $< -ldl
 	@./check.sh $(BUILD)/intercept.so
 	@date +"Build script finished on %F %T"
+dlltest:
+	$(CXX) $(CXXFLAGS) 	
+
 
 ##############################################################################
 ## Misc                                                                     ##
@@ -392,8 +398,9 @@ standardize:
 
 clean:
 	-rm -rf .depend
-	-rm -f *.o *.s .depend* *.core core
+	-rm -f *.o *.s *.exp *.lib .depend* *.core core
 	-rm -rf $(BUILD)/*
+	-rm -rf obj/*
 	-find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.so' -o -name \
 		'*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete	
 

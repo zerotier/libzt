@@ -33,6 +33,18 @@
 #ifndef LIBZT_H
 #define LIBZT_H
 
+#if defined(__MING32__) || defined(__MING64__)
+  #ifdef ADD_EXPORTS
+    #define ZT_SOCKET_API __declspec(dllexport)
+  #else
+    #define ZT_SOCKET_API __declspec(dllimport)
+  #endif
+  #define ZTCALL __cdecl
+#else
+  #define ZT_SOCKET_API
+  #define ZTCALL
+#endif
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <vector>
@@ -53,24 +65,9 @@ extern "C" {
 #endif
 
 // forward declarations from ZT1Service.h
-int zts_get_device_id(char *devID);
+ZT_SOCKET_API int ZTCALL zts_get_device_id(char *devID);
 
-void init_network_stack();
-
-/**
- * @brief Starts libzt
- *
- * @usage Should be called at the beginning of your application. Will blocks until all of the following conditions are met:
- * - ZeroTier core service has been initialized
- * - Cryptographic identity has been generated or loaded from directory specified by `path`
- * - Virtual network is successfully joined
- * - IP address is assigned by network controller service
- * @param path path directory where cryptographic identities and network configuration files are stored and retrieved
- *              (`identity.public`, `identity.secret`)
- * @param nwid A 16-digit hexidecimal network identifier (e.g. Earth: `8056c2e21c000001`)
- * @return 0 if successful; or 1 if failed
- */
-int zts_start(const char *path);
+ZT_SOCKET_API void ZTCALL init_network_stack();
 
 /**
  * @brief Starts libzt
@@ -85,7 +82,22 @@ int zts_start(const char *path);
  * @param nwid A 16-digit hexidecimal network identifier (e.g. Earth: `8056c2e21c000001`)
  * @return 0 if successful; or 1 if failed
  */
-int zts_simple_start(const char *path, const char *nwid);
+ZT_SOCKET_API int ZTCALL zts_start(const char *path);
+
+/**
+ * @brief Starts libzt
+ *
+ * @usage Should be called at the beginning of your application. Will blocks until all of the following conditions are met:
+ * - ZeroTier core service has been initialized
+ * - Cryptographic identity has been generated or loaded from directory specified by `path`
+ * - Virtual network is successfully joined
+ * - IP address is assigned by network controller service
+ * @param path path directory where cryptographic identities and network configuration files are stored and retrieved
+ *              (`identity.public`, `identity.secret`)
+ * @param nwid A 16-digit hexidecimal network identifier (e.g. Earth: `8056c2e21c000001`)
+ * @return 0 if successful; or 1 if failed
+ */
+ZT_SOCKET_API int ZTCALL zts_simple_start(const char *path, const char *nwid);
 
 /**
  * @brief Stops the ZeroTier core service and disconnects from all virtual networks
@@ -93,7 +105,7 @@ int zts_simple_start(const char *path, const char *nwid);
  * @usage Called at the end of your application. This call will block until everything is shut down
  * @return
  */
-void zts_stop();
+ZT_SOCKET_API void ZTCALL zts_stop();
 
 /**
  * @brief Joins a virtual network
@@ -102,7 +114,7 @@ void zts_stop();
  * @param nwid the 16-digit hexidecimal network identifier
  * @return
  */
-void zts_join(const char * nwid);
+ZT_SOCKET_API void ZTCALL zts_join(const char * nwid);
 
 /**
  * @brief Joins a network (eventually), this will create the dir and conf file required, don't instruct the core
@@ -113,7 +125,7 @@ void zts_join(const char * nwid);
  * @param nwid
  * @return
  */
-void zts_join_soft(const char * filepath, const char * nwid);
+ZT_SOCKET_API void ZTCALL zts_join_soft(const char * filepath, const char * nwid);
 
 /**
  * @brief Leaves a virtual network.
@@ -122,7 +134,7 @@ void zts_join_soft(const char * filepath, const char * nwid);
  * @param nwid
  * @return
  */
-void zts_leave(const char * nwid);
+ZT_SOCKET_API void ZTCALL zts_leave(const char * nwid);
 
 /**
  * @brief Leave a network - Only delete the .conf file, this will prevent the service from joining upon next startup
@@ -132,7 +144,7 @@ void zts_leave(const char * nwid);
  * @param nwid
  * @return
  */
-void zts_leave_soft(const char * filepath, const char * nwid);
+ZT_SOCKET_API void ZTCALL zts_leave_soft(const char * filepath, const char * nwid);
 
 /**
  * @brief Returns path used by ZeroTier/libzt for storing identity and config files
@@ -142,7 +154,7 @@ void zts_leave_soft(const char * filepath, const char * nwid);
  * @param len
  * @return
  */
-void zts_get_homepath(char *homePath, const size_t len);
+ZT_SOCKET_API void ZTCALL zts_get_homepath(char *homePath, const size_t len);
 
 /**
  * @brief Get device ID (10-digit hex + NULL byte)
@@ -151,7 +163,7 @@ void zts_get_homepath(char *homePath, const size_t len);
  * @param devID
  * @return
  */
-int zts_get_device_id(char *devID);
+ZT_SOCKET_API int ZTCALL zts_get_device_id(char *devID);
 
 /**
  * @brief Check whether the service is running
@@ -159,7 +171,7 @@ int zts_get_device_id(char *devID);
  * @usage
  * @return
  */
-int zts_running();
+ZT_SOCKET_API int ZTCALL zts_running();
 
 /**
  * @brief Returns whether any IPv6 address has been assigned to the SockTap for this network
@@ -168,7 +180,7 @@ int zts_running();
  * @param nwid
  * @return
  */
-int zts_has_ipv4_address(const char *nwid);
+ZT_SOCKET_API int ZTCALL zts_has_ipv4_address(const char *nwid);
 
 /**
  * @brief Returns whether any IPv4 address has been assigned to the SockTap for this network
@@ -177,7 +189,7 @@ int zts_has_ipv4_address(const char *nwid);
  * @param nwid
  * @return
  */
-int zts_has_ipv6_address(const char *nwid);
+ZT_SOCKET_API int ZTCALL zts_has_ipv6_address(const char *nwid);
 
 /**
  * @brief Returns whether any address has been assigned to the SockTap for this network
@@ -186,7 +198,7 @@ int zts_has_ipv6_address(const char *nwid);
  * @param nwid
  * @return
  */
-int zts_has_address(const char *nwid);
+ZT_SOCKET_API int ZTCALL zts_has_address(const char *nwid);
 
 /**
  * @brief Get IPV4 Address for this device on a given network
@@ -197,7 +209,7 @@ int zts_has_address(const char *nwid);
  * @param addrlen
  * @return
  */
-void zts_get_ipv4_address(const char *nwid, char *addrstr, const size_t addrlen);
+ZT_SOCKET_API void ZTCALL zts_get_ipv4_address(const char *nwid, char *addrstr, const size_t addrlen);
 
 /**
  * @brief Get IPV6 Address for this device on a given network
@@ -208,7 +220,7 @@ void zts_get_ipv4_address(const char *nwid, char *addrstr, const size_t addrlen)
  * @param addrlen
  * @return
  */
-void zts_get_ipv6_address(const char *nwid, char *addrstr, const size_t addrlen);
+ZT_SOCKET_API void ZTCALL zts_get_ipv6_address(const char *nwid, char *addrstr, const size_t addrlen);
 
 /**
  * @brief Returns a 6PLANE IPv6 address given a network ID and zerotier ID
@@ -219,7 +231,7 @@ void zts_get_ipv6_address(const char *nwid, char *addrstr, const size_t addrlen)
  * @param devID
  * @return
  */
-void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID);
+ZT_SOCKET_API void ZTCALL zts_get_6plane_addr(char *addr, const char *nwid, const char *devID);
 
 /**
  * @brief Returns an RFC 4193 IPv6 address given a network ID and zerotier ID
@@ -230,7 +242,7 @@ void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID);
  * @param devID
  * @return
  */
-void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID);
+ZT_SOCKET_API void ZTCALL zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID);
 
 /**
  * @brief Return the number of peers on this network
@@ -238,7 +250,7 @@ void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID);
  * @usage
  * @return
  */
-unsigned long zts_get_peer_count();
+ZT_SOCKET_API unsigned long zts_get_peer_count();
 
 /**
  * @brief Get the IP address of a peer if a direct path is available
@@ -248,7 +260,7 @@ unsigned long zts_get_peer_count();
  * @param devID
  * @return
  */
-int zts_get_peer_address(char *peer, const char *devID);
+ZT_SOCKET_API int ZTCALL zts_get_peer_address(char *peer, const char *devID);
 
 /**
  * @brief Enable HTTP control plane (traditionally used by zerotier-cli)
@@ -258,7 +270,7 @@ int zts_get_peer_address(char *peer, const char *devID);
  * @usage
  * @return
  */
-void zts_enable_http_control_plane();
+ZT_SOCKET_API void ZTCALL zts_enable_http_control_plane();
 
 /**
  * @brief Disable HTTP control plane (traditionally used by zerotier-cli)
@@ -268,7 +280,7 @@ void zts_enable_http_control_plane();
  * @usage
  * @return
  */
-void zts_disable_http_control_plane();
+ZT_SOCKET_API void ZTCALL zts_disable_http_control_plane();
 
 /****************************************************************************/
 /* POSIX-like socket API                                                    */
@@ -288,7 +300,7 @@ void zts_disable_http_control_plane();
  * @param protocol Protocols supported on this socket
  * @return
  */
-int zts_socket(int socket_family, int socket_type, int protocol);
+ZT_SOCKET_API int ZTCALL zts_socket(int socket_family, int socket_type, int protocol);
 
 /**
  * @brief Connect a socket to a remote host
@@ -299,7 +311,7 @@ int zts_socket(int socket_family, int socket_type, int protocol);
  * @param addrlen Length of address
  * @return
  */
-int zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen);
+ZT_SOCKET_API int ZTCALL zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen);
 
 /**
  * @brief Bind a socket to a virtual interface
@@ -310,7 +322,7 @@ int zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen);
  * @param addrlen Length of address
  * @return
  */
-int zts_bind(int fd, const struct sockaddr *addr, socklen_t addrlen);
+ZT_SOCKET_API int ZTCALL zts_bind(int fd, const struct sockaddr *addr, socklen_t addrlen);
 
 /**
  * @brief Listen for incoming connections
@@ -320,7 +332,7 @@ int zts_bind(int fd, const struct sockaddr *addr, socklen_t addrlen);
  * @param backlog Number of backlogged connection allowed
  * @return
  */
-int zts_listen(int fd, int backlog);
+ZT_SOCKET_API int ZTCALL zts_listen(int fd, int backlog);
 
 /**
  * @brief Accept an incoming connection
@@ -331,7 +343,7 @@ int zts_listen(int fd, int backlog);
  * @param addrlen Length of address
  * @return
  */
-int zts_accept(int fd, struct sockaddr *addr, socklen_t *addrlen);
+ZT_SOCKET_API int ZTCALL zts_accept(int fd, struct sockaddr *addr, socklen_t *addrlen);
 
 /**
  * @brief Accept an incoming connection
@@ -358,7 +370,7 @@ int zts_accept(int fd, struct sockaddr *addr, socklen_t *addrlen);
  * @param optlen Length of option value
  * @return
  */
-int zts_setsockopt(int fd, int level, int optname, const void *optval, socklen_t optlen);
+ZT_SOCKET_API int ZTCALL zts_setsockopt(int fd, int level, int optname, const void *optval, socklen_t optlen);
 
 /**
  * @brief Get socket options
@@ -371,7 +383,7 @@ int zts_setsockopt(int fd, int level, int optname, const void *optval, socklen_t
  * @param optlen Length of value
  * @return
  */
-int zts_getsockopt(int fd, int level, int optname, void *optval, socklen_t *optlen);
+ZT_SOCKET_API int ZTCALL zts_getsockopt(int fd, int level, int optname, void *optval, socklen_t *optlen);
 
 /**
  * @brief Get socket name
@@ -382,7 +394,7 @@ int zts_getsockopt(int fd, int level, int optname, void *optval, socklen_t *optl
  * @param addrlen Length of name
  * @return
  */
-int zts_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen);
+ZT_SOCKET_API int ZTCALL zts_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen);
 
 /**
  * @brief Get the peer name for the remote end of a connected socket
@@ -393,7 +405,7 @@ int zts_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen);
  * @param addrlen Length of name
  * @return
  */
-int zts_getpeername(int fd, struct sockaddr *addr, socklen_t *addrlen);
+ZT_SOCKET_API int ZTCALL zts_getpeername(int fd, struct sockaddr *addr, socklen_t *addrlen);
 
 /**
  * @brief Gets current hostname
@@ -403,7 +415,7 @@ int zts_getpeername(int fd, struct sockaddr *addr, socklen_t *addrlen);
  * @param len
  * @return
  */
-int zts_gethostname(char *name, size_t len);
+ZT_SOCKET_API int ZTCALL zts_gethostname(char *name, size_t len);
 
 /**
  * @brief Sets current hostname
@@ -413,7 +425,7 @@ int zts_gethostname(char *name, size_t len);
  * @param len
  * @return
  */
-int zts_sethostname(const char *name, size_t len);
+ZT_SOCKET_API int ZTCALL zts_sethostname(const char *name, size_t len);
 
 /**
  * @brief Return a pointer to an object with the following structure describing an internet host referenced by name
@@ -422,7 +434,7 @@ int zts_sethostname(const char *name, size_t len);
  * @param name
  * @return Returns pointer to hostent structure otherwise NULL if failure
  */
-struct hostent *zts_gethostbyname(const char *name);
+ZT_SOCKET_API struct hostent *zts_gethostbyname(const char *name);
 
 /**
  * @brief Close a socket
@@ -431,7 +443,7 @@ struct hostent *zts_gethostbyname(const char *name);
  * @param fd File descriptor (only valid for use with libzt calls)
  * @return
  */
-int zts_close(int fd);
+ZT_SOCKET_API int ZTCALL zts_close(int fd);
 
 /**
  * @brief Waits for one of a set of file descriptors to become ready to perform I/O.
@@ -457,7 +469,7 @@ int zts_poll(struct pollfd *fds, nfds_t nfds, int timeout);
  * @param timeout
  * @return
  */
-int zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+ZT_SOCKET_API int ZTCALL zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
 
 /**
  * @brief Issue file control commands on a socket
@@ -468,7 +480,7 @@ int zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, s
  * @param flags
  * @return
  */
-int zts_fcntl(int fd, int cmd, int flags);
+ZT_SOCKET_API int ZTCALL zts_fcntl(int fd, int cmd, int flags);
 
 /**
  * @brief Control a device
@@ -479,7 +491,7 @@ int zts_fcntl(int fd, int cmd, int flags);
  * @param argp
  * @return
  */
-int zts_ioctl(int fd, unsigned long request, void *argp);
+ZT_SOCKET_API int ZTCALL zts_ioctl(int fd, unsigned long request, void *argp);
 
 /**
  * @brief Send data to remote host
@@ -491,7 +503,7 @@ int zts_ioctl(int fd, unsigned long request, void *argp);
  * @param flags
  * @return
  */
-ssize_t zts_send(int fd, const void *buf, size_t len, int flags);
+ZT_SOCKET_API ssize_t ZTCALL zts_send(int fd, const void *buf, size_t len, int flags);
 
 /**
  * @brief Send data to remote host
@@ -505,7 +517,7 @@ ssize_t zts_send(int fd, const void *buf, size_t len, int flags);
  * @param addrlen Length of destination address
  * @return
  */
-ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen);
+ZT_SOCKET_API ssize_t ZTCALL zts_sendto(int fd, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen);
 
 /**
  * @brief Send message to remote host
@@ -516,7 +528,7 @@ ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags, const struct 
  * @param flags
  * @return
  */
-ssize_t zts_sendmsg(int fd, const struct msghdr *msg, int flags);
+ZT_SOCKET_API ssize_t ZTCALL zts_sendmsg(int fd, const struct msghdr *msg, int flags);
 
 /**
  * @brief Receive data from remote host
@@ -528,7 +540,7 @@ ssize_t zts_sendmsg(int fd, const struct msghdr *msg, int flags);
  * @param flags
  * @return
  */
-ssize_t zts_recv(int fd, void *buf, size_t len, int flags);
+ZT_SOCKET_API ssize_t ZTCALL zts_recv(int fd, void *buf, size_t len, int flags);
 
 /**
  * @brief Receive data from remote host
@@ -542,7 +554,7 @@ ssize_t zts_recv(int fd, void *buf, size_t len, int flags);
  * @param addrlen
  * @return
  */
-ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen);
+ZT_SOCKET_API ssize_t ZTCALL zts_recvfrom(int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen);
 
 /**
  * @brief Receive a message from remote host
@@ -553,7 +565,7 @@ ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags, struct sockaddr *
  * @param flags
  * @return
  */
-ssize_t zts_recvmsg(int fd, struct msghdr *msg,int flags);
+ZT_SOCKET_API ssize_t ZTCALL zts_recvmsg(int fd, struct msghdr *msg,int flags);
 
 /**
  * @brief Read bytes from socket onto buffer
@@ -564,7 +576,7 @@ ssize_t zts_recvmsg(int fd, struct msghdr *msg,int flags);
  * @param len Length of data buffer to receive data
  * @return
  */
-int zts_read(int fd, void *buf, size_t len);
+ZT_SOCKET_API int ZTCALL zts_read(int fd, void *buf, size_t len);
 
 /**
  * @brief Write bytes from buffer to socket
@@ -575,7 +587,7 @@ int zts_read(int fd, void *buf, size_t len);
  * @param len Length of buffer to write
  * @return
  */
-int zts_write(int fd, const void *buf, size_t len);
+ZT_SOCKET_API int ZTCALL zts_write(int fd, const void *buf, size_t len);
 
 /**
  * @brief Shut down some aspect of a socket (read, write, or both)
@@ -585,7 +597,7 @@ int zts_write(int fd, const void *buf, size_t len);
  * @param how Which aspects of the socket should be shut down
  * @return
  */
-int zts_shutdown(int fd, int how);
+ZT_SOCKET_API int ZTCALL zts_shutdown(int fd, int how);
 
 /**
  * @brief Adds a DNS nameserver for the network stack to use
@@ -594,7 +606,7 @@ int zts_shutdown(int fd, int how);
  * @param addr Address for DNS nameserver
  * @return
  */
-int zts_add_dns_nameserver(struct sockaddr *addr);
+ZT_SOCKET_API int ZTCALL zts_add_dns_nameserver(struct sockaddr *addr);
 
 /**
  * @brief Removes a DNS nameserver
@@ -603,7 +615,7 @@ int zts_add_dns_nameserver(struct sockaddr *addr);
  * @param addr Address for DNS nameserver
  * @return
  */
-int zts_del_dns_nameserver(struct sockaddr *addr);
+ZT_SOCKET_API int ZTCALL zts_del_dns_nameserver(struct sockaddr *addr);
 
 #ifdef __cplusplus
 } // extern "C"

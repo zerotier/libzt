@@ -284,6 +284,13 @@ utilities:
 	$(CXX) $(CXXFLAGS) -c src/Utilities.cpp \
 		$(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
 
+
+dll: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
+	@mkdir -p $(BUILD) obj
+	mv *.o obj
+	windres -i src/dll_desc.rc -o obj/dll_desc.o
+	$(CXX) $(CXXFLAGS) -shared -o libzt.dll obj/*.o -s -shared -Wl,--subsystem,windows $(WINDEFS)
+
 ifeq ($(STACK_PICO),1)
 static_lib: picotcp picotcp_driver libzt_socket_layer utilities $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj

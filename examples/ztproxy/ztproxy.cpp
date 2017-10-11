@@ -31,8 +31,6 @@
  #include <netdb.h>
 #endif
 
-//#include "Winsock2.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -176,8 +174,7 @@ namespace ZeroTier {
 						int wr = 0;
 						conn = zmap[fd_i];
 						if (conn == NULL) {
-							DEBUG_ERROR("invalid conn");
-							exit(0);
+							DEBUG_ERROR("invalid conn, possibly closed before transmit was possible");
 						}
 						// read data from client and place it on ring buffer
 						conn->tx_m.lock();
@@ -196,7 +193,7 @@ namespace ZeroTier {
 					}
 				}
 			}
-		conn_m.unlock();
+			conn_m.unlock();
 		}
 	}
 

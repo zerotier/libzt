@@ -128,10 +128,10 @@ extern unsigned int gettid(); // defined in libzt.cpp
 				"TEST : %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 			#endif
 		#if defined(_WIN32) && !(defined(__MINGW32__) || defined(__MINGW64__)) // WINDOWS
-			#define DEBUG_TEST(fmt, args, ...) fprintf(stderr, ZT_CYN "TEST [%ld]: %17s:%5d:%25s: " fmt \
+			#define DEBUG_TEST(fmt, args, ...) fprintf(stderr, ZT_CYN "TEST [%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#else
-		#define DEBUG_TEST(fmt, args ...) fprintf(stderr, ZT_CYN "TEST [%ld]: %17s:%5d:%25s: " fmt \
+		#define DEBUG_TEST(fmt, args ...) fprintf(stderr, ZT_CYN "TEST [%ld]: %17s:%5d:%25s: " fmt "\n" \
 				ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#endif
 	#else
@@ -145,10 +145,10 @@ extern unsigned int gettid(); // defined in libzt.cpp
 				"ERROR: %17s:%5d:%20s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 		#endif
 		#if defined(_WIN32) && !(defined(__MINGW32__) || defined(__MINGW64__)) // WINDOWS
-			#define DEBUG_ERROR(fmt, args, ...) fprintf(stderr, ZT_RED "ERROR[%ld]: %17s:%5d:%25s: " fmt \
+			#define DEBUG_ERROR(fmt, args, ...) fprintf(stderr, ZT_RED "ERROR[%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#else
-		#define DEBUG_ERROR(fmt, args ...) fprintf(stderr, ZT_RED "ERROR[%ld]: %17s:%5d:%25s: " fmt \
+		#define DEBUG_ERROR(fmt, args ...) fprintf(stderr, ZT_RED "ERROR[%ld]: %17s:%5d:%25s: " fmt "\n" \
 				ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#endif
 	#else
@@ -162,10 +162,10 @@ extern unsigned int gettid(); // defined in libzt.cpp
 				"INFO : %17s:%5d:%20s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 			#endif
 		#if defined(_WIN32) && !(defined(__MINGW32__) || defined(__MINGW64__)) // WINDOWS
-			#define DEBUG_INFO(fmt, args, ...) fprintf(stderr, ZT_WHT "INFO [%ld]: %17s:%5d:%25s: " fmt \
+			#define DEBUG_INFO(fmt, args, ...) fprintf(stderr, ZT_WHT "INFO [%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#else
-			#define DEBUG_INFO(fmt, args ...) fprintf(stderr, ZT_WHT "INFO [%ld]: %17s:%5d:%25s: " fmt \
+			#define DEBUG_INFO(fmt, args ...) fprintf(stderr, ZT_WHT "INFO [%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#endif
 	#else
@@ -179,10 +179,10 @@ extern unsigned int gettid(); // defined in libzt.cpp
 				"TRANS: %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 			#endif
 		#if defined(_WIN32) && !(defined(__MINGW32__) || defined(__MINGW64__)) // WINDOWS
-			#define DEBUG_TRANS(fmt, args, ...) fprintf(stderr, ZT_GRN "TRANS[%ld]: %17s:%5d:%25s: " fmt \
+			#define DEBUG_TRANS(fmt, args, ...) fprintf(stderr, ZT_GRN "TRANS[%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#else
-			#define DEBUG_TRANS(fmt, args ...) fprintf(stderr, ZT_GRN "TRANS[%ld]: %17s:%5d:%25s: " fmt \
+			#define DEBUG_TRANS(fmt, args ...) fprintf(stderr, ZT_GRN "TRANS[%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#endif
 	#else
@@ -196,10 +196,10 @@ extern unsigned int gettid(); // defined in libzt.cpp
 				"EXTRA: %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 		#endif
 		#if defined(_WIN32) && !(defined(__MINGW32__) || defined(__MINGW64__)) // WINDOWS
-			#define DEBUG_EXTRA(fmt, args, ...) fprintf(stderr, ZT_WHT "EXTRA[%ld]: %17s:%5d:%25s: " fmt \
+			#define DEBUG_EXTRA(fmt, args, ...) fprintf(stderr, ZT_WHT "EXTRA[%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#else
-			#define DEBUG_EXTRA(fmt, args ...) fprintf(stderr, ZT_WHT "EXTRA[%ld]: %17s:%5d:%25s: " fmt \
+			#define DEBUG_EXTRA(fmt, args ...) fprintf(stderr, ZT_WHT "EXTRA[%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#endif
 	#else

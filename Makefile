@@ -291,6 +291,7 @@ win_dll: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
 	mv *.o obj
 	windres -i res/libztdll.rc -o obj/libztdllres.o
 	$(CXX) $(CXXFLAGS) -shared -o $(BUILD)/libzt.dll obj/*.o -Wl,--output-def,$(BUILD)/libzt.def,--out-implib,$(BUILD)/libzt.a $(WINDEFS)
+	$(STRIP) $(BUILD)/libzt.dll
 	# Then do the following to generate the mSVC DLL from the def file (which was generated from the MinGW DLL): 
 	# lib /machine:x64 /def:libzt.def
 

@@ -130,6 +130,8 @@ LIBZT_INCLUDES+=-Iinclude \
 # LIBZT_ Configuration options for libzt
 #    NS_ Configuration options for userspace network stack
 
+STRIP=strip
+
 ifeq ($(ZT_DEBUG),1)
 	ZT_DEFS+=-DZT_TRACE
 	CFLAGS+=-Wall -g -pthread
@@ -137,15 +139,17 @@ ifeq ($(ZT_DEBUG),1)
 else
 	CFLAGS?=-Ofast -fstack-protector
 	CFLAGS+=-Wall -fPIE -fvisibility=hidden -pthread
-	STRIP=strip
 endif
 ifeq ($(LIBZT_DEBUG),1)
-	#CFLAGS+=-g
+	CFLAGS+=-Wall -g -pthread
 	LIBZT_DEFS+=-DLIBZT_DEBUG
+	STRIP=echo
 endif
 ifeq ($(NS_DEBUG),1)
-	# specified in stack configuration section
+	CFLAGS+=-Wall -g
+	STRIP=echo
 endif
+
 # Build with address sanitization library for advanced debugging (clang)
 # TODO: Add GCC version as well
 ifeq ($(LIBZT_SANITIZE),1)
@@ -294,6 +298,7 @@ win_dll: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
 	$(STRIP) $(BUILD)/libzt.dll
 	# Then do the following to generate the mSVC DLL from the def file (which was generated from the MinGW DLL): 
 	# lib /machine:x64 /def:libzt.def
+	# or just execute: makelib
 
 ifeq ($(STACK_PICO),1)
 static_lib: picotcp picotcp_driver libzt_socket_layer utilities $(ZTO_OBJS)

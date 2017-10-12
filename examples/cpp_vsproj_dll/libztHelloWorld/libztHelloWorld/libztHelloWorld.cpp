@@ -11,7 +11,7 @@
 int main()
 {
 	printf("waiting for libzt to come online...\n");
-	zts_startjoin("dlldir", "17d709436c2c5367");
+	zts_startjoin("config_path", "17d709436c2c5367");
 	printf("started. now performing a socket call\n");
 	int fd = zts_socket(AF_INET, SOCK_STREAM, 0);
 	printf("fd=%d\n", fd);

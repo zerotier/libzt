@@ -155,6 +155,9 @@
     <ClCompile Include="stdafx.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\..\build\mingw32_nt-6.2\libzt.dll" />
+  </ItemGroup>
+  <ItemGroup>
     <Library Include="..\..\..\..\build\mingw32_nt-6.2\libzt.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

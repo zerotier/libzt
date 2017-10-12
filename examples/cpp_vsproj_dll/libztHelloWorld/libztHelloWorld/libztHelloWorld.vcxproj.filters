@@ -37,6 +37,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\..\build\mingw32_nt-6.2\libzt.dll" />
+  </ItemGroup>
+  <ItemGroup>
     <Library Include="..\..\..\..\build\mingw32_nt-6.2\libzt.lib" />
   </ItemGroup>
 </Project>

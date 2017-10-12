@@ -89,7 +89,7 @@ ZeroTier::VirtualTap *getTapByAddr(ZeroTier::InetAddress *addr)
 	for (size_t i=0; i<ZeroTier::vtaps.size(); i++) {
 		s = (ZeroTier::VirtualTap*)ZeroTier::vtaps[i];
 		// check address schemes
-		for (size_t j=0; j<s->_ips.size(); j++) {
+		for (ssize_t j=0; j<s->_ips.size(); j++) {
 			if ((s->_ips[j].isV4() && addr->isV4()) || (s->_ips[j].isV6() && addr->isV6())) {
 				//DEBUG_EXTRA("looking at tap %s, <addr=%s> --- for <%s>", s->_dev.c_str(), s->_ips[j].toString(ipbuf), addr->toIpString(ipbuf2));
 				if (s->_ips[j].isEqualPrefix(addr)
@@ -408,11 +408,19 @@ int zts_start(const char *path)
 
 int zts_simple_start(const char *path, const char *nwid)
 {
+	ZT_NodeStatus status;
 	int err = zts_start(path);
-	while (zts_running() == false) {
-		DEBUG_EXTRA("waiting for service to start");
-		nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 1000000)}}, NULL);
+	while (zts_running() == false || ZeroTier::zt1Service->getNode() == NULL) {
+		nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 500000)}}, NULL);
 	}
+	while (ZeroTier::zt1Service->getNode()->address() <= 0) {
+		nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 500000)}}, NULL);
+	}
+	while (status.online <= 0) {
+		nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 500000)}}, NULL);
+		ZeroTier::zt1Service->getNode()->status(&status);
+	}
+	// only now can we attempt a join
 	while (true) {
 		try {
 			zts_join(nwid);
@@ -424,7 +432,7 @@ int zts_simple_start(const char *path, const char *nwid)
 		}
 	}
 	while (zts_has_address(nwid) == false) {
-		nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 1000000)}}, NULL);
+		nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 500000)}}, NULL);
 	}
 	return err;
 }

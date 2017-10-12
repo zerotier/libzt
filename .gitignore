@@ -1,3 +1,7 @@
+# Binaries/Executables
+*.dll
+*.lib
+
 # ZeroTier 
 identity.public
 identity.secret

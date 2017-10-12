@@ -9,7 +9,7 @@ struct ZT {
   }
 
   static void simpleStart(const char *path, const char *nwid) {
-    zts_simple_start(path, nwid);
+    zts_startjoin(path, nwid);
   }
 
   static void stop() {

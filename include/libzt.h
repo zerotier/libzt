@@ -104,7 +104,7 @@ ZT_SOCKET_API int ZTCALL zts_start(const char *path);
  * @param nwid A 16-digit hexidecimal network identifier (e.g. Earth: `8056c2e21c000001`)
  * @return 0 if successful; or 1 if failed
  */
-ZT_SOCKET_API int ZTCALL zts_simple_start(const char *path, const char *nwid);
+ZT_SOCKET_API int ZTCALL zts_startjoin(const char *path, const char *nwid);
 
 /**
  * @brief Stops the ZeroTier core service and disconnects from all virtual networks
@@ -117,7 +117,7 @@ ZT_SOCKET_API void ZTCALL zts_stop();
 /**
  * @brief Joins a virtual network
  *
- * @usage Called after zts_start() or zts_simple_start()
+ * @usage Called after zts_start() or zts_startjoin()
  * @param nwid the 16-digit hexidecimal network identifier
  * @return
  */

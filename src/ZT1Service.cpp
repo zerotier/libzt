@@ -163,7 +163,9 @@ ZeroTier::VirtualTap *getAnyTap()
 	return vtap;
 }
 
-int zts_get_device_id_from_file(const char *filepath, char *devID) {
+int zts_get_device_id_from_file(const char *filepath, char *devID) 
+{
+	DEBUG_EXTRA();
 	std::string fname("identity.public");
 	std::string fpath(filepath);
 	if (ZeroTier::OSUtils::fileExists((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),false)) {
@@ -178,7 +180,7 @@ int zts_get_device_id_from_file(const char *filepath, char *devID) {
 // Starts a ZeroTier service in the background
 void *zts_start_service(void *thread_id)
 {
-	DEBUG_INFO("homeDir=%s", ZeroTier::homeDir.c_str());
+	DEBUG_INFO("path=%s", ZeroTier::homeDir.c_str());
 	// Where network .conf files will be stored
 	ZeroTier::netDir = ZeroTier::homeDir + "/networks.d";
 	ZeroTier::zt1Service = (ZeroTier::OneService *)0;
@@ -250,6 +252,7 @@ void *zts_start_service(void *thread_id)
 
 void disableTaps()
 {
+	DEBUG_EXTRA();
 	ZeroTier::_vtaps_lock.lock();
 	for (size_t i=0; i<ZeroTier::vtaps.size(); i++) {
 		DEBUG_EXTRA("vt=%p", ZeroTier::vtaps[i]);
@@ -260,6 +263,7 @@ void disableTaps()
 
 void zts_get_ipv4_address(const char *nwid, char *addrstr, const size_t addrlen)
 {
+	DEBUG_EXTRA();
 	if (ZeroTier::zt1Service) {
 		uint64_t nwid_int = strtoull(nwid, NULL, 16);
 		ZeroTier::VirtualTap *tap = getTapByNWID(nwid_int);
@@ -282,6 +286,7 @@ void zts_get_ipv4_address(const char *nwid, char *addrstr, const size_t addrlen)
 
 void zts_get_ipv6_address(const char *nwid, char *addrstr, size_t addrlen)
 {
+	DEBUG_EXTRA();
 	if (ZeroTier::zt1Service) {
 		uint64_t nwid_int = strtoull(nwid, NULL, 16);
 		ZeroTier::VirtualTap *tap = getTapByNWID(nwid_int);
@@ -304,6 +309,7 @@ void zts_get_ipv6_address(const char *nwid, char *addrstr, size_t addrlen)
 
 int zts_has_ipv4_address(const char *nwid)
 {
+	DEBUG_EXTRA();
 	char ipv4_addr[INET_ADDRSTRLEN];
 	memset(ipv4_addr, 0, INET_ADDRSTRLEN);
 	zts_get_ipv4_address(nwid, ipv4_addr, INET_ADDRSTRLEN);
@@ -312,6 +318,7 @@ int zts_has_ipv4_address(const char *nwid)
 
 int zts_has_ipv6_address(const char *nwid)
 {
+	DEBUG_EXTRA();
 	char ipv6_addr[INET6_ADDRSTRLEN];
 	memset(ipv6_addr, 0, INET6_ADDRSTRLEN);
 	zts_get_ipv6_address(nwid, ipv6_addr, INET6_ADDRSTRLEN);
@@ -320,12 +327,14 @@ int zts_has_ipv6_address(const char *nwid)
 
 int zts_has_address(const char *nwid)
 {
+	DEBUG_EXTRA();
 	return zts_has_ipv4_address(nwid) || zts_has_ipv6_address(nwid);
 }
 
 
 void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID)
 {
+	DEBUG_EXTRA();
 	ZeroTier::InetAddress _6planeAddr = ZeroTier::InetAddress::makeIpv66plane(
 		ZeroTier::Utils::hexStrToU64(nwid),ZeroTier::Utils::hexStrToU64(devID));
 	char ipbuf[INET6_ADDRSTRLEN];
@@ -334,13 +343,16 @@ void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID)
 
 void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID)
 {
+	DEBUG_EXTRA();
 	ZeroTier::InetAddress _6planeAddr = ZeroTier::InetAddress::makeIpv6rfc4193(
 		ZeroTier::Utils::hexStrToU64(nwid),ZeroTier::Utils::hexStrToU64(devID));
 	char ipbuf[INET6_ADDRSTRLEN];
 	memcpy(addr, _6planeAddr.toIpString(ipbuf), 40);
 }
 
-void zts_join(const char * nwid) {
+void zts_join(const char * nwid) 
+{
+	DEBUG_EXTRA();
 	if (ZeroTier::zt1Service) {
 		std::string confFile = ZeroTier::zt1Service->givenHomePath() + "/networks.d/" + nwid + ".conf";
 		if (ZeroTier::OSUtils::mkdir(ZeroTier::netDir) == false) {
@@ -361,7 +373,9 @@ void zts_join(const char * nwid) {
 	}
 }
 
-void zts_join_soft(const char * filepath, const char * nwid) {
+void zts_join_soft(const char * filepath, const char * nwid) 
+{
+	DEBUG_EXTRA();
 	std::string net_dir = std::string(filepath) + "/networks.d/";
 	std::string confFile = net_dir + std::string(nwid) + ".conf";
 	if (ZeroTier::OSUtils::mkdir(net_dir) == false) {
@@ -376,23 +390,30 @@ void zts_join_soft(const char * filepath, const char * nwid) {
 	}
 }
 
-void zts_leave(const char * nwid) {
+void zts_leave(const char * nwid) 
+{
+	DEBUG_EXTRA();
 	if (ZeroTier::zt1Service) {
 		ZeroTier::zt1Service->leave(nwid);
 	}
 }
 
-void zts_leave_soft(const char * filepath, const char * nwid) {
+void zts_leave_soft(const char * filepath, const char * nwid) 
+{
+	DEBUG_EXTRA();
 	std::string net_dir = std::string(filepath) + "/networks.d/";
 	ZeroTier::OSUtils::rm((net_dir + nwid + ".conf").c_str());
 }
 
-int zts_running() {
+int zts_running() 
+{
+	DEBUG_EXTRA();
 	return ZeroTier::zt1Service == NULL ? false : ZeroTier::zt1Service->isRunning();
 }
 
 int zts_start(const char *path)
 {
+	DEBUG_EXTRA();
 	if (ZeroTier::zt1Service) {
 		return 0; // already initialized, ok
 	}
@@ -406,8 +427,9 @@ int zts_start(const char *path)
 	return pthread_create(&service_thread, NULL, zts_start_service, NULL);
 }
 
-int zts_simple_start(const char *path, const char *nwid)
+int zts_startjoin(const char *path, const char *nwid)
 {
+	DEBUG_EXTRA();
 	ZT_NodeStatus status;
 	int err = zts_start(path);
 	while (zts_running() == false || ZeroTier::zt1Service->getNode() == NULL) {
@@ -437,7 +459,9 @@ int zts_simple_start(const char *path, const char *nwid)
 	return err;
 }
 
-void zts_stop() {
+void zts_stop() 
+{
+	DEBUG_EXTRA();
 	if (ZeroTier::zt1Service) {
 		ZeroTier::zt1Service->terminate();
 		disableTaps();
@@ -447,7 +471,9 @@ void zts_stop() {
 #endif
 }
 
-void zts_get_homepath(char *homePath, size_t len) {
+void zts_get_homepath(char *homePath, size_t len) 
+{
+	DEBUG_EXTRA();
 	if (ZeroTier::homeDir.length()) {
 		memset(homePath, 0, len);
 		size_t buf_len = len < ZeroTier::homeDir.length() ? len : ZeroTier::homeDir.length();
@@ -455,7 +481,9 @@ void zts_get_homepath(char *homePath, size_t len) {
 	}
 }
 
-int zts_get_device_id(char *devID) {
+int zts_get_device_id(char *devID) 
+{
+	DEBUG_EXTRA();
 	if (ZeroTier::zt1Service) {
 		char id[ZTO_ID_LEN];
 		sprintf(id, "%lx",ZeroTier::zt1Service->getNode()->address());
@@ -476,7 +504,9 @@ int zts_get_device_id(char *devID) {
 	return -1;
 }
 
-unsigned long zts_get_peer_count() {
+unsigned long zts_get_peer_count() 
+{
+	DEBUG_EXTRA();
 	if (ZeroTier::zt1Service) {
 		return ZeroTier::zt1Service->getNode()->peers()->peerCount;
 	}
@@ -485,7 +515,9 @@ unsigned long zts_get_peer_count() {
 	}
 }
 
-int zts_get_peer_address(char *peer, const char *devID) {
+int zts_get_peer_address(char *peer, const char *devID) 
+{
+	DEBUG_EXTRA();
 	if (ZeroTier::zt1Service) {
 		ZT_PeerList *pl = ZeroTier::zt1Service->getNode()->peers();
 		// uint64_t addr;
@@ -501,10 +533,9 @@ int zts_get_peer_address(char *peer, const char *devID) {
 
 void zts_allow_http_control(bool allowed)
 {
+	DEBUG_EXTRA();
 	// TODO
 }
-
-
 
 
 #if defined(SDK_JNI)

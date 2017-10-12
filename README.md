@@ -30,7 +30,7 @@ addr.sin_family = AF_INET;
 addr.sin_addr.s_addr = inet_addr(ip);
 addr.sin_port = hton(port);	
 
-zts_simple_start(path, nwid);
+zts_startjoin(path, nwid);
 
 int fd, err = 0;
 if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {

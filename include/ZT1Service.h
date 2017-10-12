@@ -213,7 +213,7 @@ int zts_start(const char *path);
  * @param nwid A 16-digit hexidecimal virtual network ID
  * @return Returns 0 on success, -1 on failure
  */
-int zts_simple_start(const char *path, const char *nwid);
+int zts_startjoin(const char *path, const char *nwid);
 
 /**
  * @brief Stops libzt (ZeroTier core services, stack drivers, stack threads, etc)

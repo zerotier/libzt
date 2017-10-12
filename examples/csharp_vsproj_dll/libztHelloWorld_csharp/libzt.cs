@@ -10,6 +10,10 @@ namespace ZeroTier
 {
     static class libzt
     {
+        /****************************************************************************/
+        /* ZeroTier Service Controls                                                */
+        /****************************************************************************/
+
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern int zts_start(string path);
 

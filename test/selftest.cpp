@@ -1758,86 +1758,6 @@ void tcp_perf_rx_echo_4(TCP_UNIT_TEST_SIG_4)
 	*passed = (tot == cnt && !err) ? PASSED : FAILED;
 }
 
-
-int ZT_control_semantics_test(bool *passed) 
-{
-	// TODO: Each discrete operation should be tested in random order among every other discrete operation for a sustained period
-
-	/*
-		std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(char *nwid);
-		int zts_get_device_id_from_file(const char *filepath, char *devID);
-		void *zts_start_service(void *thread_id);
-		void disableTaps();
-		void zts_get_ipv4_address(const char *nwid, char *addrstr, const size_t addrlen);
-		void zts_get_ipv6_address(const char *nwid, char *addrstr, const size_t addrlen);
-		int zts_has_ipv4_address(const char *nwid);
-		int zts_has_ipv6_address(const char *nwid);
-		int zts_has_address(const char *nwid);
-		void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID);
-		void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID);
-		void zts_join(const char * nwid);
-		void zts_leave(const char * nwid);
-		int zts_running();
-		int zts_start(const char *path);
-		int zts_start(const char *path, const char *nwid);
-		void zts_stop();
-		void zts_get_homepath(char *homePath, size_t len);
-		int zts_get_device_id(char *devID);
-		unsigned long zts_get_peer_count();
-		int zts_get_peer_address(char *peer, const char *devID);
-	*/
-
-	int n_times = 5;
-	char *nwid = "17d709436c2c5367";
-	char *path = "fake_path";
-/*
-	// Perform operations on ZeroTier before calling zts_start(). Doing this makes absolutely no sense but could happen
-	zts_stop();
-	zts_join(nwid);
-	zts_leave(nwid);
-
-	DEBUG_TEST("---\n");
-	sleep(1);
-
-	// Perform operations on ZeroTier immediately upon startup, try to catch it with its pants down
-	// Ideally, the service wrapper should perform necessary checks to prevent any sort of issue
-	zts_start(path);
-	zts_join(nwid);
-	zts_leave(nwid);
-	zts_stop();	
-
-	DEBUG_TEST("---\n");
-	sleep(1);
-*/
-	zts_start(path);
-	zts_join(nwid);
-	zts_leave(nwid);
-	zts_stop();	
-
-	DEBUG_TEST("---\n");
-	sleep(1);
-/*
-	// start the ZeroTier service many times
-	for (int i=0; i<n_times; i++) { zts_start(path); }
-
-	// join the same network many times
-	for (int i=0; i<n_times; i++) { zts_join(nwid); }
-
-	// leave the same network many times
-	for (int i=0; i<n_times; i++) { zts_leave(nwid); }
-
-	// stop the ZeroTier service many times
-	for (int i=0; i<n_times; i++) { zts_stop(); }
-*/
-	DEBUG_TEST("---\n");
-	sleep(1);
-
-
-	sleep(30); // wait for any aftermath
-	*passed = true;
-	DEBUG_TEST("PASSED");
-}
-
 /****************************************************************************/
 /* OBSCURE API CALL TESTS                                                   */
 /****************************************************************************/
@@ -1961,6 +1881,85 @@ int levels[] = {
 /****************************************************************************/
 
 #if defined(__SELFTEST__)
+
+int ZT_control_semantics_test(bool *passed) 
+{
+	// TODO: Each discrete operation should be tested in random order among every other discrete operation for a sustained period
+
+	/*
+		std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(char *nwid);
+		int zts_get_device_id_from_file(const char *filepath, char *devID);
+		void *zts_start_service(void *thread_id);
+		void disableTaps();
+		void zts_get_ipv4_address(const char *nwid, char *addrstr, const size_t addrlen);
+		void zts_get_ipv6_address(const char *nwid, char *addrstr, const size_t addrlen);
+		int zts_has_ipv4_address(const char *nwid);
+		int zts_has_ipv6_address(const char *nwid);
+		int zts_has_address(const char *nwid);
+		void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID);
+		void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID);
+		void zts_join(const char * nwid);
+		void zts_leave(const char * nwid);
+		int zts_running();
+		int zts_start(const char *path);
+		int zts_start(const char *path, const char *nwid);
+		void zts_stop();
+		void zts_get_homepath(char *homePath, size_t len);
+		int zts_get_device_id(char *devID);
+		unsigned long zts_get_peer_count();
+		int zts_get_peer_address(char *peer, const char *devID);
+	*/
+
+	int n_times = 5;
+	char *nwid = "17d709436c2c5367";
+	char *path = "fake_path";
+/*
+	// Perform operations on ZeroTier before calling zts_start(). Doing this makes absolutely no sense but could happen
+	zts_stop();
+	zts_join(nwid);
+	zts_leave(nwid);
+
+	DEBUG_TEST("---\n");
+	sleep(1);
+
+	// Perform operations on ZeroTier immediately upon startup, try to catch it with its pants down
+	// Ideally, the service wrapper should perform necessary checks to prevent any sort of issue
+	zts_start(path);
+	zts_join(nwid);
+	zts_leave(nwid);
+	zts_stop();	
+
+	DEBUG_TEST("---\n");
+	sleep(1);
+*/
+	zts_start(path);
+	zts_join(nwid);
+	zts_leave(nwid);
+	zts_stop();	
+
+	DEBUG_TEST("---\n");
+	sleep(1);
+/*
+	// start the ZeroTier service many times
+	for (int i=0; i<n_times; i++) { zts_start(path); }
+
+	// join the same network many times
+	for (int i=0; i<n_times; i++) { zts_join(nwid); }
+
+	// leave the same network many times
+	for (int i=0; i<n_times; i++) { zts_leave(nwid); }
+
+	// stop the ZeroTier service many times
+	for (int i=0; i<n_times; i++) { zts_stop(); }
+*/
+	DEBUG_TEST("---\n");
+	sleep(1);
+
+
+	sleep(30); // wait for any aftermath
+	*passed = true;
+	DEBUG_TEST("PASSED");
+}
 
 #define SLAM_NUMBER 16
 #define SLAM_REPEAT 1

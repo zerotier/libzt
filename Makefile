@@ -295,12 +295,15 @@ libzt_socket_layer:
 	$(CXX) $(CXXFLAGS) -c src/libzt.cpp \
 		$(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
 
+jni_socket_wrapper:
+	$(CXX) $(CXXFLAGS) -DSDK_JNI -c src/libztJNI.cpp \
+		$(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
+
 utilities:
 	$(CXX) $(CXXFLAGS) -c src/Platform.cpp \
 		$(LIBZT_INCLUDES)
 	$(CXX) $(CXXFLAGS) -c src/Utilities.cpp \
 		$(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
-
 
 win_dll: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
 	# First we use mingw to build our DLL
@@ -312,6 +315,16 @@ win_dll: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
 	# Then do the following to generate the mSVC DLL from the def file (which was generated from the MinGW DLL): 
 	# lib /machine:x64 /def:libzt.def
 	# or just execute: makelib
+
+shared_lib: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
+	@mkdir -p $(BUILD) obj
+	mv *.o obj
+	$(CXX) $(CXXFLAGS) -shared -o $(BUILD)/libzt.so obj/*.o
+
+shared_jni_lib: lwip lwip_driver libzt_socket_layer jni_socket_wrapper utilities $(ZTO_OBJS)
+	@mkdir -p $(BUILD) obj
+	mv *.o obj
+	$(CXX) $(CXXFLAGS) -shared -o $(BUILD)/libzt.so obj/*.o
 
 ifeq ($(STACK_PICO),1)
 static_lib: picotcp picotcp_driver libzt_socket_layer utilities $(ZTO_OBJS)
@@ -353,14 +366,6 @@ macos_app_framework:
 		-scheme ZeroTierSDK_OSX build SYMROOT="../../../$(BUILD)/macos_app_framework"
 	cd examples/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug \
 		-scheme ZeroTierSDK_OSX build SYMROOT="../../../$(BUILD)/macos_app_framework"
-
-##############################################################################
-## Java JNI                                                                 ##
-##############################################################################
-
-shared_jni_lib: picotcp $(ZTO_OBJS)
-	$(CXX) $(CXXFLAGS) $(TAP_FILES) $(STACK_DRIVER_FILES) $(ZTO_OBJS) $(INCLUDES) \
-		$(PICO_LIB) -dynamiclib -o $(SHARED_JNI_LIB)
 
 ##############################################################################
 ## Python module                                                            ##

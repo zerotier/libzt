@@ -2,6 +2,7 @@
 *.dll
 *.lib
 *.o
+*.class
 
 # ZeroTier-specific 
 *.public

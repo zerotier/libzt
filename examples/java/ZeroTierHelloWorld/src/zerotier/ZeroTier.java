@@ -1,6 +1,6 @@
 /*
- * ZeroTier One - Network Virtualization Everywhere
- * Copyright (C) 2011-2015  ZeroTier, Inc.
+ * ZeroTier SDK - Network Virtualization Everywhere
+ * Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,12 +17,11 @@
  *
  * --
  *
- * ZeroTier may be used and distributed under the terms of the GPLv3, which
- * are available at: http://www.gnu.org/licenses/gpl-3.0.html
- *
- * If you would like to embed ZeroTier into a commercial application or
- * redistribute it in a modified binary form, please contact ZeroTier Networks
- * LLC. Start here: http://www.zerotier.com/
+ * You can be released from the requirements of the license by purchasing
+ * a commercial license. Buying such a license is mandatory as soon as you
+ * develop commercial closed-source software that incorporates or links
+ * directly against ZeroTier software without disclosing the source code
+ * of your own application.
  */
 
 package zerotier;
@@ -35,9 +34,8 @@ import java.util.zip.ZipError;
 
 public class ZeroTier {
 
-	public static String Version()
-	{
-		return "1.2.2";
+	public static String Version() {
+		return "1.1.5";
 	}
 	
     // Socket families
@@ -60,14 +58,15 @@ public class ZeroTier {
     public static int F_SETFL = 4;
 
     // Loads JNI code
-    static { System.loadLibrary("zt"); }
+    //static { System.loadLibrary("zt"); }
 
     // ZeroTier service controls
     public native void ztjni_start(String homeDir);
-    public void start(String homeDir) {
-    	ztjni_start(homeDir);
-    }
+    public void start(String homeDir) { ztjni_start(homeDir); }
 
+    public native void ztjni_startjoin(String homeDir, String nwid);
+    public void startjoin(String homeDir, String nwid) { ztjni_startjoin(homeDir, nwid); }
+    
     public native void ztjni_join(String nwid);
     public void join(String nwid) {
     	ztjni_join(nwid);
@@ -96,20 +95,13 @@ public class ZeroTier {
     }
     
     public native boolean ztjni_running();
-    public boolean running() {
-        return ztjni_running();
-    }
+    public boolean running() { return ztjni_running(); }
 
     public native int ztjni_socket(int family, int type, int protocol);
-    public int socket(int family, int type, int protocol) {
-        return ztjni_socket(family, type, protocol);
-    }
+    public int socket(int family, int type, int protocol) { return ztjni_socket(family, type, protocol); }
 
     public native int ztjni_connect(int fd, String addr, int port);
-
-    public int connect(int sock, Address zaddr, String nwid) {
-        return connect(sock, zaddr.Address(), zaddr.Port(), nwid);
-    }
+    public int connect(int sock, Address zaddr, String nwid) { return connect(sock, zaddr.Address(), zaddr.Port(), nwid); }
 
     public int connect(int sock, String addr, int port, String nwid)
     {
@@ -131,10 +123,8 @@ public class ZeroTier {
     }
 
     public native int ztjni_bind(int fd, String addr, int port);
-
-    public int bind(int sock, Address zaddr, String nwid) {
-        return bind(sock, zaddr.Address(), zaddr.Port(), nwid);
-    }
+    public int bind(int sock, Address zaddr, String nwid) { return bind(sock, zaddr.Address(), zaddr.Port(), nwid); }
+    
     public int bind(int sock, String addr, int port, String nwid) {
         int err = -1;
         ArrayList<String> addresses;

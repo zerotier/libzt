@@ -1,13 +1,13 @@
 # Binaries/Executables
 *.dll
 *.lib
+*.o
 
-# ZeroTier 
-identity.public
-identity.secret
+# ZeroTier-specific 
+*.public
+*.secret
 iddb.d
 planet
-authtoken.secret
 devicemap
 controller.d
 launch.sh
@@ -21,8 +21,6 @@ zerotier-one.pid
 zerotier-one.port
 obj
 
-*.bob
-*.alice
 *.pid
 
 # Xcode

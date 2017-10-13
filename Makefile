@@ -132,19 +132,32 @@ LIBZT_INCLUDES+=-Iinclude \
 
 STRIP=strip
 
+# ZeroTier debug and tracing
 ifeq ($(ZT_DEBUG),1)
-	ZT_DEFS+=-DZT_TRACE
-	CFLAGS+=-Wall -g -pthread
+	CFLAGS?=-Wall -g -pthread
 	STRIP=echo
 else
 	CFLAGS?=-Ofast -fstack-protector
-	CFLAGS+=-Wall -fPIE -fvisibility=hidden -pthread
+	CFLAGS?=-Wall -fPIE -fvisibility=hidden -pthread
 endif
+
+ifeq ($(ZT_TRACE),1)
+	ZT_DEFS+=-DZT_TRACE
+endif
+
+# libzt debuf and tracing
 ifeq ($(LIBZT_DEBUG),1)
-	CFLAGS+=-Wall -g -pthread
-	LIBZT_DEFS+=-DLIBZT_DEBUG
+	CFLAGS?=-Wall -g -pthread
 	STRIP=echo
+else
+	CFLAGS?=-Ofast -fstack-protector
+	CFLAGS?=-Wall -fPIE -fvisibility=hidden -pthread
 endif
+
+ifeq ($(LIBZT_TRACE),1)
+	LIBZT_DEFS+=-DLIBZT_DEBUG
+endif
+
 ifeq ($(NS_DEBUG),1)
 	CFLAGS+=-Wall -g
 	STRIP=echo

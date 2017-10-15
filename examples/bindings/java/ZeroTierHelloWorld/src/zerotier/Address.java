@@ -24,8 +24,6 @@
  * of your own application.
  */
 
-package zerotier;
-
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;

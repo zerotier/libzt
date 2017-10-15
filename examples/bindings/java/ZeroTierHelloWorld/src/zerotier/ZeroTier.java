@@ -24,8 +24,6 @@
  * of your own application.
  */
 
-package zerotier;
-
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -148,8 +146,8 @@ public class ZeroTier {
         return ztjni_accept4(fd,addr,port);
     }
 
-    public native int ztjni_accept(int fd, zerotier.Address addr);
-    public int accept(int fd, zerotier.Address addr) {
+    public native int ztjni_accept(int fd, Address addr);
+    public int accept(int fd, Address addr) {
         return ztjni_accept(fd, addr);
     }
 
@@ -173,8 +171,8 @@ public class ZeroTier {
         return ztjni_write(fd, buf, len);
     }
 
-    public native int ztjni_sendto(int fd, byte[] buf, int len, int flags, zerotier.Address addr);
-    public int sendto(int fd, byte[] buf, int len, int flags, zerotier.Address addr){
+    public native int ztjni_sendto(int fd, byte[] buf, int len, int flags, Address addr);
+    public int sendto(int fd, byte[] buf, int len, int flags, Address addr){
         return ztjni_sendto(fd,buf,len,flags,addr);
     }
 
@@ -183,8 +181,8 @@ public class ZeroTier {
         return ztjni_send(fd, buf, len, flags);
     }
 
-    public native int ztjni_recvfrom(int fd, byte[] buf, int len, int flags, zerotier.Address addr);
-    public int recvfrom(int fd, byte[] buf, int len, int flags, zerotier.Address addr){
+    public native int ztjni_recvfrom(int fd, byte[] buf, int len, int flags, Address addr);
+    public int recvfrom(int fd, byte[] buf, int len, int flags, Address addr){
         return ztjni_recvfrom(fd,buf,len,flags,addr);
     }
 

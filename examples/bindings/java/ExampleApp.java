@@ -26,7 +26,7 @@
 
 // Simple Java example for libzt using JNI
 
-import zerotier.*;
+import zerotier.ZeroTier;
 
 public class ExampleApp {
 	
@@ -43,8 +43,8 @@ public class ExampleApp {
                 
         new Thread(new Runnable() {
             public void run() {
-            		System.out.println("starting libzt");
-            		z.startjoin("/Users/joseph/op/zt/libzt/ztjni", "1212121212121212");
+        		System.out.println("starting libzt");
+        		z.startjoin("/Users/joseph/op/zt/libzt/ztjni", "1212121212121212");
                 // start(path) will not block
                 // startjoin(path, nwid) will block
             }

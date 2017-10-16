@@ -1888,7 +1888,7 @@ int ZT_control_semantics_test(bool *passed)
 
 	/*
 		std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(char *nwid);
-		int zts_get_device_id_from_file(const char *filepath, char *devID);
+		int zts_get_id_from_file(const char *filepath, char *devID);
 		void *zts_start_service(void *thread_id);
 		void disableTaps();
 		void zts_get_ipv4_address(const char *nwid, char *addrstr, const size_t addrlen);
@@ -1905,7 +1905,7 @@ int ZT_control_semantics_test(bool *passed)
 		int zts_start(const char *path, const char *nwid);
 		void zts_stop();
 		void zts_get_homepath(char *homePath, size_t len);
-		int zts_get_device_id(char *devID);
+		int zts_get_id(char *devID);
 		unsigned long zts_get_peer_count();
 		int zts_get_peer_address(char *peer, const char *devID);
 	*/
@@ -2706,7 +2706,7 @@ int main(int argc , char *argv[])
 		DEBUG_TEST("Waiting for libzt to come online...\n");
 		zts_startjoin(path.c_str(), nwid.c_str());
 		char device_id[ZTO_ID_LEN];
-		zts_get_device_id(device_id);
+		zts_get_id(device_id);
 		DEBUG_TEST("I am %s, %s", device_id, me.c_str());
 		if (mode == TEST_MODE_SERVER) {
 			DEBUG_TEST("Ready. You should start selftest program on second host now...\n\n");

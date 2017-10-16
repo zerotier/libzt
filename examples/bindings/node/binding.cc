@@ -18,7 +18,7 @@ struct ZT {
 
   static char* getDeviceId() {
     char* id = new char [ZT_ID_LEN + 1];
-    zts_get_device_id(id);
+    zts_get_id(id);
     return id;
   }
 
@@ -28,7 +28,7 @@ struct ZT {
     return addr_str;
   }
 
-  static int socket() {
+  static int socket() {åå
     return zts_socket(AF_INET, SOCK_STREAM, 0);
   }
 

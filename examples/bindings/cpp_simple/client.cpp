@@ -38,7 +38,7 @@ int main(int argc, char **argv)
 	DEBUG_TEST("Waiting for libzt to come online...\n");
 	zts_startjoin(path.c_str(), nwid.c_str());
 	char device_id[11];
-	zts_get_device_id(device_id);
+	zts_get_id(device_id);
 	DEBUG_TEST("I am %s", device_id);
 	sleep(2);
 

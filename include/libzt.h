@@ -73,7 +73,7 @@ extern "C" {
 #endif
 
 // forward declarations from ZT1Service.h
-ZT_SOCKET_API int ZTCALL zts_get_device_id(char *devID);
+ZT_SOCKET_API int ZTCALL zts_get_id(char *devID);
 ZT_SOCKET_API void ZTCALL init_network_stack();
 
 /**
@@ -113,6 +113,14 @@ ZT_SOCKET_API int ZTCALL zts_startjoin(const char *path, const char *nwid);
  * @return
  */
 ZT_SOCKET_API void ZTCALL zts_stop();
+
+/**
+ * @brief Check whether the service is running
+ *
+ * @usage
+ * @return
+ */
+ZT_SOCKET_API int ZTCALL zts_running();
 
 /**
  * @brief Joins a virtual network
@@ -170,15 +178,7 @@ ZT_SOCKET_API void ZTCALL zts_get_homepath(char *homePath, const size_t len);
  * @param devID
  * @return
  */
-ZT_SOCKET_API int ZTCALL zts_get_device_id(char *devID);
-
-/**
- * @brief Check whether the service is running
- *
- * @usage
- * @return
- */
-ZT_SOCKET_API int ZTCALL zts_running();
+ZT_SOCKET_API int ZTCALL zts_get_id(char *devID);
 
 /**
  * @brief Returns whether any IPv6 address has been assigned to the SockTap for this network

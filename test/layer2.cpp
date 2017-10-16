@@ -46,7 +46,7 @@ int main(int argc , char *argv[])
 	printf("Starting libzt...\n");
 	zts_startjoin(argv[1], argv[2]);
 	char device_id[11];
-	zts_get_device_id(device_id);
+	zts_get_id(device_id);
 	fprintf(stderr, "Complete. I am %s\n", device_id);
 
 	// create socket

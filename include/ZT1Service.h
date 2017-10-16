@@ -74,7 +74,7 @@ std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(char *nwid);
  * @param devID buffer to which the device ID (nodeID, ztAddress) should be copied
  * @return
  */
-int zts_get_device_id_from_file(const char *filepath, char *devID);
+int zts_getid_from_file(const char *filepath, char *devID);
 
 /**
  * @brief Starts a ZeroTier service in the background
@@ -240,7 +240,7 @@ void zts_get_homepath(char *homePath, size_t len);
  * @param devID Buffer to which id string is copied
  * @return
  */
-int zts_get_device_id(char *devID);
+int zts_get_id(char *devID);
 
 /**
  * @brief Return the number of peers

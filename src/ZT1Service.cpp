@@ -163,7 +163,7 @@ ZeroTier::VirtualTap *getAnyTap()
 	return vtap;
 }
 
-int zts_get_device_id_from_file(const char *filepath, char *devID) 
+int zts_get_id_from_file(const char *filepath, char *devID) 
 {
 	DEBUG_EXTRA();
 	std::string fname("identity.public");
@@ -480,7 +480,7 @@ void zts_get_homepath(char *homePath, size_t len)
 	}
 }
 
-int zts_get_device_id(char *devID) 
+int zts_get_id(char *devID) 
 {
 	DEBUG_EXTRA();
 	if (ZeroTier::zt1Service) {

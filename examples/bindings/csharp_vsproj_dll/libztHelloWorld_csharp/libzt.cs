@@ -39,7 +39,7 @@ namespace ZeroTier
         public static extern void zts_get_homepath(string homePath, int len);
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern int zts_get_device_id(string devID);
+        public static extern int zts_get_id(string devID);
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern int zts_running();

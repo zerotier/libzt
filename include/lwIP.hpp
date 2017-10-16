@@ -62,11 +62,6 @@ void lwip_dns_init();
  */
 void lwip_start_dhcp(void *netif);
 
-void general_lwip_init_interface(void *tapref, void *netif, const char *name, const ZeroTier::MAC &mac,
-	const ZeroTier::InetAddress &addr, const ZeroTier::InetAddress &nm, const ZeroTier::InetAddress &gw);
-
-void general_turn_on_interface(void *netif);
-
 /**
  * @brief Set up an interface in the network stack for the VirtualTap.
  *

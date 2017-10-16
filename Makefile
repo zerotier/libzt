@@ -230,11 +230,11 @@ endif
 ifeq ($(LIBZT_IPV4)$(LIBZT_IPV6),1)
 ifeq ($(LIBZT_IPV4),1)
 STACK_DRIVER_DEFS+=-DLIBZT_IPV4 -DLWIP_IPV4=1
-STACK_DEFS+=LIBZT_IPV4=1
+STACK_DEFS+=LIBZT_IPV4=1 IPV4=1
 endif
 ifeq ($(LIBZT_IPV6),1)
 STACK_DRIVER_DEFS+=-DLIBZT_IPV6 -DLWIP_IPV6=1
-STACK_DEFS+=LIBZT_IPV6=1
+STACK_DEFS+=LIBZT_IPV6=1 IPV6=1
 endif
 else
 STACK_DRIVER_DEFS+=-DLIBZT_IPV4 -DLWIP_IPV4=1
@@ -273,6 +273,7 @@ picotcp:
 	cd ext/picotcp; make lib ARCH=shared IPV4=1 IPV6=1
 
 lwip:
+	echo $(STACK_DEFS)
 	make -f make-liblwip.mk liblwip.a $(STACK_DEFS)
 
 lwip_driver:

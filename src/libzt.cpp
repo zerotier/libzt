@@ -506,7 +506,7 @@ int zts_add_dns_nameserver(struct sockaddr *addr)
 {
 	DEBUG_EXTRA();
 	int err = -1;
-#if defined(STACK_LWIP)
+#if defined(STACK_LWIP) && defined(LIBZT_IPV4)
 	struct sockaddr_in *in4 = (struct sockaddr_in*)&addr;
 	static ip_addr_t ipaddr;
 	ipaddr.addr = in4->sin_addr.s_addr;

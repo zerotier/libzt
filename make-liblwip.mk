@@ -63,8 +63,17 @@ LWIPARCH=$(CONTRIBDIR)/ports/unix
 endif
 
 LWIPINCLUDES:=-I$(LWIPDIR)/include -I$(LWIPARCH) -I$(LWIPARCH)/include -I$(LWIPDIR) -I. -Iext -Iinclude
-CFLAGS= $(WINDEFS) -Wno-format -Wno-deprecated -O3 -g -Wall -fPIC
-CFLAGS+=-DLWIP_IPV4 -DLWIP_IPV6=0 -DIPv4 -DLWIP_DEBUG=1 $(LWIPINCLUDES)
+CFLAGS=$(WINDEFS) -Wno-format -Wno-deprecated -O3 -g -Wall -fPIC $(LWIPINCLUDES)
+
+ifeq ($(NS_DEBUG),1)
+CFLAGS+=-DLWIP_DEBUG=1
+endif
+ifeq ($(IPV4),1)
+CFLAGS+=-DLWIP_IPV4=1 -DLWIP_IPV6=0 -DIPv4
+endif
+ifeq ($(IPV6),1)
+CFLAGS+=-DLWIP_IPV4=0 -DLWIP_IPV6=1 -DIPv6
+endif
 
 UNIXLIB=liblwip.a
 

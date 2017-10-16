@@ -420,6 +420,7 @@ happening sooner than they should.
  * controlled via IP_REASSEMBLY.
  */
 #define IP_FRAG                         1
+#define IPV6_FRAG_COPYHEADER            1 // Was 0
 
 /**
  * IP_REASS_MAXAGE: Maximum time (in multiples of IP_TMR_INTERVAL - so seconds, normally)
@@ -458,7 +459,7 @@ happening sooner than they should.
  * Be careful, disable that make your product non-compliant to RFC1122
  */
 #define LWIP_ICMP                       1
-
+#define LWIP_ICMP6                      LWIP_IPV6 && 1 // Was 0
 
 /*------------------------------------------------------------------------------
 ------------------------------- RAW Options ------------------------------------

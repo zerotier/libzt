@@ -50,15 +50,21 @@
 #include "lwip/priv/tcp_priv.h" /* for tcp_debug_print_pcbs() */
 #include "lwip/timeouts.h"
 #include "lwip/stats.h"
+#include "lwip/ethip6.h"
 
 #include "dns.h"
 #include "netifapi.h"
 
 #include "lwIP.hpp"
 
+// lwIP netif interfaces used by virtual taps
 netif lwipdev, lwipdev6, n1;
+struct netif lwip_interfaces[10];
+static int num_lwip_interfaces = 0;
 
-struct netif netifs[10];
+
+
+
 
 bool lwip_driver_initialized = false;
 ZeroTier::Mutex driver_m;
@@ -124,6 +130,7 @@ void lwip_driver_init()
 
 err_t lwip_eth_tx(struct netif *netif, struct pbuf *p)
 {
+	DEBUG_INFO();
 	struct pbuf *q;
 	char buf[ZT_MAX_MTU+32];
 	char *bufptr;
@@ -163,47 +170,6 @@ err_t lwip_eth_tx(struct netif *netif, struct pbuf *p)
 	return ERR_OK;
 }
 
-void general_lwip_init_interface(void *tapref, void *netif, const char *name, const ZeroTier::MAC &mac, const ZeroTier::InetAddress &addr, const ZeroTier::InetAddress &nm, const ZeroTier::InetAddress &gw)
-{
-#if defined(LIBZT_IPV4)
-	char ipbuf[INET6_ADDRSTRLEN], nmbuf[INET6_ADDRSTRLEN], gwbuf[INET6_ADDRSTRLEN];
-	static ip_addr_t _addr, _nm, _gw;
-	IP4_ADDR(&_gw,127,0,0,1);
-	IP4_ADDR(&_addr,10,6,6,86);
-	//_addr.addr = *((u32_t *)addr.rawIpData());
-	_nm.addr = *((u32_t *)addr.netmask().rawIpData());
-	netif_add(&(n1),&_addr, &_nm, &_gw, NULL, tapif_init, tcpip_input);
-	n1.state = tapref;
-	n1.output = etharp_output;
-	n1.mtu = ZT_MAX_MTU;
-	n1.name[0] = name[0];
-	n1.name[1] = name[1];
-	n1.linkoutput = lwip_eth_tx;
-	n1.hwaddr_len = 6;
-	mac.copyTo(n1.hwaddr, n1.hwaddr_len);
-	n1.flags = NETIF_FLAG_BROADCAST
-		| NETIF_FLAG_ETHARP
-		| NETIF_FLAG_IGMP
-		| NETIF_FLAG_LINK_UP
-		| NETIF_FLAG_UP;
-	netif_set_link_up(&n1);
-	char macbuf[ZT_MAC_ADDRSTRLEN];
-	mac2str(macbuf, ZT_MAC_ADDRSTRLEN, n1.hwaddr);
-	DEBUG_INFO("initialized netif as [mac=%s, addr=%s, nm=%s, gw=%s]", macbuf, addr.toString(ipbuf), addr.netmask().toString(nmbuf), gw.toString(gwbuf));
-#endif
-#if defined(LIBZT_IPV6)
-#endif
-}
-
-void general_turn_on_interface(void *netif)
-{
-	//netif_set_up(&n1);
-	//netif_set_default(&n1);
-	//lwipdev.linkoutput = NULL;
-	//netif_set_down(&lwipdev);
-	//netif_set_link_down(&lwipdev);
-}
-
 void lwip_dns_init()
 {
 	dns_init();
@@ -211,7 +177,9 @@ void lwip_dns_init()
 
 void lwip_start_dhcp(void *netif)
 {
+#if defined(LIBZT_IPV4)
 	netifapi_dhcp_start((struct netif *)netif);
+#endif
 }
 
 void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier::InetAddress &ip)
@@ -237,15 +205,43 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 			| NETIF_FLAG_IGMP
 			| NETIF_FLAG_LINK_UP
 			| NETIF_FLAG_UP;
-		netif_set_default(&(lwipdev));
-		netif_set_link_up(&(lwipdev));
-		netif_set_up(&(lwipdev));
+		netif_set_default(&lwipdev);
+		netif_set_link_up(&lwipdev);
+		netif_set_up(&lwipdev);
 		char macbuf[ZT_MAC_ADDRSTRLEN];
 		mac2str(macbuf, ZT_MAC_ADDRSTRLEN, lwipdev.hwaddr);
 		DEBUG_INFO("initialized netif as [mac=%s, addr=%s, nm=%s]", macbuf, ip.toString(ipbuf), ip.netmask().toString(nmbuf));
 	}
 #endif
 #if defined(LIBZT_IPV6)
+	if (ip.isV6()) {
+		static ip_addr_t ipaddr;
+		memcpy(&(ipaddr.addr), ip.rawIpData(), sizeof(ipaddr.addr));
+		
+		lwipdev6.mtu = ZT_MAX_MTU; 
+		lwipdev6.name[0] = 'l'; 
+		lwipdev6.name[1] = '6'; 
+		lwipdev6.hwaddr_len = 6; 
+		lwipdev6.linkoutput = lwip_eth_tx; 
+		lwipdev6.ip6_autoconfig_enabled = 1; 
+
+		mac.copyTo(lwipdev6.hwaddr, lwipdev6.hwaddr_len); 
+		netif_add(&lwipdev6, NULL, tapif_init, ethernet_input); 
+		lwipdev6.output_ip6 = ethip6_output; 
+		lwipdev6.state = tapref;
+
+		netif_create_ip6_linklocal_address(&lwipdev6, 1); 
+		s8_t idx = 1;
+		netif_add_ip6_address(&lwipdev6, &ipaddr, &idx);
+		netif_set_default(&lwipdev6); 
+		netif_set_up(&lwipdev6);	
+		netif_set_link_up(&lwipdev6);
+		netif_ip6_addr_set_state(&lwipdev6, 1, IP6_ADDR_TENTATIVE);
+
+		char macbuf[ZT_MAC_ADDRSTRLEN];
+		mac2str(macbuf, ZT_MAC_ADDRSTRLEN, lwipdev6.hwaddr);
+		DEBUG_INFO("initialized netif as [mac=%s, addr=%s]", macbuf, ip.toString(ipbuf)); 		
+	}
 #endif
 }
 
@@ -295,9 +291,14 @@ void lwip_eth_rx(ZeroTier::VirtualTap *tap, const ZeroTier::MAC &from, const Zer
 		// TODO: Routing logic
 
 #if defined(LIBZT_IPV4)
-			if (lwipdev.input(p, &(lwipdev)) != ERR_OK) {
-				DEBUG_ERROR("error while feeding frame into stack interface (ipv4)");
-			}
+		if (lwipdev.input(p, &lwipdev) != ERR_OK) {
+			DEBUG_ERROR("error while feeding frame into stack interface (ipv4)");
+		}
+#endif
+#if defined(LIBZT_IPV6)
+		if (lwipdev6.input(p, &lwipdev6) != ERR_OK) {
+			DEBUG_ERROR("error while feeding frame into stack interface (ipv6)");
+		}
 #endif
 	}
 }

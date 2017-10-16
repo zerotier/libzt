@@ -313,7 +313,7 @@ win_dll: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
 	windres -i res/libztdll.rc -o obj/libztdllres.o
 	$(CXX) $(CXXFLAGS) -shared -o $(BUILD)/libzt.dll obj/*.o -Wl,--output-def,$(BUILD)/libzt.def,--out-implib,$(BUILD)/libzt.a $(WINDEFS)
 	$(STRIP) $(BUILD)/libzt.dll
-	# Then do the following to generate the mSVC DLL from the def file (which was generated from the MinGW DLL): 
+	# Then do the following to generate the MSVC DLL from the def file (which was generated from the MinGW DLL): 
 	# lib /machine:x64 /def:libzt.def
 	# or just execute: makelib
 
@@ -398,7 +398,7 @@ nativetest:
 	@date +"Build script finished on %F %T"
 ztproxy:
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) $(ZT_INCLUDES) \
-		examples/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< -L$(BUILD) -lzt $(WINDEFS)
+		examples/apps/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< -L$(BUILD) -lzt $(WINDEFS)
 	@./check.sh $(BUILD)/ztproxy
 	@date +"Build script finished on %F %T"
 intercept:

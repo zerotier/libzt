@@ -39,12 +39,12 @@ public class ExampleApp {
 
 	public static void main(String[] args) {
 		
-        final ZeroTier z = new ZeroTier();
+        final ZeroTier libzt = new ZeroTier();
                 
         new Thread(new Runnable() {
             public void run() {
         		System.out.println("starting libzt");
-        		z.startjoin("/Users/joseph/op/zt/libzt/ztjni", "1212121212121212");
+        		libzt.startjoin("/Users/joseph/op/zt/libzt/ztjni", "1212121212121212");
                 // start(path) will not block
                 // startjoin(path, nwid) will block
             }
@@ -52,8 +52,8 @@ public class ExampleApp {
                 
         while(true)
         {
-	        	try { Thread.sleep(3000); } 
-	        	catch (InterruptedException e) { e.printStackTrace(); }
+        	try { Thread.sleep(3000); } 
+        	catch (InterruptedException e) { e.printStackTrace(); }
         }
     }
 }

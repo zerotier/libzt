@@ -50,7 +50,76 @@ namespace ZeroTier {
     /* ZeroTier Socket API (for JNI wrapper)                                    */
     /****************************************************************************/
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1sendto(
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_socket(JNIEnv *env, jobject thisObj, 
+		jint family, jint type, jint protocol) 
+	{
+		return zts_socket(family, type, protocol);
+	}
+
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_connect(JNIEnv *env, jobject thisObj, 
+		jint fd, jstring addrstr, jint port) 
+	{
+		struct sockaddr_in addr;
+		const char *str = (*env).GetStringUTFChars( addrstr, 0);
+		addr.sin_addr.s_addr = inet_addr(str);
+		addr.sin_family = AF_INET;
+		addr.sin_port = htons( port );
+		(*env).ReleaseStringUTFChars( addrstr, str);
+		return zts_connect(fd, (struct sockaddr *)&addr, sizeof(addr));
+	}
+
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_bind(JNIEnv *env, jobject thisObj, 
+		jint fd, jstring addrstr, jint port) 
+	{
+		struct sockaddr_in addr;
+		const char *str = (*env).GetStringUTFChars( addrstr, 0);
+		DEBUG_INFO("fd=%d, addr=%s, port=%d", fd, str, port);
+		addr.sin_addr.s_addr = inet_addr(str);
+		addr.sin_family = AF_INET;
+		addr.sin_port = htons( port );
+		(*env).ReleaseStringUTFChars( addrstr, str);
+		return zts_bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+	}
+
+#if defined(__linux__)
+	 JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_accept4(JNIEnv *env, jobject thisObj, 
+		jint fd, jstring addrstr, jint port, jint flags) 
+	 {
+		struct sockaddr_in addr;
+		char *str;
+		// = env->GetStringUTFChars(addrstr, NULL);
+		(*env).ReleaseStringUTFChars( addrstr, str);
+		addr.sin_addr.s_addr = inet_addr(str);
+		addr.sin_family = AF_INET;
+		addr.sin_port = htons( port );
+		return zts_accept4(fd, (struct sockaddr *)&addr, sizeof(addr), flags);
+	}
+#endif
+
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_accept(JNIEnv *env, jobject thisObj, 
+		jint fd, jstring addrstr, jint port) 
+	{
+		struct sockaddr_in addr;
+		// TODO: Send addr info back to Javaland
+		addr.sin_addr.s_addr = inet_addr("");
+		addr.sin_family = AF_INET;
+		addr.sin_port = htons( port );
+		return zts_accept(fd, (struct sockaddr *)&addr, (socklen_t *)sizeof(addr));
+	}
+
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_listen(JNIEnv *env, jobject thisObj, 
+		jint fd, int backlog) 
+	{
+		return zts_listen(fd, backlog);
+	}
+
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_close(JNIEnv *env, jobject thisObj, 
+		jint fd) 
+	{
+		return zts_close(fd);
+	}
+
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_sendto(
 		JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, jint flags, jobject ztaddr)
 	{
 		struct sockaddr_in addr;
@@ -71,7 +140,7 @@ namespace ZeroTier {
 		return sent_bytes;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1recvfrom(
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_recvfrom(
 		JNIEnv *env, jobject thisObj, jint fd, jbyteArray buf, jint len, jint flags, jobject ztaddr)
 	{
 		struct sockaddr_in addr;
@@ -92,7 +161,7 @@ namespace ZeroTier {
 		return rxbytes;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1send(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, int flags)
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_send(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, int flags)
 	{
 		jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
 		char * bufp = (char *)malloc(sizeof(char)*len);
@@ -102,7 +171,7 @@ namespace ZeroTier {
 		return written_bytes;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1write(JNIEnv *env, jobject thisObj, 
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_write(JNIEnv *env, jobject thisObj, 
 		jint fd, jarray buf, jint len)
 	{
 		jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
@@ -113,7 +182,7 @@ namespace ZeroTier {
 		return written_bytes;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1read(JNIEnv *env, jobject thisObj, 
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_read(JNIEnv *env, jobject thisObj, 
 		jint fd, jarray buf, jint len)
 	{
 		jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
@@ -121,90 +190,21 @@ namespace ZeroTier {
 		(*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);
 		return read_bytes;
 	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1socket(JNIEnv *env, jobject thisObj, 
-		jint family, jint type, jint protocol) 
-	{
-		return zts_socket(family, type, protocol);
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1connect(JNIEnv *env, jobject thisObj, 
-		jint fd, jstring addrstr, jint port) 
-	{
-		struct sockaddr_in addr;
-		const char *str = (*env).GetStringUTFChars( addrstr, 0);
-		addr.sin_addr.s_addr = inet_addr(str);
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons( port );
-		(*env).ReleaseStringUTFChars( addrstr, str);
-		return zts_connect(fd, (struct sockaddr *)&addr, sizeof(addr));
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1bind(JNIEnv *env, jobject thisObj, 
-		jint fd, jstring addrstr, jint port) 
-	{
-		struct sockaddr_in addr;
-		const char *str = (*env).GetStringUTFChars( addrstr, 0);
-		DEBUG_INFO("fd=%d, addr=%s, port=%d", fd, str, port);
-		addr.sin_addr.s_addr = inet_addr(str);
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons( port );
-		(*env).ReleaseStringUTFChars( addrstr, str);
-		return zts_bind(fd, (struct sockaddr *)&addr, sizeof(addr));
-	}
-
-#if defined(__linux__)
-	 JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1accept4(JNIEnv *env, jobject thisObj, 
-		jint fd, jstring addrstr, jint port, jint flags) 
-	 {
-		struct sockaddr_in addr;
-		char *str;
-		// = env->GetStringUTFChars(addrstr, NULL);
-		(*env).ReleaseStringUTFChars( addrstr, str);
-		addr.sin_addr.s_addr = inet_addr(str);
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons( port );
-		return zts_accept4(fd, (struct sockaddr *)&addr, sizeof(addr), flags);
-	}
-#endif
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1accept(JNIEnv *env, jobject thisObj, 
-		jint fd, jstring addrstr, jint port) 
-	{
-		struct sockaddr_in addr;
-		// TODO: Send addr info back to Javaland
-		addr.sin_addr.s_addr = inet_addr("");
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons( port );
-		return zts_accept(fd, (struct sockaddr *)&addr, (socklen_t *)sizeof(addr));
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1listen(JNIEnv *env, jobject thisObj, 
-		jint fd, int backlog) 
-	{
-		return zts_listen(fd, backlog);
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1close(JNIEnv *env, jobject thisObj, 
-		jint fd) 
-	{
-		return zts_close(fd);
-	}
-
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1setsockopt(
+	
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_setsockopt(
 		JNIEnv *env, jobject thisObj, 
 		jint fd, jint level, jint optname, jint optval, jint optlen) 
 	{
 		return zts_setsockopt(fd, level, optname, (const void*)optval, optlen);
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1getsockopt(JNIEnv *env, jobject thisObj, 
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_getsockopt(JNIEnv *env, jobject thisObj, 
 		jint fd, jint level, jint optname, jint optval, jint optlen) 
 	{
 		return zts_getsockopt(fd, level, optname, (void*)optval, (socklen_t *)optlen);
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1getsockname(JNIEnv *env, jobject thisObj, 
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_getsockname(JNIEnv *env, jobject thisObj, 
 		jint fd, jobject ztaddr) 
 	{
 		struct sockaddr_in addr;
@@ -218,7 +218,7 @@ namespace ZeroTier {
 		return err;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1getpeername(JNIEnv *env, jobject thisObj, 
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_getpeername(JNIEnv *env, jobject thisObj, 
 		jint fd, jobject ztaddr) 
 	{
 		struct sockaddr_in addr;
@@ -232,7 +232,7 @@ namespace ZeroTier {
 		return err;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_ztjni_1fcntl(JNIEnv *env, jobject thisObj, 
+	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_fcntl(JNIEnv *env, jobject thisObj, 
 		jint fd, jint cmd, jint flags) 
 	{
 		return zts_fcntl(fd,cmd,flags);
@@ -242,46 +242,46 @@ namespace ZeroTier {
     /* ZeroTier service controls (for JNI wrapper)                              */
     /****************************************************************************/
 
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1start(JNIEnv *env, jobject thisObj, jstring path) 
+	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_start(JNIEnv *env, jobject thisObj, jstring path) 
 	{
 		if (path) {
 			zts_start(env->GetStringUTFChars(path, NULL));
 		}
 	}
 
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1startjoin(JNIEnv *env, jobject thisObj, jstring path, jstring nwid) 
+	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_startjoin(JNIEnv *env, jobject thisObj, jstring path, jstring nwid) 
 	{
 		if (path && nwid) {
 			zts_startjoin(env->GetStringUTFChars(path, NULL), env->GetStringUTFChars(nwid, NULL));
 		}
 	}
 
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1stop(JNIEnv *env, jobject thisObj) 
+	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_stop(JNIEnv *env, jobject thisObj) 
 	{
 		zts_stop();
 	}
 
-	JNIEXPORT jboolean JNICALL Java_zerotier_ZeroTier_ztjni_1running(
+	JNIEXPORT jboolean JNICALL Java_zerotier_ZeroTier_running(
 		JNIEnv *env, jobject thisObj)
 	{
 		return  zts_running();
 	}
 
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1join(JNIEnv *env, jobject thisObj, jstring nwid) 
+	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_join(JNIEnv *env, jobject thisObj, jstring nwid) 
 	{
 		if (nwid) {
 			zts_join(env->GetStringUTFChars(nwid, NULL));
 		}
 	}
 
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_ztjni_1leave(JNIEnv *env, jobject thisObj, jstring nwid) 
+	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_leave(JNIEnv *env, jobject thisObj, jstring nwid) 
 	{
 		if (nwid) {
 			zts_leave(env->GetStringUTFChars(nwid, NULL));
 		}
 	}
 
-	JNIEXPORT jstring JNICALL Java_zerotier_ZeroTier_ztjni_1homepath(
+	JNIEXPORT jstring JNICALL Java_zerotier_ZeroTier_homepath(
 		JNIEnv *env, jobject thisObj)
 	{
 		// TODO: fix, should copy into given arg
@@ -289,7 +289,7 @@ namespace ZeroTier {
 		return (*env).NewStringUTF("");
 	}
 
-	JNIEXPORT jobject JNICALL Java_zerotier_ZeroTier_ztjni_1get_1ipv4_1address(
+	JNIEXPORT jobject JNICALL Java_zerotier_ZeroTier_get_ipv4_address(
 		JNIEnv *env, jobject thisObj, jstring nwid)
 	{
 		const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
@@ -303,7 +303,7 @@ namespace ZeroTier {
 		return addresses;
 	}
 
-	JNIEXPORT jobject JNICALL Java_zerotier_ZeroTier_ztjni_1get_1ipv6_1address(
+	JNIEXPORT jobject JNICALL Java_zerotier_ZeroTier_get_ipv6_address(
 		JNIEnv *env, jobject thisObj, jstring nwid)
 	{
 		const char *nwid_str = env->GetStringUTFChars(nwid, NULL);
@@ -317,7 +317,7 @@ namespace ZeroTier {
 		return addresses;
 	}
 
-	JNIEXPORT jint Java_zerotier_ZeroTier_ztjni_1get_1id()
+	JNIEXPORT jint Java_zerotier_ZeroTier_get_id()
 	{
 		return zts_get_id(NULL); // TODO
 	}

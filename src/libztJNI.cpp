@@ -59,26 +59,71 @@ namespace ZeroTier {
 	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_connect(JNIEnv *env, jobject thisObj, 
 		jint fd, jstring addrstr, jint port) 
 	{
-		struct sockaddr_in addr;
-		const char *str = (*env).GetStringUTFChars( addrstr, 0);
-		addr.sin_addr.s_addr = inet_addr(str);
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons( port );
-		(*env).ReleaseStringUTFChars( addrstr, str);
-		return zts_connect(fd, (struct sockaddr *)&addr, sizeof(addr));
+		struct sockaddr_storage ss;
+		socklen_t namelen = sizeof(ss);
+		int err = 0;
+		if ((err = zts_getsockname(fd, (struct sockaddr*)&ss, &namelen)) < 0) {
+			DEBUG_ERROR("error while determining socket family");
+			return -1;
+		}
+		const char *str;
+#if defined(LIBZT_IPV4)
+		if (ss.ss_family == AF_INET) {
+			struct sockaddr_in in_addr;
+			str = (*env).GetStringUTFChars(addrstr, 0);
+			in_addr.sin_addr.s_addr = inet_addr(str);
+			in_addr.sin_family = AF_INET;
+			in_addr.sin_port = htons(port);
+			(*env).ReleaseStringUTFChars(addrstr, str);
+		}
+#endif // LIBZT_IPV4
+#if defined(LIBZT_IPV6)
+		if (ss.ss_family == AF_INET6) {
+			struct sockaddr_in6 in_addr;
+			str = (*env).GetStringUTFChars(addrstr, 0);
+			//in_addr.sin_addr.s_addr = inet_addr(str);
+			in_addr.sin6_family = AF_INET6;
+			in_addr.sin6_port = htons(port);
+			(*env).ReleaseStringUTFChars(addrstr, str);
+		}
+#endif // LIBZT_IPV6
+		DEBUG_INFO("fd=%d, addr=%s, port=%d", fd, str, port);
+		return zts_connect(fd, (struct sockaddr *)&ss, sizeof(in_addr));
 	}
 
 	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_bind(JNIEnv *env, jobject thisObj, 
 		jint fd, jstring addrstr, jint port) 
 	{
-		struct sockaddr_in addr;
-		const char *str = (*env).GetStringUTFChars( addrstr, 0);
+		struct sockaddr_storage ss;
+		socklen_t namelen = sizeof(ss);
+		int err = 0;
+		if ((err = zts_getsockname(fd, (struct sockaddr*)&ss, &namelen)) < 0) {
+			DEBUG_ERROR("error while determining socket family");
+			return -1;
+		}
+		const char *str;
+#if defined(LIBZT_IPV4)
+		if (ss.ss_family == AF_INET) {
+			struct sockaddr_in in_addr;
+			str = (*env).GetStringUTFChars(addrstr, 0);
+			in_addr.sin_addr.s_addr = inet_addr(str);
+			in_addr.sin_family = AF_INET;
+			in_addr.sin_port = htons(port);
+			(*env).ReleaseStringUTFChars(addrstr, str);
+		}
+#endif // LIBZT_IPV4
+#if defined(LIBZT_IPV6)
+		if (ss.ss_family == AF_INET6) {
+			struct sockaddr_in6 in_addr;
+			str = (*env).GetStringUTFChars(addrstr, 0);
+			//in_addr.sin_addr.s_addr = inet_addr(str);
+			in_addr.sin6_family = AF_INET6;
+			in_addr.sin6_port = htons(port);
+			(*env).ReleaseStringUTFChars(addrstr, str);
+		}
+#endif // LIBZT_IPV6
 		DEBUG_INFO("fd=%d, addr=%s, port=%d", fd, str, port);
-		addr.sin_addr.s_addr = inet_addr(str);
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons( port );
-		(*env).ReleaseStringUTFChars( addrstr, str);
-		return zts_bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+		return zts_bind(fd, (struct sockaddr *)&ss, sizeof(in_addr));
 	}
 
 #if defined(__linux__)
@@ -88,10 +133,10 @@ namespace ZeroTier {
 		struct sockaddr_in addr;
 		char *str;
 		// = env->GetStringUTFChars(addrstr, NULL);
-		(*env).ReleaseStringUTFChars( addrstr, str);
+		(*env).ReleaseStringUTFChars(addrstr, str);
 		addr.sin_addr.s_addr = inet_addr(str);
 		addr.sin_family = AF_INET;
-		addr.sin_port = htons( port );
+		addr.sin_port = htons(port);
 		return zts_accept4(fd, (struct sockaddr *)&addr, sizeof(addr), flags);
 	}
 #endif
@@ -103,7 +148,7 @@ namespace ZeroTier {
 		// TODO: Send addr info back to Javaland
 		addr.sin_addr.s_addr = inet_addr("");
 		addr.sin_family = AF_INET;
-		addr.sin_port = htons( port );
+		addr.sin_port = htons(port);
 		return zts_accept(fd, (struct sockaddr *)&addr, (socklen_t *)sizeof(addr));
 	}
 
@@ -190,7 +235,7 @@ namespace ZeroTier {
 		(*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);
 		return read_bytes;
 	}
-	
+
 	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_setsockopt(
 		JNIEnv *env, jobject thisObj, 
 		jint fd, jint level, jint optname, jint optval, jint optlen) 
@@ -242,10 +287,10 @@ namespace ZeroTier {
     /* ZeroTier service controls (for JNI wrapper)                              */
     /****************************************************************************/
 
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_start(JNIEnv *env, jobject thisObj, jstring path) 
+	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_start(JNIEnv *env, jobject thisObj, jstring path, jboolean blocking) 
 	{
 		if (path) {
-			zts_start(env->GetStringUTFChars(path, NULL));
+			zts_start(env->GetStringUTFChars(path, NULL), blocking);
 		}
 	}
 

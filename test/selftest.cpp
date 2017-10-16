@@ -1932,7 +1932,7 @@ int ZT_control_semantics_test(bool *passed)
 	DEBUG_TEST("---\n");
 	sleep(1);
 */
-	zts_start(path);
+	zts_start(path, false);
 	zts_join(nwid);
 	zts_leave(nwid);
 	zts_stop();	

@@ -200,7 +200,7 @@ int zts_running();
  * @param path Where this instance of ZeroTier will store its identity and configuration files
  * @return Returns 1 if ZeroTier is currently running, and 0 if it is not
  */
-int zts_start(const char *path);
+int zts_start(const char *path, bool blocking);
 
 /**
  * @brief Alternative to zts_start(). Start an instance of libzt, wait for an address to be issues, and join

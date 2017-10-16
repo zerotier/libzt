@@ -89,7 +89,7 @@ ZT_SOCKET_API void ZTCALL init_network_stack();
  * @param nwid A 16-digit hexidecimal network identifier (e.g. Earth: `8056c2e21c000001`)
  * @return 0 if successful; or 1 if failed
  */
-ZT_SOCKET_API int ZTCALL zts_start(const char *path);
+ZT_SOCKET_API int ZTCALL zts_start(const char *path, bool blocking);
 
 /**
  * @brief Starts libzt

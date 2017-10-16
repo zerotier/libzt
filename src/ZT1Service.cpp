@@ -410,7 +410,7 @@ int zts_running()
 	return ZeroTier::zt1Service == NULL ? false : ZeroTier::zt1Service->isRunning();
 }
 
-int zts_start(const char *path)
+int zts_start(const char *path, bool blocking = false)
 {
 	DEBUG_EXTRA();
 	if (ZeroTier::zt1Service) {
@@ -423,24 +423,26 @@ int zts_start(const char *path)
 		WSAStartup(MAKEWORD(2, 2), &wsaData); // initialize WinSock. Used in Phy for loopback pipe
 #endif
 	pthread_t service_thread;
-	return pthread_create(&service_thread, NULL, zts_start_service, NULL);
+	int err = pthread_create(&service_thread, NULL, zts_start_service, NULL);
+	if (blocking) { // block to prevent service calls before we're ready
+		ZT_NodeStatus status;
+		while (zts_running() == false || ZeroTier::zt1Service->getNode() == NULL) {
+			nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 500000)}}, NULL);
+		}
+		while (ZeroTier::zt1Service->getNode()->address() <= 0) {
+			nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 500000)}}, NULL);
+		}
+		while (status.online <= 0) {
+			nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 500000)}}, NULL);
+			ZeroTier::zt1Service->getNode()->status(&status);
+		}
+	}
 }
 
 int zts_startjoin(const char *path, const char *nwid)
 {
 	DEBUG_EXTRA();
-	ZT_NodeStatus status;
-	int err = zts_start(path);
-	while (zts_running() == false || ZeroTier::zt1Service->getNode() == NULL) {
-		nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 500000)}}, NULL);
-	}
-	while (ZeroTier::zt1Service->getNode()->address() <= 0) {
-		nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 500000)}}, NULL);
-	}
-	while (status.online <= 0) {
-		nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 500000)}}, NULL);
-		ZeroTier::zt1Service->getNode()->status(&status);
-	}
+	int err = zts_start(path, true);
 	// only now can we attempt a join
 	while (true) {
 		try {

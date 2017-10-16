@@ -103,8 +103,4 @@ public class Address
         }
         return sock_addr;
     }
-
-    public boolean isValid() {
-        return port != -1 && !Address().startsWith("-1.-1.-1.-1/-1");
-    }
 }

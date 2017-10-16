@@ -26,9 +26,9 @@
 
 // Simple Java example for libzt using JNI
 
-import zerotier.*;
+import zerotier.ZeroTier;
 
-public class MyClass {
+public class example {
 	
     public native int loadsymbols();
     public native void startOneService();
@@ -44,7 +44,7 @@ public class MyClass {
         new Thread(new Runnable() {
             public void run() {
             		System.out.println("starting libzt");
-            		z.startjoin("/Users/joseph/op/zt/libzt/ztjni", "1212121212121212");
+            		z.ztjni_socket(2, 1, 0);
                 // start(path) will not block
                 // startjoin(path, nwid) will block
             }

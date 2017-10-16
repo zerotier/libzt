@@ -306,6 +306,7 @@ utilities:
 	$(CXX) $(CXXFLAGS) -c src/Utilities.cpp \
 		$(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
 
+# windows DLL
 win_dll: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
 	# First we use mingw to build our DLL
 	@mkdir -p $(BUILD) obj
@@ -317,16 +318,19 @@ win_dll: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
 	# lib /machine:x64 /def:libzt.def
 	# or just execute: makelib
 
+# ordinary shared library
 shared_lib: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
 	mv *.o obj
 	$(CXX) $(CXXFLAGS) -shared -o $(BUILD)/libzt.so obj/*.o
 
+# dynamic library for use with Java JNI, scala, etc
 shared_jni_lib: lwip lwip_driver libzt_socket_layer jni_socket_wrapper utilities $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
 	mv *.o obj
-	$(CXX) $(CXXFLAGS) -shared -o $(BUILD)/libzt.so obj/*.o
+	$(CXX) $(CXXFLAGS) -dynamiclib -o $(BUILD)/libzt.dylib obj/*.o
 
+# static library
 ifeq ($(STACK_PICO),1)
 static_lib: picotcp picotcp_driver libzt_socket_layer utilities $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj

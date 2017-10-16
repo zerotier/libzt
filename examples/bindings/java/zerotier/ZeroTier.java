@@ -24,6 +24,10 @@
  * of your own application.
  */
 
+package zerotier;
+
+//import zerotier.*;
+
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;

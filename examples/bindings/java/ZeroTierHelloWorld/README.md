@@ -1,2 +1,0 @@
-ZeroTierSDK Java API
-======

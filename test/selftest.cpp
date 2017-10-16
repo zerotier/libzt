@@ -2694,6 +2694,8 @@ int main(int argc , char *argv[])
 	fprintf(stderr, "\tremote_ipstr     = %s\n", remote_ipstr.c_str());
 	fprintf(stderr, "\tremote_ipstr6    = %s\n", remote_ipstr6.c_str());
 	fprintf(stderr, "\tremote_echo_ipv4 = %s\n", remote_echo_ipv4.c_str());
+	fprintf(stderr, "\tme = %s\n", me.c_str());
+
 
 #if defined(__SELFTEST__)
 	long int selftest_start_time = get_now_ts();
@@ -2772,10 +2774,10 @@ for (int i=0; i<num_repeats; i++)
 	}
 
 	// Test things like zts_start(), zts_stop(), zts_join(), etc
-	if (true) {
+	if (false) {
 		ZT_control_semantics_test(&passed);
+		exit(0);
 	}
-	exit(0);
 
 	// Spam a SOCK_DGRAM socket from many threads
 	if (false) {

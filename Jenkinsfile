@@ -28,48 +28,6 @@ parallel 'centos7': {
 			throw err
 		}
 
-
-		try {
-			checkout scm
-			sh 'git submodule update --init'
-			stage('linux static lib, no stack, ipv4') {
-				sh 'make clean; make -j4 static_lib NO_STACK=1 LIBZT_IPV4=1; make tests'
-			}
-		}
-		catch (err) {
-			currentBuild.result = "FAILURE"
-			slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on linux (<${env.BUILD_URL}|Open>)"
-			throw err
-		}
-		
-
-		try {
-			checkout scm
-			sh 'git submodule update --init'
-			stage('linux static lib, no stack, ipv6') {
-				sh 'make clean; make -j4 static_lib NO_STACK=1 LIBZT_IPV6=1; make tests'
-			}
-		}
-		catch (err) {
-			currentBuild.result = "FAILURE"
-			slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on linux (<${env.BUILD_URL}|Open>)"
-			throw err
-		}
-
-
-		try {
-			checkout scm
-			sh 'git submodule update --init'
-			stage('linux static lib, no stack, ipv4, ipv6') {
-				sh 'make clean; make -j4 static_lib NO_STACK=1 LIBZT_IPV4=1 LIBZT_IPV6=1; make tests'
-			}
-		}
-		catch (err) {
-			currentBuild.result = "FAILURE"
-			slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on linux (<${env.BUILD_URL}|Open>)"
-			throw err
-		}
-
 /* 
 // picoTCP
 
@@ -174,48 +132,6 @@ parallel 'centos7': {
 			sh 'git submodule update --init'
 			stage('macOS static lib, no stack') {
 				sh 'make clean; make -j4 static_lib NO_STACK=1; make tests'
-			}
-		}
-		catch (err) {
-			currentBuild.result = "FAILURE"
-			slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
-			throw err
-		}
-
-		
-		try {
-			checkout scm
-			sh 'git submodule update --init'
-			stage('macOS static lib, no stack, ipv4') {
-				sh 'make clean; make -j4 static_lib NO_STACK=1 LIBZT_IPV4=1; make tests'
-			}
-		}
-		catch (err) {
-			currentBuild.result = "FAILURE"
-			slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
-			throw err
-		}
-		
-
-		try {
-			checkout scm
-			sh 'git submodule update --init'
-			stage('macOS static lib, no stack, ipv6') {
-				sh 'make clean; make -j4 static_lib NO_STACK=1 LIBZT_IPV6=1; make tests'
-			}
-		}
-		catch (err) {
-			currentBuild.result = "FAILURE"
-			slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
-			throw err
-		}
-
-
-		try {
-			checkout scm
-			sh 'git submodule update --init'
-			stage('macOS static lib, no stack, ipv4, ipv6') {
-				sh 'make clean; make -j4 static_lib NO_STACK=1 LIBZT_IPV4=1 LIBZT_IPV6=1; make tests'
 			}
 		}
 		catch (err) {

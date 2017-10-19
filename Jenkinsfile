@@ -145,36 +145,6 @@ parallel 'centos7': {
 			throw err
 		}
 
-
-
-		try {
-			checkout scm
-			sh 'git submodule update --init'
-			stage('linux static lib lwIP, ipv4') {
-				sh 'make clean; make -j4 static_lib STACK_LWIP=1 LIBZT_IPV4=1; make tests'
-			}
-		}
-		catch (err) {
-			currentBuild.result = "FAILURE"
-			slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on linux (<${env.BUILD_URL}|Open>)"
-			throw err
-		}
-
-
-
-		try {
-			checkout scm
-			sh 'git submodule update --init'
-			stage('linux static lib lwIP, ipv6') {
-				sh 'make clean; make -j4 static_lib STACK_LWIP=1 LIBZT_IPV6=1; make tests'
-			}
-		}
-		catch (err) {
-			currentBuild.result = "FAILURE"
-			slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on linux (<${env.BUILD_URL}|Open>)"
-			throw err
-		}
-
 	}
 }, 'macOS': {
 	node('macOS') {
@@ -323,34 +293,6 @@ parallel 'centos7': {
 			sh 'git submodule update --init'
 			stage('macOS static lib, lwIP') {
 				sh 'make clean; make -j4 static_lib STACK_LWIP=1; make tests'
-			}
-		}
-		catch (err) {
-			currentBuild.result = "FAILURE"
-			slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
-			throw err
-		}
-
-
-		try {
-			checkout scm
-			sh 'git submodule update --init'
-			stage('macOS static lib, lwIP, ipv4') {
-				sh 'make clean; make -j4 static_lib STACK_LWIP=1 LIBZT_IPV4=1; make tests'
-			}
-		}
-		catch (err) {
-			currentBuild.result = "FAILURE"
-			slackSend color: '#ff0000', message: "${env.JOB_NAME} broken on macOS (<${env.BUILD_URL}|Open>)"
-			throw err
-		}
-
-
-		try {
-			checkout scm
-			sh 'git submodule update --init'
-			stage('macOS static lib, lwIP, ipv6') {
-				sh 'make clean; make -j4 static_lib STACK_LWIP=1 LIBZT_IPV6=1; make tests'
 			}
 		}
 		catch (err) {

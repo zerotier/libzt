@@ -114,6 +114,7 @@ namespace ZeroTier {
 		}
 
 		VirtualSocket() {
+			// Only available in experimental branch
 		}
 		~VirtualSocket() {
 		}

@@ -573,12 +573,9 @@ lwip_bind(int s, const struct sockaddr *name, socklen_t namelen)
   }
 
   /* check size, family and alignment of 'name' */
-/*
   LWIP_ERROR("lwip_bind: invalid address", (IS_SOCK_ADDR_LEN_VALID(namelen) &&
              IS_SOCK_ADDR_TYPE_VALID(name) && IS_SOCK_ADDR_ALIGNED(name)),
              sock_set_errno(sock, err_to_errno(ERR_ARG)); return -1;);
-*/
-
   LWIP_UNUSED_ARG(namelen);
 
   SOCKADDR_TO_IPADDR_PORT(name, &local_addr, local_port);
@@ -661,19 +658,10 @@ lwip_connect(int s, const struct sockaddr *name, socklen_t namelen)
   }
 
   LWIP_UNUSED_ARG(namelen);
-
-  if ( 
-#ifdef __MINGW32__
-        false
-#else
-    name->sa_family == AF_UNSPEC 
-#endif
-    ) 
-  {
+  if (name->sa_family == AF_UNSPEC) {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_connect(%d, AF_UNSPEC)\n", s));
     err = netconn_disconnect(sock->conn);
-  } 
-  else {
+  } else {
     ip_addr_t remote_addr;
     u16_t remote_port;
 
@@ -1158,12 +1146,10 @@ lwip_sendto(int s, const void *data, size_t size, int flags,
   /* @todo: split into multiple sendto's? */
   LWIP_ASSERT("lwip_sendto: size must fit in u16_t", size <= 0xffff);
   short_size = (u16_t)size;
-  /*
   LWIP_ERROR("lwip_sendto: invalid address", (((to == NULL) && (tolen == 0)) ||
              (IS_SOCK_ADDR_LEN_VALID(tolen) &&
              IS_SOCK_ADDR_TYPE_VALID(to) && IS_SOCK_ADDR_ALIGNED(to))),
              sock_set_errno(sock, err_to_errno(ERR_ARG)); return -1;);
-  */
   LWIP_UNUSED_ARG(tolen);
 
   /* initialize a buffer */

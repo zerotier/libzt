@@ -180,7 +180,7 @@ int zts_get_id_from_file(const char *filepath, char *devID)
 // Starts a ZeroTier service in the background
 void *zts_start_service(void *thread_id)
 {
-	DEBUG_INFO("path=%s", ZeroTier::homeDir.c_str());
+	DEBUG_INFO("zto-thread, path=%s", ZeroTier::homeDir.c_str());
 	// Where network .conf files will be stored
 	ZeroTier::netDir = ZeroTier::homeDir + "/networks.d";
 	ZeroTier::zt1Service = (ZeroTier::OneService *)0;
@@ -437,6 +437,7 @@ int zts_start(const char *path, bool blocking = false)
 			ZeroTier::zt1Service->getNode()->status(&status);
 		}
 	}
+	return err;
 }
 
 int zts_startjoin(const char *path, const char *nwid)

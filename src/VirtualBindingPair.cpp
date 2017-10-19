@@ -30,22 +30,4 @@
  *
  */
 
-/*
-#include "VirtualSocket.h"
-#include "VirtualTap.hpp"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-struct VirtualBindingPair
-{
-  VirtualTap *tap;
-  VirtualSocket *vs;
-  VirtualBindingPair(VirtualTap *_tap, VirtualSocket *_vs) : tap(_tap), vs(_vs) {}
-};
-
-#ifdef __cplusplus
-}
-#endif
-*/
+// Only available in experimental branch

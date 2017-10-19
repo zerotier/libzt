@@ -49,58 +49,66 @@
 extern "C" {
 #endif
 
-#if defined(STACK_LWIP)
-void sys2lwip(int fd, const struct sockaddr *orig, struct sockaddr *modified) 
+/* The rationale for the following correctional methods is as follows:
+
+	Since we don't want the user of this library to worry about naming conflicts 
+	with their native OS/platform's socket facilities we deliberately isolate what 
+	is used by the userspace network stack and stack drivers from the user's
+	application. As a result of this, we must compensate for a few things on our
+	side. For instance, differing values for AF_INET6 on major operating systems, and 
+	differing structure definitions for sockaddr.
+*/
+
+/* adjust socket_family value (when AF_INET6) for various platforms:
+	linux  : 10
+	macOS  : 30
+	windows: 23
+*/
+int platform_adjusted_socket_family(int family)
 {
-	/* Inelegant fix for lwIP 'sequential' API address error check (in sockets.c). For some reason
-	lwIP seems to lose track of the sa_family for the socket internally, when lwip_connect()
-	is called, it thus receives an AF_UNSPEC socket which fails. Here we use lwIP's own facilities
-	to get the sa_family ourselves and rebuild the address structure and pass it to lwip_connect().
-	I suspect this is due to a struct memory alignment issue or my own misuse of the API */
-	struct sockaddr_storage ss;
-	socklen_t namelen = sizeof(ss);
-	int err = 0;
-	if ((err = lwip_getsockname(fd, (struct sockaddr*)&ss, &namelen)) < 0) {
-		DEBUG_ERROR("error while determining socket family");
-		return;
-	}
-#if defined(LIBZT_IPV4)
-	if (ss.ss_family == AF_INET) {
-#if defined(__linux__) || defined(__MINGW32__)
-		struct sockaddr_in *p4 = (struct sockaddr_in *)modified;
-		struct sockaddr_in *addr4 = (struct sockaddr_in*)orig;
-		p4->sin_len = sizeof(struct sockaddr_in);
-		p4->sin_family = ss.ss_family;
-		p4->sin_port = addr4->sin_port;
-		p4->sin_addr.s_addr = addr4->sin_addr.s_addr;
-#endif // __linux__
-		memcpy(modified, orig, sizeof(struct sockaddr_in));
-	}
-#endif // LIBZT_IPV4
-
-#if defined(LIBZT_IPV6)
-	if (ss.ss_family == AF_INET6) {
-#if defined(__linux__) || defined(__MINGW32__)
-		struct sockaddr_in6 *p6 = (struct sockaddr_in6 *)modified;
-		struct sockaddr_in6 *addr6 = (struct sockaddr_in6*)orig;
-		p6->sin6_len = sizeof(struct sockaddr_in6);
-		p6->sin6_family = ss.ss_family;
-		p6->sin6_port = addr6->sin6_port;
-		//p6->sin6_addr.s6_addr = addr6->sin6_addr.s6_addr;
-#endif // __linux__
-		memcpy(modified, orig, sizeof(struct sockaddr_in6));
-	}
-#endif // LIBZT_IPV6
-
+#if defined(__linux__)
+	return family; // do nothing
+#endif
+#if defined(__APPLE__)
+	 return family == 30 ? AF_INET6 : family; // 10
+#endif
+#if defined(__MINGW32__) || defined(__MINGW64__)
+	return family == 23 ? AF_INET6 : family; // 10
+#endif
 }
-#endif // STACK_LWIP
+
+void fix_addr_socket_family(struct sockaddr *addr) 
+{
+#if defined(__linux__)
+	/* linux's socket.h's sockaddr definition doesn't contain an sa_len field
+	so we must compensate here before feeding it into the stack. Due to this limitation 
+	we must cast the pointer to the address into two different address 
+	*/
+	if (addr->sa_len == 2) {
+		if (addr->sa_family == 0) {
+			addr->sa_family = addr->sa_len;
+			addr->sa_len = 0;
+		}
+	}
+	if (addr->sa_len == 10 || addr->sa_len == 23 || addr->sa_len == 30) {
+		if (addr->sa_family == 0) {
+			addr->sa_family = addr->sa_len;
+			addr->sa_len = 0;
+		}
+	}
+	/* once we've moved the value to its anticipated location, convert it from
+	its platform-specific value to one that the network stack can work with */ 
+#endif
+	addr->sa_family = platform_adjusted_socket_family(addr->sa_family);
+}
 
 int zts_socket(int socket_family, int socket_type, int protocol)
 {
 	int err = -1;
+	int socket_family_adj = platform_adjusted_socket_family(socket_family);
 	DEBUG_EXTRA("family=%d, type=%d, proto=%d", socket_family, socket_type, protocol);
 #if defined(STACK_LWIP)
-	err = lwip_socket(socket_family, socket_type, protocol);
+	err = lwip_socket(socket_family_adj, socket_type, protocol);
 #endif
 #if defined(STCK_PICO)
 #endif
@@ -115,7 +123,8 @@ int zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen)
 	DEBUG_EXTRA("fd=%d",fd);
 #if defined(STACK_LWIP)
 	struct sockaddr_storage ss;
-	sys2lwip(fd, addr, (struct sockaddr*)&ss);
+	memcpy(&ss, addr, addrlen);
+	fix_addr_socket_family((struct sockaddr*)&ss);
 	err = lwip_connect(fd, (struct sockaddr*)&ss, addrlen);
 #endif
 #if defined(STCK_PICO)
@@ -131,7 +140,8 @@ int zts_bind(int fd, const struct sockaddr *addr, socklen_t addrlen)
 	DEBUG_EXTRA("fd=%d", fd);
 #if defined(STACK_LWIP)
 	struct sockaddr_storage ss;
-	sys2lwip(fd, addr, (struct sockaddr*)&ss);
+	memcpy(&ss, addr, addrlen);
+	fix_addr_socket_family((struct sockaddr*)&ss);
 	err = lwip_bind(fd, (struct sockaddr*)&ss, addrlen);
 #endif
 #if defined(STCK_PICO)
@@ -343,13 +353,20 @@ int zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 int zts_fcntl(int fd, int cmd, int flags)
 {
 	int err = -1;
-	DEBUG_EXTRA("fd=%p, cmd=%d, flags=%d", cmd, flags);
+	DEBUG_EXTRA("fd=%d, cmd=%d, flags=%d", fd, cmd, flags);
 #if defined(STACK_LWIP)
-	// translation required since lwIP uses different flag values
+	// translation from platform flag values to stack flag values
 	int translated_flags = 0;
+#if defined(__linux__)
 	if (flags == 2048) {
 		translated_flags = 1;
 	}
+#endif
+#if defined(__APPLE__)
+	if (flags == 4) {
+		translated_flags = 1;
+	}
+#endif
 	err = lwip_fcntl(fd, cmd, translated_flags);
 #endif
 #if defined(STCK_PICO)
@@ -380,7 +397,8 @@ ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags,
 	DEBUG_TRANS("fd=%d, len=%d", fd, len);
 #if defined(STACK_LWIP)
 	struct sockaddr_storage ss;
-	sys2lwip(fd, addr, (struct sockaddr*)&ss);
+	memcpy(&ss, addr, addrlen);
+	fix_addr_socket_family((struct sockaddr*)&ss);
 	err = lwip_sendto(fd, buf, len, flags, (struct sockaddr*)&ss, addrlen);
 #endif
 #if defined(STCK_PICO)
@@ -508,10 +526,10 @@ int zts_add_dns_nameserver(struct sockaddr *addr)
 	int err = -1;
 #if defined(STACK_LWIP) && defined(LIBZT_IPV4)
 	struct sockaddr_in *in4 = (struct sockaddr_in*)&addr;
-	static ip_addr_t ipaddr;
+	static ip4_addr_t ipaddr;
 	ipaddr.addr = in4->sin_addr.s_addr;
 	// TODO: manage DNS server indices 
-	dns_setserver(0, &ipaddr);
+	dns_setserver(0, (const ip_addr_t*)&ipaddr);
 	err = 0;
 #endif
 #if defined(STCK_PICO)

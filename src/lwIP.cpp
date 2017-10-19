@@ -90,10 +90,10 @@ static void tcp_timeout(void *data)
 // callback for when the TCPIP thread has been successfully started
 static void tcpip_init_done(void *arg)
 {
+	DEBUG_EXTRA("tcpip-thread");
 	sys_sem_t *sem;
 	sem = (sys_sem_t *)arg;
 	netif_set_up(&lwipdev);
-	DEBUG_EXTRA("lwIP stack driver initialized");
 	lwip_driver_initialized = true;
 	driver_m.unlock();
 	// sys_timeout(5000, tcp_timeout, NULL);
@@ -101,7 +101,7 @@ static void tcpip_init_done(void *arg)
 }
 
 // main thread which starts the initialization process
-static void main_network_stack_thread(void *arg)
+static void main_thread(void *arg)
 {
 	sys_sem_t sem;
 	LWIP_UNUSED_ARG(arg);
@@ -110,13 +110,14 @@ static void main_network_stack_thread(void *arg)
 	}
 	tcpip_init(tcpip_init_done, &sem);
 	sys_sem_wait(&sem);
-	DEBUG_EXTRA("tcpip thread started");
-	sys_sem_wait(&sem);
+	DEBUG_EXTRA("stack thread init complete");
+	sys_sem_wait(&sem); // block forever
 }
 
 // initialize the lwIP stack
 void lwip_driver_init()
 {
+	DEBUG_EXTRA();
 	driver_m.lock(); // unlocked from callback indicating completion of driver init
 	if (lwip_driver_initialized == true) {
 		return;
@@ -124,13 +125,12 @@ void lwip_driver_init()
 #if defined(__MINGW32__)
 	sys_init(); // required for win32 initializtion of critical sections
 #endif
-	sys_thread_new("main_network_stack_thread", main_network_stack_thread,
+	sys_thread_new("main_thread", main_thread,
 		NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
 }
 
 err_t lwip_eth_tx(struct netif *netif, struct pbuf *p)
 {
-	DEBUG_INFO();
 	struct pbuf *q;
 	char buf[ZT_MAX_MTU+32];
 	char *bufptr;
@@ -187,7 +187,7 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 	char ipbuf[INET6_ADDRSTRLEN], nmbuf[INET6_ADDRSTRLEN];
 #if defined(LIBZT_IPV4)
 	if (ip.isV4()) {
-		static ip_addr_t ipaddr, netmask, gw;
+		static ip4_addr_t ipaddr, netmask, gw;
 		IP4_ADDR(&gw,127,0,0,1);
 		ipaddr.addr = *((u32_t *)ip.rawIpData());
 		netmask.addr = *((u32_t *)ip.netmask().rawIpData());
@@ -215,7 +215,7 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 #endif
 #if defined(LIBZT_IPV6)
 	if (ip.isV6()) {
-		static ip_addr_t ipaddr;
+		static ip6_addr_t ipaddr;
 		memcpy(&(ipaddr.addr), ip.rawIpData(), sizeof(ipaddr.addr));
 		
 		lwipdev6.mtu = ZT_MAX_MTU; 
@@ -226,7 +226,7 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 		lwipdev6.ip6_autoconfig_enabled = 1; 
 
 		mac.copyTo(lwipdev6.hwaddr, lwipdev6.hwaddr_len); 
-		netif_add(&lwipdev6, NULL, tapif_init, ethernet_input); 
+		netif_add(&lwipdev6, NULL, NULL, NULL, NULL, tapif_init, ethernet_input); 
 		lwipdev6.output_ip6 = ethip6_output; 
 		lwipdev6.state = tapref;
 
@@ -291,13 +291,20 @@ void lwip_eth_rx(ZeroTier::VirtualTap *tap, const ZeroTier::MAC &from, const Zer
 		// TODO: Routing logic
 
 #if defined(LIBZT_IPV4)
-		if (lwipdev.input(p, &lwipdev) != ERR_OK) {
-			DEBUG_ERROR("error while feeding frame into stack interface (ipv4)");
+		// feed in IPV4 and ARP
+		if (ZeroTier::Utils::ntoh(ethhdr.type) == 0x800 || ZeroTier::Utils::ntoh(ethhdr.type) == 0x0806) {
+			DEBUG_INFO("Inputting to lwipdev");
+			if (lwipdev.input(p, &lwipdev) != ERR_OK) {
+				DEBUG_ERROR("error while feeding frame into stack interface (ipv4)");
+			}
 		}
 #endif
 #if defined(LIBZT_IPV6)
-		if (lwipdev6.input(p, &lwipdev6) != ERR_OK) {
-			DEBUG_ERROR("error while feeding frame into stack interface (ipv6)");
+		if (ZeroTier::Utils::ntoh(ethhdr.type) == 0x86dd) {
+			DEBUG_INFO("Inputting to lwipdev6");
+			if (lwipdev6.input(p, &lwipdev6) != ERR_OK) {
+				DEBUG_ERROR("error while feeding frame into stack interface (ipv6)");
+			}
 		}
 #endif
 	}

@@ -47,7 +47,7 @@
 /*
  * Provides core locking machinery
  */
-#define LWIP_TCPIP_CORE_LOCKING     1
+#define LWIP_TCPIP_CORE_LOCKING     0
 
 /*
  * Provides a macro to spoof the names of the lwip socket functions
@@ -78,14 +78,8 @@
 #include "lwip/debug.h"
 
 // IP Protocol version
-#if defined(LIBZT_IPV6)
-	#define LWIP_IPV6   1
- 	#define LWIP_IPV4   0
-#endif
-#if defined(LIBZT_IPV4)
-	#define LWIP_IPV4   1
- 	#define LWIP_IPV6   0
-#endif
+#define LWIP_IPV6   1
+#define LWIP_IPV4   1
 
 // --- DEBUG ---
 
@@ -182,7 +176,7 @@ remote peer.
 
 #define TCP_WND 0xffff // max = 0xffff, min = TCP_MSS*2
 
-//#define LWIP_NOASSERT 1
+#define LWIP_NOASSERT 1
 #define TCP_LISTEN_BACKLOG   0
 
 /*------------------------------------------------------------------------------

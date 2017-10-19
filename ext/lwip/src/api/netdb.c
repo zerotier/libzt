@@ -57,7 +57,8 @@ struct gethostbyname_r_helper {
 };
 
 /** h_errno is exported in netdb.h for access by applications. */
-#if LWIP_DNS_API_DECLARE_H_ERRNO
+//#if LWIP_DNS_API_DECLARE_H_ERRNO
+#ifndef h_errno
 int h_errno;
 #endif /* LWIP_DNS_API_DECLARE_H_ERRNO */
 

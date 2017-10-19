@@ -84,6 +84,7 @@ void fix_addr_socket_family(struct sockaddr *addr)
 	so we must compensate here before feeding it into the stack. Due to this limitation 
 	we must cast the pointer to the address into two different address 
 	*/
+#if defined(STACK_LWIP)
 	if (addr->sa_len == 2) {
 		if (addr->sa_family == 0) {
 			addr->sa_family = addr->sa_len;
@@ -96,6 +97,7 @@ void fix_addr_socket_family(struct sockaddr *addr)
 			addr->sa_len = 0;
 		}
 	}
+#endif
 	/* once we've moved the value to its anticipated location, convert it from
 	its platform-specific value to one that the network stack can work with */ 
 #endif

@@ -392,7 +392,7 @@ nativetest:
 	@date +"Build script finished on %F %T"
 ztproxy:
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) $(ZT_INCLUDES) \
-		examples/apps/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< -L$(BUILD) -lzt $(WINDEFS)
+		examples/apps/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< -L$(BUILD) -lzt -lpthread $(WINDEFS)
 	@./check.sh $(BUILD)/ztproxy
 	@date +"Build script finished on %F %T"
 intercept:

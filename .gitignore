@@ -13,6 +13,7 @@ test/carol
 test/ted
 *.public
 *.secret
+*.conf
 iddb.d
 planet
 devicemap

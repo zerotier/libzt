@@ -33,22 +33,23 @@
 
 CONTRIBDIR=ext/lwip-contrib
 LWIPDIR=ext/lwip/src
-CCDEP=clang++
 
 # Automagically pick clang or gcc, with preference for clang
 # This is only done if we have not overridden these with an environment or CLI variable
+ifeq ($(origin CC),default)
+	CC=$(shell if [ -e /usr/bin/clang ]; then echo clang; else echo gcc; fi)
+endif
 ifeq ($(origin CXX),default)
 	CXX=$(shell if [ -e /usr/bin/clang++ ]; then echo clang++; else echo g++; fi)
 endif
 
 OSTYPE=$(shell uname -s | tr '[A-Z]' '[a-z]')
 BUILD=build/$(OSTYPE)
-
-CCX=clang++
+CCDEP=$(CXX)
 
 # Windows
 ifeq ($(OSTYPE),mingw32_nt-6.2)
-CCX=g++
+CXX=g++
 WINDEFS=-Wno-c++11-compat -std=c++98
 LWIPARCH=$(CONTRIBDIR)/ports/win32
 endif
@@ -90,7 +91,7 @@ LWIPNOAPPSFILESW=$(wildcard $(LWIPNOAPPSFILES))
 LWIPNOAPPSOBJS=$(notdir $(LWIPNOAPPSFILESW:.c=.o))
 
 %.o:
-	$(CCX) $(CFLAGS) -c $(<:.o=.c)
+	$(CXX) $(CFLAGS) -c $(<:.o=.c)
 
 clean:
 	rm -f *.o $(LWIPNOAPPSOBJS) *.s .depend* *.core core
@@ -100,7 +101,7 @@ depend dep: .depend
 include .depend
 
 $(UNIXLIB): $(LWIPNOAPPSOBJS)
-	$(CCX) $(CFLAGS) -g -nostartfiles -shared -o obj/$@ $^
+	$(CXX) $(CFLAGS) -g -nostartfiles -shared -o obj/$@ $^
 
 .depend: $(LWIPNOAPPSFILES)
-	$(CCX) $(CFLAGS) -MM $^ > .depend || rm -f .depend
+	$(CXX) $(CFLAGS) -MM $^ > .depend || rm -f .depend

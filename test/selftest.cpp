@@ -299,11 +299,10 @@ void str2addr(std::string ipstr, int port, int ipv, struct sockaddr *saddr)
 {
 	if (ipv == 4) {
 		struct sockaddr_in *in4 = (struct sockaddr_in*)saddr;
-		in4->sin_port = htons(port);
 		in4->sin_addr.s_addr = inet_addr(ipstr.c_str());
 		in4->sin_family = AF_INET;
-	}
-	if (ipv == 6) {
+		in4->sin_port = htons(port);
+	} if (ipv == 6) {
 		struct sockaddr_in6 *in6 = (struct sockaddr_in6*)saddr;
 		inet_pton(AF_INET6, ipstr.c_str(), &(in6->sin6_addr));
 		in6->sin6_flowinfo = 0;
@@ -319,18 +318,74 @@ void RECORD_RESULTS(bool passed, char *details, std::vector<std::string> *result
 	if (passed == PASSED) {
 		DEBUG_TEST("%s", ok_str);
 		results->push_back(std::string(ok_str) + " " + std::string(details));
-	}
-	else {
+	} else {
 		DEBUG_ERROR("%s", fail_str);		
 		results->push_back(std::string(fail_str) + " " + std::string(details));
-	}
-	if (EXIT_ON_FAIL && !passed) {
+	} if (EXIT_ON_FAIL && !passed) {
 		fprintf(stderr, "%s\n", results->at(results->size()-1).c_str());
 		exit(0);
 	}
 	memset(details, 0, DETAILS_STR_LEN);
 }
 
+void wait_until_everyone_is_ready(struct sockaddr *local_addr, struct sockaddr *remote_addr, int start_port)
+{
+	/* try to connect to (and listen for) other selftest instances on the network. 
+	When one is found, send some sort of synchronization message and allow test to 
+	begin */
+	int err;
+	struct sockaddr_in client;
+	socklen_t client_addrlen = sizeof(sockaddr_in);
+	bool connected = false;
+	int accepted_fd;
+	// listen socket setup
+	int listen_fd;
+	if ((listen_fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+		perror("socket");
+		exit(0);
+	} if ((err = BIND(listen_fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in)) < 0)) {
+		perror("bind");
+		exit(0);
+	} if ((err = LISTEN(listen_fd, 0)) < 0) {
+		perror("listen");
+		exit(0);
+	} if ((err = FCNTL(listen_fd, F_SETFL, O_NONBLOCK) < 0)) {
+		perror("fcntl");
+		exit(0);
+	}
+	// connect socket setup
+	int conn_fd;
+	if ((conn_fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+		perror("socket");
+		exit(0);
+	} if ((err = FCNTL(conn_fd, F_SETFL, O_NONBLOCK) < 0)) {
+		perror("fcntl");
+		exit(0);
+	}
+	while(connected == false) {
+		if ((err = CONNECT(conn_fd, (const struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) { 
+			if (errno == EISCONN) {
+				connected = true;
+			}
+		}
+		else {
+			connected = true;
+		}
+		if (connected == false) {
+			struct sockaddr_in client;
+			socklen_t client_addrlen = sizeof(sockaddr_in);
+			if ((accepted_fd = ACCEPT(listen_fd, (struct sockaddr *)&client, &client_addrlen)) < 0) { 
+			DEBUG_TEST("errno = %d", errno);}
+			else {
+				connected = true;
+			}
+		}
+		sleep(1);
+	}
+	close(listen_fd);
+	close(conn_fd);
+	close(accepted_fd);
+}
 
 
 /****************************************************************************/
@@ -419,14 +474,11 @@ void tcp_select_server(TCP_UNIT_TEST_SIG_4)
 			}
 		}
 	}
-	
 	DEBUG_TEST("complete");
 	sleep(ARTIFICIAL_SOCKET_LINGER);
 	err = CLOSE(fd);
 	sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
 	*passed = (w == len && r == len && !err) && !strcmp(rbuf, msg.c_str());
-		exit(0);
-
 }
 
 void tcp_select_client(TCP_UNIT_TEST_SIG_4)
@@ -498,30 +550,19 @@ void tcp_select_client(TCP_UNIT_TEST_SIG_4)
 			}
 		}
 	}
-	
 	DEBUG_TEST("complete");
 	sleep(ARTIFICIAL_SOCKET_LINGER);
 	err = CLOSE(fd);
 	sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
 	*passed = (w == len && r == len && !err) && !strcmp(rbuf, msg.c_str());
-		exit(0);
-
 }
-
-
-
 
 /****************************************************************************/
 /* SIMPLE                                                                   */
 /****************************************************************************/
 
-
-
-
-
 // TCP
 
-// TEST-1
 void tcp_client_4(TCP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "tcp_client_4";
@@ -569,7 +610,6 @@ void tcp_client_4(TCP_UNIT_TEST_SIG_4)
 
 
 
-// TEST-2
 void tcp_server_4(TCP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "tcp_server_4";
@@ -630,7 +670,6 @@ void tcp_server_4(TCP_UNIT_TEST_SIG_4)
 
 
 
-// TEST-3
 void tcp_client_6(TCP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "tcp_client_6";
@@ -678,8 +717,6 @@ void tcp_client_6(TCP_UNIT_TEST_SIG_6)
 
 
 
-
-// TEST-4
 void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "tcp_server_6";
@@ -745,7 +782,6 @@ void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 
 // UDP
 
-// TEST-5
 void udp_client_4(UDP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "udp_client_4";
@@ -802,7 +838,6 @@ void udp_client_4(UDP_UNIT_TEST_SIG_4)
 
 
 
-// TEST-6
 void udp_server_4(UDP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "udp_server_4";
@@ -862,9 +897,23 @@ void udp_server_4(UDP_UNIT_TEST_SIG_4)
 
 
 
+int zts_bind_test(int fd, const struct sockaddr *addr, socklen_t addrlen)
+{
+	int err = -1;
+	DEBUG_EXTRA("fd=%d", fd);
+	DEBUG_INFO("addrp=%p", addr);
+	DEBUG_INFO("addrlen=%d", addrlen);
+	DEBUG_INFO("sa_family======%d", addr->sa_family);
+	struct sockaddr_storage ss;
+	memcpy(&ss, addr, addrlen);
+	DEBUG_INFO("ss->sa_family=%d", ss.ss_family);
+	//fix_addr_socket_family((struct sockaddr*)&ss);
+	//ss.ss_family=AF_INET6;
+	//DEBUG_INFO("ss->sa_family=%d", ss.ss_family);
+	//err = lwip_bind(fd, (struct sockaddr*)&ss, addrlen);
+	exit(0);
+}
 
-
-// TEST-7
 void udp_client_6(UDP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "udp_client_6";
@@ -887,14 +936,14 @@ void udp_client_6(UDP_UNIT_TEST_SIG_6)
 		*passed = false;
 		return;
 	}
+
 	DEBUG_TEST("[1] binding and sending UDP packets until I get a single response...");
-	if ((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in6)) < 0)) {
-		DEBUG_ERROR("error binding to interface (%d)", err);
+	if ((err = BIND(fd, (struct sockaddr*)local_addr, sizeof(struct sockaddr_in6)) < 0)) {
+		DEBUG_ERROR("error binding to interface (err=%d, errno=%d)", err, errno);
 		perror("bind");
 		*passed = false;
 		return;
 	}
-
 	// start sending UDP packets in the hopes that at least one will be picked up by the server
 	struct sockaddr_storage saddr;
 	while (true) {
@@ -923,8 +972,6 @@ void udp_client_6(UDP_UNIT_TEST_SIG_6)
 
 
 
-
-// TEST-8
 void udp_server_6(UDP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "udp_server_6";
@@ -2618,6 +2665,14 @@ void bind_to_localhost_test(int port)
 
 #endif // __SELFTEST__
 
+int trigger_address_sanitizer() 
+{
+	// Deliberately create a bad read to trigger address sanitizer
+	int stack_array[100];
+	stack_array[1] = 0;
+	return stack_array[1 + 100];  // BOOM
+}
+
 /****************************************************************************/
 /* main(), calls test_driver(...)                                           */
 /****************************************************************************/
@@ -2629,7 +2684,6 @@ int main(int argc , char *argv[])
 		fprintf(stderr, "e.g. : selftest 3 test/test.conf alice to bob\n");
 		return 1;
 	}
-
 	int num_repeats = atoi(argv[1]);
 	std::string path = argv[2];
 	std::string from = argv[3];
@@ -2694,16 +2748,11 @@ int main(int argc , char *argv[])
 	fprintf(stderr, "\tremote_ipstr     = %s\n", remote_ipstr.c_str());
 	fprintf(stderr, "\tremote_ipstr6    = %s\n", remote_ipstr6.c_str());
 	fprintf(stderr, "\tremote_echo_ipv4 = %s\n", remote_echo_ipv4.c_str());
-	fprintf(stderr, "\tme = %s\n", me.c_str());
-
 
 #if defined(__SELFTEST__)
-	long int selftest_start_time = get_now_ts();
-	subtest_expected_duration = 5;
-
 	if (me != "dummy") { // used for testing ZT service wrapper API (before, during, and after coming online)
 		// set start time here since we need to wait for both libzt instances to be online
-		DEBUG_TEST("Waiting for libzt to come online...\n");
+		DEBUG_TEST("app-thread, waiting for libzt to come online...\n");
 		zts_startjoin(path.c_str(), nwid.c_str());
 		char device_id[ZTO_ID_LEN];
 		zts_get_id(device_id);
@@ -2714,20 +2763,19 @@ int main(int argc , char *argv[])
 		if (mode == TEST_MODE_CLIENT) {
 			DEBUG_TEST("Ready. Contacting selftest program on first host.\n\n");
 		}
-
-		// What follows is a long-form of zts_start():
-		/*
-		 zts_start(path.c_str());
-		 printf("waiting for service to start...\n");
-		 while (zts_running() == false)
-			sleep(1);
-		 printf("joining network...\n");
-		 zts_join(nwid.c_str());
-		 printf("waiting for address assignment...\n");
-		 while (zts_has_address(nwid.c_str()) == false)
-			sleep(1);
-		*/
 	}
+
+	// SYNCHRONIZE test start times between multiple instances of the selftest on the network
+	ipv = 4;
+	int negotiation_port = start_port + 1000;
+	port = negotiation_port;
+	str2addr(local_ipstr, port, ipv, (struct sockaddr *)&local_addr);
+	str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
+	wait_until_everyone_is_ready((struct sockaddr *)&local_addr, (struct sockaddr *)&remote_addr, start_port);
+	DEBUG_TEST("both instances of selftest have started. beginning tests...");
+
+	long int selftest_start_time = get_now_ts();
+	subtest_expected_duration = 5;
 #endif // __SELFTEST__
 
 for (int i=0; i<num_repeats; i++)
@@ -2772,13 +2820,11 @@ for (int i=0; i<num_repeats; i++)
 	if (false) {
 		obscure_api_test(&passed);
 	}
-
 	// Test things like zts_start(), zts_stop(), zts_join(), etc
 	if (false) {
 		ZT_control_semantics_test(&passed);
 		exit(0);
 	}
-
 	// Spam a SOCK_DGRAM socket from many threads
 	if (false) {
 		ipv = 4;
@@ -2787,36 +2833,27 @@ for (int i=0; i<num_repeats; i++)
 		str2addr(remote_ipstr, port, ipv, (struct sockaddr *)&remote_addr);
 		multithread_udp_write((struct sockaddr_in *)&local_addr, (struct sockaddr_in *)&remote_addr, &passed);
 	}
-	
-	//
+	// test thread safety
 	if (false) {
 		multithread_test(10, &passed);
+	}
+	// make sure the address sanitizer is available
+	if (false) {
+		trigger_address_sanitizer();
 	}
 
 #endif // __SELFTEST__
 
 	port = start_port+(100*i); // arbitrary
-	cnt  = 1024*3;
+	cnt  = 64;
 	op   = TEST_OP_N_BYTES;
-
-	/*
-	// Deliberately create a bad read to trigger address sanitizer
-	int stack_array[100];
-	stack_array[1] = 0;
-	return stack_array[argc + 100];  // BOOM
-
-	int mybuf[10];
-	mybuf[11] = 9;
-	memcpy(mybuf, "what the hell is this", 55);
-	*/
 
 	// set start time here since we aren't waiting for libzt to come online in NATIVETEST mode
 #if defined(__NATIVETEST__)	
 		long int selftest_start_time = get_now_ts();
 		subtest_expected_duration = 20; // initial value, wait for other instance to come online
 #endif
-
-#if defined(LIBZT_IPV4)
+/*
 		// UDP 4 client/server
 
 		ipv = 4;
@@ -2989,39 +3026,12 @@ for (int i=0; i<num_repeats; i++)
 		}
 		RECORD_RESULTS(passed, details, &results);
 		port++;
-
-		// PERFORMANCE (between this library instance and a native non library instance (echo) )
-		// Client/Server mode isn't being tested here, so it isn't important, we'll just set it to client
-
-		// ipv4 echo test (TCP)
-		/*
-		ipv = 4;	
-		if (me == "alice" || me == "ted") {
-			port=start_port+100; // e.g. 7100
-			str2addr(remote_echo_ipv4, port, ipv, (struct sockaddr *)&remote_addr);
-			tcp_perf_tx_echo_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-			RECORD_RESULTS(passed, details, &results);
-			tcp_perf_rx_echo_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-			RECORD_RESULTS(passed, details, &results);
-		}
-		if (me == "bob" || me == "carol") {
-			DEBUG_TEST("waiting (15s) for other selftest to complete before continuing...");
-			port=start_port+101; // e.g. 7101
-			str2addr(remote_echo_ipv4, port, ipv, (struct sockaddr *)&remote_addr);
-			tcp_perf_rx_echo_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-			RECORD_RESULTS(passed, details, &results);
-			tcp_perf_tx_echo_4((struct sockaddr_in *)&remote_addr, op, cnt, details, &passed); 
-			RECORD_RESULTS(passed, details, &results);
-		}
-		*/
-
-#endif // LIBZT_IPV4
+*/
 
 
+// IPV6
 
-
-
-#if defined(LIBZT_IPV6)
+/*
 		// UDP 6 client/server
 
 		ipv = 6;
@@ -3058,8 +3068,6 @@ for (int i=0; i<num_repeats; i++)
 		}
 		RECORD_RESULTS(passed, details, &results);
 		port++;
-
-
 
 	// UDP 6 sustained transfer
 
@@ -3131,7 +3139,7 @@ for (int i=0; i<num_repeats; i++)
 		}
 		RECORD_RESULTS(passed, details, &results);
 		port++;
-
+*/
 	// TCP 6 sustained transfer
 
 		ipv = 6;	
@@ -3164,7 +3172,6 @@ for (int i=0; i<num_repeats; i++)
 		}
 		RECORD_RESULTS(passed, details, &results);
 		port++;
-#endif // LIBZT_IPV6
 
 		// Print results of all tests
 		printf("--------------------------------------------------------------------------------\n");

@@ -52,6 +52,8 @@
 
 #define LWIP_RAND() ((u32_t)rand())
 
+#define LWIP_NOASSERT 1
+
 /* different handling for unit test, normally not needed */
 #ifdef LWIP_NOASSERT_ON_ERROR
 #define LWIP_ERROR(message, expression, handler) do { if (!(expression)) { \

@@ -263,7 +263,7 @@ STACK_DEFS+=LIBZT_IPV6=1 IPV6=1 LIBZT_IPV4=1 IPV4=1
 
 core:
 	cd zto; make core
-	cp zto/libzerotiercore.a $(BUILD)
+	mv zto/libzerotiercore.a $(BUILD)
 
 picotcp:
 	cd ext/picotcp; make lib ARCH=shared IPV4=1 IPV6=1

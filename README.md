@@ -10,7 +10,8 @@ A library version of [ZeroTier](https://github.com/zerotier/ZeroTierOne), **libz
 
 [![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
 
-Pre-Built Binaries Here: [zerotier.com/download.shtml](https://zerotier.com/download.shtml?pk_campaign=github_libzt).
+ - Pre-Built binaries will soon be placed here: [zerotier.com/download.shtml](https://zerotier.com/download.shtml?pk_campaign=github_libzt).
+ - Bindings for popular languages like [Scala](examples/bindings/scala), [Swift](examples/bindings/swift), [Java](examples/bindings/java), [Python](examples/bindings/python), etc. can be found [here](examples/bindings)
 
 *** 
 
@@ -55,8 +56,6 @@ int main()
 	return 0;
 }
 ```
-
-Other bindings for popular [languages](examples)
 
 For an example using only the [Virtual Layer 2](https://www.zerotier.com/manual.shtml#2_2?pk_campaign=github_libzt), see [test/layer2.cpp](test/layer2.cpp)
 

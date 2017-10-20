@@ -76,6 +76,8 @@ endif
 ## Objects and includes                                                     ##
 ##############################################################################
 
+include zto/objects.mk
+
 ZTO_OBJS=\
 	zto/node/C25519.o \
 	zto/node/Capability.o \
@@ -258,6 +260,10 @@ STACK_DEFS+=LIBZT_IPV6=1 IPV6=1 LIBZT_IPV4=1 IPV4=1
 %.o : %.c
 	@mkdir -p $(BUILD) obj
 	$(CC) $(CFLAGS) -c $^ -o obj/$(@F)
+
+core:
+	cd zto; make core
+	cp zto/libzerotiercore.a $(BUILD)
 
 picotcp:
 	cd ext/picotcp; make lib ARCH=shared IPV4=1 IPV6=1

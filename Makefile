@@ -328,14 +328,12 @@ static_lib: picotcp picotcp_driver libzt_socket_layer utilities $(ZTO_OBJS)
 	mv ext/picotcp/build/lib/*.o obj
 	mv ext/picotcp/build/modules/*.o obj
 	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) obj/*.o
-	@date +"Build script finished on %F %T"
 endif
 ifeq ($(STACK_LWIP),1)
 static_lib: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
 	mv *.o obj
 	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) obj/*.o
-	@date +"Build script finished on %F %T"
 endif
 # for layer-2 only (this will omit all userspace network stack code)
 ifeq ($(NO_STACK),1)
@@ -343,7 +341,6 @@ static_lib: libzt_socket_layer utilities $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
 	mv *.o obj
 	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) obj/*.o
-	@date +"Build script finished on %F %T"
 endif
 
 ##############################################################################
@@ -379,28 +376,24 @@ tests: selftest nativetest ztproxy
 
 ZT_UTILS:=zto/node/Utils.cpp -Izto/node
 
+sample:
+	$(CXX) $(CXXFLAGS) -D__SELFTEST__ $(STACK_DRIVER_DEFS) $(LIBZT_DEFS) \
+		$(SANFLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) $(ZT_UTILS) test/sample.cpp -o \
+		$(BUILD)/sample -L$(BUILD) -lzt
 selftest:
 	$(CXX) $(CXXFLAGS) -D__SELFTEST__ $(STACK_DRIVER_DEFS) $(LIBZT_DEFS) \
 		$(SANFLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) $(ZT_UTILS) test/selftest.cpp -o \
 		$(BUILD)/selftest -L$(BUILD) -lzt -lpthread
-	@./check.sh $(BUILD)/selftest
-	@date +"Build script finished on %F %T"
 nativetest:
 	$(CXX) $(CXXFLAGS) -D__NATIVETEST__ $(STACK_DRIVER_DEFS) $(SANFLAGS) \
 		$(LIBZT_INCLUDES) $(ZT_INCLUDES) test/selftest.cpp -o $(BUILD)/nativetest
-	@./check.sh $(BUILD)/nativetest
-	@date +"Build script finished on %F %T"
 ztproxy:
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) $(ZT_INCLUDES) \
 		examples/apps/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< -L$(BUILD) -lzt -lpthread $(WINDEFS)
-	@./check.sh $(BUILD)/ztproxy
-	@date +"Build script finished on %F %T"
 intercept:
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(STACK_DRIVER_DEFS) $(LIBZT_INCLUDES) \
 		$(ZT_INCLUDES) examples/intercept/intercept.cpp -D_GNU_SOURCE \
 		-shared -o $(BUILD)/intercept.so $< -ldl
-	@./check.sh $(BUILD)/intercept.so
-	@date +"Build script finished on %F %T"
 dlltest:
 	$(CXX) $(CXXFLAGS) 	
 

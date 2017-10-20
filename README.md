@@ -10,7 +10,8 @@ A library version of [ZeroTier](https://github.com/zerotier/ZeroTierOne), **libz
 
 [![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
 
- - Pre-Built binaries will soon be placed here: [zerotier.com/download.shtml](https://zerotier.com/download.shtml?pk_campaign=github_libzt).
+ - Pre-Built binaries will soon be placed here: [zerotier.com/download.shtml](https://zerotier.com/download.shtml?pk_campaign=github_libzt)
+ - Windows DLL (x64) can be found here: [libzt_win_x64_1.1.5.zip](https://download.zerotier.com/dist/libzt_win_x64_1.1.5.zip)
  - Bindings for popular languages like [Scala](examples/bindings/scala), [Swift](examples/bindings/swift), [Java](examples/bindings/java), [Python](examples/bindings/python), etc. can be found [here](examples/bindings)
 
 *** 

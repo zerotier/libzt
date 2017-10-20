@@ -82,8 +82,6 @@ For an example using only the [Virtual Layer 2](https://www.zerotier.com/manual.
 
 Please make pull requests against the `dev` branch. The `master` branch is release, and `edge` is for unstable and work in progress changes and is not likely to work.
 
-### License
- - **Commercial**, with BSD license, build using `lwIP` network stack with `STACK_LWIP=1`, then contact us directly via `contact@zerotier.com` to discuss commercial licensing.
- - **Personal**, with GPL license, build using `picoTCP` network stack with `STACK_PICO=1`, everything is free. Have fun.
-
- Regardless of which network stack you build with, the socket API will remain the same.
+### Commercial License
+ - To be released from GPLv3, contact us directly via `contact@zerotier.com` to discuss commercial licensing.
+ 

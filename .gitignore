@@ -11,6 +11,7 @@ test/alice
 test/bob
 test/carol
 test/ted
+ztp
 *.public
 *.secret
 *.conf

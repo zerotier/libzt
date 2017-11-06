@@ -33,7 +33,7 @@
 #include "pico_socket.h"
 #include "heap.h"
 
-#include "../../../include/Debug.hpp"
+#include "../../../include/libztDebug.h"
 
 /* Mockables */
 #if defined UNIT_TEST

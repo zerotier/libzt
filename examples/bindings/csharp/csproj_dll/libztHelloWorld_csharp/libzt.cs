@@ -18,58 +18,46 @@ namespace ZeroTier
         public static extern int zts_start(string path);
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern int zts_startjoin(string path, string nwid);
+        public static extern int zts_startjoin(string path, ulong nwid);
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern void zts_stop();
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern void zts_join(string nwid);
+        public static extern void zts_join(ulong nwid);
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern void zts_join_soft(string filepath, string nwid);
-
-        [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern void zts_leave(string nwid);
-
-        [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern void zts_leave_soft(string filepath, string nwid);
+        public static extern void zts_leave(ulong nwid);
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern void zts_get_homepath(string homePath, int len);
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern int zts_get_id(string devID);
+        public static extern int zts_get_id(string nodeId);
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern int zts_running();
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern int zts_has_ipv4_address(string nwid);
+        public static extern int zts_has_address(ulong nwid);
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern int zts_has_ipv6_address(string nwid);
+        public static extern int zts_has_address(ulong nwid);
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern int zts_has_address(string nwid);
+        public static extern void zts_get_address(ulong nwid, System.IntPtr addr, int addrlen);
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern void zts_get_ipv4_address(string nwid, string addrstr, int addrlen);
+        public static extern void zts_get_6plane_addr(System.IntPtr addr addr, string nwid, string nodeId);
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern void zts_get_ipv6_address(string nwid, string addrstr, int addrlen);
-
-        [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern void zts_get_6plane_addr(string addr, string nwid, string devID);
-
-        [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern void zts_get_rfc4193_addr(string addr, string nwid, string devID);
+        public static extern void zts_get_rfc4193_addr(System.IntPtr addr addr, string nwid, string nodeId);
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern long zts_get_peer_count();
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern int zts_get_peer_address(string peer, string devID);
+        public static extern int zts_get_peer_address(string peer, ulong nodeId);
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern void zts_enable_http_control_plane();

@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 		exit(0);
 	}
 	std::string path      = argv[1];
-	std::string nwid      = argv[2];
+	std::string nwidstr   = argv[2];
 	int bind_port         = atoi(argv[3]);
 	int w=0, r=0, err=0, sockfd, accfd;
 	char rbuf[32];
@@ -33,10 +33,10 @@ int main(int argc, char **argv)
 
 
 	DEBUG_TEST("Waiting for libzt to come online...\n");
-	zts_startjoin(path.c_str(), nwid.c_str());
-	char device_id[11];
-	zts_get_id(device_id);
-	DEBUG_TEST("I am %s", device_id);
+	uint64_t nwid = strtoll(nwidstr.c_str(),NULL,16);
+	zts_startjoin(path.c_str(), nwid);
+	uint64_t nodeId = zts_get_node_id();
+	DEBUG_TEST("I am %x", nodeId);
 	sleep(2);
 
 	// socket()

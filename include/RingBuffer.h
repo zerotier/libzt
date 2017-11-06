@@ -27,7 +27,68 @@
 /**
  * @file
  *
- *
+ * Ring buffer implementation for network stack drivers
  */
 
-// Only available in experimental branch
+#ifndef ZT_RINGBUFFER_H
+#define ZT_RINGBUFFER_H
+
+typedef char bufElementType;
+
+class RingBuffer
+{
+private:
+	bufElementType * buf;
+	size_t size;
+	size_t begin;
+	size_t end;
+	bool wrap;
+
+public:
+	/**
+	* create a RingBuffer with space for up to size elements.
+	*/
+	explicit RingBuffer(size_t size)
+		: size(size),
+		begin(0),
+		end(0),
+		wrap(false)
+	{
+		buf = new bufElementType[size];
+	}
+/*
+	RingBuffer(const RingBuffer<T> & ring)
+	{
+		this(ring.size);
+		begin = ring.begin;
+		end = ring.end;
+		memcpy(buf, ring.buf, sizeof(T) * size);
+	}
+*/
+	~RingBuffer()
+	{
+		delete[] buf;
+	}
+
+	// get a reference to the underlying buffer
+	bufElementType* get_buf();
+
+	// adjust buffer index pointer as if we copied data in
+	size_t produce(size_t n);
+
+	// merely reset the buffer pointer, doesn't erase contents
+	void reset();
+
+	// adjust buffer index pointer as if we copied data out
+	size_t consume(size_t n);
+
+	size_t write(const bufElementType * data, size_t n);
+
+	size_t read(bufElementType * dest, size_t n);
+
+	size_t count();
+
+	size_t getFree();
+};
+
+#endif // _H

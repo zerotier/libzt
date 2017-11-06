@@ -10,7 +10,7 @@
 
 #include "pico_protocol.h"
 #include "pico_tree.h"
-#include "../../../include/Debug.hpp"
+#include "../../../include/libztDebug.h"
 
 struct pico_proto_rr
 {

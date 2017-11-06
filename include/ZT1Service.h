@@ -31,7 +31,8 @@
  */
 
 #include "ZeroTierOne.h"
-#include "Defs.h"
+#include "InetAddress.hpp"
+#include "libztDefs.h"
 
 #include <vector>
 
@@ -42,20 +43,13 @@
 extern "C" {
 #endif
 
-namespace ZeroTier
-{
-	extern std::vector<void*> vtaps;
+class VirtualTap;
+class VirtualSocket;
 
-	class picoTCP;
-	extern ZeroTier::picoTCP *picostack;
-
-	class lwIP;
-	extern ZeroTier::lwIP *lwipstack;
-
-	class VirtualTap;
-	class VirtualSocket;
-	struct InetAddress;
-}
+VirtualTap *getTapByAddr(ZeroTier::InetAddress *addr);
+VirtualTap *getTapByName(char *ifname);
+VirtualTap *getTapByIndex(size_t index);
+VirtualTap *getAnyTap();
 
 /**
  * @brief Returns a vector of network routes { target, via, metric, etc... }
@@ -64,7 +58,7 @@ namespace ZeroTier
  * @param nwid 16-digit hexidecimal network identifier
  * @return
  */
-std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(char *nwid);
+std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(const uint64_t nwid);
 
 /**
  * @brief
@@ -74,7 +68,7 @@ std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(char *nwid);
  * @param devID buffer to which the device ID (nodeID, ztAddress) should be copied
  * @return
  */
-int zts_getid_from_file(const char *filepath, char *devID);
+int zts_getid_from_file(const char *filepath, uint64_t nodeId);
 
 /**
  * @brief Starts a ZeroTier service in the background
@@ -86,62 +80,24 @@ int zts_getid_from_file(const char *filepath, char *devID);
 void *zts_start_service(void *thread_id);
 
 /**
- * @brief Stops all VirtualTap interfaces and associated I/O loops
- *
- * @usage For internal use only.
- * @param
- * @return
- */
-void disableTaps();
-
-/**
- * @brief Gets the VirtualTap's (interface) IPv4 address
+ * @brief Gets the VirtualTap's (interface) IP address
  *
  * @usage For internal use only.
  * @param nwid
- * @param addrstr
+ * @param addr
  * @param addrlen
  * @return
  */
-void zts_get_ipv4_address(const char *nwid, char *addrstr, const size_t addrlen);
+void zts_get_address(const uint64_t nwid, struct sockaddr_storage *addr, const size_t addrlen);
 
 /**
- * @brief Gets the VirtualTap's (interface) IPv6 address
- *
- * @usage For internal use only.
- * @param nwid
- * @param addrstr
- * @param addrlen
- * @return
- */
-void zts_get_ipv6_address(const char *nwid, char *addrstr, const size_t addrlen);
-
-/**
- * @brief Returns whether the VirtualTap has an assigned IPv4 address
+ * @brief Returns whether the VirtualTap has an assigned address (IPv4 or IPv6)
  *
  * @usage For internal use only.
  * @param nwid
  * @return
  */
-int zts_has_ipv4_address(const char *nwid);
-
-/**
- * @brief Returns whether the VirtualTap has an assigned IPv6 address
- *
- * @usage For internal use only.
- * @param nwid
- * @return
- */
-int zts_has_ipv6_address(const char *nwid);
-
-/**
- * @brief Returns whether the VirtualTap has an assigned address of any protocol version
- *
- * @usage For internal use only.
- * @param nwid
- * @return
- */
-int zts_has_address(const char *nwid);
+int zts_has_address(const uint64_t nwid);
 
 /**
  * @brief Copies the 6PLANE IPv6 address for the VirtualTap into the provided buffer
@@ -152,7 +108,7 @@ int zts_has_address(const char *nwid);
  * @param devID
  * @return
  */
-void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID);
+void zts_get_6plane_addr(struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId);
 
 /**
  * @brief Copies the RFC4193 IPv6 address for the VirtualTap into the provided buffer
@@ -160,10 +116,10 @@ void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID);
  * @usage
  * @param addr
  * @param nwid
- * @param devID 
+ * @param devID
  * @return
  */
-void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID);
+void zts_get_rfc4193_addr(struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId);
 
 /**
  * @brief Join a network
@@ -172,7 +128,7 @@ void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID);
  * @param nwid A 16-digit hexidecimal virtual network ID
  * @return
  */
-void zts_join(const char * nwid);
+void zts_join(const uint64_t nwid);
 
 /**
  * @brief Leave a network
@@ -181,7 +137,7 @@ void zts_join(const char * nwid);
  * @param nwid A 16-digit hexidecimal virtual network ID
  * @return
  */
-void zts_leave(const char * nwid);
+void zts_leave(const uint64_t nwid);
 
 /**
  * @brief Return whether libzt (specifically the ZeroTier core service) is currently running
@@ -213,7 +169,7 @@ int zts_start(const char *path, bool blocking);
  * @param nwid A 16-digit hexidecimal virtual network ID
  * @return Returns 0 on success, -1 on failure
  */
-int zts_startjoin(const char *path, const char *nwid);
+int zts_startjoin(const char *path, const uint64_t nwid);
 
 /**
  * @brief Stops libzt (ZeroTier core services, stack drivers, stack threads, etc)
@@ -226,7 +182,7 @@ void zts_stop();
 /**
  * @brief Copies the configuration path used by ZeroTier into the provided buffer
  *
- * @usage 
+ * @usage
  * @param homePath
  * @param len
  * @return
@@ -234,13 +190,12 @@ void zts_stop();
 void zts_get_homepath(char *homePath, size_t len);
 
 /**
- * @brief Copies the hexidecimal representation of this nodeID into the provided buffer
+ * @brief Returns the ztaddress/nodeId/device ID of this instance
  *
  * @usage Call this after zts_start() and/or when zts_running() returns true
- * @param devID Buffer to which id string is copied
  * @return
  */
-int zts_get_id(char *devID);
+uint64_t zts_get_node_id();
 
 /**
  * @brief Return the number of peers
@@ -258,7 +213,7 @@ unsigned long zts_get_peer_count();
  * @param
  * @return
  */
-int zts_get_peer_address(char *peer, const char *devID);
+int zts_get_peer_address(char *peer, const uint64_t nodeId);
 
 /**
  * @brief Allow or disallow this instance of libzt to be controlled via HTTP requests
@@ -270,42 +225,13 @@ int zts_get_peer_address(char *peer, const char *devID);
 void zts_allow_http_control(bool allowed);
 
 /**
- * @brief Returns whether one can add a new socket or not. This depends on network stack in use.
+ * @brief Returns masked address for subnet comparisons
  *
- * @usage Call this after zts_start() has succeeded
+ * @usage For internal use only.
  * @param socket_type
  * @return
  */
-bool can_provision_new_socket(int socket_type);
-
-/**
- * @brief Returns the number of VirtualSockets either already provisioned or waiting to be
- * Some network stacks may have a limit on the number of sockets that they can
- * safely handle due to timer construction, this is a way to check that we
- * haven't passed that limit. Someday if multiple stacks are used simultaneously
- * the logic for this function should change accordingly.
- *
- * @usage Call this after zts_start() has succeeded
- * @return
- */
-int zts_num_active_virt_sockets();
-
-/**
- * @brief Return the maximum number of sockets allowable by platform/stack configuration
- *
- * @usage Call this after zts_start() has succeeded
- * @param socket_type
- * @return
- */
-int zts_maxsockets(int socket_type);
-
-/**
- * @brief Return the number of currently active picoTCP timers
- *
- * @usage Call this after zts_start() has succeeded
- * @return
- */
-int pico_ntimers();
+bool _ipv6_in_subnet(ZeroTier::InetAddress *subnet, ZeroTier::InetAddress *addr);
 
 #ifdef __cplusplus
 }

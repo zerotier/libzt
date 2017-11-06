@@ -25,7 +25,7 @@
 #include "pico_ethernet.h"
 #include "pico_mcast.h"
 
-#include "../../../include/Debug.hpp"
+#include "../../../include/libztDebug.h"
 
 #ifdef PICO_SUPPORT_IPV4
 

@@ -1938,15 +1938,12 @@ int ZT_control_semantics_test(bool *passed)
 		int zts_get_id_from_file(const char *filepath, char *devID);
 		void *zts_start_service(void *thread_id);
 		void disableTaps();
-		void zts_get_ipv4_address(const char *nwid, char *addrstr, const size_t addrlen);
-		void zts_get_ipv6_address(const char *nwid, char *addrstr, const size_t addrlen);
-		int zts_has_ipv4_address(const char *nwid);
-		int zts_has_ipv6_address(const char *nwid);
+		void zts_get_address(const char *nwid, struct sockaddr_storage *addr, const size_t addrlen);
 		int zts_has_address(const char *nwid);
-		void zts_get_6plane_addr(char *addr, const char *nwid, const char *devID);
-		void zts_get_rfc4193_addr(char *addr, const char *nwid, const char *devID);
-		void zts_join(const char * nwid);
-		void zts_leave(const char * nwid);
+		void zts_get_6plane_addr(struct sockaddr_storage *addr, const char *nwid, const char *devID);
+		void zts_get_rfc4193_addr(struct sockaddr_storage *addr, const char *nwid, const char *devID);
+		void zts_join(const uin64_t nwid);
+		void zts_leave(const uint64_t nwid);
 		int zts_running();
 		int zts_start(const char *path);
 		int zts_start(const char *path, const char *nwid);
@@ -1958,8 +1955,8 @@ int ZT_control_semantics_test(bool *passed)
 	*/
 
 	int n_times = 5;
-	char *nwid = "17d709436c2c5367";
-	char *path = "fake_path";
+	char *nwid = (char*)"17d709436c2c5367";
+	char *path = (char*)"fake_path";
 /*
 	// Perform operations on ZeroTier before calling zts_start(). Doing this makes absolutely no sense but could happen
 	zts_stop();
@@ -1980,8 +1977,8 @@ int ZT_control_semantics_test(bool *passed)
 	sleep(1);
 */
 	zts_start(path, false);
-	zts_join(nwid);
-	zts_leave(nwid);
+	zts_join(strtoll(nwid,NULL,16));
+	zts_leave(strtoll(nwid,NULL,16));
 	zts_stop();	
 
 	DEBUG_TEST("---\n");
@@ -2000,12 +1997,8 @@ int ZT_control_semantics_test(bool *passed)
 	for (int i=0; i<n_times; i++) { zts_stop(); }
 */
 	DEBUG_TEST("---\n");
-	sleep(1);
-
-
-	sleep(30); // wait for any aftermath
 	*passed = true;
-	DEBUG_TEST("PASSED");
+	return 0;
 }
 
 #define SLAM_NUMBER 16
@@ -2668,9 +2661,12 @@ void bind_to_localhost_test(int port)
 int trigger_address_sanitizer() 
 {
 	// Deliberately create a bad read to trigger address sanitizer
+	/*
 	int stack_array[100];
 	stack_array[1] = 0;
 	return stack_array[1 + 100];  // BOOM
+	*/
+	return 0;
 }
 
 /****************************************************************************/
@@ -2692,7 +2688,7 @@ int main(int argc , char *argv[])
 	std::vector<std::string> results;
 	std::string remote_echo_ipv4, smode;
 
-	std::string nwid, stype;
+	std::string nwidstr, stype;
 	std::string ipstr, ipstr6, local_ipstr, local_ipstr6, remote_ipstr, remote_ipstr6;
 
 	int err         = 0;
@@ -2723,7 +2719,7 @@ int main(int argc , char *argv[])
 	// get origin details
 	local_ipstr      = testConf[me + ".ipv4"];
 	local_ipstr6     = testConf[me + ".ipv6"];
-	nwid             = testConf[me + ".nwid"];
+	nwidstr          = testConf[me + ".nwid"];
 	path             = testConf[me + ".path"];
 	stype            = testConf[me + ".test"];
 	smode            = testConf[me + ".mode"];
@@ -2742,7 +2738,7 @@ int main(int argc , char *argv[])
 	fprintf(stderr, "\tlocal_ipstr6     = %s\n", local_ipstr6.c_str());
 	fprintf(stderr, "\tstart_port       = %d\n", start_port);
 	fprintf(stderr, "\tpath             = %s\n", path.c_str());
-	fprintf(stderr, "\tnwid             = %s\n", nwid.c_str());
+	fprintf(stderr, "\tnwid             = %s\n", nwidstr.c_str());
 	fprintf(stderr, "\ttype             = %s\n\n", stype.c_str());
 	fprintf(stderr, "DESTINATION:\n\n");
 	fprintf(stderr, "\tremote_ipstr     = %s\n", remote_ipstr.c_str());
@@ -2753,10 +2749,10 @@ int main(int argc , char *argv[])
 	if (me != "dummy") { // used for testing ZT service wrapper API (before, during, and after coming online)
 		// set start time here since we need to wait for both libzt instances to be online
 		DEBUG_TEST("app-thread, waiting for libzt to come online...\n");
-		zts_startjoin(path.c_str(), nwid.c_str());
-		char device_id[ZTO_ID_LEN];
-		zts_get_id(device_id);
-		DEBUG_TEST("I am %s, %s", device_id, me.c_str());
+		uint64_t nwid = strtoll(nwidstr.c_str(),NULL,16);
+		zts_startjoin(path.c_str(), nwid);
+		uint64_t nodeId = zts_get_node_id();
+		DEBUG_TEST("I am %x, %s", nodeId, me.c_str());
 		if (mode == TEST_MODE_SERVER) {
 			DEBUG_TEST("Ready. You should start selftest program on second host now...\n\n");
 		}

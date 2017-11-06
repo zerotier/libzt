@@ -159,6 +159,10 @@ endif
 ifeq ($(LIBZT_TRACE),1)
 	LIBZT_DEFS+=-DLIBZT_DEBUG
 endif
+# For using experimental stack drivers which interface via raw API's 
+ifeq ($(LIBZT_RAW),1)
+	LIBZT_DEFS+=-DLIBZT_RAW=1
+endif
 
 ifeq ($(NS_DEBUG),1)
 	CFLAGS+=-Wall -g
@@ -173,13 +177,10 @@ ifeq ($(LIBZT_SANITIZE),1)
 endif
 
 # JNI (Java Native Interface)
-ifeq ($(SDK_JNI), 1)
-	# jni.h
-	LIBZT_INCLUDES+=-I$(shell /usr/libexec/java_home)/include 
-	# jni_md.h
-	LIBZT_INCLUDES+=-I$(shell /usr/libexec/java_home)/include/$(OSTYPE)
-	LIBZT_DEFS+=-DSDK_JNI
-endif
+# jni.h
+JNI_INCLUDES+=-I$(shell /usr/libexec/java_home)/include 
+# jni_md.h
+JNI_INCLUDES+=-I$(shell /usr/libexec/java_home)/include/$(OSTYPE)
 
 CXXFLAGS+=$(CFLAGS) -Wno-format -fno-rtti -std=c++11
 ZT_DEFS+=-DZT_SDK -DZT_SOFTWARE_UPDATE_DEFAULT="\"disable\""
@@ -190,48 +191,19 @@ STATIC_LIB=$(BUILD)/libzt.a
 ## Stack Configuration                                                      ##
 ##############################################################################
 
-# default stack (picoTCP)
-STACK_LWIP=1
-ifeq ($(NO_STACK)$(STACK_PICO),1)
-STACK_LWIP=0
-endif
+#ifeq ($(NO_STACK),1)
+#STACK_DRIVER_DEFS+=-DNO_STACK
+#endif
 
-# picoTCP
-ifeq ($(STACK_PICO),1)
-# picoTCP default protocol versions
-ifeq ($(NS_DEBUG),1)
-	STACK_DEFS+=
-endif
-ifeq ($(LIBZT_IPV4)$(LIBZT_IPV6),1)
-ifeq ($(LIBZT_IPV4),1)
-STACK_DRIVER_DEFS+=-DLIBZT_IPV4
-STACK_DEFS+=IPV4=1
-endif
-ifeq ($(LIBZT_IPV6),1)
-STACK_DRIVER_DEFS+=-DLIBZT_IPV6
-STACK_DEFS+=IPV6=1
-endif
-else
-STACK_DRIVER_DEFS+=-DLIBZT_IPV4 -DLIBZT_IPV6
-STACK_DEFS+=IPV6=1 IPV4=1
-endif
-STACK_DRIVER_DEFS+=-DSTACK_PICO
-STACK_LIB:=libpicotcp.a
-STACK_DIR:=ext/picotcp
-STACK_LIB:=$(STACK_DIR)/build/lib/$(STACK_LIB)
-STACK_DRIVER_FILES:=src/picoTCP.cpp
-STACK_INCLUDES+=-Iext/picotcp/include -Iext/picotcp/build/include
-endif
-
-# lwIP
-ifeq ($(STACK_LWIP),1)
-# lwIP default protocol versions
 ifeq ($(NS_DEBUG),1)
 	STACK_DEFS+=LWIP_DEBUG=1
 endif
-STACK_DRIVER_DEFS+=-DLWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS
-STACK_DRIVER_DEFS+=-DSTACK_LWIP
-STACK_DRIVER_FILES:=src/lwIP.cpp
+
+# picoTCP
+STACK_INCLUDES+=-Iext/picotcp/include -Iext/picotcp/build/include
+STACK_DRIVER_FILES:=src/picoTCP.cpp
+
+# lwIP
 LWIPDIR=ext/lwip/src
 STACK_INCLUDES+=-I$(LWIPARCHINCLUDE) -Iext/lwip/src/include/lwip \
 	-I$(LWIPDIR)/include \
@@ -239,14 +211,7 @@ STACK_INCLUDES+=-I$(LWIPARCHINCLUDE) -Iext/lwip/src/include/lwip \
 	-I$(LWIPDIR)/include/ipv4 \
 	-I$(LWIPDIR) \
 	-Iext
-endif
-
-ifeq ($(NO_STACK),1)
-STACK_DRIVER_DEFS+=-DNO_STACK
-endif
-
-STACK_DRIVER_DEFS+=-DLIBZT_IPV4 -DLWIP_IPV4=1 -DLIBZT_IPV6 -DLWIP_IPV6=1
-STACK_DEFS+=LIBZT_IPV6=1 IPV6=1 LIBZT_IPV4=1 IPV4=1
+STACK_DRIVER_FILES:=src/lwIP.cpp
 
 ##############################################################################
 ## Targets                                                                  ##
@@ -254,7 +219,7 @@ STACK_DEFS+=LIBZT_IPV6=1 IPV6=1 LIBZT_IPV4=1 IPV4=1
 
 %.o : %.cpp
 	@mkdir -p $(BUILD) obj
-	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(STACK_DRIVER_DEFS) $(ZT_DEFS) \
+	$(CXX) $(CXXFLAGS) $(STACK_DRIVER_DEFS) $(ZT_DEFS) \
 		$(ZT_INCLUDES) $(LIBZT_INCLUDES) -c $^ -o obj/$(@F)
 
 %.o : %.c
@@ -270,37 +235,38 @@ picotcp:
 
 lwip:
 	echo $(STACK_DEFS)
-	make -f make-liblwip.mk liblwip.a $(STACK_DEFS)
+	make -f make-liblwip.mk liblwip.a LIBZT_IPV4=1 IPV4=1
 
 lwip_driver:
 	$(CXX) $(CXXFLAGS) -c src/lwIP.cpp \
-		$(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
+		$(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) -DZT_DRIVER_MODULE
 
 picotcp_driver:
 	$(CXX) $(CXXFLAGS) -c src/picoTCP.cpp \
-		$(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
+		$(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) -DZT_DRIVER_MODULE
 
 libzt_socket_layer:
 	$(CXX) $(CXXFLAGS) -c src/VirtualSocket.cpp \
-		$(LIBZT_INCLUDES)
-	$(CXX) $(CXXFLAGS) -c src/VirtualBindingPair.cpp \
-		$(ZT_INCLUDES) $(LIBZT_INCLUDES)
+		$(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(LIBZT_DEFS)
+	$(CXX) $(CXXFLAGS) -c src/VirtualSocketLayer.cpp \
+		$(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_INCLUDES) $(LIBZT_DEFS) 
 	$(CXX) $(CXXFLAGS) -c src/VirtualTap.cpp \
-		$(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
+		$(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) 
 	$(CXX) $(CXXFLAGS) -c src/ZT1Service.cpp \
-		$(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(LIBZT_DEFS) $(STACK_DRIVER_DEFS)
+		$(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(LIBZT_DEFS)
 	$(CXX) $(CXXFLAGS) -c src/libzt.cpp \
-		$(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
+		$(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES)
+	$(CXX) $(CXXFLAGS) -c src/RingBuffer.cpp $(LIBZT_INCLUDES)
 
 jni_socket_wrapper:
 	$(CXX) $(CXXFLAGS) -DSDK_JNI -c src/libztJNI.cpp \
-		$(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
+		$(ZT_DEFS) $(ZT_INCLUDES) $(STACK_INCLUDES) $(JNI_INCLUDES) $(LIBZT_DEFS) $(LIBZT_INCLUDES)
 
 utilities:
-	$(CXX) $(CXXFLAGS) -c src/Platform.cpp \
+	$(CXX) $(CXXFLAGS) -c src/SysUtils.cpp \
 		$(LIBZT_INCLUDES)
 	$(CXX) $(CXXFLAGS) -c src/Utilities.cpp \
-		$(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(STACK_DRIVER_DEFS)
+		$(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(STACK_INCLUDES)
 
 # windows DLL
 win_dll: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
@@ -327,27 +293,12 @@ shared_jni_lib: lwip lwip_driver libzt_socket_layer jni_socket_wrapper utilities
 	$(CXX) $(CXXFLAGS) -dynamiclib -o $(BUILD)/libzt.dylib obj/*.o
 
 # static library
-ifeq ($(STACK_PICO),1)
-static_lib: picotcp picotcp_driver libzt_socket_layer utilities $(ZTO_OBJS)
+static_lib: picotcp picotcp_driver lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
 	mv *.o obj
 	mv ext/picotcp/build/lib/*.o obj
 	mv ext/picotcp/build/modules/*.o obj
 	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) obj/*.o
-endif
-ifeq ($(STACK_LWIP),1)
-static_lib: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
-	@mkdir -p $(BUILD) obj
-	mv *.o obj
-	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) obj/*.o
-endif
-# for layer-2 only (this will omit all userspace network stack code)
-ifeq ($(NO_STACK),1)
-static_lib: libzt_socket_layer utilities $(ZTO_OBJS)
-	@mkdir -p $(BUILD) obj
-	mv *.o obj
-	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) obj/*.o
-endif
 
 ##############################################################################
 ## iOS/macOS App Frameworks                                                 ##
@@ -377,7 +328,7 @@ python_module:
 ## Unit Tests                                                               ##
 ##############################################################################
 
-tests: selftest nativetest ztproxy
+tests: selftest nativetest ztproxy simple
 # intercept
 
 ZT_UTILS:=zto/node/Utils.cpp -Izto/node
@@ -400,8 +351,11 @@ intercept:
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(STACK_DRIVER_DEFS) $(LIBZT_INCLUDES) \
 		$(ZT_INCLUDES) examples/intercept/intercept.cpp -D_GNU_SOURCE \
 		-shared -o $(BUILD)/intercept.so $< -ldl
+simple:
+	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) examples/bindings/cpp/simple_client_server/client.cpp -o $(BUILD)/client -L$(BUILD) -lzt
+	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) examples/bindings/cpp/simple_client_server/server.cpp -o $(BUILD)/server -L$(BUILD) -lzt
 dlltest:
-	$(CXX) $(CXXFLAGS) 	
+	$(CXX) $(CXXFLAGS)
 
 
 ##############################################################################
@@ -410,9 +364,7 @@ dlltest:
 
 standardize:
 	vera++ --transform trim_right src/*.cpp
-	vera++ --transform trim_right src/*.hpp
 	vera++ --transform trim_right include/*.h
-	vera++ --transform trim_right include/*.hpp
 
 clean:
 	-rm -rf .depend

@@ -24,26 +24,24 @@
  * of your own application.
  */
 
-#include <unistd.h>
-#include <string.h>
-
 #if defined(__linux__) || defined(__APPLE__)
  #include <netdb.h>
 #endif
 
+#include <unistd.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
 #include <fcntl.h>
-
 #include <vector>
 #include <algorithm>
 #include <map>
 
-#include "RingBuffer.hpp"
-#include "ztproxy.hpp"
-#include "Utilities.h"
 #include "libzt.h"
+
+#include "RingBuffer.h"
+#include "ztproxy.hpp"
 
 namespace ZeroTier {
 
@@ -292,7 +290,7 @@ namespace ZeroTier {
 		}
 		// Write data coming from client TCP connection to its TX buffer, later emptied into libzt by threadMain I/O loop
 		conn->tx_m.lock();
-		if ((wr = conn->TXbuf->write((const unsigned char *)data, len)) < 0) {
+		if ((wr = conn->TXbuf->write((const char *)data, len)) < 0) {
 			DEBUG_ERROR("there was an error while writing data from client to tx buffer, err=%d", wr);
 		}
 		else {
@@ -368,7 +366,7 @@ int main(int argc, char **argv)
 	}
 	std::string path          = argv[1];
 	int proxy_listen_port     = atoi(argv[2]);
-	std::string nwid          = argv[3];
+	std::string nwidstr       = argv[3];
 	std::string internal_addr = argv[4];
 	int internal_port         = atoi(argv[5]);
 	std::string dns_nameserver= "";//argv[6];
@@ -376,13 +374,14 @@ int main(int argc, char **argv)
 	// Start ZeroTier Node
 	// Join Network which contains resources we need to proxy
 	DEBUG_INFO("waiting for libzt to come online");
-	zts_startjoin(path.c_str(), nwid.c_str());
+	uint64_t nwid = strtoll(nwidstr.c_str(),NULL,16);
+	zts_startjoin(path.c_str(), nwid);
 
-	ZeroTier::ZTProxy *proxy = new ZeroTier::ZTProxy(proxy_listen_port, nwid, path, internal_addr, internal_port, dns_nameserver);
+	ZeroTier::ZTProxy *proxy = new ZeroTier::ZTProxy(proxy_listen_port, nwidstr, path, internal_addr, internal_port, dns_nameserver);
 	
 	if (proxy) {
 		printf("\nZTProxy started. Listening on %d\n", proxy_listen_port);
-		printf("Traffic will be proxied to and from %s:%d on network %s\n", internal_addr.c_str(), internal_port, nwid.c_str());
+		printf("Traffic will be proxied to and from %s:%d on network %s\n", internal_addr.c_str(), internal_port, nwidstr.c_str());
 		printf("Proxy Node config files and key stored in: %s/\n\n", path.c_str());
 		while(1) {
 			sleep(1);

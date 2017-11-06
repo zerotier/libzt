@@ -12,3 +12,10 @@ To get this example project to work, do the following:
 Notes:
 
 Upon execution, it will load the libzt dynamic library via the `loadLibrary` method and begin generating an identity.
+
+
+***
+
+More resources on JNI usage:
+
+http://journals.ecs.soton.ac.uk/java/tutorial/native1.1/implementing/index.html

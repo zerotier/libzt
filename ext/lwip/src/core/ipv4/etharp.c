@@ -340,8 +340,8 @@ etharp_find_entry(const ip4_addr_t *ipaddr, u8_t flags, struct netif* netif)
   if (((flags & ETHARP_FLAG_FIND_ONLY) != 0) ||
       /* or no empty entry found and not allowed to recycle? */
       ((empty == ARP_TABLE_SIZE) && ((flags & ETHARP_FLAG_TRY_HARD) == 0))) {
-    LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_find_entry: no empty entry found and not allowed to recycle\n"));
-    return (s8_t)ERR_MEM;
+    //LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_find_entry: no empty entry found and not allowed to recycle\n"));
+    //return (s8_t)ERR_MEM;
   }
 
   /* b) choose the least destructive entry to recycle:

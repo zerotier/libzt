@@ -30,31 +30,38 @@
  * Platform-specific implementations of common functions
  */
 
-#ifndef LIBZT_PLATFORM_H
-#define LIBZT_PLATFORM_H
-
-#ifdef __cplusplus
-extern "C" {
+#if defined(STACK_LWIP)
+#include "lwip/sockets.h"
+#include "lwip/sys.h"
+#include "lwip/ip_addr.h"
+#include "lwip/netdb.h"
+#include "dns.h"
+#endif
+#if defined(NO_STACK)
+#include <sys/socket.h>
 #endif
 
-/**
- * @brief Used to perform a common action upon a failure in the VirtualSocket/VirtualTap layer.
- *
- * @usage For internal use only.
- * @return
- */
-void handle_general_failure();
+#include <sys/socket.h>
 
-/**
- * @brief Returns the thread-id. Used in debug traces.
- *
- * @usage For internal use only.
- * @return
- */
-inline unsigned int gettid();
+#include "SysUtils.h"
+#include <stdint.h>
+#include <pthread.h>
 
-#ifdef __cplusplus
+#ifdef __linux__
+#include <sys/syscall.h>
+#include <unistd.h>
+#endif
+
+inline unsigned int gettid()
+{
+#ifdef _WIN32
+		//return GetCurrentThreadId();
+		return 0;
+#elif defined(__linux__)
+		return static_cast<unsigned int>(syscall(__NR_gettid));
+#elif defined(__APPLE__)
+		uint64_t tid64;
+		pthread_threadid_np(0, &tid64);
+		return static_cast<unsigned int>(tid64);
+#endif
 }
-#endif
-
-#endif // _H

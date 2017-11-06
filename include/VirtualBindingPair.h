@@ -37,7 +37,15 @@
 extern "C" {
 #endif
 
-struct VirtualBindingPair;
+/**
+ * A helper object for passing VirtualTap(s) and VirtualSocket(s) through the stack
+ */
+struct VirtualBindingPair
+{
+  VirtualTap *tap;
+  VirtualSocket *vs;
+  VirtualBindingPair(VirtualTap *_tap, VirtualSocket *_vs) : tap(_tap), vs(_vs) {}
+};
 
 #ifdef __cplusplus
 }

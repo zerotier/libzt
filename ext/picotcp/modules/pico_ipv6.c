@@ -23,7 +23,7 @@
 #include "pico_mcast.h"
 #ifdef PICO_SUPPORT_IPV6
 
-#include "../../../include/Debug.hpp"
+#include "../../../include/libztDebug.h"
 
 #define PICO_IPV6_EXTHDR_OPT_PAD1 0
 #define PICO_IPV6_EXTHDR_OPT_PADN 1

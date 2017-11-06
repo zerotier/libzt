@@ -33,7 +33,7 @@
 /**
  * @file
  *
- * lwIP Options Configuration
+ * lwIP options configuration
  */
 
 #ifndef __LWIPOPTS_H__
@@ -108,47 +108,47 @@
 #define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_ALL
 #define LWIP_DBG_TYPES_ON               LWIP_DBG_ON
 
-#define ETHARP_DEBUG                    LWIP_DBG_OFF
+#define ETHARP_DEBUG                    LWIP_DBG_ON
 
 // interfaces
 #define SLIP_DEBUG                      LWIP_DBG_OFF
-#define NETIF_DEBUG                     LWIP_DBG_OFF
+#define NETIF_DEBUG                     LWIP_DBG_ON
 // API (not used in libzt)
-#define API_LIB_DEBUG                   LWIP_DBG_OFF
-#define API_MSG_DEBUG                   LWIP_DBG_OFF
-#define SOCKETS_DEBUG                   LWIP_DBG_OFF
+#define API_LIB_DEBUG                   LWIP_DBG_ON
+#define API_MSG_DEBUG                   LWIP_DBG_ON
+#define SOCKETS_DEBUG                   LWIP_DBG_ON
 // other
-#define ICMP_DEBUG                      LWIP_DBG_OFF
-#define IGMP_DEBUG                      LWIP_DBG_OFF
-#define INET_DEBUG                      LWIP_DBG_OFF
-#define RAW_DEBUG                       LWIP_DBG_OFF
+#define ICMP_DEBUG                      LWIP_DBG_ON
+#define IGMP_DEBUG                      LWIP_DBG_ON
+#define INET_DEBUG                      LWIP_DBG_ON
+#define RAW_DEBUG                       LWIP_DBG_ON
 // memory
-#define PBUF_DEBUG                      LWIP_DBG_OFF
-#define MEM_DEBUG                       LWIP_DBG_OFF
-#define MEMP_DEBUG                      LWIP_DBG_OFF
+#define PBUF_DEBUG                      LWIP_DBG_ON
+#define MEM_DEBUG                       LWIP_DBG_ON
+#define MEMP_DEBUG                      LWIP_DBG_ON
 // system
 #define SYS_DEBUG                       LWIP_DBG_OFF
 #define TIMERS_DEBUG                    LWIP_DBG_OFF
 // TCP
 #define TCP_DEBUG_TMR					LWIP_DBG_OFF // not standard in lwIP, added for debugging convenience
-#define TCP_DEBUG                       LWIP_DBG_OFF
-#define TCP_INPUT_DEBUG                 LWIP_DBG_OFF
+#define TCP_DEBUG                       LWIP_DBG_ON
+#define TCP_INPUT_DEBUG                 LWIP_DBG_ON
 #define TCP_FR_DEBUG                    LWIP_DBG_OFF
 #define TCP_RTO_DEBUG                   LWIP_DBG_OFF
 #define TCP_CWND_DEBUG                  LWIP_DBG_OFF
 #define TCP_WND_DEBUG                   LWIP_DBG_OFF
-#define TCP_OUTPUT_DEBUG                LWIP_DBG_OFF
+#define TCP_OUTPUT_DEBUG                LWIP_DBG_ON
 #define TCP_RST_DEBUG                   LWIP_DBG_OFF
 #define TCP_QLEN_DEBUG                  LWIP_DBG_OFF
 // IP
 #define AUTOIP_DEBUG                    LWIP_DBG_OFF
-#define IP_DEBUG                        LWIP_DBG_OFF
+#define IP_DEBUG                        LWIP_DBG_ON
 #define IP_REASS_DEBUG                  LWIP_DBG_OFF
-#define IP6_DEBUG                       LWIP_DBG_OFF
+#define IP6_DEBUG                       LWIP_DBG_ON
 // TCP/IP
-#define TCPIP_DEBUG                     LWIP_DBG_OFF
+#define TCPIP_DEBUG                     LWIP_DBG_ON
 // UDP
-#define UDP_DEBUG                       LWIP_DBG_OFF
+#define UDP_DEBUG                       LWIP_DBG_ON
 // services
 #define DHCP_DEBUG                      LWIP_DBG_OFF
 #define DNS_DEBUG                       LWIP_DBG_OFF
@@ -381,7 +381,8 @@ happening sooner than they should.
  * LWIP_ARP==1: Enable ARP functionality.
  */
 #define LWIP_ARP                        1
-
+#define ARP_TABLE_SIZE                  64
+//#define ETHARP_FLAG_TRY_HARD            0
 
 /*------------------------------------------------------------------------------
 ------------------------------------ IP options---------------------------------

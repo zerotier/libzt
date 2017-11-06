@@ -54,14 +54,13 @@ namespace ZeroTier {
 	public:
 		int zfd;
 		PhySocket *client_sock;
-		RingBuffer<unsigned char> *TXbuf;
-		RingBuffer<unsigned char> *RXbuf;
+		RingBuffer *TXbuf, *RXbuf;
 		Mutex tx_m, rx_m;
 
 		TcpConnection() {
 			zfd = -1;			
-			TXbuf = new RingBuffer<unsigned char>(BUF_SZ);
-			RXbuf = new RingBuffer<unsigned char>(BUF_SZ);
+			TXbuf = new RingBuffer(BUF_SZ);
+			RXbuf = new RingBuffer(BUF_SZ);
 		}
 
 		~TcpConnection() {

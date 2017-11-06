@@ -23,7 +23,7 @@
 #include "pico_socket_tcp.h"
 #include "pico_socket_udp.h"
 
-#include "../../../include/Debug.hpp"
+#include "../../../include/libztDebug.h"
 
 #if defined (PICO_SUPPORT_IPV4) || defined (PICO_SUPPORT_IPV6)
 #if defined (PICO_SUPPORT_TCP) || defined (PICO_SUPPORT_UDP)

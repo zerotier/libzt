@@ -75,7 +75,7 @@
  * in turn pull in a lot of standard libary code. In resource-constrained 
  * systems, this should be defined to something less resource-consuming.
  */
-#include "Debug.hpp"
+#include "libztDebug.h"
 #ifndef LWIP_PLATFORM_DIAG
 #define LWIP_PLATFORM_DIAG(x) DEBUG_STACK x
 #include <stdio.h>

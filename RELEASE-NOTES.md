@@ -1,5 +1,17 @@
-### 2017-XX-XX -- Version 1.1.6
- - In progress
+Current version: 1.1.5
+*** 
+
+### 2017-11-10 -- Version 1.1.6 
+ - [In progress]
+ - API simplification
+   - Removed protocol specific address getters, )
+   - Changed how network IDs and node IDs are passed to the library (everything is now uint64_t) 
+ - Initial steps for C-- efforts
+   - Removed classes for stack drivers
+   - Removed namespaces
+     - Names of key classes changed slightly to prevent collisions
+ - Re-classification of Virtual Socket Layer (and associated stack drivers) as experimental
+   - lwIP sequential socket API is now default
 
 ### 2017-10-19 -- Version 1.1.5 (Current)
 

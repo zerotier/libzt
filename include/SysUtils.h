@@ -30,40 +30,46 @@
  * Platform-specific implementations of common functions
  */
 
-#include "Platform.h"
+#ifndef LIBZT_SYSUTILS_H
+#define LIBZT_SYSUTILS_H
+
+#include <sys/time.h>
 #include <stdint.h>
-#include <pthread.h>
 
-#ifdef __linux__
-#include <sys/syscall.h>
-#include <unistd.h>
-#endif
+/**
+ * @brief Returns the thread-id. Used in debug traces.
+ *
+ * @usage For internal use only.
+ * @return
+ */
+inline unsigned int gettid();
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void handle_general_failure() {
-#ifdef ZT_EXIT_ON_GENERAL_FAIL
-	DEBUG_ERROR("exiting (ZT_EXIT_ON_GENERAL_FAIL==1)");
-	exit(-1);
-#endif
-}
-
-inline unsigned int gettid()
+/**
+ * @brief Current time in milliseconds since epoch, platform-aware convenience function.
+ *
+ * @usage For internal use only.
+ * @return Current time in integer form
+ */
+inline uint64_t time_now()
 {
-#ifdef _WIN32
-		//return GetCurrentThreadId();
-		return 0;
-#elif defined(__linux__)
-		return static_cast<unsigned int>(syscall(__NR_gettid));
-#elif defined(__APPLE__)
-		uint64_t tid64;
-		pthread_threadid_np(0, &tid64);
-		return static_cast<unsigned int>(tid64);
+#ifdef __WINDOWS__
+    FILETIME ft;
+    SYSTEMTIME st;
+    ULARGE_INTEGER tmp;
+    GetSystemTime(&st);
+    SystemTimeToFileTime(&st,&ft);
+    tmp.LowPart = ft.dwLowDateTime;
+    tmp.HighPart = ft.dwHighDateTime;
+    return (uint64_t)( ((tmp.QuadPart - 116444736000000000LL) / 10000L) + st.wMilliseconds );
+#else
+    struct timeval tv;
+#ifdef __LINUX__
+    syscall(SYS_gettimeofday,&tv,0); /* fix for musl libc broken gettimeofday bug */
+#else
+    gettimeofday(&tv,(struct timezone *)0);
+#endif
+    return ( (1000LL * (uint64_t)tv.tv_sec) + (uint64_t)(tv.tv_usec / 1000) );
 #endif
 }
 
-#ifdef __cplusplus
-}
-#endif
+#endif // _H

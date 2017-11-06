@@ -38,14 +38,11 @@
 #include <unistd.h>
 #endif
 
-#include <sys/types.h>
-#include <cstring>
-
 #if defined(__linux__)
 #include <sys/syscall.h>
 #endif
 
-#include "Platform.h"
+#include <string.h>
 
 #define ZT_MSG_ERROR       true // Errors
 #define ZT_MSG_INFO        true // Information which is generally useful to any developer
@@ -81,18 +78,13 @@
 
 #define ZT_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__) // short
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-extern unsigned int gettid(); // defined in libzt.cpp
-#ifdef __cplusplus
-}
-#endif
+extern unsigned int gettid();
 
 #ifdef __linux__
   #define ZT_THREAD_ID syscall(SYS_gettid)
-#elif __APPLE__
-  #define ZT_THREAD_ID (long)0//(long)gettid()
+#endif
+#ifdef __APPLE__
+  #define ZT_THREAD_ID (long)0 //(long)gettid()
 #endif
 #ifdef __MINGW32__
   #define ZT_THREAD_ID (long)0

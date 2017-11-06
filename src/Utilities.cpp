@@ -30,8 +30,7 @@
  * Misc utilities
  */
 
-#include "InetAddress.hpp"
-#include "Debug.hpp"
+//#include "libztDebug.h"
 #include "Utilities.h"
 
 #if defined(__MINGW32__)
@@ -194,10 +193,6 @@ int inet_pton(int af, const char *src, void *dst)
 
 #endif
 
-
-
-
-
 char *beautify_eth_proto_nums(int proto)
 {
 	if (proto == 0x0800) return (char*)"IPv4";
@@ -253,81 +248,8 @@ char *beautify_eth_proto_nums(int proto)
 	return (char*)"UNKNOWN";
 }
 
-bool ipv6_in_subnet(ZeroTier::InetAddress *subnet, ZeroTier::InetAddress *addr)
-{
-	ZeroTier::InetAddress r(addr);
-	ZeroTier::InetAddress b(subnet);
-	const unsigned int bits = subnet->netmaskBits();
-	switch(r.ss_family) {
-		case AF_INET:
-			reinterpret_cast<struct sockaddr_in *>(&r)->sin_addr.s_addr &= ZeroTier::Utils::hton((uint32_t)(0xffffffff << (32 - bits)));
-			break;
-		case AF_INET6: {
-			uint64_t nm[2];
-			uint64_t nm2[2];
-			memcpy(nm,reinterpret_cast<struct sockaddr_in6 *>(&r)->sin6_addr.s6_addr,16);
-			memcpy(nm2,reinterpret_cast<struct sockaddr_in6 *>(&b)->sin6_addr.s6_addr,16);
-
-			nm[0] &= ZeroTier::Utils::hton((uint64_t)((bits >= 64) ? 0xffffffffffffffffULL : (0xffffffffffffffffULL << (64 - bits))));
-			nm[1] &= ZeroTier::Utils::hton((uint64_t)((bits <= 64) ? 0ULL : (0xffffffffffffffffULL << (128 - bits))));
-
-			nm2[0] &= ZeroTier::Utils::hton((uint64_t)((bits >= 64) ? 0xffffffffffffffffULL : (0xffffffffffffffffULL << (64 - bits))));
-			nm2[1] &= ZeroTier::Utils::hton((uint64_t)((bits <= 64) ? 0ULL : (0xffffffffffffffffULL << (128 - bits))));
-
-			memcpy(reinterpret_cast<struct sockaddr_in6 *>(&r)->sin6_addr.s6_addr,nm,16);
-			memcpy(reinterpret_cast<struct sockaddr_in6 *>(&b)->sin6_addr.s6_addr,nm2,16);
-		}
-		break;
-	}
-	char b0[64], b1[64];
-	memset(b0, 0, 64);
-	memset(b1, 0, 64);
-	return !strcmp(r.toIpString(b0), b.toIpString(b1));
-}
-
-/*
-void sockaddr2inet(int socket_family, const struct sockaddr *addr, ZeroTier::InetAddress *inet)
-{
-	char ipstr[INET6_ADDRSTRLEN];
-	memset(ipstr, 0, INET6_ADDRSTRLEN);
-	if (socket_family == AF_INET) {
-		inet_ntop(AF_INET,
-			(const void *)&((struct sockaddr_in *)addr)->sin_addr.s_addr, ipstr, INET_ADDRSTRLEN);
-		inet->fromString(ipstr);
-	}
-	if (socket_family == AF_INET6) {
-		inet_ntop(AF_INET6,
-			(const void *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr, ipstr, INET6_ADDRSTRLEN);
-		char addrstr[64];
-		sprintf(addrstr, "%s", ipstr);
-		inet->fromString(addrstr);
-	}
-}
-*/
-
 void mac2str(char *macbuf, int len, unsigned char* addr)
 {
 	snprintf(macbuf, len, "%02x:%02x:%02x:%02x:%02x:%02x",
          addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
 }
-
-
-/**
- * Convert from standard IPV6 address structure to an lwIP native structure
- */
-/*
-inline void in6_to_ip6(ip6_addr_t *ba, struct sockaddr_in6 *in6)
-{
-	uint8_t *ip = &(in6->sin6_addr).s6_addr[0];
-	IP6_ADDR2(ba,
-		(((ip[ 0] & 0xffff) << 8) | ((ip[ 1]) & 0xffff)),
-		(((ip[ 2] & 0xffff) << 8) | ((ip[ 3]) & 0xffff)),
-		(((ip[ 4] & 0xffff) << 8) | ((ip[ 5]) & 0xffff)),
-		(((ip[ 6] & 0xffff) << 8) | ((ip[ 7]) & 0xffff)),
-		(((ip[ 8] & 0xffff) << 8) | ((ip[ 9]) & 0xffff)),
-		(((ip[10] & 0xffff) << 8) | ((ip[11]) & 0xffff)),
-		(((ip[12] & 0xffff) << 8) | ((ip[13]) & 0xffff)),
-		(((ip[14] & 0xffff) << 8) | ((ip[15]) & 0xffff))
-	);
-}
-*/

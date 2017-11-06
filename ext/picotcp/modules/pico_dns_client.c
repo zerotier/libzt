@@ -779,18 +779,18 @@ static int pico_dns_getname_univ(const char *ip, void (*callback)(char *, void *
     return 0;
 }
 
-int pico_dns_client_getname(const char *ip, void (*callback)(char *, void *), void *arg)
+extern int pico_dns_client_getname(const char *ip, void (*callback)(char *, void *), void *arg)
 {
     return pico_dns_getname_univ(ip, callback, arg, PICO_DNS_ARPA4);
 }
 
 
-int pico_dns_client_getname6(const char *ip, void (*callback)(char *, void *), void *arg)
+extern int pico_dns_client_getname6(const char *ip, void (*callback)(char *, void *), void *arg)
 {
     return pico_dns_getname_univ(ip, callback, arg, PICO_DNS_ARPA6);
 }
 
-int pico_dns_client_nameserver(struct pico_ip4 *ns, uint8_t flag)
+extern int pico_dns_client_nameserver(struct pico_ip4 *ns, uint8_t flag)
 {
     if (!ns) {
         pico_err = PICO_ERR_EINVAL;
@@ -820,7 +820,7 @@ int pico_dns_client_nameserver(struct pico_ip4 *ns, uint8_t flag)
     return 0;
 }
 
-int pico_dns_client_init(void)
+extern int pico_dns_client_init(void)
 {
     struct pico_ip4 default_ns = {
         0
@@ -834,7 +834,7 @@ int pico_dns_client_init(void)
 
 #else
 
-int pico_dns_client_init(void)
+extern int pico_dns_client_init(void)
 {
     dbg("ERROR Trying to initialize DNS module: IPv4 not supported in this build.\n");
     return -1;

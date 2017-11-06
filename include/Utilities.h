@@ -33,10 +33,14 @@
 #ifndef LIBZT_UTILITIES_H
 #define LIBZT_UTILITIES_H
 
-#include "InetAddress.hpp"
+#include <stdio.h>
+
+namespace ZeroTier {
+	struct InetAddress;
+}
 
 #if defined(__MINGW32__)
- 
+
 #define NS_INADDRSZ  4
 #define NS_IN6ADDRSZ 16
 #define NS_INT16SZ   2
@@ -45,15 +49,6 @@ int inet_pton4(const char *src, void *dst);
 int inet_pton6(const char *src, void *dst);
 int inet_pton(int af, const char *src, void *dst);
 #endif
-
-/**
- * @brief Returns masked address for subnet comparisons
- *
- * @usage For internal use only.
- * @param socket_type
- * @return
- */
-bool ipv6_in_subnet(ZeroTier::InetAddress *subnet, ZeroTier::InetAddress *addr);
 
 /**
  * @brief Convert protocol numbers to human-readable strings
@@ -65,17 +60,6 @@ bool ipv6_in_subnet(ZeroTier::InetAddress *subnet, ZeroTier::InetAddress *addr);
 char *beautify_eth_proto_nums(int proto);
 
 /**
- * @brief Convert a struct sockaddr to a ZeroTier::InetAddress
- *
- * @usage For internal use only.
- * @param socket_family
- * @param addr
- * @param inet
- * @return
- */
-//void sockaddr2inet(int socket_family, const struct sockaddr *addr, ZeroTier::InetAddress *inet);
-
-/**
  * @brief Convert a raw MAC address byte array into a human-readable string
  *
  * @usage For internal use only.
@@ -85,13 +69,5 @@ char *beautify_eth_proto_nums(int proto);
  * @return
  */
 void mac2str(char *macbuf, int len, unsigned char* addr);
-
-#if defined(STACK_LWIP) && defined(LIBZT_IPV6)
-#define IP6_ADDR2(ipaddr, a,b,c,d,e,f,g,h) do { (ipaddr)->addr[0] = ZeroTier::Utils::hton((u32_t)((a & 0xffff) << 16) | (b & 0xffff)); \
-                                               (ipaddr)->addr[1] = ZeroTier::Utils::hton(((c & 0xffff) << 16) | (d & 0xffff)); \
-                                               (ipaddr)->addr[2] = ZeroTier::Utils::hton(((e & 0xffff) << 16) | (f & 0xffff)); \
-                                               (ipaddr)->addr[3] = ZeroTier::Utils::hton(((g & 0xffff) << 16) | (h & 0xffff)); } while(0)
-
-#endif
 
 #endif // _H

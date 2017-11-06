@@ -28,8 +28,6 @@ A library version of [ZeroTier](https://github.com/zerotier/ZeroTierOne), **libz
 int main() 
 {
 	char *str = "welcome to the machine";
-	char *nwid = "c7cd7c981b0f52a2";      // network
-	char *path = "config_path";           // where this instance's keys and configs are stored
 	char *ip = "10.8.8.42";               // remote address
 	int port = 8080;                      // remote port
 
@@ -38,7 +36,7 @@ int main()
 	addr.sin_addr.s_addr = inet_addr(ip);
 	addr.sin_port = htons(port);	
 
-	zts_startjoin(path, nwid);
+	zts_startjoin("path", 0xc7cd7c981b0f52a2); // config path, nwid
 
 	int fd, err = 0;
 	if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -85,4 +83,7 @@ Please make pull requests against the `dev` branch. The `master` branch is relea
 
 ### Commercial License
  - To be released from GPLv3, contact us directly via `contact@zerotier.com` to discuss commercial licensing.
+
+### Adding a custom network stack
+ - If you wish to use something other than lwIP or picoTCP, you can easily add your own API function calls in `src/libzt.cpp` or `src/VirtualSocket.cpp` depending on whether your stack's API exposes a POSIX-socket API or a raw API, respectively.
  

@@ -27,6 +27,7 @@
 // Simple Java example for libzt using JNI
 
 import zerotier.ZeroTier;
+import java.net.*;
 
 public class ExampleApp {
 	
@@ -39,25 +40,28 @@ public class ExampleApp {
     }
 
 	public static void main(String[] args) {
-		
+	
         final ZeroTier libzt = new ZeroTier();
                 
         new Thread(new Runnable() {
             public void run() {
         		System.out.println("starting libzt");
-        		libzt.startjoin("/Users/joseph/op/zt/libzt/ztjni", "1212121212121212");
+                //libzt.startjoin("config_path", "123456789abcdeff");
+        		libzt.startjoin("/Users/joseph/op/zt/libzt/ztjni", "17d709436c2c5367");
                 System.out.println("started.");
-                // start(path) will not block
-                // startjoin(path, nwid) will block
+
                 int fd = 0, err = 0;
                 if ((fd = libzt.socket(libzt.AF_INET, libzt.SOCK_STREAM, 0)) < 0) {
                     System.out.println("error creating socket");
                     return;
                 }
-                if ((err = libzt.bind(fd, "0.0.0.0", 3000)) < 0) {
+
+                InetSocketAddress addr = new InetSocketAddress("0.0.0.0", 3434);
+
+                if ((err = libzt.bind(fd, addr)) < 0) {
                     System.out.println("error binding socket to virtual interface");
                     return;
-                }
+                }  
             }
         }).start();
          

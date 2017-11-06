@@ -34,6 +34,85 @@
 #define LIBZT_DEFINES_H
 
 /**
+ * Use ZeroTier Virtual Socket layer to abstract network stack raw API
+ */
+#define ZT_VIRTUAL_SOCKET  0
+/**
+ * Use lwIP sockets API
+ */
+#define ZT_LWIP_SEQ_SOCKET 1
+/**
+ * Use pico BSD socket API
+ */
+#define ZT_PICO_BSD_SOCKET 0
+
+#define STACK_LWIP 1
+#define STACK_PICO 0
+#define NO_STACK   0 // for layer-2 only (this will omit all userspace network stack code)
+
+
+/*  sanity checks for userspace network stack and socket API layer choices
+
+ EX.
+ zts_socket()
+   1. ) ZT_VIRTUAL_SOCKET? -> virt_socket() --- Choose this if the default socket layer isn't doing what you need
+                       STACK_LWIP? -> raw lwip_ API
+                       STACK_PICO? -> raw pico_ API
+                       otherStack? -> raw API
+
+   2.) ZT_LWIP_SEQ_SOCKET? (default) -> lwip_socket() --- currently provides greatest safety and performance
+   3.) ZT_PICO_BSD_SOCKET? -> pico_ socket API
+   otherStack? -> other_stack_socket()
+
+   Default is: STACK_LWIP=1 ZT_LWIP_SEQ_SOCKET=1
+
+*/
+
+#if (STACK_LWIP+STACK_PICO) > 1
+#error "Multiple network stacks specified. Pick only one."
+#endif
+#if STACK_LWIP==0 && STACK_PICO==0 && NO_STACK==0
+#error "No network stacks specified and NO_STACK wasn't set. Pick one."
+#endif
+#if ZT_VIRTUAL_SOCKET==0 && ZT_LWIP_SEQ_SOCKET==0 && ZT_PICO_BSD_SOCKET==0
+#error "No socket handling layer specified. Pick one."
+#endif
+#if (ZT_VIRTUAL_SOCKET + ZT_LWIP_SEQ_SOCKET + ZT_PICO_BSD_SOCKET) > 1
+#error "Multiple socket handling layers specified. Pick only one."
+#endif
+#if  ZT_LWIP_SEQ_SOCKET==1 && STACK_LWIP==0
+#error "ZT_LWIP_SEQ_SOCKET is selected as socket handling layer, but STACK_LWIP isn't set"
+#endif
+#if  ZT_PICO_BSD_SOCKET==1 && STACK_PICO==0
+#error "ZT_PICO_BSD_SOCKET is selected as socket handling layer, but STACK_PICO isn't set"
+#endif
+
+#if STACK_LWIP==1
+  #undef STACK_PICO
+  #undef NO_STACK
+#endif
+#if STACK_PICO==1
+  #undef STACK_LWIP
+  #undef NO_STACK
+#endif
+#if NO_STACK==1
+  #undef STACK_LWIP
+  #undef STACK_PICO
+#endif
+#if ZT_VIRTUAL_SOCKET==1
+  #undef ZT_LWIP_SEQ_SOCKET
+  #undef ZT_PICO_BSD_SOCKET
+#endif
+#if ZT_LWIP_SEQ_SOCKET==1
+  #undef ZT_VIRTUAL_SOCKET
+  #undef ZT_PICO_BSD_SOCKET
+#endif
+#if ZT_PICO_BSD_SOCKET==1
+  #undef ZT_VIRTUAL_SOCKET
+  #undef ZT_LWIP_SEQ_SOCKET
+#endif
+
+/**
  * Maximum MTU size for ZeroTier
  */
 #define ZT_MAX_MTU 10000
@@ -49,7 +128,7 @@
 #define ZTO_ID_LEN                  16
 
 #if !defined(__MINGW32__)
-typedef uint32_t socklen_t;
+typedef unsigned int socklen_t;
 #endif
 
 /****************************************************************************/
@@ -136,6 +215,9 @@ struct sockaddr_ll {
 #if defined(STACK_LWIP)
 
 typedef signed char err_t;
+
+#define ND6_DISCOVERY_INTERVAL 1000
+#define ARP_DISCOVERY_INTERVAL ARP_TMR_INTERVAL
 
 /**
   Specifies the polling interval and the callback function that should
@@ -310,13 +392,7 @@ typedef signed char err_t;
 /**
  * Interval for performing background tasks (such as adding routes) on VirtualTap objects (in seconds)
  */
-#define ZT_HOUSEKEEPING_INTERVAL           3
-
-/**
- * Whether or not we want libzt to exit on internal failure
- */
-#define ZT_EXIT_ON_GENERAL_FAIL            false
-
+#define ZT_HOUSEKEEPING_INTERVAL           1
 
 /****************************************************************************/
 /* Socket API Signatures                                                    */

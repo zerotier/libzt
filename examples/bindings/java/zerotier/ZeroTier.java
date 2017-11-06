@@ -26,6 +26,8 @@
 
 package zerotier;
 
+import java.net.*;
+
 public class ZeroTier {
 	
     // socket families
@@ -58,7 +60,7 @@ public class ZeroTier {
     // socket API
     public native int socket(int family, int type, int protocol);
     public native int connect(int fd, String addr, int port);
-    public native int bind(int fd, String addr, int port);
+    public native int bind(int fd, InetSocketAddress addr);
     public native int listen(int fd, int backlog);
     public native int accept(int fd, Address addr);
     public native int accept4(int fd, String addr, int port);

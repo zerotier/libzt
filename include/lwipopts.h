@@ -516,7 +516,7 @@ happening sooner than they should.
  * transport.
  */
 #define LWIP_DNS                        1
-#define LWIP_DNS_API_DECLARE_H_ERRNO    0
+#define LWIP_DNS_API_DECLARE_H_ERRNO    1
 
 /*------------------------------------------------------------------------------
 -------------------------------- UDP Options -----------------------------------

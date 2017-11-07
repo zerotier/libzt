@@ -352,8 +352,8 @@ intercept:
 		$(ZT_INCLUDES) examples/intercept/intercept.cpp -D_GNU_SOURCE \
 		-shared -o $(BUILD)/intercept.so $< -ldl
 simple:
-	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) examples/bindings/cpp/simple_client_server/client.cpp -o $(BUILD)/client -L$(BUILD) -lzt
-	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) examples/bindings/cpp/simple_client_server/server.cpp -o $(BUILD)/server -L$(BUILD) -lzt
+	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) examples/bindings/cpp/simple_client_server/client.cpp -o $(BUILD)/client -L$(BUILD) -lzt $(WINDEFS)
+	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) examples/bindings/cpp/simple_client_server/server.cpp -o $(BUILD)/server -L$(BUILD) -lzt $(WINDEFS)
 dlltest:
 	$(CXX) $(CXXFLAGS)
 

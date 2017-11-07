@@ -34,7 +34,20 @@
 #define LIBZT_H
 
 #include "libztDebug.h"
-#include "sys/socket.h"
+
+#include <stdlib.h>
+#include <unistd.h>
+ 
+#if defined(__linux__) || defined(__APPLE__)
+#include <sys/socket.h>
+#endif
+
+#if defined(__MINGW32__) || defined(__MINGW64__)
+#include <WinSock2.h>
+#include <stdint.h>
+#include <WS2tcpip.h>
+int inet_pton(int af, const char *src, void *dst);
+#endif
 
 /****************************************************************************/
 /* DLL export for Windows (and other cruft)                                 */
@@ -43,9 +56,6 @@
 #if (defined(_WIN32) || defined(_WIN64)) && !(defined(__MINGW32__) || defined(__MINGW64__))
 typedef int ssize_t;
 #endif
-
-#include <stdlib.h>
-#include <unistd.h>
 
 #if defined(__MING32__) || defined(__MING64__)
 #ifdef ADD_EXPORTS

@@ -24,20 +24,27 @@
  * of your own application.
  */
 
-#include <unistd.h>
+#if defined(__linux__) || defined(__APPLE__)
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include <arpa/inet.h>
-#include <string.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <netdb.h>
+#include <poll.h>
+#endif
+
+#if defined(__MINGW32__) || defined(__MINGW64__)
+#include <WinSock2.h>
+#include <stdint.h>
+#endif
+
+#include <unistd.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
 #include <fcntl.h>
 #include <errno.h>
-#include <poll.h>
 #include <iostream>
 #include <vector>
 #include <algorithm>

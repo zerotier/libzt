@@ -41,7 +41,9 @@
 #include <sys/socket.h>
 #endif
 
+#if defined(__linux__) || defined(__APPLE__)
 #include <sys/socket.h>
+#endif
 
 #include "SysUtils.h"
 #include <stdint.h>

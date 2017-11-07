@@ -30,10 +30,13 @@
  * Misc utilities
  */
 
-//#include "libztDebug.h"
 #include "Utilities.h"
 
-#if defined(__MINGW32__)
+#if defined(__MINGW32__) || defined(__MINGW64__)
+
+#include <WinSock2.h>
+#include <stdint.h>
+#include <string.h>
 
 int inet_pton4(const char *src, void *dst)
 {

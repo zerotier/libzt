@@ -268,7 +268,7 @@ void *zts_start_service(void *thread_id)
 
 void zts_get_address(const uint64_t nwid, struct sockaddr_storage *addr, const size_t addrlen)
 {
-	if(!zt1Service) {
+	if (!zt1Service) {
 		return;
 	}
 	VirtualTap *tap = getTapByNWID(nwid);

@@ -208,11 +208,11 @@ namespace ZeroTier {
 			return -1;
 		}
 		inetaddr = (*env).CallObjectMethod(addr, getAddress);	
-		if(!inetaddr) {
+		if (!inetaddr) {
 			return -1;
 		}
 		jclass inetClass = (*env).GetObjectClass(inetaddr);
-		if(!inetClass) {
+		if (!inetClass) {
 			return -1;
 		}
 		// string representation of IP address
@@ -221,24 +221,24 @@ namespace ZeroTier {
 		const char *addr_str = (*env).GetStringUTFChars(addrstr, NULL);
 		DEBUG_INFO("addr_str=%s", addr_str);
 		for (int i=0; i<strlen(addr_str); i++) {
-			if(addr_str[i]=='.') {
+			if (addr_str[i]=='.') {
 				DEBUG_INFO("ipv4, inet_addr");
 				socket_family = AF_INET;
 				in4->sin_family = AF_INET;
 				in4->sin_port = htons(port);
 				in4->sin_addr.s_addr = inet_addr(addr_str);
 				/*
-				if(!inet_pton(AF_INET, addr_str, &(in4->sin_addr))) {
+				if (!inet_pton(AF_INET, addr_str, &(in4->sin_addr))) {
 					DEBUG_ERROR("error converting address %s", addr_str);
 				}
 				*/
 				addrlen = sizeof(struct sockaddr_in);
 				break;
 			}
-			if(addr_str[i]==':') {
+			if (addr_str[i]==':') {
 				DEBUG_INFO("ipv6");
 				socket_family = AF_INET6;
-				if(!inet_pton(AF_INET6, addr_str, &(in6->sin6_addr))) {									
+				if (!inet_pton(AF_INET6, addr_str, &(in6->sin6_addr))) {									
 					DEBUG_ERROR("error converting address %s", addr_str);
 				}
 				addrlen = sizeof(struct sockaddr_in6);

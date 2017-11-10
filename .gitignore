@@ -7,6 +7,7 @@
 *.class
 
 # ZeroTier-specific 
+*.conf
 test/alice
 test/bob
 test/carol

@@ -234,7 +234,6 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 		num_lwip_interfaces++;
 	}
 	if (ip.isV6()) {
-		/*
 		static ip6_addr_t ipaddr;
 		memcpy(&(ipaddr.addr), ip.rawIpData(), sizeof(ipaddr.addr));
 
@@ -259,9 +258,8 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 		netif_ip6_addr_set_state(lwipdev, 1, IP6_ADDR_TENTATIVE);
 		mac2str(macbuf, ZT_MAC_ADDRSTRLEN, lwipdev->hwaddr);
 		DEBUG_INFO("initialized netif as [mac=%s, addr=%s]", macbuf, ip.toString(ipbuf));
-		*/
 	}
-
+	num_lwip_interfaces++;
 }
 
 void lwip_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC &to, unsigned int etherType,
@@ -272,6 +270,18 @@ void lwip_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC
 	from.copyTo(ethhdr.src.addr, 6);
 	to.copyTo(ethhdr.dest.addr, 6);
 	ethhdr.type = ZeroTier::Utils::hton((uint16_t)etherType);
+
+	if (ZT_MSG_TRANSFER == true) {
+		char flagbuf[32];
+		memset(&flagbuf, 0, 32);
+		char macBuf[ZT_MAC_ADDRSTRLEN], nodeBuf[ZTO_ID_LEN];
+		mac2str(macBuf, ZT_MAC_ADDRSTRLEN, ethhdr.dest.addr);
+		ZeroTier::MAC mac;
+		mac.setTo(ethhdr.src.addr, 6);
+		mac.toAddress(tap->_nwid).toString(nodeBuf);
+		DEBUG_TRANS("len=%5d dst=%s [%s RX --> %s] proto=0x%04x %s %s", len, macBuf, nodeBuf, tap->nodeId().c_str(),
+			ZeroTier::Utils::ntoh(ethhdr.type), beautify_eth_proto_nums(ZeroTier::Utils::ntoh(ethhdr.type)), flagbuf);
+	}
 
 	p = pbuf_alloc(PBUF_RAW, len+sizeof(struct eth_hdr), PBUF_POOL);
 	if (p != NULL) {
@@ -295,97 +305,69 @@ void lwip_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC
 		DEBUG_ERROR("dropped packet: no pbufs available");
 		return;
 	}
-	if (ZT_MSG_TRANSFER == true) {
-		char flagbuf[32];
-		memset(&flagbuf, 0, 32);
-		char macBuf[ZT_MAC_ADDRSTRLEN], nodeBuf[ZTO_ID_LEN];
-		mac2str(macBuf, ZT_MAC_ADDRSTRLEN, ethhdr.dest.addr);
-		ZeroTier::MAC mac;
-		mac.setTo(ethhdr.src.addr, 6);
-		mac.toAddress(tap->_nwid).toString(nodeBuf);
-		DEBUG_TRANS("len=%5d dst=%s [%s RX --> %s] proto=0x%04x %s %s", len, macBuf, nodeBuf, tap->nodeId().c_str(),
-			ZeroTier::Utils::ntoh(ethhdr.type), beautify_eth_proto_nums(ZeroTier::Utils::ntoh(ethhdr.type)), flagbuf);
+
+
+	if (num_lwip_interfaces <= 0) {
+		DEBUG_ERROR("there are no netifs set up to handle this packet. ignoring.");
+		return;
 	}
+
+	// Routing
+	struct ip_hdr *iphdr;
+	ip_addr_t iphdr_dest;
+	switch (((struct eth_hdr *)p->payload)->type)
 	{
-
-		switch (((struct eth_hdr *)p->payload)->type)
+		case PP_HTONS(ETHTYPE_IPV6):
 		{
-			case PP_HTONS(ETHTYPE_IP):
-			{
-				DEBUG_INFO("ETHTYPE_IP");
-				struct ip_hdr *iphdr;
-				ip_addr_t iphdr_dest;
-
-				iphdr = (struct ip_hdr *)((char *)p->payload + SIZEOF_ETH_HDR);
-
-				//ip_addr_copy(iphdr_dest, iphdr->dest);
-
-				for (int i=0; i<num_lwip_interfaces; i++)
-				{
-					DEBUG_EXTRA("checking interface %d", i);
-					struct netif *lwipdev = &lwip_interfaces[i];
-					DEBUG_INFO("lwipdev->ip_addr.u_addr.ip4.addr=%ld", lwipdev->ip_addr.u_addr.ip4.addr);
-					DEBUG_INFO("iphdr->dest.addr                =%ld", iphdr->dest.addr);
-					if (lwipdev->ip_addr.u_addr.ip4.addr == iphdr->dest.addr || ip4_addr_isbroadcast_u32(iphdr->dest.addr, lwipdev))
-					{
-						DEBUG_INFO("USING=%p", lwipdev);
-						if (lwipdev->input(p, lwipdev) != ERR_OK) {
-							DEBUG_ERROR("error while feeding frame into stack interface (ipv4)");
-						}
-						break; // netif found, use current value of lwipdev
-					}
-				}
-			}
-			case PP_HTONS(ETHTYPE_ARP):
-			{
-				DEBUG_INFO("ETHTYPE_ARP");
-				for (int i=0; i<num_lwip_interfaces; i++) {
-					DEBUG_INFO("i=%d, lwip_interfaces[i].input=%p", i, lwip_interfaces[i].input);
-					pbuf_ref(p);
+			DEBUG_INFO("ETHTYPE_IPV6");
+			iphdr = (struct ip_hdr *)((char *)p->payload + SIZEOF_ETH_HDR);
+			for (int i=0; i<num_lwip_interfaces; i++) {
+				if (lwip_interfaces[i].output_ip6 && lwip_interfaces[i].output_ip6 == ethip6_output) {
+					// DEBUG_INFO("netif=%p", &lwip_interfaces[i]);
 					if (lwip_interfaces[i].input(p, &lwip_interfaces[i]) != ERR_OK) {
-						DEBUG_ERROR("ARP packet input error on assigned netif #%u\n", i);
-						pbuf_free(p);
+						DEBUG_ERROR("packet input error (ipv6)");
 						break;
 					}
+
 				}
-				pbuf_free(p);
-				break;
-         	}
-		}
-
-
-		// Feed packet into first interface we created, lwIP IP layer will hand this packet off to other
-		// known interfaces if it isn't destined for this one
-
-/*
-		for (int i=0; i<num_lwip_interfaces; i++) {
-			struct netif *lwipdev = &lwip_interfaces[0];
-
-			if (lwipdev->output == etharp_output) { // ipv4/arp
-				DEBUG_INFO("IPV4/ARP");
-				if (ethhdr, ethhdr.dest.addr, 6) == 1) { // not destined for this address
-					continue;
+			}	
+		} break;
+		case PP_HTONS(ETHTYPE_IP):
+		{
+			DEBUG_INFO("ETHTYPE_IP");
+			iphdr = (struct ip_hdr *)((char *)p->payload + SIZEOF_ETH_HDR);
+			for (int i=0; i<num_lwip_interfaces; i++) {
+				if (lwip_interfaces[i].output &&  lwip_interfaces[i].output == etharp_output) {
+					// DEBUG_INFO("netif=%p", &lwip_interfaces[i]);
+					if (lwip_interfaces[i].ip_addr.u_addr.ip4.addr == iphdr->dest.addr || ip4_addr_isbroadcast_u32(iphdr->dest.addr, &lwip_interfaces[i])) {
+						if (lwip_interfaces[i].input(p, &lwip_interfaces[i]) != ERR_OK) {
+							DEBUG_ERROR("packet input error (ipv4)");
+							break;
+						}
+					}
 				}
 			}
-			if (lwipdev->output == etharp6_output) { // ipv6
-				DEBUG_INFO("IPV6");
-
-				//if (memcmp(lwipdev->hwaddr, ethhdr.dest.addr, 6) == 1) { // not destined for this address
-				//	continue;
-				//}
-
+		} break;
+		case PP_HTONS(ETHTYPE_ARP):
+		{
+			DEBUG_INFO("ETHTYPE_ARP");
+			for (int i=0; i<num_lwip_interfaces; i++) {
+				if (lwip_interfaces[i].state) {
+					// DEBUG_INFO("netif=%p", &lwip_interfaces[i]);
+					pbuf_ref(p);
+					if (lwip_interfaces[i].input(p, &lwip_interfaces[i]) != ERR_OK) {
+						DEBUG_ERROR("packet input error (arp)");
+					}
+					break;
+				}
 			}
-		*/
-			// by this point we have a packet destined for this interface, send it in
-			//if (ZeroTier::Utils::ntoh(ethhdr.type) == 0x800 || ZeroTier::Utils::ntoh(ethhdr.type) == 0x0806) {
-			//	DEBUG_INFO("Inputting ipv4/arp into lwipdev=%p", lwipdev);
-			//	if (lwipdev->input(p, lwipdev) != ERR_OK) {
-			//		DEBUG_ERROR("error while feeding frame into stack interface (ipv4)");
-			//	}
-			//}
-		//}
+			break;
+		} break;
+		default:
+			break;
 	}
 }
+
 
 
 /****************************************************************************/

@@ -234,13 +234,12 @@ happening sooner than they should.
 -------------------------------- Memory options --------------------------------
 ------------------------------------------------------------------------------*/
 
-
+//#define MEM_USE_POOLS 1
+//#define MEMP_USE_CUSTOM_POOLS 1
 
 /* Misc */
 #define MEM_LIBC_MALLOC 1
 #define MEMP_MEM_MALLOC 1
-
-
 
 /**
  * MEM_ALIGNMENT: should be set to the alignment of the CPU

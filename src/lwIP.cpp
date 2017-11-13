@@ -78,8 +78,8 @@ bool virt_can_provision_new_socket(int socket_type);
 #include "lwIP.h"
 
 // lwIP netif interfaces used by virtual taps
-struct netif lwip_interfaces[10];
-static int num_lwip_interfaces = 0;
+struct netif lwipInterfaces[10];
+static int lwipInterfacesCount = 0;
 
 bool lwip_driver_initialized = false;
 ZeroTier::Mutex driver_m;
@@ -201,10 +201,9 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 {
 	char ipbuf[INET6_ADDRSTRLEN], nmbuf[INET6_ADDRSTRLEN];
 	char macbuf[ZT_MAC_ADDRSTRLEN];
-
-	DEBUG_INFO("num_lwip_interfaces=%d", num_lwip_interfaces);
-	struct netif *lwipdev = &lwip_interfaces[num_lwip_interfaces];
-	DEBUG_INFO("lwipdev=%p", lwipdev);
+	DEBUG_EXTRA("lwipInterfacesCount=%d", lwipInterfacesCount);
+	struct netif *lwipdev = &lwipInterfaces[lwipInterfacesCount];
+	DEBUG_EXTRA("netif=%p", lwipdev);
 
 	if (ip.isV4()) {
 		static ip4_addr_t ipaddr, netmask, gw;
@@ -216,7 +215,7 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 		lwipdev->output = etharp_output;
 		lwipdev->mtu = ZT_MAX_MTU;
 		lwipdev->name[0] = 'l';
-		lwipdev->name[1] = (char)('A' + num_lwip_interfaces); //'4';
+		lwipdev->name[1] = (char)lwipInterfacesCount;
 		lwipdev->linkoutput = lwip_eth_tx;
 		lwipdev->hwaddr_len = 6;
 		mac.copyTo(lwipdev->hwaddr, lwipdev->hwaddr_len);
@@ -231,24 +230,21 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 		netif_set_up(lwipdev);
 		mac2str(macbuf, ZT_MAC_ADDRSTRLEN, lwipdev->hwaddr);
 		DEBUG_INFO("initialized netif as [mac=%s, addr=%s, nm=%s]", macbuf, ip.toString(ipbuf), ip.netmask().toString(nmbuf));
-		num_lwip_interfaces++;
+		lwipInterfacesCount++;
 	}
 	if (ip.isV6()) {
 		static ip6_addr_t ipaddr;
 		memcpy(&(ipaddr.addr), ip.rawIpData(), sizeof(ipaddr.addr));
-
 		lwipdev->mtu = ZT_MAX_MTU;
 		lwipdev->name[0] = 'l';
-		lwipdev->name[1] = '6';
+		lwipdev->name[1] = (char)lwipInterfacesCount;
 		lwipdev->hwaddr_len = 6;
 		lwipdev->linkoutput = lwip_eth_tx;
 		lwipdev->ip6_autoconfig_enabled = 1;
-
 		mac.copyTo(lwipdev->hwaddr, lwipdev->hwaddr_len);
 		netif_add(lwipdev, NULL, NULL, NULL, NULL, tapif_init, ethernet_input);
 		lwipdev->output_ip6 = ethip6_output;
 		lwipdev->state = tapref;
-
 		netif_create_ip6_linklocal_address(lwipdev, 1);
 		s8_t idx = 1;
 		netif_add_ip6_address(lwipdev, &ipaddr, &idx);
@@ -259,7 +255,7 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 		mac2str(macbuf, ZT_MAC_ADDRSTRLEN, lwipdev->hwaddr);
 		DEBUG_INFO("initialized netif as [mac=%s, addr=%s]", macbuf, ip.toString(ipbuf));
 	}
-	num_lwip_interfaces++;
+	lwipInterfacesCount++;
 }
 
 void lwip_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC &to, unsigned int etherType,
@@ -306,8 +302,7 @@ void lwip_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC
 		return;
 	}
 
-
-	if (num_lwip_interfaces <= 0) {
+	if (lwipInterfacesCount <= 0) {
 		DEBUG_ERROR("there are no netifs set up to handle this packet. ignoring.");
 		return;
 	}
@@ -317,46 +312,37 @@ void lwip_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC
 	ip_addr_t iphdr_dest;
 	switch (((struct eth_hdr *)p->payload)->type)
 	{
-		case PP_HTONS(ETHTYPE_IPV6):
-		{
-			DEBUG_INFO("ETHTYPE_IPV6");
+		case PP_HTONS(ETHTYPE_IPV6): {
 			iphdr = (struct ip_hdr *)((char *)p->payload + SIZEOF_ETH_HDR);
-			for (int i=0; i<num_lwip_interfaces; i++) {
-				if (lwip_interfaces[i].output_ip6 && lwip_interfaces[i].output_ip6 == ethip6_output) {
-					// DEBUG_INFO("netif=%p", &lwip_interfaces[i]);
-					if (lwip_interfaces[i].input(p, &lwip_interfaces[i]) != ERR_OK) {
-						DEBUG_ERROR("packet input error (ipv6)");
+			for (int i=0; i<lwipInterfacesCount; i++) {
+				if (lwipInterfaces[i].output_ip6 && lwipInterfaces[i].output_ip6 == ethip6_output) {
+					if (lwipInterfaces[i].input(p, &lwipInterfaces[i]) != ERR_OK) {
+						DEBUG_ERROR("packet input error (ipv6, p=%p, netif=%p)", p, &lwipInterfaces[i]);
 						break;
 					}
 
 				}
 			}	
 		} break;
-		case PP_HTONS(ETHTYPE_IP):
-		{
-			DEBUG_INFO("ETHTYPE_IP");
+		case PP_HTONS(ETHTYPE_IP): {
 			iphdr = (struct ip_hdr *)((char *)p->payload + SIZEOF_ETH_HDR);
-			for (int i=0; i<num_lwip_interfaces; i++) {
-				if (lwip_interfaces[i].output &&  lwip_interfaces[i].output == etharp_output) {
-					// DEBUG_INFO("netif=%p", &lwip_interfaces[i]);
-					if (lwip_interfaces[i].ip_addr.u_addr.ip4.addr == iphdr->dest.addr || ip4_addr_isbroadcast_u32(iphdr->dest.addr, &lwip_interfaces[i])) {
-						if (lwip_interfaces[i].input(p, &lwip_interfaces[i]) != ERR_OK) {
-							DEBUG_ERROR("packet input error (ipv4)");
+			for (int i=0; i<lwipInterfacesCount; i++) {
+				if (lwipInterfaces[i].output &&  lwipInterfaces[i].output == etharp_output) {
+					if (lwipInterfaces[i].ip_addr.u_addr.ip4.addr == iphdr->dest.addr || ip4_addr_isbroadcast_u32(iphdr->dest.addr, &lwipInterfaces[i])) {
+						if (lwipInterfaces[i].input(p, &lwipInterfaces[i]) != ERR_OK) {
+							DEBUG_ERROR("packet input error (ipv4, p=%p, netif=%p)", p, &lwipInterfaces[i]);
 							break;
 						}
 					}
 				}
 			}
 		} break;
-		case PP_HTONS(ETHTYPE_ARP):
-		{
-			DEBUG_INFO("ETHTYPE_ARP");
-			for (int i=0; i<num_lwip_interfaces; i++) {
-				if (lwip_interfaces[i].state) {
-					// DEBUG_INFO("netif=%p", &lwip_interfaces[i]);
+		case PP_HTONS(ETHTYPE_ARP): {
+			for (int i=0; i<lwipInterfacesCount; i++) {
+				if (lwipInterfaces[i].state) {
 					pbuf_ref(p);
-					if (lwip_interfaces[i].input(p, &lwip_interfaces[i]) != ERR_OK) {
-						DEBUG_ERROR("packet input error (arp)");
+					if (lwipInterfaces[i].input(p, &lwipInterfaces[i]) != ERR_OK) {
+						DEBUG_ERROR("packet input error (arp, p=%p, netif=%p)", p, &lwipInterfaces[i]);
 					}
 					break;
 				}

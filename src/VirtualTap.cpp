@@ -605,7 +605,6 @@ void VirtualTap::Housekeeping()
 	Mutex::Lock _l(_tcpconns_m);
 	uint64_t current_ts = time_now();
 	if (current_ts > last_housekeeping_ts + ZT_HOUSEKEEPING_INTERVAL) {
-		DEBUG_EXTRA();
 		// update managed routes (add/del from network stacks)
 		ZeroTier::OneService *service = ((ZeroTier::OneService *)zt1ServiceRef);
 		if (service) {

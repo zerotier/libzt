@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <string>
+#include <inttypes.h>
 
 #if defined(__linux__) || defined(__APPLE__)
 #include <netinet/in.h>
@@ -43,10 +44,11 @@ int main(int argc, char **argv)
 	// --- BEGIN
 
 	DEBUG_TEST("Waiting for libzt to come online...\n");
-	uint64_t nwid = strtoll(nwidstr.c_str(),NULL,16);
+	uint64_t nwid = strtoull(nwidstr.c_str(),NULL,16);
+	printf("nwid=%llx\n", nwid);
 	zts_startjoin(path.c_str(), nwid);
 	uint64_t nodeId = zts_get_node_id();
-	DEBUG_TEST("I am %x", nodeId);
+	DEBUG_TEST("I am %llx", nodeId);
 	sleep(2);
 
 	// socket()

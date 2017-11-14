@@ -1984,8 +1984,8 @@ int ZT_control_semantics_test(bool *passed)
 	sleep(1);
 */
 	zts_start(path, false);
-	zts_join(strtoll(nwid,NULL,16));
-	zts_leave(strtoll(nwid,NULL,16));
+	zts_join(strtoull(nwid,NULL,16));
+	zts_leave(strtoull(nwid,NULL,16));
 	zts_stop();	
 
 	DEBUG_TEST("---\n");
@@ -2683,13 +2683,24 @@ int trigger_address_sanitizer()
 int main(int argc , char *argv[])
 {
 #if defined(__SELFTEST__)
-	if (argc == 3) {
+	if (argc == 4) {
+		DEBUG_TEST("generating id...");
 		if (!strcmp(argv[1],"generate_id"))
 		{
 			DEBUG_TEST("generating ZeroTier identity for testing purposes...");
-			if (strlen(argv[2]) > 0) {
-				zts_start(argv[2], true); // blocking call
+			if (strlen(argv[2]) <= 0) {
+				DEBUG_ERROR("invalid <nwid> was given");
+				exit(-1);
 			}
+			if (strlen(argv[3]) <= 0) {
+				DEBUG_ERROR("invalid pathname was given");
+				exit(-1);
+			}
+			uint64_t nwid = strtoull(argv[2],NULL,16);
+			zts_start(argv[3], true);
+			zts_join(nwid);
+			uint64_t nodeId = zts_get_node_id();
+			DEBUG_TEST("generated id: %llx", nodeId);
 			exit(0);
 		}
 	}
@@ -2697,7 +2708,7 @@ int main(int argc , char *argv[])
 
 	if (argc < 6) {
 		fprintf(stderr, "usage: selftest <num_repeats> <selftest.conf> <alice|bob|ted|carol> to <bob|alice|ted|carol>\n");
-		fprintf(stderr, "usage: selftest generate_id <alice|bob...>\n");
+		fprintf(stderr, "usage: selftest generate_id <nwid> <alice|bob...>\n");
 		fprintf(stderr, "e.g. : selftest 3 test/test.conf alice to bob\n");
 		return 1;
 	}
@@ -2770,7 +2781,7 @@ int main(int argc , char *argv[])
 	if (me != "dummy") { // used for testing ZT service wrapper API (before, during, and after coming online)
 		// set start time here since we need to wait for both libzt instances to be online
 		DEBUG_TEST("app-thread, waiting for libzt to come online...\n");
-		uint64_t nwid = strtoll(nwidstr.c_str(),NULL,16);
+		uint64_t nwid = strtoull(nwidstr.c_str(),NULL,16);
 		zts_startjoin(path.c_str(), nwid);
 		uint64_t nodeId = zts_get_node_id();
 		DEBUG_TEST("I am %x, %s", nodeId, me.c_str());

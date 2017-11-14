@@ -2682,8 +2682,22 @@ int trigger_address_sanitizer()
 
 int main(int argc , char *argv[])
 {
+#if defined(__SELFTEST__)
+	if (argc == 3) {
+		if (!strcmp(argv[1],"generate_id"))
+		{
+			DEBUG_TEST("generating ZeroTier identity for testing purposes...");
+			if (strlen(argv[2]) > 0) {
+				zts_start(argv[2], true); // blocking call
+			}
+			exit(0);
+		}
+	}
+#endif // __SELFTEST__
+
 	if (argc < 6) {
 		fprintf(stderr, "usage: selftest <num_repeats> <selftest.conf> <alice|bob|ted|carol> to <bob|alice|ted|carol>\n");
+		fprintf(stderr, "usage: selftest generate_id <alice|bob...>\n");
 		fprintf(stderr, "e.g. : selftest 3 test/test.conf alice to bob\n");
 		return 1;
 	}

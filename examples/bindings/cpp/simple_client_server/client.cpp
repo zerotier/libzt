@@ -40,7 +40,6 @@ int main(int argc, char **argv)
 	in4.sin_addr.s_addr = inet_addr(remote_addr.c_str());
 	in4.sin_family = AF_INET;
 
-
 	// --- BEGIN
 
 	DEBUG_TEST("Waiting for libzt to come online...\n");
@@ -51,18 +50,16 @@ int main(int argc, char **argv)
 	DEBUG_TEST("I am %llx", nodeId);
 	sleep(2);
 
-	// socket()
 	if ((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		DEBUG_ERROR("error creating ZeroTier socket");
 
-	// connect()
 	if ((err = zts_connect(sockfd, (const struct sockaddr *)&in4, sizeof(in4))) < 0)
 		DEBUG_ERROR("error connecting to remote host (%d)", err);
 
-	// tx
+	DEBUG_TEST("sending to server...");
 	w = zts_write(sockfd, msg, strlen(msg));
 	
-	// rx
+	DEBUG_TEST("reading from server...");
 	r = zts_read(sockfd, rbuf, strlen(msg));
 
 	DEBUG_TEST("Sent     : %s", msg);

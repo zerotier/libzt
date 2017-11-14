@@ -137,17 +137,6 @@ ZT_SOCKET_API int ZTCALL zts_running();
 ZT_SOCKET_API void ZTCALL zts_join(const uint64_t nwid);
 
 /**
- * @brief Joins a network (eventually), this will create the dir and conf file required, don't instruct the core
- * to do anything
- *
- * @usage Candidate for deletion
- * @param filepath path to the `*.conf` file named after the network
- * @param nwid
- * @return
- */
-ZT_SOCKET_API void ZTCALL zts_join_soft(const char * filepath, const uint64_t nwid);
-
-/**
  * @brief Leaves a virtual network.
  *
  * @usage

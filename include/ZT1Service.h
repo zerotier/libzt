@@ -198,6 +198,14 @@ void zts_get_homepath(char *homePath, size_t len);
 uint64_t zts_get_node_id();
 
 /**
+ * @brief Returns the ztaddress/nodeId/device ID of this instance (as read from a file)
+ *
+ * @usage Call with or without starting the service with zts_start()
+ * @return
+ */
+uint64_t zts_get_node_id_from_file(const char *filepath);
+
+/**
  * @brief Return the number of peers
  *
  * @usage Call this after zts_start() has succeeded

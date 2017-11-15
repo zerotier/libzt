@@ -162,37 +162,17 @@ VirtualTap *getAnyTap()
 	return vtap;
 }
 
-/*
-
-	else // Service isn't online, try to read ID from file
-	{
-		std::string fname("identity.public");
-		std::string fpath(homeDir);
-		if (ZeroTier::OSUtils::fileExists((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),false)) {
-			std::string oldid;
-			ZeroTier::OSUtils::readFile((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),oldid);
-			memcpy(devID, oldid.c_str(), ZTO_ID_LEN); // first 10 bytes of file
-			return 0;
-		}
-	}
-*/
-
-int zts_get_id_from_file(const char *filepath, uint64_t *nodeId)
+uint64_t zts_get_node_id_from_file(const char *filepath)
 {
-	/*
 	DEBUG_EXTRA();
 	std::string fname("identity.public");
 	std::string fpath(filepath);
 	if (ZeroTier::OSUtils::fileExists((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),false)) {
 		std::string oldid;
 		ZeroTier::OSUtils::readFile((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),oldid);
-		uint64_t value = Utils::hexStrToU64(oldid);
-		memcpy(nodeId, value, sizeof(uint64_t)); // first 10 bytes of file
-		// TOmorrow
-		return 0;
+		return Utils::hexStrToU64(oldid);
 	}
-	*/
-	return -1;
+	return 0;
 }
 
 // Starts a ZeroTier service in the background

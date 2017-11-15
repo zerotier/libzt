@@ -106,7 +106,7 @@ ZTO_OBJS=\
 	zto/node/Trace.o \
 	zto/node/Utils.o \
 	zto/controller/EmbeddedNetworkController.o \
-	zto/controller/JSONDB.o \
+	zto/controller/DB.o \
 	zto/osdep/ManagedRoute.o \
 	zto/osdep/Http.o \
 	zto/osdep/OSUtils.o \

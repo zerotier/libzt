@@ -167,10 +167,10 @@ uint64_t zts_get_node_id_from_file(const char *filepath)
 	DEBUG_EXTRA();
 	std::string fname("identity.public");
 	std::string fpath(filepath);
-	if (ZeroTier::OSUtils::fileExists((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),false)) {
-		std::string oldid;
-		ZeroTier::OSUtils::readFile((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(),oldid);
-		return Utils::hexStrToU64(oldid);
+	std::string oldid;
+	if (ZeroTier::OSUtils::fileExists((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(), false)) {
+		ZeroTier::OSUtils::readFile((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(), oldid);
+		return Utils::hexStrToU64(oldid.c_str());
 	}
 	return 0;
 }

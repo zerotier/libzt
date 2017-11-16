@@ -108,7 +108,7 @@ ZT_SOCKET_API int ZTCALL zts_start(const char *path, bool blocking);
 ZT_SOCKET_API int ZTCALL zts_startjoin(const char *path, const uint64_t nwid);
 
 /**
- * @brief Stops libzt (ZeroTier core services, stack drivers, stack threads, etc)
+ * @brief Stops ZeroTier core services, stack drivers, stack threads, etc
  *
  * @usage This should be called at the end of your program or when you do not anticipate communicating over ZeroTier
  * @return Returns 0 on success, -1 on failure
@@ -116,7 +116,7 @@ ZT_SOCKET_API int ZTCALL zts_startjoin(const char *path, const uint64_t nwid);
 ZT_SOCKET_API void ZTCALL zts_stop();
 
 /**
- * @brief Return whether libzt (specifically the ZeroTier core service) is currently running
+ * @brief Return whether ZeroTier is currently running
  *
  * @usage Call this before, during, or after zts_start()
  * @return
@@ -145,14 +145,14 @@ ZT_SOCKET_API void ZTCALL zts_leave(const uint64_t nwid);
  * @brief Copies the configuration path used by ZeroTier into the provided buffer
  *
  * @usage
- * @param homePath
- * @param len
+ * @param homePath Path to ZeroTier configuration files
+ * @param len Length of destination buffer
  * @return
  */
 ZT_SOCKET_API void ZTCALL zts_get_homepath(char *homePath, const size_t len);
 
 /**
- * @brief Returns the ztaddress/nodeId/device ID of this instance
+ * @brief Returns the node ID of this instance
  *
  * @usage Call this after zts_start() and/or when zts_running() returns true
  * @return
@@ -160,9 +160,10 @@ ZT_SOCKET_API void ZTCALL zts_get_homepath(char *homePath, const size_t len);
 ZT_SOCKET_API uint64_t ZTCALL zts_get_node_id();
 
 /**
- * @brief Returns the ztaddress/nodeId/device ID of this instance (as read from a file)
+ * @brief Returns the node ID of this instance (as read from a file)
  *
  * @usage Call with or without starting the service with zts_start()
+ * @param filepath Path to ZeroTier configuration files
  * @return
  */
 ZT_SOCKET_API uint64_t ZTCALL zts_get_node_id_from_file(const char *filepath);
@@ -171,7 +172,7 @@ ZT_SOCKET_API uint64_t ZTCALL zts_get_node_id_from_file(const char *filepath);
  * @brief Returns whether any address has been assigned to the SockTap for this network
  *
  * @usage This is used as an indicator of readiness for service for the ZeroTier core and stack
- * @param nwid
+ * @param nwid Network ID
  * @return
  */
 ZT_SOCKET_API int ZTCALL zts_has_address(const uint64_t nwid);
@@ -180,31 +181,31 @@ ZT_SOCKET_API int ZTCALL zts_has_address(const uint64_t nwid);
  * @brief Get IP address for this device on a given network
  *
  * @usage FIXME: Only returns first address found, good enough for most cases
- * @param nwid
- * @param addrstr
- * @param addrlen
+ * @param nwid Network ID
+ * @param addr Destination structure for address
+ * @param addrlen Length of destination structure
  * @return
  */
 ZT_SOCKET_API void ZTCALL zts_get_address(const uint64_t nwid, struct sockaddr_storage *addr, const size_t addrlen);
 
 /**
- * @brief Copies the 6PLANE IPv6 address for the VirtualTap into the provided buffer
+ * @brief Computes a 6PLANE IPv6 address for the given Network ID and Node ID
  *
- * @usage
- * @param addr
- * @param nwid
- * @param devID
+ * @usage Can call any time
+ * @param addr Destination structure for address
+ * @param nwid Network ID 
+ * @param nodeId Node ID
  * @return
  */
 ZT_SOCKET_API void ZTCALL zts_get_6plane_addr(struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId);
 
 /**
- * @brief Copies the RFC4193 IPv6 address for the VirtualTap into the provided buffer
+ * @brief Computes a RFC4193 IPv6 address for the given Network ID and Node ID
  *
- * @usage
- * @param addr
- * @param nwid
- * @param devID
+ * @usage Can call any time
+ * @param addr Destination structure for address
+ * @param nwid Network ID 
+ * @param nodeId Node ID
  * @return
  */
 ZT_SOCKET_API void ZTCALL zts_get_rfc4193_addr(struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId);
@@ -213,16 +214,16 @@ ZT_SOCKET_API void ZTCALL zts_get_rfc4193_addr(struct sockaddr_storage *addr, co
  * @brief Return the number of peers
  *
  * @usage Call this after zts_start() has succeeded
- * @param
  * @return
  */
 ZT_SOCKET_API unsigned long zts_get_peer_count();
 
 /**
- * @brief Get the virtual address of a perr given it's ztAddress/nodeID
+ * @brief Get the virtual address of a peer given its Node ID
  *
  * @usage Call this after zts_start() has succeeded
- * @param
+ * @param peer Returned peer address
+ * @param nodeId Provided Node ID
  * @return
  */
 ZT_SOCKET_API int ZTCALL zts_get_peer_address(char *peer, const uint64_t nodeId);
@@ -419,7 +420,7 @@ int zts_poll(struct pollfd *fds, nfds_t nfds, int timeout);
  * @brief Monitor multiple file descriptors, waiting until one or more of the file descriptors become "ready"
  *
  * @usage Call this after zts_start() has succeeded
- * @param nfds
+ * @param nfds 
  * @param readfds
  * @param writefds
  * @param exceptfds

@@ -215,7 +215,7 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 		lwipdev->output = etharp_output;
 		lwipdev->mtu = ZT_MAX_MTU;
 		lwipdev->name[0] = 'l';
-		lwipdev->name[1] = (char)lwipInterfacesCount;
+		lwipdev->name[1] = '0'+lwipInterfacesCount;
 		lwipdev->linkoutput = lwip_eth_tx;
 		lwipdev->hwaddr_len = 6;
 		mac.copyTo(lwipdev->hwaddr, lwipdev->hwaddr_len);
@@ -230,14 +230,13 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 		netif_set_up(lwipdev);
 		mac2str(macbuf, ZT_MAC_ADDRSTRLEN, lwipdev->hwaddr);
 		DEBUG_INFO("initialized netif as [mac=%s, addr=%s, nm=%s]", macbuf, ip.toString(ipbuf), ip.netmask().toString(nmbuf));
-		lwipInterfacesCount++;
 	}
 	if (ip.isV6()) {
 		static ip6_addr_t ipaddr;
 		memcpy(&(ipaddr.addr), ip.rawIpData(), sizeof(ipaddr.addr));
 		lwipdev->mtu = ZT_MAX_MTU;
 		lwipdev->name[0] = 'l';
-		lwipdev->name[1] = (char)lwipInterfacesCount;
+		lwipdev->name[1] = '0'+lwipInterfacesCount;
 		lwipdev->hwaddr_len = 6;
 		lwipdev->linkoutput = lwip_eth_tx;
 		lwipdev->ip6_autoconfig_enabled = 1;

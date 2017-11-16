@@ -420,8 +420,9 @@ int zts_get_peer_address(char *peer, const uint64_t nodeId)
 		}
 		return pl->peerCount;
 	}
-	else
+	else {
 		return -1;
+	}
 }
 
 void zts_allow_http_control(bool allowed)

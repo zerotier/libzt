@@ -107,6 +107,7 @@ ZTO_OBJS=\
 	zto/node/Utils.o \
 	zto/controller/EmbeddedNetworkController.o \
 	zto/controller/DB.o \
+	zto/controller/FileDB.o \
 	zto/osdep/ManagedRoute.o \
 	zto/osdep/Http.o \
 	zto/osdep/OSUtils.o \

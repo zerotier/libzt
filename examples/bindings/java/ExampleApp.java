@@ -28,6 +28,7 @@
 
 import zerotier.ZeroTier;
 import java.net.*;
+import java.lang.Thread;
 
 public class ExampleApp {
 	
@@ -45,23 +46,108 @@ public class ExampleApp {
                 
         new Thread(new Runnable() {
             public void run() {
-        		System.out.println("starting libzt");
-                //libzt.startjoin("config_path", "123456789abcdeff");
-        		libzt.startjoin("/Users/joseph/op/zt/libzt/ztjni", "17d709436c2c5367");
-                System.out.println("started.");
+                String path = "/Users/joseph/op/zt/libzt/ztjni";
+                long nwid = 0xa09acf0233ac70fdL;
+
+                // METHOD 1 (easy)
+                // Blocking call that waits for the core, userspace stack and IP assignment before unblocking
+                if (true)
+                {
+                    libzt.startjoin(path, nwid);
+                }
+
+                // METHOD 2
+                // Optionally-nonblocking call. You'll have to use the below process to determine when you 
+                // are allowed to stack making socket calls. The advantage of this method is that you can 
+                // get your nodeId before joining the network.
+                if (false) {
+                    libzt.start(path, true);
+                    // Wait for core service to start
+                    while(!libzt.core_running()) {
+                        try {
+                            Thread.sleep(1000);
+                        } 
+                        catch(InterruptedException ex) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                    System.out.println("core started");
+                    long nodeId = libzt.get_node_id();
+                    System.out.println("nodeId=" + Long.toHexString(nodeId));
+                    libzt.join(nwid);
+                    // Wait for userspace stack to start, we trigger this by joining a network
+                    while(!libzt.stack_running()) {
+                        try {
+                            Thread.sleep(1000);
+                        } 
+                        catch(InterruptedException ex) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                }
+
+                System.out.println("core and stack started, now ready for socket API calls");
+
+                int num_addresses = libzt.get_num_assigned_addresses(nwid);
+                System.out.println("number of assigned addresses for this node on this network = " + String.valueOf(num_addresses));
+                
+                // get IPv4 address
+                //InetAddress assigned = libzt.get_address(nwid, libzt.AF_INET6);
+                //System.out.println("assigned address = " + assigned.toString());
+
+                // get address at arbitrary (index < num_addresses)
+                //assigned = libzt.get_address_at_index(nwid, 0);
+                //System.out.println("assigned address = " + assigned.toString());
+
+                // get IPv6 address
+                //assigned = libzt.get_address(nwid, libzt.AF_INET6);
+                //System.out.println("assigned address = " + assigned.toString());
+
+                String homePath = libzt.get_path();
+                System.out.println("homePath=" + homePath);
+
+                while(!libzt.has_address(nwid)) {
+                    try {
+                        Thread.sleep(1000);
+                    } 
+                    catch(InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+
+
+                //InetAddress assigned = libzt.get_address(nwid);
+                //System.out.println("assigned address = " + assigned.toString());
 
                 int fd = 0, err = 0;
                 if ((fd = libzt.socket(libzt.AF_INET, libzt.SOCK_STREAM, 0)) < 0) {
                     System.out.println("error creating socket");
                     return;
                 }
+                System.out.println("Created socket");
 
-                InetSocketAddress addr = new InetSocketAddress("0.0.0.0", 3434);
+        while(true)
+        {
+            try { Thread.sleep(3000); } 
+            catch (InterruptedException e) { e.printStackTrace(); }
+        }
+
+        /*
+                InetSocketAddress remoteAddr = new InetSocketAddress("172.27.54.9", 3434);
+
+                if ((err = libzt.connect(fd, remoteAddr)) < 0) {
+                    System.out.println("error connecting");
+                    return;
+                }
+        */ 
+/*
+                InetSocketAddress localAddr = new InetSocketAddress("0.0.0.0", 3434);
 
                 if ((err = libzt.bind(fd, addr)) < 0) {
                     System.out.println("error binding socket to virtual interface");
                     return;
                 }  
+                */
             }
         }).start();
          

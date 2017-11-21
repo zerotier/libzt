@@ -30,7 +30,7 @@ object ExampleApp extends App {
   // load libzt.dylib or libzt.so
   System.loadLibrary("zt")
   val libzt = new ZeroTier
-  libzt.startjoin("/Users/joseph/op/zt/libzt/ztjni", "1212121212121212")
+  libzt.startjoin("/Users/joseph/op/zt/libzt/ztjni", 0xa09acf0232a930f7L)
   val fd = libzt.socket(2, 1, 0)
   println(s"libzt.socket(): $fd")
 }

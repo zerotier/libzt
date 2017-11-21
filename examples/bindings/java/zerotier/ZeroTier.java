@@ -29,10 +29,9 @@ package zerotier;
 import java.net.*;
 
 public class ZeroTier {
-	
     // socket families
-    public static int AF_UNIX = 1;
     public static int AF_INET = 2;
+    public static int AF_INET6 = 30;
     // socket types
     public static int SOCK_STREAM = 1;
     public static int SOCK_DGRAM = 2;
@@ -45,33 +44,38 @@ public class ZeroTier {
     // fcntl cmds
     public static int F_GETFL = 3;
     public static int F_SETFL = 4;
-    // basic service controls
-    public native void start(String homeDir, boolean blocking);
-    public native void startjoin(String homeDir, String nwid);
+    // service controls
+    public native void start(String homePath, boolean blocking);
+    public native void startjoin(String homePath, long nwid);
     public native void stop();
-    public native boolean running();
-    public native void join(String nwid);
-    public native void leave(String nwid);
-    // advanced service controls
-    public native void get_path();
-    public native int get_id();
+    public native boolean core_running();
+    public native boolean stack_running();
+    public native boolean ready();
+    public native int join(long nwid);
+    public native int leave(long nwid);
+    public native String get_path();
+    public native long get_node_id();
+    public native int get_num_assigned_addresses(long nwid);
+    public native InetAddress get_address_at_index(long nwid, int index);
+    public native boolean has_address(long nwid);
+    public native InetAddress get_address(long nwid, int address_family);
     public native void get_6plane_addr();
     public native void get_rfc4193_addr();
     // socket API
     public native int socket(int family, int type, int protocol);
-    public native int connect(int fd, String addr, int port);
+    public native int connect(int fd, InetSocketAddress addr);
     public native int bind(int fd, InetSocketAddress addr);
     public native int listen(int fd, int backlog);
-    public native int accept(int fd, Address addr);
+    public native int accept(int fd, InetSocketAddress addr);
     public native int accept4(int fd, String addr, int port);
     public native int close(int fd);
     //public native int setsockopt();
     //public native int getsockopt();
+    public native int sendto(int fd, byte[] buf, int len, int flags, InetSocketAddress addr);
+    public native int send(int fd, byte[] buf, int len, int flags);
+    public native int recvfrom(int fd, byte[] buf, int len, int flags, InetSocketAddress addr);
     public native int read(int fd, byte[] buf, int len);
     public native int write(int fd, byte[] buf, int len);
-    public native int sendto(int fd, byte[] buf, int len, int flags, Address addr);
-    public native int send(int fd, byte[] buf, int len, int flags);
-    public native int recvfrom(int fd, byte[] buf, int len, int flags, Address addr);
     public native int shutdown(int fd, int how);
     //public native int getsockname();
     //public native int getpeername();

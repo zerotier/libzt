@@ -2697,9 +2697,11 @@ int main(int argc , char *argv[])
 				exit(-1);
 			}
 			uint64_t nwid = strtoull(argv[2],NULL,16);
-			zts_start(argv[3], true);
-			zts_join(nwid);
 			uint64_t nodeId = zts_get_node_id();
+
+			zts_start(argv[3], true);
+			//zts_join(nwid);
+			//sleep(5);
 			DEBUG_TEST("generated id: %llx", nodeId);
 			exit(0);
 		}

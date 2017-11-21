@@ -32,14 +32,14 @@ class ZeroTier {
   // socket types
   // basic service controls
   @native def start(path: String, blocking: Boolean): Int
-  @native def startjoin(path: String, nwid: String): Int
+  @native def startjoin(path: String, nwid: Long): Int
   @native def stop(): Unit
   @native def running(): Int
-  @native def join(nwid: String): Unit
-  @native def leave(nwid: String): Unit
+  @native def join(nwid: Long): Unit
+  @native def leave(nwid: Long): Unit
   // advanced service controls
   //@native def get_path(): Unit
-  //@native def get_id(): Int
+  @native def get_node_id(): Long
   //@native def get_6plane_addr(): Unit
   //@native def get_rfc4193_addr(): Unit
   // socket API

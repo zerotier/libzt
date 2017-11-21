@@ -120,7 +120,7 @@
 /**
  * How fast service states are re-checked (in milliseconds)
  */
-#define ZTO_WRAPPER_CHECK_INTERVAL 50
+#define ZTO_WRAPPER_CHECK_INTERVAL 100
 
 /**
  * Length of buffer required to hold a ztAddress/nodeID
@@ -351,13 +351,10 @@ typedef signed char err_t;
  */
 #define ZT_STACK_SOCKET_RD_MAX             4096*4
 
-#define ZT_CORE_VERSION                    "1.2.5"
-#define ZT_LIB_VERSION                     "1.1.5"
-
 /**
  * Maximum length of libzt/ZeroTier home path (where keys, and config files are stored)
  */
-#define ZT_HOME_PATH_MAX_LEN               128
+#define ZT_HOME_PATH_MAX_LEN               256
 
 /**
  * Length of human-readable MAC address string

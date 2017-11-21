@@ -39,12 +39,9 @@
 
 #ifdef STACK_LWIP
 
-int errno;
-
-// forward declarations
-#include "VirtualTap.h"
 #include "VirtualSocket.h"
 
+// forward declarations
 class VirtualTap;
 class VirtualSocket;
 bool virt_can_provision_new_socket(int socket_type);
@@ -77,9 +74,9 @@ bool virt_can_provision_new_socket(int socket_type);
 
 #include "lwIP.h"
 
-// lwIP netif interfaces used by virtual taps
 struct netif lwipInterfaces[10];
-static int lwipInterfacesCount = 0;
+int lwipInterfacesCount = 0;
+
 
 bool lwip_driver_initialized = false;
 ZeroTier::Mutex driver_m;
@@ -144,6 +141,8 @@ void lwip_driver_init()
 		NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
 }
 
+
+
 err_t lwip_eth_tx(struct netif *netif, struct pbuf *p)
 {
 	struct pbuf *q;
@@ -183,78 +182,6 @@ err_t lwip_eth_tx(struct netif *netif, struct pbuf *p)
 			ZeroTier::Utils::ntoh(ethhdr->type), beautify_eth_proto_nums(ZeroTier::Utils::ntoh(ethhdr->type)), flagbuf);
 	}
 	return ERR_OK;
-}
-
-void lwip_dns_init()
-{
-	dns_init();
-}
-
-void lwip_start_dhcp(void *netif)
-{
-#if defined(LIBZT_IPV4)
-	netifapi_dhcp_start((struct netif *)netif);
-#endif
-}
-
-void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier::InetAddress &ip)
-{
-	char ipbuf[INET6_ADDRSTRLEN], nmbuf[INET6_ADDRSTRLEN];
-	char macbuf[ZT_MAC_ADDRSTRLEN];
-	DEBUG_EXTRA("lwipInterfacesCount=%d", lwipInterfacesCount);
-	struct netif *lwipdev = &lwipInterfaces[lwipInterfacesCount];
-	DEBUG_EXTRA("netif=%p", lwipdev);
-
-	if (ip.isV4()) {
-		static ip4_addr_t ipaddr, netmask, gw;
-		IP4_ADDR(&gw,127,0,0,1);
-		ipaddr.addr = *((u32_t *)ip.rawIpData());
-		netmask.addr = *((u32_t *)ip.netmask().rawIpData());
-		netif_add(lwipdev, &ipaddr, &netmask, &gw, NULL, tapif_init, tcpip_input);
-		lwipdev->state = tapref;
-		lwipdev->output = etharp_output;
-		lwipdev->mtu = ZT_MAX_MTU;
-		lwipdev->name[0] = 'l';
-		lwipdev->name[1] = '0'+lwipInterfacesCount;
-		lwipdev->linkoutput = lwip_eth_tx;
-		lwipdev->hwaddr_len = 6;
-		mac.copyTo(lwipdev->hwaddr, lwipdev->hwaddr_len);
-		lwipdev->flags = 0;
-		lwipdev->flags = NETIF_FLAG_BROADCAST
-			| NETIF_FLAG_ETHARP
-			| NETIF_FLAG_IGMP
-			| NETIF_FLAG_LINK_UP
-			| NETIF_FLAG_UP;
-		netif_set_default(lwipdev);
-		netif_set_link_up(lwipdev);
-		netif_set_up(lwipdev);
-		mac2str(macbuf, ZT_MAC_ADDRSTRLEN, lwipdev->hwaddr);
-		DEBUG_INFO("initialized netif as [mac=%s, addr=%s, nm=%s]", macbuf, ip.toString(ipbuf), ip.netmask().toString(nmbuf));
-	}
-	if (ip.isV6()) {
-		static ip6_addr_t ipaddr;
-		memcpy(&(ipaddr.addr), ip.rawIpData(), sizeof(ipaddr.addr));
-		lwipdev->mtu = ZT_MAX_MTU;
-		lwipdev->name[0] = 'l';
-		lwipdev->name[1] = '0'+lwipInterfacesCount;
-		lwipdev->hwaddr_len = 6;
-		lwipdev->linkoutput = lwip_eth_tx;
-		lwipdev->ip6_autoconfig_enabled = 1;
-		mac.copyTo(lwipdev->hwaddr, lwipdev->hwaddr_len);
-		netif_add(lwipdev, NULL, NULL, NULL, NULL, tapif_init, ethernet_input);
-		lwipdev->output_ip6 = ethip6_output;
-		lwipdev->state = tapref;
-		netif_create_ip6_linklocal_address(lwipdev, 1);
-		s8_t idx = 1;
-		netif_add_ip6_address(lwipdev, &ipaddr, &idx);
-		netif_set_default(lwipdev);
-		netif_set_up(lwipdev);
-		netif_set_link_up(lwipdev);
-		netif_ip6_addr_set_state(lwipdev, 1, IP6_ADDR_TENTATIVE);
-		mac2str(macbuf, ZT_MAC_ADDRSTRLEN, lwipdev->hwaddr);
-		DEBUG_INFO("initialized netif as [mac=%s, addr=%s]", macbuf, ip.toString(ipbuf));
-	}
-	lwipInterfacesCount++;
 }
 
 void lwip_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC &to, unsigned int etherType,
@@ -352,6 +279,80 @@ void lwip_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC
 			break;
 	}
 }
+
+void lwip_dns_init()
+{
+	dns_init();
+}
+
+void lwip_start_dhcp(void *netif)
+{
+#if defined(LIBZT_IPV4)
+	netifapi_dhcp_start((struct netif *)netif);
+#endif
+}
+
+void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier::InetAddress &ip)
+{
+	char ipbuf[INET6_ADDRSTRLEN], nmbuf[INET6_ADDRSTRLEN];
+	char macbuf[ZT_MAC_ADDRSTRLEN];
+	DEBUG_EXTRA("lwipInterfacesCount=%d", lwipInterfacesCount);
+	struct netif *lwipdev = &lwipInterfaces[lwipInterfacesCount];
+	DEBUG_EXTRA("netif=%p", lwipdev);
+
+	if (ip.isV4()) {
+		static ip4_addr_t ipaddr, netmask, gw;
+		IP4_ADDR(&gw,127,0,0,1);
+		ipaddr.addr = *((u32_t *)ip.rawIpData());
+		netmask.addr = *((u32_t *)ip.netmask().rawIpData());
+		netif_add(lwipdev, &ipaddr, &netmask, &gw, NULL, tapif_init, tcpip_input);
+		lwipdev->state = tapref;
+		lwipdev->output = etharp_output;
+		lwipdev->mtu = ZT_MAX_MTU;
+		lwipdev->name[0] = 'l';
+		lwipdev->name[1] = '0'+lwipInterfacesCount;
+		lwipdev->linkoutput = lwip_eth_tx;
+		lwipdev->hwaddr_len = 6;
+		mac.copyTo(lwipdev->hwaddr, lwipdev->hwaddr_len);
+		lwipdev->flags = 0;
+		lwipdev->flags = NETIF_FLAG_BROADCAST
+			| NETIF_FLAG_ETHARP
+			| NETIF_FLAG_IGMP
+			| NETIF_FLAG_LINK_UP
+			| NETIF_FLAG_UP;
+		netif_set_default(lwipdev);
+		netif_set_link_up(lwipdev);
+		netif_set_up(lwipdev);
+		mac2str(macbuf, ZT_MAC_ADDRSTRLEN, lwipdev->hwaddr);
+		DEBUG_INFO("initialized netif as [mac=%s, addr=%s, nm=%s]", macbuf, ip.toString(ipbuf), ip.netmask().toString(nmbuf));
+	}
+	if (ip.isV6()) {
+		static ip6_addr_t ipaddr;
+		memcpy(&(ipaddr.addr), ip.rawIpData(), sizeof(ipaddr.addr));
+		lwipdev->mtu = ZT_MAX_MTU;
+		lwipdev->name[0] = 'l';
+		lwipdev->name[1] = '0'+lwipInterfacesCount;
+		lwipdev->hwaddr_len = 6;
+		lwipdev->linkoutput = lwip_eth_tx;
+		lwipdev->ip6_autoconfig_enabled = 1;
+		mac.copyTo(lwipdev->hwaddr, lwipdev->hwaddr_len);
+		netif_add(lwipdev, NULL, NULL, NULL, NULL, tapif_init, ethernet_input);
+		lwipdev->output_ip6 = ethip6_output;
+		lwipdev->state = tapref;
+		netif_create_ip6_linklocal_address(lwipdev, 1);
+		s8_t idx = 1;
+		netif_add_ip6_address(lwipdev, &ipaddr, &idx);
+		netif_set_default(lwipdev);
+		netif_set_up(lwipdev);
+		netif_set_link_up(lwipdev);
+		netif_ip6_addr_set_state(lwipdev, 1, IP6_ADDR_TENTATIVE);
+		mac2str(macbuf, ZT_MAC_ADDRSTRLEN, lwipdev->hwaddr);
+		DEBUG_INFO("initialized netif as [mac=%s, addr=%s]", macbuf, ip.toString(ipbuf));
+	}
+	lwipInterfacesCount++;
+}
+
+
 
 
 

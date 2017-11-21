@@ -43,6 +43,7 @@ ARTOOL=ar
 ARFLAGS=rcs
 CC=gcc
 CXX=g++
+CFLAGS=
 CXXFLAGS+=-fpermissive -Wno-unknown-pragmas -Wno-pointer-arith -Wno-deprecated-declarations -Wno-conversion-null
 WINDEFS=-lws2_32 -lshlwapi -liphlpapi -static -static-libgcc -static-libstdc++
 LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/win32/include
@@ -137,7 +138,8 @@ STRIP=strip
 
 # ZeroTier debug and tracing
 ifeq ($(ZT_DEBUG),1)
-	CFLAGS?=-Wall -g -pthread
+	CFLAGS?=-Wall -g -pthread 
+	ZT_DEFS+=-DZT_TRACE=1
 	STRIP=echo
 else
 	CFLAGS?=-Ofast -fstack-protector
@@ -178,10 +180,14 @@ ifeq ($(LIBZT_SANITIZE),1)
 endif
 
 # JNI (Java Native Interface)
-# jni.h
+ifeq ($(OSTYPE),darwin)
 JNI_INCLUDES+=-I$(shell /usr/libexec/java_home)/include 
-# jni_md.h
-JNI_INCLUDES+=-I$(shell /usr/libexec/java_home)/include/$(OSTYPE)
+JNI_INCLUDES+=-I$(shell /usr/libexec/java_home)/include/$(OSTYPE) 
+endif
+ifeq ($(OSTYPE),linux)
+JNI_INCLUDES+=-I$(shell dirname $(shell dirname $(shell readlink -f $(shell which javac))))/include 
+JNI_INCLUDES+=-I$(shell dirname $(shell dirname $(shell readlink -f $(shell which javac))))/include/$(OSTYPE) 
+endif
 
 CXXFLAGS+=$(CFLAGS) -Wno-format -fno-rtti -std=c++11
 ZT_DEFS+=-DZT_SDK -DZT_SOFTWARE_UPDATE_DEFAULT="\"disable\""
@@ -291,7 +297,14 @@ shared_lib: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
 shared_jni_lib: lwip lwip_driver libzt_socket_layer jni_socket_wrapper utilities $(ZTO_OBJS)
 	@mkdir -p $(BUILD) obj
 	mv *.o obj
-	$(CXX) $(CXXFLAGS) -dynamiclib -o $(BUILD)/libzt.dylib obj/*.o
+	#$(CXX) $(CXXFLAGS) -shared -o $(BUILD)/libzt.so obj/*.o
+	$(CXX) $(CXXFLAGS) -dynamiclib obj/*.o -o $(BUILD)/libzt.dylib -lpthread
+
+# static library for use with Java JNI, scala, etc
+static_jni_lib: lwip lwip_driver libzt_socket_layer jni_socket_wrapper utilities $(ZTO_OBJS)
+	@mkdir -p $(BUILD) obj
+	mv *.o obj
+	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) obj/*.o
 
 # static library
 static_lib: picotcp picotcp_driver lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
@@ -329,7 +342,7 @@ python_module:
 ## Unit Tests                                                               ##
 ##############################################################################
 
-tests: selftest nativetest ztproxy simple
+tests: selftest nativetest ztproxy ipv4simple ipv6simple ipv6adhoc
 # intercept
 
 ZT_UTILS:=zto/node/Utils.cpp -Izto/node
@@ -352,9 +365,21 @@ intercept:
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(STACK_DRIVER_DEFS) $(LIBZT_INCLUDES) \
 		$(ZT_INCLUDES) examples/intercept/intercept.cpp -D_GNU_SOURCE \
 		-shared -o $(BUILD)/intercept.so $< -ldl
-simple:
-	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) examples/bindings/cpp/simple_client_server/client.cpp -o $(BUILD)/client -L$(BUILD) -lpthread -lzt $(WINDEFS)
-	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) examples/bindings/cpp/simple_client_server/server.cpp -o $(BUILD)/server -L$(BUILD) -lpthread -lzt $(WINDEFS)
+ipv4simple:
+	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) \
+		examples/bindings/cpp/ipv4simple/client.cpp -o $(BUILD)/ipv4client -L$(BUILD) -lpthread -lzt $(WINDEFS)
+	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) \
+		examples/bindings/cpp/ipv4simple/server.cpp -o $(BUILD)/ipv4server -L$(BUILD) -lpthread -lzt $(WINDEFS)
+ipv6simple:
+	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) \
+		examples/bindings/cpp/ipv6simple/client.cpp -o $(BUILD)/ipv6client -L$(BUILD) -lpthread -lzt $(WINDEFS)
+	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) \
+		examples/bindings/cpp/ipv6simple/server.cpp -o $(BUILD)/ipv6server -L$(BUILD) -lpthread -lzt $(WINDEFS)
+ipv6adhoc:
+	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) \
+		examples/bindings/cpp/ipv6adhoc/client.cpp -o $(BUILD)/ipv6adhocclient -L$(BUILD) -lpthread -lzt $(WINDEFS)
+	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) \
+		examples/bindings/cpp/ipv6adhoc/server.cpp -o $(BUILD)/ipv6adhocserver -L$(BUILD) -lpthread -lzt $(WINDEFS)
 dlltest:
 	$(CXX) $(CXXFLAGS)
 

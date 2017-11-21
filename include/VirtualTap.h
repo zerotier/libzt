@@ -33,6 +33,9 @@
 #ifndef ZT_VIRTUALTAP_HPP
 #define ZT_VIRTUALTAP_HPP
 
+extern int errno;
+
+
 #include "Mutex.hpp"
 #include "MulticastGroup.hpp"
 #include "InetAddress.hpp"
@@ -51,6 +54,8 @@ extern ZeroTier::Mutex _vtaps_lock;
 #include <IPHlpApi.h>
 #include <Ifdef.h>
 #endif
+
+
 
 using namespace ZeroTier;
 

@@ -1,4 +1,5 @@
 # !/bin/bash
+# Generates test identities and joins them to a test network
 
 NWID=""
 

@@ -57,6 +57,9 @@ ZeroTier::Mutex _multiplexer_lock;
 WSADATA wsaData;
 #endif
 
+// prototype
+void api_sleep(int interval_ms);
+
 /****************************************************************************/
 /* ZeroTier Core helper functions for libzt - DON'T CALL THESE DIRECTLY     */
 /****************************************************************************/
@@ -246,28 +249,96 @@ void *zts_start_service(void *thread_id)
 	return NULL;
 }
 
-void zts_get_address(const uint64_t nwid, struct sockaddr_storage *addr, const size_t addrlen)
+int zts_get_num_assigned_addresses(const uint64_t nwid)
 {
 	if (!zt1Service) {
-		return;
+		return -1;
 	}
 	VirtualTap *tap = getTapByNWID(nwid);
-	if (tap && tap->_ips.size()) {
+	if (!tap) {
+		return -1;
+	}
+	int sz = -1;
+	_vtaps_lock.lock();
+	sz = tap->_ips.size();
+	_vtaps_lock.unlock();
+	return sz;
+}
+
+int zts_get_address_at_index(
+	const uint64_t nwid, const int index, struct sockaddr_storage *addr)
+{
+	if (!zt1Service) {
+		return -1;
+	}
+	VirtualTap *tap = getTapByNWID(nwid);
+	int err = -1;
+	if (!tap) {
+		return err;
+	}
+	_vtaps_lock.lock();
+	if (index <= tap->_ips.size()) {
+		memcpy(addr, &(tap->_ips[index]), sizeof(struct sockaddr_storage));	
+		err = 0;
+	}
+	_vtaps_lock.unlock();
+	return err;
+}
+
+int zts_get_address(const uint64_t nwid, struct sockaddr_storage *addr, 
+	const int address_family)
+{
+	int err = -1;
+	if (!zt1Service) {
+		return -1;
+	}
+	VirtualTap *tap = getTapByNWID(nwid);
+	if (!tap) {
+		//DEBUG_ERROR("!tap");
+		return -1;
+	}
+	_vtaps_lock.lock();
+	if (!tap->_ips.size()) {
+		// DEBUG_ERROR("!sz");
+	}
+	else {
+		socklen_t addrlen = sizeof(struct sockaddr_storage);
 		for (size_t i=0; i<tap->_ips.size(); i++) {
-			if (tap->_ips[i].isV4()) {
-				memcpy(addr, &(tap->_ips[i]), addrlen);
-				return;
+			if (address_family == AF_INET) {
+				if (tap->_ips[i].isV4()) {
+					memcpy(addr, &(tap->_ips[i]), addrlen);
+					addr->ss_family = AF_INET;
+					err = 0;
+					break;
+				}
+			}
+			if (address_family == AF_INET6) {
+				if (tap->_ips[i].isV6()) {
+					memcpy(addr, &(tap->_ips[i]), addrlen);
+					addr->ss_family = AF_INET6;
+					err = 0;
+					break;
+				}
 			}
 		}
 	}
+	_vtaps_lock.unlock();
+	return err; // nothing found
 }
 
 int zts_has_address(const uint64_t nwid)
 {
 	struct sockaddr_storage ss;
 	memset(&ss, 0, sizeof(ss));
-	zts_get_address(nwid, &ss, sizeof(ss));
-	return ss.ss_family == AF_INET || ss.ss_family == AF_INET6;
+	zts_get_address(nwid, &ss, AF_INET);
+	if (ss.ss_family == AF_INET) {
+		return true;
+	}
+	zts_get_address(nwid, &ss, AF_INET6);
+	if (ss.ss_family == AF_INET6) {
+		return true;
+	}
+	return false;
 }
 
 void zts_get_6plane_addr(struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId)
@@ -282,38 +353,55 @@ void zts_get_rfc4193_addr(struct sockaddr_storage *addr, const uint64_t nwid, co
 	memcpy(addr, _rfc4193Addr.rawIpData(), sizeof(struct sockaddr_storage));
 }
 
-void zts_join(const uint64_t nwid)
+int zts_join(const uint64_t nwid)
 {
 	DEBUG_EXTRA();
+	if (nwid == 0) {
+		return -1;
+	}
 	if (zt1Service) {
-		std::string confFile = zt1Service->givenHomePath() + "/networks.d/" + std::to_string(nwid) + ".conf";
-		if (ZeroTier::OSUtils::mkdir(netDir) == false) {
-			DEBUG_ERROR("unable to create: %s", netDir.c_str());
-		}
-		if (ZeroTier::OSUtils::writeFile(confFile.c_str(), "") == false) {
-			DEBUG_ERROR("unable to write network conf file: %s", confFile.c_str());
-		}
 		zt1Service->join(nwid);
 	}
 	// provide ZTO service reference to virtual taps
 	// TODO: This might prove to be unreliable, but it works for now
+	_vtaps_lock.lock();
 	for (size_t i=0;i<vtaps.size(); i++) {
 		VirtualTap *s = (VirtualTap*)vtaps[i];
 		s->zt1ServiceRef=(void*)zt1Service;
 	}
+	_vtaps_lock.unlock();
+	return 0;
 }
 
-void zts_leave(const uint64_t nwid)
+int zts_leave(const uint64_t nwid)
 {
 	DEBUG_EXTRA();
+	if (nwid == 0) {
+		return -1;
+	}
 	if (zt1Service) {
 		zt1Service->leave(nwid);
 	}
+	return 0;
 }
 
-int zts_running()
+bool zts_core_running()
 {
 	return zt1Service == NULL ? false : zt1Service->isRunning();
+}
+
+bool zts_stack_running()
+{
+	_vtaps_lock.lock();
+	// TODO: Perhaps a more robust way to check for this
+	int running = vtaps.size() > 0 ? true : false;
+	_vtaps_lock.unlock();
+	return running;
+}
+
+bool zts_ready()
+{
+	return zts_core_running() && zts_stack_running();
 }
 
 int zts_start(const char *path, bool blocking = false)
@@ -332,14 +420,14 @@ int zts_start(const char *path, bool blocking = false)
 	int err = pthread_create(&service_thread, NULL, zts_start_service, NULL);
 	if (blocking) { // block to prevent service calls before we're ready
 		ZT_NodeStatus status;
-		while (zts_running() == false || zt1Service->getNode() == NULL) {
-			nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 500000)}}, NULL);
+		while (zts_core_running() == false || zt1Service->getNode() == NULL) {
+			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 		}
 		while (zt1Service->getNode()->address() <= 0) {
-			nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 500000)}}, NULL);
+			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 		}
 		while (status.online <= 0) {
-			nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 500000)}}, NULL);
+			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 			zt1Service->getNode()->status(&status);
 		}
 	}
@@ -350,7 +438,6 @@ int zts_startjoin(const char *path, const uint64_t nwid)
 {
 	DEBUG_EXTRA();
 	int err = zts_start(path, true);
-	// only now can we attempt a join
 	while (true) {
 		try {
 			zts_join(nwid);
@@ -358,10 +445,11 @@ int zts_startjoin(const char *path, const uint64_t nwid)
 		}
 		catch( ... ) {
 			DEBUG_ERROR("there was a problem joining the virtual network %s", nwid);
+			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 		}
 	}
 	while (zts_has_address(nwid) == false) {
-		nanosleep((const struct timespec[]) {{0, (ZTO_WRAPPER_CHECK_INTERVAL * 500000)}}, NULL);
+		api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 	}
 	return err;
 }
@@ -374,11 +462,11 @@ void zts_stop()
 		// disableTaps();
 	}
 #if defined(__MINGW32__) || defined(__MINGW64__)
-	WSACleanup(); // clean up WinSock
+	WSACleanup();
 #endif
 }
 
-void zts_get_homepath(char *homePath, size_t len)
+void zts_get_path(char *homePath, size_t len)
 {
 	DEBUG_EXTRA();
 	if (homeDir.length()) {
@@ -462,6 +550,12 @@ bool _ipv6_in_subnet(ZeroTier::InetAddress *subnet, ZeroTier::InetAddress *addr)
 	memset(b1, 0, 64);
 	return !strcmp(r.toIpString(b0), b.toIpString(b1));
 }
+
+void api_sleep(int interval_ms)
+{
+	nanosleep((const struct timespec[]) {{0, (interval_ms * 500000)}}, NULL);
+}
+
 #ifdef __cplusplus
 }
 #endif

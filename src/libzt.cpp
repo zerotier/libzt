@@ -56,12 +56,12 @@ extern "C" {
 
 int platform_adjusted_socket_family(int family);
 void fix_addr_socket_family(struct sockaddr *addr);
-bool zts_running();
+bool zts_ready();
 
 int zts_socket(int socket_family, int socket_type, int protocol)
 {
 	DEBUG_EXTRA("family=%d, type=%d, proto=%d", socket_family, socket_type, protocol);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -75,7 +75,8 @@ int zts_socket(int socket_family, int socket_type, int protocol)
 	/* use the lwIP community's own socket API, this provides thread safety and core
 	locking */
 	int socket_family_adj = platform_adjusted_socket_family(socket_family);
-	return lwip_socket(socket_family_adj, socket_type, protocol);
+	int err = lwip_socket(socket_family_adj, socket_type, protocol);
+	return err;
 #endif
 #if defined(ZT_PICO_BSD_SOCKET)
 	// return pico_bsd_socket(socket_family, socket_type, protocol);
@@ -86,7 +87,7 @@ int zts_socket(int socket_family, int socket_type, int protocol)
 int zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen)
 {
 	DEBUG_EXTRA("fd=%d",fd);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -107,7 +108,7 @@ int zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen)
 int zts_bind(int fd, const struct sockaddr *addr, socklen_t addrlen)
 {
 	DEBUG_EXTRA("fd=%d", fd);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -128,7 +129,7 @@ int zts_bind(int fd, const struct sockaddr *addr, socklen_t addrlen)
 int zts_listen(int fd, int backlog)
 {
 	DEBUG_EXTRA("fd=%d", fd);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -146,7 +147,7 @@ int zts_listen(int fd, int backlog)
 int zts_accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
 	DEBUG_EXTRA("fd=%d", fd);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -165,7 +166,7 @@ int zts_accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
 int zts_accept4(int fd, struct sockaddr *addr, socklen_t *addrlen, int flags)
 {
 	DEBUG_EXTRA("fd=%d", fd);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -185,7 +186,7 @@ int zts_accept4(int fd, struct sockaddr *addr, socklen_t *addrlen, int flags)
 int zts_setsockopt(int fd, int level, int optname, const void *optval, socklen_t optlen)
 {
 	DEBUG_EXTRA("fd=%d, level=%d, optname=%d", fd, level, optname);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -203,7 +204,7 @@ int zts_setsockopt(int fd, int level, int optname, const void *optval, socklen_t
 int zts_getsockopt(int fd, int level, int optname, void *optval, socklen_t *optlen)
 {
 	DEBUG_EXTRA("fd=%d, level=%d, optname=%d", fd, level, optname);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -221,7 +222,7 @@ int zts_getsockopt(int fd, int level, int optname, void *optval, socklen_t *optl
 int zts_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
 	DEBUG_EXTRA("fd=%p", fd);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -239,7 +240,7 @@ int zts_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen)
 int zts_getpeername(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
 	DEBUG_EXTRA("fd=%d", fd);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -257,7 +258,7 @@ int zts_getpeername(int fd, struct sockaddr *addr, socklen_t *addrlen)
 int zts_gethostname(char *name, size_t len)
 {
 	DEBUG_EXTRA();
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -275,7 +276,7 @@ int zts_gethostname(char *name, size_t len)
 int zts_sethostname(const char *name, size_t len)
 {
 	DEBUG_EXTRA();
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -292,7 +293,7 @@ int zts_sethostname(const char *name, size_t len)
 
 struct hostent *zts_gethostbyname(const char *name)
 {
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return NULL;
 	}
@@ -328,7 +329,7 @@ struct hostent *zts_gethostbyname(const char *name)
 int zts_close(int fd)
 {
 	DEBUG_EXTRA("fd=%d", fd);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -348,7 +349,7 @@ int zts_close(int fd)
 int zts_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
 	DEBUG_ERROR("warning, this is not implemented");
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -372,7 +373,7 @@ int zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 {
 	//DEBUG_EXTRA();
 	/*
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -391,7 +392,7 @@ int zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 int zts_fcntl(int fd, int cmd, int flags)
 {
 	DEBUG_EXTRA("fd=%d, cmd=%d, flags=%d", fd, cmd, flags);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -421,7 +422,7 @@ int zts_fcntl(int fd, int cmd, int flags)
 int zts_ioctl(int fd, unsigned long request, void *argp)
 {
 	DEBUG_EXTRA("fd=%d, req=%d", fd, request);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -440,7 +441,7 @@ ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags,
 	const struct sockaddr *addr, socklen_t addrlen)
 {
 	DEBUG_TRANS("fd=%d, len=%d", fd, len);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -462,7 +463,7 @@ ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags,
 ssize_t zts_send(int fd, const void *buf, size_t len, int flags)
 {
 	DEBUG_TRANS("fd=%d, len=%d", fd, len);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -480,7 +481,7 @@ ssize_t zts_send(int fd, const void *buf, size_t len, int flags)
 ssize_t zts_sendmsg(int fd, const struct msghdr *msg, int flags)
 {
 	DEBUG_TRANS("fd=%d", fd);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -498,7 +499,7 @@ ssize_t zts_sendmsg(int fd, const struct msghdr *msg, int flags)
 ssize_t zts_recv(int fd, void *buf, size_t len, int flags)
 {
 	DEBUG_TRANS("fd=%d", fd);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -517,7 +518,7 @@ ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags,
 	struct sockaddr *addr, socklen_t *addrlen)
 {
 	DEBUG_TRANS("fd=%d", fd);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -535,7 +536,7 @@ ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags,
 ssize_t zts_recvmsg(int fd, struct msghdr *msg,int flags)
 {
 	DEBUG_TRANS("fd=%d", fd);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -554,7 +555,7 @@ ssize_t zts_recvmsg(int fd, struct msghdr *msg,int flags)
 int zts_read(int fd, void *buf, size_t len)
 {
 	DEBUG_TRANS("fd=%d, len=%d", fd, len);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -572,7 +573,7 @@ int zts_read(int fd, void *buf, size_t len)
 int zts_write(int fd, const void *buf, size_t len)
 {
 	DEBUG_EXTRA("fd=%d, len=%d", fd, len);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -590,7 +591,7 @@ int zts_write(int fd, const void *buf, size_t len)
 int zts_shutdown(int fd, int how)
 {
 	DEBUG_EXTRA("fd=%d, how=%d", fd, how);
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -608,7 +609,7 @@ int zts_shutdown(int fd, int how)
 int zts_add_dns_nameserver(struct sockaddr *addr)
 {
 	DEBUG_EXTRA();
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
@@ -631,7 +632,7 @@ int zts_add_dns_nameserver(struct sockaddr *addr)
 int zts_del_dns_nameserver(struct sockaddr *addr)
 {
 	DEBUG_EXTRA();
-	if (zts_running() == false) {
+	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}

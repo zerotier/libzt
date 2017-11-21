@@ -33,6 +33,10 @@
 #ifndef ZT_RINGBUFFER_H
 #define ZT_RINGBUFFER_H
 
+#include <cstdint>
+#include <stdlib.h>
+
+
 typedef char bufElementType;
 
 class RingBuffer

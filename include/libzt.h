@@ -37,6 +37,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <cstdint>
  
 #if defined(__linux__) || defined(__APPLE__)
 #include <sys/socket.h>
@@ -116,30 +117,47 @@ ZT_SOCKET_API int ZTCALL zts_startjoin(const char *path, const uint64_t nwid);
 ZT_SOCKET_API void ZTCALL zts_stop();
 
 /**
- * @brief Return whether ZeroTier is currently running
+ * @brief Return whether ZeroTier core service is currently running
  *
- * @usage Call this before, during, or after zts_start()
- * @return
+ * @usage Call this after zts_start()
+ * @return 1 if running, 0 if not running
  */
-ZT_SOCKET_API int ZTCALL zts_running();
+ZT_SOCKET_API int ZTCALL zts_core_running();
+
+/**
+ * @brief Return whether the userspace network stack is currently running
+ *
+ * @usage Call this after zts_start()
+ * @return 1 if running, 0 if not running
+ */
+ZT_SOCKET_API int ZTCALL zts_stack_running();
+
+/**
+ * @brief Return whether libzt is ready to handle socket API calls. Alternatively you could 
+ * have just called zts_startjoin(path, nwid)
+ *
+ * @usage Call this after zts_start()
+ * @return 1 if running, 0 if not running
+ */
+ZT_SOCKET_API int ZTCALL zts_ready();
 
 /**
  * @brief Join a network
  *
  * @usage Call this from application thread. Only after zts_start() has succeeded
  * @param nwid A 16-digit hexidecimal virtual network ID
- * @return
+ * @return 0 if successful, -1 for any failure
  */
-ZT_SOCKET_API void ZTCALL zts_join(const uint64_t nwid);
+ZT_SOCKET_API int ZTCALL zts_join(const uint64_t nwid);
 
 /**
  * @brief Leave a network
  *
  * @usage Call this from application thread. Only after zts_start() has succeeded
  * @param nwid A 16-digit hexidecimal virtual network ID
- * @return
+ * @return 0 if successful, -1 for any failure
  */
-ZT_SOCKET_API void ZTCALL zts_leave(const uint64_t nwid);
+ZT_SOCKET_API int ZTCALL zts_leave(const uint64_t nwid);
 
 /**
  * @brief Copies the configuration path used by ZeroTier into the provided buffer
@@ -147,9 +165,9 @@ ZT_SOCKET_API void ZTCALL zts_leave(const uint64_t nwid);
  * @usage
  * @param homePath Path to ZeroTier configuration files
  * @param len Length of destination buffer
- * @return
+ * @return 
  */
-ZT_SOCKET_API void ZTCALL zts_get_homepath(char *homePath, const size_t len);
+ZT_SOCKET_API void ZTCALL zts_get_path(char *homePath, const size_t len);
 
 /**
  * @brief Returns the node ID of this instance
@@ -177,16 +195,38 @@ ZT_SOCKET_API uint64_t ZTCALL zts_get_node_id_from_file(const char *filepath);
  */
 ZT_SOCKET_API int ZTCALL zts_has_address(const uint64_t nwid);
 
+
+/**
+ * @brief Returns the number of addresses assigned to this node for the given nwid
+ *
+ * @param nwid Network ID
+ * @return The number of addresses assigned
+ */
+ZT_SOCKET_API int ZTCALL zts_get_num_assigned_addresses(const uint64_t nwid);
+
+/**
+ * @brief Returns the assigned address located at the given index
+ *
+ * @usage The indices of each assigned address are not guaranteed and should only
+ * be used for iterative purposes.
+ * @param nwid Network ID
+ * @param index location of assigned address
+ * @return The number of addresses assigned
+ */
+ZT_SOCKET_API int ZTCALL zts_get_address_at_index(
+	const uint64_t nwid, const int index, struct sockaddr_storage *addr);
+
 /**
  * @brief Get IP address for this device on a given network
  *
  * @usage FIXME: Only returns first address found, good enough for most cases
  * @param nwid Network ID
  * @param addr Destination structure for address
- * @param addrlen Length of destination structure
- * @return
+ * @param address_family To designate what family of addresses we want to return. AF_INET or AF_INET6
+ * @return 0 if an address was successfully found, -1 if failure
  */
-ZT_SOCKET_API void ZTCALL zts_get_address(const uint64_t nwid, struct sockaddr_storage *addr, const size_t addrlen);
+ZT_SOCKET_API int ZTCALL zts_get_address(
+	const uint64_t nwid, struct sockaddr_storage *addr, const int address_family);
 
 /**
  * @brief Computes a 6PLANE IPv6 address for the given Network ID and Node ID
@@ -197,7 +237,8 @@ ZT_SOCKET_API void ZTCALL zts_get_address(const uint64_t nwid, struct sockaddr_s
  * @param nodeId Node ID
  * @return
  */
-ZT_SOCKET_API void ZTCALL zts_get_6plane_addr(struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId);
+ZT_SOCKET_API void ZTCALL zts_get_6plane_addr(
+	struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId);
 
 /**
  * @brief Computes a RFC4193 IPv6 address for the given Network ID and Node ID
@@ -208,7 +249,8 @@ ZT_SOCKET_API void ZTCALL zts_get_6plane_addr(struct sockaddr_storage *addr, con
  * @param nodeId Node ID
  * @return
  */
-ZT_SOCKET_API void ZTCALL zts_get_rfc4193_addr(struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId);
+ZT_SOCKET_API void ZTCALL zts_get_rfc4193_addr(
+	struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId);
 
 /**
  * @brief Return the number of peers
@@ -325,7 +367,8 @@ ZT_SOCKET_API int ZTCALL zts_accept(int fd, struct sockaddr *addr, socklen_t *ad
  * @param optlen Length of option value
  * @return
  */
-ZT_SOCKET_API int ZTCALL zts_setsockopt(int fd, int level, int optname, const void *optval, socklen_t optlen);
+ZT_SOCKET_API int ZTCALL zts_setsockopt(
+	int fd, int level, int optname, const void *optval, socklen_t optlen);
 
 /**
  * @brief Get socket options
@@ -338,7 +381,8 @@ ZT_SOCKET_API int ZTCALL zts_setsockopt(int fd, int level, int optname, const vo
  * @param optlen Length of value
  * @return
  */
-ZT_SOCKET_API int ZTCALL zts_getsockopt(int fd, int level, int optname, void *optval, socklen_t *optlen);
+ZT_SOCKET_API int ZTCALL zts_getsockopt(
+	int fd, int level, int optname, void *optval, socklen_t *optlen);
 
 /**
  * @brief Get socket name
@@ -427,7 +471,8 @@ int zts_poll(struct pollfd *fds, nfds_t nfds, int timeout);
  * @param timeout
  * @return
  */
-ZT_SOCKET_API int ZTCALL zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+ZT_SOCKET_API int ZTCALL zts_select(
+	int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
 
 /**
  * @brief Issue file control commands on a socket
@@ -475,7 +520,8 @@ ZT_SOCKET_API ssize_t ZTCALL zts_send(int fd, const void *buf, size_t len, int f
  * @param addrlen Length of destination address
  * @return
  */
-ZT_SOCKET_API ssize_t ZTCALL zts_sendto(int fd, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen);
+ZT_SOCKET_API ssize_t ZTCALL zts_sendto(
+	int fd, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen);
 
 /**
  * @brief Send message to remote host
@@ -512,7 +558,8 @@ ZT_SOCKET_API ssize_t ZTCALL zts_recv(int fd, void *buf, size_t len, int flags);
  * @param addrlen
  * @return
  */
-ZT_SOCKET_API ssize_t ZTCALL zts_recvfrom(int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen);
+ZT_SOCKET_API ssize_t ZTCALL zts_recvfrom(
+	int fd, void *buf, size_t len, int flags, struct sockaddr *addr, socklen_t *addrlen);
 
 /**
  * @brief Receive a message from remote host

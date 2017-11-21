@@ -128,14 +128,14 @@ bool VirtualTap::addIp(const InetAddress &ip)
 {
 #if defined(NO_STACK)
 	char ipbuf[INET6_ADDRSTRLEN];
-	DEBUG_INFO("addIp (%s)", ip.toString(ipbuf));
+	DEBUG_INFO("addIp=%s, nwid=%llx", ip.toString(ipbuf), _nwid);
 	_ips.push_back(ip);
 	std::sort(_ips.begin(),_ips.end());
 	return true;
 #endif
 #if defined(STACK_PICO) || defined(STACK_LWIP)
 	char ipbuf[INET6_ADDRSTRLEN];
-	DEBUG_EXTRA("addr=%s", ip.toString(ipbuf));
+	DEBUG_EXTRA("addr=%s, nwid=%llx", ip.toString(ipbuf), _nwid);
 	Mutex::Lock _l(_ips_m);
 	if (registerIpWithStack(ip)) {
 		if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {

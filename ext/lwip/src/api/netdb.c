@@ -58,7 +58,7 @@ struct gethostbyname_r_helper {
 
 /** h_errno is exported in netdb.h for access by applications. */
 #if LWIP_DNS_API_DECLARE_H_ERRNO
-int h_errno;
+//int h_errno;
 #endif /* LWIP_DNS_API_DECLARE_H_ERRNO */
 
 /** define "hostent" variables storage: 0 if we use a static (but unprotected)

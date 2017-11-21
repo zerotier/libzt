@@ -116,7 +116,13 @@ struct addrinfo {
 
 #if LWIP_DNS_API_DECLARE_H_ERRNO
 /* application accessible error code set by the DNS API functions */
+#if defined(__APPLE__)
 extern int h_errno;
+#endif
+#if defined(__linux__)
+extern __thread int h_errno;
+#endif
+
 #endif /* LWIP_DNS_API_DECLARE_H_ERRNO*/
 
 struct hostent *lwip_gethostbyname(const char *name);

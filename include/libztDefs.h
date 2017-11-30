@@ -175,7 +175,9 @@ struct sockaddr_ll {
 #define SO_STYLE                100
 #define TCP_CORK                101
 #define TCP_DEFER_ACCEPT        102
-#define TCP_KEEPIDLE            103
+#ifndef TCP_KEEPIDLE
+  #define TCP_KEEPIDLE            103
+#endif
 #define TCP_LINGER2             104
 #define TCP_QUICKACK            105
 #define TCP_SYNCNT              106

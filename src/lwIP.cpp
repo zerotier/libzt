@@ -235,7 +235,7 @@ void lwip_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC
 
 	// Routing
 	struct ip_hdr *iphdr;
-	ip_addr_t iphdr_dest;
+	//ip_addr_t iphdr_dest;
 	switch (((struct eth_hdr *)p->payload)->type)
 	{
 		case PP_HTONS(ETHTYPE_IPV6): {

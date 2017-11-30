@@ -374,7 +374,7 @@ int main(int argc, char **argv)
 	// Start ZeroTier Node
 	// Join Network which contains resources we need to proxy
 	DEBUG_INFO("waiting for libzt to come online");
-	uint64_t nwid = strtoll(nwidstr.c_str(),NULL,16);
+	uint64_t nwid = strtoull(nwidstr.c_str(),NULL,16);
 	zts_startjoin(path.c_str(), nwid);
 
 	ZeroTier::ZTProxy *proxy = new ZeroTier::ZTProxy(proxy_listen_port, nwidstr, path, internal_addr, internal_port, dns_nameserver);

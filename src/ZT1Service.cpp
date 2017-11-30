@@ -30,6 +30,7 @@
  * ZeroTier One service control wrapper
  */
 
+#include "libzt.h"
 #include "ZT1Service.h"
 #include "libztDebug.h"
 #include "SysUtils.h"
@@ -385,12 +386,12 @@ int zts_leave(const uint64_t nwid)
 	return 0;
 }
 
-bool zts_core_running()
+int zts_core_running()
 {
 	return zt1Service == NULL ? false : zt1Service->isRunning();
 }
 
-bool zts_stack_running()
+int zts_stack_running()
 {
 	_vtaps_lock.lock();
 	// TODO: Perhaps a more robust way to check for this
@@ -399,7 +400,7 @@ bool zts_stack_running()
 	return running;
 }
 
-bool zts_ready()
+int zts_ready()
 {
 	return zts_core_running() && zts_stack_running();
 }
@@ -426,6 +427,7 @@ int zts_start(const char *path, bool blocking = false)
 		while (zt1Service->getNode()->address() <= 0) {
 			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 		}
+		DEBUG_INFO("node=%llx", zts_get_node_id());
 		while (status.online <= 0) {
 			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 			zt1Service->getNode()->status(&status);

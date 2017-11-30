@@ -111,8 +111,8 @@ extern unsigned int gettid();
 		ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 #endif
 
-// libzt POSIX socket emulation layer debugging
-#if defined(LIBZT_DEBUG) || defined(__NATIVETEST__)
+// Helpful file/line/function debugging macros
+#if defined(LIBZT_DEBUG) || defined(LIBZT_TRACE) || defined(__NATIVETEST__)
 	//
 	#if ZT_MSG_TEST == true
 		#if defined(__ANDROID__)

@@ -341,8 +341,6 @@ void wait_until_everyone_is_ready(struct sockaddr *local_addr, struct sockaddr *
 	When one is found, send some sort of synchronization message and allow test to 
 	begin */
 	int err;
-	struct sockaddr_in client;
-	socklen_t client_addrlen = sizeof(sockaddr_in);
 	bool connected = false;
 	int accepted_fd;
 	// listen socket setup
@@ -906,7 +904,7 @@ void udp_server_4(UDP_UNIT_TEST_SIG_4)
 
 int zts_bind_test(int fd, const struct sockaddr *addr, socklen_t addrlen)
 {
-	int err = -1;
+	// int err = -1;
 	DEBUG_EXTRA("fd=%d", fd);
 	DEBUG_INFO("addrp=%p", addr);
 	DEBUG_INFO("addrlen=%d", addrlen);
@@ -1961,7 +1959,7 @@ int ZT_control_semantics_test(bool *passed)
 		int zts_get_peer_address(char *peer, const char *devID);
 	*/
 
-	int n_times = 5;
+	//int n_times = 5;
 	char *nwid = (char*)"17d709436c2c5367";
 	char *path = (char*)"fake_path";
 /*
@@ -2696,7 +2694,7 @@ int main(int argc , char *argv[])
 				DEBUG_ERROR("invalid pathname was given");
 				exit(-1);
 			}
-			uint64_t nwid = strtoull(argv[2],NULL,16);
+			//uint64_t nwid = strtoull(argv[2],NULL,16);
 			uint64_t nodeId = zts_get_node_id();
 
 			zts_start(argv[3], true);

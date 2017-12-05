@@ -208,8 +208,6 @@ namespace ZeroTier {
 		JNIEnv *env, jobject thisObj, jint fd, jobject addr)
 	{
 		struct sockaddr_storage ss;
-		struct sockaddr_in *in4 = (struct sockaddr_in*)&ss;
-		struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&ss;
 		int err;
 		if(sockinet2ss(env, addr, &ss) < 0) {
 			return -1; // possibly invalid address format
@@ -247,7 +245,7 @@ namespace ZeroTier {
 		struct sockaddr_storage ss;
 		int err;
 		socklen_t addrlen = sizeof(struct sockaddr_storage);
-		if ((err = zts_accept(fd, (struct sockaddr *)&ss, &addrlen, flags)) < 0) {
+		if ((err = zts_accept4(fd, (struct sockaddr *)&ss, &addrlen, flags)) < 0) {
 			return err;
 		}
 		addr = ss2inet(env, &ss);
@@ -258,13 +256,13 @@ namespace ZeroTier {
 	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_setsockopt(
 		JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen)
 	{
-		return zts_setsockopt(fd, level, optname, (const void*)optval, optlen);
+		return zts_setsockopt(fd, level, optname, (void*)(uintptr_t)optval, optlen);
 	}
 
 	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_getsockopt(
 		JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen)
 	{
-		return zts_getsockopt(fd, level, optname, (void*)optval, (socklen_t *)optlen);
+		return zts_getsockopt(fd, level, optname, (void*)(uintptr_t)optval, (socklen_t *)optlen);
 	}
 
 	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_getsockname(JNIEnv *env, jobject thisObj,
@@ -452,7 +450,6 @@ int sockinet2ss(JNIEnv *env, jobject src_inet, struct sockaddr_storage *dest_ss)
 {
 	struct sockaddr_in *in4 = (struct sockaddr_in*)dest_ss;
 	struct sockaddr_in6 *in6 = (struct sockaddr_in6*)dest_ss;
-	int err = -1;
 	int port = 0;
 	int socket_family = 0;
 	socklen_t addrlen;
@@ -471,7 +468,6 @@ int sockinet2ss(JNIEnv *env, jobject src_inet, struct sockaddr_storage *dest_ss)
 	port = (*env).CallIntMethod(src_inet, getPort);	
 	// get internal InetAddress
 	jobject inetaddr;
-	int family = 0;
 	jmethodID getAddress = (*env).GetMethodID(c, "getAddress", "()Ljava/net/InetAddress;");
 	if (!getAddress) {
 		return -1;
@@ -515,8 +511,8 @@ int sockinet2ss(JNIEnv *env, jobject src_inet, struct sockaddr_storage *dest_ss)
 	}
 	(*env).ReleaseStringUTFChars(addrstr, addr_str);
 	DEBUG_TEST("RESULT => %s : %d", inet_ntoa(in4->sin_addr), ntohs(in4->sin_port));
+	return 0;
 }
-
 
 #ifdef __cplusplus
 }

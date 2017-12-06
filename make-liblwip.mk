@@ -65,7 +65,7 @@ LWIPARCH=$(CONTRIBDIR)/ports/unix
 endif
 
 LWIPINCLUDES:=-I$(LWIPDIR)/include -I$(LWIPARCH) -I$(LWIPARCH)/include -I$(LWIPDIR) -I. -Iext -Iinclude
-CFLAGS+=$(WINDEFS) -Wno-format -Wno-missing-prototypes -Wno-deprecated -O3 -g -Wall -fPIC $(LWIPINCLUDES)
+CFLAGS+=$(WINDEFS) -Wno-format -Wno-deprecated -O3 -g -Wall -fPIC $(LWIPINCLUDES)
 
 ifeq ($(NS_DEBUG),1)
 CFLAGS+=-DLWIP_DEBUG=1

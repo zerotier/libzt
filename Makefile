@@ -34,43 +34,62 @@ ifeq ($(origin CXX),default)
 endif
 
 OSTYPE=$(shell uname -s | tr '[A-Z]' '[a-z]')
-BUILD=build/$(OSTYPE)
+BUILDPATH=build/$(OSTYPE)
+LIBPATH=lib
 LWIPCONTRIBDIR=ext/lwip-contrib
+
+# default
+CFLAGS+=-Wall
 
 # Windows
 ifeq ($(OSTYPE),mingw32_nt-6.2)
 ARTOOL=ar
 ARFLAGS=rcs
+
 CC=gcc
 CXX=g++
 CFLAGS=
 CXXFLAGS+=-fpermissive -Wno-unknown-pragmas -Wno-pointer-arith -Wno-deprecated-declarations -Wno-conversion-null
 WINDEFS=-lws2_32 -lshlwapi -liphlpapi -static -static-libgcc -static-libstdc++
 LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/win32/include
+STATIC_LIB=libzt.a
+SHARED_LIB=libzt.dll
 endif
 # Darwin
 ifeq ($(OSTYPE),darwin)
+CFLAGS+=-fvisibility=hidden -fstack-protector
 ARTOOL=libtool
 ARFLAGS=-static
 LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/unix/include
+STATIC_LIB=libzt.a
+SHARED_LIB=libzt.dylib
 endif
 # Linux
 ifeq ($(OSTYPE),linux)
+CFLAGS+=-fvisibility=hidden -fstack-protector
 ARTOOL=ar
 ARFLAGS=rcs
 LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/unix/include
+STATIC_LIB=libzt.a
+SHARED_LIB=libzt.so
 endif
 # FreeBSD
 ifeq ($(OSTYPE),freebsd)
+CFLAGS+=-fvisibility=hidden -fstack-protector
 ARTOOL=ar
 ARFLAGS=rcs
 LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/unix/include
+STATIC_LIB=libzt.a
+SHARED_LIB=libzt.so
 endif
 # OpenBSD
 ifeq ($(OSTYPE),openbsd)
+CFLAGS+=-fvisibility=hidden -fstack-protector
 ARTOOL=ar
 ARFLAGS=rcs
 LWIPARCHINCLUDE=$(LWIPCONTRIBDIR)/ports/unix/include
+STATIC_LIB=libzt.a
+SHARED_LIB=libzt.so
 endif
 
 ##############################################################################
@@ -135,40 +154,45 @@ LIBZT_INCLUDES+=-Iinclude \
 #    NS_ Configuration options for userspace network stack
 
 STRIP=strip
-
-# ZeroTier debug and tracing
+# Determine if PIC is needed for the intended build target
+ifeq ($(MAKECMDGOALS),static_lib)
+	CFLAGS?=
+	#-fPIE
+endif
+ifeq ($(MAKECMDGOALS),shared_lib)
+	CFLAGS?=
+	#-fPIC
+endif
+# ZeroTier core debug and tracing
 ifeq ($(ZT_DEBUG),1)
-	CFLAGS?=-Wall -g -pthread 
-	ZT_DEFS+=-DZT_TRACE=1
+	CFLAGS?=-g 
+	ZT_DEFS?=-DZT_TRACE=1
 	STRIP=echo
 else
-	CFLAGS?=-Ofast -fstack-protector
-	CFLAGS?=-Wall -fPIE -fvisibility=hidden -pthread
+	CFLAGS?=-Ofast
 endif
-
+# For consistency. ZT_DEBUG=1 will also turn this on
 ifeq ($(ZT_TRACE),1)
-	ZT_DEFS+=-DZT_TRACE
+	ZT_DEFS?=-DZT_TRACE
 endif
-
-# libzt debuf and tracing
+# Don't optimize, add debug symbols
 ifeq ($(LIBZT_DEBUG),1)
-	CFLAGS?=-Wall -g -pthread
+	CFLAGS?=-g
 	STRIP=echo
 else
-	CFLAGS?=-Ofast -fstack-protector
-	CFLAGS?=-Wall -fPIE -fvisibility=hidden -pthread
+	CFLAGS?=-Ofast
 endif
-
+# Turns on file/function/line debug output logging
 ifeq ($(LIBZT_TRACE),1)
-	LIBZT_DEFS+=-DLIBZT_DEBUG
+	LIBZT_DEFS?=-DLIBZT_TRACE
 endif
-# For using experimental stack drivers which interface via raw API's 
+# Experimental stack drivers which interface via raw API's 
 ifeq ($(LIBZT_RAW),1)
-	LIBZT_DEFS+=-DLIBZT_RAW=1
+	LIBZT_DEFS?=-DLIBZT_RAW=1
 endif
-
+# Debug the userspace stack
 ifeq ($(NS_DEBUG),1)
-	CFLAGS+=-Wall -g
+	CFLAGS?=-g
 	STRIP=echo
 endif
 
@@ -192,7 +216,6 @@ endif
 CXXFLAGS+=$(CFLAGS) -Wno-format -fno-rtti -std=c++11
 ZT_DEFS+=-DZT_SDK -DZT_SOFTWARE_UPDATE_DEFAULT="\"disable\""
 LIBZT_FILES:=src/VirtualTap.cpp src/libzt.cpp src/Utilities.cpp
-STATIC_LIB=$(BUILD)/libzt.a
 
 ##############################################################################
 ## Stack Configuration                                                      ##
@@ -225,17 +248,17 @@ STACK_DRIVER_FILES:=src/lwIP.cpp
 ##############################################################################
 
 %.o : %.cpp
-	@mkdir -p $(BUILD) obj
+	@mkdir -p $(BUILDPATH) obj
 	$(CXX) $(CXXFLAGS) $(STACK_DRIVER_DEFS) $(ZT_DEFS) \
 		$(ZT_INCLUDES) $(LIBZT_INCLUDES) -c $^ -o obj/$(@F)
 
 %.o : %.c
-	@mkdir -p $(BUILD) obj
+	@mkdir -p $(BUILDPATH) obj
 	$(CC) $(CFLAGS) -c $^ -o obj/$(@F)
 
 core:
 	cd zto; make core
-	mv zto/libzerotiercore.a $(BUILD)
+	mv zto/libzerotiercore.a $(BUILDPATH)
 
 picotcp:
 	cd ext/picotcp; make lib ARCH=shared IPV4=1 IPV6=1
@@ -275,44 +298,79 @@ utilities:
 	$(CXX) $(CXXFLAGS) -c src/Utilities.cpp \
 		$(ZT_DEFS) $(ZT_INCLUDES) $(LIBZT_INCLUDES) $(STACK_INCLUDES)
 
+remove_objs:
+	rm -rf *.o
+
+prereqs: remove_objs lwip lwip_driver libzt_socket_layer jni_socket_wrapper utilities
+
+static_lib: prereqs $(ZTO_OBJS)
+	mv *.o obj
+	mkdir -p lib
+	$(ARTOOL) $(ARFLAGS) obj/*.o -o $(LIBPATH)/$(STATIC_LIB)
+
+shared_lib: prereqs $(ZTO_OBJS)
+	mv *.o obj
+	mkdir -p lib
+	$(CXX) $(CXXFLAGS) obj/*.o $(SOLIBTYPE) -o $(LIBPATH)/$(SHARED_LIB) -lpthread
+
+dynamic_lib: prereqs $(ZTO_OBJS)
+
+ifdef JNI
+ZT_DEFS+=-DSDK_JNI
+SOLIBTYPE=-shared
+else
+SOLIBTYPE=-shared
+# user dynamiclib for macOS
+endif
+ifdef STATIC
+CFLAGS+=
+#-fPIE
+lib: static_lib
+endif
+ifdef SHARED
+CFLAGS+=
+#-fPIC
+lib: shared_lib
+endif
+
 # windows DLL
 win_dll: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
 	# First we use mingw to build our DLL
-	@mkdir -p $(BUILD) obj
+	@mkdir -p $(BUILDPATH) obj
 	mv *.o obj
 	windres -i res/libztdll.rc -o obj/libztdllres.o
-	$(CXX) $(CXXFLAGS) -shared -o $(BUILD)/libzt.dll obj/*.o -Wl,--output-def,$(BUILD)/libzt.def,--out-implib,$(BUILD)/libzt.a $(WINDEFS)
-	$(STRIP) $(BUILD)/libzt.dll
+	$(CXX) $(CXXFLAGS) -shared -o $(BUILDPATH)/libzt.dll obj/*.o -Wl,--output-def,$(BUILDPATH)/libzt.def,--out-implib,$(BUILDPATH)/libzt.a $(WINDEFS)
+	$(STRIP) $(BUILDPATH)/libzt.dll
 	# Then do the following to generate the MSVC DLL from the def file (which was generated from the MinGW DLL): 
 	# lib /machine:x64 /def:libzt.def
 	# or just execute: makelib
 
 # ordinary shared library
-shared_lib: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
-	@mkdir -p $(BUILD) obj
-	mv *.o obj
-	$(CXX) $(CXXFLAGS) -shared -o $(BUILD)/libzt.so obj/*.o
+#shared_lib: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
+#	@mkdir -p $(BUILDPATH) obj
+#	mv *.o obj
+#	$(CXX) $(CXXFLAGS) -shared -o $(BUILDPATH)/libzt.so obj/*.o
 
 # dynamic library for use with Java JNI, scala, etc
-shared_jni_lib: lwip lwip_driver libzt_socket_layer jni_socket_wrapper utilities $(ZTO_OBJS)
-	@mkdir -p $(BUILD) obj
-	mv *.o obj
-	#$(CXX) $(CXXFLAGS) -shared -o $(BUILD)/libzt.so obj/*.o
-	$(CXX) $(CXXFLAGS) -dynamiclib obj/*.o -o $(BUILD)/libzt.dylib -lpthread
+#shared_jni_lib: lwip lwip_driver libzt_socket_layer jni_socket_wrapper utilities $(ZTO_OBJS)
+#	@mkdir -p $(BUILDPATH) obj
+#	mv *.o obj
+	#$(CXX) $(CXXFLAGS) -shared -o $(BUILDPATH)/libzt.so obj/*.o
+#	$(CXX) $(CXXFLAGS) -dynamiclib obj/*.o -o $(BUILDPATH)/libzt.dylib -lpthread
 
 # static library for use with Java JNI, scala, etc
-static_jni_lib: lwip lwip_driver libzt_socket_layer jni_socket_wrapper utilities $(ZTO_OBJS)
-	@mkdir -p $(BUILD) obj
-	mv *.o obj
-	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) obj/*.o
+#static_jni_lib: lwip lwip_driver libzt_socket_layer jni_socket_wrapper utilities $(ZTO_OBJS)
+#	@mkdir -p $(BUILDPATH) obj
+#	mv *.o obj
+#	$(ARTOOL) $(ARFLAGS) -o $(BUILDPATH)/$(STATIC_LIB) obj/*.o
 
 # static library
-static_lib: picotcp picotcp_driver lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
-	@mkdir -p $(BUILD) obj
-	mv *.o obj
-	mv ext/picotcp/build/lib/*.o obj
-	mv ext/picotcp/build/modules/*.o obj
-	$(ARTOOL) $(ARFLAGS) -o $(STATIC_LIB) obj/*.o
+#static_lib: lwip lwip_driver libzt_socket_layer utilities $(ZTO_OBJS)
+#	@mkdir -p $(BUILDPATH) obj
+#	mv *.o obj
+#	mv ext/picotcp/build/lib/*.o obj
+#	mv ext/picotcp/build/modules/*.o obj
+#	$(ARTOOL) $(ARFLAGS) -o $(BUILDPATH)/$(STATIC_LIB) obj/*.o
 
 ##############################################################################
 ## iOS/macOS App Frameworks                                                 ##
@@ -320,15 +378,15 @@ static_lib: picotcp picotcp_driver lwip lwip_driver libzt_socket_layer utilities
 
 ios_app_framework:
 	cd examples/apple/ZeroTierSDK_Apple; xcodebuild -configuration Release \
-		-scheme ZeroTierSDK_iOS build SYMROOT="../../../$(BUILD)/ios_app_framework"
+		-scheme ZeroTierSDK_iOS build SYMROOT="../../../$(BUILDPATH)/ios_app_framework"
 	cd examples/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug \
-		-scheme ZeroTierSDK_iOS build SYMROOT="../../../$(BUILD)/ios_app_framework"
+		-scheme ZeroTierSDK_iOS build SYMROOT="../../../$(BUILDPATH)/ios_app_framework"
 
 macos_app_framework:
 	cd examples/apple/ZeroTierSDK_Apple; xcodebuild -configuration Release \
-		-scheme ZeroTierSDK_OSX build SYMROOT="../../../$(BUILD)/macos_app_framework"
+		-scheme ZeroTierSDK_OSX build SYMROOT="../../../$(BUILDPATH)/macos_app_framework"
 	cd examples/apple/ZeroTierSDK_Apple; xcodebuild -configuration Debug \
-		-scheme ZeroTierSDK_OSX build SYMROOT="../../../$(BUILD)/macos_app_framework"
+		-scheme ZeroTierSDK_OSX build SYMROOT="../../../$(BUILDPATH)/macos_app_framework"
 
 ##############################################################################
 ## Python module                                                            ##
@@ -350,55 +408,66 @@ ZT_UTILS:=zto/node/Utils.cpp -Izto/node
 sample:
 	$(CXX) $(CXXFLAGS) -D__SELFTEST__ $(STACK_DRIVER_DEFS) $(LIBZT_DEFS) \
 		$(SANFLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) $(ZT_UTILS) test/sample.cpp -o \
-		$(BUILD)/sample -L$(BUILD) -lzt
+		$(BUILDPATH)/sample -L$(LIBPATH) -lzt
 selftest:
 	$(CXX) $(CXXFLAGS) -D__SELFTEST__ $(STACK_DRIVER_DEFS) $(LIBZT_DEFS) \
 		$(SANFLAGS) $(LIBZT_INCLUDES) $(ZT_INCLUDES) $(ZT_UTILS) test/selftest.cpp -o \
-		$(BUILD)/selftest -L$(BUILD) -lzt -lpthread
+		$(BUILDPATH)/selftest -L$(LIBPATH) -lzt -lpthread
 nativetest:
 	$(CXX) $(CXXFLAGS) -D__NATIVETEST__ $(STACK_DRIVER_DEFS) $(SANFLAGS) \
-		$(LIBZT_INCLUDES) $(ZT_INCLUDES) test/selftest.cpp -o $(BUILD)/nativetest
+		$(LIBZT_INCLUDES) $(ZT_INCLUDES) test/selftest.cpp -o $(BUILDPATH)/nativetest
 ztproxy:
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) $(ZT_INCLUDES) \
-		examples/apps/ztproxy/ztproxy.cpp -o $(BUILD)/ztproxy $< -L$(BUILD) -lzt -lpthread $(WINDEFS)
+		examples/apps/ztproxy/ztproxy.cpp -o $(BUILDPATH)/ztproxy $< -L$(LIBPATH) -lzt -lpthread $(WINDEFS)
 intercept:
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(STACK_DRIVER_DEFS) $(LIBZT_INCLUDES) \
 		$(ZT_INCLUDES) examples/intercept/intercept.cpp -D_GNU_SOURCE \
-		-shared -o $(BUILD)/intercept.so $< -ldl
+		-shared -o $(BUILDPATH)/intercept.so $< -ldl
 ipv4simple:
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) \
-		examples/bindings/cpp/ipv4simple/client.cpp -o $(BUILD)/ipv4client -L$(BUILD) -lpthread -lzt $(WINDEFS)
+		examples/bindings/cpp/ipv4simple/client.cpp -o $(BUILDPATH)/ipv4client -L$(LIBPATH) -lpthread -lzt $(WINDEFS)
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) \
-		examples/bindings/cpp/ipv4simple/server.cpp -o $(BUILD)/ipv4server -L$(BUILD) -lpthread -lzt $(WINDEFS)
+		examples/bindings/cpp/ipv4simple/server.cpp -o $(BUILDPATH)/ipv4server -L$(LIBPATH) -lpthread -lzt $(WINDEFS)
 ipv6simple:
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) \
-		examples/bindings/cpp/ipv6simple/client.cpp -o $(BUILD)/ipv6client -L$(BUILD) -lpthread -lzt $(WINDEFS)
+		examples/bindings/cpp/ipv6simple/client.cpp -o $(BUILDPATH)/ipv6client -L$(LIBPATH) -lpthread -lzt $(WINDEFS)
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) \
-		examples/bindings/cpp/ipv6simple/server.cpp -o $(BUILD)/ipv6server -L$(BUILD) -lpthread -lzt $(WINDEFS)
+		examples/bindings/cpp/ipv6simple/server.cpp -o $(BUILDPATH)/ipv6server -L$(LIBPATH) -lpthread -lzt $(WINDEFS)
 ipv6adhoc:
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) \
-		examples/bindings/cpp/ipv6adhoc/client.cpp -o $(BUILD)/ipv6adhocclient -L$(BUILD) -lpthread -lzt $(WINDEFS)
+		examples/bindings/cpp/ipv6adhoc/client.cpp -o $(BUILDPATH)/ipv6adhocclient -L$(LIBPATH) -lpthread -lzt $(WINDEFS)
 	$(CXX) $(CXXFLAGS) $(SANFLAGS) $(LIBZT_INCLUDES) $(LIBZT_DEFS) \
-		examples/bindings/cpp/ipv6adhoc/server.cpp -o $(BUILD)/ipv6adhocserver -L$(BUILD) -lpthread -lzt $(WINDEFS)
+		examples/bindings/cpp/ipv6adhoc/server.cpp -o $(BUILDPATH)/ipv6adhocserver -L$(LIBPATH) -lpthread -lzt $(WINDEFS)
 dlltest:
 	$(CXX) $(CXXFLAGS)
 
+##############################################################################
+## Installation and Uninstallation                                          ##
+##############################################################################
+
+.PHONY: install
+install:
+	mkdir -p $(DESTDIR)$(PREFIX)/lib
+	mkdir -p $(DESTDIR)$(PREFIX)/include
+	cp $(BUILDPATH)/$(STATIC_LIB) $(DESTDIR)$(PREFIX)/lib/
+	cp include/libzt.h $(DESTDIR)$(PREFIX)/include/
+
+.PHONY: uninstall
+uninstall:
+	rm -f $(DESTDIR)$(PREFIX)/*.a
+	rm -f $(DESTDIR)$(PREFIX)/include/*.h
 
 ##############################################################################
 ## Misc                                                                     ##
 ##############################################################################
 
-standardize:
-	vera++ --transform trim_right src/*.cpp
-	vera++ --transform trim_right include/*.h
-
+.PHONY: clean
 clean:
+	-rm f $(LIBPATH)/*
+	-rm -rf $(BUILDPATH)/*
+	-rm f obj/*
+	-rm f *.o *.s *.exp *.lib .depend* *.core core
 	-rm -rf .depend
-	-rm -f *.o *.s *.exp *.lib .depend* *.core core
-	-rm -rf $(BUILD)/*
-	-rm -rf obj/*
 	-find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.so' -o -name \
 		'*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete	
 
-time:
-	@date +"Build script finished on %F %T"

@@ -156,6 +156,7 @@ struct sockaddr_ll {
 
 #endif
 
+/*
 // Provide missing optnames for setsockopt() implementations
 #ifdef _WIN32
    #ifdef _WIN64
@@ -193,6 +194,7 @@ struct sockaddr_ll {
 #else
 #   error "Unknown platform"
 #endif
+*/
 
 /****************************************************************************/
 /* Legend                                                                   */

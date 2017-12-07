@@ -555,7 +555,9 @@ bool _ipv6_in_subnet(ZeroTier::InetAddress *subnet, ZeroTier::InetAddress *addr)
 
 void api_sleep(int interval_ms)
 {
-	nanosleep((const struct timespec[]) {{0, (interval_ms * 500000)}}, NULL);
+	struct timespec sleepValue = {0};
+	sleepValue.tv_nsec = interval_ms * 500000;
+	nanosleep(&sleepValue, NULL);
 }
 
 #ifdef __cplusplus

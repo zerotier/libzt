@@ -514,7 +514,7 @@ happening sooner than they should.
  * LWIP_DNS==1: Turn on DNS module. UDP must be available for DNS
  * transport.
  */
-#define LWIP_DNS                        1
+#define LWIP_DNS                        0
 #define LWIP_DNS_API_DECLARE_H_ERRNO    1
 
 /*------------------------------------------------------------------------------

@@ -36,7 +36,7 @@
 #include "lwip/sockets.h"
 #include "lwip/ip_addr.h"
 #include "lwip/netdb.h"
-#include "dns.h"
+//#include "dns.h"
 #endif
 #if defined(NO_STACK)
 #include <sys/socket.h>
@@ -291,6 +291,7 @@ int zts_sethostname(const char *name, size_t len)
 #endif
 }
 
+/*
 struct hostent *zts_gethostbyname(const char *name)
 {
 	if (zts_ready() == false) {
@@ -302,7 +303,7 @@ struct hostent *zts_gethostbyname(const char *name)
 #endif
 #if defined(ZT_LWIP_SEQ_SOCKET)
 	// TODO: Test thread safety
-	/*
+	
 	char buf[256];
 	int buflen = 256;
 	int h_err = 0;
@@ -316,7 +317,7 @@ struct hostent *zts_gethostbyname(const char *name)
 		return NULL; // failure
 	}
 	return *result;
-	*/
+	
 	return lwip_gethostbyname(name);
 #endif
 #if defined(ZT_PICO_BSD_SOCKET)
@@ -325,6 +326,7 @@ struct hostent *zts_gethostbyname(const char *name)
 #endif
 	return NULL;
 }
+*/
 
 int zts_close(int fd)
 {
@@ -606,6 +608,7 @@ int zts_shutdown(int fd, int how)
 #endif
 }
 
+/*
 int zts_add_dns_nameserver(struct sockaddr *addr)
 {
 	DEBUG_EXTRA();
@@ -646,6 +649,7 @@ int zts_del_dns_nameserver(struct sockaddr *addr)
 	return -1;
 #endif
 }
+*/
 
 /* The rationale for the following correctional methods is as follows:
 

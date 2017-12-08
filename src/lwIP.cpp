@@ -280,10 +280,12 @@ void lwip_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC
 	}
 }
 
+/*
 void lwip_dns_init()
 {
 	dns_init();
 }
+*/
 
 void lwip_start_dhcp(void *netif)
 {

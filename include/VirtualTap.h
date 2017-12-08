@@ -225,7 +225,7 @@ public:
 		Mutex _pico_frame_rxbuf_m;
 #endif
 
-	std::vector<std::pair<ZeroTier::InetAddress, ZeroTier::InetAddress>> routes;
+	std::vector<std::pair<ZeroTier::InetAddress, ZeroTier::InetAddress> > routes;
 	void *zt1ServiceRef = NULL;
 
 	char vtap_full_name[64];

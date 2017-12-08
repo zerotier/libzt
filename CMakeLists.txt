@@ -24,57 +24,94 @@
 #  of your own application.
 # 
 
+
+#-Libraries:
+#
+# bin/lib/libzt.a
+# bin/lib/libzt.so
+# bin/lib/libzt.dylib
+#
+#-Sample apps:
+#
+# bin/ipv4server
+# bin/ipv4client
+# bin/ipv6server
+# bin/ipv6client
+# bin/ztproxy
+#
+#-Tests:
+#
+# bin/selftest
+# bin/nativetest
+
+
 cmake_minimum_required (VERSION 2.8)
 project (libzt)
 set (libzt_VERSION_MAJOR 1)
 set (libzt_VERSION_MINOR 0)
+set (ZT_DEFS -std=c++11 "-DZT_SDK=1")
+set (LIBZT_DEFS -std=c++11 "-DZT_SDK=1")
+#set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # --- dirs ---
-set(PROJ_DIR ${PROJECT_SOURCE_DIR})
-set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
-set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
+set (PROJ_DIR ${PROJECT_SOURCE_DIR})
+set (CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
+set (EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
+set (LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
 # ---include dirs ---
 
-# lwip
+# (lwip) lwIP Userspace Networking Stack
 set(LWIP_SRC_DIR ${PROJ_DIR}/ext/lwip/src)
-include_directories("${LWIP_SRC_DIR}/include")
-include_directories("${PROJ_DIR}/ext/lwip-contrib/ports/unix/include")
-file(GLOB lwip_src_glob ${LWIP_SRC_DIR}/netif/*.c ${LWIP_SRC_DIR}/api/*.c ${PROJ_DIR}/ext/lwip-contrib/ports/unix/port/sys_arch.c  ${LWIP_SRC_DIR}/core/*.c ${LWIP_SRC_DIR}/core/ipv4/*.c ${LWIP_SRC_DIR}/core/ipv6/*.c)
-add_library(lwip ${lwip_src_glob})
+include_directories(${LWIP_SRC_DIR}/include)
+include_directories(${PROJ_DIR}/ext/lwip-contrib/ports/unix/include)
+file(GLOB lwip_src_glob 
+	${LWIP_SRC_DIR}/netif/*.c 
+	${LWIP_SRC_DIR}/api/*.c 
+	${PROJ_DIR}/ext/lwip-contrib/ports/unix/port/sys_arch.c
+	${LWIP_SRC_DIR}/core/*.c 
+	${LWIP_SRC_DIR}/core/ipv4/*.c 
+	${LWIP_SRC_DIR}/core/ipv6/*.c)
+add_library(lwip STATIC ${lwip_src_glob})
+target_compile_options(lwip PRIVATE ${NS_DEFS})
 
-# zto
+# (zto) ZeroTier Core Service
 set(ZTO_SRC_DIR ${PROJ_DIR}/zto)
-include_directories("${PROJ_DIR}/zto/include")
-include_directories("${PROJ_DIR}/zto/osdep")
-include_directories("${PROJ_DIR}/zto/node")
-include_directories("${PROJ_DIR}/zto/service")
-file(GLOB zto_src_glob "${ZTO_SRC_DIR}/node/*.cpp" "${ZTO_SRC_DIR}/service/*.cpp" "${ZTO_SRC_DIR}/osdep/OSUtils.cpp" "${ZTO_SRC_DIR}/controller/*.cpp" "${ZTO_SRC_DIR}/osdep/ManagedRoute.cpp")
-add_library(zto ${zto_src_glob})
-add_dependencies(zto zt)
-add_library(httpparser "${ZTO_SRC_DIR}/ext/http-parser/http_parser.c")
-target_compile_options(zto PRIVATE -std=c++11 -DZT_SDK=1)
-target_link_libraries(zto httpparser zt)
+include_directories(${ZTO_SRC_DIR}/include)
+include_directories(${ZTO_SRC_DIR}/osdep)
+include_directories(${ZTO_SRC_DIR}/node)
+include_directories(${ZTO_SRC_DIR}/service)
+file(GLOB zto_src_glob 
+	${ZTO_SRC_DIR}/node/*.cpp
+	${ZTO_SRC_DIR}/service/*.cpp
+	${ZTO_SRC_DIR}/osdep/OSUtils.cpp
+	${ZTO_SRC_DIR}/controller/*.cpp
+	${ZTO_SRC_DIR}/osdep/ManagedRoute.cpp)
+add_library(zto STATIC ${zto_src_glob})
+#add_dependencies(zto zt)
 
-# libzt
-set(LIBZT_SRC_DIR ${PROJ_DIR}/src)
+# (http) HTTP Control Plane for ZT Service
+add_library(http STATIC "${ZTO_SRC_DIR}/ext/http-parser/http_parser.c")
+target_compile_options(zto PRIVATE ${ZT_DEFS})
+target_link_libraries(zto http)
+
+# (libzt) Static Library variant of ZeroTier paired with userspace stack and virtual tap interface
+set (LIBZT_SRC_DIR ${PROJ_DIR}/src)
 include_directories("${LIBZT_SRC_DIR}")
 include_directories("${PROJ_DIR}/include")
 file(GLOB libzt_src_glob ${LIBZT_SRC_DIR}/*.cpp)
-add_library(zt STATIC ${libzt_src_glob})
-target_compile_options(zt PRIVATE -std=c++11 -DZT_SDK=1 -DLIBZT_TRACE=1)
+add_library(zt ${libzt_src_glob})
+target_compile_options(zt PRIVATE ${LIBZT_DEFS})
 target_link_libraries(zt zto)
 target_link_libraries(zt lwip)
 set_target_properties(zt PROPERTIES OUTPUT_NAME zt)
 
-# libzt shared
+# (libzt) Shared Library variant of ZeroTier paired with userspace stack and virtual tap interface
 add_library(ztshared SHARED ${libzt_src_glob})
-target_compile_options(ztshared PRIVATE -std=c++11 -DZT_SDK=1 -DLIBZT_TRACE=1)
+target_compile_options(ztshared PRIVATE ${LIBZT_DEFS})
 target_link_libraries(ztshared zto)
 target_link_libraries(ztshared lwip)
 set_target_properties(ztshared PROPERTIES OUTPUT_NAME zt)
-
 
 # --- executables ---
 
@@ -83,25 +120,27 @@ add_executable(ipv4simple ${PROJ_DIR}/examples/bindings/cpp/ipv4simple/server.cp
 target_link_libraries(ipv4simple lwip zto zt pthread)
 target_compile_options(ipv4simple PRIVATE -std=c++11 -DLIBZT_TRACE=1)
 
+file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/bin/lib/libhttp.a)
 
 # --- CONFIGURATION
 
 if (LIBZT_TRACE EQUAL 1)
+set (LIBZT_DEFS "${LIBZT_DEFS} -DLIBZT_TRACE=1")
 endif()
-
 if (LIBZT_DEBUG EQUAL 1)
+set (LIBZT_DEFS "${LIBZT_DEFS} -DLIBZT_DEBUG=1")
 endif()
-
 if (ZT_TRACE EQUAL 1)
+set (ZT_DEFS "${ZT_DEFS} -DZT_TRACE=1")
 endif()
-
 if (ZT_DEBUG EQUAL 1)
+set (ZT_DEFS "${ZT_DEFS} -DZT_DEBUG=1")
 endif()
-
 if (NS_TRACE EQUAL 1)
+set (NS_DEFS "${NS_DEFS} -DNS_TRACE=1")
 endif()
-
 if (NS_DEBUG EQUAL 1)
+set (NS_DEFS "${NS_DEFS} -DNS_DEBUG=1")
 endif()
 
 if (JNI EQUAL 1)
@@ -117,7 +156,7 @@ if (JNI_FOUND)
 else()
     message (STATUS "JNI not found")
 endif()
-target_compile_options(ztshared PRIVATE -std=c++11 -DZT_SDK=1 -DLIBZT_TRACE=1 -DSDK_JNI=1)
+target_compile_options(zt PRIVATE -std=c++11 -DZT_SDK=1 -DLIBZT_TRACE=1 -DSDK_JNI=1)
 # JNI
 option (USE_JNI
         "Use Java JNI for shared/dynamic libraries" ON) 

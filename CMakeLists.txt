@@ -83,6 +83,27 @@ add_executable(ipv4simple ${PROJ_DIR}/examples/bindings/cpp/ipv4simple/server.cp
 target_link_libraries(ipv4simple lwip zto zt pthread)
 target_compile_options(ipv4simple PRIVATE -std=c++11 -DLIBZT_TRACE=1)
 
+
+# --- CONFIGURATION
+
+if (LIBZT_TRACE EQUAL 1)
+endif()
+
+if (LIBZT_DEBUG EQUAL 1)
+endif()
+
+if (ZT_TRACE EQUAL 1)
+endif()
+
+if (ZT_DEBUG EQUAL 1)
+endif()
+
+if (NS_TRACE EQUAL 1)
+endif()
+
+if (NS_DEBUG EQUAL 1)
+endif()
+
 if (JNI EQUAL 1)
 MESSAGE(STATUS "Looking for JNI headers")
 # --- Locate JNI headers 

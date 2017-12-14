@@ -2414,9 +2414,9 @@ void test_bad_args()
 void dns_test(struct sockaddr *addr)
 {
 	fprintf(stderr, "\n\ndns_test\n\n");
-	zts_add_dns_nameserver(addr);
+	//zts_add_dns_nameserver(addr);
 	// resolve
-	zts_del_dns_nameserver(addr);
+	//zts_del_dns_nameserver(addr);
 }
 
 void close_while_writing_test()

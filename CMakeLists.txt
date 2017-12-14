@@ -24,14 +24,15 @@
 #  of your own application.
 # 
 
+# BUILD OUTPUTS:
 
-#-Libraries:
+#---Libraries
 #
 # bin/lib/libzt.a
 # bin/lib/libzt.so
 # bin/lib/libzt.dylib
 #
-#-Sample apps:
+#---Sample apps
 #
 # bin/ipv4server
 # bin/ipv4client
@@ -39,7 +40,7 @@
 # bin/ipv6client
 # bin/ztproxy
 #
-#-Tests:
+#---Tests
 #
 # bin/selftest
 # bin/nativetest
@@ -88,7 +89,7 @@ file(GLOB zto_src_glob
 	${ZTO_SRC_DIR}/controller/*.cpp
 	${ZTO_SRC_DIR}/osdep/ManagedRoute.cpp)
 add_library(zto STATIC ${zto_src_glob})
-#add_dependencies(zto zt)
+target_link_libraries(zto zt)
 
 # (http) HTTP Control Plane for ZT Service
 add_library(http STATIC "${ZTO_SRC_DIR}/ext/http-parser/http_parser.c")

@@ -100,8 +100,7 @@ target_link_libraries(zto zt)
 
 add_library(zto_pic STATIC ${zto_src_glob})
 target_compile_options(zto_pic PRIVATE ${ZT_DEFS})
-target_link_libraries(zto_pic http_pic)
-target_link_libraries(zto_pic zt)
+target_link_libraries(zto_pic http_pic zt)
 set_target_properties(zto_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 
@@ -122,32 +121,48 @@ include_directories("${PROJ_DIR}/include")
 file(GLOB libzt_src_glob ${LIBZT_SRC_DIR}/*.cpp)
 add_library(zt ${libzt_src_glob})
 target_compile_options(zt PRIVATE ${LIBZT_DEFS})
-target_link_libraries(zt zto)
-target_link_libraries(zt lwip)
+target_link_libraries(zt zto lwip)
 set_target_properties(zt PROPERTIES OUTPUT_NAME zt)
 
 # (libzt) Shared Library variant of ZeroTier paired with userspace stack and virtual tap interface
 add_library(ztshared SHARED ${libzt_src_glob})
 target_compile_options(ztshared PRIVATE ${LIBZT_DEFS})
-target_link_libraries(ztshared zto_pic)
-target_link_libraries(ztshared lwip_pic)
+target_link_libraries(ztshared zto_pic lwip_pic)
 set_target_properties(ztshared PROPERTIES OUTPUT_NAME zt)
 
 
-# --- executables ---
+# --- Test applications, examples, etc ---
 
-# Test Executables/Apps
-add_executable(ipv4simple ${PROJ_DIR}/examples/bindings/cpp/ipv4simple/server.cpp)
-target_link_libraries(ipv4simple lwip zto zt pthread)
-target_compile_options(ipv4simple PRIVATE -std=c++11 -DLIBZT_TRACE=1)
+file(GLOB APP_SOURCES ${PROJ_DIR}/examples/bindings/cpp/ipv4simple/*
+	${PROJ_DIR}/examples/bindings/cpp/ipv6simple/*
+	${PROJ_DIR}/examples/bindings/cpp/ipv6adhoc/* 
+	${PROJ_DIR}/examples/apps/ztproxy/*.cpp
+)
+foreach(testsourcefile ${APP_SOURCES})
+    string(REPLACE ".cpp" "" testname ${testsourcefile})
+    get_filename_component(testname ${testname} NAME)
+    add_executable(${testname} ${testsourcefile})
+    target_compile_options(${testname} PRIVATE -std=c++11)
+    target_link_libraries(${testname} lwip zto zt pthread)
+endforeach(testsourcefile ${APP_SOURCES})
+
+# selftest
+add_executable(selftest ${PROJ_DIR}/test/selftest.cpp)
+target_compile_options(selftest PRIVATE -std=c++11 -D__SELFTEST__)
+target_link_libraries(selftest lwip zto zt pthread)
+
+# nativetest
+add_executable(nativetest ${PROJ_DIR}/test/selftest.cpp)
+target_compile_options(nativetest PRIVATE -std=c++11 -D__NATIVETEST__)
+target_link_libraries(nativetest lwip zto zt pthread)
 
 # Clean up intermediate library targets
-file(REMOVE {LIBRARY_OUTPUT_PATH}/libhttp.a)
-file(REMOVE {LIBRARY_OUTPUT_PATH}/libhttp_pic.a)
-file(REMOVE {LIBRARY_OUTPUT_PATH}/libzto.a)
-file(REMOVE {LIBRARY_OUTPUT_PATH}/libzto_pic.a)
-file(REMOVE {LIBRARY_OUTPUT_PATH}/liblwip.a)
-file(REMOVE {LIBRARY_OUTPUT_PATH}/liblwip_pic.a)
+#file(REMOVE {LIBRARY_OUTPUT_PATH}/libhttp.a)
+#file(REMOVE {LIBRARY_OUTPUT_PATH}/libhttp_pic.a)
+#file(REMOVE {LIBRARY_OUTPUT_PATH}/libzto.a)
+#file(REMOVE {LIBRARY_OUTPUT_PATH}/libzto_pic.a)
+#file(REMOVE {LIBRARY_OUTPUT_PATH}/liblwip.a)
+#file(REMOVE {LIBRARY_OUTPUT_PATH}/liblwip_pic.a)
 
 # --- CONFIGURATION
 

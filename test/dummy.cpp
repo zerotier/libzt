@@ -6,7 +6,7 @@
 int main()
 {
 	printf("Starting ZT service");
-	zts_startjoin("ztp","17d709436c2c5367");
+	zts_startjoin("my_config_path",0x0000000000000000);
 
 	printf("Dummy. Going into infinite loop. Ping me or something\n");
 	while(1) {

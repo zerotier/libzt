@@ -291,7 +291,6 @@ int zts_sethostname(const char *name, size_t len)
 #endif
 }
 
-/*
 struct hostent *zts_gethostbyname(const char *name)
 {
 	if (zts_ready() == false) {
@@ -303,7 +302,7 @@ struct hostent *zts_gethostbyname(const char *name)
 #endif
 #if defined(ZT_LWIP_SEQ_SOCKET)
 	// TODO: Test thread safety
-	
+	/*
 	char buf[256];
 	int buflen = 256;
 	int h_err = 0;
@@ -319,6 +318,8 @@ struct hostent *zts_gethostbyname(const char *name)
 	return *result;
 	
 	return lwip_gethostbyname(name);
+	*/
+	return NULL;
 #endif
 #if defined(ZT_PICO_BSD_SOCKET)
 #endif
@@ -326,7 +327,6 @@ struct hostent *zts_gethostbyname(const char *name)
 #endif
 	return NULL;
 }
-*/
 
 int zts_close(int fd)
 {
@@ -608,7 +608,7 @@ int zts_shutdown(int fd, int how)
 #endif
 }
 
-/*
+
 int zts_add_dns_nameserver(struct sockaddr *addr)
 {
 	DEBUG_EXTRA();
@@ -624,7 +624,7 @@ int zts_add_dns_nameserver(struct sockaddr *addr)
 	static ip4_addr_t ipaddr;
 	ipaddr.addr = in4->sin_addr.s_addr;
 	// TODO: manage DNS server indices
-	dns_setserver(0, (const ip_addr_t*)&ipaddr);
+	//dns_setserver(0, (const ip_addr_t*)&ipaddr);
 	return 0;
 #endif
 #if defined(ZT_PICO_BSD_SOCKET)
@@ -649,7 +649,6 @@ int zts_del_dns_nameserver(struct sockaddr *addr)
 	return -1;
 #endif
 }
-*/
 
 /* The rationale for the following correctional methods is as follows:
 

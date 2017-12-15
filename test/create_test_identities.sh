@@ -1,11 +1,11 @@
 # !/bin/bash
 # Generates test identities and joins them to a test network
 
-NWID=""
+NWID=$1
 
-mkdir -p test/alice test/bob test/carol test/ted
+mkdir -p alice bob carol ted
 
-./build/darwin/selftest generate_id ${NWID} test/alice
-./build/darwin/selftest generate_id ${NWID} test/bob
-./build/darwin/selftest generate_id ${NWID} test/carol
-./build/darwin/selftest generate_id ${NWID} test/ted
+./../bin/selftest generate_id ${NWID} alice
+./../bin/selftest generate_id ${NWID} bob
+./../bin/selftest generate_id ${NWID} carol
+./../bin/selftest generate_id ${NWID} ted

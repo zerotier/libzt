@@ -24,44 +24,40 @@
 #  of your own application.
 # 
 
-# BUILD OUTPUTS:
-
-#---Libraries
-#
-# bin/lib/libzt.a
-# bin/lib/libzt.so
-# bin/lib/libzt.dylib
-#
-#---Sample apps
-#
-# bin/ipv4server
-# bin/ipv4client
-# bin/ipv6server
-# bin/ipv6client
-# bin/ztproxy
-#
-#---Tests
-#
-# bin/selftest
-# bin/nativetest
-
-
 cmake_minimum_required (VERSION 2.8)
 project (libzt)
-set (libzt_VERSION_MAJOR 1)
-set (libzt_VERSION_MINOR 0)
-set (ZT_DEFS -std=c++11 "-DZT_SDK=1")
-set (LIBZT_DEFS -std=c++11 "-DZT_SDK=1")
 
-# --- dirs ---
+# --- SETUP
+
+# Paths
 set (PROJ_DIR ${PROJECT_SOURCE_DIR})
 set (CMAKE_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin)
 set (EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set (LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
-# ---include dirs ---
+# Flags for various build types
+set(COMMON_C_FLAGS "-fvisibility=hidden -fstack-protector -DZT_SDK=1")
+set(COMMON_CXX_FLAGS "${COMMON_C_FLAGS} -std=c++11")
+set(COMMON_DEBUG_FLAGS "-g -DLIBZT_TRACE=1 -DLIBZT_DEBUG=1 -DNS_TRACE=1 -DNS_DEBUG=1")
+# C
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${COMMON_C_FLAGS} ${COMMON_DEBUG_FLAGS}")
+set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} ${COMMON_C_FLAGS}")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} ${COMMON_C_FLAGS}")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${COMMON_C_FLAGS}")
+# C++
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${COMMON_CXX_FLAGS} ${COMMON_DEBUG_FLAGS}")
+set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} ${COMMON_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${COMMON_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${COMMON_CXX_FLAGS}")
+# Linker
+#set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS})
+#set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS})
+#set(CMAKE_STATIC_LINKER_FLAGS ${CMAKE_STATIC_LINKER_FLAGS} --whole-archive)
 
-# (lwip) lwIP Userspace Networking Stack
+# --- LIBRARY TARGETS
+
+# lwip 
+# lwIP Userspace Networking Stack
 set(LWIP_SRC_DIR ${PROJ_DIR}/ext/lwip/src)
 include_directories(${LWIP_SRC_DIR}/include)
 include_directories(${PROJ_DIR}/ext/lwip-contrib/ports/unix/include)
@@ -73,15 +69,13 @@ file(GLOB lwip_src_glob
 	${LWIP_SRC_DIR}/core/ipv4/*.c 
 	${LWIP_SRC_DIR}/core/ipv6/*.c)
 add_library(lwip STATIC ${lwip_src_glob})
-target_compile_options(lwip PRIVATE ${NS_DEFS})
-
 add_library(lwip_pic STATIC ${lwip_src_glob})
-target_compile_options(lwip_pic PRIVATE ${NS_DEFS})
+#target_compile_options(lwip_pic PRIVATE ${NS_DEFS})
 set_target_properties(lwip_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 
-
-# (zto) ZeroTier Core Service
+# zto 
+# ZeroTier Core Service
 set(ZTO_SRC_DIR ${PROJ_DIR}/zto)
 include_directories(${ZTO_SRC_DIR}/include)
 include_directories(${ZTO_SRC_DIR}/osdep)
@@ -94,39 +88,33 @@ file(GLOB zto_src_glob
 	${ZTO_SRC_DIR}/controller/*.cpp
 	${ZTO_SRC_DIR}/osdep/ManagedRoute.cpp)
 add_library(zto STATIC ${zto_src_glob})
-target_compile_options(zto PRIVATE ${ZT_DEFS})
+#set(zto "--whole-archive")
 target_link_libraries(zto http)
 target_link_libraries(zto zt)
-
 add_library(zto_pic STATIC ${zto_src_glob})
-target_compile_options(zto_pic PRIVATE ${ZT_DEFS})
 target_link_libraries(zto_pic http_pic zt)
 set_target_properties(zto_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 
-
-
-# (http) HTTP Control Plane for ZT Service
+# http 
+# HTTP Control Plane for ZT Service
 add_library(http STATIC "${ZTO_SRC_DIR}/ext/http-parser/http_parser.c")
-
 add_library(http_pic STATIC "${ZTO_SRC_DIR}/ext/http-parser/http_parser.c")
 set_target_properties(http_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 
-
-# (libzt) Static Library variant of ZeroTier paired with userspace stack and virtual tap interface
+# libzt
+# Static Library variant of ZeroTier paired with userspace stack and virtual tap interface
 set (LIBZT_SRC_DIR ${PROJ_DIR}/src)
 include_directories("${LIBZT_SRC_DIR}")
 include_directories("${PROJ_DIR}/include")
 file(GLOB libzt_src_glob ${LIBZT_SRC_DIR}/*.cpp)
 add_library(zt ${libzt_src_glob})
-target_compile_options(zt PRIVATE ${LIBZT_DEFS})
-target_link_libraries(zt zto lwip)
+#set(zt "--whole-archive")
+target_link_libraries(zt lwip zto)
 set_target_properties(zt PROPERTIES OUTPUT_NAME zt)
-
 # (libzt) Shared Library variant of ZeroTier paired with userspace stack and virtual tap interface
 add_library(ztshared SHARED ${libzt_src_glob})
-target_compile_options(ztshared PRIVATE ${LIBZT_DEFS})
 target_link_libraries(ztshared zto_pic lwip_pic)
 set_target_properties(ztshared PROPERTIES OUTPUT_NAME zt)
 
@@ -142,27 +130,31 @@ foreach(testsourcefile ${APP_SOURCES})
     string(REPLACE ".cpp" "" testname ${testsourcefile})
     get_filename_component(testname ${testname} NAME)
     add_executable(${testname} ${testsourcefile})
-    target_compile_options(${testname} PRIVATE -std=c++11)
     target_link_libraries(${testname} lwip zto zt pthread)
 endforeach(testsourcefile ${APP_SOURCES})
 
 # selftest
 add_executable(selftest ${PROJ_DIR}/test/selftest.cpp)
-target_compile_options(selftest PRIVATE -std=c++11 -D__SELFTEST__)
+target_compile_options(selftest PRIVATE -D__SELFTEST__)
 target_link_libraries(selftest lwip zto zt pthread)
 
 # nativetest
 add_executable(nativetest ${PROJ_DIR}/test/selftest.cpp)
-target_compile_options(nativetest PRIVATE -std=c++11 -D__NATIVETEST__)
+target_compile_options(nativetest PRIVATE -D__NATIVETEST__)
 target_link_libraries(nativetest lwip zto zt pthread)
 
 # Clean up intermediate library targets
-#file(REMOVE {LIBRARY_OUTPUT_PATH}/libhttp.a)
-#file(REMOVE {LIBRARY_OUTPUT_PATH}/libhttp_pic.a)
-#file(REMOVE {LIBRARY_OUTPUT_PATH}/libzto.a)
-#file(REMOVE {LIBRARY_OUTPUT_PATH}/libzto_pic.a)
-#file(REMOVE {LIBRARY_OUTPUT_PATH}/liblwip.a)
-#file(REMOVE {LIBRARY_OUTPUT_PATH}/liblwip_pic.a)
+#file(REMOVE ${LIBRARY_OUTPUT_PATH}/libhttp.a)
+#file(REMOVE ${LIBRARY_OUTPUT_PATH}/libhttp_pic.a)
+#file(REMOVE ${LIBRARY_OUTPUT_PATH}/libzto.a)
+#file(REMOVE ${LIBRARY_OUTPUT_PATH}/libzto_pic.a)
+#file(REMOVE ${LIBRARY_OUTPUT_PATH}/liblwip.a)
+#file(REMOVE ${LIBRARY_OUTPUT_PATH}/liblwip_pic.a)
+
+
+# --- INSTALL 
+
+install(TARGETS zt DESTINATION lib)
 
 # --- CONFIGURATION
 

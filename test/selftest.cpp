@@ -401,7 +401,7 @@ void tcp_select_server(TCP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "tcp_select_server";
 	std::string msg = "tcp_select";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "accept connection, create poll/select loop, read and write strings back and forth\n");
 	int w=0, r=0, fd, client_fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -490,7 +490,7 @@ void tcp_select_client(TCP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "tcp_select_client";
 	std::string msg = "tcp_select";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "connect to remote host, create poll/select loop, read and write strings back and forth\n");
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -572,7 +572,7 @@ void tcp_client_4(TCP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "tcp_client_4";
 	std::string msg = "tcp_cs_4";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "connect to remote host with IPv4 address, write string, read string, compare.\n");
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -619,7 +619,7 @@ void tcp_server_4(TCP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "tcp_server_4";
 	std::string msg = "tcp_cs_4";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "accept connection with IPv4 address, read string, write string, compare.\n");
 	int w=0, r=0, fd, client_fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -679,7 +679,7 @@ void tcp_client_6(TCP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "tcp_client_6";
 	std::string msg = "tcp_cs_6";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "connect to remote host with IPv6 address, write string, read string, compare.\n");
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -726,7 +726,7 @@ void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "tcp_server_6";
 	std::string msg = "tcp_cs_6";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "accept connection with IPv6 address, read string, write string, compare.\n");
 	int w=0, r=0, fd, client_fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -791,7 +791,7 @@ void udp_client_4(UDP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "udp_client_4";
 	std::string msg = "udp_cs_4";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "bind to interface with IPv4 address, send string until response is seen. compare.\n");
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -847,7 +847,7 @@ void udp_server_4(UDP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "udp_server_4";
 	std::string msg = "udp_cs_4";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "bind to interface with IPv4 address, read single string, send many responses. compare.\n");
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -923,7 +923,7 @@ void udp_client_6(UDP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "udp_client_6";
 	std::string msg = "udp_cs_6";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "bind to interface with IPv6 address, send string until response is seen. compare.\n");
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -981,7 +981,7 @@ void udp_server_6(UDP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "udp_server_6";
 	std::string msg = "udp_cs_6";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "bind to interface with IPv6 address, read single string, send many responses. compare.\n");
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -1055,7 +1055,7 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "tcp_client_sustained_4";
 	std::string msg = "tcp_sustained_4";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "connect to remote host with IPv4 address, exchange a sequence of packets, check order.\n");
 	int n=0, w=0, r=0, fd, err;	
 	char *rxbuf = (char*)malloc(cnt*sizeof(char));
@@ -1139,7 +1139,7 @@ void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "tcp_client_sustained_6";
 	std::string msg = "tcp_sustained_6";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "connect to remote host with IPv6 address, exchange a sequence of packets, check order.\n");
 	int n=0, w=0, r=0, fd, err;	
 	char *rxbuf = (char*)malloc(cnt*sizeof(char));
@@ -1219,7 +1219,7 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "tcp_server_sustained_4";
 	std::string msg = "tcp_sustained_4";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "accept connection from host with IPv4 address, exchange a sequence of packets, check order.\n");
 	int n=0, w=0, r=0, fd, client_fd, err;
 	char *rxbuf = (char*)malloc(cnt*sizeof(char));
@@ -1303,7 +1303,7 @@ void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "tcp_server_sustained_6";
 	std::string msg = "tcp_sustained_6";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "accept connection from host with IPv6 address, exchange a sequence of packets, check order.\n");
 	int n=0, w=0, r=0, fd, client_fd, err;
 	char *rxbuf = (char*)malloc(cnt*sizeof(char));
@@ -1391,7 +1391,7 @@ void udp_client_sustained_4(UDP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "udp_client_sustained_4";
 	std::string msg = "udp_sustained_4";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "bind to interface with IPv4 address, TX n-datagrams\n");
 	int w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -1439,7 +1439,7 @@ void udp_server_sustained_4(UDP_UNIT_TEST_SIG_4)
 {
 	std::string testname = "udp_server_sustained_4";
 	std::string msg = "udp_sustained_4";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "bind to interface with IPv4 address, RX (n/x)-datagrams\n");
 	int r, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -1487,7 +1487,7 @@ void udp_client_sustained_6(UDP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "udp_client_sustained_6";
 	std::string msg = "udp_sustained_6";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "bind to interface with IPv6 address, TX n-datagrams\n");
 	int w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -1536,7 +1536,7 @@ void udp_server_sustained_6(UDP_UNIT_TEST_SIG_6)
 {
 	std::string testname = "udp_server_sustained_6";
 	std::string msg = "udp_sustained_6";
-	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts);
+	fprintf(stderr, "\n\n%s (ts=%lu)\n", testname.c_str(), get_now_ts());
 	fprintf(stderr, "bind to interface with IPv6 address, RX (n/x)-datagrams\n");
 	int r, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
@@ -2453,7 +2453,7 @@ void* worker_create_socket(void *arg)
 	for (int i=0; i<WORKER_ITERATIONS; i++) {
 		rs = rand_in_range(TIME_MULTIPLIER_MIN, TIME_MULTIPLIER_MAX);
 		rc = rand_in_range(TIME_MULTIPLIER_MIN, TIME_MULTIPLIER_MAX);
-		fprintf(stderr, "id=%d, rs = %d, rc = %d\n", id, rs, rc);
+		//fprintf(stderr, "id=%d, rs = %d, rc = %d\n", id, rs, rc);
 		usleep(rs * TIME_GRANULARITY);
 		fd = SOCKET(AF_INET, SOCK_STREAM, 0);
 		usleep(rc * TIME_GRANULARITY);

@@ -81,7 +81,7 @@ VirtualTap::VirtualTap(
 	// set virtual tap interface name (full)
 	memset(vtap_full_name, 0, sizeof(vtap_full_name));
 	ifindex = devno;
-	snprintf(vtap_full_name, sizeof(vtap_full_name), "libzt%d-%lx", devno++, _nwid);
+	snprintf(vtap_full_name, sizeof(vtap_full_name), "libzt%d-%llx", devno++, _nwid);
 	_dev = vtap_full_name;
 	DEBUG_INFO("set VirtualTap interface name to: %s", _dev.c_str());
 	// set virtual tap interface name (abbreviated)
@@ -193,7 +193,7 @@ std::string VirtualTap::nodeId() const
 	if (zt1ServiceRef) {
 		char id[ZTO_ID_LEN];
 		memset(id, 0, sizeof(id));
-		sprintf(id, "%lx",((ZeroTier::OneService *)zt1ServiceRef)->getNode()->address());
+		sprintf(id, "%llx",((ZeroTier::OneService *)zt1ServiceRef)->getNode()->address());
 		return std::string(id);
 	}
 	else {

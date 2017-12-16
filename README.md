@@ -60,16 +60,23 @@ For an example using only the [Virtual Layer 2](https://www.zerotier.com/manual.
 
 ***
 
-### Building (linux, macos, bsd, win, ios)
+### Building using CMake (recommended)
 
- ```
- git submodule init
- git submodule update
- make static_lib
- make tests
- ```
- 
- All targets will output to `build/`. Complete instructions [here](BUILDING.md)
+We recommend using [CMake](https://cmake.org/) for its extensive cross-platform build support. 
+
+```
+git submodule init
+git submodule update
+cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=DEBUG
+cmake --build -build 
+```
+
+Builds are placed in `bin\` and `bin\lib`. Change `CMAKE_BUILD_TYPE` to `RELEASE` for a smaller and optmized build.
+
+### Installing/Uninstalling the library
+
+ - Install: `make install`
+ - Uninstall: `xargs rm < install_manifest.txt`
 
 ***
 

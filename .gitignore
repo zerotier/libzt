@@ -1,3 +1,5 @@
+*.pypirc
+
 # Binaries/Executables
 *.dll
 *.lib

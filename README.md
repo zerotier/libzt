@@ -60,7 +60,7 @@ For an example using only the [Virtual Layer 2](https://www.zerotier.com/manual.
 
 ***
 
-### Building using CMake (recommended)
+### Build
 
 We recommend using [CMake](https://cmake.org/) for its extensive cross-platform build support. 
 
@@ -71,9 +71,9 @@ cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=DEBUG
 cmake --build -build 
 ```
 
-Builds are placed in `bin\` and `bin\lib`. Change `CMAKE_BUILD_TYPE` to `RELEASE` for a smaller and optmized build.
+Builds are placed in `bin` and `bin\lib`. Change `CMAKE_BUILD_TYPE` to `RELEASE` for a smaller and optmized build.
 
-### Installing/Uninstalling the library
+### Install
 
  - Install: `make install`
  - Uninstall: `xargs rm < install_manifest.txt`

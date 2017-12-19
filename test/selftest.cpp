@@ -370,6 +370,7 @@ void wait_until_everyone_is_ready(struct sockaddr *local_addr, struct sockaddr *
 	while(connected == false) {
 		if ((err = CONNECT(conn_fd, (const struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) { 
 			if (errno == EISCONN) {
+				DEBUG_TEST("connected");
 				connected = true;
 			}
 		}
@@ -380,16 +381,20 @@ void wait_until_everyone_is_ready(struct sockaddr *local_addr, struct sockaddr *
 			struct sockaddr_in client;
 			socklen_t client_addrlen = sizeof(sockaddr_in);
 			if ((accepted_fd = ACCEPT(listen_fd, (struct sockaddr *)&client, &client_addrlen)) < 0) { 
-			DEBUG_TEST("errno = %d", errno);}
+				DEBUG_TEST("errno = %d", errno);
+			}
 			else {
+				DEBUG_TEST("connected");
 				connected = true;
 			}
 		}
 		sleep(1);
 	}
-	close(listen_fd);
-	close(conn_fd);
-	close(accepted_fd);
+	DEBUG_TEST("closing");
+	CLOSE(listen_fd);
+	CLOSE(conn_fd);
+	CLOSE(accepted_fd);
+	DEBUG_TEST("returning");
 }
 
 

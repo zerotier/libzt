@@ -2784,7 +2784,7 @@ int main(int argc , char *argv[])
 		uint64_t nwid = strtoull(nwidstr.c_str(),NULL,16);
 		zts_startjoin(path.c_str(), nwid);
 		uint64_t nodeId = zts_get_node_id();
-		DEBUG_TEST("I am %x, %s", nodeId, me.c_str());
+		DEBUG_TEST("I am %llx, %s", nodeId, me.c_str());
 		if (mode == TEST_MODE_SERVER) {
 			DEBUG_TEST("Ready. You should start selftest program on second host now...\n\n");
 		}

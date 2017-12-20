@@ -25,21 +25,19 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
 #include <string.h>
 #include <string>
 #include <inttypes.h>
 
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(_WIN32)
+#include <WinSock2.h>
+#include <stdint.h>
+#else
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#endif
-
-#if defined(__MINGW32__) || defined(__MINGW64__)
-#include <WinSock2.h>
-#include <stdint.h>
+#include <unistd.h>
 #endif
 
 #include "libzt.h"

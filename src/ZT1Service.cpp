@@ -54,8 +54,9 @@ std::string netDir;  // Where network .conf files are to be written
 
 ZeroTier::Mutex _multiplexer_lock;
 
-#if defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(_WIN32)
 WSADATA wsaData;
+#include <Windows.h>
 #endif
 
 // prototype
@@ -180,7 +181,11 @@ uint64_t zts_get_node_id_from_file(const char *filepath)
 }
 
 // Starts a ZeroTier service in the background
+#if defined(_WIN32)
+DWORD WINAPI zts_start_service(LPVOID thread_id)
+#else
 void *zts_start_service(void *thread_id)
+#endif
 {
 	DEBUG_INFO("zto-thread, path=%s", homeDir.c_str());
 	// Where network .conf files will be stored
@@ -414,11 +419,15 @@ int zts_start(const char *path, bool blocking = false)
 	if (path) {
 		homeDir = path;
 	}
-#if defined(__MINGW32__) || defined(__MINGW64__)
+	int err;
+#if defined(_WIN32)
 		WSAStartup(MAKEWORD(2, 2), &wsaData); // initialize WinSock. Used in Phy for loopback pipe
+		HANDLE thr = CreateThread(NULL, 0, zts_start_service, NULL, 0, NULL);
+#else
+		pthread_t service_thread;
+		err = pthread_create(&service_thread, NULL, zts_start_service, NULL);
 #endif
-	pthread_t service_thread;
-	int err = pthread_create(&service_thread, NULL, zts_start_service, NULL);
+
 	if (blocking) { // block to prevent service calls before we're ready
 		ZT_NodeStatus status;
 		while (zts_core_running() == false || zt1Service->getNode() == NULL) {
@@ -463,7 +472,7 @@ void zts_stop()
 		zt1Service->terminate();
 		// disableTaps();
 	}
-#if defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(_WIN32)
 	WSACleanup();
 #endif
 }
@@ -555,9 +564,13 @@ bool _ipv6_in_subnet(ZeroTier::InetAddress *subnet, ZeroTier::InetAddress *addr)
 
 void api_sleep(int interval_ms)
 {
+#if defined(_WIN32)
+	Sleep(interval_ms);
+#else
 	struct timespec sleepValue = {0};
 	sleepValue.tv_nsec = interval_ms * 500000;
 	nanosleep(&sleepValue, NULL);
+#endif
 }
 
 #ifdef __cplusplus

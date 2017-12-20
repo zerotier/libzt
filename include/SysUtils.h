@@ -33,8 +33,13 @@
 #ifndef LIBZT_SYSUTILS_H
 #define LIBZT_SYSUTILS_H
 
-#include <sys/time.h>
 #include <stdint.h>
+
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <sys/time.h>
+#endif
 
 /**
  * @brief Returns the thread-id. Used in debug traces.
@@ -52,7 +57,7 @@ inline unsigned int gettid();
  */
 inline uint64_t time_now()
 {
-#ifdef __WINDOWS__
+#ifdef _WIN32
     FILETIME ft;
     SYSTEMTIME st;
     ULARGE_INTEGER tmp;

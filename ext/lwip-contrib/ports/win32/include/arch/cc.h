@@ -76,7 +76,7 @@ typedef int sys_prot_t;
   printf("Assertion \"%s\" failed at line %d in %s\n", message, __LINE__, __FILE__); \
   fflush(NULL);handler;} } while(0)
 
-#ifdef _MSC_VER
+#if _MSC_VER < 1900
 /* C runtime functions redefined */
 #define snprintf _snprintf
 #define strdup   _strdup

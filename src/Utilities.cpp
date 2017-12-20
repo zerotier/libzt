@@ -32,7 +32,7 @@
 
 #include "Utilities.h"
 
-#if defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(_WIN32_FALSE)
 
 #include <WinSock2.h>
 #include <stdint.h>

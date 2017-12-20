@@ -134,7 +134,7 @@ void lwip_driver_init()
 	if (lwip_driver_initialized == true) {
 		return;
 	}
-#if defined(__MINGW32__)
+#if defined(_WIN32)
 	sys_init(); // required for win32 initializtion of critical sections
 #endif
 	sys_thread_new("main_thread", main_thread,

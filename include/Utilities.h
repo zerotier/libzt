@@ -39,7 +39,7 @@ namespace ZeroTier {
 	struct InetAddress;
 }
 
-#if defined(__MINGW32__)
+#if defined(_WIN32_FALSE)
 
 #define NS_INADDRSZ  4
 #define NS_IN6ADDRSZ 16

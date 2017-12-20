@@ -42,20 +42,18 @@ extern int errno;
 #include "Thread.hpp"
 #include "Phy.hpp"
 
-#include "libztDefs.h"
+#include "libzt.h"
 
 #include <vector>
 extern std::vector<void*> vtaps;
 extern ZeroTier::Mutex _vtaps_lock;
 
-#if defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(_WIN32)
 #include <WinSock2.h>
 #include <Windows.h>
 #include <IPHlpApi.h>
 #include <Ifdef.h>
 #endif
-
-
 
 using namespace ZeroTier;
 

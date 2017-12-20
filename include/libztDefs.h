@@ -127,8 +127,13 @@
  */
 #define ZTO_ID_LEN                  16
 
-#if !defined(__MINGW32__)
-typedef unsigned int socklen_t;
+//#if !defined(__WIN32__)
+//typedef unsigned int socklen_t;
+//#endif
+
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
 #endif
 
 /****************************************************************************/

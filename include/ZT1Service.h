@@ -30,6 +30,10 @@
  * ZeroTier One service control wrapper header file
  */
 
+#if defined(_WIN32)
+#include <Windows.h>
+#endif
+
 #include "ZeroTierOne.h"
 #include "InetAddress.hpp"
 #include "libztDefs.h"
@@ -67,7 +71,11 @@ std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(const uint64_t nwid)
  * @param
  * @return
  */
+#if defined(_WIN32)
+DWORD WINAPI zts_start_service(LPVOID thread_id);
+#else
 void *zts_start_service(void *thread_id);
+#endif
 
 /**
  * @brief Returns masked address for subnet comparisons

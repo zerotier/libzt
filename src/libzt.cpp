@@ -673,7 +673,7 @@ int platform_adjusted_socket_family(int family)
 #if defined(__APPLE__)
 	 return family == 30 ? AF_INET6 : family; // 10
 #endif
-#if defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(_WIN32)
 	return family == 23 ? AF_INET6 : family; // 10
 #endif
 }

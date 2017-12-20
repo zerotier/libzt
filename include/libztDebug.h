@@ -33,13 +33,10 @@
 #ifndef LIBZT_DEBUG_HPP
 #define LIBZT_DEBUG_HPP
 
-#if defined(__MINGW32__) || !defined(_WIN32)
+#if defined(__linux__) || defined(__APPLE__)
+#include <sys/syscall.h>
 #include <pthread.h>
 #include <unistd.h>
-#endif
-
-#if defined(__linux__)
-#include <sys/syscall.h>
 #endif
 
 #include <string.h>
@@ -56,7 +53,7 @@
 #if defined(__APPLE__)
 		#include "TargetConditionals.h"
 #endif
-#if defined(ZT_COLOR) && !defined(__MINGW32__) && !defined(__ANDROID__) && !defined(TARGET_OS_IPHONE) && !defined(TARGET_IPHONE_SIMULATOR) && !defined(__APP_FRAMEWORK__)
+#if defined(ZT_COLOR) && !defined(_WIN32) && !defined(__ANDROID__) && !defined(TARGET_OS_IPHONE) && !defined(TARGET_IPHONE_SIMULATOR) && !defined(__APP_FRAMEWORK__)
 	#define ZT_RED   "\x1B[31m"
 	#define ZT_GRN   "\x1B[32m"
 	#define ZT_YEL   "\x1B[33m"
@@ -86,7 +83,7 @@ extern unsigned int gettid();
 #ifdef __APPLE__
   #define ZT_THREAD_ID (long)0 //(long)gettid()
 #endif
-#ifdef __MINGW32__
+#ifdef _WIN32
   #define ZT_THREAD_ID (long)0
 #endif
 
@@ -103,7 +100,7 @@ extern unsigned int gettid();
 	#define DEBUG_STACK(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
 			"STACK[%ld]: %17s:%5d:%20s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 #endif
-#if defined(_WIN32) && !(defined(__MINGW32__) || defined(__MINGW64__)) // WINDOWS
+#if defined(_WIN32)
 	#define DEBUG_STACK(fmt, args, ...) fprintf(stderr, ZT_YEL "STACK[%ld]: %17s:%5d:%25s: " fmt \
 		ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 #else
@@ -119,8 +116,8 @@ extern unsigned int gettid();
 			#define DEBUG_TEST(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
 				"TEST : %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 			#endif
-		#if defined(_WIN32) && !(defined(__MINGW32__) || defined(__MINGW64__)) // WINDOWS
-			#define DEBUG_TEST(fmt, args, ...) fprintf(stderr, ZT_CYN "TEST [%ld]: %17s:%5d:%25s: " fmt "\n" \
+			#if defined(_WIN32)
+				#define DEBUG_TEST(fmt, args, ...) fprintf(stderr, ZT_CYN "TEST [%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#else
 		#define DEBUG_TEST(fmt, args ...) fprintf(stderr, ZT_CYN "TEST [%ld]: %17s:%5d:%25s: " fmt "\n" \
@@ -136,7 +133,7 @@ extern unsigned int gettid();
 			#define DEBUG_ERROR(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
 				"ERROR: %17s:%5d:%20s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 		#endif
-		#if defined(_WIN32) && !(defined(__MINGW32__) || defined(__MINGW64__)) // WINDOWS
+		#if defined(_WIN32)
 			#define DEBUG_ERROR(fmt, args, ...) fprintf(stderr, ZT_RED "ERROR[%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#else
@@ -153,8 +150,8 @@ extern unsigned int gettid();
 			#define DEBUG_INFO(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
 				"INFO : %17s:%5d:%20s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 			#endif
-		#if defined(_WIN32) && !(defined(__MINGW32__) || defined(__MINGW64__)) // WINDOWS
-			#define DEBUG_INFO(fmt, args, ...) fprintf(stderr, ZT_WHT "INFO [%ld]: %17s:%5d:%25s: " fmt "\n" \
+			#if defined(_WIN32)
+				#define DEBUG_INFO(fmt, args, ...) fprintf(stderr, ZT_WHT "INFO [%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#else
 			#define DEBUG_INFO(fmt, args ...) fprintf(stderr, ZT_WHT "INFO [%ld]: %17s:%5d:%25s: " fmt "\n" \
@@ -170,8 +167,8 @@ extern unsigned int gettid();
 			#define DEBUG_TRANS(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
 				"TRANS: %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 			#endif
-		#if defined(_WIN32) && !(defined(__MINGW32__) || defined(__MINGW64__)) // WINDOWS
-			#define DEBUG_TRANS(fmt, args, ...) fprintf(stderr, ZT_GRN "TRANS[%ld]: %17s:%5d:%25s: " fmt "\n" \
+			#if defined(_WIN32)
+				#define DEBUG_TRANS(fmt, args, ...) fprintf(stderr, ZT_GRN "TRANS[%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 		#else
 			#define DEBUG_TRANS(fmt, args ...) fprintf(stderr, ZT_GRN "TRANS[%ld]: %17s:%5d:%25s: " fmt "\n" \
@@ -187,9 +184,9 @@ extern unsigned int gettid();
 			#define DEBUG_EXTRA(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
 				"EXTRA: %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 		#endif
-		#if defined(_WIN32) && !(defined(__MINGW32__) || defined(__MINGW64__)) // WINDOWS
+		#if defined(_WIN32)
 			#define DEBUG_EXTRA(fmt, args, ...) fprintf(stderr, ZT_WHT "EXTRA[%ld]: %17s:%5d:%25s: " fmt "\n" \
-					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args, (long)0)
 		#else
 			#define DEBUG_EXTRA(fmt, args ...) fprintf(stderr, ZT_WHT "EXTRA[%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
@@ -199,14 +196,14 @@ extern unsigned int gettid();
 	#endif
 
 #else // !LIBZT_DEBUG || !__NATIVE_TEST__
-	#if defined(_WIN32) && !(defined(__MINGW32__) || defined(__MINGW64__)) // WINDOWS
-		#define DEBUG_ERROR(fmt, args, ...)
-		#define DEBUG_TEST(fmt, args, ...)
-		#define DEBUG_INFO(fmt, args, ...)
-		#define DEBUG_BLANK(fmt, args, ...)
-		#define DEBUG_ATTN(fmt, args, ...)
-		#define DEBUG_TRANS(fmt, args, ...)
-		#define DEBUG_EXTRA(fmt, args, ...)
+	#if defined(_WIN32)
+		#define DEBUG_ERROR(...)
+		#define DEBUG_TEST(...)
+		#define DEBUG_INFO(...)
+		#define DEBUG_BLANK(...)
+		#define DEBUG_ATTN(...)
+		#define DEBUG_TRANS(...)
+		#define DEBUG_EXTRA(...)
 	#else
 		#define DEBUG_ERROR(fmt, args...)
 		#define DEBUG_TEST(fmt, args...)

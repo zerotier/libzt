@@ -43,11 +43,11 @@
 
 #if defined(__linux__) || defined(__APPLE__)
 #include <sys/socket.h>
+#include <pthread.h>
 #endif
 
 #include "SysUtils.h"
 #include <stdint.h>
-#include <pthread.h>
 
 #ifdef __linux__
 #include <sys/syscall.h>

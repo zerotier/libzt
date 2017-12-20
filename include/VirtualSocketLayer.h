@@ -30,7 +30,7 @@
  * VirtualSocket management layer
  */
 
-//#include "InetAddress.hpp"
+#include "libztDefs.h"
 
 namespace ZeroTier {
 	class Mutex;

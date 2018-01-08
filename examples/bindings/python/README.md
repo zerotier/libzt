@@ -1,4 +1,4 @@
-## libzt Python examples
+libzt wrapper and PyPI package
 ***
 
-Coming soon
+See [libzt/packages/pypi](../../../packages/pypi)

@@ -39,6 +39,7 @@
 #include "OneService.hpp"
 #include "InetAddress.hpp"
 #include "OSUtils.hpp"
+#include "Mutex.hpp"
 
 std::vector<void*> vtaps;
 ZeroTier::Mutex _vtaps_lock;

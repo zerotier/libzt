@@ -68,10 +68,10 @@ We recommend using [CMake](https://cmake.org/) for its extensive cross-platform 
 git submodule init
 git submodule update
 cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=DEBUG
-cmake --build -build 
+cmake --build build 
 ```
 
-Builds are placed in `bin` and `bin\lib`. Change `CMAKE_BUILD_TYPE` to `RELEASE` for a smaller and optmized build.
+Use `libzt.a` or `libzt.dylib` in your application. They are placed in `bin\lib`. Change `CMAKE_BUILD_TYPE` to `RELEASE` for a smaller and optmized build.
 
 ### Install
 

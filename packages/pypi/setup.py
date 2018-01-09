@@ -14,36 +14,35 @@ source_list.extend(list(glob.glob('../../zto/osdep/*.cpp')))
 source_list.extend(list(glob.glob('../../zto/service/*.cpp')))
 source_list.extend(list(glob.glob('../../zto/controller/*.cpp')))
 
-http_parser_source_list = list(glob.glob('../../zto/ext/http-parser/*.c'))
-
-lwip_source_list = []
-
-lwip_source_list.extend(list(glob.glob('../../ext/lwip/src/core/*.c')))
-lwip_source_list.extend(list(glob.glob('../../ext/lwip/src/core/ipv4/*.c')))
-lwip_source_list.extend(list(glob.glob('../../ext/lwip/src/core/ipv6/*.c')))
+#http_parser_source_list = ['libzt_wrap.cxx']
+#http_parser_source_list.extend(list(glob.glob('../../zto/ext/http-parser/*.c')))
+#lwip_source_list = ['libzt_wrap.cxx']
+#lwip_source_list.extend(list(glob.glob('../../ext/lwip/src/core/*.c')))
+#lwip_source_list.extend(list(glob.glob('../../ext/lwip/src/core/ipv4/*.c')))
+#lwip_source_list.extend(list(glob.glob('../../ext/lwip/src/core/ipv6/*.c')))
 
 source_list = list(set(source_list)-set(
 	['../../zto/osdep/LinuxEthernetTap.cpp','../../zto/osdep/BSDEthernetTap.cpp','../../zto/osdep/OSXEthernetTap.cpp', '../../zto/osdep/WindowsEthernetTap.cpp']))
 
-lwip_module = Extension('lwip',
-					extra_compile_args=['-DZT_SDK'],
-					extra_link_args=[],
-					sources=lwip_source_list,
-					include_dirs=['../include',
-							'../../include',
-							'../../ext/lwip/src/include',
-							'../../ext/lwip-contrib/ports/unix/include',]                           
-					)
+#lwip_module = Extension('lwip',
+#					extra_compile_args=['-DZT_SDK'],
+#					extra_link_args=[],
+#					sources=lwip_source_list,
+#					include_dirs=['../include',
+#							'../../include',
+#							'../../ext/lwip/src/include',
+#							'../../ext/lwip-contrib/ports/unix/include',]                           
+#					)
 
-http_parser_module = Extension('http_parser',
-					extra_compile_args=[],
-					extra_link_args=[],
-					sources=http_parser_source_list,
-					)
+#http_parser_module = Extension('http_parser',
+#					extra_compile_args=[],
+#					extra_link_args=[],
+#					sources=http_parser_source_list,
+#					)
 
-example_module = Extension('libzt',
+libzt_module = Extension('libzt',
 					extra_compile_args=['-std=c++11', '-DZT_SDK', '-DZT_SOFTWARE_UPDATE_DEFAULT=\"disable\"'],
-					extra_link_args=[],
+					extra_link_args=['-L.','-llwip','-lhttp'],
 					sources=source_list,
 					include_dirs=['../include',
 							'../../include',
@@ -59,11 +58,11 @@ example_module = Extension('libzt',
 setup(    
 	include_package_data=True,
     distclass=BinaryDistribution,
-	ext_modules = [example_module, http_parser_module, lwip_module],
+	ext_modules = [libzt_module],
 	py_modules = ['libzt'],
 	name = 'libzt',
 	packages = ['libzt'],
-	version = '1.1.5a12',
+	version = '1.1.5a14',
 	description = 'ZeroTier, in library form.',
 	long_description = 'Encrypted P2P networks between your applications',
 	author = 'ZeroTier, Inc.',

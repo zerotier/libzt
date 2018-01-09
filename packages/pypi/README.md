@@ -1,4 +1,4 @@
-libzt PyPI Package
+## libzt PyPI Package
 [pypi/libzt](https://pypi.python.org/pypi/libzt)
 ***
 
@@ -26,6 +26,8 @@ Package is specified in [setup.py](setup.py). *Note: A new version must be speci
 Get necessary tools
 
 `pip3 install wheel twine`
+
+*Note: As there appears to be no way to differentiate C and C++ code (and thus pass correct build args to each type) in a setuptools script we must separately build the `lwip` and `http_parser` libraries, copy them here, and then build the binary. See the top-level [README.md](../../README.md) for instructions on how to do that*
 
 Build the binary distribution wheel:
 

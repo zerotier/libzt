@@ -8,11 +8,11 @@ class BinaryDistribution(Distribution):
         return False
 
 source_list = ['libzt_wrap.cxx']
-source_list.extend(list(glob.glob('../../src/*.cpp')))
-source_list.extend(list(glob.glob('../../zto/node/*.cpp')))
-source_list.extend(list(glob.glob('../../zto/osdep/*.cpp')))
-source_list.extend(list(glob.glob('../../zto/service/*.cpp')))
-source_list.extend(list(glob.glob('../../zto/controller/*.cpp')))
+source_list.extend(list(glob.glob('data/libzt/src/*.cpp')))
+source_list.extend(list(glob.glob('data/zto/node/*.cpp')))
+source_list.extend(list(glob.glob('data/zto/osdep/*.cpp')))
+source_list.extend(list(glob.glob('data/zto/service/*.cpp')))
+source_list.extend(list(glob.glob('data/zto/controller/*.cpp')))
 
 #http_parser_source_list = ['libzt_wrap.cxx']
 #http_parser_source_list.extend(list(glob.glob('../../zto/ext/http-parser/*.c')))
@@ -22,7 +22,7 @@ source_list.extend(list(glob.glob('../../zto/controller/*.cpp')))
 #lwip_source_list.extend(list(glob.glob('../../ext/lwip/src/core/ipv6/*.c')))
 
 source_list = list(set(source_list)-set(
-	['../../zto/osdep/LinuxEthernetTap.cpp','../../zto/osdep/BSDEthernetTap.cpp','../../zto/osdep/OSXEthernetTap.cpp', '../../zto/osdep/WindowsEthernetTap.cpp']))
+	['data/zto/osdep/LinuxEthernetTap.cpp','data/zto/osdep/BSDEthernetTap.cpp','data/zto/osdep/OSXEthernetTap.cpp', 'data/zto/osdep/WindowsEthernetTap.cpp']))
 
 #lwip_module = Extension('lwip',
 #					extra_compile_args=['-DZT_SDK'],
@@ -44,15 +44,14 @@ libzt_module = Extension('libzt',
 					extra_compile_args=['-std=c++11', '-DZT_SDK', '-DZT_SOFTWARE_UPDATE_DEFAULT=\"disable\"'],
 					extra_link_args=['-L.','-llwip','-lhttp'],
 					sources=source_list,
-					include_dirs=['../include',
-							'../../include',
-							'../../ext/lwip/src/include',
-							'../../ext/lwip-contrib/ports/unix/include',
-							'../../zto/include',
-							'../../zto/node',
-							'../../zto/service',
-							'../../zto/osdep',
-							'../../zto/controller']                           
+					include_dirs=['data/libzt/include',
+							'data/libzt/ext/lwip/src/include',
+							'data/libzt/ext/lwip-contrib/ports/unix/include',
+							'data/zto/include',
+							'data/zto/node',
+							'data/zto/service',
+							'data/zto/osdep',
+							'data/zto/controller']                           
 					)
 
 setup(    
@@ -62,7 +61,7 @@ setup(
 	py_modules = ['libzt'],
 	name = 'libzt',
 	packages = ['libzt'],
-	version = '1.1.5a14',
+	version = '1.1.5a19',
 	description = 'ZeroTier, in library form.',
 	long_description = 'Encrypted P2P networks between your applications',
 	author = 'ZeroTier, Inc.',

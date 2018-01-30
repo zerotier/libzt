@@ -1,6 +1,6 @@
 /*
  * ZeroTier SDK - Network Virtualization Everywhere
- * Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (C) 2011-2018  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@
 #include "OneService.hpp"
 #include "InetAddress.hpp"
 #include "OSUtils.hpp"
+#include "Mutex.hpp"
 
 std::vector<void*> vtaps;
 ZeroTier::Mutex _vtaps_lock;

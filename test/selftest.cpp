@@ -1,6 +1,6 @@
 /*
  * ZeroTier SDK - Network Virtualization Everywhere
- * Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (C) 2011-2018  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -142,13 +142,13 @@
 inline unsigned int gettid()
 {
 #ifdef _WIN32
-    return GetCurrentThreadId();
+	return GetCurrentThreadId();
 #elif defined(__unix__)
-    return static_cast<unsigned int>(::syscall(__NR_gettid));
+	return static_cast<unsigned int>(::syscall(__NR_gettid));
 #elif defined(__APPLE__)
-    uint64_t tid64;
-    pthread_threadid_np(NULL, &tid64);
-    return static_cast<unsigned int>(tid64);
+	uint64_t tid64;
+	pthread_threadid_np(NULL, &tid64);
+	return static_cast<unsigned int>(tid64);
 #endif
 }
 
@@ -381,7 +381,7 @@ void wait_until_everyone_is_ready(struct sockaddr *local_addr, struct sockaddr *
 			struct sockaddr_in client;
 			socklen_t client_addrlen = sizeof(sockaddr_in);
 			if ((accepted_fd = ACCEPT(listen_fd, (struct sockaddr *)&client, &client_addrlen)) < 0) { 
-				DEBUG_TEST("errno = %d", errno);
+				//DEBUG_TEST("errno = %d", errno);
 			}
 			else {
 				DEBUG_TEST("connected");
@@ -390,11 +390,9 @@ void wait_until_everyone_is_ready(struct sockaddr *local_addr, struct sockaddr *
 		}
 		sleep(1);
 	}
-	DEBUG_TEST("closing");
 	CLOSE(listen_fd);
 	CLOSE(conn_fd);
 	CLOSE(accepted_fd);
-	DEBUG_TEST("returning");
 }
 
 
@@ -2886,7 +2884,7 @@ for (int i=0; i<num_repeats; i++)
 		long int selftest_start_time = get_now_ts();
 		subtest_expected_duration = 20; // initial value, wait for other instance to come online
 #endif
-/*
+
 		// UDP 4 client/server
 
 		ipv = 4;
@@ -3059,12 +3057,9 @@ for (int i=0; i<num_repeats; i++)
 		}
 		RECORD_RESULTS(passed, details, &results);
 		port++;
-*/
-
 
 // IPV6
 
-/*
 		// UDP 6 client/server
 
 		ipv = 6;
@@ -3172,7 +3167,7 @@ for (int i=0; i<num_repeats; i++)
 		}
 		RECORD_RESULTS(passed, details, &results);
 		port++;
-*/
+
 	// TCP 6 sustained transfer
 
 		ipv = 6;	

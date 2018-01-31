@@ -24,21 +24,6 @@
  * of your own application.
  */
 
-#if defined(__linux__) || defined(__APPLE__)
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <netdb.h>
-#include <poll.h>
-#endif
-
-#if defined(__MINGW32__) || defined(__MINGW64__)
-#include <WinSock2.h>
-#include <stdint.h>
-#endif
-
-#include <unistd.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,10 +36,10 @@
 #include <fstream>
 #include <map>
 #include <ctime>
-#include <sys/time.h>
-#include <pthread.h>
 #include <signal.h>
 #include <cstring>
+#include <chrono>
+#include <thread>
 
 #include "libzt.h"
 
@@ -62,15 +47,94 @@
 #include "Utils.hpp"
 #endif
 
+#if defined(__linux__) || defined(__APPLE__)
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <netdb.h>
+#include <poll.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <sys/time.h>
+#endif
+
+#if defined(_WIN32)
+#include <WinSock2.h>
+#include <WS2tcpip.h>
+#include <Ws2def.h>
+#include <stdint.h>
+#include <windows.h>
+#include <time.h>
+
+void sleep(unsigned long ms) 
+{
+	Sleep(ms);
+}
+
+void micro_sleep(unsigned long us)
+{
+	std::this_thread::sleep_for(std::chrono::microseconds(us));
+}
+
+#if defined(_MSC_VER) || defined(_MSC_EXTENSIONS)
+  #define DELTA_EPOCH_IN_MICROSECS  11644473600000000Ui64
+#else
+  #define DELTA_EPOCH_IN_MICROSECS  11644473600000000ULL
+#endif
+
+struct timezone
+{
+	int tz_minuteswest;
+	int tz_dsttime;
+};
+
+
+int gettimeofday(struct timeval *tv, struct timezone *tz)
+{
+  FILETIME ft;
+  unsigned __int64 tmpres = 0;
+  static int tzflag;
+ 
+  if (NULL != tv)
+  {
+    GetSystemTimeAsFileTime(&ft);
+ 
+    tmpres |= ft.dwHighDateTime;
+    tmpres <<= 32;
+    tmpres |= ft.dwLowDateTime;
+ 
+    /*converting file time to unix epoch*/
+    tmpres -= DELTA_EPOCH_IN_MICROSECS; 
+    tmpres /= 10;  /*convert into microseconds*/
+    tv->tv_sec = (long)(tmpres / 1000000UL);
+    tv->tv_usec = (long)(tmpres % 1000000UL);
+  }
+ 
+  if (NULL != tz)
+  {
+    if (!tzflag)
+    {
+      _tzset();
+      tzflag++;
+    }
+    tz->tz_minuteswest = _timezone / 60;
+    tz->tz_dsttime = _daylight;
+  }
+ 
+  return 0;
+}
+#endif
+
+
 #define EXIT_ON_FAIL           false
 
-#define PASSED                 1
-#define FAILED                 0
+#define TEST_PASSED                 1
+#define TEST_FAILED                 0
 
 #define ECHO_INTERVAL          1000000 // microseconds
 #define SLAM_INTERVAL          500000  // microseconds
 
-#define WAIT_FOR_TEST_TO_CONCLUDE         0
 #define ARTIFICIAL_SOCKET_LINGER          1
 
 #define STR_SIZE               32
@@ -90,20 +154,14 @@
 #define MIN_PORT               5000
 #define MAX_PORT               50000
 
-#define TCP_UNIT_TEST_SIG_4    struct sockaddr_in *addr, int op, int cnt, char *details, \
-									bool *passed
-#define UDP_UNIT_TEST_SIG_4    struct sockaddr_in *local_addr, struct sockaddr_in *remote_addr, \
-									int op, int cnt, char *details, bool *passed
+#define TCP_UNIT_TEST_SIG_4    struct sockaddr_in *addr, int op, int cnt, char *details, bool *passed
+#define UDP_UNIT_TEST_SIG_4    struct sockaddr_in *local_addr, struct sockaddr_in *remote_addr, int op, int cnt, char *details, bool *passed
 
-#define TCP_UNIT_TEST_SIG_6    struct sockaddr_in6 *addr, int op, int cnt, char *details, \
-									bool *passed
-#define UDP_UNIT_TEST_SIG_6    struct sockaddr_in6 *local_addr, struct sockaddr_in6 *remote_addr, \
-									int op, int cnt, char *details, bool *passed
+#define TCP_UNIT_TEST_SIG_6    struct sockaddr_in6 *addr, int op, int cnt, char *details, bool *passed
+#define UDP_UNIT_TEST_SIG_6    struct sockaddr_in6 *local_addr, struct sockaddr_in6 *remote_addr, int op, int cnt, char *details, bool *passed
 
 #define ECHOTEST_MODE_RX       333
 #define ECHOTEST_MODE_TX       666
-
-#define DATA_BUF_SZ            1024*32
 
 #define MAX_RX_BUF_SZ          2048
 #define MAX_TX_BUF_SZ          2048
@@ -112,10 +170,9 @@
 
 #define DETAILS_STR_LEN        128
 
-
 // If running a self test, use libzt calls
 #if defined(__SELFTEST__)
-#define SOCKET zts_socket
+//#define SOCKET zts_socket
 #define BIND zts_bind
 #define LISTEN zts_listen
 #define ACCEPT zts_accept
@@ -157,8 +214,6 @@ inline unsigned int gettid()
 #define LISTEN listen
 #define ACCEPT accept
 #define CONNECT connect
-#define READ read
-#define WRITE write
 #define RECV recvmsg
 #define SEND send
 #define RECVFROM recvfrom
@@ -170,7 +225,15 @@ inline unsigned int gettid()
 #define IOCTL ioctl
 #define FCNTL fcntl
 #define SELECT select
+#if defined(_WIN32)
+#define READ recv
+#define WRITE send
+#define CLOSE closesocket
+#else
+#define READ read
+#define WRITE write
 #define CLOSE close
+#endif
 #define GETPEERNAME getpeername
 #endif
 
@@ -219,6 +282,21 @@ std::map<std::string, std::string> testConf;
 /****************************************************************************/
 /* Helper Functions                                                         */
 /****************************************************************************/
+
+/** Returns true on success, or false if there was an error */
+bool SetSocketBlockingEnabled(int fd, bool blocking)
+{
+	if (fd < 0) return false;
+#ifdef _WIN32
+	unsigned long mode = blocking ? 0 : 1;
+	return (ioctlsocket(fd, FIONBIO, &mode) == 0) ? true : false;
+#else
+	int flags = FCNTL(fd, F_GETFL, 0);
+	if (flags == -1) return false;
+	flags = blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
+	return (FCNTL(fd, F_SETFL, flags) == 0) ? true : false;
+#endif
+}
 
 void displayResults(int *results, int size) 
 {
@@ -322,7 +400,7 @@ void RECORD_RESULTS(bool passed, char *details, std::vector<std::string> *result
 {
 	char *ok_str   = (char*)"[  OK  ]";
 	char *fail_str = (char*)"[ FAIL ]";
-	if (passed == PASSED) {
+	if (passed == TEST_PASSED) {
 		DEBUG_TEST("%s", ok_str);
 		results->push_back(std::string(ok_str) + " " + std::string(details));
 	} else {
@@ -345,7 +423,7 @@ void wait_until_everyone_is_ready(struct sockaddr *local_addr, struct sockaddr *
 	int accepted_fd;
 	// listen socket setup
 	int listen_fd;
-	if ((listen_fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((listen_fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		perror("socket");
 		exit(0);
 	} if ((err = BIND(listen_fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in)) < 0)) {
@@ -354,19 +432,15 @@ void wait_until_everyone_is_ready(struct sockaddr *local_addr, struct sockaddr *
 	} if ((err = LISTEN(listen_fd, 0)) < 0) {
 		perror("listen");
 		exit(0);
-	} if ((err = FCNTL(listen_fd, F_SETFL, O_NONBLOCK) < 0)) {
-		perror("fcntl");
-		exit(0);
-	}
+	} 
+	SetSocketBlockingEnabled(listen_fd, true);
 	// connect socket setup
 	int conn_fd;
-	if ((conn_fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((conn_fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		perror("socket");
 		exit(0);
-	} if ((err = FCNTL(conn_fd, F_SETFL, O_NONBLOCK) < 0)) {
-		perror("fcntl");
-		exit(0);
 	}
+	SetSocketBlockingEnabled(conn_fd, true);
 	while(connected == false) {
 		if ((err = CONNECT(conn_fd, (const struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) { 
 			if (errno == EISCONN) {
@@ -409,7 +483,7 @@ void tcp_select_server(TCP_UNIT_TEST_SIG_4)
 	int w=0, r=0, fd, client_fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
@@ -498,7 +572,7 @@ void tcp_select_client(TCP_UNIT_TEST_SIG_4)
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
@@ -580,7 +654,7 @@ void tcp_client_4(TCP_UNIT_TEST_SIG_4)
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
@@ -627,7 +701,7 @@ void tcp_server_4(TCP_UNIT_TEST_SIG_4)
 	int w=0, r=0, fd, client_fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
@@ -687,7 +761,7 @@ void tcp_client_6(TCP_UNIT_TEST_SIG_6)
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if ((fd = SOCKET(AF_INET6, SOCK_STREAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET6, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
@@ -734,7 +808,7 @@ void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 	int w=0, r=0, fd, client_fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if ((fd = SOCKET(AF_INET6, SOCK_STREAM, 0)) < 0) { 
+	if ((fd = zts_socket(AF_INET6, SOCK_STREAM, 0)) < 0) { 
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
@@ -799,18 +873,13 @@ void udp_client_4(UDP_UNIT_TEST_SIG_4)
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if ((fd = SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if ((err = FCNTL(fd, F_SETFL, O_NONBLOCK) < 0)) {
-		fprintf(stderr, "error setting O_NONBLOCK (errno=%d)",  errno);
-		perror("fcntl");
-		*passed = false;
-		return;
-	}
+	SetSocketBlockingEnabled(fd, true);
 	DEBUG_TEST("sending UDP packets until I get a single response...");
 	if ((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in)) < 0)) {
 		DEBUG_ERROR("error binding to interface (%d)", err);
@@ -855,7 +924,7 @@ void udp_server_4(UDP_UNIT_TEST_SIG_4)
 	int r, w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if ((fd = SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
@@ -932,19 +1001,13 @@ void udp_client_6(UDP_UNIT_TEST_SIG_6)
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
 
-	if ((fd = SOCKET(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if ((err = FCNTL(fd, F_SETFL, O_NONBLOCK) < 0)) {
-		std::cout << "error setting O_NONBLOCK (errno=" << strerror(errno) << ")" << std::endl;
-		perror("fcntl");
-		*passed = false;
-		return;
-	}
-
+	SetSocketBlockingEnabled(fd, true);
 	DEBUG_TEST("[1] binding and sending UDP packets until I get a single response...");
 	if ((err = BIND(fd, (struct sockaddr*)local_addr, sizeof(struct sockaddr_in6)) < 0)) {
 		DEBUG_ERROR("error binding to interface (err=%d, errno=%d)", err, errno);
@@ -959,7 +1022,7 @@ void udp_client_6(UDP_UNIT_TEST_SIG_6)
 		if ((w = SENDTO(fd, msg.c_str(), len, 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
 		}
-		usleep(100000);
+		micro_sleep(100000);
 		memset(rbuf, 0, sizeof(rbuf));
 		int serverlen = sizeof(struct sockaddr_storage);
 		// rx
@@ -990,7 +1053,7 @@ void udp_server_6(UDP_UNIT_TEST_SIG_6)
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
 
-	if ((fd = SOCKET(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating socket");
 		perror("socket");
 		*passed = false;
@@ -1022,7 +1085,7 @@ void udp_server_6(UDP_UNIT_TEST_SIG_6)
 	// tx
 	long int tx_ti = get_now_ts();
 	while (true) {
-		usleep(100000);
+		micro_sleep(100000);
 		//DEBUG_TEST("sending UDP packet");
 		if ((w = SENDTO(fd, msg.c_str(), len, 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
@@ -1065,7 +1128,7 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 	char *txbuf = (char*)malloc(cnt*sizeof(char));
 	generate_random_data(txbuf, cnt, 0, 9);
 
-	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
@@ -1083,7 +1146,9 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 		long int tx_ti = get_now_ts();	
 		while (wrem) {
 			int next_write = std::min(4096, wrem);
+#if !defined(_WIN32)
 			signal(SIGPIPE, SIG_IGN);
+#endif
 			DEBUG_TEST("writing...");
 			n = WRITE(fd, &txbuf[w], next_write);
 			DEBUG_TEST("wrote=%d", n);
@@ -1148,7 +1213,7 @@ void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 	char *rxbuf = (char*)malloc(cnt*sizeof(char));
 	char *txbuf = (char*)malloc(cnt*sizeof(char));
 	generate_random_data(txbuf, cnt, 0, 9);
-	if ((fd = SOCKET(AF_INET6, SOCK_STREAM, 0)) < 0){
+	if ((fd = zts_socket(AF_INET6, SOCK_STREAM, 0)) < 0){
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
@@ -1228,7 +1293,7 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 	char *rxbuf = (char*)malloc(cnt*sizeof(char));
 	memset(rxbuf, 0, cnt);
 
-	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
@@ -1312,7 +1377,7 @@ void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 	char *rxbuf = (char*)malloc(cnt*sizeof(char));
 	memset(rxbuf, 0, cnt);
 
-	if ((fd = SOCKET(AF_INET6, SOCK_STREAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET6, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
@@ -1399,18 +1464,13 @@ void udp_client_sustained_4(UDP_UNIT_TEST_SIG_4)
 	int w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if ((fd = SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if ((err = FCNTL(fd, F_SETFL, O_NONBLOCK) < 0)) {
-		fprintf(stderr, "error setting O_NONBLOCK (errno=%d)",  errno);
-		perror("fcntl");
-		*passed = false;
-		return;
-	}
+	SetSocketBlockingEnabled(fd, true);
 	DEBUG_TEST("sending UDP packets until I get a single response...");
 	if ((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in)) < 0)) {
 		DEBUG_ERROR("error binding to interface (%d)", err);
@@ -1447,7 +1507,7 @@ void udp_server_sustained_4(UDP_UNIT_TEST_SIG_4)
 	int r, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if ((fd = SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
@@ -1495,18 +1555,13 @@ void udp_client_sustained_6(UDP_UNIT_TEST_SIG_6)
 	int w, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if ((fd = SOCKET(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
 		return;
 	}
-	if ((err = FCNTL(fd, F_SETFL, O_NONBLOCK) < 0)) {
-		fprintf(stderr, "error setting O_NONBLOCK (errno=%d)",  errno);
-		perror("fcntl");
-		*passed = false;
-		return;
-	}
+	SetSocketBlockingEnabled(fd, true);
 	DEBUG_TEST("sending UDP packets until I get a single response...");
 	if ((err = BIND(fd, (struct sockaddr *)local_addr, sizeof(struct sockaddr_in6)) < 0)) {
 		DEBUG_ERROR("error binding to interface (%d)", err);
@@ -1544,7 +1599,7 @@ void udp_server_sustained_6(UDP_UNIT_TEST_SIG_6)
 	int r, fd, err, len = strlen(msg.c_str());
 	char rbuf[STR_SIZE];
 	memset(rbuf, 0, sizeof rbuf);
-	if ((fd = SOCKET(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		perror("socket");
 		*passed = false;
@@ -1597,7 +1652,7 @@ void tcp_client_perf_4(TCP_UNIT_TEST_SIG_4)
 
 	for (int i=arbitrary_chunk_sz_min; (i*2) < arbitrary_chunk_sz_max; i*=2) {
 
-		if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
+		if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
 			DEBUG_ERROR("error creating ZeroTier socket");
 		if ((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(addr))) < 0)
 			DEBUG_ERROR("error connecting to remote host (%d)", err);
@@ -1618,7 +1673,7 @@ void tcp_client_perf_4(TCP_UNIT_TEST_SIG_4)
 		sprintf(details, "tot=%d, dt=%.2f, rate=%.2f MB/s", w, ts_delta, (rate / float(ONE_MEGABYTE) ));
 		CLOSE(fd);		
 	}	
-	*passed = (w == total_test_sz && !err) ? PASSED : FAILED;
+	*passed = (w == total_test_sz && !err) ? TEST_PASSED : TEST_FAILED;
 	*/
 }
 
@@ -1636,7 +1691,7 @@ void tcp_server_perf_4(TCP_UNIT_TEST_SIG_4)
 
 	for (int i=arbitrary_chunk_sz_min; (i*2) < arbitrary_chunk_sz_max; i*=2) {
 		DEBUG_ERROR("TESTING chunk size = %d", i);
-		if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
+		if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
 			DEBUG_ERROR("error creating ZeroTier socket");
 		if ((err = BIND(fd, (struct sockaddr *)addr, (socklen_t)sizeof(struct sockaddr_in)) < 0))
 			DEBUG_ERROR("error binding to interface (%d)", err);
@@ -1665,7 +1720,7 @@ void tcp_server_perf_4(TCP_UNIT_TEST_SIG_4)
 		CLOSE(fd);
 		CLOSE(client_fd);
 	}
-	*passed = (r == total_test_sz && !err) ? PASSED : FAILED;
+	*passed = (r == total_test_sz && !err) ? TEST_PASSED : TEST_FAILED;
 	*/
 }
 
@@ -1693,7 +1748,7 @@ void tcp_perf_tx_echo_4(TCP_UNIT_TEST_SIG_4)
 	mode = ECHOTEST_MODE_TX;
 
 	// connect to remote echotest host
-	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		return;
 	}
@@ -1742,7 +1797,7 @@ void tcp_perf_tx_echo_4(TCP_UNIT_TEST_SIG_4)
 
 	sleep(ARTIFICIAL_SOCKET_LINGER);
 	err = CLOSE(fd);
-	*passed = (tot == cnt && !err) ? PASSED : FAILED;
+	*passed = (tot == cnt && !err) ? TEST_PASSED : TEST_FAILED;
 }
 
 
@@ -1763,7 +1818,7 @@ void tcp_perf_rx_echo_4(TCP_UNIT_TEST_SIG_4)
 	mode = ECHOTEST_MODE_RX;
 
 	// connect to remote echotest host
-	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
 		return;
 	}
@@ -1785,7 +1840,7 @@ void tcp_perf_rx_echo_4(TCP_UNIT_TEST_SIG_4)
 
 	// begin
 	DEBUG_TEST("beginning test, as soon as bytes are read we will start keeping time...");
-	if ((r = read(fd, tbuf, sizeof tbuf)) < 0) {
+	if ((r = READ(fd, tbuf, sizeof tbuf)) < 0) {
 		DEBUG_ERROR("there was an error reading the test stream. aborting (err=%d, errno=%s)", r, strerror(errno));
 		return;
 	}
@@ -1796,7 +1851,7 @@ void tcp_perf_rx_echo_4(TCP_UNIT_TEST_SIG_4)
 	DEBUG_TEST("Received first set of bytes in test stream. now keeping time");
 
 	while (tot < cnt) {
-		if ((r = read(fd, tbuf, sizeof tbuf)) < 0) {
+		if ((r = READ(fd, tbuf, sizeof tbuf)) < 0) {
 			DEBUG_ERROR("there was an error reading the test stream. aborting (err=%d)", r);
 			return;
 		}
@@ -1810,7 +1865,7 @@ void tcp_perf_rx_echo_4(TCP_UNIT_TEST_SIG_4)
 	
 	sleep(ARTIFICIAL_SOCKET_LINGER);
 	err = CLOSE(fd);
-	*passed = (tot == cnt && !err) ? PASSED : FAILED;
+	*passed = (tot == cnt && !err) ? TEST_PASSED : TEST_FAILED;
 }
 
 /****************************************************************************/
@@ -1828,7 +1883,7 @@ int obscure_api_test(bool *passed)
 	int fd, client_fd;
 
 	// after accept()
-	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
+	if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		DEBUG_ERROR("error creating ZeroTier socket");
 	if ((err = BIND(fd, (struct sockaddr *)addr, sizeof(struct sockaddr_in)) < 0))
 		DEBUG_ERROR("error binding to interface (%d)", err);
@@ -1849,7 +1904,7 @@ int obscure_api_test(bool *passed)
 	// compate getpeername() result to address returned by accept()
 
 	// after connect
-	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
+	if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		DEBUG_ERROR("error creating ZeroTier socket");
 	if ((err = CONNECT(fd, (const struct sockaddr *)addr, sizeof(*addr))) < 0)
 		DEBUG_ERROR("error connecting to remote host (%d)", err);
@@ -1887,7 +1942,7 @@ int levels[] = {
 		int optname = TCP_NODELAY;
 		int optval = 1;
 		socklen_t flag_len = sizeof(optval);
-		int fd = SOCKET(AF_INET, SOCK_STREAM, 0);
+		int fd = zts_socket(AF_INET, SOCK_STREAM, 0);
 		DEBUG_TEST("setting level=%d, optname=%d, optval=%d...", level, optname, optval);
 		err = SETSOCKOPT(fd, level, optname, (char *)&optval, sizeof(int));
 		if (err < 0) {
@@ -2012,6 +2067,7 @@ int ZT_control_semantics_test(bool *passed)
 #define SLAM_NUMBER 16
 #define SLAM_REPEAT 1
 
+/*
 int slam_api_test()
 {
 	int err = 0;
@@ -2031,11 +2087,11 @@ int slam_api_test()
 		// open and close SLAM_NUMBER*SLAM_REPEAT sockets
 		for (int j=0; j<SLAM_REPEAT; j++) {
 			std::cout << "slamming " << j << " time(s)" << std::endl;
-			usleep(SLAM_INTERVAL);
+			micro_sleep(SLAM_INTERVAL);
 			// create sockets
 			int fds[SLAM_NUMBER];
 			for (int i = 0; i<SLAM_NUMBER; i++) {
-				if ((err = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+				if ((err = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 					std::cout << "error creating socket (errno = " << strerror(errno) << ")" << std::endl;
 					if (errno == EMFILE)
 						break;
@@ -2059,9 +2115,9 @@ int slam_api_test()
 			}
 		}
 		//if (zts_num_active_virt_sockets() == 0)
-		//	std::cout << "PASSED [slam open and close]" << std::endl;
+		//	std::cout << "TEST_PASSED [slam open and close]" << std::endl;
 		//else
-		//	std::cout << "FAILED [slam open and close] - sockets left unclosed" << std::endl;
+		//	std::cout << "TEST_FAILED [slam open and close] - sockets left unclosed" << std::endl;
 	}
 
 	// ---
@@ -2079,10 +2135,10 @@ int slam_api_test()
 
 		for (int j=0; j<SLAM_REPEAT; j++) {
 			std::cout << "slamming " << j << " time(s)" << std::endl;
-			usleep(SLAM_INTERVAL);
+			micro_sleep(SLAM_INTERVAL);
 
 			for (int i = 0; i<SLAM_NUMBER; i++) {
-				if ((sock = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+				if ((sock = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 					std::cout << "error creating socket (errno = " << strerror(errno) << ")" << std::endl;
 					if (errno == EMFILE)
 						break;
@@ -2090,7 +2146,7 @@ int slam_api_test()
 						return -1;
 				}
 				std::cout << "socket() = " << sock << std::endl;
-				usleep(SLAM_INTERVAL);
+				micro_sleep(SLAM_INTERVAL);
 
 				int port;
 				while ((std::find(used_ports.begin(),used_ports.end(),port) == used_ports.end()) == false) {
@@ -2131,9 +2187,9 @@ int slam_api_test()
 		}
 		used_ports.clear();
 		//if (zts_num_active_virt_sockets() == 0)
-		//	std::cout << "PASSED [slam open, bind, listen, accept, close]" << std::endl;
+		//	std::cout << "TEST_PASSED [slam open, bind, listen, accept, close]" << std::endl;
 		//else
-		//	std::cout << "FAILED [slam open, bind, listen, accept, close]" << std::endl;
+		//	std::cout << "TEST_FAILED [slam open, bind, listen, accept, close]" << std::endl;
 	}
 
 	// TESTS:
@@ -2152,17 +2208,15 @@ int slam_api_test()
 			int sock = 0;
 			errno = 0;
 
-			usleep(SLAM_INTERVAL);
+			micro_sleep(SLAM_INTERVAL);
 
 			// socket()
 			printf("creating socket... (%d)\n", j);
-			if ((sock = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0)
+			if ((sock = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
 				std::cout << "error creating socket (errno = " << strerror(errno) << ")" << std::endl;
 			results[j] = std::min(results[j], sock);
 			
-			// set O_NONBLOCK
-			if ((err = FCNTL(sock, F_SETFL, O_NONBLOCK) < 0))
-				std::cout << "error setting O_NONBLOCK (errno=" << strerror(errno) << ")" << std::endl;
+			SetSocketBlockingEnabled(sock, true);
 			results[j] = std::min(results[j], err);
 
 			// connect()
@@ -2197,12 +2251,13 @@ int slam_api_test()
 
 		displayResults(results, num_times);
 		//if (zts_num_active_virt_sockets() == 0)
-		//	std::cout << "PASSED [slam open, connect, close]" << std::endl;
+		//	std::cout << "TEST_PASSED [slam open, connect, close]" << std::endl;
 		//else
-		//	std::cout << "FAILED [slam open, connect, close]" << std::endl;
+		//	std::cout << "TEST_FAILED [slam open, connect, close]" << std::endl;
 	}
 	return 0;
 }
+*/
 
 /*
 void get_network_routes(char *nwid)
@@ -2230,7 +2285,7 @@ void get_network_routes(char *nwid)
 
 int random_api_test()
 {
-	// PASSED implies we didn't segfault or hang anywhere
+	// TEST_PASSED implies we didn't segfault or hang anywhere
 
 	// variables which will be populated with random values
 	/*
@@ -2268,7 +2323,7 @@ int random_api_test()
 		switch(opbuf[i])
 		{
 			case 0:
-				SOCKET();
+				zts_socket();
 			case 1:
 				CONNECT();
 			case 2:
@@ -2282,7 +2337,7 @@ int random_api_test()
 		}
 	}
 
-	SOCKET()
+	zts_socket()
 	CONNECT()
 	LISTEN()
 	ACCEPT()
@@ -2300,7 +2355,7 @@ int random_api_test()
 
 	*/
 
-	return PASSED;
+	return TEST_PASSED;
 }
 
 
@@ -2311,12 +2366,15 @@ int random_api_test()
   - Check for specific errno values for each function
 
 */
+  /*
 void test_bad_args()
 {
 // Protocol Family test set
 	int proto_families[] = {
-		AF_UNIX, 
+		AF_UNIX,
+#if !defined(_WIN32) 
 		AF_LOCAL,
+#endif
 		AF_INET,
 		AF_INET6,
 		AF_IPX,
@@ -2387,13 +2445,13 @@ void test_bad_args()
 				min_protocol_value = std::min(protocol, min_protocol_value); 
 				max_protocol_value = std::max(protocol, max_protocol_value); 
 
-				err = SOCKET(protocol_family, socket_type, protocol);
-				usleep(100000);
+				err = zts_socket(protocol_family, socket_type, protocol);
+				micro_sleep(100000);
 				if (err < 0) {
-					DEBUG_ERROR("SOCKET(%d, %d, %d) = %d, errno=%d (%s)", protocol_family, socket_type, protocol, err, errno, strerror(errno));
+					DEBUG_ERROR("zts_socket(%d, %d, %d) = %d, errno=%d (%s)", protocol_family, socket_type, protocol, err, errno, strerror(errno));
 				}
 				else {
-					DEBUG_TEST("SOCKET(%d, %d, %d) = %d, errno=%d (%s)", protocol_family, socket_type, protocol, err, errno, strerror(errno));
+					DEBUG_TEST("zts_socket(%d, %d, %d) = %d, errno=%d (%s)", protocol_family, socket_type, protocol, err, errno, strerror(errno));
 				}
 			}	
 		}
@@ -2413,6 +2471,7 @@ void test_bad_args()
 	DEBUG_TEST("SOCK_STREAM = %d", SOCK_STREAM);
 	DEBUG_TEST("SOCK_DGRAM = %d", SOCK_DGRAM);
 }
+*/
 
 void dns_test(struct sockaddr *addr)
 {
@@ -2432,6 +2491,7 @@ void close_while_writing_test()
 /* test thread model, and locking                                           */
 /****************************************************************************/
 
+/*
 #define CONCURRENCY_LEVEL   8     // how many threads we want to test with
 #define TIME_GRANULARITY    10000 // multiple in microseconds
 #define TIME_MULTIPLIER_MIN 1     // 
@@ -2457,20 +2517,20 @@ void* worker_create_socket(void *arg)
 		rs = rand_in_range(TIME_MULTIPLIER_MIN, TIME_MULTIPLIER_MAX);
 		rc = rand_in_range(TIME_MULTIPLIER_MIN, TIME_MULTIPLIER_MAX);
 		//fprintf(stderr, "id=%d, rs = %d, rc = %d\n", id, rs, rc);
-		usleep(rs * TIME_GRANULARITY);
-		fd = SOCKET(AF_INET, SOCK_STREAM, 0);
-		usleep(rc * TIME_GRANULARITY);
+		micro_sleep(rs * TIME_GRANULARITY);
+		fd = zts_socket(AF_INET, SOCK_STREAM, 0);
+		micro_sleep(rc * TIME_GRANULARITY);
 		CLOSE(fd);
 	}
 	return NULL;
 }
 
 // test the core locking logic by creating large numbers of threads and performing random operations over an extended period of time
+
 void multithread_test(int num_iterations, bool *passed)
 {
 	int err = 0;
 	fprintf(stderr, "\n\nmultithread_socket_creation\n\n");
-	// test zts_socket() and zts_close()
 	for (int j=0; j<num_iterations; j++) {
 		fprintf(stderr, "iteration=%d\n", j);
 		// create threads
@@ -2505,7 +2565,7 @@ void* worker_write_to_udp_socket(void *arg) {
 	int w = 0;
 	for (int i=0; i<WORKER_ITERATIONS; i++) {
 		int r = rand_in_range(TIME_MULTIPLIER_MIN, TIME_MULTIPLIER_MAX);
-		usleep(r * TIME_GRANULARITY);
+		micro_sleep(r * TIME_GRANULARITY);
 		if ((w = SENDTO(fd, "hello", 5, 0, (struct sockaddr *)remote_addr, sizeof(*remote_addr))) < 0) {
 			DEBUG_ERROR("error sending packet, err=%d", errno);
 		}
@@ -2514,11 +2574,12 @@ void* worker_write_to_udp_socket(void *arg) {
 }
 
 // create a single socket and many threads to write to that single socket
+
 void multithread_udp_write(struct sockaddr_in *local_addr, struct sockaddr_in *remote_addr, bool *passed)
 {
 	fprintf(stderr, "\n\nmultithread_udp_broadcast\n\n");
 	int fd, err;
-	if((fd = SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
+	if((fd = zts_socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error while creating socket");
 		*passed = false;
 		return;
@@ -2565,6 +2626,8 @@ void multithread_rw_client()
 	fprintf(stderr, "\n\nmultithread_rw_client\n\n");
 }
 
+*/
+
 /****************************************************************************/
 /* close()                                                                  */
 /****************************************************************************/
@@ -2582,14 +2645,14 @@ void close_test(struct sockaddr *bind_addr)
 	for (int i=0; i<tries; i++)
 	{
 		int fd;
-		if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
+		if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 			DEBUG_ERROR("error creating socket. sleeping until timers are released");
 			sleep(30);
 		}
 		if ((err = BIND(fd, (struct sockaddr *)bind_addr, sizeof(struct sockaddr_in)) < 0)) { 
 			DEBUG_ERROR("error binding to interface (%d)", err);
 		}
-		usleep(100000);
+		micro_sleep(100000);
 		if ((err = CLOSE(fd)) < 0) {
 			DEBUG_ERROR("error closing socket (%d)", err);
 		}
@@ -2606,9 +2669,9 @@ void bind_to_localhost_test(int port)
 	struct sockaddr_storage bind_addr;
 	DEBUG_TEST("binding to 0.0.0.0");
 	str2addr("0.0.0.0", port, 4, (struct sockaddr *)&bind_addr);
-	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) > 0) {
+	if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) > 0) {
 		if ((err = BIND(fd, (struct sockaddr *)&bind_addr, sizeof(struct sockaddr_in))) == 0) { 
-			usleep(100000);
+			micro_sleep(100000);
 			if ((err = CLOSE(fd)) < 0) {
 				DEBUG_ERROR("error closing socket (%d)", err);
 			}
@@ -2627,9 +2690,9 @@ void bind_to_localhost_test(int port)
 	// ipv4, 127.0.0.1
 	DEBUG_TEST("binding to 127.0.0.1");
 	str2addr("127.0.0.1", port, 4, (struct sockaddr *)&bind_addr);
-	if ((fd = SOCKET(AF_INET, SOCK_STREAM, 0)) > 0) {
+	if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) > 0) {
 		if ((err = BIND(fd, (struct sockaddr *)&bind_addr, sizeof(struct sockaddr_in))) == 0) { 
-			usleep(100000);
+			micro_sleep(100000);
 			if ((err = CLOSE(fd)) < 0) {
 				DEBUG_ERROR("error closing socket (%d)", err);
 			}
@@ -2648,9 +2711,9 @@ void bind_to_localhost_test(int port)
 	// ipv6, [::]
 	DEBUG_TEST("binding to [::]");
 	str2addr("::", port, 6, (struct sockaddr *)&bind_addr);
-	if ((fd = SOCKET(AF_INET6, SOCK_STREAM, 0)) > 0) {
+	if ((fd = zts_socket(AF_INET6, SOCK_STREAM, 0)) > 0) {
 		if ((err = BIND(fd, (struct sockaddr *)&bind_addr, sizeof(struct sockaddr_in))) == 0) { 
-			usleep(100000);
+			micro_sleep(100000);
 			if ((err = CLOSE(fd)) < 0) {
 				DEBUG_ERROR("error closing socket (%d)", err);
 			}
@@ -2857,6 +2920,7 @@ for (int i=0; i<num_repeats; i++)
 		exit(0);
 	}
 	// Spam a SOCK_DGRAM socket from many threads
+	/*
 	if (false) {
 		ipv = 4;
 		port = start_port;
@@ -2868,6 +2932,7 @@ for (int i=0; i<num_repeats; i++)
 	if (false) {
 		multithread_test(10, &passed);
 	}
+	*/
 	// make sure the address sanitizer is available
 	if (false) {
 		trigger_address_sanitizer();

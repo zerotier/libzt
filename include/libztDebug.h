@@ -101,8 +101,8 @@ extern unsigned int gettid();
 			"STACK[%ld]: %17s:%5d:%20s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 #endif
 #if defined(_WIN32)
-	#define DEBUG_STACK(fmt, args, ...) fprintf(stderr, ZT_YEL "STACK[%ld]: %17s:%5d:%25s: " fmt \
-		ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+	#define DEBUG_STACK(fmt, ...) fprintf(stderr, ZT_YEL "STACK[%ld]: %17s:%5d:%25s: " fmt \
+		ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, __VA_ARGS__)
 #else
 #define DEBUG_STACK(fmt, args ...) fprintf(stderr, ZT_YEL "STACK[%ld]: %17s:%5d:%25s: " fmt \
 		ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
@@ -117,8 +117,8 @@ extern unsigned int gettid();
 				"TEST : %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 			#endif
 			#if defined(_WIN32)
-				#define DEBUG_TEST(fmt, args, ...) fprintf(stderr, ZT_CYN "TEST [%ld]: %17s:%5d:%25s: " fmt "\n" \
-					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+				#define DEBUG_TEST(fmt, ...) fprintf(stderr, ZT_CYN "TEST [%ld]: %17s:%5d:%25s: " fmt "\n" \
+					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, __VA_ARGS__)
 		#else
 		#define DEBUG_TEST(fmt, args ...) fprintf(stderr, ZT_CYN "TEST [%ld]: %17s:%5d:%25s: " fmt "\n" \
 				ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
@@ -134,8 +134,8 @@ extern unsigned int gettid();
 				"ERROR: %17s:%5d:%20s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 		#endif
 		#if defined(_WIN32)
-			#define DEBUG_ERROR(fmt, args, ...) fprintf(stderr, ZT_RED "ERROR[%ld]: %17s:%5d:%25s: " fmt "\n" \
-					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+			#define DEBUG_ERROR(fmt, ...) fprintf(stderr, ZT_RED "ERROR[%ld]: %17s:%5d:%25s: " fmt "\n" \
+					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, __VA_ARGS__)
 		#else
 		#define DEBUG_ERROR(fmt, args ...) fprintf(stderr, ZT_RED "ERROR[%ld]: %17s:%5d:%25s: " fmt "\n" \
 				ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
@@ -151,8 +151,8 @@ extern unsigned int gettid();
 				"INFO : %17s:%5d:%20s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 			#endif
 			#if defined(_WIN32)
-				#define DEBUG_INFO(fmt, args, ...) fprintf(stderr, ZT_WHT "INFO [%ld]: %17s:%5d:%25s: " fmt "\n" \
-					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+				#define DEBUG_INFO(fmt, ...) fprintf(stderr, ZT_WHT "INFO [%ld]: %17s:%5d:%25s: " fmt "\n" \
+					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, __VA_ARGS__)
 		#else
 			#define DEBUG_INFO(fmt, args ...) fprintf(stderr, ZT_WHT "INFO [%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
@@ -168,8 +168,8 @@ extern unsigned int gettid();
 				"TRANS: %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 			#endif
 			#if defined(_WIN32)
-				#define DEBUG_TRANS(fmt, args, ...) fprintf(stderr, ZT_GRN "TRANS[%ld]: %17s:%5d:%25s: " fmt "\n" \
-					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+				#define DEBUG_TRANS(fmt, ...) fprintf(stderr, ZT_GRN "TRANS[%ld]: %17s:%5d:%25s: " fmt "\n" \
+					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, __VA_ARGS__)
 		#else
 			#define DEBUG_TRANS(fmt, args ...) fprintf(stderr, ZT_GRN "TRANS[%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
@@ -185,8 +185,8 @@ extern unsigned int gettid();
 				"EXTRA: %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
 		#endif
 		#if defined(_WIN32)
-			#define DEBUG_EXTRA(fmt, args, ...) fprintf(stderr, ZT_WHT "EXTRA[%ld]: %17s:%5d:%25s: " fmt "\n" \
-					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args, (long)0)
+			#define DEBUG_EXTRA(fmt, ...) fprintf(stderr, ZT_WHT "EXTRA[%ld]: %17s:%5d:%25s: " fmt "\n" \
+					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, __VA_ARGS__, (long)0)
 		#else
 			#define DEBUG_EXTRA(fmt, args ...) fprintf(stderr, ZT_WHT "EXTRA[%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)

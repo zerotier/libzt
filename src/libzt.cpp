@@ -257,7 +257,7 @@ int zts_getpeername(int fd, struct sockaddr *addr, socklen_t *addrlen)
 
 int zts_gethostname(char *name, size_t len)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
@@ -275,7 +275,7 @@ int zts_gethostname(char *name, size_t len)
 
 int zts_sethostname(const char *name, size_t len)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
@@ -373,7 +373,7 @@ int zts_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 int zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 	struct timeval *timeout)
 {
-	//DEBUG_EXTRA();
+	//DEBUG_EXTRA("");
 	/*
 	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
@@ -611,7 +611,7 @@ int zts_shutdown(int fd, int how)
 
 int zts_add_dns_nameserver(struct sockaddr *addr)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
@@ -634,7 +634,7 @@ int zts_add_dns_nameserver(struct sockaddr *addr)
 
 int zts_del_dns_nameserver(struct sockaddr *addr)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;

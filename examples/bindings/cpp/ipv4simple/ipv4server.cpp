@@ -25,22 +25,20 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
 #include <string.h>
 #include <string>
+#include <inttypes.h>
 
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(_WIN32)
+#include <WinSock2.h>
+#include <stdint.h>
+#else
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 #endif
-
-#if defined(__MINGW32__) || defined(__MINGW64__)
-#include <WinSock2.h>
-#include <stdint.h>
-#endif
-
 #include "libzt.h"
 
 int main(int argc, char **argv)
@@ -70,20 +68,23 @@ int main(int argc, char **argv)
 	zts_startjoin(path.c_str(), nwid);
 	uint64_t nodeId = zts_get_node_id();
 	DEBUG_TEST("I am %llx", nodeId);
-	sleep(2);
 
-	if ((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	if ((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
+	}
 	
-	if ((err = zts_bind(sockfd, (struct sockaddr *)&in4, sizeof(struct sockaddr_in)) < 0))
+	if ((err = zts_bind(sockfd, (struct sockaddr *)&in4, sizeof(struct sockaddr_in)) < 0)) {
 		DEBUG_ERROR("error binding to interface (%d)", err);
+	}
 	
-	if ((err = zts_listen(sockfd, 100)) < 0)
+	if ((err = zts_listen(sockfd, 100)) < 0) {
 		DEBUG_ERROR("error placing socket in LISTENING state (%d)", err);
+	}
 	
 	socklen_t client_addrlen = sizeof(sockaddr_in);
-	if ((accfd = zts_accept(sockfd, (struct sockaddr *)&acc_in4, &client_addrlen)) < 0)
+	if ((accfd = zts_accept(sockfd, (struct sockaddr *)&acc_in4, &client_addrlen)) < 0) {
 		DEBUG_ERROR("error accepting connection (%d)", err);
+	}
 
 	socklen_t peer_addrlen = sizeof(struct sockaddr_storage);
 	zts_getpeername(accfd, (struct sockaddr*)&acc_in4, &peer_addrlen);
@@ -97,7 +98,6 @@ int main(int argc, char **argv)
 
 	DEBUG_TEST("Received : %s", rbuf);
 
-	sleep(2);
 	err = zts_close(sockfd);
 	err = zts_close(accfd);
 

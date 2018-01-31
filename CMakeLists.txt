@@ -36,7 +36,8 @@ set (EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set (LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
 if (WIN32)
-	set (CMAKE_C_FLAGS "-DZT_SDK=1")
+	add_definitions(-DSDK=1)
+	add_definitions(-DZT_SDK=1)
 	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc -DNOMINMAX")
 	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/win32/include)
 	#set (COMMON_DEBUG_FLAGS "-DLIBZT_TRACE=1 -DLIBZT_DEBUG=1 -DNS_TRACE=1 -DNS_DEBUG=1")
@@ -79,7 +80,6 @@ file (GLOB lwip_src_glob
 	${LWIP_SRC_DIR}/core/ipv6/*.c)
 add_library (lwip STATIC ${lwip_src_glob})
 add_library (lwip_pic STATIC ${lwip_src_glob})
-#target_compile_options (lwip_pic PRIVATE ${NS_DEFS})
 set_target_properties (lwip_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 
@@ -97,7 +97,6 @@ file (GLOB zto_src_glob
 	${ZTO_SRC_DIR}/controller/*.cpp
 	${ZTO_SRC_DIR}/osdep/ManagedRoute.cpp)
 add_library (zto STATIC ${zto_src_glob})
-#set (zto "--whole-archive")
 target_link_libraries (zto http)
 target_link_libraries (zto zt)
 add_library (zto_pic STATIC ${zto_src_glob})
@@ -119,38 +118,37 @@ include_directories ("${LIBZT_SRC_DIR}")
 include_directories ("${PROJ_DIR}/include")
 file (GLOB libzt_src_glob ${LIBZT_SRC_DIR}/*.cpp)
 add_library (zt ${libzt_src_glob})
-#set (zt "--whole-archive")
 target_link_libraries (zt lwip zto)
-set_target_properties (zt PROPERTIES OUTPUT_NAME zt)
+#set_target_properties (zt PROPERTIES OUTPUT_NAME zt)
 # (libzt) Shared Library variant of ZeroTier paired with userspace stack and virtual tap interface
-add_library (ztshared SHARED ${libzt_src_glob})
-target_link_libraries (ztshared zto_pic lwip_pic)
-set_target_properties (ztshared PROPERTIES OUTPUT_NAME zt)
+#add_library (ztshared SHARED ${libzt_src_glob})
+#target_link_libraries (ztshared zto_pic lwip_pic)
+#set_target_properties (ztshared PROPERTIES OUTPUT_NAME zt)
 
 
 # --- Test applications, examples, etc ---
 
-file (GLOB APP_SOURCES ${PROJ_DIR}/examples/bindings/cpp/ipv4simple/*
-	${PROJ_DIR}/examples/bindings/cpp/ipv6simple/*
-	${PROJ_DIR}/examples/bindings/cpp/ipv6adhoc/* 
-	${PROJ_DIR}/examples/apps/ztproxy/*.cpp
-)
-foreach (testsourcefile ${APP_SOURCES})
-    string (REPLACE ".cpp" "" testname ${testsourcefile})
-    get_filename_component (testname ${testname} NAME)
-    add_executable (${testname} ${testsourcefile})
-    target_link_libraries (${testname} lwip zto zt pthread)
-endforeach (testsourcefile ${APP_SOURCES})
+#file (GLOB APP_SOURCES ${PROJ_DIR}/examples/bindings/cpp/ipv4simple/*
+#	${PROJ_DIR}/examples/bindings/cpp/ipv6simple/*
+#	${PROJ_DIR}/examples/bindings/cpp/ipv6adhoc/* 
+#	${PROJ_DIR}/examples/apps/ztproxy/*.cpp
+#)
+#foreach (testsourcefile ${APP_SOURCES})
+#    string (REPLACE ".cpp" "" testname ${testsourcefile})
+#    get_filename_component (testname ${testname} NAME)
+#    add_executable (${testname} ${testsourcefile})
+#    target_link_libraries (${testname} lwip zto zt pthread)
+#endforeach (testsourcefile ${APP_SOURCES})
 
 # selftest
 add_executable (selftest ${PROJ_DIR}/test/selftest.cpp)
-target_compile_options (selftest PRIVATE -D__SELFTEST__)
-target_link_libraries (selftest lwip zto zt pthread)
+target_compile_options (selftest PRIVATE -std=c++1 -D__SELFTEST__)
+target_link_libraries (selftest lwip zto zt)
 
 # nativetest
-add_executable (nativetest ${PROJ_DIR}/test/selftest.cpp)
-target_compile_options (nativetest PRIVATE -D__NATIVETEST__)
-target_link_libraries (nativetest lwip zto zt pthread)
+#add_executable (nativetest ${PROJ_DIR}/test/selftest.cpp)
+#target_compile_options (nativetest PRIVATE -D__NATIVETEST__)
+#target_link_libraries (nativetest lwip zto zt pthread)
 
 # Clean up intermediate library targets
 #file (REMOVE ${LIBRARY_OUTPUT_PATH}/libhttp.a)
@@ -163,7 +161,7 @@ target_link_libraries (nativetest lwip zto zt pthread)
 
 # --- INSTALL 
 
-install (TARGETS zt DESTINATION lib)
+#install (TARGETS zt DESTINATION lib)
 
 # --- CONFIGURATION
 

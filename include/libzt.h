@@ -480,6 +480,10 @@ ZT_SOCKET_API int ZTCALL zts_select(
  * @param flags
  * @return
  */
+#if defined(_WIN32)
+#define F_SETFL 0
+#define O_NONBLOCK 0
+#endif
 ZT_SOCKET_API int ZTCALL zts_fcntl(int fd, int cmd, int flags);
 
 /**

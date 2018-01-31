@@ -72,13 +72,14 @@ int main(int argc, char **argv)
 	zts_startjoin(path.c_str(), nwid);
 	uint64_t nodeId = zts_get_node_id();
 	DEBUG_TEST("I am %llx", nodeId);
-	sleep(2);
 
-	if ((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	if ((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
+	}
 
-	if ((err = zts_connect(sockfd, (const struct sockaddr *)&in4, sizeof(in4))) < 0)
+	if ((err = zts_connect(sockfd, (const struct sockaddr *)&in4, sizeof(in4))) < 0) {
 		DEBUG_ERROR("error connecting to remote host (%d)", err);
+	}
 
 	DEBUG_TEST("sending to server...");
 	w = zts_write(sockfd, msg, strlen(msg));
@@ -89,7 +90,6 @@ int main(int argc, char **argv)
 	DEBUG_TEST("Sent     : %s", msg);
 	DEBUG_TEST("Received : %s", rbuf);
 
-	sleep(2);
 	err = zts_close(sockfd);
 
 	return err;

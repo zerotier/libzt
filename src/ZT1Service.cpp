@@ -170,7 +170,7 @@ VirtualTap *getAnyTap()
 
 uint64_t zts_get_node_id_from_file(const char *filepath)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	std::string fname("identity.public");
 	std::string fpath(filepath);
 	std::string oldid;
@@ -362,7 +362,7 @@ void zts_get_rfc4193_addr(struct sockaddr_storage *addr, const uint64_t nwid, co
 
 int zts_join(const uint64_t nwid)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	if (nwid == 0) {
 		return -1;
 	}
@@ -382,7 +382,7 @@ int zts_join(const uint64_t nwid)
 
 int zts_leave(const uint64_t nwid)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	if (nwid == 0) {
 		return -1;
 	}
@@ -413,7 +413,7 @@ int zts_ready()
 
 int zts_start(const char *path, bool blocking = false)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	if (zt1Service) {
 		return 0; // already initialized, ok
 	}
@@ -448,7 +448,7 @@ int zts_start(const char *path, bool blocking = false)
 
 int zts_startjoin(const char *path, const uint64_t nwid)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	int err = zts_start(path, true);
 	while (true) {
 		try {
@@ -468,7 +468,7 @@ int zts_startjoin(const char *path, const uint64_t nwid)
 
 void zts_stop()
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	if (zt1Service) {
 		zt1Service->terminate();
 		// disableTaps();
@@ -480,7 +480,7 @@ void zts_stop()
 
 void zts_get_path(char *homePath, size_t len)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	if (homeDir.length()) {
 		memset(homePath, 0, len);
 		size_t buf_len = len < homeDir.length() ? len : homeDir.length();
@@ -490,7 +490,7 @@ void zts_get_path(char *homePath, size_t len)
 
 uint64_t zts_get_node_id()
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	if (zt1Service) {
 		return zt1Service->getNode()->address();
 	}
@@ -499,7 +499,7 @@ uint64_t zts_get_node_id()
 
 unsigned long zts_get_peer_count()
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	if (zt1Service) {
 		return zt1Service->getNode()->peers()->peerCount;
 	}
@@ -510,7 +510,7 @@ unsigned long zts_get_peer_count()
 
 int zts_get_peer_address(char *peer, const uint64_t nodeId)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	if (zt1Service) {
 		ZT_PeerList *pl = zt1Service->getNode()->peers();
 		// uint64_t addr;
@@ -527,7 +527,7 @@ int zts_get_peer_address(char *peer, const uint64_t nodeId)
 
 void zts_allow_http_control(bool allowed)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	// TODO
 }
 

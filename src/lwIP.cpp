@@ -90,7 +90,7 @@ err_t tapif_init(struct netif *netif)
 /*
 static void tcp_timeout(void *data)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	LWIP_UNUSED_ARG(data);
 #if TCP_DEBUG && LWIP_TCP
 	// tcp_debug_print_pcbs();
@@ -129,7 +129,7 @@ static void main_thread(void *arg)
 // initialize the lwIP stack
 void lwip_driver_init()
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	driver_m.lock(); // unlocked from callback indicating completion of driver init
 	if (lwip_driver_initialized == true) {
 		return;

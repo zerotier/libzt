@@ -150,7 +150,7 @@ bool VirtualTap::addIp(const InetAddress &ip)
 
 bool VirtualTap::removeIp(const InetAddress &ip)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	Mutex::Lock _l(_ips_m);
 	std::vector<InetAddress>::iterator i(std::find(_ips.begin(),_ips.end(),ip));
 	//if (i == _ips.end()) {
@@ -257,12 +257,12 @@ void VirtualTap::threadMain()
 
 void VirtualTap::phyOnUnixClose(PhySocket *sock, void **uptr)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 }
 
 void VirtualTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 #if defined(LIBZT_RAW)
 	VirtualSocket *vs = (VirtualSocket*)*uptr;
 	if (vs == NULL) {
@@ -276,7 +276,7 @@ void VirtualTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t
 
 void VirtualTap::phyOnUnixWritable(PhySocket *sock, void **uptr, bool stack_invoked)
 {
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 #if defined(LIBZT_RAW)
 	if (sock) {
 		Read(sock,uptr,stack_invoked);
@@ -289,7 +289,7 @@ void VirtualTap::phyOnUnixWritable(PhySocket *sock, void **uptr, bool stack_invo
 bool VirtualTap::routeAdd(const InetAddress &ip, const InetAddress &nm, const InetAddress &gw)
 {
 	bool err = false;
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 #if defined(STACK_LWIP)
 	// general_lwip_init_interface(this, NULL, "n1", _mac, ip, nm, gw);
 	// general_turn_on_interface(NULL);
@@ -307,7 +307,7 @@ bool VirtualTap::routeAdd(const InetAddress &ip, const InetAddress &nm, const In
 bool VirtualTap::routeDelete(const InetAddress &ip, const InetAddress &nm)
 {
 	bool err = false;
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 #if defined(STACK_LWIP)
 	// general_lwip_init_interface(this, NULL, "n1", _mac, ip, nm, gw);
 	// general_turn_on_interface(NULL);
@@ -325,7 +325,7 @@ bool VirtualTap::routeDelete(const InetAddress &ip, const InetAddress &nm)
 void VirtualTap::addVirtualSocket(VirtualSocket *vs)
 {
 #if defined(LIBZT_RAW)
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	Mutex::Lock _l(_tcpconns_m);
 	_VirtualSockets.push_back(vs);
 #endif
@@ -334,7 +334,7 @@ void VirtualTap::addVirtualSocket(VirtualSocket *vs)
 void VirtualTap::removeVirtualSocket()
 {
 #if defined(LIBZT_RAW)
-	DEBUG_EXTRA();
+	DEBUG_EXTRA("");
 	Mutex::Lock _l(_tcpconns_m);
 	for (int i=0; i<_VirtualSockets.size(); i++) {
 		if (vs == _VirtualSockets[i]) {

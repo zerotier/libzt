@@ -118,7 +118,7 @@ static void main_thread(void *arg)
 	sys_sem_t sem;
 	LWIP_UNUSED_ARG(arg);
 	if (sys_sem_new(&sem, 0) != ERR_OK) {
-		DEBUG_ERROR("failed to create semaphore", 0);
+		DEBUG_ERROR("failed to create semaphore");
 	}
 	tcpip_init(tcpip_init_done, &sem);
 	sys_sem_wait(&sem);

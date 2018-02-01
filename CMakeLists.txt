@@ -28,6 +28,7 @@ cmake_minimum_required (VERSION 2.8)
 project (libzt)
 
 # --- SETUP
+set(CMAKE_SUPPRESS_REGENERATION true)
 
 # Paths
 set (PROJ_DIR ${PROJECT_SOURCE_DIR})
@@ -36,14 +37,24 @@ set (EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set (LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
 if (WIN32)
+	# get literal paths for Windows libraries
+	set (WIN_LIB_HINT_PATH "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.16299.0\\um\\x86")
+	message (STATUS ${WIN_LIB_HINT_PATH})
+	find_library(ws2_32_LIBRARY_PATH NAMES WS2_32 HINTS ${WIN_LIB_HINT_PATH})
+	find_library(lshlwapi_LIBRARY_PATH NAMES ShLwApi HINTS ${WIN_LIB_HINT_PATH})
+	#find_library(liphlpapi_LIBRARY_PATH NAMES iphlpapi.lib HINTS ${WIN_LIB_HINT_PATH})
+	set (liphlpapi_LIBRARY_PATH "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.16299.0/um/x86/iphlpapi.Lib")
+	message (STATUS ${ws2_32_LIBRARY_PATH})
+	message (STATUS ${lshlwapi_LIBRARY_PATH})
+	message (STATUS ${liphlpapi_LIBRARY_PATH})
 	add_definitions(-DSDK=1)
 	add_definitions(-DZT_SDK=1)
 	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc -DNOMINMAX")
-	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/win32/include)
-	#set (COMMON_DEBUG_FLAGS "-DLIBZT_TRACE=1 -DLIBZT_DEBUG=1 -DNS_TRACE=1 -DNS_DEBUG=1")
+	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/win32)
+	set (COMMON_DEBUG_FLAGS "-DLIBZT_TRACE=1 -DLIBZT_DEBUG=1 -DNS_TRACE=1 -DNS_DEBUG=1")
 else()
 	set (CMAKE_C_FLAGS "-fvisibility=hidden -fstack-protector -DZT_SDK=1")
-	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/unix/include)
+	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/unix)
 	set (COMMON_DEBUG_FLAGS "-g -DLIBZT_TRACE=1 -DLIBZT_DEBUG=1 -DNS_TRACE=1 -DNS_DEBUG=1")
 endif()
 
@@ -70,7 +81,7 @@ set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS}")
 # lwIP Userspace Networking Stack
 set (LWIP_SRC_DIR ${PROJ_DIR}/ext/lwip/src)
 include_directories (${LWIP_SRC_DIR}/include)
-include_directories (${LWIP_PORT_DIR})
+include_directories (${LWIP_PORT_DIR}/include)
 file (GLOB lwip_src_glob 
 	${LWIP_SRC_DIR}/netif/*.c 
 	${LWIP_SRC_DIR}/api/*.c 
@@ -99,6 +110,9 @@ file (GLOB zto_src_glob
 add_library (zto STATIC ${zto_src_glob})
 target_link_libraries (zto http)
 target_link_libraries (zto zt)
+target_link_libraries (zto ws2_32)
+target_link_libraries (zto ${lshlwapi_LIBRARY_PATH})
+target_link_libraries (zto ${liphlpapi_LIBRARY_PATH})
 add_library (zto_pic STATIC ${zto_src_glob})
 target_link_libraries (zto_pic http_pic zt)
 set_target_properties (zto_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -119,7 +133,10 @@ include_directories ("${PROJ_DIR}/include")
 file (GLOB libzt_src_glob ${LIBZT_SRC_DIR}/*.cpp)
 add_library (zt ${libzt_src_glob})
 target_link_libraries (zt lwip zto)
-#set_target_properties (zt PROPERTIES OUTPUT_NAME zt)
+target_link_libraries (zt ws2_32)
+target_link_libraries (zt ${lshlwapi_LIBRARY_PATH})
+target_link_libraries (zt ${liphlpapi_LIBRARY_PATH})
+set_target_properties (zt PROPERTIES OUTPUT_NAME zt)
 # (libzt) Shared Library variant of ZeroTier paired with userspace stack and virtual tap interface
 #add_library (ztshared SHARED ${libzt_src_glob})
 #target_link_libraries (ztshared zto_pic lwip_pic)
@@ -128,27 +145,31 @@ target_link_libraries (zt lwip zto)
 
 # --- Test applications, examples, etc ---
 
-#file (GLOB APP_SOURCES ${PROJ_DIR}/examples/bindings/cpp/ipv4simple/*
-#	${PROJ_DIR}/examples/bindings/cpp/ipv6simple/*
-#	${PROJ_DIR}/examples/bindings/cpp/ipv6adhoc/* 
-#	${PROJ_DIR}/examples/apps/ztproxy/*.cpp
-#)
-#foreach (testsourcefile ${APP_SOURCES})
-#    string (REPLACE ".cpp" "" testname ${testsourcefile})
-#    get_filename_component (testname ${testname} NAME)
-#    add_executable (${testname} ${testsourcefile})
-#    target_link_libraries (${testname} lwip zto zt pthread)
-#endforeach (testsourcefile ${APP_SOURCES})
+file (GLOB APP_SOURCES ${PROJ_DIR}/examples/bindings/cpp/ipv4simple/*
+	${PROJ_DIR}/examples/bindings/cpp/ipv6simple/*
+	${PROJ_DIR}/examples/bindings/cpp/ipv6adhoc/* 
+	${PROJ_DIR}/examples/apps/ztproxy/*.cpp
+)
+foreach (testsourcefile ${APP_SOURCES})
+    string (REPLACE ".cpp" "" testname ${testsourcefile})
+    get_filename_component (testname ${testname} NAME)
+    add_executable (${testname} ${testsourcefile})
+    target_link_libraries (${testname} lwip zto zt)
+endforeach (testsourcefile ${APP_SOURCES})
 
 # selftest
 add_executable (selftest ${PROJ_DIR}/test/selftest.cpp)
 target_compile_options (selftest PRIVATE -std=c++1 -D__SELFTEST__)
+if (WIN32)
+target_link_libraries (selftest lwip zto zt ${ws2_32_LIBRARY_PATH} ${lshlwapi_LIBRARY_PATH} ${liphlpapi_LIBRARY_PATH})
+else()
 target_link_libraries (selftest lwip zto zt)
+endif()
 
 # nativetest
-#add_executable (nativetest ${PROJ_DIR}/test/selftest.cpp)
-#target_compile_options (nativetest PRIVATE -D__NATIVETEST__)
-#target_link_libraries (nativetest lwip zto zt pthread)
+add_executable (nativetest ${PROJ_DIR}/test/selftest.cpp)
+target_compile_options (nativetest PRIVATE -D__NATIVETEST__)
+target_link_libraries (nativetest lwip zto zt)
 
 # Clean up intermediate library targets
 #file (REMOVE ${LIBRARY_OUTPUT_PATH}/libhttp.a)

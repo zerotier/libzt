@@ -25,10 +25,10 @@
  */
 
 #if defined(__linux__) || defined(__APPLE__)
- #include <netdb.h>
+#include <netdb.h>
+#include <unistd.h>
 #endif
 
-#include <unistd.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,6 +42,14 @@
 
 #include "RingBuffer.h"
 #include "ztproxy.hpp"
+
+#if defined(_WIN32)
+#include <time.h>
+void sleep(unsigned long ms)
+{
+	Sleep(ms);
+}
+#endif
 
 namespace ZeroTier {
 
@@ -329,7 +337,11 @@ namespace ZeroTier {
 			delete conn;
 			conn = NULL;
 		}
+#if defined(_WIN32)
+		closesocket(_phy.getDescriptor(sock));
+#else
 		close(_phy.getDescriptor(sock));
+#endif
 		conn_m.unlock();
 	}
 

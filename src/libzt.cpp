@@ -674,14 +674,20 @@ int platform_adjusted_socket_family(int family)
 	 return family == 30 ? AF_INET6 : family; // 10
 #endif
 #if defined(_WIN32)
-	return family == 23 ? AF_INET6 : family; // 10
+	 if (family == 23) {
+		 return AF_INET6;
+	 }
+	 if (family == 2) {
+		 return AF_INET;
+	 }
+	 family; // 10
 #endif
 }
 
 void fix_addr_socket_family(struct sockaddr *addr)
 {
-#if defined(__linux__)
-	/* linux's socket.h's sockaddr definition doesn't contain an sa_len field
+#if defined(__linux__) || defined(_WIN32)
+	/* struct sockaddr on Linux and Windows don't contain an sa_len field
 	so we must adjust it here before feeding it into the stack. */
 #if defined(STACK_LWIP)
 	if (addr->sa_len == 2) {

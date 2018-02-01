@@ -420,7 +420,7 @@ int zts_start(const char *path, bool blocking = false)
 	if (path) {
 		homeDir = path;
 	}
-	int err;
+	int err = 0;
 #if defined(_WIN32)
 		WSAStartup(MAKEWORD(2, 2), &wsaData); // initialize WinSock. Used in Phy for loopback pipe
 		HANDLE thr = CreateThread(NULL, 0, zts_start_service, NULL, 0, NULL);
@@ -431,6 +431,7 @@ int zts_start(const char *path, bool blocking = false)
 
 	if (blocking) { // block to prevent service calls before we're ready
 		ZT_NodeStatus status;
+		status.online = 0;
 		while (zts_core_running() == false || zt1Service->getNode() == NULL) {
 			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 		}

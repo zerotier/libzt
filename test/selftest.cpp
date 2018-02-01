@@ -59,6 +59,18 @@
 #include <sys/time.h>
 #endif
 
+
+#if defined(_MSC_VER) || defined(_MSC_EXTENSIONS)
+  #define DELTA_EPOCH_IN_MICROSECS  11644473600000000Ui64
+#else
+  #define DELTA_EPOCH_IN_MICROSECS  11644473600000000ULL
+#endif
+
+void micro_sleep(unsigned long us)
+{
+	std::this_thread::sleep_for(std::chrono::microseconds(us));
+}
+
 #if defined(_WIN32)
 #include <WinSock2.h>
 #include <WS2tcpip.h>
@@ -71,17 +83,6 @@ void sleep(unsigned long ms)
 {
 	Sleep(ms);
 }
-
-void micro_sleep(unsigned long us)
-{
-	std::this_thread::sleep_for(std::chrono::microseconds(us));
-}
-
-#if defined(_MSC_VER) || defined(_MSC_EXTENSIONS)
-  #define DELTA_EPOCH_IN_MICROSECS  11644473600000000Ui64
-#else
-  #define DELTA_EPOCH_IN_MICROSECS  11644473600000000ULL
-#endif
 
 struct timezone
 {
@@ -170,18 +171,6 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 
 #define DETAILS_STR_LEN        128
 
-
-/* send/recv calls on Windows require four arguments where as the corresponding
-write/read calls on *nix systems only require three */
-#if defined(_WIN32)
-	#if defined(__NATIVETEST__)
-		#define WIN_RDFLAGS ,0
-		#define WIN_WRFLAGS ,0
-	#else
-		#define WIN_RDFLAGS 
-		#define WIN_WRFLAGS
-	#endif
-#endif
 // If running a self test, use libzt calls
 #if defined(__SELFTEST__)
 #define _SOCKET zts_socket
@@ -237,15 +226,19 @@ inline unsigned int gettid()
 #define _IOCTL ioctl
 #define _FCNTL fcntl
 #define _SELECT select
-#if defined(_WIN32)
-#define _READ recv
-#define _WRITE send
-#define _CLOSE closesocket
-#else
+
 #define _READ read
 #define _WRITE write
+
+#define _RECV recv
+#define _SEND send
+
+#if defined(_WIN32)
+#define _CLOSE closesocket
+#else
 #define _CLOSE close
 #endif
+
 #define _GETPEERNAME getpeername
 #endif
  
@@ -553,7 +546,11 @@ void tcp_select_server(TCP_UNIT_TEST_SIG_4)
 
 				// process incoming messages
 				if (FD_ISSET(fd_i, &read_set)) {
-					r = _READ(fd_i, rbuf, len WIN_RDFLAGS);
+#if defined(_WIN32)
+					r = _RECV(fd_i, rbuf, len, 0);
+#else
+					r = _READ(fd_i, rbuf, len);
+#endif
 					if (r == msg.length()) {
 						rx_num++;
 						DEBUG_TEST("rx=%d", rx_num);
@@ -561,7 +558,11 @@ void tcp_select_server(TCP_UNIT_TEST_SIG_4)
 				}
 				// write a message to the socket if allowed
 				if (FD_ISSET(fd_i, &write_set)) {
-					w = _WRITE(fd_i, msg.c_str(), len WIN_WRFLAGS);
+#if defined(_WIN32)
+					w = _SEND(fd_i, msg.c_str(), len, 0);
+#else
+					w = _WRITE(fd_i, msg.c_str(), len);
+#endif
 					if (w == msg.length()) {
 						tx_num++;
 						DEBUG_TEST("tx=%d", tx_num);
@@ -631,7 +632,11 @@ void tcp_select_client(TCP_UNIT_TEST_SIG_4)
 			for (int fd_i=0; fd_i<fd+1; fd_i++) {
 				// process incoming messages
 				if (FD_ISSET(fd_i, &read_set)) {
-					r = _READ(fd_i, rbuf, len WIN_RDFLAGS);
+#if defined(_WIN32)
+					r = _RECV(fd_i, rbuf, len, 0);
+#else
+					r = _READ(fd_i, rbuf, len);
+#endif
 					if (r == msg.length()) {
 						rx_num++;
 						DEBUG_TEST("rx=%d", rx_num);
@@ -639,7 +644,11 @@ void tcp_select_client(TCP_UNIT_TEST_SIG_4)
 				}
 				// write a message to the socket if allowed
 				if (FD_ISSET(fd_i, &write_set)) {
-					w = _WRITE(fd_i, msg.c_str(), len WIN_WRFLAGS);
+#if defined(_WIN32)
+					w = _SEND(fd_i, msg.c_str(), len, 0);
+#else
+					w = _WRITE(fd_i, msg.c_str(), len);
+#endif
 					if (w == msg.length()) {
 						tx_num++;
 						DEBUG_TEST("tx=%d", tx_num);
@@ -694,8 +703,16 @@ void tcp_client_4(TCP_UNIT_TEST_SIG_4)
 	}
 	DEBUG_TEST("getpeername() => %s : %d", inet_ntoa(in4->sin_addr), ntohs(in4->sin_port));
 
-	w = _WRITE(fd, msg.c_str(), len WIN_WRFLAGS);
-	r = _READ(fd, rbuf, len WIN_RDFLAGS);
+#if defined(_WIN32)
+	w = _SEND(fd, msg.c_str(), len, 0);
+#else
+	w = _WRITE(fd, msg.c_str(), len);
+#endif
+#if defined(_WIN32)
+	r = _RECV(fd, rbuf, len, 0);
+#else
+	r = _READ(fd, rbuf, len);
+#endif
 	DEBUG_TEST("Sent     : %s", msg.c_str());
 	DEBUG_TEST("Received : %s", rbuf);
 	sleep(ARTIFICIAL_SOCKET_LINGER);
@@ -754,8 +771,17 @@ void tcp_server_4(TCP_UNIT_TEST_SIG_4)
 		return;
 	}
 	DEBUG_TEST("getpeername() => %s : %d", inet_ntoa(in4->sin_addr), ntohs(in4->sin_port));
-	r = _READ(client_fd, rbuf, len WIN_RDFLAGS);
-	w = _WRITE(client_fd, rbuf, len WIN_WRFLAGS);
+#if defined(_WIN32)
+	r = _RECV(client_fd, rbuf, len, 0);
+#else
+	r = _READ(client_fd, rbuf, len);
+#endif
+	
+#if defined(_WIN32)
+	w = _SEND(client_fd, rbuf, len, 0);
+#else
+	w = _WRITE(client_fd, rbuf, len);
+#endif
 	DEBUG_TEST("Received : %s, r=%d, w=%d", rbuf, r, w);
 	sleep(ARTIFICIAL_SOCKET_LINGER);
 	err = _CLOSE(fd);
@@ -802,8 +828,16 @@ void tcp_client_6(TCP_UNIT_TEST_SIG_6)
 	inet_ntop(AF_INET6, &(p6->sin6_addr), peer_addrstr, INET6_ADDRSTRLEN);
 	DEBUG_TEST("getpeername() => %s : %d", peer_addrstr, ntohs(p6->sin6_port));
 
-	w = _WRITE(fd, msg.c_str(), len WIN_WRFLAGS);
-	r = _READ(fd, rbuf, len WIN_RDFLAGS);
+#if defined(_WIN32)
+	w = _SEND(fd, msg.c_str(), len, 0);
+#else
+	w = _WRITE(fd, msg.c_str(), len);
+#endif
+#if defined(_WIN32)
+	r = _RECV(fd, rbuf, len, 0);
+#else
+	r = _READ(fd, rbuf, len);
+#endif
 	sleep(ARTIFICIAL_SOCKET_LINGER);
 	err = _CLOSE(fd);
 	sprintf(details, "%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);
@@ -864,8 +898,16 @@ void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 	char peer_addrstr[INET6_ADDRSTRLEN];
 	inet_ntop(AF_INET6, &(p6->sin6_addr), peer_addrstr, INET6_ADDRSTRLEN);
 	DEBUG_TEST("getpeername() => %s : %d", peer_addrstr, ntohs(p6->sin6_port));
-	r = _READ(client_fd, rbuf, sizeof rbuf WIN_RDFLAGS);
-	w = _WRITE(client_fd, rbuf, len WIN_WRFLAGS);
+#if defined(_WIN32)
+	r = _RECV(client_fd, rbuf, sizeof rbuf, 0);
+#else
+	r = _READ(client_fd, rbuf, sizeof rbuf);
+#endif
+#if defined(_WIN32)
+	w = _SEND(client_fd, rbuf, len, 0);
+#else
+	w = _WRITE(client_fd, rbuf, len);
+#endif
 	DEBUG_TEST("Received : %s", rbuf);
 	sleep(ARTIFICIAL_SOCKET_LINGER);
 	err = _CLOSE(fd);
@@ -1166,7 +1208,11 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 			signal(SIGPIPE, SIG_IGN);
 #endif
 			DEBUG_TEST("writing...");
-			n = _WRITE(fd, &txbuf[w], next_write WIN_WRFLAGS);
+#if defined(_WIN32)
+			n = _SEND(fd, &txbuf[w], next_write, 0);
+#else
+			n = _WRITE(fd, &txbuf[w], next_write);
+#endif
 			DEBUG_TEST("wrote=%d", n);
 			if (n > 0) {
 				w += n;
@@ -1180,7 +1226,11 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 		// RX
 		long int rx_ti = 0;	
 		while (rrem) {
-			n = _READ(fd, &rxbuf[r], rrem WIN_RDFLAGS);
+#if defined(_WIN32)
+			n = _RECV(fd, &rxbuf[r], rrem, 0);
+#else
+			n = _READ(fd, &rxbuf[r], rrem);
+#endif
 			if (rx_ti == 0) { // wait for first message
 				rx_ti = get_now_ts();	
 			}
@@ -1248,7 +1298,11 @@ void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 		long int tx_ti = get_now_ts();	
 		while (wrem) {
 			int next_write = std::min(4096, wrem);
-			n = _WRITE(fd, &txbuf[w], next_write WIN_WRFLAGS);
+#if defined(_WIN32)
+			n = _SEND(fd, &txbuf[w], next_write, 0);
+#else
+			n = _WRITE(fd, &txbuf[w], next_write);
+#endif
 			if (n > 0) {
 				w += n;
 				wrem -= n;
@@ -1260,7 +1314,11 @@ void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 		// RX
 		long int rx_ti = 0;	
 		while (rrem) {
-			n = _READ(fd, &rxbuf[r], rrem WIN_RDFLAGS);
+#if defined(_WIN32)
+			n = _RECV(fd, &rxbuf[r], rrem, 0);
+#else
+			n = _READ(fd, &rxbuf[r], rrem);
+#endif
 			if (rx_ti == 0) { // wait for first message
 				rx_ti = get_now_ts();	
 			}
@@ -1339,7 +1397,11 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 		int wrem = cnt, rrem = cnt;
 		long int rx_ti = 0;
 		while (rrem) {
-			n = _READ(client_fd, &rxbuf[r], rrem WIN_RDFLAGS);
+#if defined(_WIN32)
+			n = _RECV(client_fd, &rxbuf[r], rrem, 0);
+#else
+			n = _READ(client_fd, &rxbuf[r], rrem);
+#endif
 			if (n > 0) {
 				if (rx_ti == 0) { // wait for first message
 					rx_ti = get_now_ts();	
@@ -1355,7 +1417,11 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 		long int tx_ti = get_now_ts();	
 		while (wrem) {
 			int next_write = std::min(1024, wrem);
-			n = _WRITE(client_fd, &rxbuf[w], next_write WIN_WRFLAGS);
+#if defined(_WIN32)
+			n = _SEND(client_fd, &rxbuf[w], next_write, 0);
+#else
+			n = _WRITE(client_fd, &rxbuf[w], next_write);
+#endif
 			if (n > 0) {	
 				w += n;
 				wrem -= n;
@@ -1427,7 +1493,11 @@ void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 		int wrem = cnt, rrem = cnt;
 		long int rx_ti = 0;
 		while (rrem) {
-			n = _READ(client_fd, &rxbuf[r], rrem WIN_RDFLAGS);
+#if defined(_WIN32)
+			n = _RECV(client_fd, &rxbuf[r], rrem, 0);
+#else
+			n = _READ(client_fd, &rxbuf[r], rrem);
+#endif
 			if (n > 0) {
 				if (rx_ti == 0) { // wait for first message
 					rx_ti = get_now_ts();	
@@ -1442,7 +1512,11 @@ void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 		long int tx_ti = get_now_ts();	
 		while (wrem) {
 			int next_write = std::min(1024, wrem);
-			n = _WRITE(client_fd, &rxbuf[w], next_write WIN_WRFLAGS);
+#if defined(_WIN32)
+			n = _SEND(client_fd, &rxbuf[w], next_write, 0);
+#else
+			n = _WRITE(client_fd, &rxbuf[w], next_write);
+#endif
 			if (n > 0) {	
 				w += n;
 				wrem -= n;
@@ -1779,7 +1853,11 @@ void tcp_perf_tx_echo_4(TCP_UNIT_TEST_SIG_4)
 	memcpy(pbuf + sizeof mode, &cnt, sizeof cnt);
 
 	DEBUG_TEST("sending test parameters to echotest");
-	if ((w = _WRITE(fd, pbuf, sizeof pbuf WIN_WRFLAGS)) < 0) {
+#if defined(_WIN32)
+	if ((w = _SEND(fd, pbuf, sizeof pbuf, 0)) < 0) {
+#else
+	if ((w = _WRITE(fd, pbuf, sizeof pbuf)) < 0) {
+#endif
 		DEBUG_ERROR("error while sending test parameters to echotest (err=%d)", w);
 		return;
 	}
@@ -1787,7 +1865,11 @@ void tcp_perf_tx_echo_4(TCP_UNIT_TEST_SIG_4)
 	// begin
 	DEBUG_TEST("beginning test, sending test byte stream...");
 	while (tot < cnt) {
-		if ((w = _WRITE(fd, tbuf, sizeof tbuf WIN_WRFLAGS)) < 0) {
+#if defined(_WIN32)
+		if ((w = _SEND(fd, tbuf, sizeof tbuf, 0)) < 0) {
+#else
+		if ((w = _WRITE(fd, tbuf, sizeof tbuf)) < 0) {	
+#endif
 			DEBUG_ERROR("error while sending test byte stream to echotest (err=%d)", w);
 			return;
 		}
@@ -1797,7 +1879,11 @@ void tcp_perf_tx_echo_4(TCP_UNIT_TEST_SIG_4)
 	// read results
 	memset(pbuf, 0, sizeof pbuf);
 	DEBUG_TEST("reading test results from echotest");
-	if ((w = _READ(fd, pbuf, sizeof tbuf WIN_RDFLAGS)) < 0) {
+#if defined(_WIN32)
+	if ((w = _RECV(fd, pbuf, sizeof tbuf, 0)) < 0) {
+#else
+	if ((w = _READ(fd, pbuf, sizeof tbuf)) < 0) {
+#endif
 		DEBUG_ERROR("error while reading results from echotest (err=%d)", w);
 		return;
 	}
@@ -1849,14 +1935,22 @@ void tcp_perf_rx_echo_4(TCP_UNIT_TEST_SIG_4)
 	memcpy(pbuf + sizeof mode, &cnt, sizeof cnt);
 
 	DEBUG_TEST("sending test parameters to echotest");
-	if ((r = _WRITE(fd, pbuf, sizeof pbuf WIN_WRFLAGS)) < 0) {
+#if defined(_WIN32)
+	if ((r = _SEND(fd, pbuf, sizeof pbuf, 0)) < 0) {
+#else
+	if ((r = _WRITE(fd, pbuf, sizeof pbuf)) < 0) {
+#endif
 		DEBUG_ERROR("error while sending test parameters to echotest (err=%d)", r);
 		return;
 	}
 
 	// begin
 	DEBUG_TEST("beginning test, as soon as bytes are read we will start keeping time...");
-	if ((r = _READ(fd, tbuf, sizeof tbuf WIN_RDFLAGS)) < 0) {
+#if defined(_WIN32)
+	if ((r = _RECV(fd, tbuf, sizeof tbuf, 0)) < 0) {
+#else
+	if ((r = _READ(fd, tbuf, sizeof tbuf)) < 0) {
+#endif
 		DEBUG_ERROR("there was an error reading the test stream. aborting (err=%d, errno=%s)", r, strerror(errno));
 		return;
 	}
@@ -1867,7 +1961,11 @@ void tcp_perf_rx_echo_4(TCP_UNIT_TEST_SIG_4)
 	DEBUG_TEST("Received first set of bytes in test stream. now keeping time");
 
 	while (tot < cnt) {
-		if ((r = _READ(fd, tbuf, sizeof tbuf WIN_RDFLAGS)) < 0) {
+#if defined(_WIN32)
+		if ((r = _RECV(fd, tbuf, sizeof tbuf, 0)) < 0) {
+#else
+		if ((r = _READ(fd, tbuf, sizeof tbuf)) < 0) {
+#endif
 			DEBUG_ERROR("there was an error reading the test stream. aborting (err=%d)", r);
 			return;
 		}

@@ -180,7 +180,7 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 #define _CONNECT zts_connect
 #define _READ zts_read
 #define _WRITE zts_write
-#define _RECV zts_recvmsg
+#define _RECV zts_recv
 #define _SEND zts_send
 #define _RECVFROM zts_recvfrom
 #define _SENDTO zts_sendto

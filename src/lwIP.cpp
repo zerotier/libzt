@@ -78,7 +78,7 @@ struct netif lwipInterfaces[10];
 int lwipInterfacesCount = 0;
 
 ZeroTier::Mutex _rx_input_lock_m;
-struct pbuf* lwip_frame_rxbuf[MAX_GUARDED_RX_BUF_SZ];
+struct pbuf* lwip_frame_rxbuf[LWIP_MAX_GUARDED_RX_BUF_SZ];
 int lwip_frame_rxbuf_tot = 0;
 
 
@@ -385,10 +385,6 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 	}
 	lwipInterfacesCount++;
 }
-
-
-
-
 
 /****************************************************************************/
 /* Raw API driver                                                           */
@@ -1975,35 +1971,35 @@ inline void convert_ip(struct sockaddr_in * addr, struct ip4_addr *addr4);
  */
 inline void convert_ip(struct sockaddr_in *addr, struct ip4_addr *addr4)
 {
-    struct sockaddr_in *ipv4 = addr;
-    short a = ip4_addr1b(&(ipv4->sin_addr));
-    short b = ip4_addr2b(&(ipv4->sin_addr));
-    short c = ip4_addr3b(&(ipv4->sin_addr));
-    short d = ip4_addr4b(&(ipv4->sin_addr));
-    IP4_ADDR(addr4, a,b,c,d);
+	struct sockaddr_in *ipv4 = addr;
+	short a = ip4_addr1b(&(ipv4->sin_addr));
+	short b = ip4_addr2b(&(ipv4->sin_addr));
+	short c = ip4_addr3b(&(ipv4->sin_addr));
+	short d = ip4_addr4b(&(ipv4->sin_addr));
+	IP4_ADDR(addr4, a,b,c,d);
 }
 
 #define IP6_ADDR2(ipaddr, a,b,c,d,e,f,g,h) do { (ipaddr)->addr[0] = ZeroTier::Utils::hton((u32_t)((a & 0xffff) << 16) | (b & 0xffff)); \
-                                               (ipaddr)->addr[1] = ZeroTier::Utils::hton(((c & 0xffff) << 16) | (d & 0xffff)); \
-                                               (ipaddr)->addr[2] = ZeroTier::Utils::hton(((e & 0xffff) << 16) | (f & 0xffff)); \
-                                               (ipaddr)->addr[3] = ZeroTier::Utils::hton(((g & 0xffff) << 16) | (h & 0xffff)); } while(0)
+			(ipaddr)->addr[1] = ZeroTier::Utils::hton(((c & 0xffff) << 16) | (d & 0xffff)); \
+			(ipaddr)->addr[2] = ZeroTier::Utils::hton(((e & 0xffff) << 16) | (f & 0xffff)); \
+			(ipaddr)->addr[3] = ZeroTier::Utils::hton(((g & 0xffff) << 16) | (h & 0xffff)); } while(0)
 
 /**
  * Convert from standard IPV6 address structure to an lwIP native structure
  */
 inline void in6_to_ip6(ip6_addr *ba, struct sockaddr_in6 *in6)
 {
-    uint8_t *ip = &(in6->sin6_addr).s6_addr[0];
-    IP6_ADDR2(ba,
-        (((ip[ 0] & 0xffff) << 8) | ((ip[ 1]) & 0xffff)),
-        (((ip[ 2] & 0xffff) << 8) | ((ip[ 3]) & 0xffff)),
-        (((ip[ 4] & 0xffff) << 8) | ((ip[ 5]) & 0xffff)),
-        (((ip[ 6] & 0xffff) << 8) | ((ip[ 7]) & 0xffff)),
-        (((ip[ 8] & 0xffff) << 8) | ((ip[ 9]) & 0xffff)),
-        (((ip[10] & 0xffff) << 8) | ((ip[11]) & 0xffff)),
-        (((ip[12] & 0xffff) << 8) | ((ip[13]) & 0xffff)),
-        (((ip[14] & 0xffff) << 8) | ((ip[15]) & 0xffff))
-    );
+	uint8_t *ip = &(in6->sin6_addr).s6_addr[0];
+	IP6_ADDR2(ba,
+		(((ip[ 0] & 0xffff) << 8) | ((ip[ 1]) & 0xffff)),
+		(((ip[ 2] & 0xffff) << 8) | ((ip[ 3]) & 0xffff)),
+		(((ip[ 4] & 0xffff) << 8) | ((ip[ 5]) & 0xffff)),
+		(((ip[ 6] & 0xffff) << 8) | ((ip[ 7]) & 0xffff)),
+		(((ip[ 8] & 0xffff) << 8) | ((ip[ 9]) & 0xffff)),
+		(((ip[10] & 0xffff) << 8) | ((ip[11]) & 0xffff)),
+		(((ip[12] & 0xffff) << 8) | ((ip[13]) & 0xffff)),
+		(((ip[14] & 0xffff) << 8) | ((ip[15]) & 0xffff))
+	);
 }
 
 #endif // ZT_VIRTUAL_SOCKET

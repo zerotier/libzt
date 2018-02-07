@@ -48,35 +48,22 @@
 
 #define STACK_LWIP 1
 #define STACK_PICO 0
-#define NO_STACK   0 // for layer-2 only (this will omit all userspace network stack code)
-
-/* The following three quantities are related and govern how incoming frames are fed into the 
-network stack's core:
-
-Every LWIP_GUARDED_BUF_CHECK_INTERVAL milliseconds, a callback will be called from the core and 
-will input a maximum of LWIP_FRAMES_HANDLED_PER_CORE_CALL frames before returning control back
-to the core. Meanwhile, incoming frames from the ZeroTier wire will be allocated and their 
-pointers will be cached in the receive frame buffer of the size LWIP_MAX_GUARDED_RX_BUF_SZ to 
-await the next callback from the core */
-
-#define LWIP_GUARDED_BUF_CHECK_INTERVAL 50 // in ms
-#define LWIP_MAX_GUARDED_RX_BUF_SZ 1024 // number of frame pointers that can be cached waiting for receipt into core
-#define LWIP_FRAMES_HANDLED_PER_CORE_CALL 16
+#define NO_STACK	0 // for layer-2 only (this will omit all userspace network stack code)
 
 /*  sanity checks for userspace network stack and socket API layer choices
 
  EX.
  zts_socket()
-   1. ) ZT_VIRTUAL_SOCKET? -> virt_socket() --- Choose this if the default socket layer isn't doing what you need
-                       STACK_LWIP? -> raw lwip_ API
-                       STACK_PICO? -> raw pico_ API
-                       otherStack? -> raw API
+	 1. ) ZT_VIRTUAL_SOCKET? -> virt_socket() --- Choose this if the default socket layer isn't doing what you need
+											 STACK_LWIP? -> raw lwip_ API
+											 STACK_PICO? -> raw pico_ API
+											 otherStack? -> raw API
 
-   2.) ZT_LWIP_SEQ_SOCKET? (default) -> lwip_socket() --- currently provides greatest safety and performance
-   3.) ZT_PICO_BSD_SOCKET? -> pico_ socket API
-   otherStack? -> other_stack_socket()
+	 2.) ZT_LWIP_SEQ_SOCKET? (default) -> lwip_socket() --- currently provides greatest safety and performance
+	 3.) ZT_PICO_BSD_SOCKET? -> pico_ socket API
+	 otherStack? -> other_stack_socket()
 
-   Default is: STACK_LWIP=1 ZT_LWIP_SEQ_SOCKET=1
+	 Default is: STACK_LWIP=1 ZT_LWIP_SEQ_SOCKET=1
 
 */
 
@@ -100,48 +87,44 @@ await the next callback from the core */
 #endif
 
 #if STACK_LWIP==1
-  #undef STACK_PICO
-  #undef NO_STACK
+	#undef STACK_PICO
+	#undef NO_STACK
 #endif
 #if STACK_PICO==1
-  #undef STACK_LWIP
-  #undef NO_STACK
+	#undef STACK_LWIP
+	#undef NO_STACK
 #endif
 #if NO_STACK==1
-  #undef STACK_LWIP
-  #undef STACK_PICO
+	#undef STACK_LWIP
+	#undef STACK_PICO
 #endif
 #if ZT_VIRTUAL_SOCKET==1
-  #undef ZT_LWIP_SEQ_SOCKET
-  #undef ZT_PICO_BSD_SOCKET
+	#undef ZT_LWIP_SEQ_SOCKET
+	#undef ZT_PICO_BSD_SOCKET
 #endif
 #if ZT_LWIP_SEQ_SOCKET==1
-  #undef ZT_VIRTUAL_SOCKET
-  #undef ZT_PICO_BSD_SOCKET
+	#undef ZT_VIRTUAL_SOCKET
+	#undef ZT_PICO_BSD_SOCKET
 #endif
 #if ZT_PICO_BSD_SOCKET==1
-  #undef ZT_VIRTUAL_SOCKET
-  #undef ZT_LWIP_SEQ_SOCKET
+	#undef ZT_VIRTUAL_SOCKET
+	#undef ZT_LWIP_SEQ_SOCKET
 #endif
 
 /**
  * Maximum MTU size for ZeroTier
  */
-#define ZT_MAX_MTU 10000
+#define ZT_MAX_MTU	10000
 
 /**
  * How fast service states are re-checked (in milliseconds)
  */
-#define ZTO_WRAPPER_CHECK_INTERVAL 100
+#define ZTO_WRAPPER_CHECK_INTERVAL	100
 
 /**
  * Length of buffer required to hold a ztAddress/nodeID
  */
-#define ZTO_ID_LEN                  16
-
-//#if !defined(__WIN32__)
-//typedef unsigned int socklen_t;
-//#endif
+#define ZTO_ID_LEN	16
 
 #if defined(_MSC_VER)
 #include <BaseTsd.h>
@@ -151,8 +134,8 @@ typedef SSIZE_T ssize_t;
 /****************************************************************************/
 /* For SOCK_RAW support, it will initially be modeled after linux's API, so */
 /* below are the various things we need to define in order to make this API */
-/* work on other platforms. Mayber later down the road we will customize    */
-/* this for each different platform. Maybe.                                 */
+/* work on other platforms. Mayber later down the road we will customize	 */
+/* this for each different platform. Maybe.											*/
 /****************************************************************************/
 
 #if !defined(__linux__)
@@ -162,80 +145,39 @@ typedef SSIZE_T ssize_t;
 // Normally defined in linux/if_packet.h, defined here so we can offer a linux-like
 // raw socket API on non-linux platforms
 struct sockaddr_ll {
-		unsigned short sll_family;   /* Always AF_PACKET */
-		unsigned short sll_protocol; /* Physical layer protocol */
-		int            sll_ifindex;  /* Interface number */
-		unsigned short sll_hatype;   /* ARP hardware type */
-		unsigned char  sll_pkttype;  /* Packet type */
-		unsigned char  sll_halen;    /* Length of address */
-		unsigned char  sll_addr[8];  /* Physical layer address */
+		unsigned short	sll_family;	/* Always AF_PACKET */
+		unsigned short	sll_protocol; /* Physical layer protocol */
+		int				sll_ifindex;  /* Interface number */
+		unsigned short	sll_hatype;	/* ARP hardware type */
+		unsigned char	sll_pkttype;  /* Packet type */
+		unsigned char	sll_halen;	 /* Length of address */
+		unsigned char	sll_addr[8];  /* Physical layer address */
 };
 
 #endif
-
-/*
-// Provide missing optnames for setsockopt() implementations
-#ifdef _WIN32
-   #ifdef _WIN64
-   #else
-   #endif
-#elif __APPLE__
-#define IP_BIND_ADDRESS_NO_PORT 201
-#define IP_FREEBIND             202
-#define IP_MTU                  203
-#define IP_MTU_DISCOVER         204
-#define IP_MULTICAST_ALL        205
-#define IP_NODEFRAG             206
-#define IP_RECVORIGDSTADDR      207
-#define IP_ROUTER_ALERT         208
-#define IP_TRANSPARENT          209
-#define TCP_INFO                210
-#define SO_STYLE                100
-#define TCP_CORK                101
-#define TCP_DEFER_ACCEPT        102
-//#ifndef TCP_KEEPIDLE
-//#define TCP_KEEPIDLE            103
-//#endif
-#define TCP_LINGER2             104
-#define TCP_QUICKACK            105
-#define TCP_SYNCNT              106
-#define TCP_WINDOW_CLAMP        107
-#define UDP_CORK                108
-#elif __linux__
-#define SO_STYLE                100
-#define UDP_CORK                101
-#define IP_BIND_ADDRESS_NO_PORT 201
-#define IP_NODEFRAG             206
-#elif __unix__
-#elif defined(_POSIX_VERSION)
-#else
-#   error "Unknown platform"
-#endif
-*/
-
-/****************************************************************************/
-/* Legend                                                                   */
-/****************************************************************************/
-
-/*
-	NSLWIP network_stack_lwip
-	NSPICO network_stack_pico
-	NSRXBF network_stack_pico guarded frame buffer RX
-	ZTVIRT zt_virtual_wire
-	APPFDS app_fd
-	VSRXBF app_fd TX buf
-	VSTXBF app_fd RX buf
-*/
 
 /****************************************************************************/
 /* lwIP                                                                     */
 /****************************************************************************/
 
-#define LWIP_NETIF_STATUS_CALLBACK 0
-
 // For LWIP configuration see: include/lwipopts.h
 
 #if defined(STACK_LWIP)
+
+/* The following three quantities are related and govern how incoming frames are fed into the 
+network stack's core:
+
+Every LWIP_GUARDED_BUF_CHECK_INTERVAL milliseconds, a callback will be called from the core and 
+will input a maximum of LWIP_FRAMES_HANDLED_PER_CORE_CALL frames before returning control back
+to the core. Meanwhile, incoming frames from the ZeroTier wire will be allocated and their 
+pointers will be cached in the receive frame buffer of the size LWIP_MAX_GUARDED_RX_BUF_SZ to 
+await the next callback from the core */
+
+#define LWIP_GUARDED_BUF_CHECK_INTERVAL	50 // in ms
+#define LWIP_MAX_GUARDED_RX_BUF_SZ	1024 // number of frame pointers that can be cached waiting for receipt into core
+#define LWIP_FRAMES_HANDLED_PER_CORE_CALL 16 // How many frames are handled per call from core
+
+#define LWIP_NETIF_STATUS_CALLBACK 0
 
 typedef signed char err_t;
 
@@ -243,32 +185,25 @@ typedef signed char err_t;
 #define ARP_DISCOVERY_INTERVAL ARP_TMR_INTERVAL
 
 /**
-  Specifies the polling interval and the callback function that should
-  be called to poll the application. The interval is specified in
-  number of TCP coarse grained timer shots, which typically occurs
-  twice a second. An interval of 10 means that the application would
-  be polled every 5 seconds. (only for raw lwIP driver)
-  */
-#define LWIP_APPLICATION_POLL_FREQ         2
+ * Specifies the polling interval and the callback function that should
+ * be called to poll the application. The interval is specified in
+ * number of TCP coarse grained timer shots, which typically occurs
+ * twice a second. An interval of 10 means that the application would
+ * be polled every 5 seconds. (only for raw lwIP driver)
+ */
+#define LWIP_APPLICATION_POLL_FREQ 2
 
 /**
  * TCP timer interval in milliseconds (only for raw lwIP driver)
  */
-#define LWIP_TCP_TIMER_INTERVAL            25
+#define LWIP_TCP_TIMER_INTERVAL 25
 
 /**
  * How often we check VirtualSocket statuses in milliseconds (only for raw lwIP driver)
  */
-#define LWIP_STATUS_TMR_INTERVAL           500
+#define LWIP_STATUS_TMR_INTERVAL 500
 
 // #define LWIP_CHKSUM <your_checksum_routine>, See: RFC1071 for inspiration
-#endif
-
-/****************************************************************************/
-/* picoTCP                                                                  */
-/****************************************************************************/
-
-#if defined(STACK_PICO)
 #endif
 
 /****************************************************************************/
@@ -278,141 +213,140 @@ typedef signed char err_t;
 /**
  * Maximum number of sockets that libzt can administer
  */
-#define ZT_MAX_SOCKETS                     1024
+#define ZT_MAX_SOCKETS 1024
 
 /**
  * Maximum MTU size for libzt (must be less than or equal to ZT_MAX_MTU)
  */
-#define ZT_SDK_MTU                         ZT_MAX_MTU
+#define ZT_SDK_MTU ZT_MAX_MTU
 
 /**
  *
  */
-#define ZT_LEN_SZ                          4
+#define ZT_LEN_SZ 4
 
 /**
  *
  */
-#define ZT_ADDR_SZ                         128
+#define ZT_ADDR_SZ 128
 
 /**
  * Size of message buffer for VirtualSockets
  */
-#define ZT_SOCKET_MSG_BUF_SZ               ZT_SDK_MTU + ZT_LEN_SZ + ZT_ADDR_SZ
+#define ZT_SOCKET_MSG_BUF_SZ ZT_SDK_MTU + ZT_LEN_SZ + ZT_ADDR_SZ
 
 /**
  * Polling interval (in ms) for file descriptors wrapped in the Phy I/O loop (for raw drivers only)
  */
-#define ZT_PHY_POLL_INTERVAL               5
+#define ZT_PHY_POLL_INTERVAL 5
 
 /**
  * State check interval (in ms) for VirtualSocket state
  */
-#define ZT_ACCEPT_RECHECK_DELAY            50
+#define ZT_ACCEPT_RECHECK_DELAY 50
 
 /**
  * State check interval (in ms) for VirtualSocket state
  */
-#define ZT_CONNECT_RECHECK_DELAY           50
+#define ZT_CONNECT_RECHECK_DELAY 50
 
 /**
  * State check interval (in ms) for VirtualSocket state
  */
-#define ZT_API_CHECK_INTERVAL              50
+#define ZT_API_CHECK_INTERVAL 50
 
 /**
  * Maximum size of guarded RX buffer (for picoTCP raw driver only)
  */
-#define MAX_PICO_FRAME_RX_BUF_SZ           ZT_MAX_MTU * 128
+#define MAX_PICO_FRAME_RX_BUF_SZ ZT_MAX_MTU * 128
 
 /**
  * Size of TCP TX buffer for VirtualSockets used in raw network stack drivers
  */
-#define ZT_TCP_TX_BUF_SZ                   1024 * 1024 * 128
+#define ZT_TCP_TX_BUF_SZ 1024 * 1024 * 128
 
 /**
  * Size of TCP RX buffer for VirtualSockets used in raw network stack drivers
  */
-#define ZT_TCP_RX_BUF_SZ                   1024 * 1024 * 128
+#define ZT_TCP_RX_BUF_SZ 1024 * 1024 * 128
 
 /**
  * Size of UDP TX buffer for VirtualSockets used in raw network stack drivers
  */
-#define ZT_UDP_TX_BUF_SZ                   ZT_MAX_MTU
+#define ZT_UDP_TX_BUF_SZ ZT_MAX_MTU
 
 /**
  * Size of UDP RX buffer for VirtualSockets used in raw network stack drivers
  */
-#define ZT_UDP_RX_BUF_SZ                   ZT_MAX_MTU * 10
-
-// Send and Receive buffer sizes for the network stack
-// By default picoTCP sets them to 16834, this is good for embedded-scale
-// stuff but you might want to consider higher values for desktop and mobile
-// applications.
+#define ZT_UDP_RX_BUF_SZ ZT_MAX_MTU * 10
 
 /**
- *
+ * Send buffer size for the network stack
+ * By default picoTCP sets them to 16834, this is good for embedded-scale
+ * stuff but you might want to consider higher values for desktop and mobile
+ * applications.
  */
-#define ZT_STACK_TCP_SOCKET_TX_SZ          ZT_TCP_TX_BUF_SZ
+#define ZT_STACK_TCP_SOCKET_TX_SZ ZT_TCP_TX_BUF_SZ
 
 /**
- *
+ * Receive buffer size for the network stack
+ * By default picoTCP sets them to 16834, this is good for embedded-scale
+ * stuff but you might want to consider higher values for desktop and mobile
+ * applications.
  */
-#define ZT_STACK_TCP_SOCKET_RX_SZ          ZT_TCP_RX_BUF_SZ
-
-// Maximum size we're allowed to read or write from a stack socket
-// This is put in place because picoTCP seems to fail at higher values.
-// If you use another stack you can probably bump this up a bit.
+#define ZT_STACK_TCP_SOCKET_RX_SZ ZT_TCP_RX_BUF_SZ
 
 /**
- * Maximum size of write operation to a network stack
+ * Maximum size we're allowed to read or write from a stack socket
+ * This is put in place because picoTCP seems to fail at higher values.
+ * If you use another stack you can probably bump this up a bit.
  */
-#define ZT_STACK_SOCKET_WR_MAX             4096
+#define ZT_STACK_SOCKET_WR_MAX 4096
 
 /**
  * Maximum size of read operation from a network stack
  */
-#define ZT_STACK_SOCKET_RD_MAX             4096*4
+#define ZT_STACK_SOCKET_RD_MAX 4096*4
 
 /**
  * Maximum length of libzt/ZeroTier home path (where keys, and config files are stored)
  */
-#define ZT_HOME_PATH_MAX_LEN               256
+#define ZT_HOME_PATH_MAX_LEN 256
 
 /**
  * Length of human-readable MAC address string
  */
-#define ZT_MAC_ADDRSTRLEN                  18
+#define ZT_MAC_ADDRSTRLEN 18
 
 /**
  * Everything is ok
  */
-#define ZT_ERR_OK                          0
+#define ZT_ERR_OK 0
 
 /**
  * Value returned during an internal failure at the VirtualSocket/VirtualTap layer
  */
-#define ZT_ERR_GENERAL_FAILURE             -88
+#define ZT_ERR_GENERAL_FAILURE -88
 
 /**
  * Whether sockets created will have SO_LINGER set by default
  */
-#define ZT_SOCK_BEHAVIOR_LINGER            false
-
+#define ZT_SOCK_BEHAVIOR_LINGER	false
+	
 /**
  * Length of time that VirtualSockets should linger (in seconds)
  */
-#define ZT_SOCK_BEHAVIOR_LINGER_TIME       3
+#define ZT_SOCK_BEHAVIOR_LINGER_TIME 3
 
 /**
  * Maximum wait time for socket closure if data is still present in the write queue
  */
-#define ZT_SDK_CLTIME                      60
+#define ZT_SDK_CLTIME 60
 
 /**
  * Interval for performing background tasks (such as adding routes) on VirtualTap objects (in seconds)
  */
-#define ZT_HOUSEKEEPING_INTERVAL           1
+#define ZT_HOUSEKEEPING_INTERVAL 1
 
 /****************************************************************************/
 /* Socket API Signatures                                                    */

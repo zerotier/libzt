@@ -78,7 +78,7 @@ struct netif lwipInterfaces[10];
 int lwipInterfacesCount = 0;
 
 ZeroTier::Mutex _rx_input_lock_m;
-struct pbuf* lwip_frame_rxbuf[1024];
+struct pbuf* lwip_frame_rxbuf[MAX_GUARDED_RX_BUF_SZ];
 int lwip_frame_rxbuf_tot = 0;
 
 
@@ -119,20 +119,15 @@ static void tcpip_init_done(void *arg)
 void my_tcpip_callback(void *arg)
 {
 	Mutex::Lock _l(_rx_input_lock_m);
-	int loop_score = 16; // max num of packets to read per polling call
+	int loop_score = LWIP_FRAMES_HANDLED_PER_CORE_CALL; // max num of packets to read per polling call
 	// TODO: Optimize (use Ringbuffer)
 	int pkt_num = 0;
 	int count_initial = lwip_frame_rxbuf_tot;
-	int count_final = 0;
 	while (lwip_frame_rxbuf_tot > 0 && loop_score > 0) {
-
 		struct pbuf *p = lwip_frame_rxbuf[pkt_num];
-		pkt_num += 1;
-		// DEBUG_INFO("copying received packet FROM guarded buffer (addr=%p) total frames in buffer = %d", p, lwip_frame_rxbuf_tot);
-
+		pkt_num++;
 		// Packet routing logic. Inputs packet into correct lwip netif interface depending on protocol type
 		struct ip_hdr *iphdr;
-		//ip_addr_t iphdr_dest;
 		switch (((struct eth_hdr *)p->payload)->type)
 		{
 			case PP_HTONS(ETHTYPE_IPV6): {
@@ -175,15 +170,13 @@ void my_tcpip_callback(void *arg)
 			default:
 				break;
 		}
-		lwip_frame_rxbuf_tot-=1;
+		lwip_frame_rxbuf_tot--;;
 		loop_score--;
 	}
-	count_final = count_initial - lwip_frame_rxbuf_tot;
-	//DEBUG_INFO("adjusting buffer by (%d) elements, total frames in buffer = %d", count_final, lwip_frame_rxbuf_tot);
-	// move pbuf address buffer by the number of packets successfully fed into the stack core
+	int count_final = count_initial - lwip_frame_rxbuf_tot;
+	// move pbuf frame pointer address buffer by the number of frames successfully fed into the stack core
 	memmove(lwip_frame_rxbuf, lwip_frame_rxbuf + count_final, sizeof(lwip_frame_rxbuf) - count_final);
 }
-
 
 // main thread which starts the initialization process
 static void main_thread(void *arg)
@@ -198,8 +191,7 @@ static void main_thread(void *arg)
 	sys_sem_wait(&sem);
 	DEBUG_EXTRA("stack thread init complete");
 
-	while(1)
-	{
+	while(1) {
 		usleep(LWIP_GUARDED_BUF_CHECK_INTERVAL*1000);
 		// Handle incoming packets from the core's thread context.
 		// If you feed frames into the core directly you will violate the core's thread model
@@ -222,8 +214,6 @@ void lwip_driver_init()
 	sys_thread_new("main_thread", main_thread,
 		NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
 }
-
-
 
 err_t lwip_eth_tx(struct netif *netif, struct pbuf *p)
 {
@@ -316,11 +306,10 @@ void lwip_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC
 	}
 	Mutex::Lock _l(_rx_input_lock_m);
 	if (lwip_frame_rxbuf_tot == LWIP_MAX_GUARDED_RX_BUF_SZ) {
-		//DEBUG_ERROR("guarded receive buffer full, adjust MAX_GUARDED_RX_BUF_SZ or ");
+		DEBUG_ERROR("guarded receive buffer full, adjust MAX_GUARDED_RX_BUF_SZ or LWIP_GUARDED_BUF_CHECK_INTERVAL");
 	}
 	lwip_frame_rxbuf[lwip_frame_rxbuf_tot] = p;
 	lwip_frame_rxbuf_tot += 1;
-	//DEBUG_INFO("copying received packet TO guarded buffer (addr=%p) total frames in buffer = %d", p, lwip_frame_rxbuf_tot);
 }
 
 /*

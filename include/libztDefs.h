@@ -50,8 +50,18 @@
 #define STACK_PICO 0
 #define NO_STACK   0 // for layer-2 only (this will omit all userspace network stack code)
 
+/* The following three quantities are related and govern how incoming frames are fed into the 
+network stack's core:
+
+Every LWIP_GUARDED_BUF_CHECK_INTERVAL milliseconds, a callback will be called from the core and 
+will input a maximum of LWIP_FRAMES_HANDLED_PER_CORE_CALL frames before returning control back
+to the core. Meanwhile, incoming frames from the ZeroTier wire will be allocated and their 
+pointers will be cached in the receive frame buffer of the size LWIP_MAX_GUARDED_RX_BUF_SZ to 
+await the next callback from the core */
+
 #define LWIP_GUARDED_BUF_CHECK_INTERVAL 50 // in ms
 #define LWIP_MAX_GUARDED_RX_BUF_SZ 1024 // number of frame pointers that can be cached waiting for receipt into core
+#define LWIP_FRAMES_HANDLED_PER_CORE_CALL 16
 
 /*  sanity checks for userspace network stack and socket API layer choices
 

@@ -39,7 +39,7 @@
 #ifndef __LWIPOPTS_H__
 #define __LWIPOPTS_H__
 
-#define LWIP_SUPPORT_CUSTOM_PBUF 	0
+//#define LWIP_SUPPORT_CUSTOM_PBUF 	0
 
 /*
  *  Provides its own errno

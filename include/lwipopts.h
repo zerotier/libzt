@@ -39,6 +39,8 @@
 #ifndef __LWIPOPTS_H__
 #define __LWIPOPTS_H__
 
+#define LWIP_SUPPORT_CUSTOM_PBUF 	0
+
 /*
  *  Provides its own errno
  */
@@ -146,7 +148,7 @@
 #define IP_REASS_DEBUG                  LWIP_DBG_OFF
 #define IP6_DEBUG                       LWIP_DBG_ON
 // TCP/IP
-#define TCPIP_DEBUG                     LWIP_DBG_ON
+#define TCPIP_DEBUG                     LWIP_DBG_OFF
 // UDP
 #define UDP_DEBUG                       LWIP_DBG_ON
 // services
@@ -434,7 +436,7 @@ happening sooner than they should.
 /**
  * IP_FRAG_USES_STATIC_BUF==1: Use a static MTU-sized buffer for IP
  * fragmentation. Otherwise pbufs are allocated and reference the original
-    * packet data to be fragmented.
+	* packet data to be fragmented.
 */
 #define IP_FRAG_USES_STATIC_BUF         0
 

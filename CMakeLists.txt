@@ -158,16 +158,20 @@ foreach (testsourcefile ${APP_SOURCES})
     string (REPLACE ".cpp" "" testname ${testsourcefile})
     get_filename_component (testname ${testname} NAME)
     add_executable (${testname} ${testsourcefile})
+if (WIN32)
     target_link_libraries (${testname} lwip zto zt)
+else()
+	target_link_libraries (${testname} pthread lwip zto zt)
+endif()
 endforeach (testsourcefile ${APP_SOURCES})
 
 # selftest
 add_executable (selftest ${PROJ_DIR}/test/selftest.cpp)
 target_compile_options (selftest PRIVATE -D__SELFTEST__)
 if (WIN32)
-target_link_libraries (selftest lwip zto zt ${ws2_32_LIBRARY_PATH} ${lshlwapi_LIBRARY_PATH} ${liphlpapi_LIBRARY_PATH})
+	target_link_libraries (selftest lwip zto zt ${ws2_32_LIBRARY_PATH} ${lshlwapi_LIBRARY_PATH} ${liphlpapi_LIBRARY_PATH})
 else()
-target_link_libraries (selftest lwip zto zt)
+	target_link_libraries (selftest pthread lwip zto zt)
 endif()
 
 # nativetest

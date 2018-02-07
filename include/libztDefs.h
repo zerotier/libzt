@@ -50,6 +50,8 @@
 #define STACK_PICO 0
 #define NO_STACK   0 // for layer-2 only (this will omit all userspace network stack code)
 
+#define LWIP_GUARDED_BUF_CHECK_INTERVAL 50 // in ms
+#define LWIP_MAX_GUARDED_RX_BUF_SZ 1024 // number of frame pointers that can be cached waiting for receipt into core
 
 /*  sanity checks for userspace network stack and socket API layer choices
 
@@ -218,6 +220,8 @@ struct sockaddr_ll {
 /****************************************************************************/
 /* lwIP                                                                     */
 /****************************************************************************/
+
+#define LWIP_NETIF_STATUS_CALLBACK 0
 
 // For LWIP configuration see: include/lwipopts.h
 

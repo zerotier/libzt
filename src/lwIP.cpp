@@ -77,6 +77,10 @@ bool virt_can_provision_new_socket(int socket_type);
 struct netif lwipInterfaces[10];
 int lwipInterfacesCount = 0;
 
+ZeroTier::Mutex _rx_input_lock_m;
+struct pbuf* lwip_frame_rxbuf[1024];
+int lwip_frame_rxbuf_tot = 0;
+
 
 bool lwip_driver_initialized = false;
 ZeroTier::Mutex driver_m;
@@ -112,6 +116,75 @@ static void tcpip_init_done(void *arg)
 	sys_sem_signal(sem);
 }
 
+void my_tcpip_callback(void *arg)
+{
+	Mutex::Lock _l(_rx_input_lock_m);
+	int loop_score = 16; // max num of packets to read per polling call
+	// TODO: Optimize (use Ringbuffer)
+	int pkt_num = 0;
+	int count_initial = lwip_frame_rxbuf_tot;
+	int count_final = 0;
+	while (lwip_frame_rxbuf_tot > 0 && loop_score > 0) {
+
+		struct pbuf *p = lwip_frame_rxbuf[pkt_num];
+		pkt_num += 1;
+		// DEBUG_INFO("copying received packet FROM guarded buffer (addr=%p) total frames in buffer = %d", p, lwip_frame_rxbuf_tot);
+
+		// Packet routing logic. Inputs packet into correct lwip netif interface depending on protocol type
+		struct ip_hdr *iphdr;
+		//ip_addr_t iphdr_dest;
+		switch (((struct eth_hdr *)p->payload)->type)
+		{
+			case PP_HTONS(ETHTYPE_IPV6): {
+				iphdr = (struct ip_hdr *)((char *)p->payload + SIZEOF_ETH_HDR);
+				for (int i=0; i<lwipInterfacesCount; i++) {
+					if (lwipInterfaces[i].output_ip6 && lwipInterfaces[i].output_ip6 == ethip6_output) {
+						if (lwipInterfaces[i].input(p, &lwipInterfaces[i]) != ERR_OK) {
+							DEBUG_ERROR("packet input error (ipv6, p=%p, netif=%p)", p, &lwipInterfaces[i]);
+							break;
+						}
+
+					}
+				}	
+			} break;
+			case PP_HTONS(ETHTYPE_IP): {
+				iphdr = (struct ip_hdr *)((char *)p->payload + SIZEOF_ETH_HDR);
+				for (int i=0; i<lwipInterfacesCount; i++) {
+					if (lwipInterfaces[i].output &&  lwipInterfaces[i].output == etharp_output) {
+						if (lwipInterfaces[i].ip_addr.u_addr.ip4.addr == iphdr->dest.addr || ip4_addr_isbroadcast_u32(iphdr->dest.addr, &lwipInterfaces[i])) {
+							if (lwipInterfaces[i].input(p, &lwipInterfaces[i]) != ERR_OK) {
+								DEBUG_ERROR("packet input error (ipv4, p=%p, netif=%p)", p, &lwipInterfaces[i]);
+								break;
+							}
+						}
+					}
+				}
+			} break;
+			case PP_HTONS(ETHTYPE_ARP): {
+				for (int i=0; i<lwipInterfacesCount; i++) {
+					if (lwipInterfaces[i].state) {
+						pbuf_ref(p);
+						if (lwipInterfaces[i].input(p, &lwipInterfaces[i]) != ERR_OK) {
+							DEBUG_ERROR("packet input error (arp, p=%p, netif=%p)", p, &lwipInterfaces[i]);
+						}
+						break;
+					}
+				}
+				break;
+			} break;
+			default:
+				break;
+		}
+		lwip_frame_rxbuf_tot-=1;
+		loop_score--;
+	}
+	count_final = count_initial - lwip_frame_rxbuf_tot;
+	//DEBUG_INFO("adjusting buffer by (%d) elements, total frames in buffer = %d", count_final, lwip_frame_rxbuf_tot);
+	// move pbuf address buffer by the number of packets successfully fed into the stack core
+	memmove(lwip_frame_rxbuf, lwip_frame_rxbuf + count_final, sizeof(lwip_frame_rxbuf) - count_final);
+}
+
+
 // main thread which starts the initialization process
 static void main_thread(void *arg)
 {
@@ -120,9 +193,18 @@ static void main_thread(void *arg)
 	if (sys_sem_new(&sem, 0) != ERR_OK) {
 		DEBUG_ERROR("failed to create semaphore");
 	}
+	
 	tcpip_init(tcpip_init_done, &sem);
 	sys_sem_wait(&sem);
 	DEBUG_EXTRA("stack thread init complete");
+
+	while(1)
+	{
+		usleep(LWIP_GUARDED_BUF_CHECK_INTERVAL*1000);
+		// Handle incoming packets from the core's thread context.
+		// If you feed frames into the core directly you will violate the core's thread model
+		tcpip_callback_with_block(my_tcpip_callback, NULL, 1);
+	}
 	sys_sem_wait(&sem); // block forever
 }
 
@@ -232,52 +314,13 @@ void lwip_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC
 		DEBUG_ERROR("there are no netifs set up to handle this packet. ignoring.");
 		return;
 	}
-
-	// Routing
-	struct ip_hdr *iphdr;
-	//ip_addr_t iphdr_dest;
-	switch (((struct eth_hdr *)p->payload)->type)
-	{
-		case PP_HTONS(ETHTYPE_IPV6): {
-			iphdr = (struct ip_hdr *)((char *)p->payload + SIZEOF_ETH_HDR);
-			for (int i=0; i<lwipInterfacesCount; i++) {
-				if (lwipInterfaces[i].output_ip6 && lwipInterfaces[i].output_ip6 == ethip6_output) {
-					if (lwipInterfaces[i].input(p, &lwipInterfaces[i]) != ERR_OK) {
-						DEBUG_ERROR("packet input error (ipv6, p=%p, netif=%p)", p, &lwipInterfaces[i]);
-						break;
-					}
-
-				}
-			}	
-		} break;
-		case PP_HTONS(ETHTYPE_IP): {
-			iphdr = (struct ip_hdr *)((char *)p->payload + SIZEOF_ETH_HDR);
-			for (int i=0; i<lwipInterfacesCount; i++) {
-				if (lwipInterfaces[i].output &&  lwipInterfaces[i].output == etharp_output) {
-					if (lwipInterfaces[i].ip_addr.u_addr.ip4.addr == iphdr->dest.addr || ip4_addr_isbroadcast_u32(iphdr->dest.addr, &lwipInterfaces[i])) {
-						if (lwipInterfaces[i].input(p, &lwipInterfaces[i]) != ERR_OK) {
-							DEBUG_ERROR("packet input error (ipv4, p=%p, netif=%p)", p, &lwipInterfaces[i]);
-							break;
-						}
-					}
-				}
-			}
-		} break;
-		case PP_HTONS(ETHTYPE_ARP): {
-			for (int i=0; i<lwipInterfacesCount; i++) {
-				if (lwipInterfaces[i].state) {
-					pbuf_ref(p);
-					if (lwipInterfaces[i].input(p, &lwipInterfaces[i]) != ERR_OK) {
-						DEBUG_ERROR("packet input error (arp, p=%p, netif=%p)", p, &lwipInterfaces[i]);
-					}
-					break;
-				}
-			}
-			break;
-		} break;
-		default:
-			break;
+	Mutex::Lock _l(_rx_input_lock_m);
+	if (lwip_frame_rxbuf_tot == LWIP_MAX_GUARDED_RX_BUF_SZ) {
+		//DEBUG_ERROR("guarded receive buffer full, adjust MAX_GUARDED_RX_BUF_SZ or ");
 	}
+	lwip_frame_rxbuf[lwip_frame_rxbuf_tot] = p;
+	lwip_frame_rxbuf_tot += 1;
+	//DEBUG_INFO("copying received packet TO guarded buffer (addr=%p) total frames in buffer = %d", p, lwip_frame_rxbuf_tot);
 }
 
 /*

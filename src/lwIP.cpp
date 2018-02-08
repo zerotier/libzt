@@ -74,6 +74,14 @@ bool virt_can_provision_new_socket(int socket_type);
 
 #include "lwIP.h"
 
+#if defined(_WIN32)
+#include <time.h>
+void ms_sleep(unsigned long ms) 
+{
+	Sleep(ms);
+}
+#endif
+
 struct netif lwipInterfaces[10];
 int lwipInterfacesCount = 0;
 
@@ -192,7 +200,11 @@ static void main_thread(void *arg)
 	DEBUG_EXTRA("stack thread init complete");
 
 	while(1) {
+#if defined(_WIN32)
+		ms_sleep(LWIP_GUARDED_BUF_CHECK_INTERVAL);
+#else
 		usleep(LWIP_GUARDED_BUF_CHECK_INTERVAL*1000);
+#endif
 		// Handle incoming packets from the core's thread context.
 		// If you feed frames into the core directly you will violate the core's thread model
 		tcpip_callback_with_block(my_tcpip_callback, NULL, 1);

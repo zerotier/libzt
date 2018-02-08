@@ -2963,6 +2963,11 @@ int main(int argc , char *argv[])
 		// set start time here since we need to wait for both libzt instances to be online
 		DEBUG_TEST("app-thread, waiting for libzt to come online...\n");
 		uint64_t nwid = strtoull(nwidstr.c_str(),NULL,16);
+		int portno = LIBZT_DEFAULT_PORT;
+		if (zts_set_service_port(portno) < 0) {
+			DEBUG_TEST("error, invalid zt service port number: %d", portno);
+			exit(0);
+		}
 		zts_startjoin(path.c_str(), nwid);
 		uint64_t nodeId = zts_get_node_id();
 		DEBUG_TEST("I am %llx, %s", nodeId, me.c_str());

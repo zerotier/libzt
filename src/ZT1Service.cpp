@@ -55,6 +55,8 @@ std::string netDir;  // Where network .conf files are to be written
 
 ZeroTier::Mutex _multiplexer_lock;
 
+int servicePort = LIBZT_DEFAULT_PORT;
+
 #if defined(_WIN32)
 WSADATA wsaData;
 #include <Windows.h>
@@ -216,12 +218,12 @@ void *zts_start_service(void *thread_id)
 		DEBUG_ERROR("homeDir is empty, could not construct path");
 		return NULL;
 	}
-
-	// Generate random port for new service instance
-	unsigned int randp = 0;
-	ZeroTier::Utils::getSecureRandom(&randp,sizeof(randp));
-	// TODO: Better port random range selection
-	int servicePort = 9000 + (randp % 1000);
+	if (servicePort <= 0) {
+		DEBUG_INFO("no port specified, will bind to random port. use zts_set_service_port() if you want.");
+	}
+	else {
+		DEBUG_INFO("binding to port=%d", servicePort);
+	}
 	for (;;) {
 		zt1Service = ZeroTier::OneService::newInstance(homeDir.c_str(),servicePort);
 		switch(zt1Service->run()) {
@@ -229,7 +231,6 @@ void *zts_start_service(void *thread_id)
 			case ZeroTier::OneService::ONE_NORMAL_TERMINATION:
 				break;
 			case ZeroTier::OneService::ONE_UNRECOVERABLE_ERROR:
-				DEBUG_ERROR("ZTO service port = %d", servicePort);
 				DEBUG_ERROR("fatal error: %s",zt1Service->fatalErrorMessage().c_str());
 				break;
 			case ZeroTier::OneService::ONE_IDENTITY_COLLISION: {
@@ -290,6 +291,20 @@ int zts_get_address_at_index(
 	}
 	_vtaps_lock.unlock();
 	return err;
+}
+
+/****************************************************************************/
+/* ZeroTier Service Controls                                                */
+/****************************************************************************/
+
+int zts_set_service_port(int portno)
+{
+	if (portno > -1 && portno < 65535) {
+		// 0 is allowed, see docs
+		servicePort = portno;
+		return 0;
+	}
+	return -1;
 }
 
 int zts_get_address(const uint64_t nwid, struct sockaddr_storage *addr, 
@@ -432,13 +447,16 @@ int zts_start(const char *path, bool blocking = false)
 	if (blocking) { // block to prevent service calls before we're ready
 		ZT_NodeStatus status;
 		status.online = 0;
+		DEBUG_EXTRA("waiting for zerotier service thread to start");
 		while (zts_core_running() == false || zt1Service->getNode() == NULL) {
 			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 		}
+		DEBUG_EXTRA("waiting for node address assignment");
 		while (zt1Service->getNode()->address() <= 0) {
 			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 		}
-		DEBUG_INFO("node=%llx", zts_get_node_id());
+		DEBUG_EXTRA("node=%llx", zts_get_node_id());
+		DEBUG_EXTRA("waiting for node to come online");
 		while (status.online <= 0) {
 			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 			zt1Service->getNode()->status(&status);

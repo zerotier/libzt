@@ -34,6 +34,10 @@
 #define LIBZT_DEFINES_H
 
 /**
+ * Default port that libzt will use to support all virtual communication
+ */
+#define LIBZT_DEFAULT_PORT 9994
+/**
  * Use ZeroTier Virtual Socket layer to abstract network stack raw API
  */
 #define ZT_VIRTUAL_SOCKET  0

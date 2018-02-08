@@ -76,6 +76,18 @@ extern "C" {
 #endif
 
 /**
+ * @brief (optional) Sets the port for the background libzt service. If this function is called
+ * with a port number between 1-65535 it will attempt to bind to that port. If it is called with
+ * a port number of 0 it will attempt to randomly search for an available port. If this function
+ * is never called, the service will try to bind on LIBZT_DEFAULT_PORT which is 9994.
+ *
+ * @usage Should be called at the beginning of your application before `zts_startjoin()`
+ * @param portno Port number
+ * @return 0 if successful; or -1 if failed
+ */
+ZT_SOCKET_API int ZTCALL zts_set_service_port(int portno);
+
+/**
  * @brief Starts libzt
  *
  * @usage Should be called at the beginning of your application. Will blocks until all of the following conditions are met:

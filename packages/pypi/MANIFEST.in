@@ -8,3 +8,5 @@ recursive-include ../../include *.h
 #recursive-include ../../include *.hpp
 include libhttp.a
 include liblwip.a
+include http.lib
+include lwip.lib

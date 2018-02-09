@@ -19,20 +19,43 @@ while True:
     time.sleep(1)
 ```
 
-## Building the Package 
+## Building
 
-Package is specified in [setup.py](setup.py). *Note: A new version must be specified in `setup.py` for every new upload of a package*
+### macOS, Linux
 
-Get necessary tools
+Binary distribution: 
 
-`pip3 install wheel twine`
+make bdist
+
+Alternatively, source Distribution: 
+
+make sdist
+
+Upload to PyPI: 
+
+make upload
+
+Cleanup:
+
+make clean
+
+### Windows
+
+Binary distribution:
+
+bdist.bat
+
+Source distribution:
+
+sdist.bat
+
+Upload to PyPI:
+
+upload.bat
+
+Cleanup:
+
+clean.bat
+
 
 *Note: As there appears to be no way to differentiate C and C++ code (and thus pass correct build args to each type) in a setuptools script we must separately build the `lwip` and `http_parser` libraries, copy them here, and then build the binary. See the top-level [README.md](../../README.md) for instructions on how to do that*
-
-Build the binary distribution wheel:
-
-`python3 setup.py bdist_wheel`
-
-Upload to PyPI
-
-`twine upload dist/*`

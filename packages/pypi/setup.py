@@ -2,58 +2,74 @@
 
 from setuptools import setup, Extension, Command, Distribution
 import glob
+import os
 
 class BinaryDistribution(Distribution):
     def is_pure(self):
         return False
 
-projDir='../..'
-source_list = ['libzt_wrap.cxx']
-source_list.extend(list(glob.glob(projDir+'/src/*.cpp')))
-source_list.extend(list(glob.glob(projDir+'/zto/node/*.cpp')))
-source_list.extend(list(glob.glob(projDir+'/zto/osdep/*.cpp')))
-source_list.extend(list(glob.glob(projDir+'/zto/service/*.cpp')))
-source_list.extend(list(glob.glob(projDir+'/zto/controller/*.cpp')))
+# WINDOWS
+if os.name == 'nt':
+	projDir='..\\..'
+	source_list = ['libzt_wrap.cxx']
+	source_list.extend(list(glob.glob(projDir+'\\src\\*.cpp')))
+	source_list.extend(list(glob.glob(projDir+'\\zto\\node\\*.cpp')))
+	source_list.extend(list(glob.glob(projDir+'\\zto\\osdep\\*.cpp')))
+	source_list.extend(list(glob.glob(projDir+'\\zto\\service\\*.cpp')))
+	source_list.extend(list(glob.glob(projDir+'\\zto\\controller\\*.cpp')))
 
-#http_parser_source_list = ['libzt_wrap.cxx']
-#http_parser_source_list.extend(list(glob.glob('../../zto/ext/http-parser/*.c')))
-#lwip_source_list = ['libzt_wrap.cxx']
-#lwip_source_list.extend(list(glob.glob('../../ext/lwip/src/core/*.c')))
-#lwip_source_list.extend(list(glob.glob('../../ext/lwip/src/core/ipv4/*.c')))
-#lwip_source_list.extend(list(glob.glob('../../ext/lwip/src/core/ipv6/*.c')))
+	source_list = list(set(source_list)-set(
+	[
+		projDir+'\\zto\\osdep\\LinuxEthernetTap.cpp',
+		projDir+'\\zto\\osdep\\BSDEthernetTap.cpp',
+		projDir+'\\zto\\osdep\\OSXEthernetTap.cpp',
+		projDir+'\\zto\\osdep\\WindowsEthernetTap.cpp'
+	]))
 
-source_list = list(set(source_list)-set(
-	[projDir+'/zto/osdep/LinuxEthernetTap.cpp',projDir+'/zto/osdep/BSDEthernetTap.cpp',projDir+'/zto/osdep/OSXEthernetTap.cpp', projDir+'/zto/osdep/WindowsEthernetTap.cpp']))
+	libzt_module = Extension('libzt',
+		extra_compile_args=['/std:c++14', '-DNOMINMAX=1', '-DZT_SDK', '-DSDK', '-DZT_SOFTWARE_UPDATE_DEFAULT=\"disable\"'],
+		extra_link_args=['/LIBPATH:.', 'WS2_32.Lib', 'ShLwApi.Lib', 'iphlpapi.Lib','lwip.lib','http.lib'],
+		sources=source_list,
+		include_dirs=[projDir+'\\include',
+			projDir+'\\ext\\lwip\\src\\include',
+			projDir+'\\ext\\lwip-contrib\\ports\\win32\\include',
+			projDir+'\\zto\\include',
+			projDir+'\\zto\\node',
+			projDir+'\\zto\\service',
+			projDir+'\\zto\\osdep',
+			projDir+'\\zto\\controller']                           
+		)
+# EVERYTHING ELSE
+else:
+	projDir='../..'
+	source_list = ['libzt_wrap.cxx']
+	source_list.extend(list(glob.glob(projDir+'/src/*.cpp')))
+	source_list.extend(list(glob.glob(projDir+'/zto/node/*.cpp')))
+	source_list.extend(list(glob.glob(projDir+'/zto/osdep/*.cpp')))
+	source_list.extend(list(glob.glob(projDir+'/zto/service/*.cpp')))
+	source_list.extend(list(glob.glob(projDir+'/zto/controller/*.cpp')))
 
-#lwip_module = Extension('lwip',
-#					extra_compile_args=['-DZT_SDK'],
-#					extra_link_args=[],
-#					sources=lwip_source_list,
-#					include_dirs=['../include',
-#							'../../include',
-#							'../../ext/lwip/src/include',
-#							'../../ext/lwip-contrib/ports/unix/include',]                           
-#					)
+	source_list = list(set(source_list)-set(
+	[
+		projDir+'/zto/osdep/LinuxEthernetTap.cpp',
+		projDir+'/zto/osdep/BSDEthernetTap.cpp',
+		projDir+'/zto/osdep/OSXEthernetTap.cpp',
+		projDir+'/zto/osdep/WindowsEthernetTap.cpp'
+	]))
 
-#http_parser_module = Extension('http_parser',
-#					extra_compile_args=[],
-#					extra_link_args=[],
-#					sources=http_parser_source_list,
-#					)
-
-libzt_module = Extension('libzt',
-					extra_compile_args=['-std=c++11', '-DZT_SDK', '-DZT_SOFTWARE_UPDATE_DEFAULT=\"disable\"'],
-					extra_link_args=['-L.','-llwip','-lhttp'],
-					sources=source_list,
-					include_dirs=[projDir+'/include',
-							projDir+'/ext/lwip/src/include',
-							projDir+'/ext/lwip-contrib/ports/unix/include',
-							projDir+'/zto/include',
-							projDir+'/zto/node',
-							projDir+'/zto/service',
-							projDir+'/zto/osdep',
-							projDir+'/zto/controller']                           
-					)
+	libzt_module = Extension('libzt',
+		extra_compile_args=['-std=c++11', '-DZT_SDK', '-DZT_SOFTWARE_UPDATE_DEFAULT=\"disable\"'],
+		extra_link_args=['-L.','-llwip','-lhttp'],
+		sources=source_list,
+		include_dirs=[projDir+'/include',
+			projDir+'/ext/lwip/src/include',
+			projDir+'/ext/lwip-contrib/ports/unix/include',
+			projDir+'/zto/include',
+			projDir+'/zto/node',
+			projDir+'/zto/service',
+			projDir+'/zto/osdep',
+			projDir+'/zto/controller']                           
+		)
 
 setup(    
 	include_package_data=True,
@@ -66,7 +82,7 @@ setup(
 	description = 'ZeroTier',
 	long_description = 'Encrypted P2P communication between apps and services',
 	author = 'ZeroTier, Inc.',
-	author_email = 'joseph@zerotier.com',
+	author_email = 'josep@zerotier.com',
 	url = 'https://github.com/zerotier/libzt',
 	license='GPLv3',
 	download_url = 'https://github.com/zerotier/libzt/archive/1.1.6.tar.gz',

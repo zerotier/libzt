@@ -1,6 +1,6 @@
 bdist:
 	cd ../../; cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=DEBUG
-	cmake --build build
+	cd ../../; cmake --build build
 	cp ../../bin/lib/*.a .
 	python3 setup.py bdist_wheel	
 

@@ -30,7 +30,7 @@
 
 %{
 #define SWIG_FILE_WITH_INIT
-#include "data/libzt/include/libzt.h"
+#include "../../include/libzt.h"
 %}
 
 int zts_start(const char *path, bool blocking);

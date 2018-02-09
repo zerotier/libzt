@@ -7,12 +7,13 @@ class BinaryDistribution(Distribution):
     def is_pure(self):
         return False
 
+projDir='../..'
 source_list = ['libzt_wrap.cxx']
-source_list.extend(list(glob.glob('data/libzt/src/*.cpp')))
-source_list.extend(list(glob.glob('data/zto/node/*.cpp')))
-source_list.extend(list(glob.glob('data/zto/osdep/*.cpp')))
-source_list.extend(list(glob.glob('data/zto/service/*.cpp')))
-source_list.extend(list(glob.glob('data/zto/controller/*.cpp')))
+source_list.extend(list(glob.glob(projDir+'/src/*.cpp')))
+source_list.extend(list(glob.glob(projDir+'/zto/node/*.cpp')))
+source_list.extend(list(glob.glob(projDir+'/zto/osdep/*.cpp')))
+source_list.extend(list(glob.glob(projDir+'/zto/service/*.cpp')))
+source_list.extend(list(glob.glob(projDir+'/zto/controller/*.cpp')))
 
 #http_parser_source_list = ['libzt_wrap.cxx']
 #http_parser_source_list.extend(list(glob.glob('../../zto/ext/http-parser/*.c')))
@@ -22,7 +23,7 @@ source_list.extend(list(glob.glob('data/zto/controller/*.cpp')))
 #lwip_source_list.extend(list(glob.glob('../../ext/lwip/src/core/ipv6/*.c')))
 
 source_list = list(set(source_list)-set(
-	['data/zto/osdep/LinuxEthernetTap.cpp','data/zto/osdep/BSDEthernetTap.cpp','data/zto/osdep/OSXEthernetTap.cpp', 'data/zto/osdep/WindowsEthernetTap.cpp']))
+	[projDir+'/zto/osdep/LinuxEthernetTap.cpp',projDir+'/zto/osdep/BSDEthernetTap.cpp',projDir+'/zto/osdep/OSXEthernetTap.cpp', projDir+'/zto/osdep/WindowsEthernetTap.cpp']))
 
 #lwip_module = Extension('lwip',
 #					extra_compile_args=['-DZT_SDK'],
@@ -44,14 +45,14 @@ libzt_module = Extension('libzt',
 					extra_compile_args=['-std=c++11', '-DZT_SDK', '-DZT_SOFTWARE_UPDATE_DEFAULT=\"disable\"'],
 					extra_link_args=['-L.','-llwip','-lhttp'],
 					sources=source_list,
-					include_dirs=['data/libzt/include',
-							'data/libzt/ext/lwip/src/include',
-							'data/libzt/ext/lwip-contrib/ports/unix/include',
-							'data/zto/include',
-							'data/zto/node',
-							'data/zto/service',
-							'data/zto/osdep',
-							'data/zto/controller']                           
+					include_dirs=[projDir+'/include',
+							projDir+'/ext/lwip/src/include',
+							projDir+'/ext/lwip-contrib/ports/unix/include',
+							projDir+'/zto/include',
+							projDir+'/zto/node',
+							projDir+'/zto/service',
+							projDir+'/zto/osdep',
+							projDir+'/zto/controller']                           
 					)
 
 setup(    
@@ -61,14 +62,14 @@ setup(
 	py_modules = ['libzt'],
 	name = 'libzt',
 	packages = ['libzt'],
-	version = '1.1.5a19',
-	description = 'ZeroTier, in library form.',
-	long_description = 'Encrypted P2P networks between your applications',
+	version = '1.1.6a0',
+	description = 'ZeroTier',
+	long_description = 'Encrypted P2P communication between apps and services',
 	author = 'ZeroTier, Inc.',
 	author_email = 'joseph@zerotier.com',
 	url = 'https://github.com/zerotier/libzt',
 	license='GPLv3',
-	download_url = 'https://github.com/zerotier/libzt/archive/1.1.5.tar.gz',
+	download_url = 'https://github.com/zerotier/libzt/archive/1.1.6.tar.gz',
 	keywords = 'zerotier sdwan sdn virtual network socket p2p peer-to-peer',
 	classifiers = ['Development Status :: 3 - Alpha',
 		'Environment :: MacOS X',

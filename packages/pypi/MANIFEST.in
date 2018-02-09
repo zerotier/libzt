@@ -2,9 +2,9 @@
 README.rst
 setup.cfg
 setup.py
-recursive-include data *.c
-recursive-include data *.cpp
-recursive-include data *.h
-recursive-include data *.hpp
+#recursive-include ../../src *.c
+recursive-include ../../src *.cpp
+recursive-include ../../include *.h
+#recursive-include ../../include *.hpp
 include libhttp.a
 include liblwip.a

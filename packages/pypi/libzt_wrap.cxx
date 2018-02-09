@@ -3130,7 +3130,7 @@ namespace swig {
 
 
 #define SWIG_FILE_WITH_INIT
-#include "data/libzt/include/libzt.h"
+#include "../../include/libzt.h"
 
 
 SWIGINTERN swig_type_info*

@@ -27,27 +27,11 @@
 # NOTE: This file only exists as a convenience for cleaning. To build, use 
 # CMake. Instructions are given in README.md
 
-.PHONY: install
-install:
-	mkdir -p $(DESTDIR)$(PREFIX)/lib
-	mkdir -p $(DESTDIR)$(PREFIX)/include
-	cp $(BUILDPATH)/$(STATIC_LIB) $(DESTDIR)$(PREFIX)/lib/
-	cp include/libzt.h $(DESTDIR)$(PREFIX)/include/
-
-.PHONY: uninstall
-uninstall:
-	rm -f $(DESTDIR)$(PREFIX)/*.a
-	rm -f $(DESTDIR)$(PREFIX)/include/*.h
-
-##############################################################################
-## Misc                                                                     ##
-##############################################################################
-
 .PHONY: clean
 clean:
-	-rm rf bin build
-	-rm f *.o *.s *.exp *.lib .depend* *.core core
-	-rm -rf .depend
-	-find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.so' -o -name \
+	rm -rf bin build
+	rm -f *.o *.s *.exp *.lib .depend* *.core core
+	rm -rf .depend
+	find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.so' -o -name \
 		'*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete	
 

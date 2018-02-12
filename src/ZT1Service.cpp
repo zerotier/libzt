@@ -456,7 +456,7 @@ int zts_start(const char *path, bool blocking = false)
 			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 		}
 		DEBUG_EXTRA("node=%llx", zts_get_node_id());
-		DEBUG_EXTRA("waiting for node to come online");
+		DEBUG_EXTRA("waiting for node to come online. ensure the node is authorized to join the network");
 		while (status.online <= 0) {
 			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 			zt1Service->getNode()->status(&status);

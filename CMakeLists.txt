@@ -143,9 +143,9 @@ if (WIN32)
 endif()
 set_target_properties (zt PROPERTIES OUTPUT_NAME zt)
 # (libzt) Shared Library variant of ZeroTier paired with userspace stack and virtual tap interface
-#add_library (ztshared SHARED ${libzt_src_glob})
-#target_link_libraries (ztshared zto_pic lwip_pic)
-#set_target_properties (ztshared PROPERTIES OUTPUT_NAME zt)
+add_library (ztshared SHARED ${libzt_src_glob})
+target_link_libraries (ztshared zto_pic lwip_pic)
+set_target_properties (ztshared PROPERTIES OUTPUT_NAME zt)
 
 
 # --- Test applications, examples, etc ---

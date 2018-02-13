@@ -589,6 +589,7 @@ void tcp_select_client(TCP_UNIT_TEST_SIG_4)
 	memset(rbuf, 0, sizeof rbuf);
 	if ((fd = _SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
+		exit(0);		
 		perror("socket");
 		*passed = false;
 		return;
@@ -681,6 +682,7 @@ void tcp_client_4(TCP_UNIT_TEST_SIG_4)
 	memset(rbuf, 0, sizeof rbuf);
 	if ((fd = _SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
+		exit(0);	
 		perror("socket");
 		*passed = false;
 		return;
@@ -736,6 +738,7 @@ void tcp_server_4(TCP_UNIT_TEST_SIG_4)
 	memset(rbuf, 0, sizeof rbuf);
 	if ((fd = _SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
+		exit(0);
 		perror("socket");
 		*passed = false;
 		return;
@@ -805,6 +808,7 @@ void tcp_client_6(TCP_UNIT_TEST_SIG_6)
 	memset(rbuf, 0, sizeof rbuf);
 	if ((fd = _SOCKET(AF_INET6, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
+		exit(0);
 		perror("socket");
 		*passed = false;
 		return;
@@ -860,6 +864,7 @@ void tcp_server_6(TCP_UNIT_TEST_SIG_6)
 	memset(rbuf, 0, sizeof rbuf);
 	if ((fd = _SOCKET(AF_INET6, SOCK_STREAM, 0)) < 0) { 
 		DEBUG_ERROR("error creating ZeroTier socket");
+		exit(0);
 		perror("socket");
 		*passed = false;
 		return;
@@ -933,6 +938,7 @@ void udp_client_4(UDP_UNIT_TEST_SIG_4)
 	memset(rbuf, 0, sizeof rbuf);
 	if ((fd = _SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
+		exit(0);
 		perror("socket");
 		*passed = false;
 		return;
@@ -984,6 +990,7 @@ void udp_server_4(UDP_UNIT_TEST_SIG_4)
 	memset(rbuf, 0, sizeof rbuf);
 	if ((fd = _SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
+		exit(0);
 		perror("socket");
 		*passed = false;
 		return;
@@ -1061,6 +1068,7 @@ void udp_client_6(UDP_UNIT_TEST_SIG_6)
 
 	if ((fd = _SOCKET(AF_INET6, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
+		exit(0);
 		perror("socket");
 		*passed = false;
 		return;
@@ -1112,7 +1120,8 @@ void udp_server_6(UDP_UNIT_TEST_SIG_6)
 	memset(rbuf, 0, sizeof rbuf);
 
 	if ((fd = _SOCKET(AF_INET6, SOCK_DGRAM, 0)) < 0) {
-		DEBUG_ERROR("error creating socket");
+		DEBUG_ERROR("error creating ZeroTier socket");
+		exit(0);
 		perror("socket");
 		*passed = false;
 		return;
@@ -1188,6 +1197,7 @@ void tcp_client_sustained_4(TCP_UNIT_TEST_SIG_4)
 
 	if ((fd = _SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
+		exit(0);
 		perror("socket");
 		*passed = false;
 		return;
@@ -1281,6 +1291,7 @@ void tcp_client_sustained_6(TCP_UNIT_TEST_SIG_6)
 	generate_random_data(txbuf, cnt, 0, 9);
 	if ((fd = _SOCKET(AF_INET6, SOCK_STREAM, 0)) < 0){
 		DEBUG_ERROR("error creating ZeroTier socket");
+		exit(0);
 		perror("socket");
 		*passed = false;
 		return;
@@ -1369,6 +1380,7 @@ void tcp_server_sustained_4(TCP_UNIT_TEST_SIG_4)
 
 	if ((fd = _SOCKET(AF_INET, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
+		exit(0);
 		perror("socket");
 		*passed = false;
 		return;
@@ -1461,6 +1473,7 @@ void tcp_server_sustained_6(TCP_UNIT_TEST_SIG_6)
 
 	if ((fd = _SOCKET(AF_INET6, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
+		exit(0);
 		perror("socket");
 		*passed = false;
 		return;
@@ -1556,6 +1569,7 @@ void udp_client_sustained_4(UDP_UNIT_TEST_SIG_4)
 	memset(rbuf, 0, sizeof rbuf);
 	if ((fd = _SOCKET(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
+		exit(0);
 		perror("socket");
 		*passed = false;
 		return;
@@ -1647,6 +1661,7 @@ void udp_client_sustained_6(UDP_UNIT_TEST_SIG_6)
 	memset(rbuf, 0, sizeof rbuf);
 	if ((fd = _SOCKET(AF_INET6, SOCK_DGRAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");
+		exit(0);
 		perror("socket");
 		*passed = false;
 		return;

@@ -54,7 +54,7 @@ if (WIN32)
 	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/win32)
 	set (COMMON_DEBUG_FLAGS "-DLIBZT_TRACE=1 -DLIBZT_DEBUG=1 -DNS_TRACE=1 -DNS_DEBUG=1")
 else()
-	set (CMAKE_C_FLAGS "-fvisibility=hidden -fstack-protector -DZT_SDK=1")
+	set (CMAKE_C_FLAGS "-fstack-protector -DZT_SDK=1")
 	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/unix/port)
 	set (COMMON_DEBUG_FLAGS "-g -DLIBZT_TRACE=1 -DLIBZT_DEBUG=1 -DNS_TRACE=1 -DNS_DEBUG=1")
 endif()
@@ -150,9 +150,11 @@ set_target_properties (ztshared PROPERTIES OUTPUT_NAME zt)
 
 # --- Test applications, examples, etc ---
 
-file (GLOB APP_SOURCES ${PROJ_DIR}/examples/bindings/cpp/ipv4simple/*
-	${PROJ_DIR}/examples/bindings/cpp/ipv6simple/*
-	${PROJ_DIR}/examples/bindings/cpp/ipv6adhoc/* 
+file (GLOB APP_SOURCES 
+	${PROJ_DIR}/examples/bindings/cpp/ipv4simple/*.cpp 
+	${PROJ_DIR}/examples/bindings/cpp/ipv6simple/*.cpp 
+	${PROJ_DIR}/examples/bindings/cpp/ipv6adhoc/*.cpp 
+	${PROJ_DIR}/examples/bindings/cpp/sharedlib/*.cpp 
 	${PROJ_DIR}/examples/apps/ztproxy/*.cpp
 )
 foreach (testsourcefile ${APP_SOURCES})
@@ -162,7 +164,7 @@ foreach (testsourcefile ${APP_SOURCES})
 if (WIN32)
     target_link_libraries (${testname} lwip zto zt)
 else()
-	target_link_libraries (${testname} pthread lwip zto zt)
+	target_link_libraries (${testname} lwip zto zt pthread)
 endif()
 endforeach (testsourcefile ${APP_SOURCES})
 

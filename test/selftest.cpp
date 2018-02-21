@@ -230,8 +230,8 @@ inline unsigned int gettid()
 #define _READ read
 #define _WRITE write
 
-#define _RECV recv
-#define _SEND send
+//#define _RECV recv
+//#define _SEND send
 
 #if defined(_WIN32)
 #define _CLOSE closesocket
@@ -2895,7 +2895,7 @@ int main(int argc , char *argv[])
 			zts_start(argv[3], true);
 			zts_join(nwid);
 			sleep(2);
-			DEBUG_TEST("generated id: %llx", nodeId);
+			DEBUG_TEST("generated id: %llx", (unsigned long long)nodeId);
 			exit(0);
 		}
 	}
@@ -2985,7 +2985,7 @@ int main(int argc , char *argv[])
 		}
 		zts_startjoin(path.c_str(), nwid);
 		uint64_t nodeId = zts_get_node_id();
-		DEBUG_TEST("I am %llx, %s", nodeId, me.c_str());
+		DEBUG_TEST("I am %llx, %s", (unsigned long long)nodeId, me.c_str());
 		if (mode == TEST_MODE_SERVER) {
 			DEBUG_TEST("Ready. You should start selftest program on second host now...\n\n");
 		}

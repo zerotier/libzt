@@ -79,7 +79,7 @@ int main(int argc, char **argv)
 	in6.sin6_family = AF_INET6;
 	in6.sin6_addr = in6addr_any;
 
-	fprintf(stderr, "nwid=%llx\n", nwid);
+	fprintf(stderr, "nwid=%llx\n", (unsigned long long)nwid);
 	exit(-1);
 
 	// --- BEGIN EXAMPLE CODE

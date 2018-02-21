@@ -500,7 +500,7 @@ ssize_t zts_sendmsg(int fd, const struct msghdr *msg, int flags)
 
 ssize_t zts_recv(int fd, void *buf, size_t len, int flags)
 {
-	DEBUG_TRANS("fd=%d, len=%zu", fd);
+	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
 	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
@@ -519,7 +519,7 @@ ssize_t zts_recv(int fd, void *buf, size_t len, int flags)
 ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags,
 	struct sockaddr *addr, socklen_t *addrlen)
 {
-	DEBUG_TRANS("fd=%d, len=%zu", fd);
+	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
 	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;

@@ -135,7 +135,7 @@ bool VirtualTap::addIp(const InetAddress &ip)
 #endif
 #if defined(STACK_PICO) || defined(STACK_LWIP)
 	char ipbuf[INET6_ADDRSTRLEN];
-	DEBUG_EXTRA("addr=%s, nwid=%llx", ip.toString(ipbuf), _nwid);
+	DEBUG_EXTRA("addr=%s, nwid=%llx", ip.toString(ipbuf), (unsigned long long)_nwid);
 	Mutex::Lock _l(_ips_m);
 	if (registerIpWithStack(ip)) {
 		if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
@@ -193,7 +193,7 @@ std::string VirtualTap::nodeId() const
 	if (zt1ServiceRef) {
 		char id[ZTO_ID_LEN];
 		memset(id, 0, sizeof(id));
-		sprintf(id, "%llx",((ZeroTier::OneService *)zt1ServiceRef)->getNode()->address());
+		sprintf(id, "%llx", (unsigned long long)((ZeroTier::OneService *)zt1ServiceRef)->getNode()->address());
 		return std::string(id);
 	}
 	else {

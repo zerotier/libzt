@@ -65,10 +65,10 @@ int main(int argc, char **argv)
 
 	DEBUG_TEST("Waiting for libzt to come online...\n");
 	uint64_t nwid = strtoull(nwidstr.c_str(),NULL,16);
-	printf("nwid=%llx\n", nwid);
+	printf("nwid=%llx\n", (unsigned long long)nwid);
 	zts_startjoin(path.c_str(), nwid);
 	uint64_t nodeId = zts_get_node_id();
-	DEBUG_TEST("I am %llx", nodeId);
+	DEBUG_TEST("I am %llx", (unsigned long long)nodeId);
 
 	if ((sockfd = zts_socket(AF_INET6, SOCK_STREAM, 0)) < 0) {
 		DEBUG_ERROR("error creating ZeroTier socket");

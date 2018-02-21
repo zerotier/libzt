@@ -181,7 +181,6 @@ namespace ZeroTier {
 	}
 
 	// TODO: ZT_SOCKET_API int ZTCALL zts_get_peer_address(char *peer, const uint64_t nodeId);
-	// TODO: ZT_SOCKET_API void ZTCALL zts_allow_http_control(bool allowed);
 
 	/****************************************************************************/
     /* ZeroTier Socket API                                                      */

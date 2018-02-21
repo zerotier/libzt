@@ -62,7 +62,6 @@ WSADATA wsaData;
 #include <Windows.h>
 #endif
 
-// prototype
 void api_sleep(int interval_ms);
 
 /****************************************************************************/
@@ -172,7 +171,6 @@ VirtualTap *getAnyTap()
 
 uint64_t zts_get_node_id_from_file(const char *filepath)
 {
-	DEBUG_EXTRA("");
 	std::string fname("identity.public");
 	std::string fpath(filepath);
 	std::string oldid;
@@ -300,7 +298,7 @@ int zts_get_address_at_index(
 int zts_set_service_port(int portno)
 {
 	if (portno > -1 && portno < 65535) {
-		// 0 is allowed, see docs
+		// 0 is allowed, signals zt service to bind to a random port
 		servicePort = portno;
 		return 0;
 	}
@@ -316,31 +314,25 @@ int zts_get_address(const uint64_t nwid, struct sockaddr_storage *addr,
 	}
 	VirtualTap *tap = getTapByNWID(nwid);
 	if (!tap) {
-		//DEBUG_ERROR("!tap");
 		return -1;
 	}
 	_vtaps_lock.lock();
-	if (!tap->_ips.size()) {
-		// DEBUG_ERROR("!sz");
-	}
-	else {
-		socklen_t addrlen = sizeof(struct sockaddr_storage);
-		for (size_t i=0; i<tap->_ips.size(); i++) {
-			if (address_family == AF_INET) {
-				if (tap->_ips[i].isV4()) {
-					memcpy(addr, &(tap->_ips[i]), addrlen);
-					addr->ss_family = AF_INET;
-					err = 0;
-					break;
-				}
+	socklen_t addrlen = sizeof(struct sockaddr_storage);
+	for (size_t i=0; i<tap->_ips.size(); i++) {
+		if (address_family == AF_INET) {
+			if (tap->_ips[i].isV4()) {
+				memcpy(addr, &(tap->_ips[i]), addrlen);
+				addr->ss_family = AF_INET;
+				err = 0;
+				break;
 			}
-			if (address_family == AF_INET6) {
-				if (tap->_ips[i].isV6()) {
-					memcpy(addr, &(tap->_ips[i]), addrlen);
-					addr->ss_family = AF_INET6;
-					err = 0;
-					break;
-				}
+		}
+		if (address_family == AF_INET6) {
+			if (tap->_ips[i].isV6()) {
+				memcpy(addr, &(tap->_ips[i]), addrlen);
+				addr->ss_family = AF_INET6;
+				err = 0;
+				break;
 			}
 		}
 	}
@@ -377,7 +369,7 @@ void zts_get_rfc4193_addr(struct sockaddr_storage *addr, const uint64_t nwid, co
 
 int zts_join(const uint64_t nwid)
 {
-	DEBUG_EXTRA("");
+	DEBUG_INFO("joining %llx", (unsigned long long)nwid);
 	if (nwid == 0) {
 		return -1;
 	}
@@ -397,7 +389,7 @@ int zts_join(const uint64_t nwid)
 
 int zts_leave(const uint64_t nwid)
 {
-	DEBUG_EXTRA("");
+	DEBUG_INFO("leaving %llx", (unsigned long long)nwid);
 	if (nwid == 0) {
 		return -1;
 	}
@@ -428,7 +420,6 @@ int zts_ready()
 
 int zts_start(const char *path, bool blocking = false)
 {
-	DEBUG_EXTRA("");
 	if (zt1Service) {
 		return 0; // already initialized, ok
 	}
@@ -455,7 +446,7 @@ int zts_start(const char *path, bool blocking = false)
 		while (zt1Service->getNode()->address() <= 0) {
 			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 		}
-		DEBUG_EXTRA("node=%llx", zts_get_node_id());
+		DEBUG_EXTRA("node=%llx", (unsigned long long)zts_get_node_id());
 		DEBUG_EXTRA("waiting for node to come online. ensure the node is authorized to join the network");
 		while (status.online <= 0) {
 			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
@@ -467,7 +458,6 @@ int zts_start(const char *path, bool blocking = false)
 
 int zts_startjoin(const char *path, const uint64_t nwid)
 {
-	DEBUG_EXTRA("");
 	int err = zts_start(path, true);
 	while (true) {
 		try {
@@ -475,7 +465,8 @@ int zts_startjoin(const char *path, const uint64_t nwid)
 			break;
 		}
 		catch( ... ) {
-			DEBUG_ERROR("there was a problem joining the virtual network %s", nwid);
+			DEBUG_ERROR("there was a problem joining the virtual network %llx", 
+				(unsigned long long)nwid);
 			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 		}
 	}
@@ -487,7 +478,6 @@ int zts_startjoin(const char *path, const uint64_t nwid)
 
 void zts_stop()
 {
-	DEBUG_EXTRA("");
 	if (zt1Service) {
 		zt1Service->terminate();
 		// disableTaps();
@@ -499,7 +489,6 @@ void zts_stop()
 
 void zts_get_path(char *homePath, size_t len)
 {
-	DEBUG_EXTRA("");
 	if (homeDir.length()) {
 		memset(homePath, 0, len);
 		size_t buf_len = len < homeDir.length() ? len : homeDir.length();
@@ -509,16 +498,14 @@ void zts_get_path(char *homePath, size_t len)
 
 uint64_t zts_get_node_id()
 {
-	DEBUG_EXTRA("");
 	if (zt1Service) {
 		return zt1Service->getNode()->address();
 	}
-	return -1;
+	return 0;
 }
 
 unsigned long zts_get_peer_count()
 {
-	DEBUG_EXTRA("");
 	if (zt1Service) {
 		return zt1Service->getNode()->peers()->peerCount;
 	}
@@ -529,7 +516,7 @@ unsigned long zts_get_peer_count()
 
 int zts_get_peer_address(char *peer, const uint64_t nodeId)
 {
-	DEBUG_EXTRA("");
+	/*
 	if (zt1Service) {
 		ZT_PeerList *pl = zt1Service->getNode()->peers();
 		// uint64_t addr;
@@ -542,12 +529,8 @@ int zts_get_peer_address(char *peer, const uint64_t nodeId)
 	else {
 		return -1;
 	}
-}
-
-void zts_allow_http_control(bool allowed)
-{
-	DEBUG_EXTRA("");
-	// TODO
+	*/
+	return -1;
 }
 
 bool _ipv6_in_subnet(ZeroTier::InetAddress *subnet, ZeroTier::InetAddress *addr)

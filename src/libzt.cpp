@@ -221,7 +221,7 @@ int zts_getsockopt(int fd, int level, int optname, void *optval, socklen_t *optl
 
 int zts_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
-	DEBUG_EXTRA("fd=%p", fd);
+	DEBUG_EXTRA("fd=%d", fd);
 	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
@@ -423,7 +423,7 @@ int zts_fcntl(int fd, int cmd, int flags)
 
 int zts_ioctl(int fd, unsigned long request, void *argp)
 {
-	DEBUG_EXTRA("fd=%d, req=%d", fd, request);
+	DEBUG_EXTRA("fd=%d", fd);
 	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
@@ -442,7 +442,7 @@ int zts_ioctl(int fd, unsigned long request, void *argp)
 ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags,
 	const struct sockaddr *addr, socklen_t addrlen)
 {
-	DEBUG_TRANS("fd=%d, len=%d", fd, len);
+	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
 	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
@@ -464,7 +464,7 @@ ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags,
 
 ssize_t zts_send(int fd, const void *buf, size_t len, int flags)
 {
-	DEBUG_TRANS("fd=%d, len=%d", fd, len);
+	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
 	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
@@ -500,7 +500,7 @@ ssize_t zts_sendmsg(int fd, const struct msghdr *msg, int flags)
 
 ssize_t zts_recv(int fd, void *buf, size_t len, int flags)
 {
-	DEBUG_TRANS("fd=%d", fd);
+	DEBUG_TRANS("fd=%d, len=%zu", fd);
 	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
@@ -519,7 +519,7 @@ ssize_t zts_recv(int fd, void *buf, size_t len, int flags)
 ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags,
 	struct sockaddr *addr, socklen_t *addrlen)
 {
-	DEBUG_TRANS("fd=%d", fd);
+	DEBUG_TRANS("fd=%d, len=%zu", fd);
 	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
@@ -535,7 +535,7 @@ ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags,
 #endif
 }
 
-ssize_t zts_recvmsg(int fd, struct msghdr *msg,int flags)
+ssize_t zts_recvmsg(int fd, struct msghdr *msg, int flags)
 {
 	DEBUG_TRANS("fd=%d", fd);
 	if (zts_ready() == false) {
@@ -556,7 +556,7 @@ ssize_t zts_recvmsg(int fd, struct msghdr *msg,int flags)
 
 int zts_read(int fd, void *buf, size_t len)
 {
-	DEBUG_TRANS("fd=%d, len=%d", fd, len);
+	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
 	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
@@ -574,7 +574,7 @@ int zts_read(int fd, void *buf, size_t len)
 
 int zts_write(int fd, const void *buf, size_t len)
 {
-	DEBUG_EXTRA("fd=%d, len=%d", fd, len);
+	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
 	if (zts_ready() == false) {
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;

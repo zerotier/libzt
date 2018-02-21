@@ -81,7 +81,7 @@ VirtualTap::VirtualTap(
 	// set virtual tap interface name (full)
 	memset(vtap_full_name, 0, sizeof(vtap_full_name));
 	ifindex = devno;
-	snprintf(vtap_full_name, sizeof(vtap_full_name), "libzt%d-%llx", devno++, _nwid);
+	snprintf(vtap_full_name, sizeof(vtap_full_name), "libzt%d-%llx", devno++, (unsigned long long)_nwid);
 	_dev = vtap_full_name;
 	DEBUG_INFO("set VirtualTap interface name to: %s", _dev.c_str());
 	// set virtual tap interface name (abbreviated)
@@ -128,7 +128,7 @@ bool VirtualTap::addIp(const InetAddress &ip)
 {
 #if defined(NO_STACK)
 	char ipbuf[INET6_ADDRSTRLEN];
-	DEBUG_INFO("addIp=%s, nwid=%llx", ip.toString(ipbuf), _nwid);
+	DEBUG_INFO("addIp=%s, nwid=%llx", ip.toString(ipbuf), (unsigned long long)_nwid);
 	_ips.push_back(ip);
 	std::sort(_ips.begin(),_ips.end());
 	return true;
@@ -488,7 +488,7 @@ int VirtualTap::Write(VirtualSocket *vs, void *data, ssize_t len)
 #if defined(NO_STACK)
 	return -1;
 #endif
-	DEBUG_EXTRA("vs=%p, fd=%d, data=%p, len=%d", vs, vs->app_fd, data, len);
+	DEBUG_EXTRA("vs=%p, fd=%d, data=%p, len=%lu", vs, vs->app_fd, data, (unsigned long)len);
 	int err = -1;
 #if defined(LIBZT_RAW)
 	// VL2, SOCK_RAW, no network stack
@@ -652,7 +652,7 @@ void VirtualTap::Housekeeping()
 					}
 				}
 				if (found == false) {
-					DEBUG_INFO("removing route to <target=%s>", routes[i].first.toString(ipbuf), routes[i].second.toString(ipbuf2));
+					DEBUG_INFO("removing route to <%s,%s>", routes[i].first.toString(ipbuf), routes[i].second.toString(ipbuf2));
 					routes.erase(routes.begin() + i);
 					routeDelete(routes[i].first, routes[i].second);
 				}

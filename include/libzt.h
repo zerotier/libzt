@@ -279,15 +279,6 @@ ZT_SOCKET_API unsigned long zts_get_peer_count();
  */
 ZT_SOCKET_API int ZTCALL zts_get_peer_address(char *peer, const uint64_t nodeId);
 
-/**
- * @brief Allow or disallow this instance of libzt to be controlled via HTTP requests
- *
- * @usage Call this after zts_start() has succeeded
- * @param allowed True or false value
- * @return
- */
-ZT_SOCKET_API void ZTCALL zts_allow_http_control(bool allowed);
-
 /****************************************************************************/
 /* POSIX-like socket API                                                    */
 /****************************************************************************/

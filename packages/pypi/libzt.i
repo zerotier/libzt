@@ -75,8 +75,6 @@ unsigned long zts_get_peer_count();
 
 int zts_get_peer_address(char *peer, const uint64_t nodeId);
 
-void zts_allow_http_control(bool allowed);
-
 int zts_socket(int socket_family, int socket_type, int protocol);
 
 int zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen);

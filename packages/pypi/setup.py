@@ -26,7 +26,7 @@ if os.name == 'nt':
 		projDir+'\\zto\\osdep\\WindowsEthernetTap.cpp'
 	]))
 
-	libzt_module = Extension('libzt',
+	libzt_module = Extension('_libzt',
 		extra_compile_args=['/std:c++14', '-DNOMINMAX=1', '-DZT_SDK', '-DSDK', '-DZT_SOFTWARE_UPDATE_DEFAULT=\"disable\"'],
 		extra_link_args=['/LIBPATH:.', 'WS2_32.Lib', 'ShLwApi.Lib', 'iphlpapi.Lib','lwip.lib','http.lib'],
 		sources=source_list,
@@ -57,7 +57,7 @@ else:
 		projDir+'/zto/osdep/WindowsEthernetTap.cpp'
 	]))
 
-	libzt_module = Extension('libzt',
+	libzt_module = Extension('_libzt',
 		extra_compile_args=['-std=c++11', '-DZT_SDK', '-DZT_SOFTWARE_UPDATE_DEFAULT=\"disable\"'],
 		extra_link_args=['-L.','-llwip','-lhttp'],
 		sources=source_list,

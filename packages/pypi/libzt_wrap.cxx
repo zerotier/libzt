@@ -3037,7 +3037,7 @@ static swig_module_info swig_module = {swig_types, 17, 0, 0, 0, 0};
               @(target):= _libzt.so
   ------------------------------------------------*/
 #if PY_VERSION_HEX >= 0x03000000
-#  define SWIG_init    PyInit_libzt
+#  define SWIG_init    PyInit__libzt
 
 #else
 #  define SWIG_init    init_libzt
@@ -4051,27 +4051,6 @@ SWIGINTERN PyObject *_wrap_zts_get_peer_address(PyObject *SWIGUNUSEDPARM(self), 
   return resultobj;
 fail:
   if (alloc1 == SWIG_NEWOBJ) delete[] buf1;
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_zts_allow_http_control(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  bool arg1 ;
-  bool val1 ;
-  int ecode1 = 0 ;
-  PyObject * obj0 = 0 ;
-  
-  if (!PyArg_ParseTuple(args,(char *)"O:zts_allow_http_control",&obj0)) SWIG_fail;
-  ecode1 = SWIG_AsVal_bool(obj0, &val1);
-  if (!SWIG_IsOK(ecode1)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "zts_allow_http_control" "', argument " "1"" of type '" "bool""'");
-  } 
-  arg1 = static_cast< bool >(val1);
-  zts_allow_http_control(arg1);
-  resultobj = SWIG_Py_Void();
-  return resultobj;
-fail:
   return NULL;
 }
 
@@ -5218,7 +5197,6 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"zts_get_rfc4193_addr", _wrap_zts_get_rfc4193_addr, METH_VARARGS, NULL},
 	 { (char *)"zts_get_peer_count", _wrap_zts_get_peer_count, METH_VARARGS, NULL},
 	 { (char *)"zts_get_peer_address", _wrap_zts_get_peer_address, METH_VARARGS, NULL},
-	 { (char *)"zts_allow_http_control", _wrap_zts_allow_http_control, METH_VARARGS, NULL},
 	 { (char *)"zts_socket", _wrap_zts_socket, METH_VARARGS, NULL},
 	 { (char *)"zts_connect", _wrap_zts_connect, METH_VARARGS, NULL},
 	 { (char *)"zts_bind", _wrap_zts_bind, METH_VARARGS, NULL},

@@ -164,7 +164,7 @@ foreach (testsourcefile ${APP_SOURCES})
 if (WIN32)
     target_link_libraries (${testname} lwip zto zt)
 else()
-	target_link_libraries (${testname} lwip zto zt pthread)
+	target_link_libraries (${testname} lwip zto zt pthread dl)
 endif()
 endforeach (testsourcefile ${APP_SOURCES})
 

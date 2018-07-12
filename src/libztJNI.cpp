@@ -27,7 +27,7 @@
 /**
  * @file
  *
- * Javs JNI wrapper for partially-POSIX-compliant socket API
+ * Javs JNI wrapper for POSIX-like socket API
  * JNI naming convention: Java_PACKAGENAME_CLASSNAME_METHODNAME
  */
 
@@ -200,7 +200,8 @@ namespace ZeroTier {
 			return -1; // possibly invalid address format
 			// TODO: set errno
 		}
-		return zts_connect(fd, (struct sockaddr *)&ss, sizeof(struct sockaddr_storage));
+		socklen_t addrlen = ss.ss_family == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
+		return zts_connect(fd, (struct sockaddr *)&ss, addrlen);
 	}
 
 	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_bind(
@@ -213,7 +214,7 @@ namespace ZeroTier {
 			// TODO: set errno
 		}
 		//DEBUG_TEST("RESULT => %s : %d", inet_ntoa(in4->sin_addr), ntohs(in4->sin_port));
-		socklen_t addrlen = ss.ss_family == AF_INET ? 4 : 16;
+		socklen_t addrlen = ss.ss_family == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
 		err = zts_bind(fd, (struct sockaddr*)&ss, addrlen);
 		return err;
 	}
@@ -383,7 +384,7 @@ namespace ZeroTier {
 		jint fd, jarray buf, jint len)
 	{
 		jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
-		int read_bytes = read(fd, body, len);
+		int read_bytes = zts_read(fd, body, len);
 		(*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);
 		return read_bytes;
 	}

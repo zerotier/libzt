@@ -11,7 +11,8 @@
 ### JAR file (with embedded C++ dynamic library)
 
 ```
-make example_app
+make example_java_app
+make copy_dynamic_lib
 make jar
 ```
 

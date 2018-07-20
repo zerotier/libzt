@@ -1,0 +1,13 @@
+diff --git a/src/api/sockets.c b/src/api/sockets.c
+index b7632489..f6ab59f6 100644
+--- a/src/api/sockets.c
++++ b/src/api/sockets.c
+@@ -44,6 +44,8 @@
+  *
+  */
+ 
++#include <errno.h>
++
+ #include "lwip/opt.h"
+ 
+ #if LWIP_SOCKET /* don't build if not configured for use in lwipopts.h */

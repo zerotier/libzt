@@ -1,6 +1,0 @@
-node_modules/*
-darwin
-zto
-include
-libzt-build
-package-lock.json

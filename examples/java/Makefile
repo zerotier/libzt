@@ -15,7 +15,7 @@ example_java_app_1.6:
 	javac -source 1.6 -bootclasspath /usr/lib/jvm/java-1.6.0-openjdk-1.6.0.41.x86_64/jre/lib/rt.jar -target 1.6 *.java
 
 copy_dynamic_lib:
-	cp ../../../bin/lib/$(SHARED_LIB) .
+	cp ../../bin/lib/$(SHARED_LIB) .
 
 jar:
 	jar cf libzt.jar libzt.dylib zerotier/ZeroTier.class

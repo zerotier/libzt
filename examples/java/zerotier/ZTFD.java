@@ -1,6 +1,6 @@
 /*
  * ZeroTier SDK - Network Virtualization Everywhere
- * Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (C) 2011-2018  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,33 +24,9 @@
  * of your own application.
  */
 
-#include "libzt.h"
+package zerotier;
 
-#include <unistd.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <strings.h>
-#include <string.h>
-
-#include <stdio.h>
-#include <dlfcn.h>
-
-int (*realsocket)(ZT_SOCKET_SIG) = 0;
-
-extern void load_symbols()
+public class fd_set
 {
-    DEBUG_INFO();
-    realsocket = (int(*)(ZT_SOCKET_SIG))dlsym(RTLD_NEXT, "socket");
-}
-
-int socket(ZT_SOCKET_SIG)
-{   
-	DEBUG_INFO();
-	return zts_socket(socket_family, socket_type, protocol);
-}
-
-int main()
-{
-	return 0;
+	byte[] fds_bits[1024 / 8];
 }

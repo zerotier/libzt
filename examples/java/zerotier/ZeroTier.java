@@ -1,6 +1,6 @@
 /*
  * ZeroTier SDK - Network Virtualization Everywhere
- * Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (C) 2011-2018  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,22 +29,19 @@ package zerotier;
 import java.net.*;
 
 public class ZeroTier {
-    // socket families
+
     public static int AF_INET = 2;
     public static int AF_INET6 = 30;
-    // socket types
     public static int SOCK_STREAM = 1;
     public static int SOCK_DGRAM = 2;
-    // fcntl flags
     public static int O_APPEND = 1024;
     public static int O_NONBLOCK = 2048;
     public static int O_ASYNC = 8192;
     public static int O_DIRECT = 65536;
     public static int O_NOATIME = 262144;
-    // fcntl cmds
     public static int F_GETFL = 3;
     public static int F_SETFL = 4;
-    // service controls
+
     public native void start(String homePath, boolean blocking);
     public native void startjoin(String homePath, long nwid);
     public native void stop();
@@ -56,37 +53,29 @@ public class ZeroTier {
     public native String get_path();
     public native long get_node_id();
     public native int get_num_assigned_addresses(long nwid);
-    public native InetAddress get_address_at_index(long nwid, int index);
+    public native boolean get_address_at_index(long nwid, int index, ZTSocketAddress addr);
     public native boolean has_address(long nwid);
-    public native InetAddress get_address(long nwid, int address_family);
+    public native boolean get_address(long nwid, int address_family, ZTSocketAddress addr);
     public native void get_6plane_addr();
     public native void get_rfc4193_addr();
-    // socket API
+
     public native int socket(int family, int type, int protocol);
-    public native int connect(int fd, InetSocketAddress addr);
-    public native int bind(int fd, InetSocketAddress addr);
+    public native int connect(int fd, ZTSocketAddress addr);
+    public native int bind(int fd, ZTSocketAddress addr);
     public native int listen(int fd, int backlog);
-    public native int accept(int fd, InetSocketAddress addr);
+    public native int accept(int fd, ZTSocketAddress addr);
     public native int accept4(int fd, String addr, int port);
     public native int close(int fd);
-    //public native int setsockopt();
-    //public native int getsockopt();
-    public native int sendto(int fd, byte[] buf, int len, int flags, InetSocketAddress addr);
+    public native int setsockopt(int fd, int level, int optname, int optval, int optlen);
+    public native int getsockopt(int fd, int level, int optname, int optval, int optlen);
+    public native int sendto(int fd, byte[] buf, int len, int flags, ZTSocketAddress addr);
     public native int send(int fd, byte[] buf, int len, int flags);
-    public native int recvfrom(int fd, byte[] buf, int len, int flags, InetSocketAddress addr);
+    public native int recv(int fd, byte[] buf, int len, int flags);
+    public native int recvfrom(int fd, byte[] buf, int len, int flags, ZTSocketAddress addr);
     public native int read(int fd, byte[] buf, int len);
     public native int write(int fd, byte[] buf, int len);
     public native int shutdown(int fd, int how);
-    //public native int getsockname();
-    //public native int getpeername();
-    //public native int gethostname();
-    ///public native int sethostname();
-    //public native int gethostbyname();
-    //public native int poll();
-    //public native int select();
+    public native boolean getsockname(int fd, ZTSocketAddress addr);
+    public native int getpeername(int fd, ZTSocketAddress addr);
     public native int fcntl(int sock, int cmd, int flag);
-    //public native int ioctl(int fd, long request, ? );
-    // stack controls
-    public native int add_dns();
-    public native int del_dns();
 }

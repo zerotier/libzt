@@ -25,7 +25,7 @@ public class MainActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             public void run() {
                 final String path = getApplicationContext().getFilesDir() + "/zerotier";
-                long nwid = 0xac9afb026544b071L;
+                long nwid = 0xac9afb023544b071L;
 
                 // Test modes
                 boolean blocking_start_call = true;
@@ -50,7 +50,24 @@ public class MainActivity extends AppCompatActivity {
                 if (blocking_start_call) {
                     libzt.startjoin(path, nwid);
                 }
-                System.out.println("Complete");
+                System.out.println("ZT service ready.");
+
+                // Device/Node address info
+                System.out.println("path=" + libzt.get_path());
+                long nodeId = libzt.get_node_id();
+                System.out.println("nodeId=" + Long.toHexString(nodeId));
+                int numAddresses = libzt.get_num_assigned_addresses(nwid);
+                System.out.println("this node has (" + numAddresses + ") assigned addresses on network " + Long.toHexString(nwid));
+                for (int i=0; i<numAddresses; i++) {
+                    libzt.get_address_at_index(nwid, i, sockname);
+                    //System.out.println("address[" + i + "] = " + sockname.toString()); // ip:port
+                    System.out.println("address[" + i + "] = " + sockname.toCIDR());
+                }
+
+                libzt.get_6plane_addr(nwid, nodeId, sockname);
+                System.out.println("6PLANE address = " + sockname.toCIDR());
+
+
             }
         }).start();
     }

@@ -53,7 +53,7 @@ public class ExampleApp {
 			public void run() 
 			{
 				String path = "/Users/joseph/op/zt/libzt/ztjni"; // Where node's config files are stored
-				long nwid = 0xf0b9acf0833f4b071L;
+				long nwid = 0xa09acf0233e4b070L;
 
 				// Test modes				
 				boolean blocking_start_call = true;
@@ -105,18 +105,20 @@ public class ExampleApp {
 					}
 				}
 				System.out.println("ZT service ready.");
-								
-				// Device/Node address info
-				System.out.println("path=" + libzt.get_path());
-				System.out.println("nodeId=" + Long.toHexString(libzt.get_node_id()));
-				int numAddresses = libzt.get_num_assigned_addresses(nwid);
-				System.out.println("this node has (" + numAddresses + ") assigned addresses on network " + Long.toHexString(nwid));
-				for (int i=0; i<numAddresses; i++) {
-					libzt.get_address_at_index(nwid, i, sockname);
-					//System.out.println("address[" + i + "] = " + sockname.toString()); // ip:port
-					System.out.println("address[" + i + "] = " + sockname.toCIDR());
+                // Device/Node address info
+                System.out.println("path=" + libzt.get_path());
+                long nodeId = libzt.get_node_id();
+                System.out.println("nodeId=" + Long.toHexString(nodeId));
+                int numAddresses = libzt.get_num_assigned_addresses(nwid);
+                System.out.println("this node has (" + numAddresses + ") assigned addresses on network " + Long.toHexString(nwid));
+                for (int i=0; i<numAddresses; i++) {
+                    libzt.get_address_at_index(nwid, i, sockname);
+                    //System.out.println("address[" + i + "] = " + sockname.toString()); // ip:port
+                    System.out.println("address[" + i + "] = " + sockname.toCIDR());
+                }
 
-				}
+                libzt.get_6plane_addr(nwid, nodeId, sockname);
+                System.out.println("6PLANE address = " + sockname.toCIDR());
 
 				// Idle loop test
 				while(idle) { try { Thread.sleep(3000); } catch (InterruptedException e) { e.printStackTrace(); } }

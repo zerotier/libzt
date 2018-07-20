@@ -152,7 +152,7 @@ namespace ZeroTier {
 		return err;
 	}
 
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_get_6plane_addr(
+	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_get_16plane_1addr(
 		JNIEnv *env, jobject thisObj, jlong nwid, jlong nodeId, jobject addr)
 	{
 		struct sockaddr_storage ss;
@@ -160,7 +160,7 @@ namespace ZeroTier {
 		ss2zta(env, &ss, addr);
 	}
 
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_get_rfc4193_addr(
+	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_get_1rfc4193_1addr(
 		JNIEnv *env, jobject thisObj, jlong nwid, jlong nodeId, jobject addr)
 	{
 		struct sockaddr_storage ss;
@@ -168,7 +168,7 @@ namespace ZeroTier {
 		ss2zta(env, &ss, addr);
 	}
 
-	JNIEXPORT jlong JNICALL Java_zerotier_ZeroTier_get_peer_count(
+	JNIEXPORT jlong JNICALL Java_zerotier_ZeroTier_get_1peer_1count(
 		JNIEnv *env, jobject thisObj)
 	{
 		return zts_get_peer_count();

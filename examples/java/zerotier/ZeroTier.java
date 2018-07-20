@@ -56,8 +56,8 @@ public class ZeroTier {
     public native boolean get_address_at_index(long nwid, int index, ZTSocketAddress addr);
     public native boolean has_address(long nwid);
     public native boolean get_address(long nwid, int address_family, ZTSocketAddress addr);
-    public native void get_6plane_addr();
-    public native void get_rfc4193_addr();
+    public native void get_6plane_addr(long nwid, long nodeId, ZTSocketAddress addr);
+    public native void get_rfc4193_addr(long nwid, long nodeId, ZTSocketAddress addr);
 
     public native int socket(int family, int type, int protocol);
     public native int connect(int fd, ZTSocketAddress addr);

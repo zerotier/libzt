@@ -34,16 +34,13 @@
 #define ZT_LWIP_HPP
 
 #include "libztDefs.h"
-
-#ifdef STACK_LWIP
+#include "lwip/err.h"
 
 namespace ZeroTier {
   class MAC;
   class Mutex;
   struct InetAddress;
 }
-
-//#include "lwip/err.h"
 
 /**
  * @brief Initialize network stack semaphores, threads, and timers.
@@ -105,146 +102,4 @@ err_t lwip_eth_tx(struct netif *netif, struct pbuf *p);
 void lwip_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC &to, unsigned int etherType,
 	const void *data, unsigned int len);
 
-/****************************************************************************/
-/* Raw API driver                                                           */
-/****************************************************************************/
-
-#ifdef ZT_VIRTUAL_SOCKET
-
-class VirtualSocket;
-
-/**
- * Returns the number of TCP PCBs currently allocated
- */
-int rd_lwip_num_current_tcp_pcbs();
-
-/**
- * Returns the number of UDP PCBs currently allocated
- */
-int rd_lwip_num_current_udp_pcbs();
-
-/**
- * Returns the number of RAW PCBs currently allocated
- */
-int rd_lwip_num_current_raw_pcbs();
-
-/**
- * Returns the total number of PCBs of any time or state
- */
-int rd_lwip_num_total_pcbs();
-
-/**
- * Registers a DNS nameserver with the network stack
- */
-int rd_lwip_add_dns_nameserver(struct sockaddr *addr);
-
-/**
- * Un-registers a DNS nameserver from the network stack
- */
-int rd_lwip_del_dns_nameserver(struct sockaddr *addr);
-
-/**
- * Main stack loop
- */
-void rd_lwip_loop(VirtualTap *tap);
-
-/**
- * Creates a stack-specific "socket" or "VirtualSocket object"
- */
-int rd_lwip_socket(void **pcb, int socket_family, int socket_type, int protocol);
-
-/**
- * Connect to remote host via userspace network stack interface - Called from VirtualTap
- */
-int rd_lwip_connect(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
-
-/**
- * Bind to a userspace network stack interface - Called from VirtualTap
- */
-int rd_lwip_bind(VirtualTap *tap, VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
-
-/**
- * Listen for incoming VirtualSockets - Called from VirtualTap
- */
-int rd_lwip_listen(VirtualSocket *vs, int backlog);
-
-/**
- * Accept an incoming VirtualSocket - Called from VirtualTap
- */
-VirtualSocket* rd_lwip_accept(VirtualSocket *vs);
-
-/**
- * Read from RX buffer to application - Called from VirtualTap
- */
-int rd_lwip_read(VirtualSocket *vs, bool lwip_invoked);
-
-/**
- * Write to userspace network stack - Called from VirtualTap
- */
-int rd_lwip_write(VirtualSocket *vs, void *data, ssize_t len);
-
-/**
- * Close a VirtualSocket - Called from VirtualTap
- */
-int rd_lwip_close(VirtualSocket *vs);
-
-/**
- * Shuts down some aspect of a VirtualSocket - Called from VirtualTap
- */
-int rd_lwip_shutdown(VirtualSocket *vs, int how);
-
-/**
- *  Sets a property of a socket
- */
-int rd_lwip_setsockopt(VirtualSocket *vs, int level, int optname, const void *optval, socklen_t optlen);
-
-/**
- *  Gets a property of a socket
- */
-int rd_lwip_getsockopt(VirtualSocket *vs, int level, int optname, void *optval, socklen_t *optlen);
-
-// --- Callbacks from network stack ---
-
-#ifdef ZT_DRIVER_MODULE // only include these symbols if we're building the full driver
-
-/**
- * Callback for handling received UDP packets (already processed by network stack)
- */
-static err_t rd_lwip_cb_tcp_recved(void *arg, struct tcp_pcb *PCB, struct pbuf *p, err_t err);
-
-/**
- * Callback for handling accepted connection
- */
-static err_t rd_lwip_cb_accept(void *arg, struct tcp_pcb *newPCB, err_t err);
-
-/**
- * Callback for handling received TCP packets (already processed by stack)
- */
-static void rd_lwip_cb_udp_recved(void * arg, struct udp_pcb * upcb, struct pbuf * p, const ip_addr_t * addr, u16_t port);
-
-/**
- * Callback for handling errors from within the network stack
- */
-static void rd_lwip_cb_err(void *arg, err_t err);
-
-/**
- * Callback for handling periodic background tasks
- */
-static err_t rd_lwip_cb_poll(void* arg, struct tcp_pcb *PCB);
-
-/**
- * Callback for handling confirmation of sent packets
- */
-static err_t rd_lwip_cb_sent(void *arg, struct tcp_pcb *PCB, u16_t len);
-
-/**
- * Callback for handling successful connections
- */
-static err_t rd_lwip_cb_connected(void *arg, struct tcp_pcb *PCB, err_t err);
-
-#endif // ZT_DRIVER_MODULE
-
-#endif
-
-#endif // ZT_VIRTUAL_SOCKET
-#endif // STACK_LWIP
+#endif // _H

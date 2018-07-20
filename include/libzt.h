@@ -223,7 +223,7 @@ ZT_SOCKET_API int ZTCALL zts_get_num_assigned_addresses(const uint64_t nwid);
  * @return The number of addresses assigned
  */
 ZT_SOCKET_API int ZTCALL zts_get_address_at_index(
-	const uint64_t nwid, const int index, struct sockaddr_storage *addr);
+	const uint64_t nwid, const int index, struct sockaddr *addr, socklen_t *addrlen);
 
 /**
  * @brief Get IP address for this device on a given network
@@ -231,7 +231,7 @@ ZT_SOCKET_API int ZTCALL zts_get_address_at_index(
  * @usage FIXME: Only returns first address found, good enough for most cases
  * @param nwid Network ID
  * @param addr Destination structure for address
- * @param address_family To designate what family of addresses we want to return. AF_INET or AF_INET6
+ * @param addrlen size of destination address buffer, will be changed to size of returned address
  * @return 0 if an address was successfully found, -1 if failure
  */
 ZT_SOCKET_API int ZTCALL zts_get_address(
@@ -268,16 +268,6 @@ ZT_SOCKET_API void ZTCALL zts_get_rfc4193_addr(
  * @return
  */
 ZT_SOCKET_API unsigned long zts_get_peer_count();
-
-/**
- * @brief Get the virtual address of a peer given its Node ID
- *
- * @usage Call this after zts_start() has succeeded
- * @param peer Returned peer address
- * @param nodeId Provided Node ID
- * @return
- */
-ZT_SOCKET_API int ZTCALL zts_get_peer_address(char *peer, const uint64_t nodeId);
 
 /****************************************************************************/
 /* POSIX-like socket API                                                    */

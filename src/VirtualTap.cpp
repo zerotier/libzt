@@ -40,17 +40,12 @@ typedef unsigned short u16_t;
 #include "libzt.h"
 #include "libztDebug.h"
 #include "lwIP.h"
-#include "picoTCP.h"
 #include "ZT1Service.h"
-#include "VirtualSocket.h"
-#include "VirtualSocketLayer.h"
 #include "SysUtils.h"
 
 #include "Mutex.hpp"
 #include "InetAddress.hpp"
 #include "OneService.hpp"
-
-//class VirtualSocket;
 
 int VirtualTap::devno = 0;
 
@@ -87,11 +82,8 @@ VirtualTap::VirtualTap(
 	// set virtual tap interface name (abbreviated)
 	memset(vtap_abbr_name, 0, sizeof(vtap_abbr_name));
 	snprintf(vtap_abbr_name, sizeof(vtap_abbr_name), "libzt%d", devno);
-#if defined(STACK_LWIP)
-	// initialize network stacks
 	lwip_driver_init();
-#endif
-	// start vtap thread and stack I/O loops
+	// start virtual tap thread and stack I/O loops
 	_thread = Thread::start(this);
 }
 
@@ -113,44 +105,26 @@ bool VirtualTap::enabled() const
 	return _enabled;
 }
 
-bool VirtualTap::registerIpWithStack(const InetAddress &ip)
+void VirtualTap::registerIpWithStack(const InetAddress &ip)
 {
-#if defined(STACK_LWIP)
 	lwip_init_interface((void*)this, this->_mac, ip);
-#endif
-#if defined(STACK_PICO)
-	pico_register_address(this, ip);
-#endif
-	return true;
 }
 
 bool VirtualTap::addIp(const InetAddress &ip)
 {
-#if defined(NO_STACK)
-	char ipbuf[INET6_ADDRSTRLEN];
-	DEBUG_INFO("addIp=%s, nwid=%llx", ip.toString(ipbuf), (unsigned long long)_nwid);
-	_ips.push_back(ip);
-	std::sort(_ips.begin(),_ips.end());
-	return true;
-#endif
-#if defined(STACK_PICO) || defined(STACK_LWIP)
 	char ipbuf[INET6_ADDRSTRLEN];
 	DEBUG_EXTRA("addr=%s, nwid=%llx", ip.toString(ipbuf), (unsigned long long)_nwid);
 	Mutex::Lock _l(_ips_m);
-	if (registerIpWithStack(ip)) {
-		if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
-			_ips.push_back(ip);
-			std::sort(_ips.begin(),_ips.end());
-		}
-		return true;
+	registerIpWithStack(ip);
+	if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
+		_ips.push_back(ip);
+		std::sort(_ips.begin(),_ips.end());
 	}
-	return false;
-#endif
+	return true;
 }
 
 bool VirtualTap::removeIp(const InetAddress &ip)
 {
-	DEBUG_EXTRA("");
 	Mutex::Lock _l(_ips_m);
 	std::vector<InetAddress>::iterator i(std::find(_ips.begin(),_ips.end(),ip));
 	//if (i == _ips.end()) {
@@ -158,10 +132,10 @@ bool VirtualTap::removeIp(const InetAddress &ip)
 	//}
 	_ips.erase(i);
 	if (ip.isV4()) {
-		// FIXME: De-register from network stacks
+		// FIXME: De-register from network stack
 	}
 	if (ip.isV6()) {
-		// FIXME: De-register from network stacks
+		// FIXME: De-register from network stack
 	}
 	return true;
 }
@@ -175,12 +149,7 @@ std::vector<InetAddress> VirtualTap::ips() const
 void VirtualTap::put(const MAC &from,const MAC &to,unsigned int etherType,
 	const void *data,unsigned int len)
 {
-#if defined(STACK_LWIP)
 	lwip_eth_rx(this, from, to, etherType, data, len);
-#endif
-#if defined(STACK_PICO)
-	rd_pico_eth_rx(this,from,to,etherType,data,len);
-#endif
 }
 
 std::string VirtualTap::deviceName() const
@@ -238,366 +207,10 @@ void VirtualTap::setMtu(unsigned int mtu)
 void VirtualTap::threadMain()
 	throw()
 {
-#if defined(STACK_LWIP) && !defined(LIBZT_RAW)
 	while (true) {
 		_phy.poll(ZT_PHY_POLL_INTERVAL);
 		Housekeeping();
 	}
-#endif
-#if defined(STACK_LWIP) && defined(LIBZT_RAW)
-	rd_lwip_loop(this); // use driver loop
-#endif
-#if defined(STACK_PICO)
-	pico_init_interface(this);
-	if (this->should_start_stack) {
-		rd_pico_loop(this); // use driver loop
-	}
-#endif
-}
-
-void VirtualTap::phyOnUnixClose(PhySocket *sock, void **uptr)
-{
-	DEBUG_EXTRA("");
-}
-
-void VirtualTap::phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len)
-{
-	DEBUG_EXTRA("");
-#if defined(LIBZT_RAW)
-	VirtualSocket *vs = (VirtualSocket*)*uptr;
-	if (vs == NULL) {
-		return;
-	}
-	if (len > 0) {
-		Write(vs, data, len);
-	}
-#endif
-}
-
-void VirtualTap::phyOnUnixWritable(PhySocket *sock, void **uptr, bool stack_invoked)
-{
-	DEBUG_EXTRA("");
-#if defined(LIBZT_RAW)
-	if (sock) {
-		Read(sock,uptr,stack_invoked);
-	} else {
-		DEBUG_ERROR("!sock");
-	}
-#endif
-}
-
-bool VirtualTap::routeAdd(const InetAddress &ip, const InetAddress &nm, const InetAddress &gw)
-{
-	bool err = false;
-	DEBUG_EXTRA("");
-#if defined(STACK_LWIP)
-	// general_lwip_init_interface(this, NULL, "n1", _mac, ip, nm, gw);
-	// general_turn_on_interface(NULL);
-	return true;
-#endif
-#if defined(STACK_PICO)
-	return rd_pico_route_add(this, ip, nm, gw, 0);
-#endif
-#if defined(NO_STACK)
-	// nothing to do
-#endif
-	return err;
-}
-
-bool VirtualTap::routeDelete(const InetAddress &ip, const InetAddress &nm)
-{
-	bool err = false;
-	DEBUG_EXTRA("");
-#if defined(STACK_LWIP)
-	// general_lwip_init_interface(this, NULL, "n1", _mac, ip, nm, gw);
-	// general_turn_on_interface(NULL);
-	return true;
-#endif
-#if defined(STACK_PICO)
-	return rd_pico_route_del(this, ip, nm, 0);
-#endif
-#if defined(NO_STACK)
-	// nothing to do
-#endif
-	return err;
-}
-
-void VirtualTap::addVirtualSocket(VirtualSocket *vs)
-{
-#if defined(LIBZT_RAW)
-	DEBUG_EXTRA("");
-	Mutex::Lock _l(_tcpconns_m);
-	_VirtualSockets.push_back(vs);
-#endif
-}
-
-void VirtualTap::removeVirtualSocket()
-{
-#if defined(LIBZT_RAW)
-	DEBUG_EXTRA("");
-	Mutex::Lock _l(_tcpconns_m);
-	for (int i=0; i<_VirtualSockets.size(); i++) {
-		if (vs == _VirtualSockets[i]) {
-			_VirtualSockets.erase(_VirtualSockets.begin() + i);
-			break;
-		}
-	}
-#endif
-}
-
-/****************************************************************************/
-/* DNS                                                                      */
-/****************************************************************************/
-
-int VirtualTap::add_DNS_Nameserver(struct sockaddr *addr)
-{
-	int err = -1;
-#if defined(STACK_LWIP) && defined(LIBZT_RAW)
-	err = rd_lwip_add_dns_nameserver(addr);
-#endif
-#if defined(STACK_PICO)
-	rd_pico_add_dns_nameserver(addr);
-#endif
-	return err;
-}
-
-int VirtualTap::del_DNS_Nameserver(struct sockaddr *addr)
-{
-	int err = -1;
-#if defined(STACK_LWIP)  && defined(LIBZT_RAW)
-	err = rd_lwip_del_dns_nameserver(addr);
-#endif
-#if defined(STACK_PICO)
-	err = rd_pico_del_dns_nameserver(addr);
-#endif
-	return err;
-}
-
-/****************************************************************************/
-/* SDK Socket API                                                           */
-/****************************************************************************/
-
-// Connect
-int VirtualTap::Connect(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen)
-{
-#if !defined(LIBZT_RAW)
-	return -1;
-#endif
-#if defined(NO_STACK)
-	return -1;
-#endif
-	int err = -1;
-#if defined(STACK_LWIP) && defined(LIBZT_RAW)
-	err = rd_lwip_connect(vs, addr, addrlen);
-#endif
-#if defined(STACK_PICO)
-	Mutex::Lock _l(_tcpconns_m);
-	err = rd_pico_connect(vs, addr, addrlen);
-#endif
-	return err;
-}
-
-// Bind VirtualSocket to a network stack's interface
-int VirtualTap::Bind(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen)
-{
-#if !defined(LIBZT_RAW)
-	return -1;
-#endif
-#if defined(NO_STACK)
-	return -1;
-#endif
-#if defined(STACK_LWIP) && defined(LIBZT_RAW)
-	Mutex::Lock _l(_tcpconns_m);
-	return rd_lwip_bind(this, vs, addr, addrlen);
-#endif
-#if defined(STACK_PICO)
-	Mutex::Lock _l(_tcpconns_m);
-	return rd_pico_bind(vs, addr, addrlen);
-#endif
-	return -1;
-}
-
-// Listen for an incoming VirtualSocket
-int VirtualTap::Listen(VirtualSocket *vs, int backlog)
-{
-#if !defined(LIBZT_RAW)
-	return -1;
-#endif
-#if defined(NO_STACK)
-	return -1;
-#endif
-	int err = -1;
-#if defined(STACK_LWIP) && defined(LIBZT_RAW)
-	Mutex::Lock _l(_tcpconns_m);
-	err = rd_lwip_listen(vs, backlog);
-#endif
-#if defined(STACK_PICO)
-	Mutex::Lock _l(_tcpconns_m);
-	return rd_pico_listen(vs, backlog);
-#endif
-	return err;
-}
-
-// Accept a VirtualSocket
-VirtualSocket *VirtualTap::Accept(VirtualSocket *vs)
-{
-#if !defined(LIBZT_RAW)
-	return NULL;
-#endif
-	VirtualSocket *new_vs = NULL;
-#if defined(NO_STACK)
-	new_vs = NULL;
-#endif
-#if defined(STACK_LWIP) && defined(LIBZT_RAW)
-	Mutex::Lock _l(_tcpconns_m);
-	new_vs = rd_lwip_accept(vs);
-#endif
-#if defined(STACK_PICO)
-	// TODO: separation of church and state
-	Mutex::Lock _l(_tcpconns_m);
-	new_vs = rd_pico_accept(vs);
-#endif
-	return new_vs;
-}
-
-// Read from stack/buffers into the app's socket
-int VirtualTap::Read(VirtualSocket *vs, PhySocket *sock, void **uptr, bool stack_invoked)
-{
-#if !defined(LIBZT_RAW)
-	return -1;
-#endif
-#if defined(NO_STACK)
-	return -1;
-#endif
-	int err = -1;
-#if defined(STACK_LWIP) && defined(LIBZT_RAW)
-	err = rd_lwip_read((VirtualSocket*)*(_phy.getuptr(sock)), stack_invoked);
-#endif
-#if defined(STACK_PICO)
-	err = rd_pico_read(this, sock, (VirtualSocket*)uptr, stack_invoked);
-#endif
-	return err;
-}
-
-// Write data from app socket to the virtual wire, either raw over VL2, or via network stack
-int VirtualTap::Write(VirtualSocket *vs, void *data, ssize_t len)
-{
-#if !defined(LIBZT_RAW)
-	return -1;
-#endif
-#if defined(NO_STACK)
-	return -1;
-#endif
-	DEBUG_EXTRA("vs=%p, fd=%d, data=%p, len=%lu", vs, vs->app_fd, data, (unsigned long)len);
-	int err = -1;
-#if defined(LIBZT_RAW)
-	// VL2, SOCK_RAW, no network stack
-	if (vs->socket_type == SOCK_RAW) {
-		struct ether_header *eh = (struct ether_header *) data;
-		MAC src_mac;
-		MAC dest_mac;
-		src_mac.setTo(eh->ether_shost, 6);
-		dest_mac.setTo(eh->ether_dhost, 6);
-		_handler(_arg,NULL,_nwid,src_mac,dest_mac, Utils::ntoh((uint16_t)eh->ether_type),0, ((char*)data) + sizeof(struct ether_header),len - sizeof(struct ether_header));
-		return len;
-	}
-#endif
-#if defined(STACK_LWIP) && defined(LIBZT_RAW)
-	err = rd_lwip_write(vs, data, len);
-#endif
-#if defined(STACK_PICO)
-	err = rd_pico_write(vs, data, len);
-#endif
-	return err;
-}
-
-// Send data to a specified host
-int VirtualTap::SendTo(VirtualSocket *vs, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen)
-{
-#if !defined(ZT_VIRTUAL_SOCKET)
-	return -1;
-#endif
-	int err = -1;
-#if defined(STACK_LWIP) && defined(ZT_VIRTUAL_SOCKET)
-	if ((err = rd_lwip_connect(vs, addr, addrlen)) < 0) { // implicit
-		return err;
-	}
-	if ((err = rd_lwip_write(vs, (void*)buf, len)) < 0) {
-		return err;
-	}
-#endif
-#if defined(STACK_PICO) && defined(ZT_VIRTUAL_SOCKET)
-	if ((err = rd_pico_connect(vs, addr, addrlen)) < 0) { // implicit
-		errno = ENOTCONN;
-		return err;
-	}
-	if ((err = rd_pico_write(vs, (void*)buf, len)) < 0) {
-		errno = ENOBUFS; // TODO: translate pico err to something more useful
-		return err;
-	}
-#endif
-	return err;
-}
-
-// Remove VritualSocket from VirtualTap, and instruct network stacks to dismantle their
-// respective protocol control structures
-int VirtualTap::Close(VirtualSocket *vs)
-{
-#if !defined(LIBZT_RAW)
-	return -1;
-#endif
-	int err = 0;
-#if defined(LIBZT_RAW)
-	if (vs == NULL) {
-		DEBUG_ERROR("invalid VirtualSocket");
-		return -1;
-	}
-	if (vs->sock) {
-		DEBUG_EXTRA("calling _phy.close()");
-		_phy.close(vs->sock, true);
-	}
-	removeVirtualSocket(vs);
-#endif
-#if defined(STACK_LWIP) && defined(LIBZT_RAW)
-	err = rd_lwip_close(vs);
-#endif
-#if defined(STACK_PICO)
-	/*
-		if (vs->get_state() != VS_STATE_CLOSED && vs->get_state() != VS_STATE_LISTENING) {
-			DEBUG_EXTRA("vs=%p, vs->get_state()=%d, vs->picosock->state=%d", vs, vs->get_state(), vs->picosock->state);
-			// doesn't make sense to shut down a listening socket, just close it
-			if ((err = vs->tap->Shutdown(vs, SHUT_RDWR)) < 0) {
-				DEBUG_ERROR("error while shutting down socket");
-				return - 1;
-			}
-		}
-		rd_pico_Close(vs);
-		removeVirtualSocket(vs);
-		if (vs->socket_type == SOCK_STREAM) {
-			while (!(vs->picosock->state & PICO_SOCKET_STATE_CLOSED)) {
-				nanosleep((const struct timespec[]) {{0, (ZT_ACCEPT_RECHECK_DELAY * 1000000)}}, NULL);
-				DEBUG_EXTRA("virtual lingering on socket, ps=%p, buf remaining=%d",vs->picosock, vs->TXbuf->count());
-			}
-		}
-	*/
-#endif
-	return err;
-}
-
-// Shuts down some aspect of a connection
-int VirtualTap::Shutdown(VirtualSocket *vs, int how)
-{
-#if !defined(LIBZT_RAW)
-	return -1;
-#endif
-	int err = 0;
-#if defined(STACK_LWIP) && defined(LIBZT_RAW)
-	err = rd_lwip_shutdown(vs, how);
-#endif
-#if defined(STACK_PICO)
-	err = rd_pico_shutdown(vs, how);
-#endif
-	return err;
 }
 
 void VirtualTap::Housekeeping()
@@ -618,6 +231,7 @@ void VirtualTap::Housekeeping()
 			char ipbuf[INET6_ADDRSTRLEN], ipbuf2[INET6_ADDRSTRLEN], ipbuf3[INET6_ADDRSTRLEN];
 			// TODO: Rework this when we have time
 			// check if pushed route exists in tap (add)
+			/*
 			for (int i=0; i<ZT_MAX_NETWORK_ROUTES; i++) {
 				found = false;
 				target_addr = managed_routes->at(i).target;
@@ -657,6 +271,7 @@ void VirtualTap::Housekeeping()
 					routeDelete(routes[i].first, routes[i].second);
 				}
 			}
+			*/
 		}
 		// TODO: Clean up VirtualSocket objects
 		last_housekeeping_ts = time_now();

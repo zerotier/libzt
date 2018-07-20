@@ -30,17 +30,6 @@
  * Platform-specific implementations of common functions
  */
 
-#if defined(STACK_LWIP)
-#include "lwip/sockets.h"
-#include "lwip/sys.h"
-#include "lwip/ip_addr.h"
-#include "lwip/netdb.h"
-#include "dns.h"
-#endif
-#if defined(NO_STACK)
-#include <sys/socket.h>
-#endif
-
 #if defined(__linux__) || defined(__APPLE__)
 #include <sys/socket.h>
 #include <pthread.h>
@@ -53,17 +42,3 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 #endif
-
-inline unsigned int gettid()
-{
-#ifdef _WIN32
-		//return GetCurrentThreadId();
-		return 0;
-#elif defined(__linux__)
-		return static_cast<unsigned int>(syscall(__NR_gettid));
-#elif defined(__APPLE__)
-		uint64_t tid64;
-		pthread_threadid_np(0, &tid64);
-		return static_cast<unsigned int>(tid64);
-#endif
-}

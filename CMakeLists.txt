@@ -24,7 +24,7 @@
 #  of your own application.
 # 
 
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.0)
 project (libzt)
 
 # --- SETUP
@@ -54,9 +54,14 @@ if (WIN32)
 	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/win32)
 	set (COMMON_DEBUG_FLAGS "-DLIBZT_TRACE=1 -DLIBZT_DEBUG=1 -DNS_TRACE=1 -DNS_DEBUG=1")
 else()
-	set (CMAKE_C_FLAGS "-fstack-protector -DZT_SDK=1")
+	set (CMAKE_C_FLAGS "-fstack-protector -DLWIP_DEBUG=1 -DZT_SDK=1")
 	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/unix/port)
-	set (COMMON_DEBUG_FLAGS "-g -DLIBZT_TRACE=1 -DLIBZT_DEBUG=1 -DNS_TRACE=1 -DNS_DEBUG=1")
+	set (COMMON_DEBUG_FLAGS "-g -DLIBZT_TRACE=1 -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1 -DNS_TRACE=1 -DNS_DEBUG=1")
+endif()
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Android")
+	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -DSOCKLEN_T_DEFINED=1")
+	include_directories (/Users/joseph/Library/Android/sdk/ndk-bundle/sysroot/usr/include/arm-linux-androideabi)
 endif()
 
 # Flags for various build types
@@ -94,10 +99,9 @@ add_library (lwip STATIC ${lwip_src_glob})
 add_library (lwip_pic STATIC ${lwip_src_glob})
 set_target_properties (lwip_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-
 # zto 
 # ZeroTier Core Service
-set (ZTO_SRC_DIR ${PROJ_DIR}/zto)
+set (ZTO_SRC_DIR ${PROJ_DIR}/ext/ZeroTierOne)
 include_directories (${ZTO_SRC_DIR}/include)
 include_directories (${ZTO_SRC_DIR}/osdep)
 include_directories (${ZTO_SRC_DIR}/node)
@@ -135,7 +139,6 @@ include_directories ("${LIBZT_SRC_DIR}")
 include_directories ("${PROJ_DIR}/include")
 file (GLOB libzt_src_glob ${LIBZT_SRC_DIR}/*.cpp)
 add_library (zt ${libzt_src_glob})
-target_link_libraries (zt pthread lwip zto)
 if (WIN32)
 	target_link_libraries (zto ws2_32)
 	target_link_libraries (zto ${lshlwapi_LIBRARY_PATH})
@@ -146,41 +149,47 @@ set_target_properties (zt PROPERTIES OUTPUT_NAME zt)
 add_library (ztshared SHARED ${libzt_src_glob})
 target_link_libraries (ztshared zto_pic lwip_pic)
 set_target_properties (ztshared PROPERTIES OUTPUT_NAME zt)
-
+if (${CMAKE_SYSTEM_NAME} MATCHES "Android")
+	target_link_libraries (zt lwip zto android log)
+else()
+	target_link_libraries (zt pthread lwip zto)
+endif()
 
 # --- Test applications, examples, etc ---
 
-file (GLOB APP_SOURCES 
-	${PROJ_DIR}/examples/bindings/cpp/ipv4simple/*.cpp 
-	${PROJ_DIR}/examples/bindings/cpp/ipv6simple/*.cpp 
-	${PROJ_DIR}/examples/bindings/cpp/ipv6adhoc/*.cpp 
-	${PROJ_DIR}/examples/bindings/cpp/sharedlib/*.cpp 
-	${PROJ_DIR}/examples/apps/ztproxy/*.cpp
-)
-foreach (testsourcefile ${APP_SOURCES})
-    string (REPLACE ".cpp" "" testname ${testsourcefile})
-    get_filename_component (testname ${testname} NAME)
-    add_executable (${testname} ${testsourcefile})
-if (WIN32)
-    target_link_libraries (${testname} lwip zto zt)
-else()
-	target_link_libraries (${testname} lwip zto zt pthread dl)
-endif()
-endforeach (testsourcefile ${APP_SOURCES})
+if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Android")
+	file (GLOB APP_SOURCES 
+		${PROJ_DIR}/examples/cpp/ipv4simple/*.cpp 
+		${PROJ_DIR}/examples/cpp/ipv6simple/*.cpp 
+		${PROJ_DIR}/examples/cpp/ipv6adhoc/*.cpp 
+		${PROJ_DIR}/examples/cpp/sharedlib/*.cpp 
+		${PROJ_DIR}/examples/ztproxy/*.cpp
+	)
+	foreach (testsourcefile ${APP_SOURCES})
+	    string (REPLACE ".cpp" "" testname ${testsourcefile})
+	    get_filename_component (testname ${testname} NAME)
+	    add_executable (${testname} ${testsourcefile})
+	if (WIN32)
+	    target_link_libraries (${testname} lwip zto zt)
+	else()
+		target_link_libraries (${testname} lwip zto zt pthread dl)
+	endif()
+	endforeach (testsourcefile ${APP_SOURCES})
 
-# selftest
-add_executable (selftest ${PROJ_DIR}/test/selftest.cpp)
-target_compile_options (selftest PRIVATE -D__SELFTEST__)
-if (WIN32)
-	target_link_libraries (selftest lwip zto zt ${ws2_32_LIBRARY_PATH} ${lshlwapi_LIBRARY_PATH} ${liphlpapi_LIBRARY_PATH})
-else()
-	target_link_libraries (selftest pthread lwip zto zt)
-endif()
+	# selftest
+	add_executable (selftest ${PROJ_DIR}/test/selftest.cpp)
+	target_compile_options (selftest PRIVATE -D__SELFTEST__)
+	if (WIN32)
+		target_link_libraries (selftest lwip zto zt ${ws2_32_LIBRARY_PATH} ${lshlwapi_LIBRARY_PATH} ${liphlpapi_LIBRARY_PATH})
+	else()
+		target_link_libraries (selftest pthread lwip zto zt)
+	endif()
 
-# nativetest
-add_executable (nativetest ${PROJ_DIR}/test/selftest.cpp)
-target_compile_options (nativetest PRIVATE -D__NATIVETEST__)
-target_link_libraries (nativetest lwip zto zt)
+	# nativetest
+	add_executable (nativetest ${PROJ_DIR}/test/selftest.cpp)
+	target_compile_options (nativetest PRIVATE -D__NATIVETEST__)
+	target_link_libraries (nativetest lwip zto zt)
+endif()
 
 # Clean up intermediate library targets
 #file (REMOVE ${LIBRARY_OUTPUT_PATH}/libhttp.a)
@@ -197,7 +206,7 @@ target_link_libraries (nativetest lwip zto zt)
 
 # --- CONFIGURATION
 
-if (JNI EQUAL 1)
+if (JNI EQUAL 1 OR ${CMAKE_SYSTEM_NAME} MATCHES "Android")
 MESSAGE (STATUS "Looking for JNI headers")
 find_package (JNI)
 if (JNI_FOUND)

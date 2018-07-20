@@ -272,7 +272,7 @@ int zts_get_num_assigned_addresses(const uint64_t nwid)
 }
 
 int zts_get_address_at_index(
-	const uint64_t nwid, const int index, struct sockaddr_storage *addr)
+	const uint64_t nwid, const int index, struct sockaddr *addr, socklen_t *addrlen)
 {
 	if (!zt1Service) {
 		return -1;
@@ -283,8 +283,9 @@ int zts_get_address_at_index(
 		return err;
 	}
 	_vtaps_lock.lock();
-	if (index <= tap->_ips.size()) {
-		memcpy(addr, &(tap->_ips[index]), sizeof(struct sockaddr_storage));	
+	if (index > -1 && index <= tap->_ips.size()) {
+		memcpy(addr, &(tap->_ips[index]), *addrlen);
+		*addrlen = tap->_ips[index].isV4() ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
 		err = 0;
 	}
 	_vtaps_lock.unlock();
@@ -512,25 +513,6 @@ unsigned long zts_get_peer_count()
 	else {
 		return 0;
 	}
-}
-
-int zts_get_peer_address(char *peer, const uint64_t nodeId)
-{
-	/*
-	if (zt1Service) {
-		ZT_PeerList *pl = zt1Service->getNode()->peers();
-		// uint64_t addr;
-		for (size_t i=0; i<pl->peerCount; i++) {
-			// ZT_Peer *p = &(pl->peers[i]);
-			// DEBUG_INFO("peer[%d] = %lx", i, p->address);
-		}
-		return pl->peerCount;
-	}
-	else {
-		return -1;
-	}
-	*/
-	return -1;
 }
 
 bool _ipv6_in_subnet(ZeroTier::InetAddress *subnet, ZeroTier::InetAddress *addr)

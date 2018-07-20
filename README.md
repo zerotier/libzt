@@ -10,9 +10,7 @@ A library version of [ZeroTier](https://github.com/zerotier/ZeroTierOne), **libz
 
 [![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
 
- - Pre-Built binaries: [zerotier.com/download.shtml](https://zerotier.com/download.shtml?pk_campaign=github_libzt)
- - Windows DLL (x64) can be found here: [libzt_win_x64_1.1.5.zip](https://download.zerotier.com/dist/libzt_win_x64_1.1.5.zip)
- - Bindings for popular languages like [Scala](examples/bindings/scala), [Swift](examples/bindings/swift), [Java](examples/bindings/java), [Python](examples/bindings/python), etc. can be found [here](examples/bindings)
+ - Bindings for popular languages like [Scala](examples/scala), [Swift](examples/swift), [Java](examples/java), [Python](examples/python), etc. can be found [here](examples/bindings)
 
 *** 
 
@@ -56,7 +54,7 @@ int main()
 }
 ```
 
-For an example using only the [Virtual Layer 2](https://www.zerotier.com/manual.shtml#2_2?pk_campaign=github_libzt), see [test/layer2.cpp](test/layer2.cpp)
+For an example using only the [Virtual Layer 2](https://www.zerotier.com/manual.shtml#2_2?pk_campaign=github_libzt), see [examples/layer2](examples/layer2/layer2.cpp)
 
 ***
 
@@ -67,30 +65,20 @@ We recommend using [CMake](https://cmake.org/) for its extensive cross-platform 
 ```
 git submodule init
 git submodule update
+./ext/patch_submodules.sh
 cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=DEBUG
 cmake --build build 
 ```
 
-Use `libzt.a` or `libzt.dylib` in your application. They are placed in `bin\lib`. Change `CMAKE_BUILD_TYPE` to `RELEASE` for a smaller and optmized build.
-
-### Install
-
- - Install: `make install`
- - Uninstall: `xargs rm < install_manifest.txt`
+Builds are placed in `bin\lib`. Use `libzt.a` or `libzt.dylib` in your application. Change `CMAKE_BUILD_TYPE` to `RELEASE` for a smaller and optimized build.
 
 ***
-
-### Testing and Debugging
- - See [TESTING.md](TESTING.md)
-
 
 ### Contributing
 
 Please make pull requests against the `dev` branch. The `master` branch is release, and `edge` is for unstable and work in progress changes and is not likely to work.
 
 ### Commercial License
- - If you want a commercial license to use libzt in your product contact us directly via `contact@zerotier.com`.
 
-### Adding a custom network stack
- - If you wish to use something other than lwIP or picoTCP, you can easily add your own API function calls in `src/libzt.cpp` or `src/VirtualSocket.cpp` depending on whether your stack's API exposes a POSIX-socket API or a raw API, respectively.
- 
+If you want a commercial license to use libzt in your product contact us directly via `contact@zerotier.com`.
+

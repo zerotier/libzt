@@ -27,25 +27,15 @@
 /**
  * @file
  *
- * Application-facing, partially-POSIX-compliant socket API
+ * Application-facing, socket-like API
  */
 
 #include "libztDefs.h"
 
-#if defined(STACK_LWIP)
 #include "lwip/sockets.h"
 #include "lwip/ip_addr.h"
 #include "lwip/netdb.h"
-//#include "dns.h"
-#endif
-#if defined(NO_STACK)
-#include <sys/socket.h>
-#endif
-#if defined(STACK_PICO)
-#include <sys/socket.h>
-#endif
 
-#include "VirtualSocketLayer.h"
 #include "libztDebug.h"
 
 #include <string.h>
@@ -62,104 +52,58 @@ int zts_socket(int socket_family, int socket_type, int protocol)
 {
 	DEBUG_EXTRA("family=%d, type=%d, proto=%d", socket_family, socket_type, protocol);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	/* with this option, the VirtualSocket layer will abstract a stack's raw API
-	into something that resembles a POSIX socket API, this driver shall be implemented in
-	src/stack_name.cpp and include/stack_name.h */
-	return virt_socket(socket_family, socket_type, protocol);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
-	/* use the lwIP community's own socket API, this provides thread safety and core
-	locking */
 	int socket_family_adj = platform_adjusted_socket_family(socket_family);
 	int err = lwip_socket(socket_family_adj, socket_type, protocol);
 	return err;
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	// return pico_bsd_socket(socket_family, socket_type, protocol);
-	return -1;
-#endif
 }
 
 int zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen)
 {
 	DEBUG_EXTRA("fd=%d",fd);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_connect(fd, addr, addrlen);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	struct sockaddr_storage ss;
 	memcpy(&ss, addr, addrlen);
 	fix_addr_socket_family((struct sockaddr*)&ss);
 	return lwip_connect(fd, (struct sockaddr*)&ss, addrlen);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 int zts_bind(int fd, const struct sockaddr *addr, socklen_t addrlen)
 {
 	DEBUG_EXTRA("fd=%d", fd);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_bind(fd, addr, addrlen);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	struct sockaddr_storage ss;
 	memcpy(&ss, addr, addrlen);
 	fix_addr_socket_family((struct sockaddr*)&ss);
 	return lwip_bind(fd, (struct sockaddr*)&ss, addrlen);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 int zts_listen(int fd, int backlog)
 {
 	DEBUG_EXTRA("fd=%d", fd);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_listen(fd, backlog);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	return lwip_listen(fd, backlog);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 int zts_accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
 	DEBUG_EXTRA("fd=%d", fd);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_accept(fd, addr, addrlen);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	return lwip_accept(fd, addr, addrlen);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 #if defined(__linux__)
@@ -167,19 +111,11 @@ int zts_accept4(int fd, struct sockaddr *addr, socklen_t *addrlen, int flags)
 {
 	DEBUG_EXTRA("fd=%d", fd);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_accept4(fd, addr, addrlen, flags);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
-	// return lwip_accept4(fd, addr, addrlen, flags);
+	// lwip_accept4(fd, addr, addrlen, flags);
 	return -1;
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 #endif
 
@@ -187,120 +123,68 @@ int zts_setsockopt(int fd, int level, int optname, const void *optval, socklen_t
 {
 	DEBUG_EXTRA("fd=%d, level=%d, optname=%d", fd, level, optname);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_setsockopt(fd, level, optname, optval, optlen);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	return lwip_setsockopt(fd, level, optname, optval, optlen);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 int zts_getsockopt(int fd, int level, int optname, void *optval, socklen_t *optlen)
 {
 	DEBUG_EXTRA("fd=%d, level=%d, optname=%d", fd, level, optname);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_getsockopt(fd, level, optname, optval, optlen);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	return lwip_getsockopt(fd, level, optname, optval, optlen);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 int zts_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
 	DEBUG_EXTRA("fd=%d", fd);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_getsockname(fd, addr, addrlen);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	return lwip_getsockname(fd, addr, addrlen);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 int zts_getpeername(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
 	DEBUG_EXTRA("fd=%d", fd);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_getpeername(fd, addr, addrlen);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	return lwip_getpeername(fd, addr, addrlen);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 int zts_gethostname(char *name, size_t len)
 {
 	DEBUG_EXTRA("");
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
 	return -1;
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
-	return -1;
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 int zts_sethostname(const char *name, size_t len)
 {
 	DEBUG_EXTRA("");
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
 	return -1;
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
-	return -1;
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 struct hostent *zts_gethostbyname(const char *name)
 {
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return NULL;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	//return virt_gethostbyname(name);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	// TODO: Test thread safety
 	/*
 	char buf[256];
@@ -320,30 +204,16 @@ struct hostent *zts_gethostbyname(const char *name)
 	return lwip_gethostbyname(name);
 	*/
 	return NULL;
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-#endif
-#if defined(STACK_LWIP)
-#endif
-	return NULL;
 }
 
 int zts_close(int fd)
 {
 	DEBUG_EXTRA("fd=%d", fd);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_close(fd);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	return lwip_close(fd);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 #if defined(__linux__)
@@ -355,17 +225,7 @@ int zts_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 		DEBUG_ERROR("service not started yet, call zts_startjoin()");
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	//return poll(fds, nfds, timeout);
-	return -1;
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
-	//return poll(fds, nfds, timeout);
-	return -1;
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
+	return poll(fds, nfds, timeout);
 }
 */
 #endif
@@ -373,35 +233,20 @@ int zts_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 int zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 	struct timeval *timeout)
 {
-	//DEBUG_EXTRA("");
-	/*
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-	*/
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_select(nfds, readfds, writefds, exceptfds, timeout);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	return lwip_select(nfds, readfds, writefds, exceptfds, timeout);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 int zts_fcntl(int fd, int cmd, int flags)
 {
 	DEBUG_EXTRA("fd=%d, cmd=%d, flags=%d", fd, cmd, flags);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_fcntl(fd, cmd, flags);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	// translation from platform flag values to stack flag values
 	int translated_flags = 0;
 #if defined(__linux__)
@@ -415,28 +260,16 @@ int zts_fcntl(int fd, int cmd, int flags)
 	}
 #endif
 	return lwip_fcntl(fd, cmd, translated_flags);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 int zts_ioctl(int fd, unsigned long request, void *argp)
 {
 	DEBUG_EXTRA("fd=%d", fd);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_ioctl(fd, request, argp);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	return lwip_ioctl(fd, request, argp);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags,
@@ -444,76 +277,43 @@ ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags,
 {
 	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	//return virt_sendto();
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	struct sockaddr_storage ss;
 	memcpy(&ss, addr, addrlen);
 	fix_addr_socket_family((struct sockaddr*)&ss);
 	return lwip_sendto(fd, buf, len, flags, (struct sockaddr*)&ss, addrlen);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
-	return -1;
 }
 
 ssize_t zts_send(int fd, const void *buf, size_t len, int flags)
 {
 	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_send(fd, buf, len, flags);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	return lwip_send(fd, buf, len, flags);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 ssize_t zts_sendmsg(int fd, const struct msghdr *msg, int flags)
 {
 	DEBUG_TRANS("fd=%d", fd);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_sendmsg(fd, msg, flags);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	return lwip_sendmsg(fd, msg, flags);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 ssize_t zts_recv(int fd, void *buf, size_t len, int flags)
 {
 	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_recv(fd, buf, len, flags);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	return lwip_recv(fd, buf, len, flags);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags,
@@ -521,133 +321,73 @@ ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags,
 {
 	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_recvfrom(fd, buf, len, flags, addr, addrlen);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	return lwip_recvfrom(fd, buf, len, flags, addr, addrlen);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 ssize_t zts_recvmsg(int fd, struct msghdr *msg, int flags)
 {
 	DEBUG_TRANS("fd=%d", fd);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_recvmsg(fd, msg, flags);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
-	//return lwip_recvmsg(fd, msg, flags);
-	return -1;
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
+	return -1; // lwip_recvmsg(fd, msg, flags);
+	// Not currently implemented by stack
 }
 
 int zts_read(int fd, void *buf, size_t len)
 {
 	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_read(fd, buf, len);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	return lwip_read(fd, buf, len);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	// return pico_read(fd, buf, len);
-#endif
 }
 
 int zts_write(int fd, const void *buf, size_t len)
 {
 	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_write(fd, buf, len);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	return lwip_write(fd, buf, len);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 int zts_shutdown(int fd, int how)
 {
 	DEBUG_EXTRA("fd=%d, how=%d", fd, how);
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
-	return virt_shutdown(fd, how);
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
 	return lwip_shutdown(fd, how);
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
-
 
 int zts_add_dns_nameserver(struct sockaddr *addr)
 {
 	DEBUG_EXTRA("");
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
+	// TODO
 	return -1;
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
-	struct sockaddr_in *in4 = (struct sockaddr_in*)&addr;
-	static ip4_addr_t ipaddr;
-	ipaddr.addr = in4->sin_addr.s_addr;
-	// TODO: manage DNS server indices
-	//dns_setserver(0, (const ip_addr_t*)&ipaddr);
-	return 0;
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 int zts_del_dns_nameserver(struct sockaddr *addr)
 {
 	DEBUG_EXTRA("");
 	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
+		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return -1;
 	}
-#if defined(ZT_VIRTUAL_SOCKET)
+	// TODO
 	return -1;
-#endif
-#if defined(ZT_LWIP_SEQ_SOCKET)
-	return -1;
-#endif
-#if defined(ZT_PICO_BSD_SOCKET)
-	return -1;
-#endif
 }
 
 /* The rationale for the following correctional methods is as follows:
@@ -689,7 +429,6 @@ void fix_addr_socket_family(struct sockaddr *addr)
 #if defined(__linux__) || defined(_WIN32)
 	/* struct sockaddr on Linux and Windows don't contain an sa_len field
 	so we must adjust it here before feeding it into the stack. */
-#if defined(STACK_LWIP)
 	if (addr->sa_len == 2) {
 		if (addr->sa_family == 0) {
 			addr->sa_family = addr->sa_len;
@@ -702,7 +441,6 @@ void fix_addr_socket_family(struct sockaddr *addr)
 			addr->sa_len = 0;
 		}
 	}
-#endif
 	/* once we've moved the value to its anticipated location, convert it from
 	its platform-specific value to one that the network stack can work with */
 #endif

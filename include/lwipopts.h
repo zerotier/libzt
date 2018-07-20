@@ -44,7 +44,12 @@
 /*
  *  Provides its own errno
  */
+
+#if __ANDROID__
 #define LWIP_PROVIDE_ERRNO          0
+#else
+#define LWIP_PROVIDE_ERRNO          0
+#endif
 
 /*
  * Provides core locking machinery
@@ -56,6 +61,7 @@
  */
 #define LWIP_POSIX_SOCKETS_IO_NAMES 0
 
+#define LWIP_NOASSERT               1
 /*
  *
  */
@@ -70,8 +76,10 @@
 /*
  * Provides network/host byte transformation macros
  */
-#define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS 1
 
+#if __ANDROID__
+#define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS 1
+#endif
 
 /*
  * Include user defined options first. Anything not defined in these files
@@ -80,8 +88,8 @@
 #include "lwip/debug.h"
 
 // IP Protocol version
-#define LWIP_IPV6   1
 #define LWIP_IPV4   1
+#define LWIP_IPV6   1
 
 // --- DEBUG ---
 
@@ -115,7 +123,7 @@
 // interfaces
 #define SLIP_DEBUG                      LWIP_DBG_OFF
 #define NETIF_DEBUG                     LWIP_DBG_OFF
-// API (not used in libzt)
+// API
 #define API_LIB_DEBUG                   LWIP_DBG_OFF
 #define API_MSG_DEBUG                   LWIP_DBG_OFF
 #define SOCKETS_DEBUG                   LWIP_DBG_OFF
@@ -474,7 +482,7 @@ happening sooner than they should.
 /**
  * LWIP_DHCP==1: Enable DHCP module.
  */
-#define LWIP_DHCP                       1
+#define LWIP_DHCP                       0
 
 
 /*------------------------------------------------------------------------------

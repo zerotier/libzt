@@ -86,7 +86,7 @@ public:
 	/**
 	 * Registers a device with the given address
 	 */
-	bool registerIpWithStack(const ZeroTier::InetAddress &ip);
+	void registerIpWithStack(const ZeroTier::InetAddress &ip);
 
 	/**
 	 * Adds an address to the userspace stack interface associated with this VirtualTap
@@ -157,71 +157,13 @@ public:
 	void (*_handler)(void *, void *, uint64_t, const ZeroTier::MAC &, const ZeroTier::MAC &, unsigned int, unsigned int,
 		const void *, unsigned int);
 
-	/**
-	 * Signals us to close the TcpVirtualSocket associated with this PhySocket
-	 */
 	void phyOnUnixClose(ZeroTier::PhySocket *sock, void **uptr);
-
-	/**
-	 * Notifies us that there is data to be read from an application's socket
-	 */
 	void phyOnUnixData(ZeroTier::PhySocket *sock, void **uptr, void *data, ssize_t len);
-
-	/**
-	 * Notifies us that we can write to an application's socket
-	 */
 	void phyOnUnixWritable(ZeroTier::PhySocket *sock, void **uptr, bool stack_invoked);
-
-	/**
-	 * Adds a route to the virtual tap
-	 */
-	bool routeAdd(const ZeroTier::InetAddress &ip, const ZeroTier::InetAddress &nm, const ZeroTier::InetAddress &gw);
-
-	/**
-	 * Deletes a route from the virtual tap
-	 */
-	bool routeDelete(const ZeroTier::InetAddress &ip, const ZeroTier::InetAddress &nm);
-
-	/**
-	 * Assign a VirtualSocket to the VirtualTap
-	 */
-	void addVirtualSocket(VirtualSocket *vs);
-
-	/**
-	 * Remove a VirtualSocket from the VirtualTap
-	 */
-	void removeVirtualSocket();
-
-	/****************************************************************************/
-	/* DNS                                                                      */
-	/****************************************************************************/
-
-	/**
-	 * Registers a DNS nameserver with the network stack
-	 */
-	int add_DNS_Nameserver(struct sockaddr *addr);
-
-	/**
-	 * Un-registers a DNS nameserver from the network stack
-	 */
-	int del_DNS_Nameserver(struct sockaddr *addr);
 
 	/****************************************************************************/
 	/* Vars                                                                     */
 	/****************************************************************************/
-
-#if defined(STACK_PICO)
-		bool should_start_stack = false;
-		struct pico_device *picodev = NULL;
-
-	/****************************************************************************/
-	/* Guarded RX Frame Buffer for picoTCP                                      */
-	/****************************************************************************/
-
-		unsigned char pico_frame_rxbuf[MAX_PICO_FRAME_RX_BUF_SZ];
-		int pico_frame_rxbuf_tot = 0;
-		Mutex _pico_frame_rxbuf_m;
-#endif
 
 	std::vector<std::pair<ZeroTier::InetAddress, ZeroTier::InetAddress> > routes;
 	void *zt1ServiceRef = NULL;
@@ -260,56 +202,6 @@ public:
 	 * SEE: ZT_HOUSEKEEPING_INTERVAL in libzt.h
 	 */
 	uint64_t last_housekeeping_ts = 0;
-
-	/****************************************************************************/
-	/* In these, we will call the stack's corresponding functions, this is      */
-	/* where one would put logic to select between different stacks             */
-	/****************************************************************************/
-
-	/**
-	 * Connect to a remote host via the userspace stack interface associated with this VirtualTap
-	 */
-	int Connect(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
-
-	/**
-	 * Bind to the userspace stack interface associated with this VirtualTap
-	 */
-	int Bind(VirtualSocket *vs, const struct sockaddr *addr, socklen_t addrlen);
-
-	/**
-	 * Listen for a VirtualSocket
-	 */
-	int Listen(VirtualSocket *vs, int backlog);
-
-	/**
-	 * Accepts an incoming VirtualSocket
-	 */
-	VirtualSocket* Accept(VirtualSocket *vs);
-
-	/**
-	 * Move data from RX buffer to application's "socket"
-	 */
-	int Read(VirtualSocket *vs, PhySocket *sock, void **uptr, bool stack_invoked);
-
-	/**
-	 * Move data from application's "socket" into network stack
-	 */
-	int Write(VirtualSocket *vs, void *data, ssize_t len);
-
-	/**
-	 * Send data to specified host
-	 */
-	int SendTo(VirtualSocket *vs, const void *buf, size_t len, int flags, const struct sockaddr *addr, socklen_t addrlen);
-
-	/**
-	 * Closes a VirtualSocket
-	 */
-	int Close(VirtualSocket *vs);
-
-	/**
-	 * Shuts down some aspect of a VirtualSocket
-	 */
-	int Shutdown(VirtualSocket *vs, int how);
 
 	/**
 	 * Disposes of previously-closed VirtualSockets

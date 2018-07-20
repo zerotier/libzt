@@ -42,14 +42,6 @@
 #endif
 
 /**
- * @brief Returns the thread-id. Used in debug traces.
- *
- * @usage For internal use only.
- * @return
- */
-inline unsigned int gettid();
-
-/**
  * @brief Current time in milliseconds since epoch, platform-aware convenience function.
  *
  * @usage For internal use only.

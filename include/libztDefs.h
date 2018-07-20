@@ -33,87 +33,15 @@
 #ifndef LIBZT_DEFINES_H
 #define LIBZT_DEFINES_H
 
+#define LIBZT_IPV4 1
+#define LIBZT_IPV6 1
+
 /**
  * Default port that libzt will use to support all virtual communication
  */
 #define LIBZT_DEFAULT_PORT 9994
-/**
- * Use ZeroTier Virtual Socket layer to abstract network stack raw API
- */
-#define ZT_VIRTUAL_SOCKET  0
-/**
- * Use lwIP sockets API
- */
-#define ZT_LWIP_SEQ_SOCKET 1
-/**
- * Use pico BSD socket API
- */
-#define ZT_PICO_BSD_SOCKET 0
 
-#define STACK_LWIP 1
-#define STACK_PICO 0
-#define NO_STACK	0 // for layer-2 only (this will omit all userspace network stack code)
-
-/*  sanity checks for userspace network stack and socket API layer choices
-
- EX.
- zts_socket()
-	 1. ) ZT_VIRTUAL_SOCKET? -> virt_socket() --- Choose this if the default socket layer isn't doing what you need
-											 STACK_LWIP? -> raw lwip_ API
-											 STACK_PICO? -> raw pico_ API
-											 otherStack? -> raw API
-
-	 2.) ZT_LWIP_SEQ_SOCKET? (default) -> lwip_socket() --- currently provides greatest safety and performance
-	 3.) ZT_PICO_BSD_SOCKET? -> pico_ socket API
-	 otherStack? -> other_stack_socket()
-
-	 Default is: STACK_LWIP=1 ZT_LWIP_SEQ_SOCKET=1
-
-*/
-
-#if (STACK_LWIP+STACK_PICO) > 1
-#error "Multiple network stacks specified. Pick only one."
-#endif
-#if STACK_LWIP==0 && STACK_PICO==0 && NO_STACK==0
-#error "No network stacks specified and NO_STACK wasn't set. Pick one."
-#endif
-#if ZT_VIRTUAL_SOCKET==0 && ZT_LWIP_SEQ_SOCKET==0 && ZT_PICO_BSD_SOCKET==0
-#error "No socket handling layer specified. Pick one."
-#endif
-#if (ZT_VIRTUAL_SOCKET + ZT_LWIP_SEQ_SOCKET + ZT_PICO_BSD_SOCKET) > 1
-#error "Multiple socket handling layers specified. Pick only one."
-#endif
-#if  ZT_LWIP_SEQ_SOCKET==1 && STACK_LWIP==0
-#error "ZT_LWIP_SEQ_SOCKET is selected as socket handling layer, but STACK_LWIP isn't set"
-#endif
-#if  ZT_PICO_BSD_SOCKET==1 && STACK_PICO==0
-#error "ZT_PICO_BSD_SOCKET is selected as socket handling layer, but STACK_PICO isn't set"
-#endif
-
-#if STACK_LWIP==1
-	#undef STACK_PICO
-	#undef NO_STACK
-#endif
-#if STACK_PICO==1
-	#undef STACK_LWIP
-	#undef NO_STACK
-#endif
-#if NO_STACK==1
-	#undef STACK_LWIP
-	#undef STACK_PICO
-#endif
-#if ZT_VIRTUAL_SOCKET==1
-	#undef ZT_LWIP_SEQ_SOCKET
-	#undef ZT_PICO_BSD_SOCKET
-#endif
-#if ZT_LWIP_SEQ_SOCKET==1
-	#undef ZT_VIRTUAL_SOCKET
-	#undef ZT_PICO_BSD_SOCKET
-#endif
-#if ZT_PICO_BSD_SOCKET==1
-	#undef ZT_VIRTUAL_SOCKET
-	#undef ZT_LWIP_SEQ_SOCKET
-#endif
+#define NO_STACK   0 // for layer-2 only (this will omit all userspace network stack code)
 
 /**
  * Maximum MTU size for ZeroTier
@@ -166,8 +94,6 @@ struct sockaddr_ll {
 
 // For LWIP configuration see: include/lwipopts.h
 
-#if defined(STACK_LWIP)
-
 /* The following three quantities are related and govern how incoming frames are fed into the 
 network stack's core:
 
@@ -208,7 +134,6 @@ typedef signed char err_t;
 #define LWIP_STATUS_TMR_INTERVAL 500
 
 // #define LWIP_CHKSUM <your_checksum_routine>, See: RFC1071 for inspiration
-#endif
 
 /****************************************************************************/
 /* Defines                                                                  */
@@ -258,11 +183,6 @@ typedef signed char err_t;
  * State check interval (in ms) for VirtualSocket state
  */
 #define ZT_API_CHECK_INTERVAL 50
-
-/**
- * Maximum size of guarded RX buffer (for picoTCP raw driver only)
- */
-#define MAX_PICO_FRAME_RX_BUF_SZ ZT_MAX_MTU * 128
 
 /**
  * Size of TCP TX buffer for VirtualSockets used in raw network stack drivers
@@ -383,5 +303,7 @@ typedef signed char err_t;
 #define ZT_FCNTL_SIG int fd, int cmd, int flags
 #define ZT_IOCTL_SIG int fd, unsigned long request, void *argp
 #define ZT_SYSCALL_SIG long number, ...
+
+#define LIBZT_SERVICE_NOT_STARTED_STR "service not started yet, call zts_startjoin()"
 
 #endif // _H

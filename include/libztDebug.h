@@ -75,13 +75,11 @@
 
 #define ZT_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__) // short
 
-extern unsigned int gettid();
-
 #ifdef __linux__
   #define ZT_THREAD_ID syscall(SYS_gettid)
 #endif
 #ifdef __APPLE__
-  #define ZT_THREAD_ID (long)0 //(long)gettid()
+  #define ZT_THREAD_ID (long)0
 #endif
 #ifdef _WIN32
   #define ZT_THREAD_ID (long)0
@@ -99,8 +97,7 @@ extern unsigned int gettid();
 #if defined(__ANDROID__)
 	#define DEBUG_STACK(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
 			"STACK[%ld]: %17s:%5d:%20s: " fmt "\n", ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
-#endif
-#if defined(_WIN32)
+#elif defined(_WIN32)
 	#define DEBUG_STACK(fmt, ...) fprintf(stderr, ZT_YEL "STACK[%ld]: %17s:%5d:%25s: " fmt \
 		ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, __VA_ARGS__)
 #else
@@ -115,8 +112,7 @@ extern unsigned int gettid();
 		#if defined(__ANDROID__)
 			#define DEBUG_TEST(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
 				"TEST : %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
-			#endif
-			#if defined(_WIN32)
+			#elif defined(_WIN32)
 				#define DEBUG_TEST(fmt, ...) fprintf(stderr, ZT_CYN "TEST [%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, __VA_ARGS__)
 		#else
@@ -132,8 +128,7 @@ extern unsigned int gettid();
 		#if defined(__ANDROID__)
 			#define DEBUG_ERROR(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
 				"ERROR: %17s:%5d:%20s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
-		#endif
-		#if defined(_WIN32)
+		#elif defined(_WIN32)
 			#define DEBUG_ERROR(fmt, ...) fprintf(stderr, ZT_RED "ERROR[%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, __VA_ARGS__)
 		#else
@@ -149,8 +144,7 @@ extern unsigned int gettid();
 		#if defined(__ANDROID__)
 			#define DEBUG_INFO(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
 				"INFO : %17s:%5d:%20s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
-			#endif
-			#if defined(_WIN32)
+			#elif defined(_WIN32)
 				#define DEBUG_INFO(fmt, ...) fprintf(stderr, ZT_WHT "INFO [%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, __VA_ARGS__)
 		#else
@@ -166,8 +160,7 @@ extern unsigned int gettid();
 		#if defined(__ANDROID__)
 			#define DEBUG_TRANS(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
 				"TRANS: %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
-			#endif
-			#if defined(_WIN32)
+			#elif defined(_WIN32)
 				#define DEBUG_TRANS(fmt, ...) fprintf(stderr, ZT_GRN "TRANS[%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, __VA_ARGS__)
 		#else
@@ -183,8 +176,7 @@ extern unsigned int gettid();
 		#if defined(__ANDROID__)
 			#define DEBUG_EXTRA(fmt, args...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, ZT_LOG_TAG, \
 				"EXTRA: %17s:%5d:%25s: " fmt "\n", ZT_FILENAME, __LINE__, __FUNCTION__, ##args))
-		#endif
-		#if defined(_WIN32)
+		#elif defined(_WIN32)
 			#define DEBUG_EXTRA(fmt, ...) fprintf(stderr, ZT_WHT "EXTRA[%ld]: %17s:%5d:%25s: " fmt "\n" \
 					ZT_RESET, ZT_THREAD_ID, ZT_FILENAME, __LINE__, __FUNCTION__, __VA_ARGS__, (long)0)
 		#else

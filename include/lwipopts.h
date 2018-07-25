@@ -87,9 +87,15 @@
  */
 #include "lwip/debug.h"
 
+//#define LWIP_IPV6_MLD 1
+//#define LWIP_IPV6_AUTOCONFIG 1
+//#define LWIP_ICMP6 1
+//#define LWIP_IPV6_NUM_ADDRESSES 6
+
 // IP Protocol version
-#define LWIP_IPV4   1
-#define LWIP_IPV6   1
+#define LWIP_NETIF_STATUS_CALLBACK 1
+#define LWIP_IPV4 1
+#define LWIP_IPV6 1
 
 // --- DEBUG ---
 

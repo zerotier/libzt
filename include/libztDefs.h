@@ -107,8 +107,6 @@ await the next callback from the core */
 #define LWIP_MAX_GUARDED_RX_BUF_SZ	1024 // number of frame pointers that can be cached waiting for receipt into core
 #define LWIP_FRAMES_HANDLED_PER_CORE_CALL 16 // How many frames are handled per call from core
 
-#define LWIP_NETIF_STATUS_CALLBACK 0
-
 typedef signed char err_t;
 
 #define ND6_DISCOVERY_INTERVAL 1000

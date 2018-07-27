@@ -29,122 +29,125 @@ project (libzt)
 
 # --- SETUP
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
-set(CMAKE_SUPPRESS_REGENERATION true)
-set(PROJ_DIR ${PROJECT_SOURCE_DIR})
-set(CMAKE_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin)
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
-set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
+set (CMAKE_VERBOSE_MAKEFILE ON)
+set (CMAKE_SUPPRESS_REGENERATION true)
+set (PROJ_DIR ${PROJECT_SOURCE_DIR})
+set (CMAKE_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin)
+set (EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
+set (LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
 # --- BUILD CONFIG
 
 # Default build type: Release
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
-endif()
+if (NOT CMAKE_BUILD_TYPE)
+  set (CMAKE_BUILD_TYPE Release)
+endif ()
 
-set(SILENCE "-Wno-unused-parameter -Wno-unused-variable -Wno-missing-field-initializers")
+set (SILENCE "-Wno-unused-parameter -Wno-unused-variable -Wno-missing-field-initializers")
 
 # Release - Optimization and no debug info
 # Debug - No optimization, debug info
 # RelWithDebInfo - Release optimizations and debug info
 # MinSizeRel - Similar to Release but with optimizations to minimize size
 
-set(LIBZT_FLAGS "-DZT_SDK=1")
-set(LIBZT_FLAGS_DEBUG "-DZT_SDK=1 -DLIBZT_TRACE=1 -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1 -DNS_TRACE=1 -DNS_DEBUG=1")
+set (LIBZT_FLAGS "-DZT_SDK=1")
+set (LIBZT_FLAGS_DEBUG "-DZT_SDK=1 -DLIBZT_TRACE=1 -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1 -DNS_TRACE=1 -DNS_DEBUG=1")
 
-if(WIN32)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc -DNOMINMAX")
-else()
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fstack-protector")
-	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
-	set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fstack-protector")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LIBZT_FLAGS} ${SILENCE} -O3 -Wall -Wextra -std=c++11")
-	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${LIBZT_FLAGS_DEBUG} ${SILENCE} -std=c++11 -DLWIP_DEBUG=1")
-	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${LIBZT_FLAGS} ${SILENCE} -O3 -std=c++11")
-	set(LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/unix/port)
-endif()
+if (WIN32)
+	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc -DNOMINMAX")
+else ()
+	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fstack-protector")
+	set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+	set (CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fstack-protector")
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LIBZT_FLAGS} ${SILENCE} -O3 -Wall -Wextra -std=c++11")
+	set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${LIBZT_FLAGS_DEBUG} ${SILENCE} -std=c++11")
+	set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${LIBZT_FLAGS} ${SILENCE} -O3 -std=c++11")
+	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/unix/port)
+endif ()
 
 # --- PLATFORM-SPECIFIC CONFIG
 
 # ANDROID-specific
-if(${CMAKE_SYSTEM_NAME} MATCHES "Android")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -DSOCKLEN_T_DEFINED=1")
+if (${CMAKE_SYSTEM_NAME} MATCHES "Android")
+	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -DSOCKLEN_T_DEFINED=1")
 	include_directories (/Users/joseph/Library/Android/sdk/ndk-bundle/sysroot/usr/include/arm-linux-androideabi)
-endif()
+endif ()
 
 # WINDOWS-specific MSVC flags and libraries
-if(WIN32)
+if (WIN32)
 	# get literal paths for Windows libraries
-	set(WIN_LIB_HINT_PATH "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.16299.0\\um\\x86")
+	set (WIN_LIB_HINT_PATH "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.16299.0\\um\\x86")
 	message (STATUS ${WIN_LIB_HINT_PATH})
-	find_library(ws2_32_LIBRARY_PATH NAMES WS2_32 HINTS ${WIN_LIB_HINT_PATH})
-	find_library(lshlwapi_LIBRARY_PATH NAMES ShLwApi HINTS ${WIN_LIB_HINT_PATH})
-	#find_library(liphlpapi_LIBRARY_PATH NAMES iphlpapi.lib HINTS ${WIN_LIB_HINT_PATH})
-	set(liphlpapi_LIBRARY_PATH "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.16299.0/um/x86/iphlpapi.Lib")
+	find_library (ws2_32_LIBRARY_PATH NAMES WS2_32 HINTS ${WIN_LIB_HINT_PATH})
+	find_library (lshlwapi_LIBRARY_PATH NAMES ShLwApi HINTS ${WIN_LIB_HINT_PATH})
+	set (liphlpapi_LIBRARY_PATH "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.16299.0/um/x86/iphlpapi.Lib")
 	message (STATUS ${ws2_32_LIBRARY_PATH})
 	message (STATUS ${lshlwapi_LIBRARY_PATH})
 	message (STATUS ${liphlpapi_LIBRARY_PATH})
-	add_definitions(-DSDK=1)
-	add_definitions(-DZT_SDK=1)
-	set(LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/win32)
-endif()
+	add_definitions (-DZT_SDK=1)
+	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/win32)
+endif ()
 
 # --- JNI
 
-if(JNI EQUAL 1 OR ${CMAKE_SYSTEM_NAME} MATCHES "Android")
+if (JNI EQUAL 1 OR ${CMAKE_SYSTEM_NAME} MATCHES "Android")
 MESSAGE (STATUS "Looking for JNI headers")
 find_package (JNI)
-if(JNI_FOUND)
+if (JNI_FOUND)
     message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
     message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
     list (GET JNI_INCLUDE_DIRS 0 JNI_INCLUDE_DIR)
     message (STATUS "jni path=${JNI_INCLUDE_DIR}")
     include_directories ("${JNI_INCLUDE_DIR}")
-else()
+else ()
     message (STATUS "JNI not found")
-endif()
-add_definitions(-DSDK_JNI=1)
-endif()
+endif ()
+add_definitions (-DSDK_JNI=1)
+endif ()
 
 # --- BUILD TARGETS (FINAL PRODUCT)
 
 # libzt (static)
-set(LIBZT_SRC_DIR ${PROJ_DIR}/src)
+set (LIBZT_SRC_DIR ${PROJ_DIR}/src)
 include_directories ("${LIBZT_SRC_DIR}")
 include_directories ("${PROJ_DIR}/include")
 file (GLOB libzt_src_glob ${LIBZT_SRC_DIR}/*.cpp)
-add_library (zt STATIC
+add_library (zt-static STATIC
 	$<TARGET_OBJECTS:lwip_obj>
 	$<TARGET_OBJECTS:zto_obj>
 	$<TARGET_OBJECTS:http_obj> ${libzt_src_glob})
-if(WIN32)
-	target_link_libraries (zt ws2_32)
-	target_link_libraries (zt ${lshlwapi_LIBRARY_PATH})
-	target_link_libraries (zt ${liphlpapi_LIBRARY_PATH})
-else()
-	target_link_libraries (zt pthread)
-endif()
-set_target_properties (zt PROPERTIES OUTPUT_NAME zt)
+set_target_properties (zt-static PROPERTIES OUTPUT_NAME zt-static)
 
 # libzt (shared)
-add_library (ztshared SHARED
+add_library (zt-shared SHARED
 	$<TARGET_OBJECTS:lwip_pic_obj>
 	$<TARGET_OBJECTS:zto_pic_obj>
 	$<TARGET_OBJECTS:http_pic_obj> ${libzt_src_glob})
-set_target_properties (ztshared PROPERTIES OUTPUT_NAME zt)
+set_target_properties (zt-shared PROPERTIES OUTPUT_NAME zt-shared)
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Android")
-	target_link_libraries (zt lwip zto android log)
-else()
-	target_link_libraries (zt pthread)
-endif()
+if (${CMAKE_SYSTEM_NAME} MATCHES "Android")
+	target_link_libraries (zt-shared lwip zto android log)
+else ()
+	#target_link_libraries (zt-shared pthread)
+endif ()
+
+if (WIN32)
+	target_link_libraries (zt-static ws2_32)
+	target_link_libraries (zt-static ${lshlwapi_LIBRARY_PATH})
+	target_link_libraries (zt-static ${liphlpapi_LIBRARY_PATH})
+	target_link_libraries (zt-shared ws2_32)
+	target_link_libraries (zt-shared ${lshlwapi_LIBRARY_PATH})
+	target_link_libraries (zt-shared ${liphlpapi_LIBRARY_PATH})
+else ()
+	target_link_libraries (zt-static pthread)
+	target_link_libraries (zt-shared pthread)
+endif ()
 
 # --- OBJECT LIBRARIES (INTERMEDIATE)
 
 # lwip_obj
-set(LWIP_SRC_DIR ${PROJ_DIR}/ext/lwip/src)
+set (LWIP_SRC_DIR ${PROJ_DIR}/ext/lwip/src)
 include_directories (${LWIP_SRC_DIR}/include)
 include_directories (${LWIP_PORT_DIR}/include)
 file (GLOB lwip_src_glob 
@@ -160,7 +163,7 @@ add_library (lwip_pic_obj OBJECT ${lwip_src_glob})
 set_target_properties (lwip_pic_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # zto_obj
-set(ZTO_SRC_DIR ${PROJ_DIR}/ext/ZeroTierOne)
+set (ZTO_SRC_DIR ${PROJ_DIR}/ext/ZeroTierOne)
 include_directories (${ZTO_SRC_DIR}/include)
 include_directories (${ZTO_SRC_DIR}/osdep)
 include_directories (${ZTO_SRC_DIR}/node)
@@ -172,11 +175,11 @@ file (GLOB zto_src_glob
 	${ZTO_SRC_DIR}/controller/*.cpp
 	${ZTO_SRC_DIR}/osdep/ManagedRoute.cpp)
 add_library (zto_obj OBJECT ${zto_src_glob})
-if(WIN32)
-	target_link_libraries (zto ws2_32)
-	target_link_libraries (zto ${lshlwapi_LIBRARY_PATH})
-	target_link_libraries (zto ${liphlpapi_LIBRARY_PATH})
-endif()
+if (WIN32)
+	target_link_libraries (zto_obj ws2_32)
+	target_link_libraries (zto_obj ${lshlwapi_LIBRARY_PATH})
+	target_link_libraries (zto_obj ${liphlpapi_LIBRARY_PATH})
+endif ()
 add_library (zto_pic_obj OBJECT ${zto_src_glob})
 set_target_properties (zto_pic_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
@@ -188,7 +191,7 @@ set_target_properties (http_pic_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # --- TEST APPLICATIONS AND EXAMPLES
 
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Android")
+if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Android")
 	file (GLOB APP_SOURCES 
 		${PROJ_DIR}/examples/cpp/ipv4simple/*.cpp 
 		${PROJ_DIR}/examples/cpp/ipv6simple/*.cpp 
@@ -200,24 +203,24 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Android")
 	    string (REPLACE ".cpp" "" testname ${testsourcefile})
 	    get_filename_component (testname ${testname} NAME)
 	    add_executable (${testname} ${testsourcefile})
-	if(WIN32)
-	    target_link_libraries (${testname} zt)
-	else()
-		target_link_libraries (${testname} zt pthread dl)
-	endif()
+	if (WIN32)
+	    target_link_libraries (${testname} zt-static)
+	else ()
+		target_link_libraries (${testname} zt-static pthread dl)
+	endif ()
 	endforeach (testsourcefile ${APP_SOURCES})
 
-if(NOT WIN32)
+if (NOT WIN32) # only necessary for raw driver development
 	# selftest
 	add_executable (selftest ${PROJ_DIR}/test/selftest.cpp)
 	target_compile_options (selftest PRIVATE -D__SELFTEST__)
-	if(WIN32)
-		target_link_libraries (selftest zt ${ws2_32_LIBRARY_PATH} ${lshlwapi_LIBRARY_PATH} ${liphlpapi_LIBRARY_PATH})
-	else()
-		target_link_libraries (selftest zt pthread)
-	endif()
+	if (WIN32)
+		target_link_libraries (selftest zt-static ${ws2_32_LIBRARY_PATH} ${lshlwapi_LIBRARY_PATH} ${liphlpapi_LIBRARY_PATH})
+	else ()
+		target_link_libraries (selftest zt-static pthread)
+	endif ()
 	# nativetest
 	add_executable (nativetest ${PROJ_DIR}/test/selftest.cpp)
 	target_compile_options (nativetest PRIVATE -D__NATIVETEST__)
-endif()
-endif()
+endif ()
+endif ()

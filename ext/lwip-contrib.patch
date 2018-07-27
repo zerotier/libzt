@@ -1,0 +1,15 @@
+diff --git a/ports/win32/include/arch/cc.h b/ports/win32/include/arch/cc.h
+index 334be07..9384b70 100644
+--- a/ports/win32/include/arch/cc.h
++++ b/ports/win32/include/arch/cc.h
+@@ -78,8 +78,8 @@ typedef int sys_prot_t;
+ 
+ #ifdef _MSC_VER
+ /* C runtime functions redefined */
+-#define snprintf _snprintf
+-#define strdup   _strdup
++//#define snprintf _snprintf
++//#define strdup   _strdup
+ #endif
+ 
+ #define PPP_INCLUDE_SETTINGS_HEADER

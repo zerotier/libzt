@@ -24,25 +24,21 @@
  * of your own application.
  */
 
+#if !defined(_MSC_VER)
+
 #include <stdio.h>
 #include <string.h>
 #include <string>
 #include <inttypes.h>
-
-#if defined(_WIN32)
-#include <WinSock2.h>
-#include <stdint.h>
-#else
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#endif
+#include <dlfcn.h>
 
 #include "libzt.h"
 
-#include <dlfcn.h>
 
 // function pointers which will have values assigned once the dynamic library is loaded
 
@@ -179,31 +175,33 @@ int main(int argc, char **argv)
 
 	// --- BEGIN EXAMPLE CODE
 
-	DEBUG_TEST("Waiting for libzt to come online...\n");
+	printf("Waiting for libzt to come online...\n");
 	uint64_t nwid = strtoull(nwidstr.c_str(),NULL,16);
 	printf("nwid=%llx\n", (unsigned long long)nwid);
 	_zts_startjoin(path.c_str(), nwid);
 	uint64_t nodeId = _zts_get_node_id();
-	DEBUG_TEST("I am %llx", (unsigned long long)nodeId);
+	printf("I am %llx\n", (unsigned long long)nodeId);
 
 	if ((sockfd = _zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		DEBUG_ERROR("error creating ZeroTier socket");
+		printf("error creating ZeroTier socket\n");
 	}
 
 	if ((err = _zts_connect(sockfd, (const struct sockaddr *)&in4, sizeof(in4))) < 0) {
-		DEBUG_ERROR("error connecting to remote host (%d)", err);
+		printf("error connecting to remote host (%d)\n", err);
 	}
 
-	DEBUG_TEST("sending to server...");
+	printf("sending to server...\n");
 	w = _zts_write(sockfd, msg, strlen(msg));
 	
-	DEBUG_TEST("reading from server...");
+	printf("reading from server...\n");
 	r = _zts_read(sockfd, rbuf, strlen(msg));
 
-	DEBUG_TEST("Sent     : %s", msg);
-	DEBUG_TEST("Received : %s", rbuf);
+	printf("Sent     : %s\n", msg);
+	printf("Received : %s\n", rbuf);
 
 	err = _zts_close(sockfd);
 
 	return err;
 }
+
+#endif // _MSC_VER

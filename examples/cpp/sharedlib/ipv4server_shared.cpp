@@ -24,24 +24,20 @@
  * of your own application.
  */
 
+#if !defined(_MSC_VER)
+
 #include <stdio.h>
 #include <string.h>
 #include <string>
 #include <inttypes.h>
-
-#if defined(_WIN32)
-#include <WinSock2.h>
-#include <stdint.h>
-#else
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#endif
-#include "libzt.h"
-
 #include <dlfcn.h>
+
+#include "libzt.h"
 
 // function pointers which will have values assigned once the dynamic library is loaded
 
@@ -179,44 +175,43 @@ int main(int argc, char **argv)
 	char *library_path = (char*)"bin/lib/libzt.dylib";
 	load_library_symbols(library_path);
 
-	DEBUG_TEST("Waiting for libzt to come online...\n");
+	printf("Waiting for libzt to come online...\n");
 	uint64_t nwid = strtoull(nwidstr.c_str(),NULL,16);
 	printf("nwid=%llx\n", (unsigned long long)nwid);
 	_zts_startjoin(path.c_str(), nwid);
 	uint64_t nodeId = _zts_get_node_id();
-	DEBUG_TEST("I am %llx", (unsigned long long)nodeId);
+	printf("I am %llx\n", (unsigned long long)nodeId);
 
 	if ((sockfd = _zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		DEBUG_ERROR("error creating ZeroTier socket");
+		printf("error creating ZeroTier socket\n");
 	}
-
 	if ((err = _zts_bind(sockfd, (struct sockaddr *)&in4, sizeof(struct sockaddr_in)) < 0)) {
-		DEBUG_ERROR("error binding to interface (%d)", err);
+		printf("error binding to interface (%d)\n", err);
 	}
-	
 	if ((err = _zts_listen(sockfd, 100)) < 0) {
-		DEBUG_ERROR("error placing socket in LISTENING state (%d)", err);
+		printf("error placing socket in LISTENING state (%d)\n", err);
 	}
-	
 	socklen_t client_addrlen = sizeof(sockaddr_in);
 	if ((accfd = _zts_accept(sockfd, (struct sockaddr *)&acc_in4, &client_addrlen)) < 0) {
-		DEBUG_ERROR("error accepting connection (%d)", err);
+		printf("error accepting connection (%d)\n", err);
 	}
 
 	socklen_t peer_addrlen = sizeof(struct sockaddr_storage);
 	_zts_getpeername(accfd, (struct sockaddr*)&acc_in4, &peer_addrlen);
-	DEBUG_INFO("accepted connection from %s : %d", inet_ntoa(acc_in4.sin_addr), ntohs(acc_in4.sin_port));
+	DEBUG_INFO("accepted connection from %s : %d\n", inet_ntoa(acc_in4.sin_addr), ntohs(acc_in4.sin_port));
 
-	DEBUG_TEST("reading from client...");
+	printf("reading from client...\n");
 	r = _zts_read(accfd, rbuf, sizeof rbuf);
 
-	DEBUG_TEST("sending to client...");
+	printf("sending to client...\n");
 	w = _zts_write(accfd, rbuf, strlen(rbuf));
 
-	DEBUG_TEST("Received : %s", rbuf);
+	printf("Received : %s\n", rbuf);
 
 	err = _zts_close(sockfd);
 	err = _zts_close(accfd);
 
 	return err;
 }
+
+#endif // _MSC_VER

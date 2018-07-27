@@ -62,41 +62,41 @@ int main(int argc, char **argv)
 
 	// --- BEGIN EXAMPLE CODE
 
-	DEBUG_TEST("Waiting for libzt to come online...\n");
+	printf("Waiting for libzt to come online...\n");
 	uint64_t nwid = strtoull(nwidstr.c_str(),NULL,16);
 	printf("nwid=%llx\n", (unsigned long long)nwid);
 	zts_startjoin(path.c_str(), nwid);
 	uint64_t nodeId = zts_get_node_id();
-	DEBUG_TEST("I am %llx", (unsigned long long)nodeId);
+	printf("I am %llx\n", (unsigned long long)nodeId);
 
 	if ((sockfd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		DEBUG_ERROR("error creating ZeroTier socket");
+		printf("error creating ZeroTier socket\n");
 	}
 	
 	if ((err = zts_bind(sockfd, (struct sockaddr *)&in4, sizeof(struct sockaddr_in)) < 0)) {
-		DEBUG_ERROR("error binding to interface (%d)", err);
+		printf("error binding to interface (%d)\n", err);
 	}
 	
 	if ((err = zts_listen(sockfd, 100)) < 0) {
-		DEBUG_ERROR("error placing socket in LISTENING state (%d)", err);
+		printf("error placing socket in LISTENING state (%d)\n", err);
 	}
 	
 	socklen_t client_addrlen = sizeof(sockaddr_in);
 	if ((accfd = zts_accept(sockfd, (struct sockaddr *)&acc_in4, &client_addrlen)) < 0) {
-		DEBUG_ERROR("error accepting connection (%d)", err);
+		printf("error accepting connection (%d)\n", err);
 	}
 
 	socklen_t peer_addrlen = sizeof(struct sockaddr_storage);
 	zts_getpeername(accfd, (struct sockaddr*)&acc_in4, &peer_addrlen);
-	DEBUG_INFO("accepted connection from %s : %d", inet_ntoa(acc_in4.sin_addr), ntohs(acc_in4.sin_port));
+	printf("accepted connection from %s : %d\n", inet_ntoa(acc_in4.sin_addr), ntohs(acc_in4.sin_port));
 
-	DEBUG_TEST("reading from client...");
+	printf("reading from client...\n");
 	r = zts_read(accfd, rbuf, sizeof rbuf);
 
-	DEBUG_TEST("sending to client...");
+	printf("sending to client...\n");
 	w = zts_write(accfd, rbuf, strlen(rbuf));
 
-	DEBUG_TEST("Received : %s", rbuf);
+	printf("Received : %s\n", rbuf);
 
 	err = zts_close(sockfd);
 	err = zts_close(accfd);

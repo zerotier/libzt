@@ -36,8 +36,6 @@
 #include "lwip/ip_addr.h"
 #include "lwip/netdb.h"
 
-#include "libztDebug.h"
-
 #include <string.h>
 
 #ifdef __cplusplus
@@ -50,139 +48,76 @@ bool zts_ready();
 
 int zts_socket(int socket_family, int socket_type, int protocol)
 {
-	DEBUG_EXTRA("family=%d, type=%d, proto=%d", socket_family, socket_type, protocol);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
 	int socket_family_adj = platform_adjusted_socket_family(socket_family);
-	int err = lwip_socket(socket_family_adj, socket_type, protocol);
-	return err;
+	return !zts_ready() ? -1 : lwip_socket(socket_family_adj, socket_type, protocol);
 }
 
 int zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen)
 {
-	DEBUG_EXTRA("fd=%d",fd);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
 	struct sockaddr_storage ss;
 	memcpy(&ss, addr, addrlen);
 	fix_addr_socket_family((struct sockaddr*)&ss);
-	return lwip_connect(fd, (struct sockaddr*)&ss, addrlen);
+	return !zts_ready() ? -1 : lwip_connect(fd, (struct sockaddr*)&ss, addrlen);
 }
 
 int zts_bind(int fd, const struct sockaddr *addr, socklen_t addrlen)
 {
-	DEBUG_EXTRA("fd=%d", fd);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
 	struct sockaddr_storage ss;
 	memcpy(&ss, addr, addrlen);
 	fix_addr_socket_family((struct sockaddr*)&ss);
-	return lwip_bind(fd, (struct sockaddr*)&ss, addrlen);
+	return !zts_ready() ? -1 : lwip_bind(fd, (struct sockaddr*)&ss, addrlen);
 }
 
 int zts_listen(int fd, int backlog)
 {
-	DEBUG_EXTRA("fd=%d", fd);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return lwip_listen(fd, backlog);
+	return !zts_ready() ? -1 : lwip_listen(fd, backlog);
 }
 
 int zts_accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
-	DEBUG_EXTRA("fd=%d", fd);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return lwip_accept(fd, addr, addrlen);
+	return !zts_ready() ? -1 : lwip_accept(fd, addr, addrlen);
 }
 
 #if defined(__linux__)
 int zts_accept4(int fd, struct sockaddr *addr, socklen_t *addrlen, int flags)
 {
-	DEBUG_EXTRA("fd=%d", fd);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	// lwip_accept4(fd, addr, addrlen, flags);
-	return -1;
+	return !zts_ready() ? -1 : -1; // lwip_accept4(fd, addr, addrlen, flags);
 }
 #endif
 
 int zts_setsockopt(int fd, int level, int optname, const void *optval, socklen_t optlen)
 {
-	DEBUG_EXTRA("fd=%d, level=%d, optname=%d", fd, level, optname);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return lwip_setsockopt(fd, level, optname, optval, optlen);
+	return !zts_ready() ? -1 : lwip_setsockopt(fd, level, optname, optval, optlen);
 }
 
 int zts_getsockopt(int fd, int level, int optname, void *optval, socklen_t *optlen)
 {
-	DEBUG_EXTRA("fd=%d, level=%d, optname=%d", fd, level, optname);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return lwip_getsockopt(fd, level, optname, optval, optlen);
+	return !zts_ready() ? -1 : lwip_getsockopt(fd, level, optname, optval, optlen);
 }
 
 int zts_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
-	DEBUG_EXTRA("fd=%d", fd);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return lwip_getsockname(fd, addr, addrlen);
+	return !zts_ready() ? -1 : lwip_getsockname(fd, addr, addrlen);
 }
 
 int zts_getpeername(int fd, struct sockaddr *addr, socklen_t *addrlen)
 {
-	DEBUG_EXTRA("fd=%d", fd);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return lwip_getpeername(fd, addr, addrlen);
+	return !zts_ready() ? -1 : lwip_getpeername(fd, addr, addrlen);
 }
 
 int zts_gethostname(char *name, size_t len)
 {
-	DEBUG_EXTRA("");
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return -1;
+	return !zts_ready() ? -1 : -1; // TODO
 }
 
 int zts_sethostname(const char *name, size_t len)
 {
-	DEBUG_EXTRA("");
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return -1;
+	return !zts_ready() ? -1 : -1; // TODO
 }
 
 struct hostent *zts_gethostbyname(const char *name)
 {
 	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
 		return NULL;
 	}
 	// TODO: Test thread safety
@@ -208,45 +143,17 @@ struct hostent *zts_gethostbyname(const char *name)
 
 int zts_close(int fd)
 {
-	DEBUG_EXTRA("fd=%d", fd);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return lwip_close(fd);
+	return !zts_ready() ? -1 : lwip_close(fd);
 }
-
-#if defined(__linux__)
-/*
-int zts_poll(struct pollfd *fds, nfds_t nfds, int timeout)
-{
-	DEBUG_ERROR("warning, this is not implemented");
-	if (zts_ready() == false) {
-		DEBUG_ERROR("service not started yet, call zts_startjoin()");
-		return -1;
-	}
-	return poll(fds, nfds, timeout);
-}
-*/
-#endif
 
 int zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 	struct timeval *timeout)
 {
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return lwip_select(nfds, readfds, writefds, exceptfds, timeout);
+	return !zts_ready() ? -1 : lwip_select(nfds, readfds, writefds, exceptfds, timeout);
 }
 
 int zts_fcntl(int fd, int cmd, int flags)
 {
-	DEBUG_EXTRA("fd=%d, cmd=%d, flags=%d", fd, cmd, flags);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
 	// translation from platform flag values to stack flag values
 	int translated_flags = 0;
 #if defined(__linux__)
@@ -259,142 +166,79 @@ int zts_fcntl(int fd, int cmd, int flags)
 		translated_flags = 1;
 	}
 #endif
-	return lwip_fcntl(fd, cmd, translated_flags);
+	return !zts_ready() ? -1 : lwip_fcntl(fd, cmd, translated_flags);
 }
 
 int zts_ioctl(int fd, unsigned long request, void *argp)
 {
-	DEBUG_EXTRA("fd=%d", fd);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return lwip_ioctl(fd, request, argp);
+	return !zts_ready() ? -1 : lwip_ioctl(fd, request, argp);
 }
 
-ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags,
+ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags, 
 	const struct sockaddr *addr, socklen_t addrlen)
 {
-	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
 	struct sockaddr_storage ss;
 	memcpy(&ss, addr, addrlen);
 	fix_addr_socket_family((struct sockaddr*)&ss);
-	return lwip_sendto(fd, buf, len, flags, (struct sockaddr*)&ss, addrlen);
+	return !zts_ready() ? -1 : lwip_sendto(fd, buf, len, flags, (struct sockaddr*)&ss, addrlen);
 }
 
 ssize_t zts_send(int fd, const void *buf, size_t len, int flags)
 {
-	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return lwip_send(fd, buf, len, flags);
+	return !zts_ready() ? -1 : lwip_send(fd, buf, len, flags);
 }
 
 ssize_t zts_sendmsg(int fd, const struct msghdr *msg, int flags)
 {
-	DEBUG_TRANS("fd=%d", fd);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return lwip_sendmsg(fd, msg, flags);
+	return !zts_ready() ? -1 : lwip_sendmsg(fd, msg, flags);
 }
 
 ssize_t zts_recv(int fd, void *buf, size_t len, int flags)
 {
-	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return lwip_recv(fd, buf, len, flags);
+	return !zts_ready() ? -1 : lwip_recv(fd, buf, len, flags);
 }
 
-ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags,
+ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags, 
 	struct sockaddr *addr, socklen_t *addrlen)
 {
-	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return lwip_recvfrom(fd, buf, len, flags, addr, addrlen);
+	return !zts_ready() ? -1 : lwip_recvfrom(fd, buf, len, flags, addr, addrlen);
 }
 
 ssize_t zts_recvmsg(int fd, struct msghdr *msg, int flags)
 {
-	DEBUG_TRANS("fd=%d", fd);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return -1; // lwip_recvmsg(fd, msg, flags);
-	// Not currently implemented by stack
+	return !zts_ready() ? -1 : -1; // Not currently implemented by stack
 }
 
 int zts_read(int fd, void *buf, size_t len)
 {
-	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return lwip_read(fd, buf, len);
+	return !zts_ready() ? -1 : lwip_read(fd, buf, len);
 }
 
 int zts_write(int fd, const void *buf, size_t len)
 {
-	DEBUG_TRANS("fd=%d, len=%zu", fd, len);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return lwip_write(fd, buf, len);
+	return !zts_ready() ? -1 : lwip_write(fd, buf, len);
 }
 
 int zts_shutdown(int fd, int how)
 {
-	DEBUG_EXTRA("fd=%d, how=%d", fd, how);
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	return lwip_shutdown(fd, how);
+	return !zts_ready() ? -1 : lwip_shutdown(fd, how);
 }
 
 int zts_add_dns_nameserver(struct sockaddr *addr)
 {
-	DEBUG_EXTRA("");
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	// TODO
-	return -1;
+	return !zts_ready() ? -1 : -1; // TODO
 }
 
 int zts_del_dns_nameserver(struct sockaddr *addr)
 {
-	DEBUG_EXTRA("");
-	if (zts_ready() == false) {
-		DEBUG_ERROR(LIBZT_SERVICE_NOT_STARTED_STR);
-		return -1;
-	}
-	// TODO
-	return -1;
+	return !zts_ready() ? -1 : -1; // TODO
 }
 
 /* The rationale for the following correctional methods is as follows:
 
 	Since we don't want the user of this library to worry about naming conflicts
 	with their native OS/platform's socket facilities we deliberately isolate what
-	is used by the userspace network stack and stack drivers from the user's
+	is used by the user-space network stack and stack drivers from the user's
 	application. As a result of this, we must compensate for a few things on our
 	side. For instance, differing values for AF_INET6 on major operating systems, and
 	differing structure definitions for sockaddr.

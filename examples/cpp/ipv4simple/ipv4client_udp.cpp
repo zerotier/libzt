@@ -72,19 +72,19 @@ int main(int argc, char **argv)
 
 	// --- BEGIN EXAMPLE CODE
 
-	DEBUG_TEST("Waiting for libzt to come online...\n");
+	printf("Waiting for libzt to come online...\n");
 	uint64_t nwid = strtoull(nwidstr.c_str(),NULL,16);
 	printf("nwid=%llx\n", (unsigned long long)nwid);
 	zts_startjoin(path.c_str(), nwid);
 	uint64_t nodeId = zts_get_node_id();
-	DEBUG_TEST("I am %llx", (unsigned long long)nodeId);
+	printf("I am %llx\n", (unsigned long long)nodeId);
 
 	if ((sockfd = zts_socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		DEBUG_ERROR("error creating ZeroTier socket");
+		printf("error creating ZeroTier socket\n");
 	}
 
 	if ((err = zts_bind(sockfd, (struct sockaddr *)&in4, sizeof(struct sockaddr_in)) < 0)) {
-		DEBUG_ERROR("error binding to interface (%d)", err);
+		printf("error binding to interface (%d)\n", err);
 	}
 	int flags = 0;
 	int len = strlen(msg);
@@ -92,16 +92,16 @@ int main(int argc, char **argv)
 	while(true) {
 		sleep(1);
 		if ((err = zts_sendto(sockfd, msg, len, flags, (const struct sockaddr *)&remote4, sizeof(remote4))) < 0) {
-			DEBUG_ERROR("error sending message to remote host (%d)", err);
+			printf("error sending message to remote host (%d)\n", err);
 		}
-		DEBUG_TEST("sent=%d", err);
+		printf("sent=%d\n", err);
 	}
 	/*
-	DEBUG_TEST("reading from server...");
+	printf("reading from server...\n");
 	r = zts_read(sockfd, rbuf, strlen(msg));
 
-	DEBUG_TEST("Sent     : %s", msg);
-	DEBUG_TEST("Received : %s", rbuf);
+	printf("Sent     : %s\n", msg);
+	printf("Received : %s\n", rbuf);
 	*/
 	err = zts_close(sockfd);
 

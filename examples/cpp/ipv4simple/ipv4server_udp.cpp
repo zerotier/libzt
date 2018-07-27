@@ -62,18 +62,18 @@ int main(int argc, char **argv)
 
 	// --- BEGIN EXAMPLE CODE
 
-	DEBUG_TEST("Waiting for libzt to come online...\n");
+	printf("Waiting for libzt to come online...\n");
 	uint64_t nwid = strtoull(nwidstr.c_str(),NULL,16);
 	printf("nwid=%llx\n", (unsigned long long)nwid);
 	zts_startjoin(path.c_str(), nwid);
 	uint64_t nodeId = zts_get_node_id();
-	DEBUG_TEST("I am %llx", (unsigned long long)nodeId);
+	printf("I am %llx\n", (unsigned long long)nodeId);
 
 	if ((sockfd = zts_socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		DEBUG_ERROR("error creating ZeroTier socket");
+		printf("error creating ZeroTier socket\n");
 	}
 	if ((err = zts_bind(sockfd, (struct sockaddr *)&in4, sizeof(struct sockaddr_in)) < 0)) {
-		DEBUG_ERROR("error binding to interface (%d)", err);
+		printf("error binding to interface (%d)\n", err);
 	}
 	
 /*
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 	DEBUG_INFO("accepted connection from %s : %d", inet_ntoa(acc_in4.sin_addr), ntohs(acc_in4.sin_port));
 */
 
-	DEBUG_TEST("reading from client...");
+	printf("reading from client...\n");
 	socklen_t addrlen = sizeof(acc_in4);
 	memset(&acc_in4, 0, sizeof acc_in4);
 
@@ -91,12 +91,12 @@ int main(int argc, char **argv)
 		r = zts_recvfrom(accfd, rbuf, sizeof(rbuf), flags, (struct sockaddr *)&acc_in4, &addrlen);
 		if (r >= 0) {
 			char *ip = inet_ntoa(acc_in4.sin_addr);
-			DEBUG_TEST("Received : r=%d, %s -- from: %s : %d", r, rbuf, ip, ntohs(acc_in4.sin_port));
+			printf("Received : r=%d, %s -- from: %s : %d\n", r, rbuf, ip, ntohs(acc_in4.sin_port));
 		}
 	}
 
 /*
-	DEBUG_TEST("sending to client...");
+	printf("sending to client...\n");
 	w = zts_write(accfd, rbuf, strlen(rbuf));
 
 */

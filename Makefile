@@ -38,3 +38,7 @@ clean:
 clean_win:
 	-"rd /S /Q bin"
 	-"rd /S /Q build"
+
+patch:
+	git -C ext/lwip apply ../lwip.patch
+	git -C ext/lwip-contrib apply ../lwip-contrib.patch

@@ -65,7 +65,7 @@ We recommend using [CMake](https://cmake.org/) for its extensive cross-platform 
 ```
 git submodule init
 git submodule update
-./ext/patch_submodules.sh
+make patch
 cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=DEBUG
 cmake --build build 
 ```

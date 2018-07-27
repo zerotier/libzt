@@ -10,7 +10,7 @@ A library version of [ZeroTier](https://github.com/zerotier/ZeroTierOne), **libz
 
 [![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
 
- - Bindings for popular languages like [Scala](examples/scala), [Swift](examples/swift), [Java](examples/java), [Python](examples/python), etc. can be found [here](examples/bindings)
+ - Bindings for popular languages like [Scala](examples/scala), [Swift](examples/swift), [Java](examples/java), [Python](examples/python), etc. can be found [here](examples/)
 
 *** 
 
@@ -26,17 +26,16 @@ A library version of [ZeroTier](https://github.com/zerotier/ZeroTierOne), **libz
 int main() 
 {
 	char *str = "welcome to the machine";
-	char *ip = "10.8.8.42";               // remote address
-	int port = 8080;                      // remote port
-
+	char *remoteIp = "10.8.8.42";
+	int remotePort = 8080;
+	int fd, err = 0;
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = inet_addr(ip);
-	addr.sin_port = htons(port);	
+	addr.sin_addr.s_addr = inet_addr(remoteIp);
+	addr.sin_port = htons(remotePort);
 
-	zts_startjoin("path", 0xc7cd7c981b0f52a2); // config path, nwid
+	zts_startjoin("path", 0xc7cd7c981b0f52a2); // config path, network ID
 
-	int fd, err = 0;
 	if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		printf("error creating socket\n");
 	}
@@ -46,9 +45,8 @@ int main()
 	if ((err = zts_write(fd, str, strlen(str))) < 0) {
 		printf("error writing to socket\n");
 	}
-	if ((err = zts_close(fd)) < 0) {
-		printf("error closing socket\n");
-	}
+
+	zts_close(fd);
 	zts_stop();
 	return 0;
 }
@@ -60,25 +58,21 @@ For an example using only the [Virtual Layer 2](https://www.zerotier.com/manual.
 
 ### Build
 
-We recommend using [CMake](https://cmake.org/) for its extensive cross-platform build support. 
+We recommend using [CMake](https://cmake.org/) and [clang](https://en.wikipedia.org/wiki/Clang).
 
 ```
 git submodule init
 git submodule update
 make patch
-cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=DEBUG
+cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Debug
 cmake --build build 
 ```
 
-Builds are placed in `bin\lib`. Use `libzt.a` or `libzt.dylib` in your application. Change `CMAKE_BUILD_TYPE` to `RELEASE` for a smaller and optimized build.
+Builds are placed in `bin\lib`. Change `CMAKE_BUILD_TYPE` to `Release` for a smaller and optimized build.
 
 ***
 
-### Contributing
-
-Please make pull requests against the `dev` branch. The `master` branch is release, and `edge` is for unstable and work in progress changes and is not likely to work.
-
 ### Commercial License
 
-If you want a commercial license to use libzt in your product contact us directly via `contact@zerotier.com`.
+If you want a commercial license to use libzt in your product contact us directly via `contact@zerotier.com`
 

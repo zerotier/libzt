@@ -35,3 +35,6 @@ clean:
 	find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.so' -o -name \
 		'*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' \) -delete	
 
+clean_win:
+	-"rd /S /Q bin"
+	-"rd /S /Q build"

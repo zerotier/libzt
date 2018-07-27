@@ -420,7 +420,7 @@ int platform_adjusted_socket_family(int family)
 	 if (family == 2) {
 		 return AF_INET;
 	 }
-	 family; // 10
+	 return -1;
 #endif
 }
 

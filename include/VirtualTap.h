@@ -30,11 +30,12 @@
  * Virtual Ethernet tap device
  */
 
-#ifndef ZT_VIRTUALTAP_HPP
-#define ZT_VIRTUALTAP_HPP
+#ifndef ZT_VIRTUALTAP_H
+#define ZT_VIRTUALTAP_H
 
+#ifndef _MSC_VER
 extern int errno;
-
+#endif
 
 #include "Mutex.hpp"
 #include "MulticastGroup.hpp"

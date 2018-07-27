@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 	std::string path      = argv[1];
 	std::string nwidstr   = argv[2];
 	int bind_port         = atoi(argv[3]);
-	int w=0, r=0, err=0, sockfd, accfd, flags = 0;
+	int w=0, r=0, err=0, sockfd = 0, accfd = 0, flags = 0;
 	char rbuf[32];
 	memset(rbuf, 0, sizeof rbuf);
 

@@ -39,16 +39,14 @@
 #ifndef __LWIPOPTS_H__
 #define __LWIPOPTS_H__
 
-//#define LWIP_SUPPORT_CUSTOM_PBUF 	0
-
 /*
  *  Provides its own errno
  */
 
 #if __ANDROID__
 #define LWIP_PROVIDE_ERRNO          0
-#else
-#define LWIP_PROVIDE_ERRNO          0
+#elif !defined(_MSC_VER)
+#define LWIP_PROVIDE_ERRNO          1
 #endif
 
 /*

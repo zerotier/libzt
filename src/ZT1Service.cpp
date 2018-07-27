@@ -93,7 +93,7 @@ VirtualTap *getTapByAddr(ZeroTier::InetAddress *addr)
 	for (size_t i=0; i<vtaps.size(); i++) {
 		s = (VirtualTap*)vtaps[i];
 		// check address schemes
-		for (ssize_t j=0; j<s->_ips.size(); j++) {
+		for (int j=0; j<(int)(s->_ips.size()); j++) {
 			if ((s->_ips[j].isV4() && addr->isV4()) || (s->_ips[j].isV6() && addr->isV6())) {
 				/* DEBUG_EXTRA("looking at tap %s, <addr=%s> --- for <%s>", s->_dev.c_str(),
 				s->_ips[j].toString(ipbuf), addr->toIpString(ipbuf2)); */
@@ -283,7 +283,7 @@ int zts_get_address_at_index(
 		return err;
 	}
 	_vtaps_lock.lock();
-	if (index > -1 && index <= tap->_ips.size()) {
+	if (index > -1 && index <= (int)tap->_ips.size()) {
 		memcpy(addr, &(tap->_ips[index]), *addrlen);
 		*addrlen = tap->_ips[index].isV4() ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
 		err = 0;

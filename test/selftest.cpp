@@ -551,7 +551,7 @@ void tcp_select_server(TCP_UNIT_TEST_SIG_4)
 #else
 					r = _READ(fd_i, rbuf, len);
 #endif
-					if (r == msg.length()) {
+					if (r == (int)msg.length()) {
 						rx_num++;
 						DEBUG_TEST("rx=%d", rx_num);
 					}
@@ -563,7 +563,7 @@ void tcp_select_server(TCP_UNIT_TEST_SIG_4)
 #else
 					w = _WRITE(fd_i, msg.c_str(), len);
 #endif
-					if (w == msg.length()) {
+					if (w == (int)msg.length()) {
 						tx_num++;
 						DEBUG_TEST("tx=%d", tx_num);
 					}
@@ -638,7 +638,7 @@ void tcp_select_client(TCP_UNIT_TEST_SIG_4)
 #else
 					r = _READ(fd_i, rbuf, len);
 #endif
-					if (r == msg.length()) {
+					if (r == (int)msg.length()) {
 						rx_num++;
 						DEBUG_TEST("rx=%d", rx_num);
 					}
@@ -650,7 +650,7 @@ void tcp_select_client(TCP_UNIT_TEST_SIG_4)
 #else
 					w = _WRITE(fd_i, msg.c_str(), len);
 #endif
-					if (w == msg.length()) {
+					if (w == (int)msg.length()) {
 						tx_num++;
 						DEBUG_TEST("tx=%d", tx_num);
 					}
@@ -962,7 +962,7 @@ void udp_client_4(UDP_UNIT_TEST_SIG_4)
 		int serverlen = sizeof(struct sockaddr_storage);
 		// rx
 		r = _RECVFROM(fd, rbuf, STR_SIZE, 0, (struct sockaddr *)&saddr, (socklen_t *)&serverlen);
-		if (r == strlen(msg.c_str())) {
+		if (r == (int)strlen(msg.c_str())) {
 			sleep(ARTIFICIAL_SOCKET_LINGER);
 			err = _CLOSE(fd);
 			DEBUG_TEST("%s, err=%d, r=%d, w=%d", testname.c_str(), err, r, w);

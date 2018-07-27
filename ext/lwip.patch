@@ -1,13 +1,30 @@
 diff --git a/src/api/sockets.c b/src/api/sockets.c
-index b7632489..f6ab59f6 100644
+index b7632489..786a294e 100644
 --- a/src/api/sockets.c
 +++ b/src/api/sockets.c
 @@ -44,6 +44,8 @@
   *
   */
  
-+#include <errno.h>
++//#include <errno.h>
 +
  #include "lwip/opt.h"
  
  #if LWIP_SOCKET /* don't build if not configured for use in lwipopts.h */
+diff --git a/src/include/lwip/errno.h b/src/include/lwip/errno.h
+index 641cffb0..cec43f7f 100644
+--- a/src/include/lwip/errno.h
++++ b/src/include/lwip/errno.h
+@@ -174,7 +174,11 @@ extern "C" {
+ #define  EMEDIUMTYPE    124  /* Wrong medium type */
+ 
+ #ifndef errno
+-extern int errno;
++#if defined(__linux__) && !defined(__ANDROID__)
++	#include <errno.h>
++#else
++	extern int errno;
++#endif
+ #endif
+ 
+ #else /* LWIP_PROVIDE_ERRNO */

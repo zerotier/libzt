@@ -26,8 +26,11 @@
 
 // Simple Java example for libzt using JNI
 
-import zerotier.*;
-import java.net.*;
+import com.zerotier.libzt.ZeroTier;
+import com.zerotier.libzt.ZTSocketAddress;
+import com.zerotier.libzt.ZTFDSet;
+
+//import java.net.*;
 import java.lang.Thread;
 
 public class ExampleApp {
@@ -46,14 +49,14 @@ public class ExampleApp {
 	public static void main(String[] args) 
 	{
 	
-		final ZeroTier libzt = new ZeroTier();
+		final ZeroTier zt = new ZeroTier();
 
 		new Thread(new Runnable() 
 		{
 			public void run() 
 			{
 				String path = "/Users/joseph/op/zt/libzt/ztjni"; // Where node's config files are stored
-				long nwid = 0xa09acf0233e4b070L;
+				long nwid = 0xa09acf7233e4b071L;
 
 				// Test modes				
 				boolean blocking_start_call = true;
@@ -61,6 +64,7 @@ public class ExampleApp {
 				boolean tcp = false;
 				boolean loop = true; // RX/TX multiple times
 				boolean idle = false; // Idle loop after node comes online. For testing reachability
+				boolean use_select = true;
 
 				int fd = -1, client_fd = -1, err, r, w, lengthToRead = 0, flags = 0;
 				byte[] rxBuffer;
@@ -77,14 +81,14 @@ public class ExampleApp {
 				// Blocking call that waits for all components of the service to start
 				System.out.println("Starting ZT service...");
 				if (blocking_start_call) {
-					libzt.startjoin(path, nwid);
+					zt.startjoin(path, nwid);
 				}
 				// METHOD 2
 				// Optional. Non-blocking call to start service. You'll have to use the below process to determine
 				// when you are allowed to start making socket calls.
 				if (!blocking_start_call) {
-					libzt.start(path, true);
-					while(!libzt.ready()) {
+					zt.start(path, true);
+					while(!zt.ready()) {
 						try { // Wait for core service to start
 							Thread.sleep(250);
 						} 
@@ -93,9 +97,9 @@ public class ExampleApp {
 						}
 					}
 					System.out.println("Core started. Networks can be joined after this point");
-					libzt.join(nwid);
+					zt.join(nwid);
 					// Wait for userspace stack to start, we trigger this by joining a network
-					while(!libzt.stack_running()) {
+					while(!zt.stack_running()) {
 						try {
 							Thread.sleep(1000);
 						} 
@@ -106,18 +110,18 @@ public class ExampleApp {
 				}
 				System.out.println("ZT service ready.");
                 // Device/Node address info
-                System.out.println("path=" + libzt.get_path());
-                long nodeId = libzt.get_node_id();
+                System.out.println("path=" + zt.get_path());
+                long nodeId = zt.get_node_id();
                 System.out.println("nodeId=" + Long.toHexString(nodeId));
-                int numAddresses = libzt.get_num_assigned_addresses(nwid);
+                int numAddresses = zt.get_num_assigned_addresses(nwid);
                 System.out.println("this node has (" + numAddresses + ") assigned addresses on network " + Long.toHexString(nwid));
                 for (int i=0; i<numAddresses; i++) {
-                    libzt.get_address_at_index(nwid, i, sockname);
+                    zt.get_address_at_index(nwid, i, sockname);
                     //System.out.println("address[" + i + "] = " + sockname.toString()); // ip:port
                     System.out.println("address[" + i + "] = " + sockname.toCIDR());
                 }
 
-                libzt.get_6plane_addr(nwid, nodeId, sockname);
+                zt.get_6plane_addr(nwid, nodeId, sockname);
                 System.out.println("6PLANE address = " + sockname.toCIDR());
 
 				// Idle loop test
@@ -126,7 +130,7 @@ public class ExampleApp {
 				// TCP
 				if (tcp) {
 					System.out.println("mode:tcp");
-					if ((fd = libzt.socket(libzt.AF_INET, libzt.SOCK_STREAM, 0)) < 0) {
+					if ((fd = zt.socket(zt.AF_INET, zt.SOCK_STREAM, 0)) < 0) {
 						System.out.println("error creating socket");
 						return; 
 					}
@@ -134,16 +138,16 @@ public class ExampleApp {
 					if (client_mode) {
 						System.out.println("mode:client");
 						remoteAddr = new ZTSocketAddress(remoteAddrStr, portNo);
-						if ((err = libzt.connect(fd, remoteAddr)) < 0) {
+						if ((err = zt.connect(fd, remoteAddr)) < 0) {
 							System.out.println("error connecting (err=" + err + ")");
 							return;
 						}
 						String echo_msg = "echo!";
-						w = libzt.write(fd, echo_msg.getBytes(), echo_msg.length());
+						w = zt.write(fd, echo_msg.getBytes(), echo_msg.length());
 						rxBuffer = new byte[100];
 						lengthToRead = 100;
 						System.out.println("reading bytes...");
-						r = libzt.read(fd, rxBuffer, lengthToRead);
+						r = zt.read(fd, rxBuffer, lengthToRead);
 						System.out.println("r="+r);
 						System.out.println("string="+new String(rxBuffer));
 					}
@@ -153,16 +157,16 @@ public class ExampleApp {
 						System.out.println("mode:server");
 						localAddr = new ZTSocketAddress(localAddrStr, portNo);
 
-						if ((err = libzt.bind(fd, localAddr)) < 0) {
+						if ((err = zt.bind(fd, localAddr)) < 0) {
 							System.out.println("error binding socket to virtual interface");
 							return;
-						} if ((err = libzt.listen(fd, 1)) < 0) {
+						} if ((err = zt.listen(fd, 1)) < 0) {
 							System.out.println("error putting socket into listening state");
 							return;
 						}
 						remoteAddr = new ZTSocketAddress(localAddrStr, 0);
 						client_fd = -1;
-						if ((client_fd = libzt.accept(fd, remoteAddr)) < 0) {
+						if ((client_fd = zt.accept(fd, remoteAddr)) < 0) {
 							System.out.println("error accepting incoming connection (err=" + client_fd + ")");
 							return;
 						}  
@@ -170,12 +174,12 @@ public class ExampleApp {
 						rxBuffer = new byte[100];
 						lengthToRead = 100;
 						System.out.println("reading bytes...");
-						r = libzt.read(client_fd, rxBuffer, lengthToRead);
+						r = zt.read(client_fd, rxBuffer, lengthToRead);
 						System.out.println("r="+r);
 						System.out.println("string="+new String(rxBuffer));
 						System.out.println("writing bytes...");
 						String echo_msg = "echo!";
-						w = libzt.write(client_fd, echo_msg.getBytes(), echo_msg.length());
+						w = zt.write(client_fd, echo_msg.getBytes(), echo_msg.length());
 						System.out.println("wrote (" + w + ") bytes");
 					}
 				}
@@ -183,7 +187,7 @@ public class ExampleApp {
 				// UDP
 				if (!tcp) {
 					System.out.println("mode:udp");
-					if ((fd = libzt.socket(libzt.AF_INET, libzt.SOCK_DGRAM, 0)) < 0) {
+					if ((fd = zt.socket(zt.AF_INET, zt.SOCK_DGRAM, 0)) < 0) {
 						System.out.println("error creating socket");
 						return; 
 					}
@@ -191,7 +195,7 @@ public class ExampleApp {
 					if (client_mode) {
 						System.out.println("mode:client");
 						localAddr = new ZTSocketAddress(localAddrStr, portNo);
-						if ((err = libzt.bind(fd, localAddr)) < 0) {
+						if ((err = zt.bind(fd, localAddr)) < 0) {
 							System.out.println("error binding socket to virtual interface");
 							return;
 						}
@@ -200,14 +204,14 @@ public class ExampleApp {
 						if (loop) {
 							while (true) {
 								sleep(500);
-								if ((w = libzt.sendto(fd, txBuffer, txBuffer.length, flags, remoteAddr)) < 0) {
+								if ((w = zt.sendto(fd, txBuffer, txBuffer.length, flags, remoteAddr)) < 0) {
 									System.out.println("error sending bytes");
 								} else {
 									System.out.println("sendto()=" + w);
 								}
 							}
 						} else {
-							if ((w = libzt.sendto(fd, txBuffer, txBuffer.length, flags, remoteAddr)) < 0) {
+							if ((w = zt.sendto(fd, txBuffer, txBuffer.length, flags, remoteAddr)) < 0) {
 								System.out.println("error sending bytes");
 							} else {
 								System.out.println("sendto()=" + w);
@@ -219,23 +223,55 @@ public class ExampleApp {
 						System.out.println("mode:server");
 						localAddr = new ZTSocketAddress(localAddrStr, portNo);
 						System.out.println("binding to " + localAddr.toString());
-						if ((err = libzt.bind(fd, localAddr)) < 0) {
+						if ((err = zt.bind(fd, localAddr)) < 0) {
 							System.out.println("error binding socket to virtual interface");
 							return;
 						}
 
 						rxBuffer = new byte[100];
 						remoteAddr = new ZTSocketAddress("-1.-1.-1.-1", 0);
-						while(true) {
-							addr = new ZTSocketAddress();
-							r = libzt.recvfrom(fd, rxBuffer, rxBuffer.length, flags, remoteAddr);
-							System.out.println("read (" + r + ") bytes from " + remoteAddr.toString() + ", buffer = " + new String(rxBuffer));
+
+						// select() loop
+						ZTFDSet master_set = new ZTFDSet();
+						master_set.ZERO();
+						master_set.SET(fd);
+						int nfds = fd + 1;
+						if (use_select)
+						{
+							while(true) 
+							{
+								err = zt.select(nfds, master_set, null, null, 0, 100000);
+								if (err < 0) {
+									System.out.println("select failed");
+								} if (err == 0) {
+									System.out.println("select timed out");
+								} if (err > 0) {
+									System.out.println("select detected something to read on");
+									for (int i = 0; i < nfds; i++)
+									{
+										if (master_set.ISSET(i))
+										{
+											System.out.println("attempting to read from: " + i);
+											r = zt.recvfrom(fd, rxBuffer, rxBuffer.length, flags, remoteAddr);
+											System.out.println("read (" + r + ") bytes from " + remoteAddr.toString() + ", buffer = " + new String(rxBuffer));
+										}
+									}
+								}
+							}
+						}
+						if (!use_select)
+						{
+							while(true) {
+								addr = new ZTSocketAddress();
+								r = zt.recvfrom(fd, rxBuffer, rxBuffer.length, flags, remoteAddr);
+								System.out.println("read (" + r + ") bytes from " + remoteAddr.toString() + ", buffer = " + new String(rxBuffer));
+							}
 						}
 					}
 				}
 
-				libzt.close(client_fd);
-				libzt.close(fd);
+				zt.close(client_fd);
+				zt.close(fd);
 			}
 		}).start();
 		 

@@ -24,7 +24,7 @@
  * of your own application.
  */
 
-package zerotier;
+package com.zerotier.libzt;
 
 import java.net.*;
 
@@ -78,4 +78,5 @@ public class ZeroTier {
     public native boolean getsockname(int fd, ZTSocketAddress addr);
     public native int getpeername(int fd, ZTSocketAddress addr);
     public native int fcntl(int sock, int cmd, int flag);
+    public native int select(int nfds, ZTFDSet readfds, ZTFDSet writefds, ZTFDSet exceptfds, int timeout_sec, int timeout_usec);
 }

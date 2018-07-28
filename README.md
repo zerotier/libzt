@@ -1,10 +1,10 @@
 # libzt
-*Embed ZeroTier directly into your app*
+Library version of [ZeroTier](https://github.com/zerotier/ZeroTierOne)
 ***
 
 <a href="https://www.zerotier.com/?pk_campaign=github_libzt"><img src="https://raw.githubusercontent.com/zerotier/ZeroTierOne/master/artwork/ZeroTierIcon.png" width="128" height="128" align="left" hspace="20" vspace="9"></a>
 
-A library version of [ZeroTier](https://github.com/zerotier/ZeroTierOne), **libzt** makes it easy to securely connect devices, servers, cloud VMs, containers, and apps everywhere and manage them at scale. Now you can bake this ability directly into your app or service using your preferred language. We provide a POSIX-like socket API supporting `SOCK_STREAM`, `SOCK_DGRAM`, and `SOCK_RAW` to make the integration simple. There's no need for system-wide virtual interfaces. This connection is exclusive to your app and fully encrypted via the [Salsa20](https://en.wikipedia.org/wiki/Salsa20) cipher. For a more in-depth discussion on the technical side of ZeroTier, check out our [Manual](https://www.zerotier.com/manual.shtml?pk_campaign=github_libzt)
+**libzt** makes it easy to securely connect devices, servers, cloud VMs, containers, and apps everywhere and manage them at scale. We provide a socket-like socket API supporting `SOCK_STREAM`, `SOCK_DGRAM`, and `SOCK_RAW`. There's no need for system-wide virtual interfaces. This connection is exclusive to your app and fully encrypted via the [Salsa20](https://en.wikipedia.org/wiki/Salsa20) cipher. For a more in-depth discussion on the technical side of ZeroTier, check out our [Manual](https://www.zerotier.com/manual.shtml?pk_campaign=github_libzt)
 
 <hr>
 

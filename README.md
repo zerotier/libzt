@@ -64,11 +64,11 @@ We recommend using [CMake](https://cmake.org/) and [clang](https://en.wikipedia.
 git submodule init
 git submodule update
 make patch
-cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Debug
-cmake --build build 
+cmake -H. -Bbuild
+cmake --build build --config Release 
 ```
 
-Builds are placed in `bin\lib`. Change `CMAKE_BUILD_TYPE` to `Release` for a smaller and optimized build.
+Builds are placed in `bin\lib`. Use `--config Debug` for a build with debug info included.
 
 ***
 

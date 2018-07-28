@@ -10,6 +10,7 @@ Library version of [ZeroTier](https://github.com/zerotier/ZeroTierOne)
 
 [![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
 
+ - Pre-built library binaries can be found at: [zerotier.com/download.shtml](https://zerotier.com/download.shtml?pk_campaign=github_libzt)
  - Bindings for popular languages like [Scala](examples/scala), [Swift](examples/swift), [Java](examples/java), [Python](examples/python), etc. can be found [here](examples/)
 
 *** 

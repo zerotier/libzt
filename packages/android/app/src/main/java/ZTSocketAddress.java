@@ -24,18 +24,17 @@
  * of your own application.
  */
 
-package zerotier;
+package com.zerotier.libzt;
 
-import java.net.*;
+import com.zerotier.libzt.ZeroTier;
+
+import java.net.InetAddress;
 
 // Designed to transport address information across the JNI boundary
 public class ZTSocketAddress
 {
     public byte[] _ip6 = new byte[16];
     public byte[] _ip4 = new byte[4];
-
-    public long _ipdata;
-    public long _ipdata_ext;
 
     public int _family;
     public int _port; // Also reused for netmask or prefix
@@ -45,7 +44,7 @@ public class ZTSocketAddress
     public ZTSocketAddress(String ipStr, int port)
     {
         if(ipStr.contains(":")) {
-            _family = zerotier.ZeroTier.AF_INET6;
+            _family = ZeroTier.AF_INET6;
             try {
                 InetAddress ip = InetAddress.getByName(ipStr);
                 _ip6 = ip.getAddress();
@@ -53,7 +52,7 @@ public class ZTSocketAddress
             catch (Exception e) { }
         }
         else if(ipStr.contains(".")) {
-            _family = zerotier.ZeroTier.AF_INET;
+            _family = ZeroTier.AF_INET;
             try {
                 InetAddress ip = InetAddress.getByName(ipStr);
                 _ip4 = ip.getAddress();
@@ -69,7 +68,7 @@ public class ZTSocketAddress
 
     private String ipString()
     {
-        if (_family == zerotier.ZeroTier.AF_INET) {
+        if (_family == ZeroTier.AF_INET) {
             try {
                 InetAddress inet = InetAddress.getByAddress(_ip4);
                 return "" + inet.getHostAddress();
@@ -77,7 +76,7 @@ public class ZTSocketAddress
                 System.out.println(e);
             }
         }
-        if (_family == zerotier.ZeroTier.AF_INET6) {
+        if (_family == ZeroTier.AF_INET6) {
             try {
                 InetAddress inet = InetAddress.getByAddress(_ip6);
                 return "" + inet.getHostAddress();

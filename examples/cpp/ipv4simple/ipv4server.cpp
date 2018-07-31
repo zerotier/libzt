@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 	std::string nwidstr   = argv[2];
 	int bind_port         = atoi(argv[3]);
 	int w=0, r=0, err=0, sockfd, accfd;
-	char rbuf[32];
+	char rbuf[1000];
 	memset(rbuf, 0, sizeof rbuf);
 
 	struct sockaddr_in in4, acc_in4;
@@ -90,11 +90,25 @@ int main(int argc, char **argv)
 	zts_getpeername(accfd, (struct sockaddr*)&acc_in4, &peer_addrlen);
 	printf("accepted connection from %s : %d\n", inet_ntoa(acc_in4.sin_addr), ntohs(acc_in4.sin_port));
 
+	int tot = 0;
 	printf("reading from client...\n");
-	r = zts_read(accfd, rbuf, sizeof rbuf);
+	while(true) {
+		memset(rbuf, 0, sizeof rbuf);
+		if (tot == 500000)
+		{
+			break;
+		}
+		r = zts_read(accfd, rbuf, sizeof rbuf);
+		printf("r=%d\n", r);
+		printf("Received : %s\n", rbuf);
+		tot+= r;
+		printf("tot=%d\n", tot);
+	}
+	printf("tot=%d\n", tot);
 
 	printf("sending to client...\n");
 	w = zts_write(accfd, rbuf, strlen(rbuf));
+	printf("w=%d\n", r);
 
 	printf("Received : %s\n", rbuf);
 

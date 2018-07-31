@@ -4,8 +4,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.TextView;
 
-import zerotier.*;
-import java.net.*;
+import com.zerotier.libzt.ZeroTier;
+import com.zerotier.libzt.ZTSocketAddress;
+import com.zerotier.libzt.ZTFDSet;
 
 public class MainActivity extends AppCompatActivity {
 

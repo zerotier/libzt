@@ -24,7 +24,7 @@
  * of your own application.
  */
 
-package zerotier;
+package com.zerotier.libzt;
 
 import java.net.*;
 
@@ -68,14 +68,15 @@ public class ZeroTier {
     public native int close(int fd);
     public native int setsockopt(int fd, int level, int optname, int optval, int optlen);
     public native int getsockopt(int fd, int level, int optname, int optval, int optlen);
-    public native int sendto(int fd, byte[] buf, int len, int flags, ZTSocketAddress addr);
-    public native int send(int fd, byte[] buf, int len, int flags);
-    public native int recv(int fd, byte[] buf, int len, int flags);
-    public native int recvfrom(int fd, byte[] buf, int len, int flags, ZTSocketAddress addr);
-    public native int read(int fd, byte[] buf, int len);
-    public native int write(int fd, byte[] buf, int len);
+    public native int sendto(int fd, byte[] buf, int flags, ZTSocketAddress addr);
+    public native int send(int fd, byte[] buf, int flags);
+    public native int recv(int fd, byte[] buf, int flags);
+    public native int recvfrom(int fd, byte[] buf, int flags, ZTSocketAddress addr);
+    public native int read(int fd, byte[] buf);
+    public native int write(int fd, byte[] buf);
     public native int shutdown(int fd, int how);
     public native boolean getsockname(int fd, ZTSocketAddress addr);
     public native int getpeername(int fd, ZTSocketAddress addr);
     public native int fcntl(int sock, int cmd, int flag);
+    public native int select(int nfds, ZTFDSet readfds, ZTFDSet writefds, ZTFDSet exceptfds, int timeout_sec, int timeout_usec);
 }

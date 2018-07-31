@@ -1,9 +1,8 @@
-apply plugin: 'com.android.application'
+apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 28
     defaultConfig {
-        applicationId "com.example.zerotier"
         minSdkVersion 21
         targetSdkVersion 28
         versionCode 1
@@ -14,6 +13,11 @@ android {
                 cppFlags ""
             }
         }
+        ndk {
+            // Tells Gradle to build outputs for the following ABIs and package
+            // them into your APK.
+            abiFilters 'armeabi-v7a'
+        }
     }
     buildTypes {
         release {
@@ -23,7 +27,7 @@ android {
     }
     externalNativeBuild {
         cmake {
-            path "/Users/joseph/op/zt/neolibzt/CMakeLists.txt"
+            path "../../../CMakeLists.txt"
         }
     }
 }

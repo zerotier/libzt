@@ -94,6 +94,7 @@ endif ()
 if (JNI EQUAL 1 OR ${CMAKE_SYSTEM_NAME} MATCHES "Android")
 MESSAGE (STATUS "Looking for JNI headers")
 find_package (JNI)
+add_definitions (-DSDK_JNI=1)
 if (JNI_FOUND)
     message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
     message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
@@ -103,7 +104,6 @@ if (JNI_FOUND)
 else ()
     message (STATUS "JNI not found")
 endif ()
-add_definitions (-DSDK_JNI=1)
 endif ()
 
 # --- BUILD TARGETS (FINAL PRODUCT)
@@ -120,16 +120,12 @@ add_library (zt-static STATIC
 set_target_properties (zt-static PROPERTIES OUTPUT_NAME zt-static)
 
 # libzt (shared)
-add_library (zt-shared SHARED
-	$<TARGET_OBJECTS:lwip_pic_obj>
-	$<TARGET_OBJECTS:zto_pic_obj>
-	$<TARGET_OBJECTS:http_pic_obj> ${libzt_src_glob})
+add_library (zt-shared SHARED ${libzt_src_glob})
+target_link_libraries (zt-shared lwip_pic zto_pic http_pic)
 set_target_properties (zt-shared PROPERTIES OUTPUT_NAME zt-shared)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Android")
-	target_link_libraries (zt-shared lwip zto android log)
-else ()
-	#target_link_libraries (zt-shared pthread)
+	target_link_libraries (zt-shared android log)
 endif ()
 
 if (WIN32)
@@ -139,7 +135,9 @@ if (WIN32)
 	target_link_libraries (zt-shared ws2_32)
 	target_link_libraries (zt-shared ${lshlwapi_LIBRARY_PATH})
 	target_link_libraries (zt-shared ${liphlpapi_LIBRARY_PATH})
-else ()
+endif ()
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux" OR ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	target_link_libraries (zt-static pthread)
 	target_link_libraries (zt-shared pthread)
 endif ()
@@ -159,8 +157,8 @@ file (GLOB lwip_src_glob
 	${LWIP_SRC_DIR}/core/ipv6/*.c)
 list(REMOVE_ITEM lwip_src_glob ${LWIP_SRC_DIR}/netif/slipif.c)
 add_library (lwip_obj OBJECT ${lwip_src_glob})
-add_library (lwip_pic_obj OBJECT ${lwip_src_glob})
-set_target_properties (lwip_pic_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_library (lwip_pic ${lwip_src_glob})
+set_target_properties (lwip_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # zto_obj
 set (ZTO_SRC_DIR ${PROJ_DIR}/ext/ZeroTierOne)
@@ -180,14 +178,14 @@ if (WIN32)
 	target_link_libraries (zto_obj ${lshlwapi_LIBRARY_PATH})
 	target_link_libraries (zto_obj ${liphlpapi_LIBRARY_PATH})
 endif ()
-add_library (zto_pic_obj OBJECT ${zto_src_glob})
-set_target_properties (zto_pic_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_library (zto_pic ${zto_src_glob})
+set_target_properties (zto_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # http_obj
 # HTTP Control Plane for ZT Service
 add_library (http_obj OBJECT "${ZTO_SRC_DIR}/ext/http-parser/http_parser.c")
-add_library (http_pic_obj OBJECT "${ZTO_SRC_DIR}/ext/http-parser/http_parser.c")
-set_target_properties (http_pic_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_library (http_pic "${ZTO_SRC_DIR}/ext/http-parser/http_parser.c")
+set_target_properties (http_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # --- TEST APPLICATIONS AND EXAMPLES
 

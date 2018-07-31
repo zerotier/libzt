@@ -55,79 +55,83 @@ namespace ZeroTier {
 	/* ZeroTier service controls                                                */
 	/****************************************************************************/
 
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_start(
+	JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_start(
 		JNIEnv *env, jobject thisObj, jstring path, jboolean blocking)
 	{
 		if (path) {
-			zts_start(env->GetStringUTFChars(path, NULL), blocking);
+			const char* utf_string = env->GetStringUTFChars(path, NULL);
+			zts_start(utf_string, blocking);
+			env->ReleaseStringUTFChars(path, utf_string);
 		}
 	}
 
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_startjoin(
+	JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_startjoin(
 		JNIEnv *env, jobject thisObj, jstring path, jlong nwid)
 	{
 		if (path && nwid) {
-			zts_startjoin(env->GetStringUTFChars(path, NULL), (uint64_t)nwid);
+			const char* utf_string = env->GetStringUTFChars(path, NULL);
+			zts_startjoin(utf_string, (uint64_t)nwid);
+			env->ReleaseStringUTFChars(path, utf_string);
 		}
 	}
 
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_stop(
+	JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_stop(
 		JNIEnv *env, jobject thisObj)
 	{
 		zts_stop();
 	}
 
-	JNIEXPORT jboolean JNICALL Java_zerotier_ZeroTier_core_1running(
+	JNIEXPORT jboolean JNICALL Java_com_zerotier_libzt_ZeroTier_core_1running(
 		JNIEnv *env, jobject thisObj)
 	{
 		return zts_core_running();
 	}
 
-	JNIEXPORT jboolean JNICALL Java_zerotier_ZeroTier_stack_1running(
+	JNIEXPORT jboolean JNICALL Java_com_zerotier_libzt_ZeroTier_stack_1running(
 		JNIEnv *env, jobject thisObj)
 	{
 		return zts_stack_running();
 	}
 
-	JNIEXPORT jboolean JNICALL Java_zerotier_ZeroTier_ready(
+	JNIEXPORT jboolean JNICALL Java_com_zerotier_libzt_ZeroTier_ready(
 		JNIEnv *env, jobject thisObj)
 	{
 		return zts_ready();
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_join(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_join(
 		JNIEnv *env, jobject thisObj, jlong nwid)
 	{
 		return zts_join((uint64_t)nwid);
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_leave(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_leave(
 		JNIEnv *env, jobject thisObj, jlong nwid)
 	{
 		return zts_leave((uint64_t)nwid);
 	}
 
-	JNIEXPORT jstring JNICALL Java_zerotier_ZeroTier_get_1path(
+	JNIEXPORT jstring JNICALL Java_com_zerotier_libzt_ZeroTier_get_1path(
 		JNIEnv *env, jobject thisObj)
 	{
 		char pathBuf[ZT_HOME_PATH_MAX_LEN];
 		zts_get_path(pathBuf, ZT_HOME_PATH_MAX_LEN);
-		return (*env).NewStringUTF(pathBuf);
+		return env->NewStringUTF(pathBuf);
 	}
 
-	JNIEXPORT jlong JNICALL Java_zerotier_ZeroTier_get_1node_1id(
+	JNIEXPORT jlong JNICALL Java_com_zerotier_libzt_ZeroTier_get_1node_1id(
 		JNIEnv *env, jobject thisObj)
 	{
 		return zts_get_node_id();
 	}
 
-	JNIEXPORT jboolean JNICALL Java_zerotier_ZeroTier_get_1num_1assigned_1addresses(
+	JNIEXPORT jboolean JNICALL Java_com_zerotier_libzt_ZeroTier_get_1num_1assigned_1addresses(
 		JNIEnv *env, jobject thisObj, jlong nwid)
 	{
 		return zts_get_num_assigned_addresses(nwid);
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_get_1address_1at_1index(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_get_1address_1at_1index(
 		JNIEnv *env, jobject thisObj, jlong nwid, jint index, jobject addr)
 	{
 		struct sockaddr_storage ss;
@@ -137,13 +141,13 @@ namespace ZeroTier {
 		return err;
 	}
 
-	JNIEXPORT jboolean JNICALL Java_zerotier_ZeroTier_has_1address(
+	JNIEXPORT jboolean JNICALL Java_com_zerotier_libzt_ZeroTier_has_1address(
 		JNIEnv *env, jobject thisObj, jlong nwid)
 	{
 		return zts_has_address(nwid);
 	}
 
-	JNIEXPORT jboolean JNICALL Java_zerotier_ZeroTier_get_1address(
+	JNIEXPORT jboolean JNICALL Java_com_zerotier_libzt_ZeroTier_get_1address(
 		JNIEnv *env, jobject thisObj, jlong nwid, jint address_family, jobject addr)
 	{
 		struct sockaddr_storage ss;
@@ -152,7 +156,7 @@ namespace ZeroTier {
 		return err;
 	}
 
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_get_16plane_1addr(
+	JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_get_16plane_1addr(
 		JNIEnv *env, jobject thisObj, jlong nwid, jlong nodeId, jobject addr)
 	{
 		struct sockaddr_storage ss;
@@ -160,7 +164,7 @@ namespace ZeroTier {
 		ss2zta(env, &ss, addr);
 	}
 
-	JNIEXPORT void JNICALL Java_zerotier_ZeroTier_get_1rfc4193_1addr(
+	JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_get_1rfc4193_1addr(
 		JNIEnv *env, jobject thisObj, jlong nwid, jlong nodeId, jobject addr)
 	{
 		struct sockaddr_storage ss;
@@ -168,7 +172,7 @@ namespace ZeroTier {
 		ss2zta(env, &ss, addr);
 	}
 
-	JNIEXPORT jlong JNICALL Java_zerotier_ZeroTier_get_1peer_1count(
+	JNIEXPORT jlong JNICALL Java_com_zerotier_libzt_ZeroTier_get_1peer_1count(
 		JNIEnv *env, jobject thisObj)
 	{
 		return zts_get_peer_count();
@@ -178,13 +182,13 @@ namespace ZeroTier {
 	/* ZeroTier Socket API                                                      */
 	/****************************************************************************/
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_socket(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_socket(
 		JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol)
 	{
 		return zts_socket(family, type, protocol);
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_connect(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_connect(
 		JNIEnv *env, jobject thisObj, jint fd, jobject addr)
 	{
 		struct sockaddr_storage ss;
@@ -193,7 +197,7 @@ namespace ZeroTier {
 		return zts_connect(fd, (struct sockaddr *)&ss, addrlen);
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_bind(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_bind(
 		JNIEnv *env, jobject thisObj, jint fd, jobject addr)
 	{
 		struct sockaddr_storage ss;
@@ -203,13 +207,13 @@ namespace ZeroTier {
 		return zts_bind(fd, (struct sockaddr*)&ss, addrlen);
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_listen(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_listen(
 		JNIEnv *env, jobject thisObj, jint fd, int backlog)
 	{
 		return zts_listen(fd, backlog);
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_accept(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_accept(
 		JNIEnv *env, jobject thisObj, jint fd, jobject addr, jint port)
 	{
 		struct sockaddr_storage ss;
@@ -220,7 +224,7 @@ namespace ZeroTier {
 	}
 
 #if defined(__linux__)
-	 JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_accept4(
+	 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_accept4(
 		JNIEnv *env, jobject thisObj, jint fd, jobject addr, jint port, jint flags)
 	 {
 		struct sockaddr_storage ss;
@@ -231,19 +235,19 @@ namespace ZeroTier {
 	}
 #endif
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_setsockopt(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_setsockopt(
 		JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen)
 	{
 		return zts_setsockopt(fd, level, optname, (void*)(uintptr_t)optval, optlen);
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_getsockopt(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_getsockopt(
 		JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jint optval, jint optlen)
 	{
 		return zts_getsockopt(fd, level, optname, (void*)(uintptr_t)optval, (socklen_t *)optlen);
 	}
 
-	JNIEXPORT jboolean JNICALL Java_zerotier_ZeroTier_getsockname(JNIEnv *env, jobject thisObj,
+	JNIEXPORT jboolean JNICALL Java_com_zerotier_libzt_ZeroTier_getsockname(JNIEnv *env, jobject thisObj,
 		jint fd, jobject addr)
 	{
 		struct sockaddr_storage ss;
@@ -253,7 +257,7 @@ namespace ZeroTier {
 		return err;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_getpeername(JNIEnv *env, jobject thisObj,
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_getpeername(JNIEnv *env, jobject thisObj,
 		jint fd, jobject addr)
 	{
 		struct sockaddr_storage ss;
@@ -262,83 +266,84 @@ namespace ZeroTier {
 		return err;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_close(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_close(
 		JNIEnv *env, jobject thisObj, jint fd)
 	{
 		return zts_close(fd);
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_fcntl(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_fcntl(
 		JNIEnv *env, jobject thisObj, jint fd, jint cmd, jint flags)
 	{
 		return zts_fcntl(fd, cmd, flags);
 	}
 
-	JNIEXPORT int JNICALL Java_zerotier_ZeroTier_ioctl(jint fd, jlong request, void *argp)
+	JNIEXPORT int JNICALL Java_com_zerotier_libzt_ZeroTier_ioctl(jint fd, jlong request, void *argp)
 	{
 		return zts_ioctl(fd, request, argp);
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_send(JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, int flags)
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_send(
+		JNIEnv *env, jobject thisObj, jint fd, jbyteArray buf, int flags)
 	{
-		jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
-		int w = zts_send(fd, body, len, flags);
-		(*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);
+		void *data = env->GetPrimitiveArrayCritical(buf, NULL);
+		int w = zts_send(fd, data, env->GetArrayLength(buf), flags);
+		env->ReleasePrimitiveArrayCritical(buf, data, 0);
 		return w;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_sendto(
-		JNIEnv *env, jobject thisObj, jint fd, jarray buf, jint len, jint flags, jobject addr)
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_sendto(
+		JNIEnv *env, jobject thisObj, jint fd, jbyteArray buf, jint flags, jobject addr)
 	{
-		jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
+		void *data = env->GetPrimitiveArrayCritical(buf, NULL);
 		struct sockaddr_storage ss;
 		zta2ss(env, &ss, addr);
 		socklen_t addrlen = ss.ss_family == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
-		int w = zts_sendto(fd, body, len, flags, (struct sockaddr *)&ss, addrlen);
-		(*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);
+		int w = zts_sendto(fd, data, env->GetArrayLength(buf), flags, (struct sockaddr *)&ss, addrlen);
+		env->ReleasePrimitiveArrayCritical(buf, data, 0);
 		return w;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_recv(JNIEnv *env, jobject thisObj,
-		jint fd, jarray buf, jint len, jint flags)
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_recv(JNIEnv *env, jobject thisObj,
+		jint fd, jbyteArray buf, jint flags)
 	{
-		jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
-		int r = zts_recv(fd, body, len, flags);
-		(*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);
+		void *data = env->GetPrimitiveArrayCritical(buf, NULL);
+		int r = zts_recv(fd, data, env->GetArrayLength(buf), flags);
+		env->ReleasePrimitiveArrayCritical(buf, data, 0);
 		return r;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_recvfrom(
-		JNIEnv *env, jobject thisObj, jint fd, jbyteArray buf, jint len, jint flags, jobject addr)
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_recvfrom(
+		JNIEnv *env, jobject thisObj, jint fd, jbyteArray buf, jint flags, jobject addr)
 	{
 		socklen_t addrlen = sizeof(struct sockaddr_storage);
 		struct sockaddr_storage ss;
-		jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
-		int r = zts_recvfrom(fd, body, len, flags, (struct sockaddr *)&ss, &addrlen);
-		(*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);	
+		void *data = env->GetPrimitiveArrayCritical(buf, NULL);
+		int r = zts_recvfrom(fd, data, env->GetArrayLength(buf), flags, (struct sockaddr *)&ss, &addrlen);
+		env->ReleasePrimitiveArrayCritical(buf, data, 0);
 		ss2zta(env, &ss, addr);
 		return r;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_read(JNIEnv *env, jobject thisObj,
-		jint fd, jarray buf, jint len)
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_read(JNIEnv *env, jobject thisObj,
+		jint fd, jbyteArray buf)
 	{
-		jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
-		int r = zts_read(fd, body, len);
-		(*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);
+		void *data = env->GetPrimitiveArrayCritical(buf, NULL);
+		int r = zts_read(fd, data, env->GetArrayLength(buf));
+		env->ReleasePrimitiveArrayCritical(buf, data, 0);
 		return r;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_write(JNIEnv *env, jobject thisObj,
-		jint fd, jarray buf, jint len)
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_write(JNIEnv *env, jobject thisObj,
+		jint fd, jbyteArray buf)
 	{
-		jbyte *body = (*env).GetByteArrayElements((_jbyteArray *)buf, 0);
-		int w = zts_write(fd, body, len);
-		(*env).ReleaseByteArrayElements((_jbyteArray *)buf, body, 0);
+		void *data = env->GetPrimitiveArrayCritical(buf, NULL);
+		int w = zts_write(fd, data, env->GetArrayLength(buf));
+		env->ReleasePrimitiveArrayCritical(buf, data, 0);
 		return w;
 	}
 
-	JNIEXPORT jint JNICALL Java_zerotier_ZeroTier_shutdown(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_shutdown(
 		JNIEnv *env, jobject thisObj, int fd, int how)
 	{
 		return zts_shutdown(fd, how);
@@ -361,7 +366,7 @@ void ss2zta(JNIEnv *env, struct sockaddr_storage *ss, jobject addr)
 		jfieldID fid = (*env).GetFieldID(c, "_port", "I");
 		(*env).SetIntField(addr, fid, ntohs(in4->sin_port));
 		fid = (*env).GetFieldID(c,"_family", "I");
-		(*env).SetLongField(addr, fid, (in4->sin_family));
+		(*env).SetIntField(addr, fid, (in4->sin_family));
 		fid = env->GetFieldID(c, "_ip4", "[B");
 		jobject ipData = (*env).GetObjectField (addr, fid);
 		jbyteArray * arr = reinterpret_cast<jbyteArray*>(&ipData);
@@ -377,7 +382,7 @@ void ss2zta(JNIEnv *env, struct sockaddr_storage *ss, jobject addr)
 		jfieldID fid = (*env).GetFieldID(c, "_port", "I");
 		(*env).SetIntField(addr, fid, ntohs(in6->sin6_port));
 		fid = (*env).GetFieldID(c,"_family", "I");
-		(*env).SetLongField(addr, fid, (in6->sin6_family));
+		(*env).SetIntField(addr, fid, (in6->sin6_family));
 		fid = env->GetFieldID(c, "_ip6", "[B");
 		jobject ipData = (*env).GetObjectField (addr, fid);
 		jbyteArray * arr = reinterpret_cast<jbyteArray*>(&ipData);

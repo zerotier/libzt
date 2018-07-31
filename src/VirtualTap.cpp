@@ -47,6 +47,10 @@ typedef unsigned short u16_t;
 #include "InetAddress.hpp"
 #include "OneService.hpp"
 
+#ifdef _MSC_VER
+#include "Synchapi.h"
+#endif
+
 int VirtualTap::devno = 0;
 
 VirtualTap::VirtualTap(
@@ -208,7 +212,12 @@ void VirtualTap::threadMain()
 	throw()
 {
 	while (true) {
+#ifdef _MSC_VER
+		Sleep(ZT_PHY_POLL_INTERVAL);
+		_phy.poll(0);
+#else
 		_phy.poll(ZT_PHY_POLL_INTERVAL);
+#endif
 		Housekeeping();
 	}
 }

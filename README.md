@@ -10,7 +10,7 @@ Library version of [ZeroTier](https://github.com/zerotier/ZeroTierOne)
 
 [![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
 
- - Pre-built library binaries can be found at: [zerotier.com/download.shtml](https://zerotier.com/download.shtml?pk_campaign=github_libzt)
+ - Pre-built library binaries can be found at: [https://download.zerotier.com/RELEASES/1.2.12/dist/libzt/](https://download.zerotier.com/RELEASES/1.2.12/dist/libzt/?pk_campaign=github_libzt)
  - Bindings for popular languages like [Scala](examples/scala), [Swift](examples/swift), [Java](examples/java), [Python](examples/python), etc. can be found [here](examples/)
 
 *** 
@@ -65,11 +65,22 @@ We recommend using [CMake](https://cmake.org/) and [clang](https://en.wikipedia.
 git submodule init
 git submodule update
 make patch
-cmake -H. -Bbuild
-cmake --build build --config Release 
+cmake -H. -Bbuild 
 ```
 
-Builds are placed in `bin\lib`. Use `--config Debug` for a build with debug info included.
+Then
+
+```
+cmake --build build -DCMAKE_BUILD_TYPE=Release
+```
+
+or 
+
+```
+cmake --build build --config Release
+```
+
+Builds are placed in `bin\lib`
 
 ***
 

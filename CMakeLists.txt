@@ -76,60 +76,64 @@ endif ()
 
 # WINDOWS-specific MSVC flags and libraries
 if (WIN32)
-# 32-bit
-if(NOT "${CMAKE_GENERATOR}" MATCHES "(Win64|IA64)")
-	set (WINLIBDIR, "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.16299.0/um/x86")
-endif ()
-# 64-bit
-if("${CMAKE_GENERATOR}" MATCHES "(Win64|IA64)")
-	set (WINLIBDIR, "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.16299.0/um/x64")
-endif ()
-	message (STATUS ${WINLIBDIR})
+	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/win32)
+	# 32-bit
+	if(NOT "${CMAKE_GENERATOR}" MATCHES "(Win64|IA64)")
+		set (WINLIBDIR, "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.16299.0/um/x86")
+	endif ()
+	# 64-bit
+	if("${CMAKE_GENERATOR}" MATCHES "(Win64|IA64)")
+		set (WINLIBDIR, "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.16299.0/um/x64")
+	endif ()
 	find_library (ws2_32_LIBRARY_PATH NAMES WS2_32 HINTS ${WINLIBDIR})
 	find_library (shlwapi_LIBRARY_PATH NAMES ShLwApi HINTS ${WINLIBDIR})
-	#find_library (iphlpapi_LIBRARY_PATH NAMES iphlpapi HINTS ${WINLIBDIR})
 	set (iphlpapi_LIBRARY_PATH "${WINLIBDIR}/iphlpapi.Lib")
+	message (STATUS ${WINLIBDIR})
 	message (STATUS "WS2_32=${ws2_32_LIBRARY_PATH}")
 	message (STATUS "ShLwApi=${shlwapi_LIBRARY_PATH}")
 	message (STATUS "liphlpapi=${iphlpapi_LIBRARY_PATH}")
 	add_definitions (-DZT_SDK=1)
-	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/win32)
+	add_definitions (-DADD_EXPORTS=1)
 endif ()
 
 # --- JNI
 
 if (JNI EQUAL 1 OR ${CMAKE_SYSTEM_NAME} MATCHES "Android")
-MESSAGE (STATUS "Looking for JNI headers")
-find_package (JNI)
-add_definitions (-DSDK_JNI=1)
-if (JNI_FOUND)
-    message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
-    message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
-    list (GET JNI_INCLUDE_DIRS 0 JNI_INCLUDE_DIR)
-    message (STATUS "jni path=${JNI_INCLUDE_DIR}")
-    include_directories ("${JNI_INCLUDE_DIR}")
-else ()
-    message (STATUS "JNI not found")
-endif ()
+	MESSAGE (STATUS "Looking for JNI headers")
+	find_package (JNI)
+	add_definitions (-DSDK_JNI=1)
+	if (JNI_FOUND)
+	    message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
+	    message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
+	    list (GET JNI_INCLUDE_DIRS 0 JNI_INCLUDE_DIR)
+	    message (STATUS "jni path=${JNI_INCLUDE_DIR}")
+	    include_directories ("${JNI_INCLUDE_DIR}")
+	else ()
+	    message (STATUS "JNI not found")
+	endif ()
 endif ()
 
 # --- BUILD TARGETS (FINAL PRODUCT)
 
-# libzt (static)
+# libzt
 set (LIBZT_SRC_DIR ${PROJ_DIR}/src)
 include_directories ("${LIBZT_SRC_DIR}")
 include_directories ("${PROJ_DIR}/include")
 file (GLOB libzt_src_glob ${LIBZT_SRC_DIR}/*.cpp)
+
+# (static)
 add_library (zt-static STATIC
 	$<TARGET_OBJECTS:lwip_obj>
 	$<TARGET_OBJECTS:zto_obj>
 	$<TARGET_OBJECTS:http_obj> ${libzt_src_glob})
 set_target_properties (zt-static PROPERTIES OUTPUT_NAME zt-static)
 
-# libzt (shared)
+# (shared)
 add_library (zt-shared SHARED ${libzt_src_glob})
+message (STATUS ${libzt_src_glob})
 target_link_libraries (zt-shared lwip_pic zto_pic http_pic)
 set_target_properties (zt-shared PROPERTIES OUTPUT_NAME zt-shared)
+set_target_properties (zt-shared PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS true)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Android")
 	target_link_libraries (zt-shared android log)

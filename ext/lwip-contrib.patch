@@ -1,3 +1,16 @@
+diff --git a/ports/unix/port/include/arch/cc.h b/ports/unix/port/include/arch/cc.h
+index a3dac04..39fede7 100644
+--- a/ports/unix/port/include/arch/cc.h
++++ b/ports/unix/port/include/arch/cc.h
+@@ -34,7 +34,7 @@
+ 
+ /* see https://sourceforge.net/p/predef/wiki/OperatingSystems/ */
+ #if defined __ANDROID__
+-#define LWIP_UNIX_ANDROID
++//#define LWIP_UNIX_ANDROID
+ #elif defined __linux__
+ #define LWIP_UNIX_LINUX
+ #elif defined __APPLE__
 diff --git a/ports/win32/include/arch/cc.h b/ports/win32/include/arch/cc.h
 index 334be07..9384b70 100644
 --- a/ports/win32/include/arch/cc.h

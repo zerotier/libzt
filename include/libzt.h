@@ -48,23 +48,22 @@
 #include <WinSock2.h>
 #include <stdint.h>
 #include <WS2tcpip.h>
-//int inet_pton(int af, const char *src, void *dst);
 #endif
 
 /****************************************************************************/
-/* DLL export for Windows (and other cruft)                                 */
+/* DLL export for Windows                                                   */
 /****************************************************************************/
 
-#if defined(__MING32__) || defined(__MING64__)
-#ifdef ADD_EXPORTS
-#define ZT_SOCKET_API __declspec(dllexport)
+#ifdef _WIN32
+	#ifdef ADD_EXPORTS
+		#define ZT_SOCKET_API __declspec(dllexport)
+	#else
+		#define ZT_SOCKET_API __declspec(dllimport)
+	#endif
+	#define ZTCALL __cdecl
 #else
-#define ZT_SOCKET_API __declspec(dllimport)
-#endif
-#define ZTCALL __cdecl
-#else
-#define ZT_SOCKET_API
-#define ZTCALL
+	#define ZT_SOCKET_API
+	#define ZTCALL
 #endif
 
 /****************************************************************************/
@@ -270,7 +269,7 @@ ZT_SOCKET_API void ZTCALL zts_get_rfc4193_addr(
 ZT_SOCKET_API unsigned long zts_get_peer_count();
 
 /****************************************************************************/
-/* POSIX-like socket API                                                    */
+/* Socket-like API                                                          */
 /****************************************************************************/
 
 /**

@@ -65,20 +65,21 @@ We recommend using [CMake](https://cmake.org/) and [clang](https://en.wikipedia.
 git submodule init
 git submodule update
 make patch
-cmake -H. -Bbuild 
+cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
+```
+
+or possibly:
+
+```
+cmake -H. -Bbuild --config Release
 ```
 
 Then
 
 ```
-cmake --build build -DCMAKE_BUILD_TYPE=Release
+cmake --build build 
 ```
 
-or 
-
-```
-cmake --build build --config Release
-```
 
 Builds are placed in `bin\lib`
 

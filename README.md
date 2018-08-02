@@ -10,8 +10,13 @@ Library version of [ZeroTier](https://github.com/zerotier/ZeroTierOne)
 
 [![irc](https://img.shields.io/badge/IRC-%23zerotier%20on%20freenode-orange.svg)](https://webchat.freenode.net/?channels=zerotier)
 
- - Pre-built library binaries can be found at: [https://download.zerotier.com/RELEASES/1.2.12/dist/libzt/](https://download.zerotier.com/RELEASES/1.2.12/dist/libzt/?pk_campaign=github_libzt)
- - Bindings for popular languages like [Scala](examples/scala), [Swift](examples/swift), [Java](examples/java), [Python](examples/python), etc. can be found [here](examples/)
+| Platform  | Static | Shared | Package | Example project/code | Library build instructions
+| --------- | --- | --- | --- | --- | --- |
+| macOS     | [libzt.a](https://download.zerotier.com/RELEASES/1.2.12/dist/libzt/macos/libzt-1.2.0r1-macOS-10.13.6-x64-release.a) | [libzt.dylib](https://download.zerotier.com/RELEASES/1.2.12/dist/libzt/macos/libzt-1.2.0r1-macOS-10.13.6-x64-release.dylib) | | | see below |
+| iOS       | [libzt.a](https://download.zerotier.com/RELEASES/1.2.12/dist/libzt/ios/libzt-1.2.0r1-iOS-arm64-release.a) | [libzt.dylib](https://download.zerotier.com/RELEASES/1.2.12/dist/libzt/ios/libzt-1.2.0r1-iOS-arm64-release.dylib) | | [examples/swift](examples/swift) | [packages/iOS](packages/iOS) |
+| Windows   | [libzt.lib](https://download.zerotier.com/RELEASES/1.2.12/dist/libzt/win/libzt-1.2.0r1-win10-x86-release.lib) (x86), [libzt.lib](https://download.zerotier.com/RELEASES/1.2.12/dist/libzt/win/libzt-1.2.0r1-win10-x64-release.lib) (x64) | [libzt.dll](https://download.zerotier.com/RELEASES/1.2.12/dist/libzt/win/libzt-1.2.0r1-win10-x86-release.dll) (x86), [libzt.dll](https://download.zerotier.com/RELEASES/1.2.12/dist/libzt/win/libzt-1.2.0r1-win10-x64-release.dll) (x64) | | [examples/cpp/ExampleWindowsCppApp](examples/cpp/ExampleWindowsCppApp), [examples/csharp/ExampleWindowsCSharpApp](examples/csharp/ExampleWindowsCSharpApp) | see below |
+| Android   |  |  | [libzt.aar](https://download.zerotier.com/RELEASES/1.2.12/dist/libzt/android/libzt-1.2.0r1-android-armeabi-v7a.aar) | [examples/android/ExampleAndroidApp](examples/android/ExampleAndroidApp) | [packages/android](packages/android)|
+| Linux     | see below | see below | | | see below |
 
 *** 
 

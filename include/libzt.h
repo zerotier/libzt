@@ -37,7 +37,7 @@
 #include "libztDefs.h"
 
 #include <stdlib.h>
-#include <cstdint>
+#include <stdint.h>
  
 #if defined(__linux__) || defined(__APPLE__)
 #include <sys/socket.h>
@@ -99,7 +99,7 @@ ZT_SOCKET_API int ZTCALL zts_set_service_port(int portno);
  * @param nwid A 16-digit hexidecimal network identifier (e.g. Earth: `8056c2e21c000001`)
  * @return 0 if successful; or 1 if failed
  */
-ZT_SOCKET_API int ZTCALL zts_start(const char *path, bool blocking);
+ZT_SOCKET_API int ZTCALL zts_start(const char *path, int blocking);
 
 /**
  * @brief Starts libzt

@@ -419,7 +419,7 @@ int zts_ready()
 	return zts_core_running() && zts_stack_running();
 }
 
-int zts_start(const char *path, bool blocking = false)
+int zts_start(const char *path, int blocking = false)
 {
 	if (zt1Service) {
 		return 0; // already initialized, ok

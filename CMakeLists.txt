@@ -203,6 +203,7 @@ set_target_properties (http_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
 if ((NOT ${CMAKE_SYSTEM_NAME} MATCHES "Android") AND
 	(NOT ${CMAKE_GENERATOR} STREQUAL "Xcode"))
 	file (GLOB APP_SOURCES 
+		${PROJ_DIR}/examples/cpp/*.cpp 
 		${PROJ_DIR}/examples/cpp/ipv4simple/*.cpp 
 		${PROJ_DIR}/examples/cpp/ipv6simple/*.cpp 
 		${PROJ_DIR}/examples/cpp/ipv6adhoc/*.cpp 

@@ -31,7 +31,9 @@
 int main(int argc, char **argv)
 {
 	uint64_t nwid = 0x8056c2e21c000001;
-	zts_startjoin(path.c_str(), nwid);
-	printf("%llx", (unsigned long long)zts_get_node_id());
+	zts_startjoin(".", nwid);
+	fprintf(stderr, "%llx", (unsigned long long)zts_get_node_id());
+	zts_leave(nwid);
+	zts_stop();
 	return 0;
 }

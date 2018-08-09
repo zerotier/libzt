@@ -71,7 +71,8 @@ endif ()
 # ANDROID-specific
 if (${CMAKE_SYSTEM_NAME} MATCHES "Android")
 	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -DSOCKLEN_T_DEFINED=1")
-	include_directories (/Users/joseph/Library/Android/sdk/ndk-bundle/sysroot/usr/include/arm-linux-androideabi)
+	set (ANDROID_NDK /Users/$ENV{USER}/Library/Android/sdk/ndk-bundle/sysroot/usr/include/arm-linux-androideabi)
+	include_directories (${ANDROID_NDK})
 endif ()
 
 # WINDOWS-specific MSVC flags and libraries

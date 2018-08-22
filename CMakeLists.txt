@@ -154,9 +154,18 @@ endif ()
 # |                            SOURCE FILE GLOBS                              |
 # -----------------------------------------------------------------------------
 
-set (LWIP_SRC_DIR ${PROJ_DIR}/ext/lwip/src)
-set (ZTO_SRC_DIR ${PROJ_DIR}/ext/ZeroTierOne)
-set (LIBZT_SRC_DIR ${PROJ_DIR}/src)
+set (LWIP_SRC_DIR "${PROJ_DIR}/ext/lwip/src")
+set (ZTO_SRC_DIR "${PROJ_DIR}/ext/ZeroTierOne")
+set (LIBZT_SRC_DIR "${PROJ_DIR}/src")
+
+include_directories ("${LIBZT_SRC_DIR}")
+include_directories ("${ZTO_SRC_DIR}/include")
+include_directories ("${ZTO_SRC_DIR}/osdep")
+include_directories ("${ZTO_SRC_DIR}/node")
+include_directories ("${ZTO_SRC_DIR}/service")
+include_directories ("${PROJ_DIR}/include")
+include_directories ("${LWIP_SRC_DIR}/include")
+include_directories ("${LWIP_PORT_DIR}/include")
 
 file (GLOB lwipSrcGlob
 	${LWIP_SRC_DIR}/netif/*.c
@@ -184,16 +193,6 @@ file (GLOB ExampleAppSrcGlob
 	${PROJ_DIR}/examples/cpp/sharedlib/*.cpp
 	${PROJ_DIR}/examples/ztproxy/*.cpp)
 
-include_directories (${LWIP_SRC_DIR}/include)
-include_directories (${LWIP_PORT_DIR}/include)
-include_directories (${LIBZT_SRC_DIR})
-
-include_directories (${ZTO_SRC_DIR}/include)
-include_directories (${ZTO_SRC_DIR}/osdep)
-include_directories (${ZTO_SRC_DIR}/node)
-include_directories (${ZTO_SRC_DIR}/service)
-
-include_directories (${INCLUDE_PATH})
 
 # header globs for xcode frameworks
 file (GLOB frameworkPrivateHeaderGlob
@@ -298,6 +297,7 @@ message (STATUS ${libztSrcGlob})
 target_link_libraries (${DYNAMIC_LIB_NAME} lwip_pic zto_pic http_pic)
 set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES OUTPUT_NAME zt)
 set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS true)
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 if (BUILDING_ANDROID)
 	target_link_libraries (${DYNAMIC_LIB_NAME} android log)

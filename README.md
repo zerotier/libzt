@@ -18,6 +18,9 @@ Library version of [ZeroTier](https://github.com/zerotier/ZeroTierOne)
 | Android   |  |  | [libzt.aar](https://download.zerotier.com/RELEASES/1.2.12/dist/libzt/android/libzt-1.2.0r1-android-armeabi-v7a.aar) | [examples/android/ExampleAndroidApp](examples/android/ExampleAndroidApp) | [packages/android](packages/android)|
 | Linux     | see below | see below | | | see below |
 
+C API: [libzt.h](include/libzt.h)
+Java JNI API: [ZeroTier.java](packages/android/app/src/main/java/ZeroTier.java)
+
 *** 
 
 ### C++ Example

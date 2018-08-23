@@ -1,9 +1,0 @@
-/Users/joseph/op/zt/libzt_new/packages/iOS/CMakeFiles/http_obj.dir
-/Users/joseph/op/zt/libzt_new/packages/iOS/CMakeFiles/lwip_pic.dir
-/Users/joseph/op/zt/libzt_new/packages/iOS/CMakeFiles/zto_pic.dir
-/Users/joseph/op/zt/libzt_new/packages/iOS/CMakeFiles/zt-static.dir
-/Users/joseph/op/zt/libzt_new/packages/iOS/CMakeFiles/lwip_obj.dir
-/Users/joseph/op/zt/libzt_new/packages/iOS/CMakeFiles/http_pic.dir
-/Users/joseph/op/zt/libzt_new/packages/iOS/CMakeFiles/zto_obj.dir
-/Users/joseph/op/zt/libzt_new/packages/iOS/CMakeFiles/zt-shared.dir
-/Users/joseph/op/zt/libzt_new/packages/iOS/CMakeFiles/ALL_BUILD.dir

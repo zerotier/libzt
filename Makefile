@@ -17,6 +17,9 @@ clean:
 .PHONY: dist
 dist: patch
 	./packages/dist.sh
+.PHONY: dist_win
+dist_win: patch
+	packages\dist.bat
 
 # Initialize submodules and apply patches
 .PHONY: all
@@ -28,6 +31,8 @@ all: update patch
 clean_win:
 	-"rd /S /Q bin"
 	-"rd /S /Q build"
+	-"rd /S /Q WinBuild32"
+	-"rd /S /Q WinBuild64"
 
 # Remove any CMake-generated library-building projects
 clean_packages:

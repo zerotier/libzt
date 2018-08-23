@@ -56,9 +56,6 @@ set (SILENCE "-Wno-unused-parameter -Wno-unused-variable -Wno-missing-field-init
 # |                     PLATFORM/FEATURE AND IDE DETECTION                    |
 # -----------------------------------------------------------------------------
 
-if (JNI EQUAL 1)
-	set (ADD_JNI TRUE)
-endif ()
 if (${CMAKE_SYSTEM_NAME} MATCHES "Android")
 	set (BUILDING_ANDROID TRUE)
 endif ()
@@ -83,9 +80,38 @@ endif ()
 if (NOT BUILDING_ANDROID AND NOT IN_XCODE AND NOT BUILD_TESTS EQUAL 0)
 	set(SHOULD_BUILD_TESTS TRUE)
 endif ()
-
 if (BUILDING_WIN32 OR BUILDING_WIN64 OR MSVC)
 	set (BUILDING_WIN TRUE)
+endif ()
+
+# -----------------------------------------------------------------------------
+# |                                      JNI                                  |
+# -----------------------------------------------------------------------------
+
+MESSAGE (STATUS "Looking for JNI")
+# We are only interested in finding jni.h: we do not care about extended JVM
+# functionality or the AWT library.
+set(JAVA_AWT_LIBRARY NotNeeded)
+set(JAVA_JVM_LIBRARY NotNeeded)
+set(JAVA_INCLUDE_PATH2 NotNeeded)
+set(JAVA_AWT_INCLUDE_PATH NotNeeded)
+set(JAVA_INCLUDE_PATH "C:\\Program Files\\Java\\jdk-10.0.2\\include")
+find_package (JNI)
+if (JNI_FOUND)
+    message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
+    message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
+    list (GET JNI_INCLUDE_DIRS 0 JNI_INCLUDE_DIR)
+    message (STATUS "jni path=${JNI_INCLUDE_DIR}")
+    include_directories ("${JNI_INCLUDE_DIR}")
+	if (BUILDING_WIN)
+		include_directories ("${JNI_INCLUDE_DIR}\\win32")
+	endif ()
+else ()
+	    message (STATUS "JNI not found")
+endif ()
+
+if ((BUILDING_ANDROID OR JNI) AND JNI_FOUND)
+	add_definitions (-DSDK_JNI=1)
 endif ()
 
 # -----------------------------------------------------------------------------
@@ -104,27 +130,17 @@ endif ()
 # |                                LIBRARY NAMES                              |
 # -----------------------------------------------------------------------------
 
-set (STATIC_LIB_NAME ${PROJECT_NAME}-static)
-set (STATIC_LIB_OUTPUT_NAME ${PROJECT_NAME})
-set (DYNAMIC_LIB_NAME ${PROJECT_NAME}-shared)
-set (DYNAMIC_LIB_OUTPUT_NAME ${PROJECT_NAME})
-
-if (BUILDING_DARWIN)
+if (IN_XCODE)
 	set (XCODE_FRAMEWORK_NAME ${PROJECT_NAME})
-	set (STATIC_LIB_NAME ${PROJECT_NAME}-static)
-	set (STATIC_LIB_OUTPUT_NAME ${PROJECT_NAME})
-	set (DYNAMIC_LIB_NAME ${PROJECT_NAME}-shared)
-	set (DYNAMIC_LIB_OUTPUT_NAME ${PROJECT_NAME})
-endif ()
-
-if (BUILDING_ANDROID)
-	set (STATIC_LIB_NAME ${PROJECT_NAME}-static)
-	set (STATIC_LIB_OUTPUT_NAME ${PROJECT_NAME})
-	set (DYNAMIC_LIB_NAME ${PROJECT_NAME}-shared)
-	set (DYNAMIC_LIB_OUTPUT_NAME ${PROJECT_NAME})
 endif ()
 
 if (BUILDING_WIN)
+	# Possibly a CMake limitation? -- Can't share target output names
+	set (STATIC_LIB_NAME ${PROJECT_NAME}-static)
+	set (STATIC_LIB_OUTPUT_NAME ${PROJECT_NAME}-static)
+	set (DYNAMIC_LIB_NAME ${PROJECT_NAME}-shared)
+	set (DYNAMIC_LIB_OUTPUT_NAME ${PROJECT_NAME}-shared)
+else ()
 	set (STATIC_LIB_NAME ${PROJECT_NAME}-static)
 	set (STATIC_LIB_OUTPUT_NAME ${PROJECT_NAME})
 	set (DYNAMIC_LIB_NAME ${PROJECT_NAME}-shared)
@@ -223,8 +239,10 @@ if (BUILDING_WIN)
 	if(BUILDING_WIN64)
 		set (WINLIBDIR, "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.16299.0/um/x64")
 	endif ()
-	find_library (ws2_32_LIBRARY_PATH NAMES WS2_32 HINTS ${WINLIBDIR})
-	find_library (shlwapi_LIBRARY_PATH NAMES ShLwApi HINTS ${WINLIBDIR})
+	#find_library (ws2_32_LIBRARY_PATH NAMES WS2_32 HINTS ${WINLIBDIR})
+	#find_library (shlwapi_LIBRARY_PATH NAMES ShLwApi HINTS ${WINLIBDIR})
+	set (ws2_32_LIBRARY_PATH "${WINLIBDIR}/WS2_32.Lib")
+	set (shlwapi_LIBRARY_PATH "${WINLIBDIR}/ShLwApi.Lib")
 	set (iphlpapi_LIBRARY_PATH "${WINLIBDIR}/iphlpapi.Lib")
 	message (STATUS ${WINLIBDIR})
 	message (STATUS "WS2_32=${ws2_32_LIBRARY_PATH}")
@@ -232,25 +250,6 @@ if (BUILDING_WIN)
 	message (STATUS "liphlpapi=${iphlpapi_LIBRARY_PATH}")
 	add_definitions (-DZT_SDK=1)
 	add_definitions (-DADD_EXPORTS=1)
-endif ()
-
-# -----------------------------------------------------------------------------
-# |                                   JNI                                     |
-# -----------------------------------------------------------------------------
-
-if (ADD_JNI OR BUILDING_ANDROID)
-	MESSAGE (STATUS "Looking for JNI headers")
-	find_package (JNI)
-	add_definitions (-DSDK_JNI=1)
-	if (JNI_FOUND)
-	    message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
-	    message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
-	    list (GET JNI_INCLUDE_DIRS 0 JNI_INCLUDE_DIR)
-	    message (STATUS "jni path=${JNI_INCLUDE_DIR}")
-	    include_directories ("${JNI_INCLUDE_DIR}")
-	else ()
-	    message (STATUS "JNI not found")
-	endif ()
 endif ()
 
 # -----------------------------------------------------------------------------
@@ -289,13 +288,13 @@ add_library (${STATIC_LIB_NAME} STATIC
 	$<TARGET_OBJECTS:lwip_obj>
 	$<TARGET_OBJECTS:zto_obj>
 	$<TARGET_OBJECTS:http_obj> ${libztSrcGlob})
-set_target_properties (${STATIC_LIB_NAME} PROPERTIES OUTPUT_NAME zt)
+set_target_properties (${STATIC_LIB_NAME} PROPERTIES OUTPUT_NAME ${STATIC_LIB_OUTPUT_NAME})
 
 # dynamic
 add_library (${DYNAMIC_LIB_NAME} SHARED ${libztSrcGlob})
 message (STATUS ${libztSrcGlob})
 target_link_libraries (${DYNAMIC_LIB_NAME} lwip_pic zto_pic http_pic)
-set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES OUTPUT_NAME zt)
+set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES OUTPUT_NAME ${DYNAMIC_LIB_OUTPUT_NAME})
 set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS true)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 

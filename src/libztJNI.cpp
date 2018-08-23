@@ -33,9 +33,13 @@
 
 #ifdef SDK_JNI
 
+#if defined(_MSC_VER)
+//
+#else
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#endif
 
 #include "libzt.h"
 #include "libztDefs.h"

@@ -38,7 +38,6 @@ XCODE_IOS_PROJ_DIR=$(pwd)/"packages/xcode_ios"
 XCODE_MACOS_PROJ_DIR=$(pwd)/"packages/xcode_macos"
 
 mkdir $FINISHED_PRODUCTS_DIR
-mkdir $TMP_PRODUCTS_DIR
 
 # Check that projects exist, generate them and exit if they don't exist
 generate_projects_if_necessary() 

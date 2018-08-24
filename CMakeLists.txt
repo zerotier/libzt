@@ -89,13 +89,17 @@ endif ()
 # -----------------------------------------------------------------------------
 
 MESSAGE (STATUS "Looking for JNI")
-# We are only interested in finding jni.h: we do not care about extended JVM
-# functionality or the AWT library.
-set(JAVA_AWT_LIBRARY NotNeeded)
-set(JAVA_JVM_LIBRARY NotNeeded)
-set(JAVA_INCLUDE_PATH2 NotNeeded)
-set(JAVA_AWT_INCLUDE_PATH NotNeeded)
-set(JAVA_INCLUDE_PATH "C:\\Program Files\\Java\\jdk-10.0.2\\include")
+
+if (BUILDING_WIN)
+	# We are only interested in finding jni.h: we do not care about extended JVM
+	# functionality or the AWT library.
+	set(JAVA_AWT_LIBRARY NotNeeded)
+	set(JAVA_JVM_LIBRARY NotNeeded)
+	set(JAVA_INCLUDE_PATH2 NotNeeded)
+	set(JAVA_AWT_INCLUDE_PATH NotNeeded)
+	set(JAVA_INCLUDE_PATH "C:\\Program Files\\Java\\jdk-10.0.2\\include")
+endif ()
+
 find_package (JNI)
 if (JNI_FOUND)
     message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
@@ -103,6 +107,7 @@ if (JNI_FOUND)
     list (GET JNI_INCLUDE_DIRS 0 JNI_INCLUDE_DIR)
     message (STATUS "jni path=${JNI_INCLUDE_DIR}")
     include_directories ("${JNI_INCLUDE_DIR}")
+    include_directories ("${JNI_INCLUDE_DIRS}")
 	if (BUILDING_WIN)
 		include_directories ("${JNI_INCLUDE_DIR}\\win32")
 	endif ()
@@ -330,13 +335,10 @@ if (IN_XCODE)
 		FRAMEWORK_VERSION A
 		DEFINES_MODULE TRUE
 		MACOSX_FRAMEWORK_IDENTIFIER com.cmake.${XCODE_FRAMEWORK_NAME}
-		MODULE_MAP "/Users/joseph/op/zt/libzt/module.modulemap"
+		MODULE_MAP "~/op/zt/libzt/packages/module.modulemap"
 		PUBLIC_HEADER "${frameworkHeaderGlob}"
 		XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"
 	)
-
-		#PUBLIC_HEADER "${INCLUDE_PATH}/Xcode-Bridging-Header.h"
-		#PRIVATE_HEADER "${frameworkPrivateHeaderGlob}"
 endif ()
 
 # -----------------------------------------------------------------------------

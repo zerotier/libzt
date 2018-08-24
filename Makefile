@@ -1,38 +1,38 @@
 # NOTE: This file only exists as a convenience for cleaning and building
 # products for release. To build, use CMake. Instructions in README.md
 
+ifeq ($(OS),Windows_NT)
+DIST_BUILD_SCRIPT := packages\dist.bat
+CLEAN_SCRIPT := packages\clean.bat
+else
+DIST_BUILD_SCRIPT := ./packages/dist.sh
+CLEAN_SCRIPT := ./packages/clean.sh
+PACKAGE_SCRIPT := ./packages/package.sh
+endif
+
 .PHONY: clean
 clean:
-	rm -rf bin build products tmp
-	rm -f *.o *.s *.exp *.lib .depend* *.core core
-	rm -rf .depend
-	find . -type f \( -name '*.a' -o -name '*.o' -o -name '*.so' -o -name \
-		'*.o.d' -o -name '*.out' -o -name '*.log' -o -name '*.dSYM' -o -name '*.dylib' -o -name '*.class' \) -delete
+	$(CLEAN_SCRIPT)
 
 # Build and package everything
 # This command shall be run twice:
 # (1) Generates projects
 #    <perform any required modifications>
 # (2) Build products and package everything
+
 .PHONY: dist
 dist: patch
-	./packages/dist.sh
-.PHONY: dist_win
-dist_win: patch
-	packages\dist.bat
+	$(DIST_BUILD_SCRIPT)
+
+.PHONY: package
+package:
+	$(PACKAGE_SCRIPT)
 
 # Initialize submodules and apply patches
 .PHONY: all
 all: update patch
 	cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
 	cmake --build build
-
-# Clean build paths
-clean_win:
-	-"rd /S /Q bin"
-	-"rd /S /Q build"
-	-"rd /S /Q WinBuild32"
-	-"rd /S /Q WinBuild64"
 
 # Remove any CMake-generated library-building projects
 clean_packages:

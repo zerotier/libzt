@@ -141,6 +141,7 @@ build_all_products()
 	fi
 	# Linux targets
 	if [[ $OSNAME = *"linux"* ]]; then
+		CURR_BUILD_PRODUCTS_DIR=$LIB_PRODUCTS_DIR/
 		# Ordinary libraries
 		if false; then
 			rm -rf $LIB_PRODUCTS_DIR

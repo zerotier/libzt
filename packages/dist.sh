@@ -42,33 +42,35 @@ mkdir $FINISHED_PRODUCTS_DIR
 # Check that projects exist, generate them and exit if they don't exist
 generate_projects_if_necessary() 
 {
-	# iOS
-	if [ ! -d "$XCODE_IOS_PROJ_DIR" ]; then
-		echo "BUILDING: iOS project"
-		should_exit=1
-		mkdir -p $XCODE_IOS_PROJ_DIR
-		cd $XCODE_IOS_PROJ_DIR
-		cmake -G Xcode ../../
-		# Bug in CMake requires us to manually replace architecture strings in project file
-		sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' $PROJNAME.xcodeproj/project.pbxproj
-		cd -
-	fi
-	# macOS
-	if [ ! -d "$XCODE_MACOS_PROJ_DIR" ]; then
-		echo "BUILDING: macOS project"
-		should_exit=1
-		mkdir -p $XCODE_MACOS_PROJ_DIR
-		cd $XCODE_MACOS_PROJ_DIR
-		cmake -G Xcode ../../
-		cd -
-	fi
-	# android?
-	if [[ $should_exit = 1 ]]; then
-		echo "Generated projects. Perform necessary modifications and then re-run this script"
-		echo "Please place previously built windows binaries in $WIN_PREBUILT_DIR before running again."
-		exit 0
-	else
-		echo "Projects detected, going to build stage next"
+	if [[ $OSNAME = *"darwin"* ]]; then
+		# iOS
+		if [ ! -d "$XCODE_IOS_PROJ_DIR" ]; then
+			echo "BUILDING: iOS project"
+			should_exit=1
+			mkdir -p $XCODE_IOS_PROJ_DIR
+			cd $XCODE_IOS_PROJ_DIR
+			cmake -G Xcode ../../
+			# Bug in CMake requires us to manually replace architecture strings in project file
+			sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' $PROJNAME.xcodeproj/project.pbxproj
+			cd -
+		fi
+		# macOS
+		if [ ! -d "$XCODE_MACOS_PROJ_DIR" ]; then
+			echo "BUILDING: macOS project"
+			should_exit=1
+			mkdir -p $XCODE_MACOS_PROJ_DIR
+			cd $XCODE_MACOS_PROJ_DIR
+			cmake -G Xcode ../../
+			cd -
+		fi
+		# android?
+		if [[ $should_exit = 1 ]]; then
+			echo "Generated projects. Perform necessary modifications and then re-run this script"
+			echo "Please place previously built windows binaries in $WIN_PREBUILT_DIR before running again."
+			exit 0
+		else
+			echo "Projects detected, going to build stage next"
+		fi
 	fi
 }
 

@@ -75,7 +75,7 @@ generate_projects_if_necessary()
 build_all_products()
 {
 	CONFIG=$1
-	UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< $1:0:1)$1:1"
+	UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
 
 	# Targets to build on and for darwin
 	if [[ $OSNAME = *"darwin"* ]]; then
@@ -143,10 +143,11 @@ build_all_products()
 	if [[ $OSNAME = *"linux"* ]]; then
 		CURR_BUILD_PRODUCTS_DIR=$LIB_PRODUCTS_DIR/
 		# Ordinary libraries
-		if false; then
+		if true; then
 			rm -rf $LIB_PRODUCTS_DIR
 			cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=$CONFIG "-DBUILD_TESTS=0"
-			cmake --build build -j $BUILD_CONCURRENCY
+			cmake --build build
+			# -j $BUILD_CONCURRENCY
 			CURR_ARCH=$HOSTTYPE
 			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/linux-$CURR_ARCH
 			mv $CURR_BUILD_PRODUCTS_DIR/libzt.* $CURR_TMP_PRODUCT_DIR
@@ -155,7 +156,8 @@ build_all_products()
 		if true; then
 			rm -rf $LIB_PRODUCTS_DIR
 			cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=$CONFIG "-DJNI=1 -DBUILD_TESTS=0"
-			cmake --build build -j $BUILD_CONCURRENCY
+			cmake --build build
+			# -j $BUILD_CONCURRENCY
 			CURR_ARCH=$HOSTTYPE
 			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/linux-$CURR_ARCH
 			mkdir -p $CURR_TMP_PRODUCT_DIR

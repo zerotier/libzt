@@ -16,7 +16,7 @@ FINISHED_PRODUCTS_DIR=$(pwd)/products
 find . -type f \( -name '*.DS_Store' -o -name 'thumbs.db' \) -delete
 
 # Emit a README file
-echo $'* libzt version: '${LIBZT_VERSION}$'r'${LIBZT_REVISION}$'\n* Core ZeroTier version: '${ZT_CORE_VERSION}$'\n* date: '$(date)$'\n\nZeroTier Manual: https://www.zerotier.com/manual.shtml\n
+echo $'* libzt version: '${LIBZT_VERSION}$'r'${LIBZT_REVISION}$'\n* Core ZeroTier version: '${ZT_CORE_VERSION}$'\n* Date: '$(date)$'\n\nZeroTier Manual: https://www.zerotier.com/manual.shtml\n
 Other Downloads: https://www.zerotier.com/download.shtml
 \nlibzt Repo: https://github.com/zerotier/libzt' > ${STAGING_DIR}/README.md
 

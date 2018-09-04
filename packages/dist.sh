@@ -91,7 +91,7 @@ build_all_products()
 				xcodebuild -target zt -configuration "$UPPERCASE_CONFIG" -sdk "iphoneos"
 				xcodebuild -target zt-static -configuration "$UPPERCASE_CONFIG" -sdk "iphoneos"
 				cd -
-				CURR_ARCH="arm64" # anything older should be built custom
+				CURR_ARCH="arm64" # spoof this architecture since HOSTTYPE is likely x86_64
 				CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/ios-$CURR_ARCH
 				mkdir -p $CURR_TMP_PRODUCT_DIR
 				mv $CURR_BUILD_PRODUCTS_DIR/*.framework $CURR_TMP_PRODUCT_DIR
@@ -104,8 +104,7 @@ build_all_products()
 					xcodebuild -target zt-static -configuration "$UPPERCASE_CONFIG" -sdk "macosx"
 					xcodebuild -target zt-shared -configuration "$UPPERCASE_CONFIG" -sdk "macosx"
 				cd -
-				CURR_ARCH=$HOSTTYPE
-				CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/macos-$CURR_ARCH
+				CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/macos-$(uname -m)
 				mkdir -p $CURR_TMP_PRODUCT_DIR
 				mv $CURR_BUILD_PRODUCTS_DIR/*.framework $CURR_TMP_PRODUCT_DIR
 				mv $CURR_BUILD_PRODUCTS_DIR/libzt.* $CURR_TMP_PRODUCT_DIR
@@ -114,7 +113,7 @@ build_all_products()
 		# Android Archive (AAR) --- Executes a Gradle task
 		if true; then
 			CMAKE_FLAGS=$CMAKE_FLAGS" -DJNI=1"
-			CURR_ARCH="armeabi-v7a"
+			CURR_ARCH="armeabi-v7a" # spoof this architecture since HOSTTYPE is likely x86_64
 			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/android-$CURR_ARCH
 			mkdir -p $CURR_TMP_PRODUCT_DIR
 			echo "BUILDING: AAR"
@@ -126,8 +125,7 @@ build_all_products()
 		# Java Archive (JAR)
 		if true; then
 			CMAKE_FLAGS=$CMAKE_FLAGS" -DJNI=1"
-			CURR_ARCH=$HOSTTYPE
-			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/macos-$CURR_ARCH
+			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/macos-$(uname -m)
 			mkdir -p $CURR_TMP_PRODUCT_DIR
 			echo "BUILDING: JAR"
 			rm -rf $LIB_PRODUCTS_DIR # clean-lite
@@ -150,8 +148,7 @@ build_all_products()
 			cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=$CONFIG "-DBUILD_TESTS=0"
 			cmake --build build
 			# -j $BUILD_CONCURRENCY
-			CURR_ARCH=$HOSTTYPE
-			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/linux-$CURR_ARCH
+			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/linux-$(uname -m)
 			mv $CURR_BUILD_PRODUCTS_DIR/libzt.* $CURR_TMP_PRODUCT_DIR
 		fi
 		# Java JAR file
@@ -160,8 +157,7 @@ build_all_products()
 			cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=$CONFIG "-DJNI=1 -DBUILD_TESTS=0"
 			cmake --build build
 			# -j $BUILD_CONCURRENCY
-			CURR_ARCH=$HOSTTYPE
-			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/linux-$CURR_ARCH
+			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/linux-$(uname -m)
 			mkdir -p $CURR_TMP_PRODUCT_DIR
 			cd $PROJROOT/packages/java
 			#cp $CURR_BUILD_PRODUCTS_DIR/libzt.so .

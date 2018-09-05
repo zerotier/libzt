@@ -149,7 +149,8 @@ build_all_products()
 			cmake --build build
 			# -j $BUILD_CONCURRENCY
 			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/linux-$(uname -m)
-			mv $CURR_BUILD_PRODUCTS_DIR/libzt.* $CURR_TMP_PRODUCT_DIR
+			mkdir -p $CURR_TMP_PRODUCT_DIR
+			mv ${CURR_BUILD_PRODUCTS_DIR}libzt.* $CURR_TMP_PRODUCT_DIR
 		fi
 		# Java JAR file
 		if true; then

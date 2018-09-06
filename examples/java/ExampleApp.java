@@ -30,13 +30,9 @@ import com.zerotier.libzt.ZeroTier;
 import com.zerotier.libzt.ZTSocketAddress;
 import com.zerotier.libzt.ZTFDSet;
 
-//import java.net.*;
 import java.lang.Thread;
 
 public class ExampleApp {
-	
-	public native int loadsymbols();
-	public native void startOneService();
 
 	static { System.loadLibrary("zt"); } // load libzt.dylib or libzt.so
 
@@ -143,11 +139,11 @@ public class ExampleApp {
 							return;
 						}
 						String echo_msg = "echo!";
-						w = zt.write(fd, echo_msg.getBytes(), echo_msg.length());
+						w = zt.write(fd, echo_msg.getBytes());
 						rxBuffer = new byte[100];
 						lengthToRead = 100;
 						System.out.println("reading bytes...");
-						r = zt.read(fd, rxBuffer, lengthToRead);
+						r = zt.read(fd, rxBuffer);
 						System.out.println("r="+r);
 						System.out.println("string="+new String(rxBuffer));
 					}
@@ -174,12 +170,12 @@ public class ExampleApp {
 						rxBuffer = new byte[100];
 						lengthToRead = 100;
 						System.out.println("reading bytes...");
-						r = zt.read(client_fd, rxBuffer, lengthToRead);
+						r = zt.read(client_fd, rxBuffer);
 						System.out.println("r="+r);
 						System.out.println("string="+new String(rxBuffer));
 						System.out.println("writing bytes...");
 						String echo_msg = "echo!";
-						w = zt.write(client_fd, echo_msg.getBytes(), echo_msg.length());
+						w = zt.write(client_fd, echo_msg.getBytes());
 						System.out.println("wrote (" + w + ") bytes");
 					}
 				}
@@ -204,14 +200,14 @@ public class ExampleApp {
 						if (loop) {
 							while (true) {
 								sleep(500);
-								if ((w = zt.sendto(fd, txBuffer, txBuffer.length, flags, remoteAddr)) < 0) {
+								if ((w = zt.sendto(fd, txBuffer, flags, remoteAddr)) < 0) {
 									System.out.println("error sending bytes");
 								} else {
 									System.out.println("sendto()=" + w);
 								}
 							}
 						} else {
-							if ((w = zt.sendto(fd, txBuffer, txBuffer.length, flags, remoteAddr)) < 0) {
+							if ((w = zt.sendto(fd, txBuffer, flags, remoteAddr)) < 0) {
 								System.out.println("error sending bytes");
 							} else {
 								System.out.println("sendto()=" + w);
@@ -252,7 +248,7 @@ public class ExampleApp {
 										if (master_set.ISSET(i))
 										{
 											System.out.println("attempting to read from: " + i);
-											r = zt.recvfrom(fd, rxBuffer, rxBuffer.length, flags, remoteAddr);
+											r = zt.recvfrom(fd, rxBuffer, flags, remoteAddr);
 											System.out.println("read (" + r + ") bytes from " + remoteAddr.toString() + ", buffer = " + new String(rxBuffer));
 										}
 									}
@@ -263,7 +259,7 @@ public class ExampleApp {
 						{
 							while(true) {
 								addr = new ZTSocketAddress();
-								r = zt.recvfrom(fd, rxBuffer, rxBuffer.length, flags, remoteAddr);
+								r = zt.recvfrom(fd, rxBuffer, flags, remoteAddr);
 								System.out.println("read (" + r + ") bytes from " + remoteAddr.toString() + ", buffer = " + new String(rxBuffer));
 							}
 						}

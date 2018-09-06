@@ -54,6 +54,8 @@ namespace ZeroTier {
 
 	void ss2zta(JNIEnv *env, struct sockaddr_storage *ss, jobject addr);
 	void zta2ss(JNIEnv *env, struct sockaddr_storage *ss, jobject addr);
+	void ztfdset2fdset(JNIEnv *env, int nfds, jobject src_ztfd_set, fd_set *dest_fd_set);
+	void fdset2ztfdset(JNIEnv *env, int nfds, fd_set *src_fd_set, jobject dest_ztfd_set);
 
 	/****************************************************************************/
 	/* ZeroTier service controls                                                */
@@ -352,6 +354,80 @@ namespace ZeroTier {
 	{
 		return zts_shutdown(fd, how);
 	}
+
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_select(JNIEnv *env, jobject thisObj,
+		jint nfds, jobject readfds, jobject writefds, jobject exceptfds, jint timeout_sec, jint timeout_usec)
+	{
+		struct timeval _timeout;
+		_timeout.tv_sec  = timeout_sec;
+   		_timeout.tv_usec = timeout_usec;
+   		fd_set _readfds, _writefds, _exceptfds;   		
+   		fd_set *r = NULL;
+   		fd_set *w = NULL;
+   		fd_set *e = NULL;
+   		if (readfds) {
+   			r = &_readfds;
+   			ztfdset2fdset(env, nfds, readfds, &_readfds);
+   		}
+   		if (writefds) {
+   			w = &_writefds;
+   			ztfdset2fdset(env, nfds, writefds, &_writefds);
+   		}
+   		if (exceptfds) {
+   			e = &_exceptfds;
+   			ztfdset2fdset(env, nfds, exceptfds, &_exceptfds);
+   		}
+		int err = zts_select(nfds, r, w, e, &_timeout);
+		if (readfds) {
+			fdset2ztfdset(env, nfds, &_readfds, readfds);
+		}
+		if (writefds) {
+   			fdset2ztfdset(env, nfds, &_writefds, writefds);
+   		}
+   		if (exceptfds) {
+   			fdset2ztfdset(env, nfds, &_exceptfds, exceptfds);
+   		}
+		return err;
+	}
+}
+
+void ztfdset2fdset(JNIEnv *env, int nfds, jobject src_ztfd_set, fd_set *dest_fd_set)
+{
+	jclass c = (*env).GetObjectClass(src_ztfd_set);
+	if (!c) {
+		return;
+	}
+	FD_ZERO(dest_fd_set);
+	jfieldID fid = env->GetFieldID(c, "fds_bits", "[B");
+	jobject fdData = (*env).GetObjectField (src_ztfd_set, fid);
+	jbyteArray * arr = reinterpret_cast<jbyteArray*>(&fdData);
+	char *data = (char*)(*env).GetByteArrayElements(*arr, NULL);	
+	for (int i=0; i<nfds; i++) {
+		if (data[i] == 0x01)  {
+			FD_SET(i, dest_fd_set);
+		}
+	}
+	(*env).ReleaseByteArrayElements(*arr, (jbyte*)data, 0);
+	return;
+}
+
+void fdset2ztfdset(JNIEnv *env, int nfds, fd_set *src_fd_set, jobject dest_ztfd_set)
+{
+	jclass c = (*env).GetObjectClass(dest_ztfd_set);
+	if (!c) {
+		return;
+	}
+	jfieldID fid = env->GetFieldID(c, "fds_bits", "[B");
+	jobject fdData = (*env).GetObjectField (dest_ztfd_set, fid);
+	jbyteArray * arr = reinterpret_cast<jbyteArray*>(&fdData);
+	char *data = (char*)(*env).GetByteArrayElements(*arr, NULL);
+	for (int i=0; i<nfds; i++) {
+		if (FD_ISSET(i, src_fd_set)) {
+			data[i] = 0x01;
+		}
+	}
+	(*env).ReleaseByteArrayElements(*arr, (jbyte*)data, 0);
+	return;
 }
 
 	/****************************************************************************/

@@ -39,7 +39,6 @@
 
 #include "libzt.h"
 
-
 // function pointers which will have values assigned once the dynamic library is loaded
 
 int (*_zts_set_service_port)(int portno);
@@ -96,8 +95,8 @@ void load_library_symbols(char *library_path)
 {
 	void *libHandle = dlopen(library_path, RTLD_LAZY);
 	if (libHandle == NULL) {
-		DEBUG_ERROR("unable to load dynamic lib");
-		exit(0);
+		DEBUG_ERROR("unable to load dynamic libs: %s", dlerror());
+		exit(-1);
 	}
 
 	// Load symbols from library (call these directly)
@@ -160,6 +159,15 @@ int main(int argc, char **argv)
 		printf("client [config_file_path] [nwid] [remote_addr] [remote_port]\n");
 		exit(0);
 	}
+
+#ifdef __linux__
+	char *library_path = (char*)"./libzt.so";
+#endif
+#ifdef __APPLE__
+	char *library_path = (char*)"./libzt.dylib";
+#endif
+	load_library_symbols(library_path);
+
 	std::string path        = argv[1];
 	std::string nwidstr     = argv[2];
 	std::string remote_addr = argv[3];
@@ -173,7 +181,7 @@ int main(int argc, char **argv)
 	in4.sin_addr.s_addr = inet_addr(remote_addr.c_str());
 	in4.sin_family = AF_INET;
 
-	// --- BEGIN EXAMPLE CODE
+	//
 
 	printf("Waiting for libzt to come online...\n");
 	uint64_t nwid = strtoull(nwidstr.c_str(),NULL,16);

@@ -18,7 +18,7 @@ find . -type f \( -name '*.DS_Store' -o -name 'thumbs.db' \) -delete
 # Emit a README file
 echo $'* libzt version: '${LIBZT_VERSION}$'r'${LIBZT_REVISION}$'\n* Core ZeroTier version: '${ZT_CORE_VERSION}$'\n* Date: '$(date)$'\n\nZeroTier Manual: https://www.zerotier.com/manual.shtml\n
 Other Downloads: https://www.zerotier.com/download.shtml
-\nlibzt Repo: https://github.com/zerotier/libzt' > ${STAGING_DIR}/README.md
+\nlibzt Repo: https://github.com/zerotier/libzt\n\nFor more assistance, visit https://my.zerotier.com and ask your question in our Community section' > ${STAGING_DIR}/README.md
 
 cp ${STAGING_DIR}/README.md ${STAGING_DIR}/debug/README.md
 cp ${STAGING_DIR}/README.md ${STAGING_DIR}/release/README.md

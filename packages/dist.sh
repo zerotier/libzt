@@ -38,6 +38,7 @@ XCODE_IOS_PROJ_DIR=$(pwd)/"packages/xcode_ios"
 XCODE_MACOS_PROJ_DIR=$(pwd)/"packages/xcode_macos"
 
 mkdir $FINISHED_PRODUCTS_DIR
+mkdir $STAGING_DIR
 
 # Check that projects exist, generate them and exit if they don't exist
 generate_projects_if_necessary() 
@@ -124,6 +125,7 @@ build_all_products()
 		fi
 		# Java Archive (JAR)
 		if true; then
+			CURR_BUILD_PRODUCTS_DIR=$LIB_PRODUCTS_DIR
 			CMAKE_FLAGS=$CMAKE_FLAGS" -DJNI=1"
 			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/macos-$(uname -m)
 			mkdir -p $CURR_TMP_PRODUCT_DIR
@@ -132,16 +134,17 @@ build_all_products()
 			cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=$CONFIG "-DJNI=1 -DBUILD_TESTS=0"
 			cmake --build build
 			cd $PROJROOT/packages/java
-			#cp $CURR_BUILD_PRODUCTS_DIR/libzt.dylib .
+			cp $CURR_BUILD_PRODUCTS_DIR/libzt.dylib .
 			javac com/zerotier/libzt/*.java
-			jar cf zt.jar $CURR_BUILD_PRODUCTS_DIR/libzt.dylib com/zerotier/libzt/*.class
+			jar cf zt.jar libzt.dylib com/zerotier/libzt/*.class
+			rm libzt.dylib
 			mv zt.jar $CURR_TMP_PRODUCT_DIR
 			cd -
 		fi
 	fi
 	# Linux targets
 	if [[ $OSNAME = *"linux"* ]]; then
-		CURR_BUILD_PRODUCTS_DIR=$LIB_PRODUCTS_DIR/
+		CURR_BUILD_PRODUCTS_DIR=$LIB_PRODUCTS_DIR
 		# Ordinary libraries
 		if true; then
 			rm -rf $LIB_PRODUCTS_DIR
@@ -150,7 +153,7 @@ build_all_products()
 			# -j $BUILD_CONCURRENCY
 			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/linux-$(uname -m)
 			mkdir -p $CURR_TMP_PRODUCT_DIR
-			mv ${CURR_BUILD_PRODUCTS_DIR}libzt.* $CURR_TMP_PRODUCT_DIR
+			mv $CURR_BUILD_PRODUCTS_DIR/libzt.* $CURR_TMP_PRODUCT_DIR
 		fi
 		# Java JAR file
 		if true; then
@@ -161,9 +164,10 @@ build_all_products()
 			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/linux-$(uname -m)
 			mkdir -p $CURR_TMP_PRODUCT_DIR
 			cd $PROJROOT/packages/java
-			#cp $CURR_BUILD_PRODUCTS_DIR/libzt.so .
+			cp $CURR_BUILD_PRODUCTS_DIR/libzt.so .
 			javac com/zerotier/libzt/*.java
-			jar cf zt.jar $CURR_BUILD_PRODUCTS_DIR/libzt.so com/zerotier/libzt/*.class
+			jar cf zt.jar libzt.dylib com/zerotier/libzt/*.class
+			rm libzt.dylib
 			mv zt.jar $CURR_TMP_PRODUCT_DIR
 			cd -
 		fi

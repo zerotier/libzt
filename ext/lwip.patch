@@ -11,6 +11,26 @@ index b7632489..786a294e 100644
  #include "lwip/opt.h"
  
  #if LWIP_SOCKET /* don't build if not configured for use in lwipopts.h */
+diff --git a/src/core/ipv6/nd6.c b/src/core/ipv6/nd6.c
+index 0b367181..2a5b77d4 100644
+--- a/src/core/ipv6/nd6.c
++++ b/src/core/ipv6/nd6.c
+@@ -1361,8 +1361,13 @@ nd6_is_prefix_in_netif(const ip6_addr_t *ip6addr, struct netif *netif)
+   }
+   /* Check to see if address prefix matches a (manually?) configured address. */
+   for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
+-    if (ip6_addr_isvalid(netif_ip6_addr_state(netif, i)) &&
+-        ip6_addr_netcmp(ip6addr, netif_ip6_addr(netif, i))) {
++    int prefix_match = 0;
++    if (ip6_addr_is_zt_6plane(ip6addr) || ip6_addr_is_zt_adhoc(ip6addr)) {
++      prefix_match = ip6_addr_6plane_cmp(ip6addr, netif_ip6_addr(netif, i));
++    } else {
++      prefix_match = ip6_addr_netcmp(ip6addr, netif_ip6_addr(netif, i));
++    }
++    if (ip6_addr_isvalid(netif_ip6_addr_state(netif, i)) && prefix_match) {
+       return 1;
+     }
+   }
 diff --git a/src/include/lwip/errno.h b/src/include/lwip/errno.h
 index 641cffb0..cec43f7f 100644
 --- a/src/include/lwip/errno.h
@@ -28,3 +48,22 @@ index 641cffb0..cec43f7f 100644
  #endif
  
  #else /* LWIP_PROVIDE_ERRNO */
+diff --git a/src/include/lwip/ip6_addr.h b/src/include/lwip/ip6_addr.h
+index ee381aeb..b879f212 100644
+--- a/src/include/lwip/ip6_addr.h
++++ b/src/include/lwip/ip6_addr.h
+@@ -133,6 +133,14 @@ typedef struct ip6_addr ip6_addr_t;
+ #define ip6_addr_netcmp(addr1, addr2) (((addr1)->addr[0] == (addr2)->addr[0]) && \
+                                        ((addr1)->addr[1] == (addr2)->addr[1]))
+ 
++#define ip6_addr_is_zt_6plane(addr1) (((addr1)->addr[0] & PP_HTONL(0xffffffffUL)) == PP_HTONL(0xfc937e7fUL) && \
++                                        ((addr1)->addr[1] & PP_HTONL(0xff000000UL)) == PP_HTONL(0x72000000UL))
++
++#define ip6_addr_is_zt_adhoc(addr1) (((addr1)->addr[0] & PP_HTONL(0xffff0000UL)) == PP_HTONL(0xfce90000UL))
++
++#define ip6_addr_6plane_cmp(addr1, addr2) (((addr1)->addr[0] == (addr2)->addr[0]) && \
++                                    ((addr1)->addr[1] & PP_HTONL(0xff000000UL)) == ((addr2)->addr[1] & PP_HTONL(0xff000000UL)))
++
+ #define ip6_addr_cmp(addr1, addr2) (((addr1)->addr[0] == (addr2)->addr[0]) && \
+                                     ((addr1)->addr[1] == (addr2)->addr[1]) && \
+                                     ((addr1)->addr[2] == (addr2)->addr[2]) && \

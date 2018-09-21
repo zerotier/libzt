@@ -380,7 +380,7 @@ static err_t netif_init_6(struct netif *netif)
 {
 	netif->hwaddr_len = 6;
 	netif->name[0]    = 'e';
-	netif->name[1]    = '0'+lwipInterfacesCount;
+	netif->name[1]    = '0'+(char)lwipInterfacesCount;
 	netif->linkoutput = lwip_eth_tx;
 	netif->output     = etharp_output;
 	netif->output_ip6 = ethip6_output;
@@ -417,9 +417,12 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 	{
 		static ip6_addr_t ipaddr;
 		memcpy(&(ipaddr.addr), ip.rawIpData(), sizeof(ipaddr.addr));
+		lwipdev->ip6_autoconfig_enabled = 1;
 		netif_add(lwipdev, NULL, NULL, NULL, NULL, netif_init_6, tcpip_input);
-		netif_ip6_addr_set(lwipdev, 1, &ipaddr);
+		netif_ip6_addr_set(lwipdev, 1, &ipaddr);		
 		lwipdev->state = tapref;
+		netif_create_ip6_linklocal_address(lwipdev, 1);
+		netif_ip6_addr_set_state(lwipdev, 0, IP6_ADDR_TENTATIVE);
 		netif_ip6_addr_set_state(lwipdev, 1, IP6_ADDR_TENTATIVE);
 		netif_set_status_callback(lwipdev, netif_status_callback);
 		netif_set_default(lwipdev);

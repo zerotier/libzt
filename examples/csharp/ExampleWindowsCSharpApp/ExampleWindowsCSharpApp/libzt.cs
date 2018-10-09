@@ -78,7 +78,7 @@ namespace ZeroTier
         public static extern int zts_has_address(ulong nwid);
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void zts_get_address(ulong nwid, IntPtr addr, int addrlen);
+        public static extern int zts_get_address(ulong nwid, IntPtr addr, int address_family);
 
         [DllImport("libzt.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void zts_get_6plane_addr(IntPtr addr, string nwid, string nodeId);

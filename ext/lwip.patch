@@ -11,6 +11,28 @@ index b7632489..786a294e 100644
  #include "lwip/opt.h"
  
  #if LWIP_SOCKET /* don't build if not configured for use in lwipopts.h */
+diff --git a/src/core/ipv6/ip6.c b/src/core/ipv6/ip6.c
+index f14e3342..facd3b21 100644
+--- a/src/core/ipv6/ip6.c
++++ b/src/core/ipv6/ip6.c
+@@ -264,6 +264,17 @@ ip6_select_source_address(struct netif *netif, const ip6_addr_t *dest)
+     }
+   }
+ 
++  /* Choose a ZeroTier adhoc with matching prefix. */
++  if (ip6_addr_is_zt_adhoc(dest)) {
++    for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
++      if (ip6_addr_isvalid(netif_ip6_addr_state(netif, i)) &&
++          ip6_addr_is_zt_adhoc(netif_ip6_addr(netif, i)) &&
++          ip6_addr_6plane_cmp(dest, netif_ip6_addr(netif, i))) {
++        return netif_ip_addr6(netif, i);
++      }
++    }
++  }
++
+   /* Last resort: see if arbitrary prefix matches. */
+   for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
+     if (ip6_addr_isvalid(netif_ip6_addr_state(netif, i)) &&
 diff --git a/src/core/ipv6/nd6.c b/src/core/ipv6/nd6.c
 index 0b367181..2a5b77d4 100644
 --- a/src/core/ipv6/nd6.c

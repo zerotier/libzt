@@ -175,12 +175,14 @@ void my_tcpip_callback(void *arg)
 			default:
 				break;
 		}
-		lwip_frame_rxbuf_tot--;;
+		lwip_frame_rxbuf_tot--;
 		loop_score--;
 	}
-	int count_final = count_initial - lwip_frame_rxbuf_tot;
+	int count_final = lwip_frame_rxbuf_tot;
 	// move pbuf frame pointer address buffer by the number of frames successfully fed into the stack core
-	memmove(lwip_frame_rxbuf, lwip_frame_rxbuf + count_final, sizeof(lwip_frame_rxbuf) - count_final);
+	if (count_initial - count_final > 0) {
+		memmove(lwip_frame_rxbuf, lwip_frame_rxbuf + count_final, count_initial - count_final);
+	}
 }
 
 // main thread which starts the initialization process
@@ -307,15 +309,16 @@ void lwip_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC
 		DEBUG_ERROR("dropped packet: no pbufs available");
 		return;
 	}
-
 	if (lwipInterfacesCount <= 0) {
 		DEBUG_ERROR("there are no netifs set up to handle this packet. ignoring.");
 		return;
 	}
 	Mutex::Lock _l(_rx_input_lock_m);
 	if (lwip_frame_rxbuf_tot == LWIP_MAX_GUARDED_RX_BUF_SZ) {
-		DEBUG_ERROR("guarded receive buffer full, adjust MAX_GUARDED_RX_BUF_SZ or LWIP_GUARDED_BUF_CHECK_INTERVAL");
+		DEBUG_ERROR("dropped packet -- guarded receive buffer full, adjust MAX_GUARDED_RX_BUF_SZ or LWIP_GUARDED_BUF_CHECK_INTERVAL");
+		return;
 	}
+	pbuf_ref(p); // Increment reference to allow user application to copy data from buffer -- Will be automatically deallocated by socket API
 	lwip_frame_rxbuf[lwip_frame_rxbuf_tot] = p;
 	lwip_frame_rxbuf_tot += 1;
 }

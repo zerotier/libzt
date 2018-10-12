@@ -70,9 +70,7 @@ For an example using only the [Virtual Layer 2](https://www.zerotier.com/manual.
 We recommend using [CMake](https://cmake.org/) and [clang](https://en.wikipedia.org/wiki/Clang).
 
 ```
-git submodule init
-git submodule update
-make patch
+git submodule update --init && make patch
 cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
 ```
 

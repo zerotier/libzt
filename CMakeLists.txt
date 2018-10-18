@@ -93,10 +93,10 @@ MESSAGE (STATUS "Looking for JNI")
 if (BUILDING_WIN)
 	# We are only interested in finding jni.h: we do not care about extended JVM
 	# functionality or the AWT library.
-	set(JAVA_AWT_LIBRARY NotNeeded)
-	set(JAVA_JVM_LIBRARY NotNeeded)
-	set(JAVA_INCLUDE_PATH2 NotNeeded)
-	set(JAVA_AWT_INCLUDE_PATH NotNeeded)
+	#set(JAVA_AWT_LIBRARY NotNeeded)
+	#set(JAVA_JVM_LIBRARY NotNeeded)
+	#set(JAVA_INCLUDE_PATH2 NotNeeded)
+	#set(JAVA_AWT_INCLUDE_PATH NotNeeded)
 	set(JAVA_INCLUDE_PATH "C:\\Program Files\\Java\\jdk-10.0.2\\include")
 endif ()
 

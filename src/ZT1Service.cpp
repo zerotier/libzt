@@ -318,7 +318,7 @@ int zts_get_address(const uint64_t nwid, struct sockaddr_storage *addr,
 		return -1;
 	}
 	_vtaps_lock.lock();
-	socklen_t addrlen = sizeof(struct sockaddr_storage);
+	socklen_t addrlen = address_family == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
 	for (size_t i=0; i<tap->_ips.size(); i++) {
 		if (address_family == AF_INET) {
 			if (tap->_ips[i].isV4()) {

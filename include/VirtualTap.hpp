@@ -1,6 +1,6 @@
 /*
  * ZeroTier SDK - Network Virtualization Everywhere
- * Copyright (C) 2011-2018  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (C) 2011-2019  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  * --
  *
@@ -30,24 +30,20 @@
  * Virtual Ethernet tap device
  */
 
-#ifndef ZT_VIRTUALTAP_H
-#define ZT_VIRTUALTAP_H
+#ifndef LIBZT_VIRTUALTAP_HPP
+#define LIBZT_VIRTUALTAP_HPP
 
 #ifndef _MSC_VER
 extern int errno;
 #endif
 
-#include "Mutex.hpp"
-#include "MulticastGroup.hpp"
-#include "InetAddress.hpp"
-#include "Thread.hpp"
 #include "Phy.hpp"
+#include "Thread.hpp"
+#include "InetAddress.hpp"
+#include "MulticastGroup.hpp"
+#include "Mutex.hpp"
 
-#include "libzt.h"
-
-#include <vector>
-extern std::vector<void*> vtaps;
-extern ZeroTier::Mutex _vtaps_lock;
+#include "Defs.hpp"
 
 #if defined(_WIN32)
 #include <WinSock2.h>
@@ -56,9 +52,9 @@ extern ZeroTier::Mutex _vtaps_lock;
 #include <Ifdef.h>
 #endif
 
-using namespace ZeroTier;
+namespace ZeroTier {
 
-class VirtualSocket;
+class Mutex;
 
 /**
  * emulates an Ethernet tap device
@@ -70,13 +66,13 @@ class VirtualTap
 public:
 	VirtualTap(
 		const char *homePath,
-		const ZeroTier::MAC &mac,
+		const MAC &mac,
 		unsigned int mtu,
 		unsigned int metric,
 		uint64_t nwid,
 		const char *friendlyName,
-		void (*handler)(void *, void *, uint64_t, const ZeroTier::MAC &,
-			const ZeroTier::MAC &, unsigned int, unsigned int, const void *, unsigned int),
+		void (*handler)(void *, void *, uint64_t, const MAC &,
+			const MAC &, unsigned int, unsigned int, const void *, unsigned int),
 		void *arg);
 
 	~VirtualTap();
@@ -87,27 +83,27 @@ public:
 	/**
 	 * Registers a device with the given address
 	 */
-	void registerIpWithStack(const ZeroTier::InetAddress &ip);
+	void registerIpWithStack(const InetAddress &ip);
 
 	/**
 	 * Adds an address to the userspace stack interface associated with this VirtualTap
 	 * - Starts VirtualTap main thread ONLY if successful
 	 */
-	bool addIp(const ZeroTier::InetAddress &ip);
+	bool addIp(const InetAddress &ip);
 
 	/**
 	 * Removes an address from the userspace stack interface associated with this VirtualTap
 	 */
-	bool removeIp(const ZeroTier::InetAddress &ip);
+	bool removeIp(const InetAddress &ip);
 
 	/**
 	 * Presents data to the userspace stack
 	 */
-	void put(const ZeroTier::MAC &from,const ZeroTier::MAC &to,unsigned int etherType,const void *data,
+	void put(const MAC &from,const MAC &to,unsigned int etherType,const void *data,
 		unsigned int len);
 
 	/**
-	 * Get VirtualTap device name (e.g. 'libzt4-17d72843bc2c5760')
+	 * Get VirtualTap device name (e.g. 'libzt17d72843bc2c5760')
 	 */
 	std::string deviceName() const;
 
@@ -124,8 +120,8 @@ public:
 	/**
 	 * Scan multicast groups
 	 */
-	void scanMulticastGroups(std::vector<ZeroTier::MulticastGroup> &added,
-		std::vector<ZeroTier::MulticastGroup> &removed);
+	void scanMulticastGroups(std::vector<MulticastGroup> &added,
+		std::vector<MulticastGroup> &removed);
 
 	/**
 	 * Set MTU
@@ -155,48 +151,50 @@ public:
 	/**
 	 * For moving data onto the ZeroTier virtual wire
 	 */
-	void (*_handler)(void *, void *, uint64_t, const ZeroTier::MAC &, const ZeroTier::MAC &, unsigned int, unsigned int,
+	void (*_handler)(void *, void *, uint64_t, const MAC &, const MAC &, unsigned int, unsigned int,
 		const void *, unsigned int);
 
-	void phyOnUnixClose(ZeroTier::PhySocket *sock, void **uptr);
-	void phyOnUnixData(ZeroTier::PhySocket *sock, void **uptr, void *data, ssize_t len);
-	void phyOnUnixWritable(ZeroTier::PhySocket *sock, void **uptr, bool stack_invoked);
+	void phyOnUnixClose(PhySocket *sock, void **uptr);
+	void phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len);
+	void phyOnUnixWritable(PhySocket *sock, void **uptr, bool stack_invoked);
 
-	/****************************************************************************/
-	/* Vars                                                                     */
-	/****************************************************************************/
+	//////////////////////////////////////////////////////////////////////////////
+	// Vars                                                                     //
+	//////////////////////////////////////////////////////////////////////////////
 
-	std::vector<std::pair<ZeroTier::InetAddress, ZeroTier::InetAddress> > routes;
+	std::vector<std::pair<InetAddress, InetAddress> > routes;
 	void *zt1ServiceRef = NULL;
 
 	char vtap_full_name[64];
 	char vtap_abbr_name[16];
 
-	static int devno;
 	size_t ifindex = 0;
 
-	std::vector<ZeroTier::InetAddress> ips() const;
-	std::vector<ZeroTier::InetAddress> _ips;
+	std::vector<InetAddress> ips() const;
+	std::vector<InetAddress> _ips;
 
 	std::string _homePath;
 	void *_arg;
 	volatile bool _initialized;
 	volatile bool _enabled;
 	volatile bool _run;
-	ZeroTier::MAC _mac;
+	MAC _mac;
 	unsigned int _mtu;
 	uint64_t _nwid;
-	ZeroTier::PhySocket *_unixListenSocket;
-	ZeroTier::Phy<VirtualTap *> _phy;
-
-	std::vector<VirtualSocket*> _VirtualSockets;
+	PhySocket *_unixListenSocket;
+	Phy<VirtualTap *> _phy;
 
 	Thread _thread;
+
+	int _shutdownSignalPipe[2];
+
 	std::string _dev; // path to Unix domain socket
 
 	std::vector<MulticastGroup> _multicastGroups;
 	Mutex _multicastGroups_m;
 	Mutex _ips_m, _tcpconns_m, _rx_buf_m, _close_m;
+
+	struct zts_network_details nd;
 
 	/*
 	 * Timestamp of last run of housekeeping
@@ -205,13 +203,13 @@ public:
 	uint64_t last_housekeeping_ts = 0;
 
 	/**
-	 * Disposes of previously-closed VirtualSockets
+	 * Performs miscellaneous background tasks
 	 */
 	void Housekeeping();
 
-	/****************************************************************************/
-	/* Not used in this implementation                                          */
-	/****************************************************************************/
+	//////////////////////////////////////////////////////////////////////////////
+	// Not used in this implementation                                          //
+	//////////////////////////////////////////////////////////////////////////////
 
 	void phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address,
 		const struct sockaddr *from,void *data,unsigned long len);
@@ -223,5 +221,6 @@ public:
 	void phyOnTcpWritable(PhySocket *sock,void **uptr);
 };
 
+} // namespace ZeroTier
 
 #endif // _H

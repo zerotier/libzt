@@ -1,6 +1,6 @@
 /*
  * ZeroTier SDK - Network Virtualization Everywhere
- * Copyright (C) 2011-2018  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (C) 2011-2019  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  * --
  *
@@ -33,14 +33,29 @@
 #ifndef ZT_LWIP_HPP
 #define ZT_LWIP_HPP
 
-#include "libztDefs.h"
+#include "Debug.hpp"
 #include "lwip/err.h"
 
 namespace ZeroTier {
   class MAC;
   class Mutex;
+  class VirtualTap;
   struct InetAddress;
 }
+
+/**
+ * @brief Increase the delay multiplier for the main driver loop
+ *
+ * @usage This should be called when we know the stack won't be used by any virtual taps
+ */
+void lwip_hibernate_driver();
+
+/**
+ * @brief Decrease the delay multiplier for the main driver loop
+ *
+ * @usage This should be called when at least one virtual tap is active
+ */
+void lwip_wake_driver();
 
 /**
  * @brief Initialize network stack semaphores, threads, and timers.
@@ -49,6 +64,27 @@ namespace ZeroTier {
  * @return
  */
 void lwip_driver_init();
+
+/**
+ * @brief Shutdown the stack as completely as possible (not officially supported by lwIP)
+ *
+ * @usage This is to be called after it is determined that no further network activity will take place.
+ * The tcpip thread will be stopped, all interfaces will be brought down and all resources will 
+ * be deallocated. A full application restart will be required to bring the stack back online.
+ * @return
+ */
+void lwip_driver_shutdown();
+
+/**
+ * @brief Bring all interfaces down belonging to the given virtual tap interface
+ *
+ * @usage This is to be called when the application desires to stop all traffic processing in the 
+ * stack. Unlike lwip_driver_shutdown(), the application can easily resume traffic processing 
+ * by re-adding a virtual tap (and associated lwip netifs)
+ * @return
+ */
+void lwip_driver_set_tap_interfaces_down(void *tapref);
+void lwip_driver_set_all_interfaces_down();
 
 /**
  * @brief Initialize and start the DNS client
@@ -99,7 +135,7 @@ err_t lwip_eth_tx(struct netif *netif, struct pbuf *p);
  * @param len Length of Ethernet frame
  * @return
  */
-void lwip_eth_rx(VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC &to, unsigned int etherType,
+void lwip_eth_rx(ZeroTier::VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC &to, unsigned int etherType,
 	const void *data, unsigned int len);
 
 #endif // _H

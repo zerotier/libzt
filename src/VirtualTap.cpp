@@ -1,6 +1,6 @@
 /*
  * ZeroTier SDK - Network Virtualization Everywhere
- * Copyright (C) 2011-2018  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (C) 2011-2019  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  * --
  *
@@ -25,33 +25,25 @@
  */
 
 /**
-* @file
-*
-* Virtual Ethernet tap device
-*/
+ * @file
+ *
+ * Virtual Ethernet tap device
+ */
 
-// Used by raw stack driver implementation
-struct ip_addr_t;
-typedef unsigned short u16_t;
-
+#include "VirtualTap.hpp"
 #include "Phy.hpp"
-
-#include "VirtualTap.h"
-#include "libzt.h"
-#include "libztDebug.h"
-#include "lwIP.h"
-#include "ZT1Service.h"
-#include "SysUtils.h"
+#include "Node.hpp"
+#include "OSUtils.hpp"
 
 #include "Mutex.hpp"
-#include "InetAddress.hpp"
-#include "OneService.hpp"
+#include "VirtualTapManager.hpp"
+#include "lwIP.h"
 
 #ifdef _MSC_VER
 #include "Synchapi.h"
 #endif
 
-int VirtualTap::devno = 0;
+namespace ZeroTier {
 
 VirtualTap::VirtualTap(
 	const char *homePath,
@@ -75,17 +67,11 @@ VirtualTap::VirtualTap(
 		_unixListenSocket((PhySocket *)0),
 		_phy(this,false,true)
 {
-	vtaps.push_back((void*)this);
-
-	// set virtual tap interface name (full)
+	VirtualTapManager::add_tap(this);
 	memset(vtap_full_name, 0, sizeof(vtap_full_name));
-	ifindex = devno;
-	snprintf(vtap_full_name, sizeof(vtap_full_name), "libzt%d-%llx", devno++, (unsigned long long)_nwid);
+	snprintf(vtap_full_name, sizeof(vtap_full_name), "libzt%llx", (unsigned long long)_nwid);
 	_dev = vtap_full_name;
-	DEBUG_INFO("set VirtualTap interface name to: %s", _dev.c_str());
-	// set virtual tap interface name (abbreviated)
-	memset(vtap_abbr_name, 0, sizeof(vtap_abbr_name));
-	snprintf(vtap_abbr_name, sizeof(vtap_abbr_name), "libzt%d", devno);
+	::pipe(_shutdownSignalPipe);
 	lwip_driver_init();
 	// start virtual tap thread and stack I/O loops
 	_thread = Thread::start(this);
@@ -93,10 +79,13 @@ VirtualTap::VirtualTap(
 
 VirtualTap::~VirtualTap()
 {
+	lwip_driver_set_tap_interfaces_down(this);
 	_run = false;
+	::write(_shutdownSignalPipe[1],"\0",1);
 	_phy.whack();
 	Thread::join(_thread);
-	_phy.close(_unixListenSocket,false);
+	::close(_shutdownSignalPipe[0]);
+	::close(_shutdownSignalPipe[1]);
 }
 
 void VirtualTap::setEnabled(bool en)
@@ -117,7 +106,7 @@ void VirtualTap::registerIpWithStack(const InetAddress &ip)
 bool VirtualTap::addIp(const InetAddress &ip)
 {
 	char ipbuf[INET6_ADDRSTRLEN];
-	DEBUG_EXTRA("addr=%s, nwid=%llx", ip.toString(ipbuf), (unsigned long long)_nwid);
+	// DEBUG_INFO("addr=%s, nwid=%llx", ip.toString(ipbuf), (unsigned long long)_nwid);
 	Mutex::Lock _l(_ips_m);
 	registerIpWithStack(ip);
 	if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
@@ -164,9 +153,9 @@ std::string VirtualTap::deviceName() const
 std::string VirtualTap::nodeId() const
 {
 	if (zt1ServiceRef) {
-		char id[ZTO_ID_LEN];
+		char id[ZTS_ID_LEN];
 		memset(id, 0, sizeof(id));
-		sprintf(id, "%llx", (unsigned long long)((ZeroTier::OneService *)zt1ServiceRef)->getNode()->address());
+		sprintf(id, "%llx", (unsigned long long)((OneService *)zt1ServiceRef)->getNode()->address());
 		return std::string(id);
 	}
 	else {
@@ -176,7 +165,7 @@ std::string VirtualTap::nodeId() const
 
 void VirtualTap::setFriendlyName(const char *friendlyName)
 {
-	DEBUG_EXTRA("%s", friendlyName);
+	DEBUG_INFO("%s", friendlyName);
 }
 
 void VirtualTap::scanMulticastGroups(std::vector<MulticastGroup> &added,
@@ -211,33 +200,57 @@ void VirtualTap::setMtu(unsigned int mtu)
 void VirtualTap::threadMain()
 	throw()
 {
+	fd_set readfds,nullfds;
+	struct timeval tv;
+	tv.tv_sec = 0;
+	tv.tv_usec = 0;
+	FD_ZERO(&readfds);
+	FD_ZERO(&nullfds);
+	int nfds = (int)std::max(_shutdownSignalPipe[0],0) + 1;
 	while (true) {
+		FD_SET(_shutdownSignalPipe[0],&readfds);
+		select(nfds,&readfds,&nullfds,&nullfds,&tv);
+		if (FD_ISSET(_shutdownSignalPipe[0],&readfds)) { // writes to shutdown pipe terminate thread
+			break;
+		}
 #ifdef _MSC_VER
-		Sleep(ZT_PHY_POLL_INTERVAL);
+		Sleep(ZTS_PHY_POLL_INTERVAL);
 		_phy.poll(0);
 #else
-		_phy.poll(ZT_PHY_POLL_INTERVAL);
+		_phy.poll(ZTS_PHY_POLL_INTERVAL);
 #endif
-		Housekeeping();
+
+		uint64_t current_ts = OSUtils::now();
+		if (current_ts > last_housekeeping_ts + ZTS_HOUSEKEEPING_INTERVAL) {
+			Housekeeping();
+			last_housekeeping_ts = OSUtils::now();
+		}
 	}
 }
 
 void VirtualTap::Housekeeping()
 {
 	Mutex::Lock _l(_tcpconns_m);
-	uint64_t current_ts = time_now();
-	if (current_ts > last_housekeeping_ts + ZT_HOUSEKEEPING_INTERVAL) {
-		// update managed routes (add/del from network stacks)
-		ZeroTier::OneService *service = ((ZeroTier::OneService *)zt1ServiceRef);
-		if (service) {
-			std::unique_ptr<std::vector<ZT_VirtualNetworkRoute>> managed_routes(service->getRoutes(this->_nwid));
-			ZeroTier::InetAddress target_addr;
-			ZeroTier::InetAddress via_addr;
-			ZeroTier::InetAddress null_addr;
-			ZeroTier::InetAddress nm;
+	OneService *service = ((OneService *)zt1ServiceRef);
+	if (!service) {
+		return;
+	}
+	nd.num_routes = ZTS_MAX_NETWORK_ROUTES;
+	service->getRoutes(this->_nwid, (ZT_VirtualNetworkRoute*)&(nd.routes)[0], &(nd.num_routes));
+
+/*
+
+			
+			InetAddress target_addr;
+			InetAddress via_addr;
+			InetAddress null_addr;
+			InetAddress nm;
 			null_addr.fromString("");
 			bool found;
 			char ipbuf[INET6_ADDRSTRLEN], ipbuf2[INET6_ADDRSTRLEN], ipbuf3[INET6_ADDRSTRLEN];
+*/
+
+
 			// TODO: Rework this when we have time
 			// check if pushed route exists in tap (add)
 			/*
@@ -258,7 +271,7 @@ void VirtualTap::Housekeeping()
 				if (found == false) {
 					if (via_addr.ipsEqual(null_addr) == false) {
 						DEBUG_INFO("adding route <target=%s, nm=%s, via=%s>", target_addr.toString(ipbuf), nm.toString(ipbuf2), via_addr.toString(ipbuf3));
-						routes.push_back(std::pair<ZeroTier::InetAddress,ZeroTier::InetAddress>(target_addr, nm));
+						routes.push_back(std::pair<InetAddress,InetAddress>(target_addr, nm));
 						routeAdd(target_addr, nm, via_addr);
 					}
 				}
@@ -281,15 +294,13 @@ void VirtualTap::Housekeeping()
 				}
 			}
 			*/
-		}
+		//}
 		// TODO: Clean up VirtualSocket objects
-		last_housekeeping_ts = time_now();
-	}
 }
 
-/****************************************************************************/
-/* Not used in this implementation                                          */
-/****************************************************************************/
+//////////////////////////////////////////////////////////////////////////////
+// Not used in this implementation                                          //
+//////////////////////////////////////////////////////////////////////////////
 
 void VirtualTap::phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address,
 	const struct sockaddr *from,void *data,unsigned long len) {}
@@ -300,3 +311,4 @@ void VirtualTap::phyOnTcpClose(PhySocket *sock,void **uptr) {}
 void VirtualTap::phyOnTcpData(PhySocket *sock,void **uptr,void *data,unsigned long len) {}
 void VirtualTap::phyOnTcpWritable(PhySocket *sock,void **uptr) {}
 
+} // namespace ZeroTier

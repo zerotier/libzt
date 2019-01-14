@@ -42,7 +42,6 @@
 #endif
 
 #include "libzt.h"
-#include "libztDefs.h"
 
 #include <jni.h>
 
@@ -57,10 +56,22 @@ namespace ZeroTier {
 	void ztfdset2fdset(JNIEnv *env, int nfds, jobject src_ztfd_set, fd_set *dest_fd_set);
 	void fdset2ztfdset(JNIEnv *env, int nfds, fd_set *src_fd_set, jobject dest_ztfd_set);
 
-	/****************************************************************************/
-	/* ZeroTier service controls                                                */
-	/****************************************************************************/
+	//////////////////////////////////////////////////////////////////////////////
+	// ZeroTier service controls                                                //
+	//////////////////////////////////////////////////////////////////////////////
+/*
+	JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_set_1service_1port(
+		JNIEnv *env, jobject thisObj, jint port)
+	{
+		zts_set_service_port(port);
+	}
 
+	JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_get_1service_1port(
+		JNIEnv *env, jobject thisObj, jint port)
+	{
+		return zts_get_service_port();
+	}
+*/
 	JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_start(
 		JNIEnv *env, jobject thisObj, jstring path, jboolean blocking)
 	{
@@ -87,6 +98,12 @@ namespace ZeroTier {
 		zts_stop();
 	}
 
+	JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_free(
+		JNIEnv *env, jobject thisObj)
+	{
+		zts_free();
+	}
+
 	JNIEXPORT jboolean JNICALL Java_com_zerotier_libzt_ZeroTier_core_1running(
 		JNIEnv *env, jobject thisObj)
 	{
@@ -104,6 +121,12 @@ namespace ZeroTier {
 	{
 		return zts_ready();
 	}
+
+	JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_get_1service_1port(
+		JNIEnv *env, jobject thisObj, jint port)
+	{
+		return zts_get_num_joined_networks();
+	}xxx
 
 	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_join(
 		JNIEnv *env, jobject thisObj, jlong nwid)
@@ -184,9 +207,9 @@ namespace ZeroTier {
 		return zts_get_peer_count();
 	}
 
-	/****************************************************************************/
-	/* ZeroTier Socket API                                                      */
-	/****************************************************************************/
+	//////////////////////////////////////////////////////////////////////////////
+	// ZeroTier Socket API                                                      //
+	//////////////////////////////////////////////////////////////////////////////
 
 	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_socket(
 		JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol)
@@ -207,7 +230,6 @@ namespace ZeroTier {
 		JNIEnv *env, jobject thisObj, jint fd, jobject addr)
 	{
 		struct sockaddr_storage ss;
-		int err;
 		zta2ss(env, &ss, addr);
 		socklen_t addrlen = ss.ss_family == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
 		return zts_bind(fd, (struct sockaddr*)&ss, addrlen);
@@ -430,9 +452,9 @@ void fdset2ztfdset(JNIEnv *env, int nfds, fd_set *src_fd_set, jobject dest_ztfd_
 	return;
 }
 
-	/****************************************************************************/
-	/* Helpers (for moving data across the JNI barrier)                         */
-	/****************************************************************************/
+	//////////////////////////////////////////////////////////////////////////////
+	// Helpers (for moving data across the JNI barrier)                         //
+	//////////////////////////////////////////////////////////////////////////////
 
 void ss2zta(JNIEnv *env, struct sockaddr_storage *ss, jobject addr)
 {

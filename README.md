@@ -26,9 +26,7 @@ Java JNI API: [ZeroTier.java](packages/android/app/src/main/java/ZeroTier.java)
 ### C++ Example
 
 ```
-#include <sys/socket.h>
 #include <arpa/inet.h>
-#include <netinet/in.h>
 
 #include "libzt.h"
 
@@ -38,14 +36,15 @@ int main()
 	char *remoteIp = "10.8.8.42";
 	int remotePort = 8080;
 	int fd, err = 0;
-	struct sockaddr_in addr;
-	addr.sin_family = AF_INET;
+	struct zts_sockaddr_in addr;
+	addr.sin_family = ZTS_AF_INET;
 	addr.sin_addr.s_addr = inet_addr(remoteIp);
 	addr.sin_port = htons(remotePort);
 
 	zts_startjoin("path", 0xc7cd7c981b0f52a2); // config path, network ID
+	printf("nodeId=%llx\n", zts_get_node_id());
 
-	if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((fd = zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0)) < 0) {
 		printf("error creating socket\n");
 	}
 	if ((err = zts_connect(fd, (const struct sockaddr *)&addr, sizeof(addr))) < 0) {

@@ -30,15 +30,16 @@
  * Platform-specific implementations of common functions
  */
 
+/*
 #if defined(__linux__) || defined(__APPLE__)
 #include <sys/socket.h>
 #include <pthread.h>
 #endif
 
-#include "SysUtils.h"
 #include <stdint.h>
 
 #ifdef __linux__
 #include <sys/syscall.h>
 #include <unistd.h>
 #endif
+*/

@@ -1,6 +1,6 @@
 #
 # ZeroTier SDK - Network Virtualization Everywhere
-# Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
+# Copyright (C) 2011-2019  ZeroTier, Inc.  https://www.zerotier.com/
 # 
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
 #  GNU General Public License for more details.
 # 
 #  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#  along with this program. If not, see <http://www.gnu.org/licenses/>.
 # 
 #  --
 # 
@@ -100,16 +100,24 @@ if (BUILDING_WIN)
 	set(JAVA_INCLUDE_PATH "C:\\Program Files\\Java\\jdk-10.0.2\\include")
 endif ()
 
-find_package (JNI)
+set(JAVA_AWT_LIBRARY NotNeeded)
+set(JAVA_JVM_LIBRARY NotNeeded)
+set(JAVA_INCLUDE_PATH2 NotNeeded)
+set(JAVA_AWT_INCLUDE_PATH NotNeeded)
+find_package(JNI REQUIRED)
+
 if (JNI_FOUND)
-    message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
+    message (STATUS "JNI_INCLUDE_DIR=${JNI_INCLUDE_DIRS}")
     message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
     list (GET JNI_INCLUDE_DIRS 0 JNI_INCLUDE_DIR)
     message (STATUS "jni path=${JNI_INCLUDE_DIR}")
     include_directories ("${JNI_INCLUDE_DIR}")
-    include_directories ("${JNI_INCLUDE_DIRS}")
+    #include_directories ("${JNI_INCLUDE_DIRS}")
 	if (BUILDING_WIN)
 		include_directories ("${JNI_INCLUDE_DIR}\\win32")
+	endif ()
+	if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin") # on macOS
+		include_directories ("${JNI_INCLUDE_DIR}/darwin")
 	endif ()
 else ()
 	    message (STATUS "JNI not found")
@@ -156,7 +164,7 @@ endif ()
 # |                                    FLAGS                                  |
 # -----------------------------------------------------------------------------
 
-set (LIBZT_FLAGS "-DZT_SDK=1")
+set (LIBZT_FLAGS "-DZT_SDK=1 -D_USING_LWIP_DEFINITIONS_=1")
 set (LIBZT_FLAGS_DEBUG "-DZT_SDK=1 -DLIBZT_TRACE=1 -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1 -DNS_TRACE=1 -DNS_DEBUG=1")
 
 set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${LIBZT_FLAGS_DEBUG}")
@@ -185,7 +193,8 @@ set (ZTO_SRC_DIR "${PROJ_DIR}/ext/ZeroTierOne")
 set (LIBZT_SRC_DIR "${PROJ_DIR}/src")
 
 include_directories ("${LIBZT_SRC_DIR}")
-include_directories ("${ZTO_SRC_DIR}/include")
+#include_directories ("${ZTO_SRC_DIR}/include")
+include_directories ("${PROJ_DIR}")
 include_directories ("${ZTO_SRC_DIR}/osdep")
 include_directories ("${ZTO_SRC_DIR}/node")
 include_directories ("${ZTO_SRC_DIR}/service")
@@ -223,7 +232,6 @@ file (GLOB ExampleAppSrcGlob
 # header globs for xcode frameworks
 file (GLOB frameworkPrivateHeaderGlob
 	${INCLUDE_PATH}/libzt.h
-	${INCLUDE_PATH}/libztDefs.h
 	${INCLUDE_PATH}/libztDebug.h)
 file (GLOB frameworkPublicHeaderGlob ${INCLUDE_PATH}/Xcode-Bridging-Header.h)
 file (GLOB frameworkHeaderGlob ${frameworkPublicHeaderGlob} ${frameworkPrivateHeaderGlob})
@@ -351,28 +359,28 @@ endif ()
 # -----------------------------------------------------------------------------
 
 if (SHOULD_BUILD_TESTS)
-	foreach (testsourcefile ${ExampleAppSrcGlob})
-	    string (REPLACE ".cpp" "" testname ${testsourcefile})
-	    get_filename_component (testname ${testname} NAME)
-	    add_executable (${testname} ${testsourcefile})
-	if (BUILDING_WIN)
-	    target_link_libraries (${testname} ${STATIC_LIB_NAME})
-	else ()
-		target_link_libraries (${testname} ${STATIC_LIB_NAME} pthread dl)
-	endif ()
-	endforeach (testsourcefile ${ExampleAppSrcGlob})
+#	foreach (testsourcefile ${ExampleAppSrcGlob})
+#	    string (REPLACE ".cpp" "" testname ${testsourcefile})
+#	    get_filename_component (testname ${testname} NAME)
+#	    add_executable (${testname} ${testsourcefile})
+#	if (BUILDING_WIN)
+#	    target_link_libraries (${testname} ${STATIC_LIB_NAME})
+#	else ()
+#		target_link_libraries (${testname} ${STATIC_LIB_NAME} pthread dl)
+#	endif ()
+#	endforeach (testsourcefile ${ExampleAppSrcGlob})
 
 if (NOT BUILDING_WIN) # only necessary for raw driver development
 	# selftest
-	add_executable (selftest ${PROJ_DIR}/test/selftest.cpp)
-	target_compile_options (selftest PRIVATE -D__SELFTEST__)
-	if (BUILDING_WIN)
-		target_link_libraries (selftest ${STATIC_LIB_NAME} ${ws2_32_LIBRARY_PATH} ${shlwapi_LIBRARY_PATH} ${iphlpapi_LIBRARY_PATH})
-	else ()
-		target_link_libraries (selftest ${STATIC_LIB_NAME} pthread)
-	endif ()
+	#add_executable (selftest ${PROJ_DIR}/test/selftest.cpp)
+	#target_compile_options (selftest PRIVATE -D__SELFTEST__)
+	#if (BUILDING_WIN)
+	#	target_link_libraries (selftest ${STATIC_LIB_NAME} ${ws2_32_LIBRARY_PATH} ${shlwapi_LIBRARY_PATH} ${iphlpapi_LIBRARY_PATH})
+	#else ()
+	#	target_link_libraries (selftest ${STATIC_LIB_NAME} pthread)
+	#endif ()
 	# nativetest
-	add_executable (nativetest ${PROJ_DIR}/test/selftest.cpp)
-	target_compile_options (nativetest PRIVATE -D__NATIVETEST__)
+	#add_executable (nativetest ${PROJ_DIR}/test/selftest.cpp)
+	#target_compile_options (nativetest PRIVATE -D__NATIVETEST__)
 endif ()
 endif ()

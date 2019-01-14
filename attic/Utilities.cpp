@@ -30,6 +30,7 @@
  * Misc utilities
  */
 
+/*
 #include "Utilities.h"
 
 #if defined(_WIN32_FALSE)
@@ -84,7 +85,9 @@ int inet_pton4(const char *src, void *dst)
 
 	return 1;
 }
+*/
 
+/*
 int inet_pton6(const char *src, void *dst)
 {
 	static const char xdigits[] = "0123456789abcdef";
@@ -94,7 +97,7 @@ int inet_pton6(const char *src, void *dst)
 	uint8_t *endp = tp + NS_IN6ADDRSZ;
 	uint8_t *colonp = NULL;
 
-	/* Leading :: requires some special handling. */
+	// Leading :: requires some special handling.
 	if (*src == ':')
 	{
 		if (*++src != ':')
@@ -144,7 +147,7 @@ int inet_pton6(const char *src, void *dst)
 		{
 			tp += NS_INADDRSZ;
 			saw_xdigit = 0;
-			break; /* '\0' was seen by inet_pton4(). */
+			break; // '\0' was seen by inet_pton4().
 		}
 		return 0;
 	}
@@ -157,10 +160,10 @@ int inet_pton6(const char *src, void *dst)
 	}
 	if (colonp != NULL)
 	{
-		/*
-		 * Since some memmove()'s erroneously fail to handle
-		 * overlapping regions, we'll do the shift by hand.
-		 */
+		//
+		// Since some memmove()'s erroneously fail to handle
+		// overlapping regions, we'll do the shift by hand.
+		//
 		const int n = tp - colonp;
 
 		if (tp == endp)
@@ -180,7 +183,9 @@ int inet_pton6(const char *src, void *dst)
 
 	return 1;
 }
+*/
 
+/*
 int inet_pton(int af, const char *src, void *dst)
 {
 	switch (af)
@@ -250,9 +255,12 @@ char *beautify_eth_proto_nums(int proto)
 	if (proto == 0x9100) return (char*)"VLAN-tagged (IEEE 802.1Q) frame with double tagging";
 	return (char*)"UNKNOWN";
 }
+*/
 
+/*
 void mac2str(char *macbuf, int len, unsigned char* addr)
 {
 	snprintf(macbuf, len, "%02x:%02x:%02x:%02x:%02x:%02x",
 		 addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
 }
+*/

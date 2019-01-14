@@ -40,12 +40,55 @@
 #define __LWIPOPTS_H__
 
 /*
+ * Provides short-named socket macros. Keep disabled
+ */
+#define LWIP_COMPAT_SOCKETS 0
+
+/**
+ * Respond to broadcast pings (default is unicast only)
+ */
+#define LWIP_BROADCAST_PING 0
+
+/**
+ * Respond to multicast pings (default is unicast only)
+ */
+#define LWIP_MULTICAST_PING 0
+
+/**
+ * Enables the ability to forward IP packets across network
+ * interfaces. If you are going to run lwIP on a device with only one network
+ * interface, define this to 0.
+ */
+#define IP_FORWARD 0
+
+/**
+ * Number of active MAC-IP address pairs cached.
+ */
+#define ARP_TABLE_SIZE 10
+
+/**
+ * LWIP_FIONREAD_LINUXMODE==0 (default): ioctl/FIONREAD returns the amount of
+ * pending data in the network buffer. This is the way windows does it. It's
+ * the default for lwIP since it is smaller.
+ * LWIP_FIONREAD_LINUXMODE==1: ioctl/FIONREAD returns the size of the next
+ * pending datagram in bytes. This is the way linux does it. This code is only
+ * here for compatibility.
+ */
+#define LWIP_FIONREAD_LINUXMODE 1
+/**
+ * Enable SO_RCVBUF processing.
+ */
+#define LWIP_SO_RCVBUF 1
+/**
+ * Enable SO_LINGER processing.
+ */
+#define LWIP_SO_LINGER 0
+/*
  *  Provides its own errno
  */
-
 #if __ANDROID__
 #define LWIP_PROVIDE_ERRNO          0
-#define SOCKLEN_T_DEFINED
+//#define SOCKLEN_T_DEFINED
 #elif !defined(_MSC_VER)
 #define LWIP_PROVIDE_ERRNO          1
 #endif
@@ -53,24 +96,21 @@
 /*
  * Provides core locking machinery
  */
-#define LWIP_TCPIP_CORE_LOCKING     0
+#define LWIP_TCPIP_CORE_LOCKING     1
 
 /*
  * Provides a macro to spoof the names of the lwip socket functions
  */
 #define LWIP_POSIX_SOCKETS_IO_NAMES 0
 
-#define LWIP_NOASSERT               1
+/*
+ *
+ */
+#define LWIP_NOASSERT               0
 /*
  *
  */
 #define LWIP_TIMERS                 1
-
-/*
- *
- */
-//#define LWIP_COMPAT_MUTEX 1
-//#define LWIP_COMPAT_MUTEX_ALLOWED 1
 
 /*
  * Provides network/host byte transformation macros
@@ -80,11 +120,6 @@
 #define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS 1
 #endif
 
-/*
- * Include user defined options first. Anything not defined in these files
- * will be set to standard values. Override anything you dont like!
- */
-#include "lwip/debug.h"
 
 #define LWIP_IPV6_AUTOCONFIG 1
 
@@ -134,7 +169,7 @@
 // API
 #define API_LIB_DEBUG                   LWIP_DBG_OFF
 #define API_MSG_DEBUG                   LWIP_DBG_OFF
-#define SOCKETS_DEBUG                   LWIP_DBG_OFF
+#define SOCKETS_DEBUG                   LWIP_DBG_ON
 // other
 #define ICMP_DEBUG                      LWIP_DBG_OFF
 #define IGMP_DEBUG                      LWIP_DBG_OFF
@@ -177,9 +212,12 @@
 #define LWIP_CHKSUM_ALGORITHM 2
 
 #undef TCP_MSS
-#define TCP_MSS 1460
+
+#define MTU 1500
+#define TCP_MSS MTU - 40
 
 #define LWIP_NETIF_API 1
+#define LWIP_DEBUG_TIMERNAMES 1
 /*
 The TCP window size can be adjusted by changing the define TCP_WND. However,
 do keep in mind that this should be at least twice the size of TCP_MSS (thus
@@ -194,7 +232,6 @@ remote peer.
 
 #define TCP_WND 0xffff // max = 0xffff, min = TCP_MSS*2
 
-#define LWIP_NOASSERT 1
 #define TCP_LISTEN_BACKLOG   0
 
 /*------------------------------------------------------------------------------
@@ -252,12 +289,12 @@ happening sooner than they should.
 -------------------------------- Memory options --------------------------------
 ------------------------------------------------------------------------------*/
 
-//#define MEM_USE_POOLS 1
+//#define MEM_USE_POOLS 0
 //#define MEMP_USE_CUSTOM_POOLS 1
 
 /* Misc */
-#define MEM_LIBC_MALLOC 1
-#define MEMP_MEM_MALLOC 1
+#define MEM_LIBC_MALLOC 0
+#define MEMP_MEM_MALLOC 1 /* if set to 1, all dynamically allocated memory will come from MEM_SIZE */
 
 /**
  * MEM_ALIGNMENT: should be set to the alignment of the CPU
@@ -270,7 +307,7 @@ happening sooner than they should.
  * MEM_SIZE: the size of the heap memory. If the application will send
  * a lot of data that needs to be copied, this should be set high.
  */
-#define MEM_SIZE                        1024 * 1024 * 64
+#define MEM_SIZE                        1024 * 1024
 #define TCP_SND_BUF                     1024 * 63
 //#define TCP_OVERSIZE                    TCP_MSS
 
@@ -368,7 +405,7 @@ happening sooner than they should.
  * MEMP_NUM_NETCONN: the number of struct netconns.
  * (only needed if you use the sequential API, like api_lib.c)
  */
-#define MEMP_NUM_NETCONN                32
+#define MEMP_NUM_NETCONN                256
 
 /**
  * MEMP_NUM_TCPIP_MSG_API: the number of struct tcpip_msg, which are used
@@ -387,7 +424,7 @@ happening sooner than they should.
 /**
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
-#define PBUF_POOL_SIZE                  4092 /* was 32 */
+#define PBUF_POOL_SIZE                  128 /* was 32 */
 
 
 /*------------------------------------------------------------------------------
@@ -595,6 +632,7 @@ happening sooner than they should.
  * LWIP_STATS==1: Enable statistics collection in lwip_stats.
  */
 #define LWIP_STATS                      1
+//#define LWIP_STATS_DISPLAY				1
 
 /*------------------------------------------------------------------------------
 --------------------------------- PPP Options ----------------------------------
@@ -605,4 +643,11 @@ happening sooner than they should.
  */
 #define PPP_SUPPORT                     0
 
+/*
+ * Include user defined options first. Anything not defined in these files
+ * will be set to standard values. Override anything you dont like!
+ */
+#include "lwip/debug.h"
+
 #endif /* __LWIPOPTS_H__ */
+

@@ -30,10 +30,9 @@
  * ZeroTier One service control wrapper
  */
 
+/*
 #include "libzt.h"
 #include "ZT1Service.h"
-#include "libztDebug.h"
-#include "SysUtils.h"
 
 #include "Phy.hpp"
 #include "OneService.hpp"
@@ -41,8 +40,16 @@
 #include "OSUtils.hpp"
 #include "Mutex.hpp"
 
+#include <pthread.h>
+*/
+
+
+/*
 std::vector<void*> vtaps;
 ZeroTier::Mutex _vtaps_lock;
+ZeroTier::Mutex _service_lock;
+*/
+/*
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,6 +63,8 @@ std::string netDir;  // Where network .conf files are to be written
 ZeroTier::Mutex _multiplexer_lock;
 
 int servicePort = LIBZT_DEFAULT_PORT;
+bool _freeHasBeenCalled = false;
+bool _serviceIsShuttingDown = false;
 
 #if defined(_WIN32)
 WSADATA wsaData;
@@ -64,9 +73,11 @@ WSADATA wsaData;
 
 void api_sleep(int interval_ms);
 
-/****************************************************************************/
-/* ZeroTier Core helper functions for libzt - DON'T CALL THESE DIRECTLY     */
-/****************************************************************************/
+pthread_t service_thread;
+
+//////////////////////////////////////////////////////////////////////////////
+// ZeroTier Core helper functions for libzt - DON'T CALL THESE DIRECTLY     //
+//////////////////////////////////////////////////////////////////////////////
 
 std::vector<ZT_VirtualNetworkRoute> *zts_get_network_routes(const uint64_t nwid)
 {
@@ -95,15 +106,15 @@ VirtualTap *getTapByAddr(ZeroTier::InetAddress *addr)
 		// check address schemes
 		for (int j=0; j<(int)(s->_ips.size()); j++) {
 			if ((s->_ips[j].isV4() && addr->isV4()) || (s->_ips[j].isV6() && addr->isV6())) {
-				/* DEBUG_EXTRA("looking at tap %s, <addr=%s> --- for <%s>", s->_dev.c_str(),
-				s->_ips[j].toString(ipbuf), addr->toIpString(ipbuf2)); */
+				// DEBUG_INFO("looking at tap %s, <addr=%s> --- for <%s>", s->_dev.c_str(),
+				// s->_ips[j].toString(ipbuf), addr->toIpString(ipbuf2));
 				if (s->_ips[j].isEqualPrefix(addr)
 					|| s->_ips[j].ipsEqual(addr)
 					|| s->_ips[j].containsAddress(addr)
 					|| (addr->isV6() && _ipv6_in_subnet(&s->_ips[j], addr))
 					)
 				{
-					//DEBUG_EXTRA("selected tap %s, <addr=%s>", s->_dev.c_str(), s->_ips[j].toString(ipbuf));
+					//DEBUG_INFO("selected tap %s, <addr=%s>", s->_dev.c_str(), s->_ips[j].toString(ipbuf));
 					_vtaps_lock.unlock();
 					return s;
 				}
@@ -118,8 +129,8 @@ VirtualTap *getTapByAddr(ZeroTier::InetAddress *addr)
 				nm = target.netmask();
 				via = managed_routes->at(i).via;
 				if (target.containsAddress(addr)) {
-					/* DEBUG_EXTRA("chose tap with route <target=%s, nm=%s, via=%s>", target.toString(ipbuf),
-					nm.toString(ipbuf2), via.toString(ipbuf3)); */
+					// DEBUG_INFO("chose tap with route <target=%s, nm=%s, via=%s>", target.toString(ipbuf),
+					// nm.toString(ipbuf2), via.toString(ipbuf3));
 					_vtaps_lock.unlock();
 					return s;
 				}
@@ -169,31 +180,27 @@ VirtualTap *getAnyTap()
 	return vtap;
 }
 
-uint64_t zts_get_node_id_from_file(const char *filepath)
-{
-	std::string fname("identity.public");
-	std::string fpath(filepath);
-	std::string oldid;
-	if (ZeroTier::OSUtils::fileExists((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(), false)) {
-		ZeroTier::OSUtils::readFile((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(), oldid);
-		return Utils::hexStrToU64(oldid.c_str());
-	}
-	return 0;
-}
-
 // Starts a ZeroTier service in the background
 #if defined(_WIN32)
 DWORD WINAPI zts_start_service(LPVOID thread_id)
 #else
 void *zts_start_service(void *thread_id)
 #endif
-{
-	DEBUG_INFO("zto-thread, path=%s", homeDir.c_str());
-	// Where network .conf files will be stored
+{	
+	void *retval;
+	DEBUG_INFO("identities are stored in path (%s)", homeDir.c_str());
 	netDir = homeDir + "/networks.d";
 	zt1Service = (ZeroTier::OneService *)0;
-	// Construct path for network config and supporting service files
-	if (homeDir.length()) {
+
+	if (!homeDir.length()) {
+		DEBUG_ERROR("homeDir is empty, could not construct path");
+		retval = NULL;
+	} if (zt1Service) {
+		DEBUG_INFO("service already started, doing nothing");
+		retval = NULL;
+	}
+
+	try {
 		std::vector<std::string> hpsp(ZeroTier::OSUtils::split(homeDir.c_str(), ZT_PATH_SEPARATOR_S,"",""));
 		std::string ptmp;
 		if (homeDir[0] == ZT_PATH_SEPARATOR) {
@@ -211,48 +218,41 @@ void *zts_start_service(void *thread_id)
 				}
 			}
 		}
-	}
-	else {
-		DEBUG_ERROR("homeDir is empty, could not construct path");
-		return NULL;
-	}
-	if (servicePort <= 0) {
-		DEBUG_INFO("no port specified, will bind to random port. use zts_set_service_port() if you want.");
-	}
-	else {
-		DEBUG_INFO("binding to port=%d", servicePort);
-	}
-	for (;;) {
-		zt1Service = ZeroTier::OneService::newInstance(homeDir.c_str(),servicePort);
-		switch(zt1Service->run()) {
-			case ZeroTier::OneService::ONE_STILL_RUNNING:
-			case ZeroTier::OneService::ONE_NORMAL_TERMINATION:
-				break;
-			case ZeroTier::OneService::ONE_UNRECOVERABLE_ERROR:
-				DEBUG_ERROR("fatal error: %s",zt1Service->fatalErrorMessage().c_str());
-				break;
-			case ZeroTier::OneService::ONE_IDENTITY_COLLISION: {
-				delete zt1Service;
-				zt1Service = (ZeroTier::OneService *)0;
-				std::string oldid;
-				ZeroTier::OSUtils::readFile((homeDir + ZT_PATH_SEPARATOR_S
-					+ "identity.secret").c_str(),oldid);
-				if (oldid.length()) {
-					ZeroTier::OSUtils::writeFile((homeDir + ZT_PATH_SEPARATOR_S
-						+ "identity.secret.saved_after_collision").c_str(),oldid);
-					ZeroTier::OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S
-						+ "identity.secret").c_str());
-					ZeroTier::OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S
-						+ "identity.public").c_str());
-				}
+		for(;;) {
+			_service_lock.lock();
+			zt1Service = OneService::newInstance(homeDir.c_str(),servicePort);
+			_service_lock.unlock();
+			switch(zt1Service->run()) {
+				case OneService::ONE_STILL_RUNNING: // shouldn't happen, run() won't return until done
+				case OneService::ONE_NORMAL_TERMINATION:
+					break;
+				case OneService::ONE_UNRECOVERABLE_ERROR:
+					fprintf(stderr,"fatal error: %s" ZT_EOL_S,zt1Service->fatalErrorMessage().c_str());
+					break;
+				case OneService::ONE_IDENTITY_COLLISION: {
+					delete zt1Service;
+					zt1Service = (OneService *)0;
+					std::string oldid;
+					OSUtils::readFile((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret").c_str(),oldid);
+					if (oldid.length()) {
+						OSUtils::writeFile((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret.saved_after_collision").c_str(),oldid);
+						OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret").c_str());
+						OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S + "identity.public").c_str());
+					}
+				}	continue; // restart!
 			}
-			continue; // restart!
+			break; // terminate loop -- normally we don't keep restarting
 		}
-		break; // terminate loop -- normally we don't keep restarting
+		_serviceIsShuttingDown = true;
+		_service_lock.lock();
+		delete zt1Service;
+		zt1Service = (OneService *)0;
+		_service_lock.unlock();
+		_serviceIsShuttingDown = false;
+	} catch ( ... ) {
+		fprintf(stderr,"unexpected exception starting main OneService instance" ZT_EOL_S);
 	}
-	delete zt1Service;
-	zt1Service = (ZeroTier::OneService *)0;
-	return NULL;
+	pthread_exit(NULL);
 }
 
 int zts_get_num_assigned_addresses(const uint64_t nwid)
@@ -264,7 +264,7 @@ int zts_get_num_assigned_addresses(const uint64_t nwid)
 	if (!tap) {
 		return -1;
 	}
-	int sz = -1;
+	int sz;
 	_vtaps_lock.lock();
 	sz = tap->_ips.size();
 	_vtaps_lock.unlock();
@@ -292,18 +292,32 @@ int zts_get_address_at_index(
 	return err;
 }
 
-/****************************************************************************/
-/* ZeroTier Service Controls                                                */
-/****************************************************************************/
+//////////////////////////////////////////////////////////////////////////////
+// ZeroTier Service Controls                                                //
+//////////////////////////////////////////////////////////////////////////////
 
-int zts_set_service_port(int portno)
+zts_err_t zts_set_service_port(int portno)
 {
-	if (portno > -1 && portno < 65535) {
-		// 0 is allowed, signals zt service to bind to a random port
-		servicePort = portno;
-		return 0;
+	zts_err_t retval = ZTS_ERR_OK;
+	_service_lock.lock();
+	if (zt1Service) {
+		DEBUG_INFO("please stop service before attempting to change port");
+		retval = ZTS_ERR_SERVICE;
 	}
-	return -1;
+	else {
+		if (portno > -1 && portno < ZTS_MAX_PORT) {
+			// 0 is allowed, signals to ZT service to bind to a random port
+			servicePort = portno;
+			retval = ZTS_ERR_OK;
+		}
+	}
+	_service_lock.unlock();
+	return retval;
+}
+
+int zts_get_service_port()
+{
+	return servicePort;
 }
 
 int zts_get_address(const uint64_t nwid, struct sockaddr_storage *addr, 
@@ -311,7 +325,7 @@ int zts_get_address(const uint64_t nwid, struct sockaddr_storage *addr,
 {
 	int err = -1;
 	if (!zt1Service) {
-		return -1;
+		return ZTS_ERR_SERVICE;
 	}
 	VirtualTap *tap = getTapByNWID(nwid);
 	if (!tap) {
@@ -368,49 +382,99 @@ void zts_get_rfc4193_addr(struct sockaddr_storage *addr, const uint64_t nwid, co
 	memcpy(addr, _rfc4193Addr.rawIpData(), sizeof(struct sockaddr_storage));
 }
 
-int zts_join(const uint64_t nwid)
+zts_err_t zts_join(const uint64_t nwid, int blocking)
 {
-	DEBUG_INFO("joining %llx", (unsigned long long)nwid);
-	if (nwid == 0) {
-		return -1;
+	zts_err_t retval = ZTS_ERR_OK;
+	_service_lock.lock();
+	if (blocking) {
+		if (!zt1Service) {
+			retval = ZTS_ERR_SERVICE;
+		} else {
+			while (!_zts_node_online()) {
+				if (_serviceIsShuttingDown) {
+					retval = ZTS_ERR_SERVICE;
+					break;
+				}
+				api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
+			}
+		}
+	} else {
+		if (!zt1Service || !_zts_node_online()) {
+			retval = ZTS_ERR_SERVICE;
+		}
 	}
-	if (zt1Service) {
-		zt1Service->join(nwid);
+	if (!retval) {
+		DEBUG_INFO("joining %llx", (unsigned long long)nwid);
+		if (nwid == 0) {
+			retval = ZTS_ERR_INVALID_ARG;
+		}
+		if (zt1Service) {
+			zt1Service->join(nwid);
+		}
+		// provide ZTO service reference to virtual taps
+		// TODO: This might prove to be unreliable, but it works for now
+		_vtaps_lock.lock();
+		for (size_t i=0;i<vtaps.size(); i++) {
+			VirtualTap *s = (VirtualTap*)vtaps[i];
+			s->zt1ServiceRef=(void*)zt1Service;
+		}
+		_vtaps_lock.unlock();
 	}
-	// provide ZTO service reference to virtual taps
-	// TODO: This might prove to be unreliable, but it works for now
-	_vtaps_lock.lock();
-	for (size_t i=0;i<vtaps.size(); i++) {
-		VirtualTap *s = (VirtualTap*)vtaps[i];
-		s->zt1ServiceRef=(void*)zt1Service;
-	}
-	_vtaps_lock.unlock();
-	return 0;
+	_service_lock.unlock();
+	return retval;
 }
 
-int zts_leave(const uint64_t nwid)
+zts_err_t zts_leave(const uint64_t nwid, int blocking)
 {
-	DEBUG_INFO("leaving %llx", (unsigned long long)nwid);
-	if (nwid == 0) {
-		return -1;
+	zts_err_t retval = ZTS_ERR_OK;
+	_service_lock.lock();
+	if (blocking) {
+		if (!zt1Service) {
+			retval = ZTS_ERR_SERVICE;
+		} else {
+			while (!_zts_node_online()) {
+				if (_serviceIsShuttingDown) {
+					retval = ZTS_ERR_SERVICE;
+					break;
+				}
+				api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
+			}
+		}
+	} else {
+		if (!zt1Service || !_zts_node_online()) {
+			retval = ZTS_ERR_SERVICE;
+		}
 	}
-	if (zt1Service) {
-		zt1Service->leave(nwid);
+	if (!retval) {
+		DEBUG_INFO("leaving %llx", (unsigned long long)nwid);
+		if (nwid == 0) {
+			retval = ZTS_ERR_INVALID_ARG;
+		}
+		if (zt1Service) {
+			zt1Service->leave(nwid);
+		}
 	}
-	return 0;
+	_service_lock.unlock();
+	return retval;
 }
 
 int zts_core_running()
 {
-	return zt1Service == NULL ? false : zt1Service->isRunning();
+	_service_lock.lock();
+	int retval = zt1Service == NULL ? false : zt1Service->isRunning();
+	_service_lock.unlock();
+	return retval;
 }
 
 int zts_stack_running()
 {
+	// PENDING: what if no networks are joined, the stack is still running. semantics need to change here
+	_service_lock.lock();
 	_vtaps_lock.lock();
-	// TODO: Perhaps a more robust way to check for this
+	// PENDING: Perhaps a more robust way to check for this
 	int running = vtaps.size() > 0 ? true : false;
 	_vtaps_lock.unlock();
+	_service_lock.unlock();
 	return running;
 }
 
@@ -419,47 +483,64 @@ int zts_ready()
 	return zts_core_running() && zts_stack_running();
 }
 
-int zts_start(const char *path, int blocking = false)
+zts_err_t zts_start(const char *path, int blocking = false)
 {
+	zts_err_t retval = ZTS_ERR_OK;
 	if (zt1Service) {
-		return 0; // already initialized, ok
+		return ZTS_ERR_SERVICE; // already initialized
+	}
+	if (_freeHasBeenCalled) {
+		return ZTS_ERR_INVALID_OP; // stack (presumably lwIP) has been dismantled, an application restart is required now
 	}
 	if (path) {
 		homeDir = path;
 	}
-	int err = 0;
 #if defined(_WIN32)
 		WSAStartup(MAKEWORD(2, 2), &wsaData); // initialize WinSock. Used in Phy for loopback pipe
 		HANDLE thr = CreateThread(NULL, 0, zts_start_service, NULL, 0, NULL);
 #else
-		pthread_t service_thread;
-		err = pthread_create(&service_thread, NULL, zts_start_service, NULL);
+		retval = pthread_create(&service_thread, NULL, zts_start_service, NULL);
+		// PENDING: Wait for confirmation that the ZT service has been initialized, 
+		// this wait condition is so brief and so rarely used that it should be
+		// acceptable even in a non-blocking context.
+		while(!zt1Service) { 
+			api_sleep(10);
+		}
 #endif
 
 	if (blocking) { // block to prevent service calls before we're ready
 		ZT_NodeStatus status;
 		status.online = 0;
-		DEBUG_EXTRA("waiting for zerotier service thread to start");
+		DEBUG_INFO("waiting for zerotier service thread to start");
 		while (zts_core_running() == false || zt1Service->getNode() == NULL) {
 			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 		}
-		DEBUG_EXTRA("waiting for node address assignment");
+		DEBUG_INFO("waiting for node address assignment");
 		while (zt1Service->getNode()->address() <= 0) {
 			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 		}
-		DEBUG_EXTRA("node=%llx", (unsigned long long)zts_get_node_id());
-		DEBUG_EXTRA("waiting for node to come online. ensure the node is authorized to join the network");
-		while (status.online <= 0) {
+		DEBUG_INFO("waiting for node to come online. ensure the node is authorized to join the network");
+		while (true) {
+			_service_lock.lock();
+			if (zt1Service && zt1Service->getNode() && zt1Service->getNode()->online()) {
+				DEBUG_INFO("node is fully online");
+				_service_lock.unlock();
+				break;
+			}
 			api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
-			zt1Service->getNode()->status(&status);
+			_service_lock.unlock();
 		}
+		DEBUG_INFO("node=%llx", (unsigned long long)zts_get_node_id());
 	}
-	return err;
+	return retval;
 }
 
-int zts_startjoin(const char *path, const uint64_t nwid)
+zts_err_t zts_startjoin(const char *path, const uint64_t nwid)
 {
-	int err = zts_start(path, true);
+	zts_err_t retval = ZTS_ERR_OK;
+	if ((retval = zts_start(path, true)) < 0) {
+		return retval;
+	}
 	while (true) {
 		try {
 			zts_join(nwid);
@@ -474,45 +555,111 @@ int zts_startjoin(const char *path, const uint64_t nwid)
 	while (zts_has_address(nwid) == false) {
 		api_sleep(ZTO_WRAPPER_CHECK_INTERVAL);
 	}
-	return err;
+	return retval;
 }
 
-void zts_stop()
+zts_err_t zts_stop(int blocking)
 {
+	zts_err_t ret = ZTS_ERR_OK;
+	_service_lock.lock();
+	VirtualTap *s;
 	if (zt1Service) {
 		zt1Service->terminate();
-		// disableTaps();
+		vtaps.clear();
+	}
+	else {
+		ret = ZTS_ERR_SERVICE; // nothing to do
 	}
 #if defined(_WIN32)
 	WSACleanup();
 #endif
+	_service_lock.unlock();
+	if (blocking) {
+		// block until service thread successfully exits
+		pthread_join(service_thread, NULL);
+	}
+	return ret;
 }
 
-void zts_get_path(char *homePath, size_t len)
+zts_err_t zts_free()
 {
-	if (homeDir.length()) {
-		memset(homePath, 0, len);
-		size_t buf_len = len < homeDir.length() ? len : homeDir.length();
-		memcpy(homePath, homeDir.c_str(), buf_len);
+	zts_err_t retval = 0;
+	_service_lock.lock();
+	if (_freeHasBeenCalled) {
+		retval = ZTS_ERR_INVALID_OP;
+		_service_lock.unlock();
+	} else {
+		_freeHasBeenCalled = true;
+		_service_lock.unlock();
+		retval = zts_stop();
 	}
+	// PENDING: add stack shutdown logic
+	return retval;
+}
+
+zts_err_t zts_get_path(char *homePath, size_t *len)
+{
+	zts_err_t retval = ZTS_ERR_OK;
+	if (!homePath || *len <= 0 || *len > ZT_HOME_PATH_MAX_LEN) {
+		*len = 0; // signal that nothing was copied to the buffer
+		retval = ZTS_ERR_INVALID_ARG;
+	} else if (homeDir.length()) {
+		memset(homePath, 0, *len);
+		size_t buf_len = *len < homeDir.length() ? *len : homeDir.length();
+		memcpy(homePath, homeDir.c_str(), buf_len);
+		*len = buf_len;
+	}
+	return retval;
 }
 
 uint64_t zts_get_node_id()
 {
-	if (zt1Service) {
-		return zt1Service->getNode()->address();
+	uint64_t nodeId = 0;
+	_service_lock.lock();
+	if (_can_perform_service_operation()) {
+		nodeId = zt1Service->getNode()->address();
+	}
+	_service_lock.unlock();
+	return nodeId;
+}
+
+uint64_t zts_get_node_id_from_file(const char *filepath)
+{
+	std::string fname("identity.public");
+	std::string fpath(filepath);
+	std::string oldid;
+	if (ZeroTier::OSUtils::fileExists((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(), false)) {
+		ZeroTier::OSUtils::readFile((fpath + ZT_PATH_SEPARATOR_S + fname).c_str(), oldid);
+		return Utils::hexStrToU64(oldid.c_str());
 	}
 	return 0;
 }
 
-unsigned long zts_get_peer_count()
+int zts_get_peer_count()
 {
-	if (zt1Service) {
-		return zt1Service->getNode()->peers()->peerCount;
+	unsigned int peerCount = 0;
+	_service_lock.lock();
+	if (_can_perform_service_operation()) {
+		peerCount = zt1Service->getNode()->peers()->peerCount;
+	} else {
+		peerCount = ZTS_ERR_SERVICE;
 	}
-	else {
-		return 0;
-	}
+	_service_lock.unlock();
+	return peerCount;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Internal ZeroTier Service Controls (user application shall not use these)//
+//////////////////////////////////////////////////////////////////////////////
+
+int _zts_node_online()
+{
+	return zt1Service && zt1Service->getNode() && zt1Service->getNode()->online();
+}
+
+int _can_perform_service_operation()
+{
+	return zt1Service && zt1Service->isRunning() && zt1Service->getNode() && zt1Service->getNode()->online() && !_serviceIsShuttingDown;
 }
 
 bool _ipv6_in_subnet(ZeroTier::InetAddress *subnet, ZeroTier::InetAddress *addr)
@@ -561,3 +708,5 @@ void api_sleep(int interval_ms)
 #ifdef __cplusplus
 }
 #endif
+
+*/

@@ -1,6 +1,6 @@
 /*
  * ZeroTier SDK - Network Virtualization Everywhere
- * Copyright (C) 2011-2017  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (C) 2011-2019  ZeroTier, Inc.  https://www.zerotier.com/
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  * --
  *
@@ -24,23 +24,34 @@
  * of your own application.
  */
 
+/**
+ * @file
+ *
+ * ZeroTier socket API
+ */
+
 #ifndef LIBZT_BRIDGING_HEADER_H
 #define LIBZT_BRIDGING_HEADER_H
 
 #include <sys/socket.h>
 #include "libzt.h"
 
-// ZT SERVICE CONTROLS
+//////////////////////////////////////////////////////////////////////////////
+// Service Controls                                                         //
+//////////////////////////////////////////////////////////////////////////////
+
 int zts_start(const char *path, int blocking);
 int zts_startjoin(const char *path, const uint64_t nwid);
 void zts_stop();
-int zts_core_running();
-int zts_stack_running();
 int zts_ready();
 int zts_join(uint64_t nwid);
 int zts_leave(uint64_t nwid);
 uint64_t zts_get_node_id();
-// SOCKET API
+
+//////////////////////////////////////////////////////////////////////////////
+// Socket API                                                               //
+//////////////////////////////////////////////////////////////////////////////
+
 int zts_connect(int fd, const struct sockaddr *addr, socklen_t addrlen);
 int zts_bind(int fd, const struct sockaddr *addr, socklen_t addrlen);
 int zts_accept(int fd, struct sockaddr *addr, socklen_t *addrlen);
@@ -64,7 +75,7 @@ int zts_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, s
 int zts_fcntl(int fd, int cmd, int flags);
 int zts_ioctl(int fd, unsigned long request, void *argp);
 
-#endif /* LIBZT_BRIDGING_HEADER_H */
+#endif // _H
 
 
 

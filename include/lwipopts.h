@@ -587,6 +587,11 @@ happening sooner than they should.
 ------------------------------------------------------------------------------*/
 
 /**
+ * TCP_SYNMAXRTX: Maximum number of retransmissions of SYN segments.
+ */
+#define TCP_SYNMAXRTX                   12
+
+/**
  * LWIP_TCP==1: Turn on TCP.
  */
 #define LWIP_TCP                        1
@@ -623,6 +628,22 @@ happening sooner than they should.
 
 #define LWIP_SOCKET                     1//(NO_SYS==0)
 
+/**
+ * LWIP_SO_SNDTIMEO==1: Enable send timeout for sockets/netconns and
+ * SO_SNDTIMEO processing.
+ */
+#define LWIP_SO_SNDTIMEO                1
+
+/**
+ * LWIP_SO_RCVTIMEO==1: Enable receive timeout for sockets/netconns and
+ * SO_RCVTIMEO processing.
+ */
+#define LWIP_SO_RCVTIMEO                1
+
+/**
+ * LWIP_SO_RCVBUF==1: Enable SO_RCVBUF processing.
+ */
+#define LWIP_SO_RCVBUF                  1
 
 /*------------------------------------------------------------------------------
 ------------------------------ Statistics Options ------------------------------

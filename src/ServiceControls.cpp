@@ -30,16 +30,11 @@
  * ZeroTier service controls
  */
 
-
+#include <queue>
 
 #include "OneService.hpp"
 #include "Node.hpp"
-
-namespace ZeroTier
-{
-	std::vector<void*> vtaps;
-	Mutex _vtaps_lock;
-}
+#include "ZeroTierOne.h"
 
 #include "Constants.hpp"
 #include "VirtualTapManager.hpp"
@@ -47,27 +42,64 @@ namespace ZeroTier
 #include "OSUtils.hpp"
 #include "ServiceControls.hpp"
 
-//#define SDK_JNI 1
-#ifdef SDK_JNI
-#include <jni.h>
-#endif
-
-ZeroTier::Mutex _service_lock;
-ZeroTier::Mutex _startup_lock;
-
-static ZeroTier::OneService *zt1Service;
-std::string homeDir;
-int servicePort = ZTS_DEFAULT_PORT;
-bool _freeHasBeenCalled = false;
-bool _serviceIsShuttingDown = false;
-bool _startupError = false;
+#include "lwip/stats.h"
 
 #if defined(_WIN32)
 WSADATA wsaData;
 #include <Windows.h>
 #endif
 
+#ifdef SDK_JNI
+#include <jni.h>
+#endif
+
+namespace ZeroTier {
+
+/*
+ * A lock used to protect any call which relies on the presence of a valid pointer
+ * to the ZeroTier service.
+ */
+Mutex _service_lock;
+
+/*
+ * A lock which protects flags and state variables used during the startup and
+ * shutdown phase.
+ */
+Mutex _startup_lock;
+
+/*
+ * A lock used to protect callback method pointers. With a coarser-grained lock it
+ * would be possible for one thread to alter the callback method pointer causing 
+ * undefined behaviour.
+ */
+Mutex _callback_lock;
+
+std::string homeDir;
+int servicePort = ZTS_DEFAULT_PORT;
+bool _freeHasBeenCalled = false;
+bool _serviceIsShuttingDown = false;
+bool _startupError = false;
+bool _nodeIsOnlineToggle = false;
+
 pthread_t service_thread;
+pthread_t callback_thread;
+
+// Collection of virtual tap interfaces
+std::map<uint64_t, VirtualTap*> vtapMap;
+Mutex _vtaps_lock;
+
+// Global reference to ZeroTier service
+OneService *zt1Service;
+
+// User-provided callback for ZeroTier events
+void (*_userCallbackFunc)(uint64_t, int);
+#ifdef SDK_JNI
+// Global references to JNI objects and VM kept for future callbacks
+static JavaVM *jvm = NULL;
+jobject objRef = NULL;
+jmethodID _userCallbackMethodRef = NULL;
+#endif
+}
 
 using namespace ZeroTier;
 
@@ -75,7 +107,69 @@ using namespace ZeroTier;
 // Internal ZeroTier Service Controls (user application shall not use these)//
 //////////////////////////////////////////////////////////////////////////////
 
-void api_sleep(int interval_ms)
+std::queue<std::pair<uint64_t, int>*> _callbackMsgQueue;
+
+void _push_callback_event(uint64_t nwid, int eventCode)
+{
+	_callback_lock.lock();
+	if (_callbackMsgQueue.size() >= 128) {
+		DEBUG_ERROR("too many callback messages in queue");
+		_callback_lock.unlock();
+		return;
+	}
+	_callbackMsgQueue.push(new std::pair<uint64_t, int>(nwid,eventCode));
+	_callback_lock.unlock();
+}
+
+void _process_callback_event_helper(uint64_t nwid, int eventCode)
+{
+#ifdef SDK_JNI
+	if(_userCallbackMethodRef) {
+		JNIEnv *env;
+		jint rs = jvm->AttachCurrentThread(&env, NULL);
+		assert (rs == JNI_OK);
+		env->CallVoidMethod(objRef, _userCallbackMethodRef, nwid, eventCode);
+	}
+#else
+	if (_userCallbackFunc) {
+		_userCallbackFunc((uint64_t)0, ZTS_EVENT_NODE_OFFLINE);
+	}
+#endif
+}
+
+void _process_callback_event(uint64_t nwid, int eventCode)
+{
+	_callback_lock.lock();
+	_process_callback_event_helper(nwid, eventCode);
+	_callback_lock.unlock();
+}
+
+bool _is_callback_registered()
+{
+	_callback_lock.lock();
+	bool retval = false;
+#ifdef SDK_JNI
+	retval = (jvm && objRef && _userCallbackMethodRef);
+#else
+	retval = _userCallbackFunc;
+#endif
+	_callback_lock.unlock();
+	return retval;
+}
+
+void _clear_registered_callback()
+{
+	_callback_lock.lock();
+#ifdef SDK_JNI
+	objRef = NULL;
+	_userCallbackMethodRef = NULL;
+#else
+	_userCallbackFunc = NULL;
+#endif
+	_callback_lock.unlock();
+}
+
+void _api_sleep(int interval_ms)
 {
 #if defined(_WIN32)
 	Sleep(interval_ms);
@@ -107,6 +201,90 @@ void _hibernate_if_needed()
 #ifdef SDK_JNI
 #endif
 
+/*
+ * Monitors the conditions required for triggering callbacks into user code. This was made
+ * into its own thread to prevent user application abuse of callbacks from affecting
+ * the timing of more sensitive aspects of the library such as polling and RX/TX of packets
+ */
+#if defined(_WIN32)
+DWORD WINAPI _zts_monitor_callback_conditions(LPVOID thread_id)
+#else
+void *_zts_monitor_callback_conditions(void *thread_id)
+#endif
+{
+#if defined(__APPLE__)
+	pthread_setname_np(ZTS_EVENT_CALLBACK_THREAD_NAME);
+#endif
+	while (!_serviceIsShuttingDown)
+	{
+		if (!_zts_node_online()) {
+			if (_nodeIsOnlineToggle) {
+				_nodeIsOnlineToggle = false;
+				_process_callback_event((uint64_t)0, ZTS_EVENT_NODE_OFFLINE);
+			}
+		} if (_zts_node_online()) { // Only process pending network callbacks if the node is online
+			if (!_nodeIsOnlineToggle) {
+				_nodeIsOnlineToggle = true;
+				_process_callback_event((uint64_t)0, ZTS_EVENT_NODE_ONLINE);
+			}
+
+			// First, handle queued messages from other threads
+			_callback_lock.lock();
+			while (_callbackMsgQueue.size()) {
+				std::pair<uint64_t,int> *msg = _callbackMsgQueue.front();
+				_callbackMsgQueue.pop();
+				_process_callback_event_helper(msg->first, msg->second);
+				delete msg;
+			}
+			_callback_lock.unlock();
+
+			// Second, inspect network states for changes we should report
+			_vtaps_lock.lock();
+			ZT_VirtualNetworkList *nl = zt1Service->getNode()->networks();
+			for(unsigned long i=0;i<nl->networkCount;++i) {
+				OneService::NetworkSettings localSettings;
+				zt1Service->getNetworkSettings(nl->networks[i].nwid,localSettings);
+				if (vtapMap[nl->networks[i].nwid]->_lastReportedStatus != nl->networks[i].status) {
+					switch (nl->networks[i].status) {
+						case ZT_NETWORK_STATUS_NOT_FOUND:
+							_process_callback_event(nl->networks[i].nwid, ZTS_EVENT_NETWORK_NOT_FOUND);
+							break;
+						case ZT_NETWORK_STATUS_CLIENT_TOO_OLD:
+							_process_callback_event(nl->networks[i].nwid, ZTS_EVENT_NETWORK_CLIENT_TOO_OLD);
+							break;
+						case ZT_NETWORK_STATUS_REQUESTING_CONFIGURATION:
+							_process_callback_event(nl->networks[i].nwid, ZTS_EVENT_NETWORK_REQUESTING_CONFIG);
+							break;
+						case ZT_NETWORK_STATUS_OK:
+							_process_callback_event(nl->networks[i].nwid, ZTS_EVENT_NETWORK_OK);
+							break;
+						case ZT_NETWORK_STATUS_ACCESS_DENIED:
+							_process_callback_event(nl->networks[i].nwid, ZTS_EVENT_NETWORK_ACCESS_DENIED);
+							break;
+						default:
+							break;
+					}
+					vtapMap[nl->networks[i].nwid]->_lastReportedStatus = nl->networks[i].status;
+				}
+			}
+			zt1Service->getNode()->freeQueryResult((void *)nl);
+			// Finally, check for a more useful definition of "readiness"
+			std::map<uint64_t, VirtualTap*>::iterator it;
+			for (it = vtapMap.begin(); it != vtapMap.end(); it++) {
+				VirtualTap *tap = it->second;
+				if (tap->_lastConfigUpdateTime > 0 && !tap->_lastReadyReportTime && tap->_ips.size() > 0) {
+					tap->_lastReadyReportTime = tap->_lastConfigUpdateTime;
+					_process_callback_event(tap->_nwid, ZTS_EVENT_NETWORK_READY);
+				}
+			}
+    		_vtaps_lock.unlock();
+		}
+		// Doesn't need to happen as often as other API operations
+		_api_sleep(ZTS_WRAPPER_CHECK_INTERVAL);
+	}
+	DEBUG_ERROR("exiting from monitor loop");
+}
+
 // Starts a ZeroTier service in the background
 #if defined(_WIN32)
 DWORD WINAPI _zts_start_service(LPVOID thread_id)
@@ -114,8 +292,10 @@ DWORD WINAPI _zts_start_service(LPVOID thread_id)
 void *_zts_start_service(void *thread_id)
 #endif
 {	
+#if defined(__APPLE__)
+	pthread_setname_np(ZTS_SERVICE_THREAD_NAME);
+#endif
 	void *retval;
-	//DEBUG_INFO("identities are stored in path (%s)", homeDir.c_str());
 	zt1Service = (OneService *)0;
 
 	if (!homeDir.length()) {
@@ -155,10 +335,12 @@ void *_zts_start_service(void *thread_id)
 				switch(zt1Service->run()) {
 					case OneService::ONE_STILL_RUNNING:
 					case OneService::ONE_NORMAL_TERMINATION:
+						_process_callback_event((uint64_t)0, ZTS_EVENT_NODE_NORMAL_TERMINATION);
 						break;
 					case OneService::ONE_UNRECOVERABLE_ERROR:
 						DEBUG_ERROR("fatal error: %s", zt1Service->fatalErrorMessage().c_str());
 						_startupError = true;
+						_process_callback_event((uint64_t)0, ZTS_EVENT_NODE_UNRECOVERABLE_ERROR);
 						break;
 					case OneService::ONE_IDENTITY_COLLISION: {
 						_startupError = true;
@@ -171,6 +353,7 @@ void *_zts_start_service(void *thread_id)
 							OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S + "identity.secret").c_str());
 							OSUtils::rm((homeDir + ZT_PATH_SEPARATOR_S + "identity.public").c_str());
 						}
+						_process_callback_event((uint64_t)0, ZTS_EVENT_NODE_IDENTITY_COLLISION);
 					}	continue; // restart!
 				}
 				break; // terminate loop -- normally we don't keep restarting
@@ -183,6 +366,7 @@ void *_zts_start_service(void *thread_id)
 		zt1Service = (OneService *)0;
 		_service_lock.unlock();
 		_serviceIsShuttingDown = false;
+		_process_callback_event((uint64_t)0, ZTS_EVENT_NODE_DOWN);
 	} catch ( ... ) {
 		DEBUG_ERROR("unexpected exception starting ZeroTier instance");
 	}
@@ -196,6 +380,18 @@ extern "C" {
 //////////////////////////////////////////////////////////////////////////////
 // ZeroTier Service Controls                                                //
 //////////////////////////////////////////////////////////////////////////////
+
+#ifdef SDK_JNI
+/*
+ * Called from Java, saves a reference to the VM so it can be used later to call
+ * a user-specified callback method from C.
+ */
+JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_init(JNIEnv *env, jobject thisObj)
+{
+	jint rs = env->GetJavaVM(&jvm);
+   assert (rs == JNI_OK);
+}
+#endif
 
 zts_err_t zts_set_service_port(int portno)
 {
@@ -234,107 +430,6 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_get_1service_1port(
 	return zts_get_service_port();
 }
 #endif
-/*
-int zts_get_address(const uint64_t nwid, struct sockaddr_storage *addr, 
-	const int address_family)
-{
-	int err = -1;
-	if (!zt1Service) {
-		return ZTS_ERR_SERVICE;
-	}
-	VirtualTap *tap = getTapByNWID(nwid);
-	if (!tap) {
-		return -1;
-	}
-	_vtaps_lock.lock();
-	socklen_t addrlen = address_family == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
-	for (size_t i=0; i<tap->_ips.size(); i++) {
-		if (address_family == AF_INET) {
-			if (tap->_ips[i].isV4()) {
-				memcpy(addr, &(tap->_ips[i]), addrlen);
-				addr->ss_family = AF_INET;
-				err = 0;
-				break;
-			}
-		}
-		if (address_family == AF_INET6) {
-			if (tap->_ips[i].isV6()) {
-				memcpy(addr, &(tap->_ips[i]), addrlen);
-				addr->ss_family = AF_INET6;
-				err = 0;
-				break;
-			}
-		}
-	}
-	_vtaps_lock.unlock();
-	return err; // nothing found
-}
-#ifdef SDK_JNI
-JNIEXPORT jboolean JNICALL Java_com_zerotier_libzt_ZeroTier_get_1address(
-	JNIEnv *env, jobject thisObj, jlong nwid, jint address_family, jobject addr)
-{
-	struct sockaddr_storage ss;
-	int err = zts_get_address((uint64_t)nwid, &ss, address_family);
-	ss2zta(env, &ss, addr);
-	return err;
-}
-#endif
-
-int zts_has_address(const uint64_t nwid)
-{
-	struct sockaddr_storage ss;
-	memset(&ss, 0, sizeof(ss));
-	zts_get_address(nwid, &ss, AF_INET);
-	if (ss.ss_family == AF_INET) {
-		return true;
-	}
-	zts_get_address(nwid, &ss, AF_INET6);
-	if (ss.ss_family == AF_INET6) {
-		return true;
-	}
-	return false;
-}
-#ifdef SDK_JNI
-JNIEXPORT jboolean JNICALL Java_com_zerotier_libzt_ZeroTier_has_1address(
-	JNIEnv *env, jobject thisObj, jlong nwid)
-{
-	return zts_has_address(nwid);
-}
-#endif
-*/
-
-/*
-void zts_get_6plane_addr(struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId)
-{
-	ZeroTier::InetAddress _6planeAddr = ZeroTier::InetAddress::makeIpv66plane(nwid,nodeId);
-	memcpy(addr, _6planeAddr.rawIpData(), sizeof(struct sockaddr_storage));
-}
-#ifdef SDK_JNI
-JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_get_16plane_1addr(
-	JNIEnv *env, jobject thisObj, jlong nwid, jlong nodeId, jobject addr)
-{
-	struct sockaddr_storage ss;
-	zts_get_6plane_addr(&ss, nwid, nodeId);
-	ss2zta(env, &ss, addr);
-}
-#endif
-
-void zts_get_rfc4193_addr(struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId)
-{
-	ZeroTier::InetAddress _rfc4193Addr = ZeroTier::InetAddress::makeIpv6rfc4193(nwid,nodeId);
-	memcpy(addr, _rfc4193Addr.rawIpData(), sizeof(struct sockaddr_storage));
-}
-#ifdef SDK_JNI
-JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_get_1rfc4193_1addr(
-	JNIEnv *env, jobject thisObj, jlong nwid, jlong nodeId, jobject addr)
-{
-	struct sockaddr_storage ss;
-	zts_get_rfc4193_addr(&ss, nwid, nodeId);
-	ss2zta(env, &ss, addr);
-}
-#endif
-*/
-
 
 zts_err_t zts_join(const uint64_t nwid, int blocking)
 {
@@ -351,7 +446,7 @@ zts_err_t zts_join(const uint64_t nwid, int blocking)
 						retval = ZTS_ERR_SERVICE;
 						break;
 					}
-					api_sleep(ZTS_WRAPPER_CHECK_INTERVAL);
+					_api_sleep(ZTS_WRAPPER_CHECK_INTERVAL);
 				}
 			}
 		} else {
@@ -366,7 +461,6 @@ zts_err_t zts_join(const uint64_t nwid, int blocking)
 			if (zt1Service) {
 				zt1Service->getNode()->join(nwid, NULL, NULL);
 			}
-			VirtualTapManager::update_service_references((void*)zt1Service);
 		}
 		_service_lock.unlock();
 		_hibernate_if_needed();
@@ -394,7 +488,7 @@ zts_err_t zts_leave(const uint64_t nwid, int blocking)
 					retval = ZTS_ERR_SERVICE;
 					break;
 				}
-				api_sleep(ZTS_WRAPPER_CHECK_INTERVAL);
+				_api_sleep(ZTS_WRAPPER_CHECK_INTERVAL);
 			}
 		}
 	} else {
@@ -506,7 +600,7 @@ JNIEXPORT jboolean JNICALL Java_com_zerotier_libzt_ZeroTier_ready(
 }
 #endif
 
-zts_err_t zts_start(const char *path, int blocking = false)
+zts_err_t zts_start_with_callback(const char *path, void (*callback)(uint64_t, int), int blocking)
 {
 	_startup_lock.lock();
 	zts_err_t retval = ZTS_ERR_OK;
@@ -521,15 +615,31 @@ zts_err_t zts_start(const char *path, int blocking = false)
 	if (!path) {
 		retval = ZTS_ERR_INVALID_ARG;
 	}
+
+    _userCallbackFunc = callback;
+
 	if (retval == ZTS_ERR_OK) {
 		homeDir = path;
 #if defined(_WIN32)
 		// initialize WinSock. Used in Phy for loopback pipe
 		WSAStartup(MAKEWORD(2, 2), &wsaData);
-		HANDLE thr = CreateThread(NULL, 0, _zts_start_service, NULL, 0, NULL);
+		HANDLE serviceThread = CreateThread(NULL, 0, _zts_start_service, NULL, 0, NULL);
+		if (_is_callback_registered()) {
+			HANDLE callbackThread = CreateThread(NULL, 0, _zts_monitor_callback_conditions, NULL, 0, NULL);
+		}
+		// TODO: Add thread names on Windows (optional)
 #else
 		_startupError = false;
 		retval = pthread_create(&service_thread, NULL, _zts_start_service, NULL);
+#if defined(__linux__)
+		pthread_setname_np(service_thread, ZTS_SERVICE_THREAD_NAME);
+#endif
+		if (_is_callback_registered()) {
+			retval = pthread_create(&callback_thread, NULL, _zts_monitor_callback_conditions, NULL);
+#if defined(__linux__)
+			pthread_setname_np(callback_thread, ZTS_EVENT_CALLBACK_THREAD_NAME);
+#endif	
+		}	
 		// Wait for confirmation that the ZT service has been initialized, 
 		// this wait condition is so brief and so rarely used that it should be
 		// acceptable even in a non-blocking context.
@@ -539,7 +649,7 @@ zts_err_t zts_start(const char *path, int blocking = false)
 				retval = ZTS_ERR_SERVICE;
 				break;
 			}
-			api_sleep(10);
+			_api_sleep(10);
 		}
 #endif
 		if (blocking && retval == ZTS_ERR_OK) {
@@ -551,7 +661,7 @@ zts_err_t zts_start(const char *path, int blocking = false)
 					retval = ZTS_ERR_SERVICE;
 					break;
 				}
-				api_sleep(ZTS_WRAPPER_CHECK_INTERVAL);
+				_api_sleep(ZTS_WRAPPER_CHECK_INTERVAL);
 			}
 			if (retval == ZTS_ERR_OK) {
 				// waiting for node address assignment
@@ -560,7 +670,7 @@ zts_err_t zts_start(const char *path, int blocking = false)
 						retval = ZTS_ERR_SERVICE;
 						break;
 					}
-					api_sleep(ZTS_WRAPPER_CHECK_INTERVAL);
+					_api_sleep(ZTS_WRAPPER_CHECK_INTERVAL);
 				}
 			}
 			if (retval == ZTS_ERR_OK) {
@@ -575,7 +685,7 @@ zts_err_t zts_start(const char *path, int blocking = false)
 						// Node is fully online
 						break;
 					}
-					api_sleep(ZTS_WRAPPER_CHECK_INTERVAL);
+					_api_sleep(ZTS_WRAPPER_CHECK_INTERVAL);
 					_service_lock.unlock();
 				}
 				_service_lock.unlock();
@@ -586,6 +696,35 @@ zts_err_t zts_start(const char *path, int blocking = false)
 	// if (blocking && retval == ZTS_ERR_OK) { DEBUG_INFO("node=%llx online", (unsigned long long)zts_get_node_id());}
 	_hibernate_if_needed();
 	return retval;
+}
+
+#ifdef SDK_JNI
+JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_start_1with_1callback(
+	JNIEnv *env, jobject thisObj, jstring path, jobject userCallbackClass)
+{
+	jclass eventListenerClass = env->GetObjectClass(userCallbackClass);
+	if(eventListenerClass == NULL) {
+		DEBUG_ERROR("Couldn't find class for ZeroTierEventListener instance");
+		return;
+	}
+	jmethodID eventListenerCallbackMethod = env->GetMethodID(eventListenerClass, "onZeroTierEvent", "(JI)V");
+	if(eventListenerCallbackMethod == NULL) {
+		DEBUG_ERROR("Couldn't find onZeroTierEvent method");
+		return;
+	}
+	objRef = env->NewGlobalRef(userCallbackClass); // Reference used for later calls
+	_userCallbackMethodRef = eventListenerCallbackMethod;
+	if (path) {
+		const char* utf_string = env->GetStringUTFChars(path, NULL);
+		zts_start_with_callback(utf_string, NULL, false);
+		env->ReleaseStringUTFChars(path, utf_string);
+	}
+}
+#endif
+
+zts_err_t zts_start(const char *path, int blocking = false)
+{
+	return zts_start_with_callback(path, NULL, blocking);
 }
 #ifdef SDK_JNI
 JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_start(
@@ -611,7 +750,7 @@ zts_err_t zts_startjoin(const char *path, const uint64_t nwid)
 			break;
 		}
 		catch( ... ) {
-			api_sleep(ZTS_WRAPPER_CHECK_INTERVAL);
+			_api_sleep(ZTS_WRAPPER_CHECK_INTERVAL);
 			retval = ZTS_ERR_SERVICE;
 		}
 	}
@@ -653,6 +792,7 @@ zts_err_t zts_stop(int blocking)
 		pthread_join(service_thread, NULL);
 	}
 	_hibernate_if_needed();
+	_clear_registered_callback();
 	return retval;
 }
 #ifdef SDK_JNI
@@ -780,7 +920,7 @@ zts_err_t zts_get_network_details(uint64_t nwid, struct zts_network_details *nd)
 		retval = ZTS_ERR_SERVICE;
 	}
 	if (retval == ZTS_ERR_OK) {
-		VirtualTapManager::get_network_details(nwid, nd);
+		VirtualTapManager::get_network_details(zt1Service, nwid, nd);
 	}
 	return retval;
 }
@@ -797,7 +937,7 @@ zts_err_t zts_get_all_network_details(struct zts_network_details *nds, int *num)
 		retval = ZTS_ERR_SERVICE;
 	}
 	if (retval == ZTS_ERR_OK) {
-		VirtualTapManager::get_all_network_details(nds, num);
+		VirtualTapManager::get_all_network_details(zt1Service, nds, num);
 	}
 	return retval;	
 }

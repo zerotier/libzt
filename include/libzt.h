@@ -100,7 +100,7 @@ typedef SSIZE_T ssize_t;
 #define ZTS_PF_INET         ZTS_AF_INET
 #define ZTS_PF_INET6        ZTS_AF_INET6
 #define ZTS_PF_UNSPEC       ZTS_AF_UNSPEC
-// 
+// Protocol command types
 #define ZTS_IPPROTO_IP      0x0000
 #define ZTS_IPPROTO_ICMP    0x0001
 #define ZTS_IPPROTO_TCP     0x0006
@@ -121,7 +121,7 @@ typedef SSIZE_T ssize_t;
 // fnctl() flags
 #define ZTS_O_NONBLOCK      0x0001
 #define ZTS_O_NDELAY        0x0001
-//
+// Shutdown commands
 #define ZTS_SHUT_RD         0x0000
 #define ZTS_SHUT_WR         0x0001
 #define ZTS_SHUT_RDWR       0x0002
@@ -161,7 +161,7 @@ typedef SSIZE_T ssize_t;
 // IPPROTO_IPV6 options
 #define ZTS_IPV6_CHECKSUM   0x0007  // RFC3542
 #define ZTS_IPV6_V6ONLY     0x001b  // RFC3493
-//
+// Macro's for defining ioctl() command values
 #define ZTS_IOCPARM_MASK    0x7fU
 #define ZTS_IOC_VOID        0x20000000UL
 #define ZTS_IOC_OUT         0x40000000UL
@@ -170,10 +170,9 @@ typedef SSIZE_T ssize_t;
 #define ZTS_IO(x,y)         (ZTS_IOC_VOID | ((x)<<8)|(y))
 #define ZTS_IOR(x,y,t)      (ZTS_IOC_OUT  | (((long)sizeof(t) & ZTS_IOCPARM_MASK)<<16) | ((x)<<8) | (y))
 #define ZTS_IOW(x,y,t)      (ZTS_IOC_IN   | (((long)sizeof(t) & ZTS_IOCPARM_MASK)<<16) | ((x)<<8) | (y))
-//
+// ioctl() commands
 #define ZTS_FIONREAD        ZTS_IOR('f', 127, unsigned long)
 #define ZTS_FIONBIO         ZTS_IOW('f', 126, unsigned long)
-
 
 /* FD_SET used for lwip_select */
 
@@ -329,6 +328,9 @@ struct sockaddr_ll {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// Custom errno to prevent conflicts with platform's own errno
+extern int zts_errno;
 
 /**
  * @brief Create a socket

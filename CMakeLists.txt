@@ -193,7 +193,7 @@ set (ZTO_SRC_DIR "${PROJ_DIR}/ext/ZeroTierOne")
 set (LIBZT_SRC_DIR "${PROJ_DIR}/src")
 
 include_directories ("${LIBZT_SRC_DIR}")
-#include_directories ("${ZTO_SRC_DIR}/include")
+include_directories ("${ZTO_SRC_DIR}/include")
 include_directories ("${PROJ_DIR}")
 include_directories ("${ZTO_SRC_DIR}/osdep")
 include_directories ("${ZTO_SRC_DIR}/node")

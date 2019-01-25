@@ -90,6 +90,22 @@ ZT_SOCKET_API int ZTCALL zts_get_service_port();
 ZT_SOCKET_API int ZTCALL zts_start(const char *path, int blocking);
 
 /**
+ * @brief Starts the ZeroTier service and notifies user application of events via callback
+ *
+ * @usage Should be called at the beginning of your application. Will blocks until all of the following conditions are met:
+ * - ZeroTier core service has been initialized
+ * - Cryptographic identity has been generated or loaded from directory specified by `path`
+ * - Virtual network is successfully joined
+ * - IP address is assigned by network controller service
+ * @param path path directory where cryptographic identities and network configuration files are stored and retrieved
+ *              (`identity.public`, `identity.secret`)
+ * @param userCallbackFunc User-specified callback for ZeroTier events
+ * @param blocking whether or not this call will block until the entire service is up and running
+ * @return 0 if successful; or 1 if failed
+ */
+ZT_SOCKET_API int ZTCALL zts_start_with_callback(const char *path, void (*userCallbackFunc)(uint64_t, int), int blocking);
+
+/**
  * @brief Starts the ZeroTier service
  *
  * @usage Should be called at the beginning of your application. Will blocks until all of the following conditions are met:

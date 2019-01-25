@@ -77,6 +77,25 @@ public:
 
 	~VirtualTap();
 
+	/**
+	 * A state will only be reported via callback if it differs from this value. Subsequently this
+	 * value will be updated.
+	 */
+	int _lastReportedStatus;
+
+	/**
+	 * The last time that this virtual tap received a network config update from the core
+	 */
+	uint64_t _lastConfigUpdateTime = 0;
+
+	/**
+	 * The last time that a callback notification was sent to the user application signalling
+	 * that this interface is ready to process traffic.
+	 */
+	uint64_t _lastReadyReportTime = 0;
+	
+	void lastConfigUpdate(uint64_t lastConfigUpdateTime);
+
 	void setEnabled(bool en);
 	bool enabled() const;
 
@@ -163,7 +182,6 @@ public:
 	//////////////////////////////////////////////////////////////////////////////
 
 	std::vector<std::pair<InetAddress, InetAddress> > routes;
-	void *zt1ServiceRef = NULL;
 
 	char vtap_full_name[64];
 	char vtap_abbr_name[16];

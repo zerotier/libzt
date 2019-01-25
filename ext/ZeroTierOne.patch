@@ -1,0 +1,17 @@
+diff --git a/service/OneService.cpp b/service/OneService.cpp
+index a1c53764..757863a8 100644
+--- a/service/OneService.cpp
++++ b/service/OneService.cpp
+@@ -2244,6 +2244,12 @@ public:
+ #endif
+ 					syncManagedStuff(n,true,true);
+ 					n.tap->setMtu(nwc->mtu);
++#if defined(ZT_SDK)
++					// Inform the virtual tap of the update
++					if (op == ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_CONFIG_UPDATE) {
++						n.tap->lastConfigUpdate(OSUtils::now());
++					}
++#endif
+ 				} else {
+ 					_nets.erase(nwid);
+ 					return -999; // tap init failed

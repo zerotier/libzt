@@ -35,6 +35,9 @@
 #include "Node.hpp"
 #include "OSUtils.hpp"
 
+#include "Constants.hpp" // libzt
+extern void _push_callback_event(uint64_t nwid, int eventCode);
+
 #include "Mutex.hpp"
 #include "VirtualTapManager.hpp"
 #include "lwIP.h"
@@ -44,6 +47,9 @@
 #endif
 
 namespace ZeroTier {
+
+extern OneService *zt1Service;
+extern void (*_userCallbackFunc)(uint64_t, int);
 
 VirtualTap::VirtualTap(
 	const char *homePath,
@@ -79,6 +85,7 @@ VirtualTap::VirtualTap(
 
 VirtualTap::~VirtualTap()
 {
+	_push_callback_event(_nwid, ZTS_EVENT_NETWORK_DOWN);
 	lwip_driver_set_tap_interfaces_down(this);
 	_run = false;
 	::write(_shutdownSignalPipe[1],"\0",1);
@@ -86,6 +93,11 @@ VirtualTap::~VirtualTap()
 	Thread::join(_thread);
 	::close(_shutdownSignalPipe[0]);
 	::close(_shutdownSignalPipe[1]);
+}
+
+void VirtualTap::lastConfigUpdate(uint64_t lastConfigUpdateTime)
+{
+	_lastConfigUpdateTime = lastConfigUpdateTime;
 }
 
 void VirtualTap::setEnabled(bool en)
@@ -106,7 +118,6 @@ void VirtualTap::registerIpWithStack(const InetAddress &ip)
 bool VirtualTap::addIp(const InetAddress &ip)
 {
 	char ipbuf[INET6_ADDRSTRLEN];
-	// DEBUG_INFO("addr=%s, nwid=%llx", ip.toString(ipbuf), (unsigned long long)_nwid);
 	Mutex::Lock _l(_ips_m);
 	registerIpWithStack(ip);
 	if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
@@ -152,10 +163,10 @@ std::string VirtualTap::deviceName() const
 
 std::string VirtualTap::nodeId() const
 {
-	if (zt1ServiceRef) {
+	if (zt1Service) {
 		char id[ZTS_ID_LEN];
 		memset(id, 0, sizeof(id));
-		sprintf(id, "%llx", (unsigned long long)((OneService *)zt1ServiceRef)->getNode()->address());
+		sprintf(id, "%llx", (unsigned long long)((OneService *)zt1Service)->getNode()->address());
 		return std::string(id);
 	}
 	else {
@@ -207,6 +218,12 @@ void VirtualTap::threadMain()
 	FD_ZERO(&readfds);
 	FD_ZERO(&nullfds);
 	int nfds = (int)std::max(_shutdownSignalPipe[0],0) + 1;
+#if defined(__linux__)
+	pthread_setname_np(pthread_self(), vtap_full_name);
+#endif
+#if defined(__APPLE__)
+	pthread_setname_np(vtap_full_name);
+#endif
 	while (true) {
 		FD_SET(_shutdownSignalPipe[0],&readfds);
 		select(nfds,&readfds,&nullfds,&nullfds,&tv);
@@ -231,7 +248,7 @@ void VirtualTap::threadMain()
 void VirtualTap::Housekeeping()
 {
 	Mutex::Lock _l(_tcpconns_m);
-	OneService *service = ((OneService *)zt1ServiceRef);
+	OneService *service = ((OneService *)zt1Service);
 	if (!service) {
 		return;
 	}

@@ -34,15 +34,31 @@
 #define LIBZT_CONSTANTS_HPP
 
 //////////////////////////////////////////////////////////////////////////////
-// Error codes returned by libzt API                                        //
+// Error codes returned by ZeroTier and the libzt API                       //
+// See ext/ZeroTierOne/include/ZeroTierOne.h                                //
 //////////////////////////////////////////////////////////////////////////////
 
 typedef int zts_err_t;
 
-#define ZTS_ERR_OK 0
-#define ZTS_ERR_INVALID_ARG -1 // A parameter provided by the user application is invalid (e.g. our of range, NULL, etc)
-#define ZTS_ERR_SERVICE -2 // The service isn't initialized or is for some other reason currently unavailable
-#define ZTS_ERR_INVALID_OP -3 // For some reason this API operation is not permitted (perhaps the service is still starting?)
+#define ZTS_ERR_OK                          0 // Everything is ok
+#define ZTS_ERR_INVALID_ARG                -1 // A parameter provided by the user application is invalid (e.g. our of range, NULL, etc)
+#define ZTS_ERR_SERVICE                    -2 // The service isn't initialized or is for some other reason currently unavailable
+#define ZTS_ERR_INVALID_OP                 -3 // For some reason this API operation is not permitted (perhaps the service is still starting?)
+
+#define ZTS_EVENT_NODE_ONLINE               0x01 // Node is online
+#define ZTS_EVENT_NODE_OFFLINE              0x02 // Node is offline
+#define ZTS_EVENT_NODE_DOWN                 0x03 // Node is shutting down
+#define ZTS_EVENT_NODE_IDENTITY_COLLISION   0x04 // Identity collision - check for duplicate instances
+#define ZTS_EVENT_NODE_UNRECOVERABLE_ERROR  0x05 // Something is seriously wrong
+#define ZTS_EVENT_NODE_NORMAL_TERMINATION   0x06 // Service thread has stopped
+
+#define ZTS_EVENT_NETWORK_NOT_FOUND         0x07
+#define ZTS_EVENT_NETWORK_CLIENT_TOO_OLD    0x08
+#define ZTS_EVENT_NETWORK_REQUESTING_CONFIG 0x09
+#define ZTS_EVENT_NETWORK_OK                0x0a
+#define ZTS_EVENT_NETWORK_ACCESS_DENIED     0x0b
+#define ZTS_EVENT_NETWORK_READY             0x0c
+#define ZTS_EVENT_NETWORK_DOWN              0x0d
 
 //////////////////////////////////////////////////////////////////////////////
 // libzt config                                                             //
@@ -112,6 +128,16 @@ typedef int zts_err_t;
  * Interval (in ms) for performing background tasks
  */
 #define ZTS_HOUSEKEEPING_INTERVAL 1000
+
+/**
+ * Name of the service thread (for debug purposes only)
+ */
+#define ZTS_SERVICE_THREAD_NAME "ZeroTierServiceThread"
+
+/**
+ * Name of the callback monitor thread (for debug purposes only)
+ */
+#define ZTS_EVENT_CALLBACK_THREAD_NAME "ZeroTierEventCallbackThread"
 
 //////////////////////////////////////////////////////////////////////////////
 // lwIP driver config                                                       //

@@ -38,6 +38,7 @@
 #include "Mutex.hpp"
 #include "Constants.hpp"
 #include "VirtualTap.hpp"
+#include "Constants.hpp" // libzt
 
 #include "netif/ethernet.h"
 #include "lwip/netif.h"
@@ -76,7 +77,11 @@ int hibernationDelayMultiplier = 1;
 
 ZeroTier::Mutex driver_m;
 
+ZeroTier::MAC _mac; // TODO: Should remove this
+
 std::vector<struct netif *> lwip_netifs;
+
+extern void _push_callback_event(uint64_t nwid, int eventCode);
 
 void lwip_hibernate_driver()
 {
@@ -116,6 +121,7 @@ void my_tcpip_callback(void *arg)
 		struct pbuf *p = rx_queue.front();
 		rx_queue.pop();
 		_rx_input_lock_m.unlock();
+
 		// Packet routing logic. Inputs packet into correct lwip netif interface depending on protocol type
 		struct ip_hdr *iphdr;
 		switch (((struct eth_hdr *)p->payload)->type)
@@ -127,8 +133,8 @@ void my_tcpip_callback(void *arg)
 						lwip_netifs[i]->output_ip6 == ethip6_output) {
 						if ((err = lwip_netifs[i]->input(p, lwip_netifs[i])) != ERR_OK) {
 							DEBUG_ERROR("packet input error (ipv6, p=%p, netif=%p)=%d", p, &lwip_netifs[i], err);
-							break;
 						}
+						break;
 					}
 				}	
 			} break;
@@ -141,8 +147,8 @@ void my_tcpip_callback(void *arg)
 							ip4_addr_isbroadcast_u32(iphdr->dest.addr, lwip_netifs[i])) {
 							if ((err = lwip_netifs[i]->input(p, lwip_netifs[i])) != ERR_OK) {
 								DEBUG_ERROR("packet input error (ipv4, p=%p, netif=%p)=%d", p, &lwip_netifs[i], err);
-								break;
 							}
+							break;
 						}
 					}
 				}
@@ -150,7 +156,7 @@ void my_tcpip_callback(void *arg)
 			case PP_HTONS(ETHTYPE_ARP): {
 				for (size_t i=0; i<lwip_netifs.size(); i++) {
 					if (lwip_netifs[i]->state) {
-						pbuf_ref(p);
+						//pbuf_ref(p);
 						if ((err = lwip_netifs[i]->input(p, lwip_netifs[i])) != ERR_OK) {
 							DEBUG_ERROR("packet input error (arp, p=%p, netif=%p)=%d", p, &lwip_netifs[i], err);
 						}
@@ -160,8 +166,10 @@ void my_tcpip_callback(void *arg)
 				break;
 			} break;
 			default:
+				DEBUG_INFO("unhandled packet type (p=%p)=%d", p, err);
 				break;
 		}
+		p = NULL;
 		loop_score--;
 	}
 }
@@ -345,6 +353,8 @@ void lwip_eth_rx(ZeroTier::VirtualTap *tap, const ZeroTier::MAC &from, const Zer
 	// First pbuf gets ethernet header at start
 	q = p;
 	if (q->len < sizeof(ethhdr)) {
+		pbuf_free(p);
+		p = NULL;
 		DEBUG_ERROR("dropped packet: first pbuf smaller than ethernet header");
 		return;
 	}
@@ -361,29 +371,18 @@ void lwip_eth_rx(ZeroTier::VirtualTap *tap, const ZeroTier::MAC &from, const Zer
 	_rx_input_lock_m.lock();
 	if (rx_queue.size() >= LWIP_MAX_GUARDED_RX_BUF_SZ) {
 		DEBUG_INFO("dropped packet: rx_queue is full (>= %d)", LWIP_MAX_GUARDED_RX_BUF_SZ);
+		// TODO: Test performance scenarios: dropping this packet, dropping oldest front packet
+		pbuf_free(p);
+		p = NULL;
 		return;
 	}
 	rx_queue.push(p);
+	DEBUG_INFO("GOT packet=%p", p);
+	//pbuf_ref(p);
 	_rx_input_lock_m.unlock();
 }
 
-/*
-void lwip_dns_init()
-{
-	dns_init();
-}
-*/
-
-void lwip_start_dhcp(void *netif)
-{
-#if defined(LIBZT_IPV4)
-	//netifapi_dhcp_start((struct netif *)netif);
-#endif
-}
-
-/*
-static void netif_status_callback(struct netif *netif)
-{
+static void print_netif_info(struct netif *netif) {
 	DEBUG_INFO("n=%p, %c%c, %d, o=%p, o6=%p, mc=%x:%x:%x:%x:%x:%x, hwln=%d, st=%p, flgs=%d\n",
 		netif,
 		netif->name[0],
@@ -402,9 +401,61 @@ static void netif_status_callback(struct netif *netif)
 		netif->flags
 	);
 }
-*/
 
-ZeroTier::MAC _mac;
+/**
+ * Called when the status of a netif changes:
+ *  - Interface is up/down (ZTS_EVENT_NETIF_UP, ZTS_EVENT_NETIF_DOWN)
+ *  - Address changes while up (ZTS_EVENT_NETIF_NEW_ADDRESS)
+ */
+static void netif_status_callback(struct netif *netif)
+{
+	if (!netif->state) {
+		return;
+	}
+	ZeroTier::VirtualTap *tap = (ZeroTier::VirtualTap *)netif->state;
+	// TODO: The following events may be triggered when there's simply a new
+	// address assignment, state will be kept in the virtual tap instead of
+	// at this lower level. This will allow us to filter out redundant events
+	if (netif->flags & NETIF_FLAG_UP) {
+		_push_callback_event(tap->_nwid, ZTS_EVENT_NETIF_UP);
+	}
+	if (!(netif->flags & NETIF_FLAG_UP)) {
+		_push_callback_event(tap->_nwid, ZTS_EVENT_NETIF_DOWN);
+	}
+	// TODO: ZTS_EVENT_NETIF_NEW_ADDRESS
+	print_netif_info(netif);
+}
+
+/**
+ * Called when a netif is removed (ZTS_EVENT_NETIF_INTERFACE_REMOVED)
+ */
+static void netif_remove_callback(struct netif *netif)
+{
+	if (!netif->state) {
+		return;
+	}
+	ZeroTier::VirtualTap *tap = (ZeroTier::VirtualTap *)netif->state;
+	_push_callback_event(tap->_nwid, ZTS_EVENT_NETIF_REMOVED);
+	print_netif_info(netif);
+}
+
+/**
+ * Called when a link is brought up or down (ZTS_EVENT_NETIF_LINK_UP, ZTS_EVENT_NETIF_LINK_DOWN)
+ */
+static void netif_link_callback(struct netif *netif)
+{
+	if (!netif->state) {
+		return;
+	}
+	ZeroTier::VirtualTap *tap = (ZeroTier::VirtualTap *)netif->state;
+	if (netif->flags & NETIF_FLAG_LINK_UP) {
+		_push_callback_event(tap->_nwid, ZTS_EVENT_NETIF_LINK_UP);
+	}
+	if (netif->flags & NETIF_FLAG_LINK_UP) {
+		_push_callback_event(tap->_nwid, ZTS_EVENT_NETIF_LINK_DOWN);
+	}
+	print_netif_info(netif);
+}
 
 static err_t netif_init_4(struct netif *netif)
 {
@@ -459,7 +510,6 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 		IP4_ADDR(&gw,127,0,0,1);
 		ipaddr.addr = *((u32_t *)ip.rawIpData());
 		netmask.addr = *((u32_t *)ip.netmask().rawIpData());
-		//netif_set_status_callback(lwipdev, netif_status_callback);
 		netif_add(lwipdev, &ipaddr, &netmask, &gw, NULL, netif_init_4, tcpip_input);
 		lwipdev->state = tapref;
 		snprintf(macbuf, ZTS_MAC_ADDRSTRLEN, "%02x:%02x:%02x:%02x:%02x:%02x",
@@ -479,7 +529,6 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 		netif_create_ip6_linklocal_address(lwipdev, 1);
 		netif_ip6_addr_set_state(lwipdev, 0, IP6_ADDR_TENTATIVE);
 		netif_ip6_addr_set_state(lwipdev, 1, IP6_ADDR_TENTATIVE);
-		//netif_set_status_callback(lwipdev, netif_status_callback);
 		netif_set_default(lwipdev);
 		netif_set_up(lwipdev);
 		netif_set_link_up(lwipdev);
@@ -489,4 +538,9 @@ void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier:
 		DEBUG_INFO("initialized netif as [mac=%s, addr=%s]", 
 			macbuf, ip.toString(ipbuf));
 	}
+	// Set netif callbacks, these will be used to inform decisions made
+	// by the higher level callback monitor thread
+	netif_set_status_callback(lwipdev, netif_status_callback);
+	netif_set_remove_callback(lwipdev, netif_remove_callback);
+	netif_set_link_callback(lwipdev, netif_link_callback);
 }

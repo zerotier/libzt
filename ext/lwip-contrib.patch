@@ -1,17 +1,17 @@
 diff --git a/ports/unix/port/include/arch/cc.h b/ports/unix/port/include/arch/cc.h
-index a3dac04..424285e 100644
+index 80b37d8..ae46d76 100644
 --- a/ports/unix/port/include/arch/cc.h
 +++ b/ports/unix/port/include/arch/cc.h
 @@ -32,6 +32,8 @@
  #ifndef LWIP_ARCH_CC_H
  #define LWIP_ARCH_CC_H
  
-+#include "include/Debug.hpp"
++#include "include/Debug.hpp" // libzt
 +
  /* see https://sourceforge.net/p/predef/wiki/OperatingSystems/ */
  #if defined __ANDROID__
  #define LWIP_UNIX_ANDROID
-@@ -55,7 +57,7 @@
+@@ -65,7 +67,7 @@
  #endif
  
  #if defined(LWIP_UNIX_ANDROID) && defined(FD_SET)
@@ -19,27 +19,14 @@ index a3dac04..424285e 100644
 +//typedef __kernel_fd_set fd_set;
  #endif
  
- struct sio_status_s;
-@@ -63,4 +65,7 @@ typedef struct sio_status_s sio_status_t;
+ #if defined(LWIP_UNIX_MACH)
+@@ -81,6 +83,9 @@ typedef struct sio_status_s sio_status_t;
  #define sio_fd_t sio_status_t*
  #define __sio_fd_t_defined
  
 +// Comment out the following line to use lwIP's default diagnostic printing routine
 +#define LWIP_PLATFORM_DIAG(x)    do {DEBUG_INFO x;} while(0)
 +
+ typedef unsigned int sys_prot_t;
+ 
  #endif /* LWIP_ARCH_CC_H */
-diff --git a/ports/win32/include/arch/cc.h b/ports/win32/include/arch/cc.h
-index 334be07..9384b70 100644
---- a/ports/win32/include/arch/cc.h
-+++ b/ports/win32/include/arch/cc.h
-@@ -78,8 +78,8 @@ typedef int sys_prot_t;
- 
- #ifdef _MSC_VER
- /* C runtime functions redefined */
--#define snprintf _snprintf
--#define strdup   _strdup
-+//#define snprintf _snprintf
-+//#define strdup   _strdup
- #endif
- 
- #define PPP_INCLUDE_SETTINGS_HEADER

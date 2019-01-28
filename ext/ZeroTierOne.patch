@@ -1,3 +1,41 @@
+diff --git a/node/RingBuffer.hpp b/node/RingBuffer.hpp
+index dab81b9e..0d90152b 100644
+--- a/node/RingBuffer.hpp
++++ b/node/RingBuffer.hpp
+@@ -72,6 +72,11 @@ public:
+ 		memset(buf, 0, sizeof(T) * size);
+ 	}
+ 
++	~RingBuffer()
++	{
++		delete [] buf;
++	}
++
+ 	/**
+ 	 * @return A pointer to the underlying buffer
+ 	 */
+diff --git a/node/Switch.cpp b/node/Switch.cpp
+index 74c22d33..58979e26 100644
+--- a/node/Switch.cpp
++++ b/node/Switch.cpp
+@@ -532,7 +532,7 @@ void Switch::aqm_enqueue(void *tPtr, const SharedPtr<Network> &network, Packet &
+ 	TXQueueEntry *txEntry = new TXQueueEntry(dest,RR->node->now(),packet,encrypt);
+ 	
+ 	ManagedQueue *selectedQueue = nullptr;
+-	for (int i=0; i<ZT_QOS_NUM_BUCKETS; i++) {
++	for (size_t i=0; i<ZT_QOS_NUM_BUCKETS; i++) {
+ 		if (i < nqcb->oldQueues.size()) { // search old queues first (I think this is best since old would imply most recent usage of the queue)
+ 			if (nqcb->oldQueues[i]->id == qosBucket) {
+ 				selectedQueue = nqcb->oldQueues[i];
+@@ -568,7 +568,7 @@ void Switch::aqm_enqueue(void *tPtr, const SharedPtr<Network> &network, Packet &
+ 	{
+ 		// DEBUG_INFO("too many enqueued packets (%d), finding packet to drop", nqcb->_currEnqueuedPackets);
+ 		int maxQueueLength = 0;
+-		for (int i=0; i<ZT_QOS_NUM_BUCKETS; i++) {
++		for (size_t i=0; i<ZT_QOS_NUM_BUCKETS; i++) {
+ 			if (i < nqcb->oldQueues.size()) {
+ 				if (nqcb->oldQueues[i]->byteLength > maxQueueLength) {
+ 					maxQueueLength = nqcb->oldQueues[i]->byteLength;
 diff --git a/service/OneService.cpp b/service/OneService.cpp
 index a1c53764..757863a8 100644
 --- a/service/OneService.cpp

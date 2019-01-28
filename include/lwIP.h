@@ -103,6 +103,23 @@ void lwip_dns_init();
 void lwip_start_dhcp(void *netif);
 
 /**
+ * @brief Called when the status of a netif changes:
+ *  - Interface is up/down (ZTS_EVENT_NETIF_UP, ZTS_EVENT_NETIF_DOWN)
+ *  - Address changes while up (ZTS_EVENT_NETIF_NEW_ADDRESS)
+ */
+static void netif_status_callback(struct netif *netif);
+
+/**
+ * @brief Called when a netif is removed (ZTS_EVENT_NETIF_INTERFACE_REMOVED)
+ */
+static void netif_remove_callback(struct netif *netif);
+
+/**
+ * @brief Called when a link is brought up or down (ZTS_EVENT_NETIF_LINK_UP, ZTS_EVENT_NETIF_LINK_DOWN)
+ */
+static void netif_link_callback(struct netif *netif);
+
+/**
  * @brief Set up an interface in the network stack for the VirtualTap.
  *
  * @param

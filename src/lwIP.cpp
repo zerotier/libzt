@@ -108,6 +108,7 @@ void my_tcpip_callback(void *arg)
 	if (main_loop_exited) {
 		return;
 	}
+	// stats_display();
 	err_t err = ERR_OK;
 	int loop_score = LWIP_FRAMES_HANDLED_PER_CORE_CALL; // max num of packets to read per polling call
 	// TODO: Optimize (use Ringbuffer)
@@ -131,8 +132,10 @@ void my_tcpip_callback(void *arg)
 				for (size_t i=0; i<lwip_netifs.size(); i++) {
 					if (lwip_netifs[i]->output_ip6 && 
 						lwip_netifs[i]->output_ip6 == ethip6_output) {
+						// TODO: Check prefix match?
 						if ((err = lwip_netifs[i]->input(p, lwip_netifs[i])) != ERR_OK) {
 							DEBUG_ERROR("packet input error (ipv6, p=%p, netif=%p)=%d", p, &lwip_netifs[i], err);
+							pbuf_free(p);
 						}
 						break;
 					}
@@ -147,6 +150,7 @@ void my_tcpip_callback(void *arg)
 							ip4_addr_isbroadcast_u32(iphdr->dest.addr, lwip_netifs[i])) {
 							if ((err = lwip_netifs[i]->input(p, lwip_netifs[i])) != ERR_OK) {
 								DEBUG_ERROR("packet input error (ipv4, p=%p, netif=%p)=%d", p, &lwip_netifs[i], err);
+								pbuf_free(p);
 							}
 							break;
 						}
@@ -159,6 +163,7 @@ void my_tcpip_callback(void *arg)
 						//pbuf_ref(p);
 						if ((err = lwip_netifs[i]->input(p, lwip_netifs[i])) != ERR_OK) {
 							DEBUG_ERROR("packet input error (arp, p=%p, netif=%p)=%d", p, &lwip_netifs[i], err);
+							pbuf_free(p);
 						}
 						break;
 					}
@@ -166,9 +171,10 @@ void my_tcpip_callback(void *arg)
 				break;
 			} break;
 			default:
-				DEBUG_INFO("unhandled packet type (p=%p)=%d", p, err);
+				DEBUG_INFO("unhandled packet type (p=%p)", p);
 				break;
 		}
+		//
 		p = NULL;
 		loop_score--;
 	}
@@ -377,8 +383,6 @@ void lwip_eth_rx(ZeroTier::VirtualTap *tap, const ZeroTier::MAC &from, const Zer
 		return;
 	}
 	rx_queue.push(p);
-	DEBUG_INFO("GOT packet=%p", p);
-	//pbuf_ref(p);
 	_rx_input_lock_m.unlock();
 }
 

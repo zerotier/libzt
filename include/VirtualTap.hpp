@@ -57,7 +57,8 @@ namespace ZeroTier {
 class Mutex;
 
 /**
- * emulates an Ethernet tap device
+ * A virtual tap device. The ZeroTier core service creates one of these for each
+ * virtual network joined. It will be destroyed upon leave().
  */
 class VirtualTap
 {
@@ -210,9 +211,9 @@ public:
 
 	std::vector<MulticastGroup> _multicastGroups;
 	Mutex _multicastGroups_m;
-	Mutex _ips_m, _tcpconns_m, _rx_buf_m, _close_m;
+	Mutex _ips_m;
 
-	struct zts_network_details nd;
+	//struct zts_network_details nd;
 
 	/*
 	 * Timestamp of last run of housekeeping

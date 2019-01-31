@@ -78,32 +78,8 @@ public:
 
 	~VirtualTap();
 
-	/**
-	 * A state will only be reported via callback if it differs from this value. Subsequently this
-	 * value will be updated.
-	 */
-	int _lastReportedStatus;
-
-	/**
-	 * The last time that this virtual tap received a network config update from the core
-	 */
-	uint64_t _lastConfigUpdateTime = 0;
-
-	/**
-	 * The last time that a callback notification was sent to the user application signalling
-	 * that this interface is ready to process traffic.
-	 */
-	uint64_t _lastReadyReportTime = 0;
-	
-	void lastConfigUpdate(uint64_t lastConfigUpdateTime);
-
 	void setEnabled(bool en);
 	bool enabled() const;
-
-	/**
-	 * Registers a device with the given address
-	 */
-	void registerIpWithStack(const InetAddress &ip);
 
 	/**
 	 * Adds an address to the userspace stack interface associated with this VirtualTap
@@ -177,6 +153,48 @@ public:
 	void phyOnUnixClose(PhySocket *sock, void **uptr);
 	void phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len);
 	void phyOnUnixWritable(PhySocket *sock, void **uptr, bool stack_invoked);
+
+	//////////////////////////////////////////////////////////////////////////////
+	// Lower-level lwIP netif handling and traffic handling readiness           //
+	//////////////////////////////////////////////////////////////////////////////
+
+	void *netif4 = NULL;
+	void *netif6 = NULL;
+
+	bool netif4WasUpLastCheck = false;
+	bool netif6WasUpLastCheck = false;
+
+	/**
+	 * Notes the current state of the lower level lwIP netif and reports if a state change
+	 * has happened since the last check. This method is likely temporary.
+	 */
+	uint64_t recognizeLowerLevelInterfaceStateChange(void *n);
+
+	/**
+	 * A state will only be reported via callback if it differs from this value. Subsequently this
+	 * value will be updated.
+	 */
+	//int _lastReportedStatus;
+
+	/**
+	 * The last time that this virtual tap received a network config update from the core
+	 */
+	uint64_t _lastConfigUpdateTime = 0;
+
+	/**
+	 * The last time that a callback notification was sent to the user application signalling
+	 * that this interface is ready to process traffic.
+	 */
+	uint64_t _lastReadyReportTime = 0;
+
+	void lastConfigUpdate(uint64_t lastConfigUpdateTime);
+
+	int _networkStatus = 0;
+	int _netifStatus = 0;
+	/**
+	 * Returns whether or not this interface is ready for traffic.
+	 */
+	bool isReady();
 
 	//////////////////////////////////////////////////////////////////////////////
 	// Vars                                                                     //

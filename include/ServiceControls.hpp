@@ -33,6 +33,10 @@
 #ifndef LIBZT_SERVICE_CONTROLS_HPP
 #define LIBZT_SERVICE_CONTROLS_HPP
 
+#include "Constants.hpp"
+
+namespace ZeroTier {
+
 #ifdef _WIN32
 	#ifdef ADD_EXPORTS
 		#define ZT_SOCKET_API __declspec(dllexport)
@@ -44,8 +48,6 @@
 	#define ZT_SOCKET_API
 	#define ZTCALL
 #endif
-
-void api_sleep(int interval_ms);
 
 //////////////////////////////////////////////////////////////////////////////
 // ZeroTier Service Controls                                                //
@@ -385,5 +387,7 @@ void _hibernate_if_needed();
 #ifdef __cplusplus
 }
 #endif
+
+} // namespace ZeroTier
 
 #endif // _H

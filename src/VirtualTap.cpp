@@ -36,10 +36,11 @@
 #include "OSUtils.hpp"
 
 #include "Constants.hpp" // libzt
+#include "ServiceControls.hpp"
+#include "OneService.hpp"
 extern void _push_callback_event(uint64_t nwid, int eventCode);
 
 #include "Mutex.hpp"
-#include "VirtualTapManager.hpp"
 #include "lwIP.h"
 
 #ifdef _MSC_VER
@@ -48,8 +49,12 @@ extern void _push_callback_event(uint64_t nwid, int eventCode);
 
 namespace ZeroTier {
 
+class VirtualTap;
+
 extern OneService *zt1Service;
 extern void (*_userCallbackFunc)(uint64_t, int);
+extern std::map<uint64_t, VirtualTap*> vtapMap;
+extern Mutex _vtaps_lock;
 
 /**
  * A virtual tap device. The ZeroTier core service creates one of these for each
@@ -77,26 +82,57 @@ VirtualTap::VirtualTap(
 		_unixListenSocket((PhySocket *)0),
 		_phy(this,false,true)
 {
-	VirtualTapManager::add_tap(this);
 	memset(vtap_full_name, 0, sizeof(vtap_full_name));
 	snprintf(vtap_full_name, sizeof(vtap_full_name), "libzt%llx", (unsigned long long)_nwid);
 	_dev = vtap_full_name;
 	::pipe(_shutdownSignalPipe);
+
+	_vtaps_lock.lock();
+	vtapMap[_nwid] = this;
+	_vtaps_lock.unlock();
+
 	lwip_driver_init();
-	// start virtual tap thread and stack I/O loops
+	// Start virtual tap thread and stack I/O loops
 	_thread = Thread::start(this);
 }
 
 VirtualTap::~VirtualTap()
 {
-	_push_callback_event(_nwid, ZTS_EVENT_NETWORK_DOWN);
-	lwip_driver_set_tap_interfaces_down(this);
 	_run = false;
 	::write(_shutdownSignalPipe[1],"\0",1);
 	_phy.whack();
+	lwip_dispose_of_netifs(this);
 	Thread::join(_thread);
 	::close(_shutdownSignalPipe[0]);
 	::close(_shutdownSignalPipe[1]);
+}
+
+uint64_t VirtualTap::recognizeLowerLevelInterfaceStateChange(void *n)
+{
+	if (!n) {
+		return ZTS_EVENT_NONE;
+	}
+	if (n == netif4) {
+		if (netif4WasUpLastCheck && !lwip_is_netif_up(netif4)) {
+			netif4WasUpLastCheck = false;
+			return ZTS_EVENT_NETIF_DOWN_IP4;
+		}
+		if (!netif4WasUpLastCheck && lwip_is_netif_up(netif4)) {
+			netif4WasUpLastCheck = true;
+			return ZTS_EVENT_NETIF_UP_IP4;
+		}
+	}
+	if (n == netif6) {
+		if (netif6WasUpLastCheck && !lwip_is_netif_up(netif6)) {
+			netif6WasUpLastCheck = false;
+			return ZTS_EVENT_NETIF_DOWN_IP6;
+		}
+		if (!netif6WasUpLastCheck && lwip_is_netif_up(netif6)) {
+			netif6WasUpLastCheck = true;
+			return ZTS_EVENT_NETIF_UP_IP6;
+		}
+	}
+	return ZTS_EVENT_NONE;
 }
 
 void VirtualTap::lastConfigUpdate(uint64_t lastConfigUpdateTime)
@@ -114,20 +150,15 @@ bool VirtualTap::enabled() const
 	return _enabled;
 }
 
-void VirtualTap::registerIpWithStack(const InetAddress &ip)
-{
-	lwip_init_interface((void*)this, this->_mac, ip);
-}
-
 bool VirtualTap::addIp(const InetAddress &ip)
 {
 	char ipbuf[INET6_ADDRSTRLEN];
 	Mutex::Lock _l(_ips_m);
-	registerIpWithStack(ip);
 	if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
 		_ips.push_back(ip);
 		std::sort(_ips.begin(),_ips.end());
 	}
+	lwip_init_interface((void*)this, this->_mac, ip);
 	return true;
 }
 
@@ -231,7 +262,8 @@ void VirtualTap::threadMain()
 	while (true) {
 		FD_SET(_shutdownSignalPipe[0],&readfds);
 		select(nfds,&readfds,&nullfds,&nullfds,&tv);
-		if (FD_ISSET(_shutdownSignalPipe[0],&readfds)) { // writes to shutdown pipe terminate thread
+		// writes to shutdown pipe terminate thread
+		if (FD_ISSET(_shutdownSignalPipe[0],&readfds)) {
 			break;
 		}
 #ifdef _MSC_VER

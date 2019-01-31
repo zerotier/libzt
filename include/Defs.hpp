@@ -39,6 +39,8 @@
 #include <sys/socket.h>
 #endif
 
+namespace ZeroTier {
+
 //////////////////////////////////////////////////////////////////////////////
 // Subset of: ZeroTierOne.h                                                 //
 // We redefine a few ZT structures here so that we don't need to drag the   //
@@ -207,5 +209,7 @@ struct zts_peer_list
 	zts_peer_details *peers;
 	unsigned long peerCount;
 };
+
+} // namespace ZeroTier
 
 #endif // _H

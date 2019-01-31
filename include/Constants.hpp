@@ -34,31 +34,63 @@
 #define LIBZT_CONSTANTS_HPP
 
 //////////////////////////////////////////////////////////////////////////////
+// Callbacks                                                                //
+//////////////////////////////////////////////////////////////////////////////
+
+#define ZTS_NODE_CALLBACKS    1
+#define ZTS_NETWORK_CALLBACKS 1
+#define ZTS_NETIF_CALLBACKS   1
+#define ZTS_PEER_CALLBACKS    1
+
+#define ZTS_CALLBACK_PROCESSING_INTERVAL ZTS_WRAPPER_CHECK_INTERVAL // 100 // ms
+#define ZTS_CALLBACK_MSG_QUEUE_LEN 256
+
+//////////////////////////////////////////////////////////////////////////////
 // Error codes returned by ZeroTier and the libzt API                       //
 // See ext/ZeroTierOne/include/ZeroTierOne.h                                //
 //////////////////////////////////////////////////////////////////////////////
 
 typedef int zts_err_t;
 
-#define ZTS_ERR_OK                          0 // Everything is ok
-#define ZTS_ERR_INVALID_ARG                -1 // A parameter provided by the user application is invalid (e.g. our of range, NULL, etc)
-#define ZTS_ERR_SERVICE                    -2 // The service isn't initialized or is for some other reason currently unavailable
-#define ZTS_ERR_INVALID_OP                 -3 // For some reason this API operation is not permitted (perhaps the service is still starting?)
+#define ZTS_ERR_OK                           0 // Everything is ok
+#define ZTS_ERR_INVALID_ARG                 -1 // A parameter provided by the user application is invalid (e.g. our of range, NULL, etc)
+#define ZTS_ERR_SERVICE                     -2 // The service isn't initialized or is for some other reason currently unavailable
+#define ZTS_ERR_INVALID_OP                  -3 // For some reason this API operation is not permitted (perhaps the service is still starting?)
 
-#define ZTS_EVENT_NODE_ONLINE               0x01 // Node is online
-#define ZTS_EVENT_NODE_OFFLINE              0x02 // Node is offline
-#define ZTS_EVENT_NODE_DOWN                 0x03 // Node is shutting down
-#define ZTS_EVENT_NODE_IDENTITY_COLLISION   0x04 // Identity collision - check for duplicate instances
-#define ZTS_EVENT_NODE_UNRECOVERABLE_ERROR  0x05 // Something is seriously wrong
-#define ZTS_EVENT_NODE_NORMAL_TERMINATION   0x06 // Service thread has stopped
-
-#define ZTS_EVENT_NETWORK_NOT_FOUND         0x07
-#define ZTS_EVENT_NETWORK_CLIENT_TOO_OLD    0x08
-#define ZTS_EVENT_NETWORK_REQUESTING_CONFIG 0x09
-#define ZTS_EVENT_NETWORK_OK                0x0a
-#define ZTS_EVENT_NETWORK_ACCESS_DENIED     0x0b
-#define ZTS_EVENT_NETWORK_READY             0x0c
-#define ZTS_EVENT_NETWORK_DOWN              0x0d
+#define ZTS_EVENT_NONE                      0x00000000
+// Node-specific events
+#define ZTS_EVENT_NODE_ONLINE               0x00000001 // Node is online
+#define ZTS_EVENT_NODE_OFFLINE              0x00000002 // Node is offline
+#define ZTS_EVENT_NODE_DOWN                 0x00000004 // Node is shutting down
+#define ZTS_EVENT_NODE_IDENTITY_COLLISION   0x00000008 // Identity collision - check for duplicate instances
+#define ZTS_EVENT_NODE_UNRECOVERABLE_ERROR  0x00000010 // Something is seriously wrong
+#define ZTS_EVENT_NODE_NORMAL_TERMINATION   0x00000020 // Service thread has stopped
+// Network-specific events
+#define ZTS_EVENT_NETWORK_NOT_FOUND         0x00000080
+#define ZTS_EVENT_NETWORK_CLIENT_TOO_OLD    0x00000100
+#define ZTS_EVENT_NETWORK_REQUESTING_CONFIG 0x00000200
+#define ZTS_EVENT_NETWORK_OK                0x00000400
+#define ZTS_EVENT_NETWORK_ACCESS_DENIED     0x00000800
+#define ZTS_EVENT_NETWORK_READY_IP4         0x00001000
+#define ZTS_EVENT_NETWORK_READY_IP6         0x00002000
+#define ZTS_EVENT_NETWORK_DOWN              0x00004000
+#define ZTS_EVENT_NETWORK_STATUS_CHANGE     ZTS_EVENT_NETWORK_NOT_FOUND | ZTS_EVENT_NETWORK_CLIENT_TOO_OLD | ZTS_EVENT_NETWORK_REQUESTING_CONFIG | ZTS_EVENT_NETWORK_OK | ZTS_EVENT_NETWORK_ACCESS_DENIED
+// lwIP netif events
+#define ZTS_EVENT_NETIF_UP_IP4              0x00100000
+#define ZTS_EVENT_NETIF_UP_IP6              0x00200000
+#define ZTS_EVENT_NETIF_DOWN_IP4            0x00400000
+#define ZTS_EVENT_NETIF_DOWN_IP6            0x00800000
+#define ZTS_EVENT_NETIF_REMOVED             0x01000000
+#define ZTS_EVENT_NETIF_LINK_UP             0x02000000
+#define ZTS_EVENT_NETIF_LINK_DOWN           0x04000000
+#define ZTS_EVENT_NETIF_NEW_ADDRESS         0x08000000
+#define ZTS_EVENT_NETIF_STATUS_CHANGE       ZTS_EVENT_NETIF_UP_IP4 | ZTS_EVENT_NETIF_UP_IP6 | ZTS_EVENT_NETIF_DOWN_IP4 | ZTS_EVENT_NETIF_DOWN_IP6 | ZTS_EVENT_NETIF_LINK_UP | ZTS_EVENT_NETIF_LINK_DOWN 
+//
+#define ZTS_EVENT_GENERIC_DOWN              ZTS_EVENT_NETWORK_DOWN | ZTS_EVENT_NETIF_DOWN_IP4 | ZTS_EVENT_NETIF_DOWN_IP6 | ZTS_EVENT_NETIF_LINK_DOWN
+// Peer events
+#define ZTS_EVENT_PEER_P2P                  0x20000000
+#define ZTS_EVENT_PEER_RELAY                0x40000000
+#define ZTS_EVENT_PEER_UNREACHABLE          0x80000000 // Not yet supported
 
 //////////////////////////////////////////////////////////////////////////////
 // libzt config                                                             //

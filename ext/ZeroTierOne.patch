@@ -37,10 +37,19 @@ index 74c22d33..58979e26 100644
  				if (nqcb->oldQueues[i]->byteLength > maxQueueLength) {
  					maxQueueLength = nqcb->oldQueues[i]->byteLength;
 diff --git a/service/OneService.cpp b/service/OneService.cpp
-index a1c53764..757863a8 100644
+index a1c53764..e3034059 100644
 --- a/service/OneService.cpp
 +++ b/service/OneService.cpp
-@@ -2244,6 +2244,12 @@ public:
+@@ -625,6 +625,8 @@ public:
+ 						break;
+ 					if (!pkt)
+ 						break;
++					if (!_run)
++						break;
+ 
+ 					const ZT_ResultCode rc = _node->processWirePacket(nullptr,pkt->now,pkt->sock,&(pkt->from),pkt->data,pkt->size,&_nextBackgroundTaskDeadline);
+ 					{
+@@ -2244,6 +2246,12 @@ public:
  #endif
  					syncManagedStuff(n,true,true);
  					n.tap->setMtu(nwc->mtu);

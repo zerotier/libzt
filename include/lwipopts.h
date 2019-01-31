@@ -53,7 +53,7 @@
  */
 #if __ANDROID__
 #define LWIP_PROVIDE_ERRNO          1
-//#define SOCKLEN_T_DEFINED
+#define SOCKLEN_T_DEFINED
 #elif !defined(_MSC_VER)
 #define LWIP_PROVIDE_ERRNO          1
 #endif
@@ -61,7 +61,7 @@
 /**
  * Disable assertions
  */
-#define LWIP_NOASSERT               0
+#define LWIP_NOASSERT               1
 
 /**
  * Don't redefine byte-order functions if they're already available
@@ -102,6 +102,33 @@
  * this debug message
  */
 #define LWIP_DBG_HALT          0x08U
+
+/*------------------------------------------------------------------------------
+---------------------------------- Timers --------------------------------------
+------------------------------------------------------------------------------*/
+/*
+Be careful about setting this too small.  lwIP just counts the number
+of times its timer is called and uses this to control time sensitive
+operations (such as TCP retransmissions), rather than actually
+measuring time using something more accurate.  If you call the timer
+functions very frequently you may see things (such as retransmissions)
+happening sooner than they should.
+*/
+/* these are originally defined in tcp_impl.h */
+#ifndef TCP_TMR_INTERVAL
+/* The TCP timer interval in milliseconds. */
+#define TCP_TMR_INTERVAL       250
+#endif /* TCP_TMR_INTERVAL */
+
+#ifndef TCP_FAST_INTERVAL
+/* the fine grained timeout in milliseconds */
+#define TCP_FAST_INTERVAL      TCP_TMR_INTERVAL
+#endif /* TCP_FAST_INTERVAL */
+
+#ifndef TCP_SLOW_INTERVALs
+/* the coarse grained timeout in milliseconds */
+#define TCP_SLOW_INTERVAL      (2*TCP_TMR_INTERVAL)
+#endif /* TCP_SLOW_INTERVAL */
 
 /*------------------------------------------------------------------------------
 ----------------------- Below: Modified contents of opt.h ----------------------
@@ -243,7 +270,7 @@
  * Your system should provide mutexes supporting priority inversion to use this.
  */
 #if !defined LWIP_TCPIP_CORE_LOCKING || defined __DOXYGEN__
-#define LWIP_TCPIP_CORE_LOCKING         0
+#define LWIP_TCPIP_CORE_LOCKING         1
 #endif
 
 /**
@@ -350,7 +377,7 @@
  * a lot of data that needs to be copied, this should be set high.
  */
 #if !defined MEM_SIZE || defined __DOXYGEN__
-#define MEM_SIZE                        1600
+#define MEM_SIZE                        1024 * 1024
 #endif
 
 /**
@@ -464,7 +491,7 @@
  * this should be set high.
  */
 #if !defined MEMP_NUM_PBUF || defined __DOXYGEN__
-#define MEMP_NUM_PBUF                   16
+#define MEMP_NUM_PBUF                   1024
 #endif
 
 /**
@@ -472,7 +499,7 @@
  * (requires the LWIP_RAW option)
  */
 #if !defined MEMP_NUM_RAW_PCB || defined __DOXYGEN__
-#define MEMP_NUM_RAW_PCB                4
+#define MEMP_NUM_RAW_PCB                1024
 #endif
 
 /**
@@ -481,7 +508,7 @@
  * (requires the LWIP_UDP option)
  */
 #if !defined MEMP_NUM_UDP_PCB || defined __DOXYGEN__
-#define MEMP_NUM_UDP_PCB                4
+#define MEMP_NUM_UDP_PCB                1024
 #endif
 
 /**
@@ -489,7 +516,7 @@
  * (requires the LWIP_TCP option)
  */
 #if !defined MEMP_NUM_TCP_PCB || defined __DOXYGEN__
-#define MEMP_NUM_TCP_PCB                5
+#define MEMP_NUM_TCP_PCB                1024
 #endif
 
 /**
@@ -497,7 +524,7 @@
  * (requires the LWIP_TCP option)
  */
 #if !defined MEMP_NUM_TCP_PCB_LISTEN || defined __DOXYGEN__
-#define MEMP_NUM_TCP_PCB_LISTEN         8
+#define MEMP_NUM_TCP_PCB_LISTEN         1024
 #endif
 
 /**
@@ -505,7 +532,7 @@
  * (requires the LWIP_TCP option)
  */
 #if !defined MEMP_NUM_TCP_SEG || defined __DOXYGEN__
-#define MEMP_NUM_TCP_SEG                16
+#define MEMP_NUM_TCP_SEG                1024
 #endif
 
 /**
@@ -523,7 +550,7 @@
  * reassembly (whole packets, not fragments!)
  */
 #if !defined MEMP_NUM_REASSDATA || defined __DOXYGEN__
-#define MEMP_NUM_REASSDATA              5
+#define MEMP_NUM_REASSDATA              16
 #endif
 
 /**
@@ -585,7 +612,7 @@
  * (only needed if you use the sequential API, like api_lib.c)
  */
 #if !defined MEMP_NUM_NETCONN || defined __DOXYGEN__
-#define MEMP_NUM_NETCONN                4
+#define MEMP_NUM_NETCONN                256
 #endif
 
 /**
@@ -603,7 +630,7 @@
  * (only needed if you use tcpip.c)
  */
 #if !defined MEMP_NUM_TCPIP_MSG_API || defined __DOXYGEN__
-#define MEMP_NUM_TCPIP_MSG_API          8
+#define MEMP_NUM_TCPIP_MSG_API          64
 #endif
 
 /**
@@ -612,7 +639,7 @@
  * (only needed if you use tcpip.c)
  */
 #if !defined MEMP_NUM_TCPIP_MSG_INPKT || defined __DOXYGEN__
-#define MEMP_NUM_TCPIP_MSG_INPKT        8
+#define MEMP_NUM_TCPIP_MSG_INPKT        64
 #endif
 
 /**
@@ -635,7 +662,7 @@
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
 #if !defined PBUF_POOL_SIZE || defined __DOXYGEN__
-#define PBUF_POOL_SIZE                  16
+#define PBUF_POOL_SIZE                  128
 #endif
 
 /** MEMP_NUM_API_MSG: the number of concurrently active calls to various
@@ -689,7 +716,7 @@
  * ARP_TABLE_SIZE: Number of active MAC-IP address pairs cached.
  */
 #if !defined ARP_TABLE_SIZE || defined __DOXYGEN__
-#define ARP_TABLE_SIZE                  10
+#define ARP_TABLE_SIZE                  64
 #endif
 
 /** the time an ARP entry stays valid after its last update,
@@ -847,7 +874,7 @@
  * (PBUF_POOL_SIZE > 2 * IP_REASS_MAX_PBUFS)!
  */
 #if !defined IP_REASS_MAX_PBUFS || defined __DOXYGEN__
-#define IP_REASS_MAX_PBUFS              10
+#define IP_REASS_MAX_PBUFS              32
 #endif
 
 /**
@@ -1292,7 +1319,7 @@
  * will be TCP_WND >> TCP_RCV_SCALE
  */
 #if !defined TCP_WND || defined __DOXYGEN__
-#define TCP_WND                         (4 * TCP_MSS)
+#define TCP_WND                         0xffff // (4 * TCP_MSS)
 #endif
 
 /**
@@ -1306,7 +1333,7 @@
  * TCP_SYNMAXRTX: Maximum number of retransmissions of SYN segments.
  */
 #if !defined TCP_SYNMAXRTX || defined __DOXYGEN__
-#define TCP_SYNMAXRTX                   6
+#define TCP_SYNMAXRTX                   12 // 6
 #endif
 
 /**
@@ -1367,7 +1394,7 @@
  * To achieve good performance, this should be at least 2 * TCP_MSS.
  */
 #if !defined TCP_SND_BUF || defined __DOXYGEN__
-#define TCP_SND_BUF                     (2 * TCP_MSS)
+#define TCP_SND_BUF                     1024 * 32 // (2 * TCP_MSS)
 #endif
 
 /**
@@ -1375,7 +1402,7 @@
  * as much as (2 * TCP_SND_BUF/TCP_MSS) for things to work.
  */
 #if !defined TCP_SND_QUEUELEN || defined __DOXYGEN__
-#define TCP_SND_QUEUELEN                ((4 * (TCP_SND_BUF) + (TCP_MSS - 1))/(TCP_MSS))
+#define TCP_SND_QUEUELEN                1024 // ((4 * (TCP_SND_BUF) + (TCP_MSS - 1))/(TCP_MSS))
 #endif
 
 /**
@@ -1689,7 +1716,7 @@
  * if you have a tiny ARP table or if there never are concurrent connections.
  */
 #if !defined LWIP_NETIF_HWADDRHINT || defined __DOXYGEN__
-#define LWIP_NETIF_HWADDRHINT           0
+#define LWIP_NETIF_HWADDRHINT           1
 #endif
 
 /**
@@ -2005,7 +2032,7 @@
  * (only used if you use sockets.c)
  */
 #if !defined LWIP_COMPAT_SOCKETS || defined __DOXYGEN__
-#define LWIP_COMPAT_SOCKETS             1
+#define LWIP_COMPAT_SOCKETS             0
 #endif
 
 /**
@@ -2014,7 +2041,7 @@
  * names (read, write & close). (only used if you use sockets.c)
  */
 #if !defined LWIP_POSIX_SOCKETS_IO_NAMES || defined __DOXYGEN__
-#define LWIP_POSIX_SOCKETS_IO_NAMES     1
+#define LWIP_POSIX_SOCKETS_IO_NAMES     0
 #endif
 
 /**
@@ -2152,7 +2179,7 @@
  * LWIP_STATS==1: Enable statistics collection in lwip_stats.
  */
 #if !defined LWIP_STATS || defined __DOXYGEN__
-#define LWIP_STATS                      1
+#define LWIP_STATS                      0
 #endif
 
 #if LWIP_STATS
@@ -2161,7 +2188,7 @@
  * LWIP_STATS_DISPLAY==1: Compile in the statistics output functions.
  */
 #if !defined LWIP_STATS_DISPLAY || defined __DOXYGEN__
-#define LWIP_STATS_DISPLAY              1
+#define LWIP_STATS_DISPLAY              0
 #endif
 
 /**

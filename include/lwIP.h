@@ -37,11 +37,31 @@
 #include "lwip/err.h"
 
 namespace ZeroTier {
-  class MAC;
-  class Mutex;
-  class VirtualTap;
-  struct InetAddress;
-}
+
+class MAC;
+class Mutex;
+class VirtualTap;
+struct InetAddress;
+
+/**
+ * @brief Structure used to associate packets with interfaces.
+ */
+struct zts_sorted_packet
+{
+	// lwIP pbuf containing packet (originally encapsulated by ZT packet)
+	struct pbuf *p;
+	// ZT VirtualTap from which this packet originates
+	ZeroTier::VirtualTap *vtap;
+	// lwIP netif we should accept this packet on
+	struct netif *n;
+};
+
+/**
+ * @brief Return whether a given netif's NETIF_FLAG_UP flag is set
+ *
+ * @usage This is a convenience function to encapsulate a macro
+ */
+bool lwip_is_netif_up(void *netif);
 
 /**
  * @brief Increase the delay multiplier for the main driver loop
@@ -76,15 +96,14 @@ void lwip_driver_init();
 void lwip_driver_shutdown();
 
 /**
- * @brief Bring all interfaces down belonging to the given virtual tap interface
+ * @brief Bring down and delete all interfaces belonging to the given virtual tap
  *
  * @usage This is to be called when the application desires to stop all traffic processing in the 
  * stack. Unlike lwip_driver_shutdown(), the application can easily resume traffic processing 
  * by re-adding a virtual tap (and associated lwip netifs)
  * @return
  */
-void lwip_driver_set_tap_interfaces_down(void *tapref);
-void lwip_driver_set_all_interfaces_down();
+void lwip_dispose_of_netifs(void *tapref);
 
 /**
  * @brief Initialize and start the DNS client
@@ -128,7 +147,7 @@ static void netif_link_callback(struct netif *netif);
  * @param ip Virtual IP address for this ZeroTier VirtualTap interface
  * @return
  */
-void lwip_init_interface(void *tapref, const ZeroTier::MAC &mac, const ZeroTier::InetAddress &ip);
+void lwip_init_interface(void *tapref, const MAC &mac, const InetAddress &ip);
 
 /**
  * @brief Called from the stack, outbound ethernet frames from the network stack enter the ZeroTier virtual wire here.
@@ -152,7 +171,9 @@ err_t lwip_eth_tx(struct netif *netif, struct pbuf *p);
  * @param len Length of Ethernet frame
  * @return
  */
-void lwip_eth_rx(ZeroTier::VirtualTap *tap, const ZeroTier::MAC &from, const ZeroTier::MAC &to, unsigned int etherType,
+void lwip_eth_rx(VirtualTap *tap, const MAC &from, const MAC &to, unsigned int etherType,
 	const void *data, unsigned int len);
+
+} // namespace ZeroTier
 
 #endif // _H

@@ -37,10 +37,11 @@
 #include "ZeroTierOne.h"
 
 #include "Constants.hpp"
-#include "VirtualTapManager.hpp"
 #include "lwIP.h"
 #include "OSUtils.hpp"
 #include "ServiceControls.hpp"
+#include "VirtualTap.hpp"
+#include "Defs.hpp"
 
 #include "lwip/stats.h"
 
@@ -53,7 +54,13 @@ WSADATA wsaData;
 #include <jni.h>
 #endif
 
+struct zts_network_details;
+struct zts_peer_details;
+struct zts_network_details;
+
 namespace ZeroTier {
+
+class VirtualTap;
 
 /*
  * A lock used to protect any call which relies on the presence of a valid pointer
@@ -91,6 +98,7 @@ Mutex _vtaps_lock;
 // Global reference to ZeroTier service
 OneService *zt1Service;
 
+
 // User-provided callback for ZeroTier events
 void (*_userCallbackFunc)(uint64_t, int);
 #ifdef SDK_JNI
@@ -99,9 +107,8 @@ static JavaVM *jvm = NULL;
 jobject objRef = NULL;
 jmethodID _userCallbackMethodRef = NULL;
 #endif
-}
 
-using namespace ZeroTier;
+std::map<uint64_t, bool> peerCache;
 
 //////////////////////////////////////////////////////////////////////////////
 // Internal ZeroTier Service Controls (user application shall not use these)//
@@ -112,8 +119,8 @@ std::queue<std::pair<uint64_t, int>*> _callbackMsgQueue;
 void _push_callback_event(uint64_t nwid, int eventCode)
 {
 	_callback_lock.lock();
-	if (_callbackMsgQueue.size() >= 128) {
-		DEBUG_ERROR("too many callback messages in queue");
+	if (_callbackMsgQueue.size() >= ZTS_CALLBACK_MSG_QUEUE_LEN) {
+		DEBUG_ERROR("too many callback messages in queue (see: ZTS_CALLBACK_MSG_QUEUE_LEN)");
 		_callback_lock.unlock();
 		return;
 	}
@@ -132,7 +139,7 @@ void _process_callback_event_helper(uint64_t nwid, int eventCode)
 	}
 #else
 	if (_userCallbackFunc) {
-		_userCallbackFunc((uint64_t)0, ZTS_EVENT_NODE_OFFLINE);
+		_userCallbackFunc(nwid, eventCode);
 	}
 #endif
 }
@@ -192,11 +199,13 @@ int _zts_can_perform_service_operation()
 
 void _hibernate_if_needed()
 {
-	if (VirtualTapManager::get_vtaps_size()) {
+	_vtaps_lock.lock();
+	if (vtapMap.size()) {
 		lwip_wake_driver();
 	} else {
 		lwip_hibernate_driver();
 	}
+	_vtaps_lock.unlock();
 }
 #ifdef SDK_JNI
 #endif
@@ -204,7 +213,7 @@ void _hibernate_if_needed()
 /*
  * Monitors the conditions required for triggering callbacks into user code. This was made
  * into its own thread to prevent user application abuse of callbacks from affecting
- * the timing of more sensitive aspects of the library such as polling and RX/TX of packets
+ * the timing of more sensitive aspects of the library such as polling and packet processing
  */
 #if defined(_WIN32)
 DWORD WINAPI _zts_monitor_callback_conditions(LPVOID thread_id)
@@ -215,74 +224,188 @@ void *_zts_monitor_callback_conditions(void *thread_id)
 #if defined(__APPLE__)
 	pthread_setname_np(ZTS_EVENT_CALLBACK_THREAD_NAME);
 #endif
-	while (!_serviceIsShuttingDown)
+
+	while (true)
 	{
+		if (_serviceIsShuttingDown) {
+			break;
+		}
+		_service_lock.lock();
+		_callback_lock.lock();
+
+#if ZTS_NODE_CALLBACKS
+		// ZT Node states
 		if (!_zts_node_online()) {
 			if (_nodeIsOnlineToggle) {
 				_nodeIsOnlineToggle = false;
-				_process_callback_event((uint64_t)0, ZTS_EVENT_NODE_OFFLINE);
+				_process_callback_event_helper((uint64_t)0, ZTS_EVENT_NODE_OFFLINE);
 			}
-		} if (_zts_node_online()) { // Only process pending network callbacks if the node is online
+			_service_lock.unlock();
+			_callback_lock.unlock();
+			_api_sleep(ZTS_CALLBACK_PROCESSING_INTERVAL);
+			// Only process pending network callbacks if the node is online
+			continue;
+		}
+		if (_zts_node_online()) {
+			uint64_t nodeId = 0;
+			if (_zts_can_perform_service_operation()) {
+				nodeId = zt1Service->getNode()->address();
+			}
 			if (!_nodeIsOnlineToggle) {
 				_nodeIsOnlineToggle = true;
-				_process_callback_event((uint64_t)0, ZTS_EVENT_NODE_ONLINE);
+				_process_callback_event_helper(nodeId, ZTS_EVENT_NODE_ONLINE);
 			}
+		}
+#endif
 
-			// First, handle queued messages from other threads
-			_callback_lock.lock();
-			while (_callbackMsgQueue.size()) {
-				std::pair<uint64_t,int> *msg = _callbackMsgQueue.front();
-				_callbackMsgQueue.pop();
-				_process_callback_event_helper(msg->first, msg->second);
-				delete msg;
-			}
-			_callback_lock.unlock();
-
-			// Second, inspect network states for changes we should report
-			_vtaps_lock.lock();
-			ZT_VirtualNetworkList *nl = zt1Service->getNode()->networks();
-			for(unsigned long i=0;i<nl->networkCount;++i) {
-				OneService::NetworkSettings localSettings;
-				zt1Service->getNetworkSettings(nl->networks[i].nwid,localSettings);
-				if (vtapMap[nl->networks[i].nwid]->_lastReportedStatus != nl->networks[i].status) {
-					switch (nl->networks[i].status) {
-						case ZT_NETWORK_STATUS_NOT_FOUND:
-							_process_callback_event(nl->networks[i].nwid, ZTS_EVENT_NETWORK_NOT_FOUND);
-							break;
-						case ZT_NETWORK_STATUS_CLIENT_TOO_OLD:
-							_process_callback_event(nl->networks[i].nwid, ZTS_EVENT_NETWORK_CLIENT_TOO_OLD);
-							break;
-						case ZT_NETWORK_STATUS_REQUESTING_CONFIGURATION:
-							_process_callback_event(nl->networks[i].nwid, ZTS_EVENT_NETWORK_REQUESTING_CONFIG);
-							break;
-						case ZT_NETWORK_STATUS_OK:
-							_process_callback_event(nl->networks[i].nwid, ZTS_EVENT_NETWORK_OK);
-							break;
-						case ZT_NETWORK_STATUS_ACCESS_DENIED:
-							_process_callback_event(nl->networks[i].nwid, ZTS_EVENT_NETWORK_ACCESS_DENIED);
-							break;
-						default:
-							break;
+		// Handle messages placed in the message queue
+		while (_callbackMsgQueue.size()) {
+			std::pair<uint64_t,int> *msg = _callbackMsgQueue.front();
+			_callbackMsgQueue.pop();
+#if ZTS_NETIF_CALLBACKS
+			// lwIP netif
+			if (msg->second & (ZTS_EVENT_NETIF_STATUS_CHANGE)) {
+				_vtaps_lock.lock();
+				if (!vtapMap.count(msg->first)) {
+					if (msg->second & (ZTS_EVENT_GENERIC_DOWN)) {
+						_process_callback_event_helper(msg->first, msg->second);
 					}
-					vtapMap[nl->networks[i].nwid]->_lastReportedStatus = nl->networks[i].status;
+					delete msg;
+					msg = NULL;
+					_vtaps_lock.unlock();
+					continue;
 				}
+				if (msg->second == ZTS_EVENT_NETIF_UP_IP4 && vtapMap[msg->first]->_networkStatus == ZTS_EVENT_NETWORK_OK) {
+					_process_callback_event_helper(msg->first, ZTS_EVENT_NETWORK_READY_IP4);
+				}
+				if (msg->second == ZTS_EVENT_NETIF_UP_IP6 && vtapMap[msg->first]->_networkStatus == ZTS_EVENT_NETWORK_OK) {
+					_process_callback_event_helper(msg->first, ZTS_EVENT_NETWORK_READY_IP6);
+				}
+				if (msg->second & (ZTS_EVENT_NETIF_STATUS_CHANGE)) {
+					vtapMap[msg->first]->_netifStatus = msg->second;
+				}
+				_vtaps_lock.unlock();
+				_process_callback_event_helper(msg->first, msg->second);
 			}
-			zt1Service->getNode()->freeQueryResult((void *)nl);
-			// Finally, check for a more useful definition of "readiness"
+#endif // ZTS_NETIF_CALLBACKS
+			delete msg;
+			msg = NULL;
+		}
+
+#if ZTS_NETIF_CALLBACKS // Section for non-queued lwIP netif messages
+		// lwIP netif states
+		_vtaps_lock.lock();
+		if (vtapMap.size()) {
 			std::map<uint64_t, VirtualTap*>::iterator it;
 			for (it = vtapMap.begin(); it != vtapMap.end(); it++) {
-				VirtualTap *tap = it->second;
-				if (tap->_lastConfigUpdateTime > 0 && !tap->_lastReadyReportTime && tap->_ips.size() > 0) {
-					tap->_lastReadyReportTime = tap->_lastConfigUpdateTime;
-					_process_callback_event(tap->_nwid, ZTS_EVENT_NETWORK_READY);
+				VirtualTap *vtap = (VirtualTap*)it->second;
+				uint64_t eventCode = vtap->recognizeLowerLevelInterfaceStateChange(vtap->netif4);
+				if (eventCode != ZTS_EVENT_NONE) {
+					_process_callback_event_helper(vtap->_nwid, eventCode);
+				}
+				eventCode = vtap->recognizeLowerLevelInterfaceStateChange(vtap->netif6);
+				if (eventCode != ZTS_EVENT_NONE) {
+					_process_callback_event_helper(vtap->_nwid, eventCode);
 				}
 			}
-    		_vtaps_lock.unlock();
 		}
-		// Doesn't need to happen as often as other API operations
-		_api_sleep(ZTS_WRAPPER_CHECK_INTERVAL);
+		_vtaps_lock.unlock();
+#endif // ZTS_NETIF_CALLBACKS
+
+#if ZTS_PEER_CALLBACKS
+		// TODO: Add peerCache clearning mechanism
+		// TODO: Add ZTS_EVENT_PEER_NEW message?
+		ZT_PeerList *pl = zt1Service->getNode()->peers();
+		if (pl) {
+			for(unsigned long i=0;i<pl->peerCount;++i) {
+				if (!peerCache.count(pl->peers[i].address)) { // Add first entry
+					if (pl->peers[i].pathCount > 0) {
+						_process_callback_event_helper(pl->peers[i].address, ZTS_EVENT_PEER_P2P);
+					}
+					if (pl->peers[i].pathCount == 0) {
+						_process_callback_event_helper(pl->peers[i].address, ZTS_EVENT_PEER_RELAY);
+					}
+				}
+				else {
+					if (peerCache[pl->peers[i].address] == 0 && pl->peers[i].pathCount > 0) {
+						_process_callback_event_helper(pl->peers[i].address, ZTS_EVENT_PEER_P2P);
+					}
+					if (peerCache[pl->peers[i].address] > 0 && pl->peers[i].pathCount == 0) {
+						_process_callback_event_helper(pl->peers[i].address, ZTS_EVENT_PEER_RELAY);
+					}
+				}
+				peerCache[pl->peers[i].address] = pl->peers[i].pathCount;
+			}
+		}
+		zt1Service->getNode()->freeQueryResult((void *)pl);
+#endif // ZTS_PEER_CALLBACKS
+
+#if ZTS_NETWORK_CALLBACKS
+
+		_vtaps_lock.lock();
+		// Second, inspect network states for changes we should report
+		// TODO: Use proper ZT callback mechanism
+		// TODO: _push_callback_event(_nwid, ZTS_EVENT_NETWORK_DOWN);
+		ZT_VirtualNetworkList *nl = zt1Service->getNode()->networks();
+		for(unsigned long i=0;i<nl->networkCount;++i) {
+			OneService::NetworkSettings localSettings;
+			zt1Service->getNetworkSettings(nl->networks[i].nwid,localSettings);
+			if (!vtapMap.count(nl->networks[i].nwid)) {
+				continue;
+			}
+			if (vtapMap[nl->networks[i].nwid]->_networkStatus == nl->networks[i].status) {
+				continue; // no state change
+			}
+			VirtualTap *vtap = vtapMap[nl->networks[i].nwid];
+			uint64_t nwid = nl->networks[i].nwid;
+			switch (nl->networks[i].status) {
+				case ZT_NETWORK_STATUS_NOT_FOUND:
+					_process_callback_event_helper(nwid, ZTS_EVENT_NETWORK_NOT_FOUND);
+					break;
+				case ZT_NETWORK_STATUS_CLIENT_TOO_OLD:
+					_process_callback_event_helper(nwid, ZTS_EVENT_NETWORK_CLIENT_TOO_OLD);
+					break;
+				case ZT_NETWORK_STATUS_REQUESTING_CONFIGURATION:
+					_process_callback_event_helper(nwid, ZTS_EVENT_NETWORK_REQUESTING_CONFIG);
+					break;
+				case ZT_NETWORK_STATUS_OK:
+					if (vtap->netif4 && lwip_is_netif_up(vtap->netif4)) {
+						_process_callback_event_helper(nwid, ZTS_EVENT_NETWORK_READY_IP4);
+					}
+					if (vtap->netif6 && lwip_is_netif_up(vtap->netif6)) {
+						_process_callback_event_helper(nwid, ZTS_EVENT_NETWORK_READY_IP6);
+					}
+					_process_callback_event_helper(nwid, ZTS_EVENT_NETWORK_OK);
+					break;
+				case ZT_NETWORK_STATUS_ACCESS_DENIED:
+					_process_callback_event_helper(nwid, ZTS_EVENT_NETWORK_ACCESS_DENIED);
+					break;
+				default:
+					break;
+			}
+			vtapMap[nwid]->_networkStatus = nl->networks[i].status;
+		}
+		_vtaps_lock.unlock();
+		zt1Service->getNode()->freeQueryResult((void *)nl);
+
+#endif // ZTS_NETWORK_CALLBACKS
+
+		// Finally, check for a more useful definition of "readiness"
+		/*
+		std::map<uint64_t, VirtualTap*>::iterator it;
+		for (it = vtapMap.begin(); it != vtapMap.end(); it++) {
+			VirtualTap *tap = it->second;
+			if (tap->_lastConfigUpdateTime > 0 && !tap->_lastReadyReportTime && tap->_ips.size() > 0) {
+				tap->_lastReadyReportTime = tap->_lastConfigUpdateTime;
+				_process_callback_event(tap->_nwid, ZTS_EVENT_NETWORK_READY);
+			}
+		}*/
+		_service_lock.unlock();
+		_callback_lock.unlock();
+		_api_sleep(ZTS_CALLBACK_PROCESSING_INTERVAL);
 	}
-	DEBUG_ERROR("exiting from monitor loop");
+	DEBUG_INFO("exited from callback processing loop");
+    pthread_exit(0);
 }
 
 // Starts a ZeroTier service in the background
@@ -306,7 +429,6 @@ void *_zts_start_service(void *thread_id)
 		DEBUG_INFO("service already started, doing nothing");
 		retval = NULL;
 	}
-
 	try {
 		std::vector<std::string> hpsp(OSUtils::split(homeDir.c_str(), ZT_PATH_SEPARATOR_S,"",""));
 		std::string ptmp;
@@ -367,10 +489,11 @@ void *_zts_start_service(void *thread_id)
 		_service_lock.unlock();
 		_serviceIsShuttingDown = false;
 		_process_callback_event((uint64_t)0, ZTS_EVENT_NODE_DOWN);
+		DEBUG_INFO("exiting zt service thread");
 	} catch ( ... ) {
 		DEBUG_ERROR("unexpected exception starting ZeroTier instance");
 	}
-	pthread_exit(NULL);
+	pthread_exit(0);
 }
 
 #ifdef __cplusplus
@@ -434,7 +557,11 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_get_1service_1port(
 zts_err_t zts_join(const uint64_t nwid, int blocking)
 {
 	zts_err_t retval = ZTS_ERR_OK;
-	retval = VirtualTapManager::get_vtaps_size() >= ZTS_MAX_JOINED_NETWORKS ? ZTS_ERR_INVALID_OP : ZTS_ERR_OK;
+
+	_vtaps_lock.lock();
+	retval = vtapMap.size() >= ZTS_MAX_JOINED_NETWORKS ? ZTS_ERR_INVALID_OP : ZTS_ERR_OK;
+	_vtaps_lock.unlock();
+
 	if (retval == ZTS_ERR_OK) {
 		_service_lock.lock();
 		if (blocking) {
@@ -463,7 +590,6 @@ zts_err_t zts_join(const uint64_t nwid, int blocking)
 			}
 		}
 		_service_lock.unlock();
-		_hibernate_if_needed();
 	}
 	return retval;
 }
@@ -504,8 +630,9 @@ zts_err_t zts_leave(const uint64_t nwid, int blocking)
 			zt1Service->getNode()->leave(nwid, NULL, NULL);
 		}
 	}
-	VirtualTapManager::remove_by_nwid(nwid);
-	_hibernate_if_needed();
+	_vtaps_lock.lock();
+	vtapMap.erase(nwid);
+	_vtaps_lock.unlock();
 	_service_lock.unlock();
 	return retval;
 }
@@ -520,6 +647,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_leave(
 zts_err_t zts_leave_all(int blocking)
 {
 	zts_err_t retval = ZTS_ERR_OK;
+	/*
 	if (!zt1Service || _freeHasBeenCalled || _serviceIsShuttingDown) {
 		retval = ZTS_ERR_SERVICE;
 	}
@@ -531,6 +659,8 @@ zts_err_t zts_leave_all(int blocking)
 			zts_leave(nds[i].nwid);
 		}
 	}
+	*/
+
 	return retval;
 }
 #ifdef SDK_JNI
@@ -588,7 +718,9 @@ JNIEXPORT jboolean JNICALL Java_com_zerotier_libzt_ZeroTier_core_1running(
 int zts_ready()
 {
 	_service_lock.lock();
-	bool stackRunning = VirtualTapManager::get_vtaps_size() > 0 ? true : false;
+	_vtaps_lock.lock();
+	bool stackRunning = vtapMap.size() > 0 ? true : false;
+	_vtaps_lock.unlock();
 	_service_lock.unlock();
 	return zts_core_running() && stackRunning;
 }
@@ -693,8 +825,6 @@ zts_err_t zts_start_with_callback(const char *path, void (*callback)(uint64_t, i
 		}
 	}
 	_startup_lock.unlock();
-	// if (blocking && retval == ZTS_ERR_OK) { DEBUG_INFO("node=%llx online", (unsigned long long)zts_get_node_id());}
-	_hibernate_if_needed();
 	return retval;
 }
 
@@ -754,7 +884,6 @@ zts_err_t zts_startjoin(const char *path, const uint64_t nwid)
 			retval = ZTS_ERR_SERVICE;
 		}
 	}
-	_hibernate_if_needed();
 	return retval;
 }
 #ifdef SDK_JNI
@@ -773,11 +902,26 @@ zts_err_t zts_stop(int blocking)
 {
 	zts_err_t retval = ZTS_ERR_OK;
 	_service_lock.lock();
+	// leave all networks
+	/*
+	_vtaps_lock.lock();
+	if (vtapMap.size()) {
+		std::map<uint64_t, VirtualTap*>::iterator it;
+		for (it = vtapMap.begin(); it != vtapMap.end(); it++) {
+			VirtualTap *vtap = (VirtualTap*)it->second;
+			zt1Service->getNode()->leave(vtap->_nwid, NULL, NULL);
+		}
+		vtapMap.clear();
+	}
+	_vtaps_lock.unlock();
+	*/
+	// begin shutdown
+	peerCache.clear(); // TODO: Ensure this is locked correctly
 	bool didStop = false;
 	if (_zts_can_perform_service_operation()) {
-		didStop = true;
+		_serviceIsShuttingDown = true;
 		zt1Service->terminate();
-		VirtualTapManager::clear();
+		didStop = true;
 	}
 	else {
 		// Nothing to do
@@ -791,7 +935,6 @@ zts_err_t zts_stop(int blocking)
 		// Block until ZT service thread successfully exits
 		pthread_join(service_thread, NULL);
 	}
-	_hibernate_if_needed();
 	_clear_registered_callback();
 	return retval;
 }
@@ -898,7 +1041,9 @@ zts_err_t zts_get_num_joined_networks()
 		retval = ZTS_ERR_SERVICE;
 	}
 	else {
-		retval = VirtualTapManager::get_vtaps_size();
+		_vtaps_lock.lock();
+		retval = vtapMap.size();
+		_vtaps_lock.unlock();
 	}
 	return retval;
 }
@@ -910,8 +1055,50 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_get_1num_1joined_1networ
 }
 #endif
 
+//////////////////////////////////////////////////////////////////////////////
+// Network Details                                                          //
+//////////////////////////////////////////////////////////////////////////////
+
+void __get_network_details_helper(uint64_t nwid, struct zts_network_details *nd)
+{
+    socklen_t addrlen;
+    VirtualTap *tap = vtapMap[nwid];
+    nd->nwid = tap->_nwid;
+    nd->mtu = tap->_mtu;
+    // assigned addresses
+    nd->num_addresses = tap->_ips.size() < ZTS_MAX_ASSIGNED_ADDRESSES ? tap->_ips.size() : ZTS_MAX_ASSIGNED_ADDRESSES;
+    for (int j=0; j<nd->num_addresses; j++) {
+        addrlen = tap->_ips[j].isV4() ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
+        memcpy(&(nd->addr[j]), &(tap->_ips[j]), addrlen);
+    }
+    // routes
+    nd->num_routes = ZTS_MAX_NETWORK_ROUTES;;
+    zt1Service->getRoutes(nwid, (ZT_VirtualNetworkRoute*)&(nd->routes)[0], &(nd->num_routes));
+}
+
+void _get_network_details(uint64_t nwid, struct zts_network_details *nd)
+{
+    _vtaps_lock.lock();
+    __get_network_details_helper(nwid, nd);
+    _vtaps_lock.unlock();
+}
+
+void _get_all_network_details(struct zts_network_details *nds, int *num)
+{
+    _vtaps_lock.lock();
+    *num = vtapMap.size();
+    int idx = 0;
+    std::map<uint64_t, VirtualTap*>::iterator it;
+    for (it = vtapMap.begin(); it != vtapMap.end(); it++) {
+        _get_network_details(it->first, &nds[idx]);
+        idx++;
+    }
+    _vtaps_lock.unlock();
+}
+
 zts_err_t zts_get_network_details(uint64_t nwid, struct zts_network_details *nd)
 {
+	_service_lock.lock();
 	zts_err_t retval = ZTS_ERR_OK;
 	if (!nd || nwid == 0) {
 		retval = ZTS_ERR_INVALID_ARG;
@@ -920,8 +1107,9 @@ zts_err_t zts_get_network_details(uint64_t nwid, struct zts_network_details *nd)
 		retval = ZTS_ERR_SERVICE;
 	}
 	if (retval == ZTS_ERR_OK) {
-		VirtualTapManager::get_network_details(zt1Service, nwid, nd);
+		_get_network_details(nwid, nd);
 	}
+	_service_lock.unlock();
 	return retval;
 }
 #ifdef SDK_JNI
@@ -929,6 +1117,7 @@ zts_err_t zts_get_network_details(uint64_t nwid, struct zts_network_details *nd)
 
 zts_err_t zts_get_all_network_details(struct zts_network_details *nds, int *num)
 {
+	_service_lock.lock();
 	zts_err_t retval = ZTS_ERR_OK;
 	if (!nds || !num) {
 		retval = ZTS_ERR_INVALID_ARG;
@@ -937,12 +1126,17 @@ zts_err_t zts_get_all_network_details(struct zts_network_details *nds, int *num)
 		retval = ZTS_ERR_SERVICE;
 	}
 	if (retval == ZTS_ERR_OK) {
-		VirtualTapManager::get_all_network_details(zt1Service, nds, num);
+		_get_all_network_details(nds, num);
 	}
+	_service_lock.unlock();
 	return retval;	
 }
 #ifdef SDK_JNI
 #endif
+
+//////////////////////////////////////////////////////////////////////////////
+// HTTP Backplane                                                           //
+//////////////////////////////////////////////////////////////////////////////
 
 zts_err_t zts_enable_http_backplane_mgmt()
 {
@@ -979,3 +1173,5 @@ zts_err_t zts_disable_http_backplane_mgmt()
 #ifdef __cplusplus
 }
 #endif
+
+} // namespace ZeroTier

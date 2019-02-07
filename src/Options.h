@@ -42,6 +42,7 @@
 
 #define ZTS_SERVICE_THREAD_NAME "ZeroTierServiceThread"
 #define ZTS_EVENT_CALLBACK_THREAD_NAME "ZeroTierEventCallbackThread"
+#define ZTS_LWIP_DRIVER_THREAD_NAME "lwipDriver"
 
 //////////////////////////////////////////////////////////////////////////////
 // lwIP behaviour (tcpip driver)                                            //
@@ -58,9 +59,9 @@
 #define LWIP_GUARDED_BUF_CHECK_INTERVAL 5
 
 /**
- * Number of frame pointers that can be cached waiting for receipt into core
+ * Number of packets that can be queued for ingress into the lwIP core
  */
-#define LWIP_MAX_GUARDED_RX_BUF_SZ 1024
+#define ZTS_LWIP_MAX_RX_QUEUE_LEN 1024
 
 //////////////////////////////////////////////////////////////////////////////
 // Service behaviour                                                        //

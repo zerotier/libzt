@@ -78,6 +78,11 @@ void lwip_hibernate_driver();
 void lwip_wake_driver();
 
 /**
+ * Returns whether the lwIP network stack is up and ready to process traffic
+ */
+bool lwip_is_up();
+
+/**
  * @brief Initialize network stack semaphores, threads, and timers.
  *
  * @usage This is called during the initial setup of each VirtualTap but is only allowed to execute once

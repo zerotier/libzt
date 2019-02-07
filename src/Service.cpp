@@ -827,6 +827,9 @@ public:
 
 	inline void generateEventMsgs()
 	{
+		if (!lwip_is_up()) {
+			return; // Don't process peer status events unless the stack is up.
+		}
 		// Generate messages to be dequeued by the callback message thread
 #if ZTS_NETWORK_CALLBACKS
 		Mutex::Lock _l(_nets_m);
@@ -870,7 +873,7 @@ public:
 		ZT_PeerList *pl = _node->peers();
 		if (pl) {
 			for(unsigned long i=0;i<pl->peerCount;++i) {
-				if (!peerCache.count(pl->peers[i].address)) { // Add first entry
+				if (!peerCache.count(pl->peers[i].address)) {
 					if (pl->peers[i].pathCount > 0) {
 						_callbackMsgQueue.enqueue(new std::pair<uint64_t,int>(pl->peers[i].address, ZTS_EVENT_PEER_P2P));
 					}
@@ -885,6 +888,7 @@ public:
 						_callbackMsgQueue.enqueue(new std::pair<uint64_t,int>(pl->peers[i].address, ZTS_EVENT_PEER_RELAY));
 					}
 				}
+				// Update our cache with most recently observed path count
 				peerCache[pl->peers[i].address] = pl->peers[i].pathCount;
 			}
 		}

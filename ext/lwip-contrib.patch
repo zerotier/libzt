@@ -1,0 +1,27 @@
+diff --git a/ports/unix/port/include/arch/cc.h b/ports/unix/port/include/arch/cc.h
+index a3dac04..5e6f4db 100644
+--- a/ports/unix/port/include/arch/cc.h
++++ b/ports/unix/port/include/arch/cc.h
+@@ -32,6 +32,8 @@
+ #ifndef LWIP_ARCH_CC_H
+ #define LWIP_ARCH_CC_H
+ 
++#include "Debug.hpp" // libzt
++
+ /* see https://sourceforge.net/p/predef/wiki/OperatingSystems/ */
+ #if defined __ANDROID__
+ #define LWIP_UNIX_ANDROID
+@@ -55,9 +57,12 @@
+ #endif
+ 
+ #if defined(LWIP_UNIX_ANDROID) && defined(FD_SET)
+-typedef __kernel_fd_set fd_set;
++//typedef __kernel_fd_set fd_set;
+ #endif
+ 
++// Comment out the following line to use lwIP's default diagnostic printing routine
++#define LWIP_PLATFORM_DIAG(x)    do {DEBUG_INFO x;} while(0)
++
+ struct sio_status_s;
+ typedef struct sio_status_s sio_status_t;
+ #define sio_fd_t sio_status_t*

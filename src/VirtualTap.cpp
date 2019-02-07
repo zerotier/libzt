@@ -36,8 +36,6 @@
 #include "OSUtils.hpp"
 
 #include "Service.hpp"
-extern void _push_callback_event(uint64_t nwid, int eventCode);
-
 #include "Mutex.hpp"
 #include "lwipDriver.hpp"
 #include "libzt.h"
@@ -49,8 +47,8 @@ extern void _push_callback_event(uint64_t nwid, int eventCode);
 namespace ZeroTier {
 
 class VirtualTap;
-
 extern OneService *service;
+extern void postEvent(uint64_t id, int eventCode);
 
 /**
  * A virtual tap device. The ZeroTier core service creates one of these for each
@@ -88,6 +86,7 @@ VirtualTap::VirtualTap(
 
 VirtualTap::~VirtualTap()
 {
+	postEvent(_nwid, ZTS_EVENT_NETWORK_DOWN);
 	_run = false;
 	::write(_shutdownSignalPipe[1],"\0",1);
 	_phy.whack();

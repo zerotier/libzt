@@ -28,29 +28,63 @@ cmake_minimum_required (VERSION 3.0)
 project (zt)
 
 set (CMAKE_VERBOSE_MAKEFILE ON)
-set (CMAKE_SUPPRESS_REGENERATION true)
-set (PROJ_DIR ${PROJECT_SOURCE_DIR})
-set (CMAKE_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin)
-set (EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
-set (LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
-set (INCLUDE_PATH ${PROJ_DIR}/include)
 
-# -----------------------------------------------------------------------------
-# |                                 BUILD CONFIG                              |
-# -----------------------------------------------------------------------------
-
-# Default build type: Release
-
-# Release - Optimization and no debug info
-# Debug - No optimization, debug info
-# RelWithDebInfo - Release optimizations and debug info
-# MinSizeRel - Similar to Release but with optimizations to minimize size
-
+# Library and executable output paths
 if (NOT CMAKE_BUILD_TYPE)
-  set (CMAKE_BUILD_TYPE Release)
+    message( FATAL_ERROR "Must specify CMAKE_BUILD_TYPE, CMake will exit." )
 endif ()
 
-set (SILENCE "-Wno-unused-parameter -Wno-unused-variable -Wno-missing-field-initializers")
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set (CMAKE_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin/debug)
+endif()
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    set (CMAKE_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin/release)
+endif()
+
+set (EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
+set (LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
+set (INTERMEDIATE_LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib/intermediate)
+
+# -----------------------------------------------------------------------------
+# |                                LIBRARY NAMES                              |
+# -----------------------------------------------------------------------------
+
+if (IN_XCODE)
+	set (XCODE_FRAMEWORK_NAME ${PROJECT_NAME})
+endif ()
+
+if (BUILDING_WIN)
+	# Possibly a CMake limitation? -- Can't share target output names
+	set (STATIC_LIB_NAME ${PROJECT_NAME}-static)
+	set (STATIC_LIB_OUTPUT_NAME ${PROJECT_NAME}-static)
+	set (DYNAMIC_LIB_NAME ${PROJECT_NAME}-shared)
+	set (DYNAMIC_LIB_OUTPUT_NAME ${PROJECT_NAME}-shared)
+else ()
+	set (STATIC_LIB_NAME ${PROJECT_NAME}-static)
+	set (STATIC_LIB_OUTPUT_NAME ${PROJECT_NAME})
+	set (DYNAMIC_LIB_NAME ${PROJECT_NAME}-shared)
+	set (DYNAMIC_LIB_OUTPUT_NAME ${PROJECT_NAME})
+endif ()
+
+# -----------------------------------------------------------------------------
+# |                                    FLAGS                                  |
+# -----------------------------------------------------------------------------
+
+set (SILENCE "-Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-missing-field-initializers")
+set (LIBZT_FLAGS "-D_USING_LWIP_DEFINITIONS_=1 -DZT_SDK")
+set (ZTCORE_FLAGS "-DZT_USE_MINIUPNPC=1 -DZT_SOFTWARE_UPDATE_DEFAULT=0")
+
+if (BUILDING_WIN)
+	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc -DNOMINMAX")
+else ()
+	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${LIBZT_FLAGS} -fstack-protector")
+	set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${LIBZT_FLAGS} -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
+	set (CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${LIBZT_FLAGS} -fstack-protector")
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SILENCE} ${LIBZT_FLAGS} -O3 -Wall -Wextra -std=c++11")
+	set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${SILENCE} ${LIBZT_FLAGS} -std=c++11 -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
+	set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${SILENCE} ${LIBZT_FLAGS} -O3 -std=c++11")
+endif ()
 
 # -----------------------------------------------------------------------------
 # |                     PLATFORM/FEATURE AND IDE DETECTION                    |
@@ -76,6 +110,9 @@ if (${CMAKE_GENERATOR} STREQUAL "Xcode")
 	set(XCODE_EMIT_EFFECTIVE_PLATFORM_NAME ON)
 	#set_target_properties (${STATIC_LIB_NAME} PROPERTIES XCODE_ATTRIBUTE_MY_BUILD_ONLY_ACTIVE_ARCH YES)
 	#set_target_properties (${STATIC_LIB_NAME} PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH "${MY_BUILD_ONLY_ACTIVE_ARCH})
+endif ()
+if (BUILDING_WIN32 OR BUILDING_WIN64 OR MSVC)
+	set (BUILDING_WIN TRUE)
 endif ()
 if (NOT BUILDING_ANDROID AND NOT IN_XCODE AND NOT BUILD_TESTS EQUAL 0)
 	set(SHOULD_BUILD_TESTS TRUE)
@@ -128,8 +165,40 @@ if ((BUILDING_ANDROID OR JNI) AND JNI_FOUND)
 endif ()
 
 # -----------------------------------------------------------------------------
-# |                                   LWIP PORT                               |
+# |                            SOURCE FILE GLOBS                              |
 # -----------------------------------------------------------------------------
+
+set (PROJ_DIR ${PROJECT_SOURCE_DIR})
+set (LWIP_SRC_DIR "${PROJ_DIR}/ext/lwip/src")
+set (ZTO_SRC_DIR "${PROJ_DIR}/ext/ZeroTierOne")
+set (LIBZT_SRC_DIR "${PROJ_DIR}/src")
+
+file (GLOB zerotiercoreSrcGlob
+	${ZTO_SRC_DIR}/node/*.cpp
+	${ZTO_SRC_DIR}/osdep/OSUtils.cpp
+    ${ZTO_SRC_DIR}/osdep/PortMapper.cpp
+	${ZTO_SRC_DIR}/osdep/ManagedRoute.cpp)
+
+file (GLOB libnatpmpSrcGlob
+	${ZTO_SRC_DIR}/ext/libnatpmp/natpmp.c
+	${ZTO_SRC_DIR}/ext/libnatpmp/getgateway.c)
+
+file (GLOB libminiupnpcSrcGlob
+    ${ZTO_SRC_DIR}/ext/miniupnpc/connecthostport.c
+    ${ZTO_SRC_DIR}/ext/miniupnpc/igd_desc_parse.c 
+    ${ZTO_SRC_DIR}/ext/miniupnpc/minisoap.c
+    ${ZTO_SRC_DIR}/ext/miniupnpc/minissdpc.c
+    ${ZTO_SRC_DIR}/ext/miniupnpc/miniupnpc.c 
+    ${ZTO_SRC_DIR}/ext/miniupnpc/miniwget.c
+    ${ZTO_SRC_DIR}/ext/miniupnpc/minixml.c
+    ${ZTO_SRC_DIR}/ext/miniupnpc/portlistingparse.c 
+    ${ZTO_SRC_DIR}/ext/miniupnpc/receivedata.c
+    ${ZTO_SRC_DIR}/ext/miniupnpc/upnpcommands.c
+    ${ZTO_SRC_DIR}/ext/miniupnpc/upnpdev.c
+    ${ZTO_SRC_DIR}/ext/miniupnpc/upnperrors.c
+    ${ZTO_SRC_DIR}/ext/miniupnpc/upnpreplyparse.c)
+
+file (GLOB libztSrcGlob ${LIBZT_SRC_DIR}/*.cpp)
 
 if (UNIX)
 	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/unix/port)
@@ -138,69 +207,6 @@ endif ()
 if (BUILDING_WIN)
 	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/win32)
 endif ()
-
-# -----------------------------------------------------------------------------
-# |                                LIBRARY NAMES                              |
-# -----------------------------------------------------------------------------
-
-if (IN_XCODE)
-	set (XCODE_FRAMEWORK_NAME ${PROJECT_NAME})
-endif ()
-
-if (BUILDING_WIN)
-	# Possibly a CMake limitation? -- Can't share target output names
-	set (STATIC_LIB_NAME ${PROJECT_NAME}-static)
-	set (STATIC_LIB_OUTPUT_NAME ${PROJECT_NAME}-static)
-	set (DYNAMIC_LIB_NAME ${PROJECT_NAME}-shared)
-	set (DYNAMIC_LIB_OUTPUT_NAME ${PROJECT_NAME}-shared)
-else ()
-	set (STATIC_LIB_NAME ${PROJECT_NAME}-static)
-	set (STATIC_LIB_OUTPUT_NAME ${PROJECT_NAME})
-	set (DYNAMIC_LIB_NAME ${PROJECT_NAME}-shared)
-	set (DYNAMIC_LIB_OUTPUT_NAME ${PROJECT_NAME})
-endif ()
-
-# -----------------------------------------------------------------------------
-# |                                    FLAGS                                  |
-# -----------------------------------------------------------------------------
-
-set (LIBZT_FLAGS "-DZT_SDK=1 -D_USING_LWIP_DEFINITIONS_=1")
-set (LIBZT_FLAGS_DEBUG "-DZT_SDK=1 -DLIBZT_TRACE=1 -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1 -DNS_TRACE=1 -DNS_DEBUG=1")
-
-set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${LIBZT_FLAGS_DEBUG}")
-set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${LIBZT_FLAGS_DEBUG}")
-
-if (BUILDING_WIN)
-	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc -DNOMINMAX")
-else ()
-	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fstack-protector")
-	set (CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fstack-protector")
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LIBZT_FLAGS} ${SILENCE} -O3 -Wall -Wextra -std=c++11")
-	set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${SILENCE} -std=c++11")
-	set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${LIBZT_FLAGS} ${SILENCE} -O3 -std=c++11")
-endif ()
-
-#set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-#set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
-
-# -----------------------------------------------------------------------------
-# |                            SOURCE FILE GLOBS                              |
-# -----------------------------------------------------------------------------
-
-set (LWIP_SRC_DIR "${PROJ_DIR}/ext/lwip/src")
-set (ZTO_SRC_DIR "${PROJ_DIR}/ext/ZeroTierOne")
-set (LIBZT_SRC_DIR "${PROJ_DIR}/src")
-
-include_directories ("${LIBZT_SRC_DIR}")
-include_directories ("${ZTO_SRC_DIR}/include")
-include_directories ("${PROJ_DIR}")
-include_directories ("${ZTO_SRC_DIR}/osdep")
-include_directories ("${ZTO_SRC_DIR}/node")
-include_directories ("${ZTO_SRC_DIR}/service")
-include_directories ("${PROJ_DIR}/include")
-include_directories ("${LWIP_SRC_DIR}/include")
-include_directories ("${LWIP_PORT_DIR}/include")
 
 file (GLOB lwipSrcGlob
 	${LWIP_SRC_DIR}/netif/*.c
@@ -211,176 +217,117 @@ file (GLOB lwipSrcGlob
 	${LWIP_SRC_DIR}/core/ipv6/*.c)
 list(REMOVE_ITEM lwipSrcGlob ${LWIP_SRC_DIR}/netif/slipif.c)
 
-file (GLOB ztoSrcGlob
-	${ZTO_SRC_DIR}/node/*.cpp
-	${ZTO_SRC_DIR}/service/*.cpp
-	${ZTO_SRC_DIR}/osdep/OSUtils.cpp
-	${ZTO_SRC_DIR}/controller/*.cpp
-	${ZTO_SRC_DIR}/osdep/ManagedRoute.cpp)
-
-file (GLOB libztSrcGlob ${LIBZT_SRC_DIR}/*.cpp)
-
-file (GLOB ExampleAppSrcGlob
-	${PROJ_DIR}/examples/cpp/*.cpp
-	${PROJ_DIR}/examples/cpp/ipv4simple/*.cpp
-	${PROJ_DIR}/examples/cpp/ipv6simple/*.cpp
-	${PROJ_DIR}/examples/cpp/ipv6adhoc/*.cpp
-	${PROJ_DIR}/examples/cpp/sharedlib/*.cpp
-	${PROJ_DIR}/examples/ztproxy/*.cpp)
-
-
-# header globs for xcode frameworks
-file (GLOB frameworkPrivateHeaderGlob
-	${INCLUDE_PATH}/libzt.h
-	${INCLUDE_PATH}/libztDebug.h)
-file (GLOB frameworkPublicHeaderGlob ${INCLUDE_PATH}/Xcode-Bridging-Header.h)
-file (GLOB frameworkHeaderGlob ${frameworkPublicHeaderGlob} ${frameworkPrivateHeaderGlob})
-
 # -----------------------------------------------------------------------------
-# |                         PLATFORM-SPECIFIC CONFIG                          |
+# |                                  INCLUDES                                 |
 # -----------------------------------------------------------------------------
 
-# ANDROID-specific
-if (BUILDING_ANDROID)
-	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -DSOCKLEN_T_DEFINED=1")
-	set (ANDROID_NDK /Users/$ENV{USER}/Library/Android/sdk/ndk-bundle/sysroot/usr/include/arm-linux-androideabi)
-	include_directories (${ANDROID_NDK})
-endif ()
-
-# WINDOWS-specific MSVC flags and libraries
-if (BUILDING_WIN)
-	# 32-bit
-	if(NOT BUILDING_WIN64)
-		set (WINLIBDIR, "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.16299.0/um/x86")
-	endif ()
-	# 64-bit
-	if(BUILDING_WIN64)
-		set (WINLIBDIR, "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.16299.0/um/x64")
-	endif ()
-	#find_library (ws2_32_LIBRARY_PATH NAMES WS2_32 HINTS ${WINLIBDIR})
-	#find_library (shlwapi_LIBRARY_PATH NAMES ShLwApi HINTS ${WINLIBDIR})
-	set (ws2_32_LIBRARY_PATH "${WINLIBDIR}/WS2_32.Lib")
-	set (shlwapi_LIBRARY_PATH "${WINLIBDIR}/ShLwApi.Lib")
-	set (iphlpapi_LIBRARY_PATH "${WINLIBDIR}/iphlpapi.Lib")
-	message (STATUS ${WINLIBDIR})
-	message (STATUS "WS2_32=${ws2_32_LIBRARY_PATH}")
-	message (STATUS "ShLwApi=${shlwapi_LIBRARY_PATH}")
-	message (STATUS "liphlpapi=${iphlpapi_LIBRARY_PATH}")
-	add_definitions (-DZT_SDK=1)
-	add_definitions (-DADD_EXPORTS=1)
-endif ()
-
-# -----------------------------------------------------------------------------
-# |                        OBJECTS-PIC (INTERMEDIATE)                         |
-# -----------------------------------------------------------------------------
-
-add_library (lwip_pic ${lwipSrcGlob})
-set_target_properties (lwip_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
-add_library (zto_pic ${ztoSrcGlob})
-set_target_properties (zto_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
-add_library (http_pic "${ZTO_SRC_DIR}/ext/http-parser/http_parser.c")
-set_target_properties (http_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
+include_directories (${ZTO_SRC_DIR})
+include_directories (${ZTO_SRC_DIR}/node)
+include_directories (${ZTO_SRC_DIR}/osdep)
+include_directories (${ZTO_SRC_DIR}/include)
+include_directories (${ZTO_SRC_DIR}/ext/miniupnpc)
+include_directories (${ZTO_SRC_DIR}/ext/libnatpmp)
+include_directories (${PROJ_DIR}/src)
+include_directories (${PROJ_DIR}/include)
+include_directories (${LWIP_SRC_DIR}/include)
+include_directories (${LWIP_PORT_DIR}/include)
+include_directories (${PROJ_DIR}/ext/concurrentqueue)
 
 # -----------------------------------------------------------------------------
 # |                     OBJECT LIBRARIES (INTERMEDIATE)                       |
 # -----------------------------------------------------------------------------
 
-# lwip_obj
-add_library (lwip_obj OBJECT ${lwipSrcGlob})
 # zto_obj
-add_library (zto_obj OBJECT ${ztoSrcGlob})
+add_library (zto_obj OBJECT ${zerotiercoreSrcGlob})
+set_target_properties (zto_obj PROPERTIES COMPILE_FLAGS "${SILENCE} -std=c++11 -DZT_USE_MINIUPNPC=1 -DZT_SOFTWARE_UPDATE_DEFAULT=0")
 if (BUILDING_WIN)
 	target_link_libraries (zto_obj ws2_32)
 	target_link_libraries (zto_obj ${shlwapi_LIBRARY_PATH})
 	target_link_libraries (zto_obj ${iphlpapi_LIBRARY_PATH})
 endif ()
-# http_obj
-add_library (http_obj OBJECT "${ZTO_SRC_DIR}/ext/http-parser/http_parser.c")
+
+# libnatpmp_obj
+add_library (libnatpmp_obj OBJECT ${libnatpmpSrcGlob})
+set_target_properties (libnatpmp_obj PROPERTIES COMPILE_FLAGS "")
+
+# miniupnpc_obj
+add_library (miniupnpc_obj OBJECT ${libminiupnpcSrcGlob})
+target_compile_definitions(miniupnpc_obj PRIVATE MACOSX ZT_USE_MINIUPNPC MINIUPNP_STATICLIB _DARWIN_C_SOURCE MINIUPNPC_SET_SOCKET_TIMEOUT MINIUPNPC_GET_SRC_ADDR _BSD_SOURCE _DEFAULT_SOURCE MINIUPNPC_VERSION_STRING=\"2.0\" UPNP_VERSION_STRING=\"UPnP/1.1\" ENABLE_STRNATPMPERR OS_STRING=\"Darwin/15.0.0\")
+
+# lwip_obj
+add_library (lwip_obj OBJECT ${lwipSrcGlob})
+set_target_properties (lwip_obj PROPERTIES COMPILE_FLAGS "")
+
+# libzt_obj
+add_library (libzt_obj OBJECT ${libztSrcGlob})
+set_target_properties (libzt_obj PROPERTIES COMPILE_FLAGS "-std=c++11")
+
+add_library (lwip_pic ${lwipSrcGlob})
+set_target_properties (lwip_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_library (zto_pic ${zerotiercoreSrcGlob})
+set_target_properties (zto_pic PROPERTIES COMPILE_FLAGS "${SILENCE} -std=c++11")
+set_target_properties (zto_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # -----------------------------------------------------------------------------
-# |                     LIBZT BUILD TARGETS (FINAL PRODUCT)                   |
+# |                      BUILD TARGETS (FINAL PRODUCT)                        |
 # -----------------------------------------------------------------------------
 
-# static
-add_library (${STATIC_LIB_NAME} STATIC
-	$<TARGET_OBJECTS:lwip_obj>
-	$<TARGET_OBJECTS:zto_obj>
-	$<TARGET_OBJECTS:http_obj> ${libztSrcGlob})
-set_target_properties (${STATIC_LIB_NAME} PROPERTIES OUTPUT_NAME ${STATIC_LIB_OUTPUT_NAME})
+# libzerotiercore.a
+add_library (zerotiercore STATIC $<TARGET_OBJECTS:zto_obj>)
+set_target_properties (zerotiercore PROPERTIES
+    OUTPUT_NAME zerotiercore
+    LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
 
-# dynamic
-add_library (${DYNAMIC_LIB_NAME} SHARED ${libztSrcGlob})
+# libnatpmp.a
+add_library (natpmp STATIC $<TARGET_OBJECTS:libnatpmp_obj>)
+set_target_properties (natpmp PROPERTIES
+    OUTPUT_NAME natpmp
+    LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
+
+# libminiupnpc.a
+add_library (miniupnpc STATIC $<TARGET_OBJECTS:miniupnpc_obj>)
+set_target_properties (miniupnpc PROPERTIES
+    OUTPUT_NAME miniupnpc
+    LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
+
+# liblwip.a
+add_library (lwip STATIC $<TARGET_OBJECTS:lwip_obj>)
+set_target_properties (lwip PROPERTIES
+    OUTPUT_NAME lwip
+    LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
+
+# libzt.a
+add_library (zt STATIC $<TARGET_OBJECTS:libzt_obj>
+$<TARGET_OBJECTS:zto_obj>
+$<TARGET_OBJECTS:libnatpmp_obj>
+$<TARGET_OBJECTS:miniupnpc_obj>
+$<TARGET_OBJECTS:lwip_obj>)
+set_target_properties (zt PROPERTIES
+    OUTPUT_NAME zt
+    LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
+
+# libzt.so/dylib/dll
+add_library (zt-shared SHARED ${libztSrcGlob})
 message (STATUS ${libztSrcGlob})
-target_link_libraries (${DYNAMIC_LIB_NAME} lwip_pic zto_pic http_pic)
-set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES OUTPUT_NAME ${DYNAMIC_LIB_OUTPUT_NAME})
-set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS true)
+target_link_libraries (zt-shared lwip_pic zto_pic)
+set_target_properties (zt-shared PROPERTIES COMPILE_FLAGS "${SILENCE} -std=c++11 -DZT_SDK")
+set_target_properties (zt-shared PROPERTIES OUTPUT_NAME ${DYNAMIC_LIB_OUTPUT_NAME}
+                                    WINDOWS_EXPORT_ALL_SYMBOLS true)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 if (BUILDING_ANDROID)
-	target_link_libraries (${DYNAMIC_LIB_NAME} android log)
-endif ()
-
-if (BUILDING_WIN)
-	target_link_libraries (${STATIC_LIB_NAME} ws2_32)
-	target_link_libraries (${STATIC_LIB_NAME} ${shlwapi_LIBRARY_PATH})
-	target_link_libraries (${STATIC_LIB_NAME} ${iphlpapi_LIBRARY_PATH})
-	target_link_libraries (${DYNAMIC_LIB_NAME} ws2_32)
-	target_link_libraries (${DYNAMIC_LIB_NAME} ${shlwapi_LIBRARY_PATH})
-	target_link_libraries (${DYNAMIC_LIB_NAME} ${iphlpapi_LIBRARY_PATH})
-endif ()
-
-if (BUILDING_LINUX OR BUILDING_DARWIN)
-	target_link_libraries (${STATIC_LIB_NAME} pthread)
-	target_link_libraries (${DYNAMIC_LIB_NAME} pthread)
-endif ()
-
-# xcode framework
-if (IN_XCODE)
-	add_library(${XCODE_FRAMEWORK_NAME} STATIC
-		$<TARGET_OBJECTS:lwip_obj>
-		$<TARGET_OBJECTS:zto_obj>
-		$<TARGET_OBJECTS:http_obj>
-		${libztSrcGlob}
-		${frameworkHeaderGlob})
-
-	set_target_properties(${XCODE_FRAMEWORK_NAME} PROPERTIES
-		FRAMEWORK TRUE
-		FRAMEWORK_VERSION A
-		DEFINES_MODULE TRUE
-		MACOSX_FRAMEWORK_IDENTIFIER com.cmake.${XCODE_FRAMEWORK_NAME}
-		MODULE_MAP "~/op/zt/libzt/packages/module.modulemap"
-		PUBLIC_HEADER "${frameworkHeaderGlob}"
-		XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"
-	)
+	target_link_libraries (zt-shared android log)
 endif ()
 
 # -----------------------------------------------------------------------------
-# |                       TEST APPLICATIONS AND EXAMPLES                      |
+# |                                EXECUTABLES                                |
 # -----------------------------------------------------------------------------
 
 if (SHOULD_BUILD_TESTS)
-#	foreach (testsourcefile ${ExampleAppSrcGlob})
-#	    string (REPLACE ".cpp" "" testname ${testsourcefile})
-#	    get_filename_component (testname ${testname} NAME)
-#	    add_executable (${testname} ${testsourcefile})
-#	if (BUILDING_WIN)
-#	    target_link_libraries (${testname} ${STATIC_LIB_NAME})
-#	else ()
-#		target_link_libraries (${testname} ${STATIC_LIB_NAME} pthread dl)
-#	endif ()
-#	endforeach (testsourcefile ${ExampleAppSrcGlob})
+	add_executable (example ${PROJ_DIR}/test/example.cpp)
+	target_link_libraries(example zt)
 
-if (NOT BUILDING_WIN) # only necessary for raw driver development
-	# selftest
-	#add_executable (selftest ${PROJ_DIR}/test/selftest.cpp)
-	#target_compile_options (selftest PRIVATE -D__SELFTEST__)
-	#if (BUILDING_WIN)
-	#	target_link_libraries (selftest ${STATIC_LIB_NAME} ${ws2_32_LIBRARY_PATH} ${shlwapi_LIBRARY_PATH} ${iphlpapi_LIBRARY_PATH})
-	#else ()
-	#	target_link_libraries (selftest ${STATIC_LIB_NAME} pthread)
-	#endif ()
-	# nativetest
-	#add_executable (nativetest ${PROJ_DIR}/test/selftest.cpp)
-	#target_compile_options (nativetest PRIVATE -D__NATIVETEST__)
-endif ()
+	add_executable (selftest ${PROJ_DIR}/test/selftest.cpp)
+	target_link_libraries(selftest zt)
+	set_target_properties (selftest PROPERTIES COMPILE_FLAGS "${SILENCE} -D__SELFTEST__")	
 endif ()

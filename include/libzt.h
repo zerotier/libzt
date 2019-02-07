@@ -63,21 +63,85 @@ typedef int socklen_t;
 #include <Windows.h>
 #endif
 
+/*
 #ifdef _USING_LWIP_DEFINITIONS_
 #include "lwip/sockets.h"
 #endif
-
-#include "Constants.hpp"
-#include "Defs.hpp"
-#include "ServiceControls.hpp"
-
-class InetAddress;
-class VirtualTap;
+*/
 
 #if defined(_MSC_VER)
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
 #endif
+
+namespace ZeroTier {
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Custom errno to prevent conflicts with platform's own errno
+extern int zts_errno;
+typedef int zts_err_t;
+
+#ifdef __cplusplus
+}
+#endif
+
+/**
+ * The system port upon which ZT traffic is sent and received
+ */
+#define ZTS_DEFAULT_PORT 9994
+
+//////////////////////////////////////////////////////////////////////////////
+// Control API error codes                                                  //
+//////////////////////////////////////////////////////////////////////////////
+
+#define ZTS_ERR_OK                          0 // Everything is ok
+#define ZTS_ERR_INVALID_ARG                -1 // A parameter provided by the user application is invalid (e.g. our of range, NULL, etc)
+#define ZTS_ERR_SERVICE                    -2 // The service isn't initialized or is for some other reason currently unavailable
+#define ZTS_ERR_INVALID_OP                 -3 // For some reason this API operation is not permitted (perhaps the service is still starting?)
+
+//////////////////////////////////////////////////////////////////////////////
+// Control API event codes                                                  //
+//////////////////////////////////////////////////////////////////////////////
+
+#define ZTS_EVENT_NONE                     -1
+#define ZTS_EVENT_NODE_UP                   0
+// Standard node events
+#define ZTS_EVENT_NODE_OFFLINE              1
+#define ZTS_EVENT_NODE_ONLINE               2
+#define ZTS_EVENT_NODE_DOWN                 3
+#define ZTS_EVENT_NODE_IDENTITY_COLLISION   4
+// libzt node events
+#define ZTS_EVENT_NODE_UNRECOVERABLE_ERROR  16
+#define ZTS_EVENT_NODE_NORMAL_TERMINATION   17
+// Network-specific events
+#define ZTS_EVENT_NETWORK_NOT_FOUND         32
+#define ZTS_EVENT_NETWORK_CLIENT_TOO_OLD    33
+#define ZTS_EVENT_NETWORK_REQUESTING_CONFIG 34
+#define ZTS_EVENT_NETWORK_OK                35
+#define ZTS_EVENT_NETWORK_ACCESS_DENIED     36
+#define ZTS_EVENT_NETWORK_READY_IP4         37
+#define ZTS_EVENT_NETWORK_READY_IP6         38
+#define ZTS_EVENT_NETWORK_DOWN              39
+//
+#define ZTS_EVENT_NETWORK_STACK_UP          48
+#define ZTS_EVENT_NETWORK_STACK_DOWN        49
+
+// lwIP netif events
+#define ZTS_EVENT_NETIF_UP_IP4              64
+#define ZTS_EVENT_NETIF_UP_IP6              65
+#define ZTS_EVENT_NETIF_DOWN_IP4            66
+#define ZTS_EVENT_NETIF_DOWN_IP6            67
+#define ZTS_EVENT_NETIF_REMOVED             68
+#define ZTS_EVENT_NETIF_LINK_UP             69
+#define ZTS_EVENT_NETIF_LINK_DOWN           70
+#define ZTS_EVENT_NETIF_NEW_ADDRESS         71
+// Peer events
+#define ZTS_EVENT_PEER_P2P                  96
+#define ZTS_EVENT_PEER_RELAY                97
+#define ZTS_EVENT_PEER_UNREACHABLE          98
 
 //////////////////////////////////////////////////////////////////////////////
 // Common definitions and structures for interacting with the ZT socket API //
@@ -196,7 +260,7 @@ typedef SSIZE_T ssize_t;
 #error "external ZTS_FD_SETSIZE too small for number of sockets"
 #endif // FD_SET
 
-#if !defined(_USING_LWIP_DEFINITIONS_)
+#if defined(_USING_LWIP_DEFINITIONS_)
 
 #ifdef __cplusplus
 extern "C" {
@@ -322,15 +386,454 @@ struct sockaddr_ll {
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-// Socket API                                                               //
+// Subset of: ZeroTierOne.h                                                 //
+// We redefine a few ZT structures here so that we don't need to drag the   //
+// entire ZeroTierOne.h file into the user application                      //
+//////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Maximum address assignments per network
+ */
+#define ZTS_MAX_ASSIGNED_ADDRESSES 16
+
+/**
+ * Maximum routes per network
+ */
+#define ZTS_MAX_NETWORK_ROUTES 32
+
+/**
+ * Maximum number of direct network paths to a given peer
+ */
+#define ZT_MAX_PEER_NETWORK_PATHS 16
+
+/**
+ * What trust hierarchy role does this peer have?
+ */
+enum zts_peer_role
+{
+	ZTS_PEER_ROLE_LEAF = 0,       // ordinary node
+	ZTS_PEER_ROLE_MOON = 1,       // moon root
+	ZTS_PEER_ROLE_PLANET = 2      // planetary root
+};
+
+/**
+ * A structure used to represent a virtual network route
+ */
+struct zts_virtual_network_route
+{
+	/**
+	 * Target network / netmask bits (in port field) or NULL or 0.0.0.0/0 for default
+	 */
+	struct sockaddr_storage target;
+
+	/**
+	 * Gateway IP address (port ignored) or NULL (family == 0) for LAN-local (no gateway)
+	 */
+	struct sockaddr_storage via;
+
+	/**
+	 * Route flags
+	 */
+	uint16_t flags;
+
+	/**
+	 * Route metric (not currently used)
+	 */
+	uint16_t metric;
+};
+
+/**
+ * A structure used to convey network-specific details to the user application
+ */
+struct zts_network_details
+{
+	/**
+	 * Network ID
+	 */
+	uint64_t nwid;
+
+	/**
+	 * Maximum Transmission Unit size for this network
+	 */
+	int mtu;
+
+	/**
+	 * Number of addresses (actually) assigned to the node on this network
+	 */
+	short num_addresses;
+
+	/**
+	 * Array of IPv4 and IPv6 addresses assigned to the node on this network
+	 */
+	struct sockaddr_storage addr[ZTS_MAX_ASSIGNED_ADDRESSES];
+
+	/**
+	 * Number of routes
+	 */
+	unsigned int num_routes;
+
+	/**
+	 * Array of IPv4 and IPv6 addresses assigned to the node on this network
+	 */
+	struct zts_virtual_network_route routes[ZTS_MAX_NETWORK_ROUTES];
+};
+
+/**
+ * Physical network path to a peer
+ */
+struct zts_physical_path
+{
+	/**
+	 * Address of endpoint
+	 */
+	struct sockaddr_storage address;
+
+	/**
+	 * Time of last send in milliseconds or 0 for never
+	 */
+	uint64_t lastSend;
+
+	/**
+	 * Time of last receive in milliseconds or 0 for never
+	 */
+	uint64_t lastReceive;
+
+	/**
+	 * Is this a trusted path? If so this will be its nonzero ID.
+	 */
+	uint64_t trustedPathId;
+
+	/**
+	 * Is path expired?
+	 */
+	int expired;
+
+	/**
+	 * Is path preferred?
+	 */
+	int preferred;
+};
+
+/**
+ * Peer status result buffer
+ */
+struct zts_peer_details
+{
+	/**
+	 * ZeroTier address (40 bits)
+	 */
+	uint64_t address;
+
+	/**
+	 * Remote major version or -1 if not known
+	 */
+	int versionMajor;
+
+	/**
+	 * Remote minor version or -1 if not known
+	 */
+	int versionMinor;
+
+	/**
+	 * Remote revision or -1 if not known
+	 */
+	int versionRev;
+
+	/**
+	 * Last measured latency in milliseconds or -1 if unknown
+	 */
+	int latency;
+
+	/**
+	 * What trust hierarchy role does this device have?
+	 */
+	enum zts_peer_role role;
+
+	/**
+	 * Number of paths (size of paths[])
+	 */
+	unsigned int pathCount;
+
+	/**
+	 * Known network paths to peer
+	 */
+	zts_physical_path paths[ZT_MAX_PEER_NETWORK_PATHS];
+};
+
+/**
+ * List of peers
+ */
+struct zts_peer_list
+{
+	zts_peer_details *peers;
+	unsigned long peerCount;
+};
+
+//////////////////////////////////////////////////////////////////////////////
+// ZeroTier Service Controls                                                //
 //////////////////////////////////////////////////////////////////////////////
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// Custom errno to prevent conflicts with platform's own errno
-extern int zts_errno;
+/**
+ * @brief Starts the ZeroTier service and notifies user application of events via callback
+ *
+ * @usage Should be called at the beginning of your application. Will blocks until all of the following conditions are met:
+ * - ZeroTier core service has been initialized
+ * - Cryptographic identity has been generated or loaded from directory specified by `path`
+ * - Virtual network is successfully joined
+ * - IP address is assigned by network controller service
+ * @param path path directory where cryptographic identities and network configuration files are stored and retrieved
+ *              (`identity.public`, `identity.secret`)
+ * @param userCallbackFunc User-specified callback for ZeroTier events
+ * @return 0 if successful; or 1 if failed
+ */
+ZT_SOCKET_API int ZTCALL zts_start(const char *path, void (*userCallbackFunc)(uint64_t, int), int port = ZTS_DEFAULT_PORT);
+
+/**
+ * @brief Stops the ZeroTier service, brings down all virtual interfaces in order to stop all traffic processing.
+ *
+ * @usage This should be called when the application anticipates not needing any sort of traffic processing for a
+ * prolonged period of time. The stack driver (with associated timers) will remain active in case future traffic
+ * processing is required. Note that the application must tolerate a multi-second startup time if zts_start()
+ * zts_startjoin() is called again. To stop this background thread and free all resources use zts_free() instead.
+ * @return Returns 0 on success, -1 on failure
+ */
+ZT_SOCKET_API int ZTCALL zts_stop();
+
+/**
+ * @brief Stops all background services, brings down all interfaces, frees all resources. After calling this function
+ * an application restart will be required before the library can be used again. This is a blocking call.
+ *
+ * @usage This should be called at the end of your program or when you do not anticipate communicating over ZeroTier
+ * @return Returns 0 on success, -1 on failure
+ */
+ZT_SOCKET_API int ZTCALL zts_free();
+
+/**
+ * @brief Return whether the ZeroTier service is currently running
+ *
+ * @usage Call this after zts_start()
+ * @return 1 if running, 0 if not running
+ */
+ZT_SOCKET_API int ZTCALL zts_core_running();
+
+/**
+ * @brief Return the number of networks currently joined by this node
+ *
+ * @usage Call this after zts_start(), zts_startjoin() and/or zts_join()
+ * @return Number of networks joined by this node
+ */
+ZT_SOCKET_API zts_err_t ZTCALL zts_get_num_joined_networks();
+
+/**
+ * @brief Populates a structure with details for a given network
+ *
+ * @usage Call this from the application thread any time after the node has joined a network
+ * @param nwid A 16-digit hexidecimal virtual network ID
+ * @param nd Pointer to a zts_network_details structure to populate
+ * @return ZTS_ERR_SERVICE if failed, 0 if otherwise
+ */
+ZT_SOCKET_API zts_err_t ZTCALL zts_get_network_details(uint64_t nwid, struct zts_network_details *nd);
+
+/**
+ * @brief Populates an array of structures with details for any given number of networks
+ *
+ * @usage Call this from the application thread any time after the node has joined a network
+ * @param nds Pointer to an array of zts_network_details structures to populate
+ * @param num Number of zts_network_details structures available to copy data into, will be updated
+ * to reflect number of structures that were actually populated
+ * @return ZTS_ERR_SERVICE if failed, 0 if otherwise
+ */
+ZT_SOCKET_API zts_err_t ZTCALL zts_get_all_network_details(struct zts_network_details *nds, int *num);
+
+/**
+ * @brief Join a network
+ *
+ * @usage Call this from application thread. Only after zts_start() has succeeded
+ * @param nwid A 16-digit hexidecimal virtual network ID
+ * @return 0 if successful, -1 for any failure
+ */
+ZT_SOCKET_API zts_err_t ZTCALL zts_join(const uint64_t nwid);
+
+/**
+ * @brief Leave a network
+ *
+ * @usage Call this from application thread. Only after zts_start() has succeeded
+ * @param nwid A 16-digit hexidecimal virtual network ID
+ * @return 0 if successful, -1 for any failure
+ */
+ZT_SOCKET_API zts_err_t ZTCALL zts_leave(const uint64_t nwid);
+
+
+/**
+ * @brief Leaves all networks
+ *
+ * @usage Call this from application thread. Only after zts_start() has succeeded
+ * @return 0 if successful, -1 for any failure
+ */
+ZT_SOCKET_API zts_err_t ZTCALL zts_leave_all();
+
+/**
+ * @brief Orbits a given moon (user-defined root server)
+ *
+ * @usage Call this from application thread. Only after zts_start() has succeeded
+ * @param moonWorldId A 16-digit hexidecimal world ID
+ * @param moonSeed A 16-digit hexidecimal seed ID
+ * @return ZTS_ERR_OK if successful, ZTS_ERR_SERVICE, ZTS_ERR_INVALID_ARG, ZTS_ERR_INVALID_OP if otherwise
+ */
+ZT_SOCKET_API zts_err_t ZTCALL zts_orbit(uint64_t moonWorldId, uint64_t moonSeed);
+
+/**
+ * @brief De-orbits a given moon (user-defined root server)
+ *
+ * @usage Call this from application thread. Only after zts_start() has succeeded
+ * @param moonWorldId A 16-digit hexidecimal world ID
+ * @return ZTS_ERR_OK if successful, ZTS_ERR_SERVICE, ZTS_ERR_INVALID_ARG, ZTS_ERR_INVALID_OP if otherwise
+ */
+ZT_SOCKET_API zts_err_t ZTCALL zts_deorbit(uint64_t moonWorldId);
+
+/**
+ * @brief Copies the configuration path used by ZeroTier into the provided buffer
+ *
+ * @usage Use this to determine where ZeroTier is storing identity files
+ * @param homePath Path to ZeroTier configuration files
+ * @param len Length of destination buffer
+ * @return 0 if no error, -1 if invalid argument was supplied
+ */
+ZT_SOCKET_API zts_err_t ZTCALL zts_get_path(char *homePath, size_t *len);
+
+/**
+ * @brief Returns the node ID of this instance
+ *
+ * @usage Call this after zts_start() and/or when zts_running() returns true
+ * @return
+ */
+ZT_SOCKET_API uint64_t ZTCALL zts_get_node_id();
+
+/**
+ * @brief Returns whether any address has been assigned to the SockTap for this network
+ *
+ * @usage This is used as an indicator of readiness for service for the ZeroTier core and stack
+ * @param nwid Network ID
+ * @return
+ */
+ZT_SOCKET_API int ZTCALL zts_has_address(const uint64_t nwid);
+
+
+/**
+ * @brief Returns the number of addresses assigned to this node for the given nwid
+ *
+ * @param nwid Network ID
+ * @return The number of addresses assigned
+ */
+ZT_SOCKET_API int ZTCALL zts_get_num_assigned_addresses(const uint64_t nwid);
+
+/**
+ * @brief Returns the assigned address located at the given index
+ *
+ * @usage The indices of each assigned address are not guaranteed and should only
+ * be used for iterative purposes.
+ * @param nwid Network ID
+ * @param index location of assigned address
+ * @return The number of addresses assigned
+ */
+ZT_SOCKET_API int ZTCALL zts_get_address_at_index(
+	const uint64_t nwid, const int index, struct sockaddr *addr, socklen_t *addrlen);
+
+/**
+ * @brief Get IP address for this device on a given network
+ *
+ * @usage FIXME: Only returns first address found, good enough for most cases
+ * @param nwid Network ID
+ * @param addr Destination structure for address
+ * @param addrlen size of destination address buffer, will be changed to size of returned address
+ * @return 0 if an address was successfully found, -1 if failure
+ */
+ZT_SOCKET_API int ZTCALL zts_get_address(
+	const uint64_t nwid, struct sockaddr_storage *addr, const int address_family);
+
+/**
+ * @brief Computes a 6PLANE IPv6 address for the given Network ID and Node ID
+ *
+ * @usage Can call any time
+ * @param addr Destination structure for address
+ * @param nwid Network ID 
+ * @param nodeId Node ID
+ * @return
+ */
+ZT_SOCKET_API void ZTCALL zts_get_6plane_addr(
+	struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId);
+
+/**
+ * @brief Computes a RFC4193 IPv6 address for the given Network ID and Node ID
+ *
+ * @usage Can call any time
+ * @param addr Destination structure for address
+ * @param nwid Network ID 
+ * @param nodeId Node ID
+ * @return
+ */
+ZT_SOCKET_API void ZTCALL zts_get_rfc4193_addr(
+	struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId);
+
+/**
+ * @brief Return the number of peers
+ *
+ * @usage Call this after zts_start() has succeeded
+ * @return
+ */
+ZT_SOCKET_API zts_err_t zts_get_peer_count();
+
+ZT_SOCKET_API zts_err_t zts_get_peers(struct zts_peer_details *pds, int *num);
+
+/**
+ * @brief Determines whether a peer is reachable via a P2P connection
+ * or is being relayed via roots.
+ *
+ * @usage
+ * @param nodeId The ID of the peer to check
+ * @return The status of a peer
+ */
+ZT_SOCKET_API zts_err_t zts_get_peer_status(uint64_t nodeId);
+
+/**
+ * @brief Starts a ZeroTier service in the background
+ *
+ * @usage For internal use only.
+ * @param
+ * @return
+ */
+#if defined(_WIN32)
+DWORD WINAPI _zts_start_service(LPVOID thread_id);
+#else
+void *_zts_start_service(void *thread_id);
+#endif
+
+/**
+ * @brief [Should not be called from user application] This function must be surrounded by 
+ * ZT service locks. It will determine if it is currently safe and allowed to operate on 
+ * the service.
+ * @usage Can be called at any time
+ * @return 1 or 0
+ */
+int _zts_can_perform_service_operation();
+
+/**
+ * @brief [Should not be called from user application] Returns whether or not the node is 
+ * online.
+ * @usage Can be called at any time
+ * @return 1 or 0
+ */
+int _zts_node_online();
+
+int zts_ready();
+
+//////////////////////////////////////////////////////////////////////////////
+// Socket API                                                               //
+//////////////////////////////////////////////////////////////////////////////
 
 /**
  * @brief Create a socket
@@ -678,5 +1181,7 @@ ZT_SOCKET_API zts_err_t ZTCALL zts_del_dns_nameserver(struct sockaddr *addr);
 #ifdef __cplusplus
 } // extern "C"
 #endif
+
+} // namespace ZeroTier
 
 #endif // _H

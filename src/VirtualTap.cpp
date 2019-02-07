@@ -35,13 +35,12 @@
 #include "Node.hpp"
 #include "OSUtils.hpp"
 
-#include "Constants.hpp" // libzt
-#include "ServiceControls.hpp"
-#include "OneService.hpp"
+#include "Service.hpp"
 extern void _push_callback_event(uint64_t nwid, int eventCode);
 
 #include "Mutex.hpp"
-#include "lwIP.h"
+#include "lwipDriver.hpp"
+#include "libzt.h"
 
 #ifdef _MSC_VER
 #include "Synchapi.h"
@@ -51,10 +50,7 @@ namespace ZeroTier {
 
 class VirtualTap;
 
-extern OneService *zt1Service;
-extern void (*_userCallbackFunc)(uint64_t, int);
-extern std::map<uint64_t, VirtualTap*> vtapMap;
-extern Mutex _vtaps_lock;
+extern OneService *service;
 
 /**
  * A virtual tap device. The ZeroTier core service creates one of these for each
@@ -86,11 +82,6 @@ VirtualTap::VirtualTap(
 	snprintf(vtap_full_name, sizeof(vtap_full_name), "libzt%llx", (unsigned long long)_nwid);
 	_dev = vtap_full_name;
 	::pipe(_shutdownSignalPipe);
-
-	_vtaps_lock.lock();
-	vtapMap[_nwid] = this;
-	_vtaps_lock.unlock();
-
 	lwip_driver_init();
 	// Start virtual tap thread and stack I/O loops
 	_thread = Thread::start(this);
@@ -198,10 +189,10 @@ std::string VirtualTap::deviceName() const
 
 std::string VirtualTap::nodeId() const
 {
-	if (zt1Service) {
-		char id[ZTS_ID_LEN];
+	if (service) {
+		char id[16];
 		memset(id, 0, sizeof(id));
-		sprintf(id, "%llx", (unsigned long long)((OneService *)zt1Service)->getNode()->address());
+		sprintf(id, "%llx", (unsigned long long)((OneService *)service)->getNode()->address());
 		return std::string(id);
 	}
 	else {
@@ -283,73 +274,8 @@ void VirtualTap::threadMain()
 
 void VirtualTap::Housekeeping()
 {
-/*
-	Mutex::Lock _l(_tap_m);
-	OneService *service = ((OneService *)zt1Service);
-	if (!service) {
-		return;
-	}
-	nd.num_routes = ZTS_MAX_NETWORK_ROUTES;
-	service->getRoutes(this->_nwid, (ZT_VirtualNetworkRoute*)&(nd.routes)[0], &(nd.num_routes));
-*/
-
-/*			
-	InetAddress target_addr;
-	InetAddress via_addr;
-	InetAddress null_addr;
-	InetAddress nm;
-	null_addr.fromString("");
-	bool found;
-	char ipbuf[INET6_ADDRSTRLEN], ipbuf2[INET6_ADDRSTRLEN], ipbuf3[INET6_ADDRSTRLEN];
-
-	// TODO: Rework this when we have time
-	// check if pushed route exists in tap (add)
-	/*
-	for (int i=0; i<ZT_MAX_NETWORK_ROUTES; i++) {
-		found = false;
-		target_addr = managed_routes->at(i).target;
-		via_addr = managed_routes->at(i).via;
-		nm = target_addr.netmask();
-		for (size_t j=0; j<routes.size(); j++) {
-			if (via_addr.ipsEqual(null_addr) || target_addr.ipsEqual(null_addr)) {
-				found=true;
-				continue;
-			}
-			if (routes[j].first.ipsEqual(target_addr) && routes[j].second.ipsEqual(nm)) {
-				found=true;
-			}
-		}
-		if (found == false) {
-			if (via_addr.ipsEqual(null_addr) == false) {
-				DEBUG_INFO("adding route <target=%s, nm=%s, via=%s>", target_addr.toString(ipbuf), nm.toString(ipbuf2), via_addr.toString(ipbuf3));
-				routes.push_back(std::pair<InetAddress,InetAddress>(target_addr, nm));
-				routeAdd(target_addr, nm, via_addr);
-			}
-		}
-	}
-	// check if route exists in tap but not in pushed routes (remove)
-	for (size_t i=0; i<routes.size(); i++) {
-		found = false;
-		for (int j=0; j<ZT_MAX_NETWORK_ROUTES; j++) {
-			target_addr = managed_routes->at(j).target;
-			via_addr = managed_routes->at(j).via;
-			nm = target_addr.netmask();
-			if (routes[i].first.ipsEqual(target_addr) && routes[i].second.ipsEqual(nm)) {
-				found=true;
-			}
-		}
-		if (found == false) {
-			DEBUG_INFO("removing route to <%s,%s>", routes[i].first.toString(ipbuf), routes[i].second.toString(ipbuf2));
-			routes.erase(routes.begin() + i);
-			routeDelete(routes[i].first, routes[i].second);
-		}
-	}
-*/
+    //
 }
-
-//////////////////////////////////////////////////////////////////////////////
-// Not used in this implementation                                          //
-//////////////////////////////////////////////////////////////////////////////
 
 void VirtualTap::phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address,
 	const struct sockaddr *from,void *data,unsigned long len) {}

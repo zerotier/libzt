@@ -144,11 +144,11 @@ bool VirtualTap::addIp(const InetAddress &ip)
 {
 	char ipbuf[INET6_ADDRSTRLEN];
 	Mutex::Lock _l(_ips_m);
+	lwip_init_interface((void*)this, this->_mac, ip);
 	if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
 		_ips.push_back(ip);
 		std::sort(_ips.begin(),_ips.end());
 	}
-	lwip_init_interface((void*)this, this->_mac, ip);
 	return true;
 }
 
@@ -256,18 +256,13 @@ void VirtualTap::threadMain()
 		if (FD_ISSET(_shutdownSignalPipe[0],&readfds)) {
 			break;
 		}
-#ifdef _MSC_VER
-		Sleep(ZTS_PHY_POLL_INTERVAL);
-		_phy.poll(0);
+#if defined(_WIN32)
+		Sleep(ZTS_TAP_THREAD_POLLING_INTERVAL);
 #else
-		_phy.poll(ZTS_PHY_POLL_INTERVAL);
+		struct timespec sleepValue = {0};
+		sleepValue.tv_nsec = ZTS_TAP_THREAD_POLLING_INTERVAL * 500000;
+		nanosleep(&sleepValue, NULL);
 #endif
-
-		uint64_t current_ts = OSUtils::now();
-		if (current_ts > last_housekeeping_ts + ZTS_HOUSEKEEPING_INTERVAL) {
-			Housekeeping();
-			last_housekeeping_ts = OSUtils::now();
-		}
 	}
 }
 

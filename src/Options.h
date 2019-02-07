@@ -25,9 +25,9 @@
 #define ZTS_CALLBACK_PROCESSING_INTERVAL 25
 
 /**
- * Polling interval (in ms) for file descriptors wrapped in the Phy I/O loop (for raw drivers only)
+ * Polling interval (in ms) for fds wrapped in the Phy I/O loop
  */
-#define ZTS_PHY_POLL_INTERVAL 1
+#define ZTS_TAP_THREAD_POLLING_INTERVAL 50
 
 #define ZTS_HOUSEKEEPING_INTERVAL 50
 
@@ -41,19 +41,45 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #define ZTS_SERVICE_THREAD_NAME "ZeroTierServiceThread"
-
 #define ZTS_EVENT_CALLBACK_THREAD_NAME "ZeroTierEventCallbackThread"
 
+//////////////////////////////////////////////////////////////////////////////
+// lwIP behaviour (tcpip driver)                                            //
+//////////////////////////////////////////////////////////////////////////////
 
+/**
+ * How many frames are handled per call from core
+ */
+#define LWIP_FRAMES_HANDLED_PER_CORE_CALL 16
 
+/**
+ * How often the lwIP tcpip thread callback checks for incoming frames
+ */
+#define LWIP_GUARDED_BUF_CHECK_INTERVAL 5
 
-#define LWIP_FRAMES_HANDLED_PER_CORE_CALL 16 // How many frames are handled per call from core
-#define LWIP_GUARDED_BUF_CHECK_INTERVAL 5 // in ms
-#define LWIP_MAX_GUARDED_RX_BUF_SZ 1024 // number of frame pointers that can be cached waiting for receipt into core
+/**
+ * Number of frame pointers that can be cached waiting for receipt into core
+ */
+#define LWIP_MAX_GUARDED_RX_BUF_SZ 1024
 
+//////////////////////////////////////////////////////////////////////////////
+// Service behaviour                                                        //
+//////////////////////////////////////////////////////////////////////////////
 
-
+/**
+ * Whether the service will cache peer details (such as known paths). This will
+ * make startup and reachability time shorter but is generally only effective
+ * for networks with a somewhat static topology. In other words this would not be
+ * recommended for use on mobile devices.
+ */
 #define PEER_CACHING 0
 
+/**
+ * Whether the service will cache network details. This will shorten startup
+ * times. This allows the service to nearly instantly inform the network stack
+ * of an address to use for this peer so that it can create an interface. This
+ * is only recommended for networks whose IP assignments do not change often.
+ */
+#define NETWORK_CACHING 1
 
 #endif

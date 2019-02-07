@@ -430,6 +430,19 @@ public:
 				}
 			}
 #endif
+
+#if NETWORK_CACHING
+			// Join existing networks in networks.d
+			{
+				std::vector<std::string> networksDotD(OSUtils::listDirectory((_homePath + ZT_PATH_SEPARATOR_S "networks.d").c_str()));
+				for(std::vector<std::string>::iterator f(networksDotD.begin());f!=networksDotD.end();++f) {
+					std::size_t dot = f->find_last_of('.');
+					if ((dot == 16)&&(f->substr(16) == ".conf"))
+						_node->join(Utils::hexStrToU64(f->substr(0,dot).c_str()),(void *)0,(void *)0);
+				}
+			}
+#endif
+
 			// Main I/O loop
 			_nextBackgroundTaskDeadline = 0;
 			int64_t clockShouldBe = OSUtils::now();
@@ -659,35 +672,33 @@ public:
 		}
 	}
 
-		// Apply or update managed IPs for a configured network (be sure n.tap exists)
-	void syncManagedStuff(NetworkState &n,bool syncIps,bool syncRoutes)
+	// Apply or update managed IPs for a configured network (be sure n.tap exists)
+	void syncManagedStuff(NetworkState &n)
 	{
 		char ipbuf[64];
 		// assumes _nets_m is locked
-		if (syncIps) {
-			std::vector<InetAddress> newManagedIps;
-			newManagedIps.reserve(n.config.assignedAddressCount);
-			for(unsigned int i=0;i<n.config.assignedAddressCount;++i) {
-				const InetAddress *ii = reinterpret_cast<const InetAddress *>(&(n.config.assignedAddresses[i]));
-				if (checkIfManagedIsAllowed(n,*ii))
-					newManagedIps.push_back(*ii);
-			}
-			std::sort(newManagedIps.begin(),newManagedIps.end());
-			newManagedIps.erase(std::unique(newManagedIps.begin(),newManagedIps.end()),newManagedIps.end());
-			for(std::vector<InetAddress>::iterator ip(n.managedIps.begin());ip!=n.managedIps.end();++ip) {
-				if (std::find(newManagedIps.begin(),newManagedIps.end(),*ip) == newManagedIps.end()) {
-					if (!n.tap->removeIp(*ip))
-						fprintf(stderr,"ERROR: unable to remove ip address %s" ZT_EOL_S, ip->toString(ipbuf));
-				}
-			}
-			for(std::vector<InetAddress>::iterator ip(newManagedIps.begin());ip!=newManagedIps.end();++ip) {
-				if (std::find(n.managedIps.begin(),n.managedIps.end(),*ip) == n.managedIps.end()) {
-					if (!n.tap->addIp(*ip))
-						fprintf(stderr,"ERROR: unable to add ip address %s" ZT_EOL_S, ip->toString(ipbuf));
-				}
-			}
-			n.managedIps.swap(newManagedIps);
+		std::vector<InetAddress> newManagedIps;
+		newManagedIps.reserve(n.config.assignedAddressCount);
+		for(unsigned int i=0;i<n.config.assignedAddressCount;++i) {
+			const InetAddress *ii = reinterpret_cast<const InetAddress *>(&(n.config.assignedAddresses[i]));
+			if (checkIfManagedIsAllowed(n,*ii))
+				newManagedIps.push_back(*ii);
 		}
+		std::sort(newManagedIps.begin(),newManagedIps.end());
+		newManagedIps.erase(std::unique(newManagedIps.begin(),newManagedIps.end()),newManagedIps.end());
+		for(std::vector<InetAddress>::iterator ip(n.managedIps.begin());ip!=n.managedIps.end();++ip) {
+			if (std::find(newManagedIps.begin(),newManagedIps.end(),*ip) == newManagedIps.end()) {
+				if (!n.tap->removeIp(*ip))
+					fprintf(stderr,"ERROR: unable to remove ip address %s" ZT_EOL_S, ip->toString(ipbuf));
+			}
+		}
+		for(std::vector<InetAddress>::iterator ip(newManagedIps.begin());ip!=newManagedIps.end();++ip) {
+			if (std::find(n.managedIps.begin(),n.managedIps.end(),*ip) == n.managedIps.end()) {
+				if (!n.tap->addIp(*ip))
+					fprintf(stderr,"ERROR: unable to add ip address %s" ZT_EOL_S, ip->toString(ipbuf));
+			}
+		}
+		n.managedIps.swap(newManagedIps);
 
 	}
 
@@ -759,7 +770,7 @@ public:
 			case ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_CONFIG_UPDATE:
 				ZT_FAST_MEMCPY(&(n.config),nwc,sizeof(ZT_VirtualNetworkConfig));
 				if (n.tap) { // sanity check
-					syncManagedStuff(n,true,true);
+					syncManagedStuff(n);
 					n.tap->setMtu(nwc->mtu);
 				} else {
 					_nets.erase(nwid);
@@ -773,11 +784,17 @@ public:
 					*nuptr = (void *)0;
 					delete n.tap;
 					_nets.erase(nwid);
+#if NETWORK_CACHING
+					if (op == ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_DESTROY) {
+						char nlcpath[256];
+						OSUtils::ztsnprintf(nlcpath,sizeof(nlcpath),"%s" ZT_PATH_SEPARATOR_S "networks.d" ZT_PATH_SEPARATOR_S "%.16llx.local.conf",_homePath.c_str(),nwid);
+						OSUtils::rm(nlcpath);
+					}
+#endif
 				} else {
 					_nets.erase(nwid);
 				}
 				break;
-
 		}
 		return 0;
 	}
@@ -934,6 +951,13 @@ public:
 			case ZT_STATE_OBJECT_PLANET:
 				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "planet",_homePath.c_str());
 				break;
+#if NETWORK_CACHING
+			case ZT_STATE_OBJECT_NETWORK_CONFIG:
+				OSUtils::ztsnprintf(dirname,sizeof(dirname),"%s" ZT_PATH_SEPARATOR_S "networks.d",_homePath.c_str());
+				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "%.16llx.conf",dirname,(unsigned long long)id[0]);
+				secure = true;
+				break;
+#endif
 #if PEER_CACHING
 			case ZT_STATE_OBJECT_PEER:
 				OSUtils::ztsnprintf(dirname,sizeof(dirname),"%s" ZT_PATH_SEPARATOR_S "peers.d",_homePath.c_str());
@@ -989,6 +1013,11 @@ public:
 			case ZT_STATE_OBJECT_PLANET:
 				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "planet",_homePath.c_str());
 				break;
+#if NETWORK_CACHING
+			case ZT_STATE_OBJECT_NETWORK_CONFIG:
+				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "networks.d" ZT_PATH_SEPARATOR_S "%.16llx.conf",_homePath.c_str(),(unsigned long long)id[0]);
+				break;
+#endif
 #if PEER_CACHING
 			case ZT_STATE_OBJECT_PEER:
 				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "peers.d" ZT_PATH_SEPARATOR_S "%.10llx.peer",_homePath.c_str(),(unsigned long long)id[0]);

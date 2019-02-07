@@ -42,6 +42,7 @@
 #include "concurrentqueue.h"
 
 #include "libzt.h"
+#include "lwipDriver.hpp"
 
 #if defined(_WIN32)
 WSADATA wsaData;
@@ -413,6 +414,7 @@ zts_err_t zts_deorbit(uint64_t moonWorldId)
 zts_err_t zts_start(const char *path, void (*callback)(uint64_t, int), int port)
 {
 	Mutex::Lock _l(_service_lock);
+	lwip_driver_init();
 	if (service || _run_service) {
 		// Service is already initialized
 		return ZTS_ERR_INVALID_OP;

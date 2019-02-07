@@ -82,7 +82,6 @@ VirtualTap::VirtualTap(
 	snprintf(vtap_full_name, sizeof(vtap_full_name), "libzt%llx", (unsigned long long)_nwid);
 	_dev = vtap_full_name;
 	::pipe(_shutdownSignalPipe);
-	lwip_driver_init();
 	// Start virtual tap thread and stack I/O loops
 	_thread = Thread::start(this);
 }

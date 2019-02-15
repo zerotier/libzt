@@ -33,6 +33,8 @@
 #ifndef LIBZT_H
 #define LIBZT_H
 
+#include "lwipopts.h"
+
 #ifdef _WIN32
 	#ifdef ADD_EXPORTS
 		#define ZT_SOCKET_API __declspec(dllexport)
@@ -113,10 +115,9 @@ typedef int zts_err_t;
 #define ZTS_EVENT_NODE_ONLINE               2
 #define ZTS_EVENT_NODE_DOWN                 3
 #define ZTS_EVENT_NODE_IDENTITY_COLLISION   4
-// libzt node events
 #define ZTS_EVENT_NODE_UNRECOVERABLE_ERROR  16
 #define ZTS_EVENT_NODE_NORMAL_TERMINATION   17
-// Network-specific events
+// Network events
 #define ZTS_EVENT_NETWORK_NOT_FOUND         32
 #define ZTS_EVENT_NETWORK_CLIENT_TOO_OLD    33
 #define ZTS_EVENT_NETWORK_REQUESTING_CONFIG 34
@@ -125,23 +126,41 @@ typedef int zts_err_t;
 #define ZTS_EVENT_NETWORK_READY_IP4         37
 #define ZTS_EVENT_NETWORK_READY_IP6         38
 #define ZTS_EVENT_NETWORK_DOWN              39
-//
-#define ZTS_EVENT_NETWORK_STACK_UP          48
-#define ZTS_EVENT_NETWORK_STACK_DOWN        49
-
+// Network Stack events
+#define ZTS_EVENT_STACK_UP                  48
+#define ZTS_EVENT_STACK_DOWN                49
 // lwIP netif events
-#define ZTS_EVENT_NETIF_UP_IP4              64
-#define ZTS_EVENT_NETIF_UP_IP6              65
-#define ZTS_EVENT_NETIF_DOWN_IP4            66
-#define ZTS_EVENT_NETIF_DOWN_IP6            67
-#define ZTS_EVENT_NETIF_REMOVED             68
-#define ZTS_EVENT_NETIF_LINK_UP             69
-#define ZTS_EVENT_NETIF_LINK_DOWN           70
-#define ZTS_EVENT_NETIF_NEW_ADDRESS         71
+#define ZTS_EVENT_NETIF_UP                  64
+#define ZTS_EVENT_NETIF_DOWN                65
+#define ZTS_EVENT_NETIF_REMOVED             66
+#define ZTS_EVENT_NETIF_LINK_UP             67
+#define ZTS_EVENT_NETIF_LINK_DOWN           68
 // Peer events
 #define ZTS_EVENT_PEER_P2P                  96
 #define ZTS_EVENT_PEER_RELAY                97
 #define ZTS_EVENT_PEER_UNREACHABLE          98
+// Path events
+#define ZTS_EVENT_PATH_DISCOVERED           112
+#define ZTS_EVENT_PATH_ALIVE                113
+#define ZTS_EVENT_PATH_DEAD                 114
+// Route events
+#define ZTS_EVENT_ROUTE_ADDED               128
+#define ZTS_EVENT_ROUTE_REMOVED             129
+// Address events
+#define ZTS_EVENT_ADDR_ADDED_IP4            144
+#define ZTS_EVENT_ADDR_REMOVED_IP4          145
+#define ZTS_EVENT_ADDR_ADDED_IP6            146
+#define ZTS_EVENT_ADDR_REMOVED_IP6          147
+
+// Macros for legacy behaviour
+#define NODE_EVENT_TYPE(code) code >= ZTS_EVENT_NODE_UP && code <= ZTS_EVENT_NODE_NORMAL_TERMINATION
+#define NETWORK_EVENT_TYPE(code) code >= ZTS_EVENT_NETWORK_NOT_FOUND && code <= ZTS_EVENT_NETWORK_DOWN
+#define STACK_EVENT_TYPE(code) code >= ZTS_EVENT_STACK_UP && code <= ZTS_EVENT_STACK_DOWN
+#define NETIF_EVENT_TYPE(code) code >= ZTS_EVENT_NETIF_UP && code <= ZTS_EVENT_NETIF_LINK_DOWN
+#define PEER_EVENT_TYPE(code) code >= ZTS_EVENT_PEER_P2P && code <= ZTS_EVENT_PEER_UNREACHABLE
+#define PATH_EVENT_TYPE(code) code >= ZTS_EVENT_PATH_DISCOVERED && code <= ZTS_EVENT_PATH_DEAD
+#define ROUTE_EVENT_TYPE(code) code >= ZTS_EVENT_ROUTE_ADDED && code <= ZTS_EVENT_ROUTE_REMOVED
+#define ADDR_EVENT_TYPE(code) code >= ZTS_EVENT_ADDR_ADDED_IP4 && code <= ZTS_EVENT_ADDR_REMOVED_IP6
 
 //////////////////////////////////////////////////////////////////////////////
 // Common definitions and structures for interacting with the ZT socket API //
@@ -287,7 +306,7 @@ struct zts_in6_addr {
     u32_t u32_addr[4];
     u8_t  u8_addr[16];
   } un;
-#define s6_addr  un.u8_addr
+//#define s6_addr  un.u8_addr
 };
 
 struct zts_sockaddr_in {
@@ -414,6 +433,134 @@ enum zts_peer_role
 	ZTS_PEER_ROLE_LEAF = 0,       // ordinary node
 	ZTS_PEER_ROLE_MOON = 1,       // moon root
 	ZTS_PEER_ROLE_PLANET = 2      // planetary root
+};
+
+/**
+ * A structure used to convey details about the current node
+ * to the user application
+ */
+struct zts_node_details
+{
+	/**
+	 * The node ID
+	 */
+	uint64_t address;
+
+	/**
+	 * The current clock value accord to the node
+	 */ 
+	uint64_t clock;
+
+	/**
+	 * Whether or not this node is online
+	 */
+	bool online;
+
+	/**
+	 * Whether port mapping is enabled
+	 */
+	bool portMappingEnabled;
+
+	/**
+	 * Whether multipath support is enabled. If true, this node will
+	 * be capable of utilizing multiple physical links simultaneosly
+	 * to create higher quality or more robust aggregate links.
+	 *
+	 * See: https://www.zerotier.com/manual.shtml#2_1_5
+	 */
+	bool multipathEnabled;
+
+	/**
+	 * The port used by the service to send and receive
+	 * all encapsulated traffic
+	 */
+	uint16_t primaryPort;
+
+	/**
+	 * Planet ID
+	 */
+	uint64_t planetWorldId;
+	uint64_t planetWorldTimestamp;
+	uint8_t versionMajor;
+	uint8_t versionMinor;
+	uint8_t versionRev;
+};
+
+/**
+ * A structure used to convey information to a user application via
+ * a callback function.
+ */
+struct zts_callback_msg
+{
+	zts_callback_msg():
+		eventCode(-1),
+		node(NULL),
+		network(NULL),
+		netif(NULL),
+		route(NULL),
+		path(NULL),
+		peer(NULL) {}
+
+	/**
+	 * Event identifier
+	 */
+	int eventCode;
+
+	struct zts_node_details *node;
+	struct zts_network_details *network;
+	struct zts_netif_details *netif;
+	struct zts_virtual_network_route *route;
+	struct zts_physical_path *path;
+	struct zts_peer_details *peer;
+	struct zts_addr_details *addr;
+};
+
+struct zts_addr_details
+{
+	uint64_t nwid;
+	struct sockaddr_storage addr;
+};
+
+/**
+ * A structure used to convey information about a virtual network
+ * interface (netif) to a user application.
+ */
+struct zts_netif_details
+{
+	/**
+	 * The virtual network that this interface was commissioned for.
+	 */
+	uint64_t nwid;
+
+	/**
+	 * The hardware address assigned to this interface
+	 */
+	uint64_t mac;
+
+	/**
+	 * The MTU for this interface
+	 */
+	int mtu;
+
+	/**
+	 * The IPv4 address assigned to this interface.
+	 */
+	//struct sockaddr_in ip4_addr;
+
+	/**
+	 * The IPv6 addresses assigned to this interface.
+	 */
+	//struct sockaddr_in6 ip6_addr[LWIP_IPV6_NUM_ADDRESSES];
+
+	/**
+	 * Number of IPv4 addresses assigned to this interface
+	 */
+	//int num_ip4_addr;
+
+	/**
+	 * Number of IPv6 addresses assigned to this interface
+	 */
+	//int num_ip6_addr;
 };
 
 /**
@@ -590,7 +737,7 @@ extern "C" {
  * @param userCallbackFunc User-specified callback for ZeroTier events
  * @return 0 if successful; or 1 if failed
  */
-ZT_SOCKET_API int ZTCALL zts_start(const char *path, void (*userCallbackFunc)(uint64_t, int), int port = ZTS_DEFAULT_PORT);
+ZT_SOCKET_API int ZTCALL zts_start(const char *path, void (*userCallbackFunc)(struct zts_callback_msg*), int port = ZTS_DEFAULT_PORT);
 
 /**
  * @brief Stops the ZeroTier service, brings down all virtual interfaces in order to stop all traffic processing.

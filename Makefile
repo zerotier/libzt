@@ -43,7 +43,7 @@ patch:
 
 .PHONY: clean
 clean:
-	rm -rf bin staging generated
+	rm -rf bin staging generated dist
 
 all: debug release
 

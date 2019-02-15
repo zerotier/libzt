@@ -5,11 +5,6 @@
 // Callbacks                                                                //
 //////////////////////////////////////////////////////////////////////////////
 
-#define ZTS_NODE_CALLBACKS    1
-#define ZTS_NETWORK_CALLBACKS 1
-#define ZTS_NETIF_CALLBACKS   1
-#define ZTS_PEER_CALLBACKS    1
-
 /**
  * The maximum number of un-processed callback messages
  */

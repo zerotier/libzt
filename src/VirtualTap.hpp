@@ -82,6 +82,21 @@ public:
 	bool enabled() const;
 
 	/**
+	 * Mutex for protecting IP address container for this tap.
+	 */
+	Mutex _ips_m; // Public because we want it accessible by the driver layer
+
+	/**
+	 * Return whether this tap has been assigned an IPv4 address.
+	 */
+	bool hasIpv4Addr();
+
+	/**
+	 * Return whether this tap has been assigned an IPv6 address.
+	 */
+	bool hasIpv6Addr();
+
+	/**
 	 * Adds an address to the userspace stack interface associated with this VirtualTap
 	 * - Starts VirtualTap main thread ONLY if successful
 	 */
@@ -158,23 +173,7 @@ public:
 	// Lower-level lwIP netif handling and traffic handling readiness           //
 	//////////////////////////////////////////////////////////////////////////////
 
-	void *netif4 = NULL;
-	void *netif6 = NULL;
-
-	bool netif4WasUpLastCheck = false;
-	bool netif6WasUpLastCheck = false;
-
-	/**
-	 * Notes the current state of the lower level lwIP netif and reports if a state change
-	 * has happened since the last check. This method is likely temporary.
-	 */
-	uint64_t recognizeLowerLevelInterfaceStateChange(void *n);
-
-	/**
-	 * A state will only be reported via callback if it differs from this value. Subsequently this
-	 * value will be updated.
-	 */
-	//int _lastReportedStatus;
+	void *netif = NULL;
 
 	/**
 	 * The last time that this virtual tap received a network config update from the core
@@ -190,11 +189,6 @@ public:
 	void lastConfigUpdate(uint64_t lastConfigUpdateTime);
 
 	int _networkStatus = 0;
-	int _netifStatus = 0;
-	/**
-	 * Returns whether or not this interface is ready for traffic.
-	 */
-	bool isReady();
 
 	//////////////////////////////////////////////////////////////////////////////
 	// Vars                                                                     //
@@ -203,9 +197,6 @@ public:
 	std::vector<std::pair<InetAddress, InetAddress> > routes;
 
 	char vtap_full_name[64];
-	char vtap_abbr_name[16];
-
-	size_t ifindex = 0;
 
 	std::vector<InetAddress> ips() const;
 	std::vector<InetAddress> _ips;
@@ -229,9 +220,6 @@ public:
 
 	std::vector<MulticastGroup> _multicastGroups;
 	Mutex _multicastGroups_m;
-	Mutex _ips_m;
-
-	//struct zts_network_details nd;
 
 	/*
 	 * Timestamp of last run of housekeeping

@@ -48,7 +48,7 @@ namespace ZeroTier {
 
 class VirtualTap;
 extern OneService *service;
-extern void postEvent(uint64_t id, int eventCode);
+extern void postEvent(int eventCode, void *arg);
 
 /**
  * A virtual tap device. The ZeroTier core service creates one of these for each
@@ -86,7 +86,9 @@ VirtualTap::VirtualTap(
 
 VirtualTap::~VirtualTap()
 {
-	postEvent(_nwid, ZTS_EVENT_NETWORK_DOWN);
+	struct zts_network_details *nd = new zts_network_details;
+	nd->nwid = _nwid;
+	postEvent(ZTS_EVENT_NETWORK_DOWN, (void*)nd);
 	_run = false;
 	::write(_shutdownSignalPipe[1],"\0",1);
 	_phy.whack();
@@ -94,34 +96,6 @@ VirtualTap::~VirtualTap()
 	Thread::join(_thread);
 	::close(_shutdownSignalPipe[0]);
 	::close(_shutdownSignalPipe[1]);
-}
-
-uint64_t VirtualTap::recognizeLowerLevelInterfaceStateChange(void *n)
-{
-	if (!n) {
-		return ZTS_EVENT_NONE;
-	}
-	if (n == netif4) {
-		if (netif4WasUpLastCheck && !lwip_is_netif_up(netif4)) {
-			netif4WasUpLastCheck = false;
-			return ZTS_EVENT_NETIF_DOWN_IP4;
-		}
-		if (!netif4WasUpLastCheck && lwip_is_netif_up(netif4)) {
-			netif4WasUpLastCheck = true;
-			return ZTS_EVENT_NETIF_UP_IP4;
-		}
-	}
-	if (n == netif6) {
-		if (netif6WasUpLastCheck && !lwip_is_netif_up(netif6)) {
-			netif6WasUpLastCheck = false;
-			return ZTS_EVENT_NETIF_DOWN_IP6;
-		}
-		if (!netif6WasUpLastCheck && lwip_is_netif_up(netif6)) {
-			netif6WasUpLastCheck = true;
-			return ZTS_EVENT_NETIF_UP_IP6;
-		}
-	}
-	return ZTS_EVENT_NONE;
 }
 
 void VirtualTap::lastConfigUpdate(uint64_t lastConfigUpdateTime)
@@ -139,13 +113,49 @@ bool VirtualTap::enabled() const
 	return _enabled;
 }
 
+bool VirtualTap::hasIpv4Addr()
+{
+	Mutex::Lock _l(_ips_m);
+	std::vector<InetAddress>::iterator it(_ips.begin());
+	while (it != _ips.end()) {
+		if ((*it).isV4()) { return true; }
+		it++;
+	}
+	return false;
+}
+
+bool VirtualTap::hasIpv6Addr()
+{
+	Mutex::Lock _l(_ips_m);
+	std::vector<InetAddress>::iterator it(_ips.begin());
+	while (it != _ips.end()) {
+		if ((*it).isV6()) { return true; }
+		it++;
+	}
+	return false;
+}
+
 bool VirtualTap::addIp(const InetAddress &ip)
 {
 	char ipbuf[INET6_ADDRSTRLEN];
 	Mutex::Lock _l(_ips_m);
-	lwip_init_interface((void*)this, this->_mac, ip);
 	if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
+		lwip_init_interface((void*)this, this->_mac, ip);
+		// TODO: Add ZTS_EVENT_ADDR_NEW ?
 		_ips.push_back(ip);
+		// Send callback message
+		struct zts_addr_details *ad = new zts_addr_details;
+		ad->nwid = _nwid;
+		if (ip.isV4()) {
+			struct sockaddr_in *in4 = (struct sockaddr_in*)&(ad->addr);
+			memcpy(&(in4->sin_addr.s_addr), ip.rawIpData(), 4);
+			postEvent(ZTS_EVENT_ADDR_ADDED_IP4, (void*)ad);
+		}
+		if (ip.isV6()) {
+			struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&(ad->addr);
+			memcpy(&(in6->sin6_addr.s6_addr), ip.rawIpData(), 16);
+			postEvent(ZTS_EVENT_ADDR_ADDED_IP6, (void*)ad);
+		}
 		std::sort(_ips.begin(),_ips.end());
 	}
 	return true;
@@ -155,15 +165,22 @@ bool VirtualTap::removeIp(const InetAddress &ip)
 {
 	Mutex::Lock _l(_ips_m);
 	std::vector<InetAddress>::iterator i(std::find(_ips.begin(),_ips.end(),ip));
-	//if (i == _ips.end()) {
-	//	return false;
-	//}
-	_ips.erase(i);
-	if (ip.isV4()) {
-		// FIXME: De-register from network stack
-	}
-	if (ip.isV6()) {
-		// FIXME: De-register from network stack
+	if (std::find(_ips.begin(),_ips.end(),ip) != _ips.end()) {
+		struct zts_addr_details *ad = new zts_addr_details;
+		ad->nwid = _nwid;
+		if (ip.isV4()) {
+			struct sockaddr_in *in4 = (struct sockaddr_in*)&(ad->addr);
+			memcpy(&(in4->sin_addr.s_addr), ip.rawIpData(), 4);
+			postEvent(ZTS_EVENT_ADDR_REMOVED_IP4, (void*)ad);
+			// FIXME: De-register from network stack
+		}
+		if (ip.isV6()) {
+			// FIXME: De-register from network stack
+			struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&(ad->addr);
+			memcpy(&(in6->sin6_addr.s6_addr), ip.rawIpData(), 16);
+			postEvent(ZTS_EVENT_ADDR_REMOVED_IP6, (void*)ad);
+		}
+		_ips.erase(i);
 	}
 	return true;
 }

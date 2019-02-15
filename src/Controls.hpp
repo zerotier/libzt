@@ -39,7 +39,32 @@ namespace ZeroTier {
 // ZeroTier Internal Service Controls                                       //
 //////////////////////////////////////////////////////////////////////////////
 
-void postEvent(uint64_t id, int eventCode);
+/**
+ * Add a callback event message to the queue. This can be safely called
+ * from other threads since a lock-free queue is used.
+ *
+ * @param eventCode The event ID for this event
+ * @param msg Pointer to a structure of pointers to other message-relevant
+ * data structures.
+ */
+void postEvent(int eventCode, void *arg);
+
+/**
+ * Add a callback event message to the queue. This can be safely called
+ * from other threads since a lock-free queue is used. Note: For use in
+ * situations when no additional information needs to be conveyed to the
+ * user application.
+ *
+ * @param eventCode The event ID for this event
+ */
+void postEvent(int eventCode);
+
+/**
+ * Free whatever was allocated to contain the callback message
+ *
+ * @param msg Message to be freed
+ */
+void freeEvent(struct zts_callback_msg *msg);
 
 #ifdef __cplusplus
 extern "C" {

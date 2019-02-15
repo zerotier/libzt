@@ -86,6 +86,9 @@
 #include <ifaddrs.h>
 #endif
 
+#include "libzt.h"
+#include "Controls.hpp"
+
 // Use the virtual netcon endpoint instead of a tun/tap port driver
 #include "VirtualTap.hpp"
 namespace ZeroTier { typedef VirtualTap EthernetTap; }
@@ -102,8 +105,7 @@ namespace ZeroTier { typedef VirtualTap EthernetTap; }
 
 namespace ZeroTier {
 
-// Concurrent queue for callback message processing
-moodycamel::ConcurrentQueue<std::pair<uint64_t, int>*> _callbackMsgQueue;
+extern void postEvent(uint64_t id, int eventCode);
 
 namespace {
 
@@ -803,7 +805,14 @@ public:
 	{
 		// Feed node events into lock-free queue for later dequeuing by the callback thread
 		if (event <= ZT_EVENT_FATAL_ERROR_IDENTITY_COLLISION) {
-			_callbackMsgQueue.enqueue(new std::pair<uint64_t, int>(0x0000000000, event));
+			if (event == ZTS_EVENT_NODE_ONLINE) {
+				struct zts_node_details *nd = new zts_node_details;
+				nd->address = _node->address();
+				postEvent(event, (void*)nd);
+			}
+			else {
+				postEvent(event, (void*)0);
+			}
 		}
 		switch(event) {
 			case ZT_EVENT_FATAL_ERROR_IDENTITY_COLLISION: {
@@ -827,11 +836,12 @@ public:
 
 	inline void generateEventMsgs()
 	{
-		if (!lwip_is_up()) {
-			return; // Don't process peer status events unless the stack is up.
+		// Force the ordering of callback messages, these messages are
+		// only useful if the node and stack are both up and running
+		if (!_node->online() || !lwip_is_up()) {
+			return;
 		}
 		// Generate messages to be dequeued by the callback message thread
-#if ZTS_NETWORK_CALLBACKS
 		Mutex::Lock _l(_nets_m);
 		for(std::map<uint64_t,NetworkState>::iterator n(_nets.begin());n!=_nets.end();++n) {
 			int mostRecentStatus = n->second.config.status;
@@ -840,52 +850,63 @@ public:
 			if (n->second.tap->_networkStatus == mostRecentStatus) {
 				continue; // No state change
 			}
+			struct zts_network_details *nd = new zts_network_details;
+
+			//memcpy(nd, &(pl->peers[i]), sizeof(struct zts_network_details));
+			nd->nwid = nwid;
+
 			switch (mostRecentStatus) {
 				case ZT_NETWORK_STATUS_NOT_FOUND:
-					_callbackMsgQueue.enqueue(new std::pair<uint64_t,int>(nwid, ZTS_EVENT_NETWORK_NOT_FOUND));
+					postEvent(ZTS_EVENT_NETWORK_NOT_FOUND, (void*)nd);
 					break;
 				case ZT_NETWORK_STATUS_CLIENT_TOO_OLD:
-					_callbackMsgQueue.enqueue(new std::pair<uint64_t,int>(nwid, ZTS_EVENT_NETWORK_CLIENT_TOO_OLD));
+					postEvent(ZTS_EVENT_NETWORK_CLIENT_TOO_OLD, (void*)nd);
 					break;
 				case ZT_NETWORK_STATUS_REQUESTING_CONFIGURATION:
-					_callbackMsgQueue.enqueue(new std::pair<uint64_t,int>(nwid, ZTS_EVENT_NETWORK_REQUESTING_CONFIG));
+					postEvent(ZTS_EVENT_NETWORK_REQUESTING_CONFIG, (void*)nd);
 					break;
 				case ZT_NETWORK_STATUS_OK:
-					if (tap->netif4 && lwip_is_netif_up(tap->netif4)) {
-						_callbackMsgQueue.enqueue(new std::pair<uint64_t,int>(nwid, ZTS_EVENT_NETWORK_READY_IP4));
+					if (tap->hasIpv4Addr() && lwip_is_netif_up(tap->netif)) {
+						postEvent(ZTS_EVENT_NETWORK_READY_IP4, (void*)nd);
 					}
-					if (tap->netif6 && lwip_is_netif_up(tap->netif6)) {
-						_callbackMsgQueue.enqueue(new std::pair<uint64_t,int>(nwid, ZTS_EVENT_NETWORK_READY_IP6));
+					if (tap->hasIpv6Addr() && lwip_is_netif_up(tap->netif)) {
+						postEvent(ZTS_EVENT_NETWORK_READY_IP6, (void*)nd);
 					}
-					_callbackMsgQueue.enqueue(new std::pair<uint64_t,int>(nwid, ZTS_EVENT_NETWORK_OK));
+					// In addition to the READY messages, send one OK message
+					postEvent(ZTS_EVENT_NETWORK_OK, (void*)nd);
 					break;
 				case ZT_NETWORK_STATUS_ACCESS_DENIED:
-					_callbackMsgQueue.enqueue(new std::pair<uint64_t,int>(nwid, ZTS_EVENT_NETWORK_ACCESS_DENIED));
+					postEvent(ZTS_EVENT_NETWORK_ACCESS_DENIED, (void*)nd);
 					break;
 				default:
 					break;
 			}
 			n->second.tap->_networkStatus = mostRecentStatus;
 		}
-#endif // ZTS_NETWORK_CALLBACKS
-#if ZTS_PEER_CALLBACKS
+
 		// TODO: Add ZTS_EVENT_PEER_NEW
 		ZT_PeerList *pl = _node->peers();
 		if (pl) {
 			for(unsigned long i=0;i<pl->peerCount;++i) {
+
+				struct zts_peer_details *pd = new zts_peer_details;
+
+				memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
+				// pl->peers[i].address, 0, 0, 0, NULL, 0);
+
 				if (!peerCache.count(pl->peers[i].address)) {
 					if (pl->peers[i].pathCount > 0) {
-						_callbackMsgQueue.enqueue(new std::pair<uint64_t,int>(pl->peers[i].address, ZTS_EVENT_PEER_P2P));
+						postEvent(ZTS_EVENT_PEER_P2P, (void*)pd);
 					}
 					if (pl->peers[i].pathCount == 0) {
-						_callbackMsgQueue.enqueue(new std::pair<uint64_t,int>(pl->peers[i].address, ZTS_EVENT_PEER_RELAY));
+						postEvent(ZTS_EVENT_PEER_RELAY, (void*)pd);
 					}
 				} else {
 					if (peerCache[pl->peers[i].address] == 0 && pl->peers[i].pathCount > 0) {
-						_callbackMsgQueue.enqueue(new std::pair<uint64_t,int>(pl->peers[i].address, ZTS_EVENT_PEER_P2P));
+						postEvent(ZTS_EVENT_PEER_P2P, (void*)pd);
 					}
 					if (peerCache[pl->peers[i].address] > 0 && pl->peers[i].pathCount == 0) {
-						_callbackMsgQueue.enqueue(new std::pair<uint64_t,int>(pl->peers[i].address, ZTS_EVENT_PEER_RELAY));
+						postEvent(ZTS_EVENT_PEER_RELAY, (void*)pd);
 					}
 				}
 				// Update our cache with most recently observed path count
@@ -893,7 +914,6 @@ public:
 			}
 		}
 		_node->freeQueryResult((void *)pl);
-#endif // ZTS_PEER_CALLBACKS
 	}
 
 	inline int networkCount()

@@ -3334,7 +3334,7 @@ happening sooner than they should.
  * @see debugging_levels
  */
 #if !defined LWIP_DBG_TYPES_ON || defined __DOXYGEN__
-#define LWIP_DBG_TYPES_ON               LWIP_DBG_ON
+#define LWIP_DBG_TYPES_ON               LWIP_DBG_OFF
 #endif
 
 /**
@@ -3376,7 +3376,7 @@ happening sooner than they should.
  * SOCKETS_DEBUG: Enable debugging in sockets.c.
  */
 #if !defined SOCKETS_DEBUG || defined __DOXYGEN__
-#define SOCKETS_DEBUG                   LWIP_DBG_ON
+#define SOCKETS_DEBUG                   LWIP_DBG_OFF
 #endif
 
 /**

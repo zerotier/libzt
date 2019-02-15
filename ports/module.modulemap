@@ -1,0 +1,6 @@
+framework module zt {
+  umbrella header "Xcode-Bridging-Header.h"
+
+  export *
+  module * { export * }
+}

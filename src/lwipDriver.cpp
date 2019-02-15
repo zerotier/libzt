@@ -404,7 +404,7 @@ static void netif_status_callback(struct netif *n)
 			struct zts_netif_details *ifd = new zts_netif_details;
 			ifd->nwid = tap->_nwid;
 			memcpy(&(ifd->mac), n->hwaddr, n->hwaddr_len);
-			ifd->mac = htonll(ifd->mac) >> 16;
+			ifd->mac = htonl(ifd->mac) >> 16;
 			postEvent(ZTS_EVENT_NETIF_UP, (void*)ifd);
 		}
 	}
@@ -412,7 +412,7 @@ static void netif_status_callback(struct netif *n)
 		struct zts_netif_details *ifd = new zts_netif_details;
 		ifd->nwid = tap->_nwid;
 		memcpy(&(ifd->mac), n->hwaddr, n->hwaddr_len);
-		ifd->mac = htonll(ifd->mac) >> 16;
+		ifd->mac = htonl(ifd->mac) >> 16;
 		postEvent(ZTS_EVENT_NETIF_DOWN, (void*)ifd);
 	}
 	*/
@@ -433,7 +433,7 @@ static void netif_remove_callback(struct netif *n)
 	struct zts_netif_details *ifd = new zts_netif_details;
 	ifd->nwid = tap->_nwid;
 	memcpy(&(ifd->mac), n->hwaddr, n->hwaddr_len);
-	ifd->mac = htonll(ifd->mac) >> 16;
+	ifd->mac = lwip_htonl(ifd->mac) >> 16;
 	postEvent(ZTS_EVENT_NETIF_REMOVED, (void*)ifd);
 }
 
@@ -452,14 +452,14 @@ static void netif_link_callback(struct netif *n)
 		struct zts_netif_details *ifd = new zts_netif_details;
 		ifd->nwid = tap->_nwid;
 		memcpy(&(ifd->mac), n->hwaddr, n->hwaddr_len);
-		ifd->mac = htonll(ifd->mac) >> 16;
+		ifd->mac = lwip_htonl(ifd->mac) >> 16;
 		postEvent(ZTS_EVENT_NETIF_LINK_UP, (void*)ifd);
 	}
 	if (n->flags & NETIF_FLAG_LINK_UP) {
 		struct zts_netif_details *ifd = new zts_netif_details;
 		ifd->nwid = tap->_nwid;
 		memcpy(&(ifd->mac), n->hwaddr, n->hwaddr_len);
-		ifd->mac = htonll(ifd->mac) >> 16;
+		ifd->mac = lwip_htonl(ifd->mac) >> 16;
 		postEvent(ZTS_EVENT_NETIF_LINK_DOWN, (void*)ifd);
 	}
 }
@@ -487,7 +487,7 @@ static void lwip_prepare_netif_status_msg(struct netif *n)
 	ifd->mtu = n->mtu;
 	// MAC
 	memcpy(&(ifd->mac), n->hwaddr, n->hwaddr_len);
-	ifd->mac = htonll(ifd->mac) >> 16;
+	ifd->mac = lwip_htonl(ifd->mac) >> 16;
 	postEvent(ZTS_EVENT_NETIF_UP, (void*)ifd);
 }
 

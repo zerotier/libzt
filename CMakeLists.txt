@@ -326,8 +326,25 @@ endif ()
 if (SHOULD_BUILD_TESTS)
 	add_executable (example ${PROJ_DIR}/test/example.cpp)
 	target_link_libraries(example zt)
-
 	add_executable (selftest ${PROJ_DIR}/test/selftest.cpp)
 	target_link_libraries(selftest zt)
-	set_target_properties (selftest PROPERTIES COMPILE_FLAGS "${SILENCE} -D__SELFTEST__")	
+	set_target_properties (selftest PROPERTIES COMPILE_FLAGS "${SILENCE} -D__SELFTEST__")
+
+	# Simple client/server example using ZeroTier sockets
+	add_executable (client ${PROJ_DIR}/test/client.cpp)
+	target_link_libraries(client zt)
+	set_target_properties (client PROPERTIES COMPILE_FLAGS "${SILENCE} -D__SELFTEST__")
+	add_executable (server ${PROJ_DIR}/test/server.cpp)
+	target_link_libraries(server zt)
+	set_target_properties (server PROPERTIES COMPILE_FLAGS "${SILENCE} -D__SELFTEST__")
+
+	# Native client/server
+	add_executable (client_native ${PROJ_DIR}/test/client.cpp)
+	target_link_libraries(client_native zt)
+	set_target_properties (client_native PROPERTIES COMPILE_FLAGS "${SILENCE}")
+	set_target_properties (client_native PROPERTIES OUTPUT_NAME client_native)
+	add_executable (server_native ${PROJ_DIR}/test/server.cpp)
+	target_link_libraries(server_native zt)
+	set_target_properties (server_native PROPERTIES COMPILE_FLAGS "${SILENCE}")
+	set_target_properties (server_native PROPERTIES OUTPUT_NAME server_native)
 endif ()

@@ -166,16 +166,17 @@ void _process_callback_event_helper(struct zts_callback_msg *msg)
 		JNIEnv *env;
 		jint rs = jvm->AttachCurrentThread(&env, NULL);
 		assert (rs == JNI_OK);
+		uint64_t arg = 0;
 		if (NODE_EVENT_TYPE(msg->eventCode)) {
-			arg = msg->networkId;
+			arg = msg->node->address;
 		}
-		if (NODE_EVENT_TYPE(msg->eventCode)) {
-			arg = msg->nodeId;
+		if (NETWORK_EVENT_TYPE(msg->eventCode)) {
+			arg = msg->network->nwid;
 		}
-		if (NODE_EVENT_TYPE(msg->eventCode)) {
-			arg = msg->nodeId;
+		if (PEER_EVENT_TYPE(msg->eventCode)) {
+			arg = msg->peer->address;
 		}
-		env->CallVoidMethod(objRef, _userCallbackMethodRef, msg->networkId, msg->eventCode);
+		env->CallVoidMethod(objRef, _userCallbackMethodRef, arg, msg->eventCode);
 	}
 #else
 	if (_userEventCallbackFunc) {

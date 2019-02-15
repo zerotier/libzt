@@ -1,5 +1,5 @@
 diff --git a/ports/unix/port/include/arch/cc.h b/ports/unix/port/include/arch/cc.h
-index a3dac04..5e6f4db 100644
+index 80b37d8..ed219f3 100644
 --- a/ports/unix/port/include/arch/cc.h
 +++ b/ports/unix/port/include/arch/cc.h
 @@ -32,6 +32,8 @@
@@ -11,12 +11,17 @@ index a3dac04..5e6f4db 100644
  /* see https://sourceforge.net/p/predef/wiki/OperatingSystems/ */
  #if defined __ANDROID__
  #define LWIP_UNIX_ANDROID
-@@ -55,9 +57,12 @@
+@@ -65,7 +67,7 @@
  #endif
  
  #if defined(LWIP_UNIX_ANDROID) && defined(FD_SET)
 -typedef __kernel_fd_set fd_set;
 +//typedef __kernel_fd_set fd_set;
+ #endif
+ 
+ #if defined(LWIP_UNIX_MACH)
+@@ -76,6 +78,9 @@ typedef __kernel_fd_set fd_set;
+ #define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS
  #endif
  
 +// Comment out the following line to use lwIP's default diagnostic printing routine

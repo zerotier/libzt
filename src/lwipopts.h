@@ -78,7 +78,7 @@
 /**
  * Used to compute TCP_MSS
  */
-#define MTU 1500
+#define MTU 2800
 
 /**
  * Enable or disable debug, see debug ection near end of file
@@ -1319,7 +1319,7 @@ happening sooner than they should.
  * will be TCP_WND >> TCP_RCV_SCALE
  */
 #if !defined TCP_WND || defined __DOXYGEN__
-#define TCP_WND                         0xffff // (4 * TCP_MSS)
+#define TCP_WND                         0xFFFF // (4 * TCP_MSS)
 #endif
 
 /**
@@ -1373,7 +1373,7 @@ happening sooner than they should.
  * an upper limit on the MSS advertised by the remote host.
  */
 #if !defined TCP_MSS || defined __DOXYGEN__
-#define TCP_MSS                         MTU - 40
+#define TCP_MSS                         (MTU - 40)
 #endif
 
 /**
@@ -1394,7 +1394,7 @@ happening sooner than they should.
  * To achieve good performance, this should be at least 2 * TCP_MSS.
  */
 #if !defined TCP_SND_BUF || defined __DOXYGEN__
-#define TCP_SND_BUF                     1024 * 32 // (2 * TCP_MSS)
+#define TCP_SND_BUF                     (32 * TCP_MSS)
 #endif
 
 /**
@@ -1402,7 +1402,7 @@ happening sooner than they should.
  * as much as (2 * TCP_SND_BUF/TCP_MSS) for things to work.
  */
 #if !defined TCP_SND_QUEUELEN || defined __DOXYGEN__
-#define TCP_SND_QUEUELEN                1024 // ((4 * (TCP_SND_BUF) + (TCP_MSS - 1))/(TCP_MSS))
+#define TCP_SND_QUEUELEN                (64 * (2 * (TCP_SND_BUF/TCP_MSS))) // 1024 // ((4 * (TCP_SND_BUF) + (TCP_MSS - 1))/(TCP_MSS))
 #endif
 
 /**
@@ -1411,7 +1411,8 @@ happening sooner than they should.
  * TCP snd_buf for select to return writable (combined with TCP_SNDQUEUELOWAT).
  */
 #if !defined TCP_SNDLOWAT || defined __DOXYGEN__
-#define TCP_SNDLOWAT                    LWIP_MIN(LWIP_MAX(((TCP_SND_BUF)/2), (2 * TCP_MSS) + 1), (TCP_SND_BUF) - 1)
+#define TCP_SNDLOWAT                    (0xffff - (4*TCP_MSS) - 1)
+//#define TCP_SNDLOWAT                    LWIP_MIN(LWIP_MAX(((TCP_SND_BUF)/2), (2 * TCP_MSS) + 1), (TCP_SND_BUF) - 1)
 #endif
 
 /**
@@ -1549,7 +1550,7 @@ happening sooner than they should.
  * send window while having a small receive window only.
  */
 #if !defined LWIP_WND_SCALE || defined __DOXYGEN__
-#define LWIP_WND_SCALE                  0
+#define LWIP_WND_SCALE                  1
 #define TCP_RCV_SCALE                   0
 #endif
 
@@ -3333,7 +3334,7 @@ happening sooner than they should.
  * @see debugging_levels
  */
 #if !defined LWIP_DBG_TYPES_ON || defined __DOXYGEN__
-#define LWIP_DBG_TYPES_ON               LWIP_DBG_OFF
+#define LWIP_DBG_TYPES_ON               LWIP_DBG_ON
 #endif
 
 /**
@@ -3375,7 +3376,7 @@ happening sooner than they should.
  * SOCKETS_DEBUG: Enable debugging in sockets.c.
  */
 #if !defined SOCKETS_DEBUG || defined __DOXYGEN__
-#define SOCKETS_DEBUG                   LWIP_DBG_OFF
+#define SOCKETS_DEBUG                   LWIP_DBG_ON
 #endif
 
 /**

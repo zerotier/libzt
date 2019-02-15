@@ -39,7 +39,7 @@ CONCURRENT_BUILD_JOBS=2
 patch:
 	-git -C ext/lwip apply ../lwip.patch
 	-git -C ext/lwip-contrib apply ../lwip-contrib.patch
-	#-git -C ext/ZeroTierOne apply ../ZeroTierOne.patch
+	-git -C ext/ZeroTierOne apply ../ZeroTierOne.patch
 
 .PHONY: clean
 clean:

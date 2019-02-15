@@ -15,9 +15,30 @@ index dab81b9e..0d90152b 100644
  	 * @return A pointer to the underlying buffer
  	 */
 diff --git a/node/Switch.cpp b/node/Switch.cpp
-index 74c22d33..58979e26 100644
+index 74c22d33..3e4f53b4 100644
 --- a/node/Switch.cpp
 +++ b/node/Switch.cpp
+@@ -425,16 +425,16 @@ void Switch::onLocalEthernet(void *tPtr,const SharedPtr<Network> &network,const
+ 			from.appendTo(outp);
+ 			outp.append((uint16_t)etherType);
+ 			outp.append(data,len);
+-			if (!network->config().disableCompression())
+-				outp.compress();
++			//if (!network->config().disableCompression())
++			//	outp.compress();
+ 			aqm_enqueue(tPtr,network,outp,true,qosBucket);
+ 		} else {
+ 			Packet outp(toZT,RR->identity.address(),Packet::VERB_FRAME);
+ 			outp.append(network->id());
+ 			outp.append((uint16_t)etherType);
+ 			outp.append(data,len);
+-			if (!network->config().disableCompression())
+-				outp.compress();
++			//if (!network->config().disableCompression())
++			//	outp.compress();
+ 			aqm_enqueue(tPtr,network,outp,true,qosBucket);
+ 		}
+ 
 @@ -532,7 +532,7 @@ void Switch::aqm_enqueue(void *tPtr, const SharedPtr<Network> &network, Packet &
  	TXQueueEntry *txEntry = new TXQueueEntry(dest,RR->node->now(),packet,encrypt);
  	

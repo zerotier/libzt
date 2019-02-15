@@ -80,7 +80,7 @@ public class ZeroTierSocket extends Socket
 			created = true;
 		}
 		catch (IOException ex) {
-			throw new SocketException(e.getMessage());
+			throw new SocketException(ex.getMessage());
 		}
 	}
 
@@ -518,7 +518,7 @@ public class ZeroTierSocket extends Socket
 	/*
 	 * Returns whether or not the socket has been closed.
 	 */
-	public boolean isSocketClosed​()()
+	public boolean isSocketClosed​()
 	{
 		return closed;
 	}

@@ -499,7 +499,8 @@ struct zts_callback_msg
 		netif(NULL),
 		route(NULL),
 		path(NULL),
-		peer(NULL) {}
+		peer(NULL),
+		addr(NULL) {}
 
 	/**
 	 * Event identifier

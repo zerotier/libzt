@@ -162,9 +162,9 @@ public:
 	Phy<OneServiceImpl *> _phy;
 	Node *_node;
 	bool _updateAutoApply;
-	unsigned int _multipathMode;
+	unsigned int _multipathMode = 0;
 	unsigned int _primaryPort;
-	unsigned int _secondaryPort;
+	unsigned int _secondaryPort = 0;
 	unsigned int _tertiaryPort;
 	volatile unsigned int _udpPortPickerCounter;
 
@@ -834,6 +834,13 @@ public:
 		}
 	}
 
+	inline struct zts_network_details *prepare_network_details_msg(uint64_t nwid)
+	{
+		struct zts_network_details *nd = new zts_network_details;
+		nd->nwid = nwid;
+		return nd;
+	}
+
 	inline void generateEventMsgs()
 	{
 		// Force the ordering of callback messages, these messages are
@@ -850,33 +857,28 @@ public:
 			if (n->second.tap->_networkStatus == mostRecentStatus) {
 				continue; // No state change
 			}
-			struct zts_network_details *nd = new zts_network_details;
-
-			//memcpy(nd, &(pl->peers[i]), sizeof(struct zts_network_details));
-			nd->nwid = nwid;
-
 			switch (mostRecentStatus) {
 				case ZT_NETWORK_STATUS_NOT_FOUND:
-					postEvent(ZTS_EVENT_NETWORK_NOT_FOUND, (void*)nd);
+					postEvent(ZTS_EVENT_NETWORK_NOT_FOUND, (void*)prepare_network_details_msg(nwid));
 					break;
 				case ZT_NETWORK_STATUS_CLIENT_TOO_OLD:
-					postEvent(ZTS_EVENT_NETWORK_CLIENT_TOO_OLD, (void*)nd);
+					postEvent(ZTS_EVENT_NETWORK_CLIENT_TOO_OLD, (void*)prepare_network_details_msg(nwid));
 					break;
 				case ZT_NETWORK_STATUS_REQUESTING_CONFIGURATION:
-					postEvent(ZTS_EVENT_NETWORK_REQUESTING_CONFIG, (void*)nd);
+					postEvent(ZTS_EVENT_NETWORK_REQUESTING_CONFIG, (void*)prepare_network_details_msg(nwid));
 					break;
 				case ZT_NETWORK_STATUS_OK:
 					if (tap->hasIpv4Addr() && lwip_is_netif_up(tap->netif)) {
-						postEvent(ZTS_EVENT_NETWORK_READY_IP4, (void*)nd);
+						postEvent(ZTS_EVENT_NETWORK_READY_IP4, (void*)prepare_network_details_msg(nwid));
 					}
 					if (tap->hasIpv6Addr() && lwip_is_netif_up(tap->netif)) {
-						postEvent(ZTS_EVENT_NETWORK_READY_IP6, (void*)nd);
+						postEvent(ZTS_EVENT_NETWORK_READY_IP6, (void*)prepare_network_details_msg(nwid));
 					}
 					// In addition to the READY messages, send one OK message
-					postEvent(ZTS_EVENT_NETWORK_OK, (void*)nd);
+					postEvent(ZTS_EVENT_NETWORK_OK, (void*)prepare_network_details_msg(nwid));
 					break;
 				case ZT_NETWORK_STATUS_ACCESS_DENIED:
-					postEvent(ZTS_EVENT_NETWORK_ACCESS_DENIED, (void*)nd);
+					postEvent(ZTS_EVENT_NETWORK_ACCESS_DENIED, (void*)prepare_network_details_msg(nwid));
 					break;
 				default:
 					break;
@@ -886,26 +888,32 @@ public:
 
 		// TODO: Add ZTS_EVENT_PEER_NEW
 		ZT_PeerList *pl = _node->peers();
+		struct zts_peer_details *pd;
 		if (pl) {
 			for(unsigned long i=0;i<pl->peerCount;++i) {
-
-				struct zts_peer_details *pd = new zts_peer_details;
-
-				memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
-				// pl->peers[i].address, 0, 0, 0, NULL, 0);
-
 				if (!peerCache.count(pl->peers[i].address)) {
+					// New peer, add status
 					if (pl->peers[i].pathCount > 0) {
+						pd = new zts_peer_details;
+						memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
 						postEvent(ZTS_EVENT_PEER_P2P, (void*)pd);
 					}
 					if (pl->peers[i].pathCount == 0) {
+						pd = new zts_peer_details;
+						memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
 						postEvent(ZTS_EVENT_PEER_RELAY, (void*)pd);
 					}
-				} else {
+				}
+				// Previously known peer, update status
+				else {
 					if (peerCache[pl->peers[i].address] == 0 && pl->peers[i].pathCount > 0) {
+						pd = new zts_peer_details;
+						memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
 						postEvent(ZTS_EVENT_PEER_P2P, (void*)pd);
 					}
 					if (peerCache[pl->peers[i].address] > 0 && pl->peers[i].pathCount == 0) {
+						pd = new zts_peer_details;
+						memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
 						postEvent(ZTS_EVENT_PEER_RELAY, (void*)pd);
 					}
 				}

@@ -150,6 +150,9 @@ void postEvent(int eventCode) {
 
 void freeEvent(struct zts_callback_msg *msg)
 {
+	if (!msg) {
+		return;
+	}
 	if (msg->node) { delete msg->node; }
 	if (msg->network) { delete msg->network; }
 	if (msg->netif) { delete msg->netif; }
@@ -177,10 +180,12 @@ void _process_callback_event_helper(struct zts_callback_msg *msg)
 			arg = msg->peer->address;
 		}
 		env->CallVoidMethod(objRef, _userCallbackMethodRef, arg, msg->eventCode);
+		freeEvent(msg);
 	}
 #else
 	if (_userEventCallbackFunc) {
 		_userEventCallbackFunc(msg);
+		freeEvent(msg);
 	}
 #endif
 }

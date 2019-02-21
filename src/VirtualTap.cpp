@@ -194,7 +194,9 @@ std::vector<InetAddress> VirtualTap::ips() const
 void VirtualTap::put(const MAC &from,const MAC &to,unsigned int etherType,
 	const void *data,unsigned int len)
 {
-	lwip_eth_rx(this, from, to, etherType, data, len);
+	if (len <= _mtu && _enabled) {
+		lwip_eth_rx(this, from, to, etherType, data, len);
+	}
 }
 
 std::string VirtualTap::deviceName() const

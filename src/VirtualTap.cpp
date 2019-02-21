@@ -92,7 +92,7 @@ VirtualTap::~VirtualTap()
 	_run = false;
 	::write(_shutdownSignalPipe[1],"\0",1);
 	_phy.whack();
-	lwip_dispose_of_netifs(this);
+	lwip_dispose_of_netif(this);
 	Thread::join(_thread);
 	::close(_shutdownSignalPipe[0]);
 	::close(_shutdownSignalPipe[1]);

@@ -108,7 +108,7 @@ void lwip_driver_shutdown();
  * by re-adding a virtual tap (and associated lwip netifs)
  * @return
  */
-void lwip_dispose_of_netifs(void *tapref);
+void lwip_dispose_of_netif(void *tapref);
 
 /**
  * @brief Initialize and start the DNS client

@@ -45,66 +45,179 @@
 #define _LWIPOPTS_H_
 
 /*------------------------------------------------------------------------------
-------------------- Custom additions to lwipopts.h for libzt -------------------
+------------------------------- Config for libzt -------------------------------
 ------------------------------------------------------------------------------*/
 
-/*
- *  Provides its own errno
- */
-#if __ANDROID__
-#define LWIP_PROVIDE_ERRNO          1
-#define SOCKLEN_T_DEFINED
-#elif !defined(_MSC_VER)
-#define LWIP_PROVIDE_ERRNO          1
-#endif
-
-/**
- * Disable assertions
- */
-#define LWIP_NOASSERT               1
-
-/**
- * Don't redefine byte-order functions if they're already available
- */
+// Misc
+#define LWIP_NOASSERT                   1
 #if __ANDROID__
 #define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS 0
 #endif
-
-/**
- * Checksum for payloads
- */
-#define LWIP_CHKSUM_ALGORITHM 2
-
-/**
- * Used to compute TCP_MSS
- */
-#define MTU 2800
-
-/**
- * Enable or disable debug, see debug ection near end of file
- * for more options.
- */
-//#define LWIP_DEBUG 0
-
-/* flag for LWIP_DEBUGF indicating a tracing message
- * (to follow program flow)
- */
-#define LWIP_DBG_TRACE         0x40U
-/* flag for LWIP_DEBUGF indicating a state debug message
- * (to follow module states)
- */
-#define LWIP_DBG_STATE         0x20U
-/* flag for LWIP_DEBUGF indicating newly added code,
- * not thoroughly tested yet
- */
-#define LWIP_DBG_FRESH         0x10U
-/* flag for LWIP_DEBUGF to halt after printing
- * this debug message
- */
-#define LWIP_DBG_HALT          0x08U
+#if __ANDROID__
+#define LWIP_PROVIDE_ERRNO              1
+#define SOCKLEN_T_DEFINED
+#elif !defined(_MSC_VER)
+#define LWIP_PROVIDE_ERRNO              1
+#endif
+// Sockets
+#define LWIP_SOCKET                     1
+#define LWIP_COMPAT_SOCKETS             0
+#define LWIP_POSIX_SOCKETS_IO_NAMES     0
+#define LWIP_SO_SNDTIMEO                1
+#define LWIP_SO_RCVTIMEO                1
+#define LWIP_SO_RCVBUF                  1
+#define LWIP_SO_LINGER                  1
+#define SO_REUSE                        1
+#define LWIP_FIONREAD_LINUXMODE         1
+// TCP
+#define LWIP_TCP_KEEPALIVE              1
+#define TCP_LISTEN_BACKLOG              1
+#define TCP_DEFAULT_LISTEN_BACKLOG      0xff
+// ARP
+#define ARP_TABLE_SIZE                  3
+#define ARP_MAXAGE                      300
+#define ARP_QUEUEING                    1
+#define ARP_QUEUE_LEN                   3
+// netif
+#define LWIP_NETIF_STATUS_CALLBACK      0
+#define LWIP_NETIF_EXT_STATUS_CALLBACK  0
+#define LWIP_NETIF_LINK_CALLBACK        0
+#define LWIP_NETIF_REMOVE_CALLBACK      0
 
 /*------------------------------------------------------------------------------
----------------------------------- Timers --------------------------------------
+------------------------------------ Presets -----------------------------------
+------------------------------------------------------------------------------*/
+
+// Embedded applications (lwIP out-of-the-box defaults)
+#if 0
+   #define TCP_TMR_INTERVAL       250
+#endif
+
+// Desktop-class applications
+#if 1
+   #define MTU                             2800
+   #define LWIP_CHKSUM_ALGORITHM           2
+   // memory
+   #define MEMP_NUM_NETCONN                1024
+   #define MEMP_NUM_NETBUF                 2
+   #define MEMP_NUM_TCPIP_MSG_API          64
+   #define MEMP_NUM_TCPIP_MSG_INPKT        64
+   #define PBUF_POOL_SIZE                  128
+   // ip
+   #define IP_REASS_MAXAGE                 15
+   #define IP_REASS_MAX_PBUFS              32
+   // tcp
+   #define TCP_TMR_INTERVAL                25
+   #define TCP_WND                         0xffff
+   #define TCP_MAXRTX                      12
+   #define TCP_SYNMAXRTX                   12
+   #define LWIP_TCP_SACK_OUT               1
+   #define LWIP_TCP_MAX_SACK_NUM           4
+   #define TCP_MSS                         (MTU - 40)
+   #define TCP_SND_BUF                     (64 * TCP_MSS)
+   #define TCP_SND_QUEUELEN                (64 * (2 * (TCP_SND_BUF/TCP_MSS)))
+   #define TCP_SNDLOWAT                    (0xffff - (4*TCP_MSS) - 1)
+   #define TCP_SNDQUEUELOWAT               LWIP_MAX(((TCP_SND_QUEUELEN)/2), 5)
+   #define TCP_WND_UPDATE_THRESHOLD        LWIP_MIN((TCP_WND / 4), (TCP_MSS * 4))
+   #define LWIP_WND_SCALE                  1
+   #define TCP_RCV_SCALE                   0
+   // tcpip
+   #define TCPIP_MBOX_SIZE                 0
+   #define LWIP_TCPIP_CORE_LOCKING         1
+   #define LWIP_TCPIP_CORE_LOCKING_INPUT   1
+   // netconn
+   #define LWIP_NETCONN_FULLDUPLEX         0
+   // netif
+   #define LWIP_SINGLE_NETIF               0
+   #define LWIP_NETIF_HWADDRHINT           1
+   #define LWIP_NETIF_TX_SINGLE_PBUF       0
+   #define TCPIP_THREAD_PRIO               1
+#endif
+
+// Desktop-class applications
+#if 0
+   #define MTU                             2800
+   #define LWIP_CHKSUM_ALGORITHM           2
+   // memory
+   #define MEMP_NUM_NETCONN                1024
+   #define MEMP_NUM_NETBUF                 2
+   #define MEMP_NUM_TCPIP_MSG_API          64
+   #define MEMP_NUM_TCPIP_MSG_INPKT        64
+   #define PBUF_POOL_SIZE                  128
+   // ip
+   #define IP_REASS_MAXAGE                 15
+   #define IP_REASS_MAX_PBUFS              32
+   // tcp
+   #define TCP_TMR_INTERVAL                25
+   #define TCP_WND                         0xffff
+   #define TCP_MAXRTX                      12
+   #define TCP_SYNMAXRTX                   12
+   #define LWIP_TCP_SACK_OUT               1
+   #define LWIP_TCP_MAX_SACK_NUM           4
+   #define TCP_MSS                         (MTU - 40)
+   #define TCP_SND_BUF                     (32 * TCP_MSS)
+   #define TCP_SND_QUEUELEN                (64 * (2 * (TCP_SND_BUF/TCP_MSS)))
+   #define TCP_SNDLOWAT                    (0xffff - (4*TCP_MSS) - 1)
+   #define TCP_SNDQUEUELOWAT               LWIP_MAX(((TCP_SND_QUEUELEN)/2), 5)
+   #define TCP_WND_UPDATE_THRESHOLD        LWIP_MIN((TCP_WND / 4), (TCP_MSS * 4))
+   #define LWIP_WND_SCALE                  1
+   #define TCP_RCV_SCALE                   0
+   // tcpip
+   #define TCPIP_MBOX_SIZE                 0
+   #define LWIP_TCPIP_CORE_LOCKING         1
+   #define LWIP_TCPIP_CORE_LOCKING_INPUT   1
+   // netconn
+   #define LWIP_NETCONN_FULLDUPLEX         0
+   // netif
+   #define LWIP_SINGLE_NETIF               0
+   #define LWIP_NETIF_HWADDRHINT           1
+   #define LWIP_NETIF_TX_SINGLE_PBUF       0
+   #define TCPIP_THREAD_PRIO               1
+#endif
+
+// Stable
+#if 0
+   #define MTU                             2800
+   #define LWIP_CHKSUM_ALGORITHM           2
+   // memory
+   #define MEMP_NUM_NETCONN                1024
+   #define MEMP_NUM_NETBUF                 2
+   #define MEMP_NUM_TCPIP_MSG_API          64
+   #define MEMP_NUM_TCPIP_MSG_INPKT        64
+   #define PBUF_POOL_SIZE                  128
+   // ip
+   #define IP_REASS_MAXAGE                 15
+   #define IP_REASS_MAX_PBUFS              32
+   // tcp
+   #define TCP_TMR_INTERVAL                25
+   #define TCP_WND                         0xffff
+   #define TCP_MAXRTX                      12
+   #define TCP_SYNMAXRTX                   12
+   #define LWIP_TCP_SACK_OUT               0
+   #define LWIP_TCP_MAX_SACK_NUM           4
+   #define TCP_MSS                         (MTU - 40)
+   #define TCP_SND_BUF                     (32 * TCP_MSS)
+   #define TCP_SND_QUEUELEN                (64 * (2 * (TCP_SND_BUF/TCP_MSS)))
+   #define TCP_SNDLOWAT                    (0xffff - (4*TCP_MSS) - 1)
+   #define TCP_SNDLOWAT                    LWIP_MIN(LWIP_MAX(((TCP_SND_BUF)/2), (2 * TCP_MSS) + 1), (TCP_SND_BUF) - 1)
+   #define TCP_WND_UPDATE_THRESHOLD        LWIP_MIN((TCP_WND / 4), (TCP_MSS * 4))
+   #define LWIP_WND_SCALE                  1
+   #define TCP_RCV_SCALE                   0
+   // tcpip
+   #define TCPIP_MBOX_SIZE                 0
+   #define LWIP_TCPIP_CORE_LOCKING         1
+   #define LWIP_TCPIP_CORE_LOCKING_INPUT   1
+   // netconn
+   #define LWIP_NETCONN_FULLDUPLEX         0
+   // netif
+   #define LWIP_SINGLE_NETIF               0
+   #define LWIP_NETIF_HWADDRHINT           1
+   #define LWIP_NETIF_TX_SINGLE_PBUF       0
+   #define TCPIP_THREAD_PRIO               1
+#endif
+
+/*------------------------------------------------------------------------------
+------------------------------------ Timers ------------------------------------
 ------------------------------------------------------------------------------*/
 /*
 Be careful about setting this too small.  lwIP just counts the number
@@ -117,7 +230,7 @@ happening sooner than they should.
 /* these are originally defined in tcp_impl.h */
 #ifndef TCP_TMR_INTERVAL
 /* The TCP timer interval in milliseconds. */
-#define TCP_TMR_INTERVAL       250
+#define TCP_TMR_INTERVAL       25
 #endif /* TCP_TMR_INTERVAL */
 
 #ifndef TCP_FAST_INTERVAL
@@ -377,7 +490,7 @@ happening sooner than they should.
  * a lot of data that needs to be copied, this should be set high.
  */
 #if !defined MEM_SIZE || defined __DOXYGEN__
-#define MEM_SIZE                        1024 * 1024
+#define MEM_SIZE                        1024 * 1024 * 32
 #endif
 
 /**
@@ -550,7 +663,7 @@ happening sooner than they should.
  * reassembly (whole packets, not fragments!)
  */
 #if !defined MEMP_NUM_REASSDATA || defined __DOXYGEN__
-#define MEMP_NUM_REASSDATA              16
+#define MEMP_NUM_REASSDATA              1024
 #endif
 
 /**
@@ -612,7 +725,7 @@ happening sooner than they should.
  * (only needed if you use the sequential API, like api_lib.c)
  */
 #if !defined MEMP_NUM_NETCONN || defined __DOXYGEN__
-#define MEMP_NUM_NETCONN                256
+#define MEMP_NUM_NETCONN                1024
 #endif
 
 /**
@@ -1319,7 +1432,7 @@ happening sooner than they should.
  * will be TCP_WND >> TCP_RCV_SCALE
  */
 #if !defined TCP_WND || defined __DOXYGEN__
-#define TCP_WND                         0xFFFF // (4 * TCP_MSS)
+#define TCP_WND                         (1 * 0xffff) // *1024 //0xFFFF // (4 * TCP_MSS)
 #endif
 
 /**
@@ -1348,7 +1461,7 @@ happening sooner than they should.
  * LWIP_TCP_SACK_OUT==1: TCP will support sending selective acknowledgements (SACKs).
  */
 #if !defined LWIP_TCP_SACK_OUT || defined __DOXYGEN__
-#define LWIP_TCP_SACK_OUT               0
+#define LWIP_TCP_SACK_OUT               1
 #endif
 
 /**
@@ -1519,6 +1632,7 @@ happening sooner than they should.
  * explicit window update
  */
 #if !defined TCP_WND_UPDATE_THRESHOLD || defined __DOXYGEN__
+//#define TCP_WND_UPDATE_THRESHOLD        (TCP_MSS)
 #define TCP_WND_UPDATE_THRESHOLD        LWIP_MIN((TCP_WND / 4), (TCP_MSS * 4))
 #endif
 

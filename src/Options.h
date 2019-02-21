@@ -51,7 +51,7 @@
 /**
  * How often the lwIP tcpip thread callback checks for incoming frames
  */
-#define LWIP_GUARDED_BUF_CHECK_INTERVAL 5
+#define LWIP_GUARDED_BUF_CHECK_INTERVAL 25
 
 /**
  * Number of packets that can be queued for ingress into the lwIP core

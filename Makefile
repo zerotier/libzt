@@ -33,7 +33,7 @@ CLEAN_SCRIPT := ./ports/clean.sh
 PACKAGE_SCRIPT := ./ports/package.sh
 endif
 
-CONCURRENT_BUILD_JOBS=2
+CONCURRENT_BUILD_JOBS=#-j 2
 
 # Patch submodules
 patch:
@@ -43,19 +43,21 @@ patch:
 
 .PHONY: clean
 clean:
-	rm -rf bin staging generated dist
+	-rm -rf bin staging generated dist
+	-find ports -name ".externalNativeBuild" -exec rm -r "{}" \;
 
 all: debug release
 
 release:
 	-mkdir generated
 	cmake -H. -Bgenerated/release -DCMAKE_BUILD_TYPE=Release
-	cmake --build generated/release -j $(CONCURRENT_BUILD_JOBS)
+	cmake --build generated/release $(CONCURRENT_BUILD_JOBS)
+
 
 debug:
 	-mkdir generated
 	cmake -H. -Bgenerated/debug -DCMAKE_BUILD_TYPE=Debug
-	cmake --build generated/debug -j $(CONCURRENT_BUILD_JOBS)
+	cmake --build generated/debug $(CONCURRENT_BUILD_JOBS)
 
 # dist:
 # Build and package everything

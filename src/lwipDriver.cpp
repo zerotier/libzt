@@ -58,9 +58,6 @@
 extern void postEvent(uint64_t eventCode, void *arg);
 extern void postEvent(uint64_t eventCode);
 
-#include "concurrentqueue.h"
-moodycamel::ConcurrentQueue<struct ZeroTier::zts_sorted_packet*> rx_queue;
-
 #if defined(_WIN32)
 #include <time.h>
 #endif
@@ -69,6 +66,10 @@ moodycamel::ConcurrentQueue<struct ZeroTier::zts_sorted_packet*> rx_queue;
  * Length of human-readable MAC address string
  */
 #define ZTS_MAC_ADDRSTRLEN 18
+
+#ifndef htonll
+#define htonll(x) ((1==htonl(1)) ? (x) : ((uint64_t)htonl((x) & 0xFFFFFFFF) << 32) | htonl((x) >> 32))
+#endif
 
 namespace ZeroTier {
 
@@ -167,15 +168,6 @@ void lwip_driver_shutdown()
 	_run_lwip_tcpip = false;
 	// Wait until the main lwIP thread has exited
 	while (!_has_exited) { lwip_sleep(LWIP_GUARDED_BUF_CHECK_INTERVAL); }
-	// After we're certain the stack isn't processing anymore traffic,
-	// start dequeing from the RX queue. This queue should be rejecting
-	// new frames at this point.
-	struct zts_sorted_packet *sp;
-	for (int i = 0; i < ZTS_LWIP_MAX_RX_QUEUE_LEN; i++) {
-		if (rx_queue.try_dequeue(sp)) {
-			delete sp;
-		}
-	}
 	/*
 	if (tcpip_shutdown() == ERR_OK) {
 		sys_timeouts_free();
@@ -183,18 +175,14 @@ void lwip_driver_shutdown()
 	*/
 }
 
-void lwip_dispose_of_netif(void *tapref)
+void lwip_remove_netif(void *netif)
 {
-	VirtualTap *vtap = (VirtualTap*)tapref;
-	if (vtap->netif) {
-		LOCK_TCPIP_CORE();
-		netif_remove((struct netif*)(vtap->netif));
-		netif_set_down((struct netif*)(vtap->netif));
-		netif_set_link_down((struct netif*)(vtap->netif));
-		UNLOCK_TCPIP_CORE();
-		delete vtap->netif;
-		vtap->netif = NULL;
-	}
+	struct netif *n = (struct netif*)netif;
+	LOCK_TCPIP_CORE();
+	netif_remove(n);
+	netif_set_down(n);
+	netif_set_link_down(n);
+	UNLOCK_TCPIP_CORE();
 }
 
 err_t lwip_eth_tx(struct netif *n, struct pbuf *p)
@@ -299,6 +287,7 @@ void lwip_eth_rx(VirtualTap *tap, const MAC &from, const MAC &to, unsigned int e
 	}
 }
 
+/*
 static void print_netif_info(struct netif *n) {
 	DEBUG_INFO("n=%p, %c%c, %d, o=%p, o6=%p, mc=%x:%x:%x:%x:%x:%x, hwln=%d, st=%p, flgs=%d\n",
 		n,
@@ -318,6 +307,7 @@ static void print_netif_info(struct netif *n) {
 		n->flags
 	);
 }
+*/
 
 bool lwip_is_netif_up(void *n)
 {
@@ -388,7 +378,7 @@ void lwip_set_callbacks(struct netif *n)
 #endif
 }
 
-static void lwip_prepare_netif_status_msg(struct netif *n)
+static struct zts_netif_details *lwip_prepare_netif_status_msg(struct netif *n)
 {
 	VirtualTap *tap = (VirtualTap*)(n->state);
 	struct zts_netif_details *ifd = new zts_netif_details;
@@ -398,8 +388,8 @@ static void lwip_prepare_netif_status_msg(struct netif *n)
 	ifd->mtu = n->mtu;
 	// MAC
 	memcpy(&(ifd->mac), n->hwaddr, n->hwaddr_len);
-	ifd->mac = lwip_htonl(ifd->mac) >> 16;
-	postEvent(ZTS_EVENT_NETIF_UP, (void*)ifd);
+	ifd->mac = htonll(ifd->mac) >> 16;
+	return ifd;
 }
 
 static err_t netif_init(struct netif *n)
@@ -421,7 +411,6 @@ static err_t netif_init(struct netif *n)
 	n->hwaddr_len = sizeof(n->hwaddr);
 	VirtualTap *tap = (VirtualTap*)(n->state);
 	tap->_mac.copyTo(n->hwaddr, n->hwaddr_len);
-	lwip_prepare_netif_status_msg(n);
 	return ERR_OK;
 }
 
@@ -447,6 +436,7 @@ void lwip_init_interface(void *tapref, const MAC &mac, const InetAddress &ip)
 		netmask.addr = *((u32_t *)ip.netmask().rawIpData());
 		LOCK_TCPIP_CORE();
 		netif_add(n, &ipaddr, &netmask, &gw, tapref, netif_init, tcpip_input);
+		postEvent(ZTS_EVENT_NETIF_UP, (void*)lwip_prepare_netif_status_msg(n));
 		UNLOCK_TCPIP_CORE();
 /*
 		snprintf(macbuf, ZTS_MAC_ADDRSTRLEN, "%02x:%02x:%02x:%02x:%02x:%02x",
@@ -468,6 +458,7 @@ void lwip_init_interface(void *tapref, const MAC &mac, const InetAddress &ip)
 		netif_ip6_addr_set_state(n, 0, IP6_ADDR_TENTATIVE);
 		netif_ip6_addr_set_state(n, 1, IP6_ADDR_TENTATIVE);
 		n->output_ip6 = ethip6_output;
+		postEvent(ZTS_EVENT_NETIF_UP, (void*)lwip_prepare_netif_status_msg(n));
 		UNLOCK_TCPIP_CORE();
 /*
 		snprintf(macbuf, ZTS_MAC_ADDRSTRLEN, "%02x:%02x:%02x:%02x:%02x:%02x",

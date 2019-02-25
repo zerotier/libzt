@@ -101,14 +101,11 @@ void lwip_driver_init();
 void lwip_driver_shutdown();
 
 /**
- * @brief Bring down and delete all interfaces belonging to the given virtual tap
+ * @brief Requests that a netif be brought down and removed.
  *
- * @usage This is to be called when the application desires to stop all traffic processing in the 
- * stack. Unlike lwip_driver_shutdown(), the application can easily resume traffic processing 
- * by re-adding a virtual tap (and associated lwip netifs)
  * @return
  */
-void lwip_dispose_of_netif(void *tapref);
+void lwip_remove_netif(void *netif);
 
 /**
  * @brief Initialize and start the DNS client

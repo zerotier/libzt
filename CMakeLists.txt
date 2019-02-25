@@ -67,26 +67,6 @@ else ()
 endif ()
 
 # -----------------------------------------------------------------------------
-# |                                    FLAGS                                  |
-# -----------------------------------------------------------------------------
-
-set (SILENCE "-Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-missing-field-initializers")
-set (LIBZT_FLAGS "-D_USING_LWIP_DEFINITIONS_=1 -DZT_SDK")
-set (ZTCORE_FLAGS "-DZT_USE_MINIUPNPC=1 -DZT_SOFTWARE_UPDATE_DEFAULT=0")
-
-if (BUILDING_WIN)
-	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc -DNOMINMAX")
-else ()
-	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${LIBZT_FLAGS} -fstack-protector")
-	set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${LIBZT_FLAGS} -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
-	set (CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${LIBZT_FLAGS} -fstack-protector")
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SILENCE} ${LIBZT_FLAGS} -O3 -Wall -Wextra -std=c++11")
-	set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${SILENCE} ${LIBZT_FLAGS} -std=c++11 -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
-	set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${SILENCE} ${LIBZT_FLAGS} -O3 -std=c++11")
-endif ()
-
-# -----------------------------------------------------------------------------
 # |                     PLATFORM/FEATURE AND IDE DETECTION                    |
 # -----------------------------------------------------------------------------
 
@@ -120,6 +100,32 @@ endif ()
 if (BUILDING_WIN32 OR BUILDING_WIN64 OR MSVC)
 	set (BUILDING_WIN TRUE)
 endif ()
+
+# -----------------------------------------------------------------------------
+# |                                    FLAGS                                  |
+# -----------------------------------------------------------------------------
+
+set (SILENCE "-Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-missing-field-initializers")
+set (LIBZT_FLAGS "-D_USING_LWIP_DEFINITIONS_=1 -DZT_SDK")
+set (ZTCORE_FLAGS "-DZT_USE_MINIUPNPC=1 -DZT_SOFTWARE_UPDATE_DEFAULT=0")
+
+if (BUILDING_WIN)
+	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc -DNOMINMAX")
+else ()
+	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${LIBZT_FLAGS} -fstack-protector")
+	set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${LIBZT_FLAGS} -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
+	set (CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${LIBZT_FLAGS} -fstack-protector")
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SILENCE} ${LIBZT_FLAGS} -O3 -Wall -Wextra -std=c++11")
+	set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${SILENCE} ${LIBZT_FLAGS} -std=c++11 -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
+	set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${SILENCE} ${LIBZT_FLAGS} -O3 -std=c++11")
+endif ()
+
+if (BUILDING_LINUX AND NOT BUILDING_ANDROID)
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread")
+endif ()
+
+
 
 # -----------------------------------------------------------------------------
 # |                                      JNI                                  |
@@ -324,27 +330,22 @@ endif ()
 # -----------------------------------------------------------------------------
 
 if (SHOULD_BUILD_TESTS)
-	add_executable (example ${PROJ_DIR}/test/example.cpp)
-	target_link_libraries(example zt)
-	add_executable (selftest ${PROJ_DIR}/test/selftest.cpp)
-	target_link_libraries(selftest zt)
-	set_target_properties (selftest PROPERTIES COMPILE_FLAGS "${SILENCE} -D__SELFTEST__")
+	# Minimal functional example
+	#add_executable (example ${PROJ_DIR}/test/example.cpp)
+	#target_link_libraries(example zt)
 
-	# Simple client/server example using ZeroTier sockets
-	add_executable (client ${PROJ_DIR}/test/client.cpp)
-	target_link_libraries(client zt)
-	set_target_properties (client PROPERTIES COMPILE_FLAGS "${SILENCE} -D__SELFTEST__")
-	add_executable (server ${PROJ_DIR}/test/server.cpp)
-	target_link_libraries(server zt)
-	set_target_properties (server PROPERTIES COMPILE_FLAGS "${SILENCE} -D__SELFTEST__")
+	# API test
+	#add_executable (apitest ${PROJ_DIR}/test/apitest.cpp)
+	#target_link_libraries(apitest zt)
 
-	# Native client/server
-	add_executable (client_native ${PROJ_DIR}/test/client.cpp)
-	target_link_libraries(client_native zt)
-	set_target_properties (client_native PROPERTIES COMPILE_FLAGS "${SILENCE}")
-	set_target_properties (client_native PROPERTIES OUTPUT_NAME client_native)
-	add_executable (server_native ${PROJ_DIR}/test/server.cpp)
-	target_link_libraries(server_native zt)
-	set_target_properties (server_native PROPERTIES COMPILE_FLAGS "${SILENCE}")
-	set_target_properties (server_native PROPERTIES OUTPUT_NAME server_native)
+	# Selftest
+	#add_executable (selftest ${PROJ_DIR}/test/selftest.cpp)
+	#target_link_libraries(selftest zt)
+	#set_target_properties (selftest PROPERTIES COMPILE_FLAGS "-D__SELFTEST__")
+
+	# client/server performance test
+	#add_executable (client ${PROJ_DIR}/test/client.cpp)
+	#target_link_libraries(client zt)
+	#add_executable (server ${PROJ_DIR}/test/server.cpp)
+	#target_link_libraries(server zt)
 endif ()

@@ -92,7 +92,8 @@ VirtualTap::~VirtualTap()
 	_run = false;
 	::write(_shutdownSignalPipe[1],"\0",1);
 	_phy.whack();
-	lwip_dispose_of_netif(this);
+	lwip_remove_netif(netif);
+	netif = NULL;
 	Thread::join(_thread);
 	::close(_shutdownSignalPipe[0]);
 	::close(_shutdownSignalPipe[1]);
@@ -137,8 +138,24 @@ bool VirtualTap::hasIpv6Addr()
 
 bool VirtualTap::addIp(const InetAddress &ip)
 {
-	char ipbuf[INET6_ADDRSTRLEN];
+	//char ipbuf[128];
+	//ip.toString(ipbuf);
+	//DEBUG_INFO("addr=%s", ipbuf);
+
+	/* Limit address assignments to one per type.
+	This limitation can be removed if some changes
+	are made in the netif driver. */
+	if (ip.isV4() && hasIpv4Addr()) {
+		return false;
+	}
+	if (ip.isV6() && hasIpv6Addr()) {
+		return false;
+	}
+
 	Mutex::Lock _l(_ips_m);
+	if (_ips.size() >= ZT_MAX_ZT_ASSIGNED_ADDRESSES) {
+		return false;
+	}
 	if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
 		lwip_init_interface((void*)this, this->_mac, ip);
 		// TODO: Add ZTS_EVENT_ADDR_NEW ?

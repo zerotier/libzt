@@ -165,23 +165,52 @@ void freeEvent(struct zts_callback_msg *msg)
 void _process_callback_event_helper(struct zts_callback_msg *msg)
 {
 #ifdef SDK_JNI
+/* Old style callback messages are simply a uint64_t with a network/peer/node
+if of some sort and an associated message code id. This is deprecated and here
+only for legacy reasons. */
+#if 1
+	if(_userCallbackMethodRef) {
+		JNIEnv *env;
+		jint rs = jvm->AttachCurrentThread(&env, NULL);
+		assert (rs == JNI_OK);
+		uint64_t arg = 0;
+		uint64_t id = 0;
+		if (NODE_EVENT_TYPE(msg->eventCode)) {
+			DEBUG_INFO("NODE_EVENT_TYPE(%d)", msg->eventCode);
+			id = msg->node ? msg->node->address : 0;
+		}
+		if (NETWORK_EVENT_TYPE(msg->eventCode)) {
+			DEBUG_INFO("NETWORK_EVENT_TYPE(%d)", msg->eventCode);
+			id = msg->network ? msg->network->nwid : 0;
+		}
+		if (PEER_EVENT_TYPE(msg->eventCode)) {
+			DEBUG_INFO("PEER_EVENT_TYPE(%d)", msg->eventCode);
+			id = msg->peer ? msg->peer->address : 0;
+		}
+		env->CallVoidMethod(objRef, _userCallbackMethodRef, id, msg->eventCode);
+		freeEvent(msg);
+	}
+#else
 	if(_userCallbackMethodRef) {
 		JNIEnv *env;
 		jint rs = jvm->AttachCurrentThread(&env, NULL);
 		assert (rs == JNI_OK);
 		uint64_t arg = 0;
 		if (NODE_EVENT_TYPE(msg->eventCode)) {
+			DEBUG_INFO("NODE_EVENT_TYPE(%d)", msg->eventCode);
 			arg = msg->node->address;
 		}
 		if (NETWORK_EVENT_TYPE(msg->eventCode)) {
+			DEBUG_INFO("NETWORK_EVENT_TYPE(%d)", msg->eventCode);
 			arg = msg->network->nwid;
 		}
 		if (PEER_EVENT_TYPE(msg->eventCode)) {
+			DEBUG_INFO("PEER_EVENT_TYPE(%d)", msg->eventCode);
 			arg = msg->peer->address;
 		}
 		env->CallVoidMethod(objRef, _userCallbackMethodRef, arg, msg->eventCode);
 		freeEvent(msg);
-	}
+#endif
 #else
 	if (_userEventCallbackFunc) {
 		_userEventCallbackFunc(msg);

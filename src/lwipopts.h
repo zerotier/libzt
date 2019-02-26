@@ -72,12 +72,6 @@
 // TCP
 #define LWIP_TCP_KEEPALIVE              1
 #define TCP_LISTEN_BACKLOG              1
-#define TCP_DEFAULT_LISTEN_BACKLOG      0xff
-// ARP
-#define ARP_TABLE_SIZE                  3
-#define ARP_MAXAGE                      300
-#define ARP_QUEUEING                    1
-#define ARP_QUEUE_LEN                   3
 // netif
 #define LWIP_NETIF_STATUS_CALLBACK      0
 #define LWIP_NETIF_EXT_STATUS_CALLBACK  0
@@ -103,6 +97,12 @@
    #define MEMP_NUM_TCPIP_MSG_API          64
    #define MEMP_NUM_TCPIP_MSG_INPKT        64
    #define PBUF_POOL_SIZE                  128
+   #define TCP_DEFAULT_LISTEN_BACKLOG      0xff
+   // arp
+   #define ARP_TABLE_SIZE                  64
+   #define ARP_MAXAGE                      300
+   #define ARP_QUEUEING                    1
+   #define ARP_QUEUE_LEN                   3
    // ip
    #define IP_REASS_MAXAGE                 15
    #define IP_REASS_MAX_PBUFS              32
@@ -144,6 +144,11 @@
    #define MEMP_NUM_TCPIP_MSG_API          64
    #define MEMP_NUM_TCPIP_MSG_INPKT        64
    #define PBUF_POOL_SIZE                  128
+   // arp
+   #define ARP_TABLE_SIZE                  64
+   #define ARP_MAXAGE                      300
+   #define ARP_QUEUEING                    1
+   #define ARP_QUEUE_LEN                   3
    // ip
    #define IP_REASS_MAXAGE                 15
    #define IP_REASS_MAX_PBUFS              32
@@ -185,6 +190,11 @@
    #define MEMP_NUM_TCPIP_MSG_API          64
    #define MEMP_NUM_TCPIP_MSG_INPKT        64
    #define PBUF_POOL_SIZE                  128
+   // arp
+   #define ARP_TABLE_SIZE                  64
+   #define ARP_MAXAGE                      300
+   #define ARP_QUEUEING                    1
+   #define ARP_QUEUE_LEN                   3
    // ip
    #define IP_REASS_MAXAGE                 15
    #define IP_REASS_MAX_PBUFS              32

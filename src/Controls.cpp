@@ -706,7 +706,6 @@ int zts_get_peer(struct zts_peer_details *pd, uint64_t peerId)
 	if (pl) {
 		for(unsigned long i=0;i<pl->peerCount;++i) {
 			if (pl->peers[i].address == peerId) {
-				DEBUG_INFO("found");
 				memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
 				for (int j=0; j<pl->peers[i].pathCount; j++) {
 					memcpy(&(pd->paths[j].address),

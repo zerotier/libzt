@@ -176,15 +176,12 @@ only for legacy reasons. */
 		uint64_t arg = 0;
 		uint64_t id = 0;
 		if (NODE_EVENT_TYPE(msg->eventCode)) {
-			DEBUG_INFO("NODE_EVENT_TYPE(%d)", msg->eventCode);
 			id = msg->node ? msg->node->address : 0;
 		}
 		if (NETWORK_EVENT_TYPE(msg->eventCode)) {
-			DEBUG_INFO("NETWORK_EVENT_TYPE(%d)", msg->eventCode);
 			id = msg->network ? msg->network->nwid : 0;
 		}
 		if (PEER_EVENT_TYPE(msg->eventCode)) {
-			DEBUG_INFO("PEER_EVENT_TYPE(%d)", msg->eventCode);
 			id = msg->peer ? msg->peer->address : 0;
 		}
 		env->CallVoidMethod(objRef, _userCallbackMethodRef, id, msg->eventCode);
@@ -667,7 +664,6 @@ JNIEXPORT jlong JNICALL Java_com_zerotier_libzt_ZeroTier_get_1peer_1count(
 
 int zts_get_peers(struct zts_peer_details *pds, int *num)
 {
-	// TODO: Modernize
 	Mutex::Lock _l(_service_lock);
 	if (!pds || !num) {
 		return ZTS_ERR_INVALID_ARG;
@@ -677,9 +673,17 @@ int zts_get_peers(struct zts_peer_details *pds, int *num)
 	}
 	ZT_PeerList *pl = service->getNode()->peers();
 	if (pl) {
+		if (*num < pl->peerCount) {
+			service->getNode()->freeQueryResult((void *)pl);
+			return ZTS_ERR_INVALID_ARG;
+		}
 		*num = pl->peerCount;
 		for(unsigned long i=0;i<pl->peerCount;++i) {
 			memcpy(&(pds[i]), &(pl->peers[i]), sizeof(struct zts_peer_details));
+			for (int j=0; j<pl->peers[i].pathCount; j++) {
+				memcpy(&(pds[i].paths[j].address),
+					&(pl->peers[i].paths[j].address), sizeof(struct sockaddr_storage));
+			}
 		}
 	}
 	service->getNode()->freeQueryResult((void *)pl);
@@ -688,21 +692,35 @@ int zts_get_peers(struct zts_peer_details *pds, int *num)
 #ifdef SDK_JNI
 #endif
 
-int zts_get_peer_status(uint64_t id)
+int zts_get_peer(struct zts_peer_details *pd, uint64_t peerId)
 {
 	Mutex::Lock _l(_service_lock);
-	zts_err_t retval = ZTS_ERR_OK;
+	if (!pd || !peerId) {
+		return ZTS_ERR_INVALID_ARG;
+	}
 	if (!__zts_can_perform_service_operation()) {
 		return ZTS_ERR_SERVICE;
 	}
-	return service->getPeerStatus(id);
+	ZT_PeerList *pl = service->getNode()->peers();
+	int retval = ZTS_ERR_NO_RESULT;
+	if (pl) {
+		for(unsigned long i=0;i<pl->peerCount;++i) {
+			if (pl->peers[i].address == peerId) {
+				DEBUG_INFO("found");
+				memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
+				for (int j=0; j<pl->peers[i].pathCount; j++) {
+					memcpy(&(pd->paths[j].address),
+						&(pl->peers[i].paths[j].address), sizeof(struct sockaddr_storage));
+				}
+				retval = ZTS_ERR_OK;
+				break;
+			}
+		}
+	}
+	service->getNode()->freeQueryResult((void *)pl);
+	return retval;
 }
 #ifdef SDK_JNI
-JNIEXPORT jlong JNICALL Java_com_zerotier_libzt_ZeroTier_get_1peer_1status(
-	JNIEnv *env, jobject thisObj, jlong id)
-{
-	return zts_get_peer_status(id);
-}
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -822,14 +840,66 @@ zts_err_t zts_get_all_network_details(struct zts_network_details *nds, int *num)
 //////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
-// Misc                                                                     //
+// Status getters                                                           //
 //////////////////////////////////////////////////////////////////////////////
 
-int zts_ready()
+int zts_get_node_status()
 {
 	Mutex::Lock _l(_service_lock);
-	return _run_service && _run_lwip_tcpip;
+	// Don't check __zts_can_perform_service_operation() here.
+	return service
+		&& service->getNode()
+		&& service->getNode()->online() ? ZTS_EVENT_NODE_ONLINE : ZTS_EVENT_NODE_OFFLINE;
 }
+#ifdef SDK_JNI
+JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_get_1node_1status(
+	JNIEnv *env, jobject thisObj)
+{
+	return zts_get_node_status();
+}
+#endif
+
+int zts_get_network_status(uint64_t networkId)
+{
+	Mutex::Lock _l(_service_lock);
+	if (!networkId) {
+		return ZTS_ERR_INVALID_ARG;
+	}
+	if (!__zts_can_perform_service_operation()) {
+		return ZTS_ERR_SERVICE;
+	}
+	/*
+	TODO:
+		ZTS_EVENT_NETWORK_READY_IP4
+		ZTS_EVENT_NETWORK_READY_IP6
+		ZTS_EVENT_NETWORK_READY_IP4_IP6
+	*/
+	return ZTS_ERR_NO_RESULT;
+}
+#ifdef SDK_JNI
+JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_get_1network_1status(
+	JNIEnv *env, jobject thisObj, jlong networkId)
+{
+	return zts_get_network_status(networkId);
+}
+#endif
+
+int zts_get_peer_status(uint64_t peerId)
+{
+	Mutex::Lock _l(_service_lock);
+	zts_err_t retval = ZTS_ERR_OK;
+	if (!__zts_can_perform_service_operation()) {
+		return ZTS_ERR_SERVICE;
+	}
+	return service->getPeerStatus(peerId);
+}
+#ifdef SDK_JNI
+JNIEXPORT jlong JNICALL Java_com_zerotier_libzt_ZeroTier_get_1peer_1status(
+	JNIEnv *env, jobject thisObj, jlong peerId)
+{
+	return zts_get_peer_status(peerId);
+}
+#endif
 
 #ifdef __cplusplus
 }

@@ -99,10 +99,16 @@ typedef int zts_err_t;
 // Control API error codes                                                  //
 //////////////////////////////////////////////////////////////////////////////
 
-#define ZTS_ERR_OK                          0 // Everything is ok
-#define ZTS_ERR_INVALID_ARG                -1 // A parameter provided by the user application is invalid (e.g. our of range, NULL, etc)
-#define ZTS_ERR_SERVICE                    -2 // The service isn't initialized or is for some other reason currently unavailable
-#define ZTS_ERR_INVALID_OP                 -3 // For some reason this API operation is not permitted (perhaps the service is still starting?)
+// Everything is ok
+#define ZTS_ERR_OK                          0
+// A argument provided by the user application is invalid (e.g. out of range, NULL, etc)
+#define ZTS_ERR_INVALID_ARG                -1
+// The service isn't initialized or is for some reason currently unavailable. Try again.
+#define ZTS_ERR_SERVICE                    -2
+// For some reason this API operation is not permitted or doesn't make sense at this time.
+#define ZTS_ERR_INVALID_OP                 -3
+// The call succeeded, but no object or relevant result was available
+#define ZTS_ERR_NO_RESULT                  -4
 
 //////////////////////////////////////////////////////////////////////////////
 // Control API event codes                                                  //
@@ -125,7 +131,8 @@ typedef int zts_err_t;
 #define ZTS_EVENT_NETWORK_ACCESS_DENIED     36
 #define ZTS_EVENT_NETWORK_READY_IP4         37
 #define ZTS_EVENT_NETWORK_READY_IP6         38
-#define ZTS_EVENT_NETWORK_DOWN              39
+#define ZTS_EVENT_NETWORK_READY_IP4_IP6     39
+#define ZTS_EVENT_NETWORK_DOWN              40
 // Network Stack events
 #define ZTS_EVENT_STACK_UP                  48
 #define ZTS_EVENT_STACK_DOWN                49
@@ -935,17 +942,26 @@ ZT_SOCKET_API void ZTCALL zts_get_rfc4193_addr(
  */
 ZT_SOCKET_API zts_err_t zts_get_peer_count();
 
+/**
+ * @brief Return details of all peers
+ *
+ * @param pds Pointer to array of zts_peer_details structs to be filled out
+ * @param num Length of destination array, will be filled out with actual number
+ * of peers that details were available for.
+ * @usage Call this after zts_start() has succeeded
+ * @return
+ */
 ZT_SOCKET_API zts_err_t zts_get_peers(struct zts_peer_details *pds, int *num);
 
 /**
- * @brief Determines whether a peer is reachable via a P2P connection
- * or is being relayed via roots.
+ * @brief Return details of a given peer.
  *
- * @usage
- * @param nodeId The ID of the peer to check
- * @return The status of a peer
+ * @param pds Pointer to zts_peer_details struct to be filled out
+ * @param peerId ID of peer that the caller wants details of
+ * @usage Call this after zts_start() has succeeded
+ * @return
  */
-ZT_SOCKET_API zts_err_t zts_get_peer_status(uint64_t nodeId);
+ZT_SOCKET_API zts_err_t zts_get_peer(struct zts_peer_details *pds, uint64_t peerId);
 
 /**
  * @brief Starts a ZeroTier service in the background
@@ -969,15 +985,35 @@ void *_zts_start_service(void *thread_id);
  */
 int _zts_can_perform_service_operation();
 
-/**
- * @brief [Should not be called from user application] Returns whether or not the node is 
- * online.
- * @usage Can be called at any time
- * @return 1 or 0
- */
-int _zts_node_online();
+//////////////////////////////////////////////////////////////////////////////
+// Status getters                                                           //
+//////////////////////////////////////////////////////////////////////////////
 
-int zts_ready();
+/**
+ * @brief Queries a the status of the core node/service
+ *
+ * @usage Can be called at any time
+ * @return ZTS_EVENT_NODE_ONLINE, ZTS_EVENT_NODE_OFFLINE, or standard ZTS_ errors
+ */
+ZT_SOCKET_API zts_err_t zts_get_node_status();
+
+/**
+ * @brief Queries a the status of a network
+ *
+ * @usage Can be called at any time
+ * @return ZTS_NETWORK_ values, or standard ZTS_ errors
+ */
+ZT_SOCKET_API zts_err_t zts_get_network_status(uint64_t nwid);
+
+/**
+ * @brief Determines whether a peer is reachable via a P2P connection
+ * or is being relayed via roots.
+ *
+ * @usage
+ * @param peerId The ID of the peer to check
+ * @return ZTS_PEER_ values, or standard ZTS_ errors
+ */
+ZT_SOCKET_API zts_err_t zts_get_peer_status(uint64_t peerId);
 
 //////////////////////////////////////////////////////////////////////////////
 // Socket API                                                               //

@@ -90,6 +90,16 @@ public class ZeroTier
 	public static int  EVENT_PEER_RELAY                = 97;
 	public static int  EVENT_PEER_UNREACHABLE          = 98;
 
+	//////////////////////////////////////////////////////////////////////////////
+	// ZeroTier Constants                                                       //
+	//////////////////////////////////////////////////////////////////////////////
+
+	public static int  ZT_MAX_PEER_NETWORK_PATHS       = 16;
+
+	//////////////////////////////////////////////////////////////////////////////
+	// Socket API Constants                                                     //
+	//////////////////////////////////////////////////////////////////////////////
+
 	// Socket protocol types
 	public static int SOCK_STREAM     = 0x00000001;
 	public static int SOCK_DGRAM      = 0x00000002;
@@ -166,8 +176,8 @@ public class ZeroTier
 	// ZeroTier Service Controls                                                //
 	//////////////////////////////////////////////////////////////////////////////
 
-	public static native void start(String path, ZeroTierEventListener callbackClass, int port);
-	public static native void stop();
+	public static native int start(String path, ZeroTierEventListener callbackClass, int port);
+	public static native int stop();
 	public static native int join(long nwid);
 	public static native int leave(long nwid);
 	public static native long get_node_id();

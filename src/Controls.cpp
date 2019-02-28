@@ -576,7 +576,7 @@ zts_err_t zts_start(const char *path, void (*callback)(struct zts_callback_msg*)
 }
 
 #ifdef SDK_JNI
-JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_start(
+JNIEXPORT int JNICALL Java_com_zerotier_libzt_ZeroTier_start(
 	JNIEnv *env, jobject thisObj, jstring path, jobject callback, jint port)
 {
 	if (!path) {
@@ -595,8 +595,9 @@ JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_start(
 	objRef = env->NewGlobalRef(callback); // Reference used for later calls
 	_userCallbackMethodRef = eventListenerCallbackMethod;
 	const char* utf_string = env->GetStringUTFChars(path, NULL);
-	zts_start(utf_string, NULL, port); // using _userCallbackMethodRef
+	int retval = zts_start(utf_string, NULL, port); // using _userCallbackMethodRef
 	env->ReleaseStringUTFChars(path, utf_string);
+	return retval;
 }
 #endif
 

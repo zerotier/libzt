@@ -27,7 +27,7 @@
 cmake_minimum_required (VERSION 3.0)
 project (zt)
 
-set (CMAKE_VERBOSE_MAKEFILE ON)
+set (CMAKE_VERBOSE_MAKEFILE OFF)
 
 # Library and executable output paths
 if (NOT CMAKE_BUILD_TYPE)
@@ -245,7 +245,8 @@ include_directories (${PROJ_DIR}/ext/concurrentqueue)
 
 # zto_obj
 add_library (zto_obj OBJECT ${zerotiercoreSrcGlob})
-set_target_properties (zto_obj PROPERTIES COMPILE_FLAGS "${SILENCE} -std=c++11 -DZT_USE_MINIUPNPC=1 -DZT_SOFTWARE_UPDATE_DEFAULT=0")
+set_target_properties (zto_obj PROPERTIES
+	COMPILE_FLAGS "${SILENCE} -std=c++11 -DZT_USE_MINIUPNPC=1 -DZT_SOFTWARE_UPDATE_DEFAULT=0")
 if (BUILDING_WIN)
 	target_link_libraries (zto_obj ws2_32)
 	target_link_libraries (zto_obj ${shlwapi_LIBRARY_PATH})
@@ -258,7 +259,12 @@ set_target_properties (libnatpmp_obj PROPERTIES COMPILE_FLAGS "")
 
 # miniupnpc_obj
 add_library (miniupnpc_obj OBJECT ${libminiupnpcSrcGlob})
-target_compile_definitions(miniupnpc_obj PRIVATE MACOSX ZT_USE_MINIUPNPC MINIUPNP_STATICLIB _DARWIN_C_SOURCE MINIUPNPC_SET_SOCKET_TIMEOUT MINIUPNPC_GET_SRC_ADDR _BSD_SOURCE _DEFAULT_SOURCE MINIUPNPC_VERSION_STRING=\"2.0\" UPNP_VERSION_STRING=\"UPnP/1.1\" ENABLE_STRNATPMPERR OS_STRING=\"Darwin/15.0.0\")
+target_compile_definitions(miniupnpc_obj
+	PRIVATE MACOSX ZT_USE_MINIUPNPC MINIUPNP_STATICLIB _DARWIN_C_SOURCE
+	MINIUPNPC_SET_SOCKET_TIMEOUT MINIUPNPC_GET_SRC_ADDR _BSD_SOURCE
+	_DEFAULT_SOURCE MINIUPNPC_VERSION_STRING=\"2.0\"
+	UPNP_VERSION_STRING=\"UPnP/1.1\" ENABLE_STRNATPMPERR
+	OS_STRING=\"Darwin/15.0.0\")
 
 # lwip_obj
 add_library (lwip_obj OBJECT ${lwipSrcGlob})

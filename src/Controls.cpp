@@ -275,11 +275,15 @@ void _api_sleep(int interval_ms)
 
 int _change_nice(int increment)
 {
+#if !defined(__ANDROID__)
 	if (increment == 0) {
 		return 0;
 	}
 	int  priority = getpriority(PRIO_PROCESS, 0);
 	return setpriority( PRIO_PROCESS, 0, priority+increment);
+#else
+	return 0;
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////////

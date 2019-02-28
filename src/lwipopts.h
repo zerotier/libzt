@@ -89,7 +89,7 @@
 
 // Desktop-class applications
 #if 1
-   #define MTU                             2800
+   #define LWIP_MTU                        2800
    #define LWIP_CHKSUM_ALGORITHM           2
    // memory
    #define MEMP_NUM_NETCONN                1024
@@ -108,19 +108,19 @@
    #define IP_REASS_MAX_PBUFS              32
    // tcp
    #define TCP_TMR_INTERVAL                25
-   #define TCP_WND                         0xffff
+   #define TCP_WND                         0x7fff8
    #define TCP_MAXRTX                      12
    #define TCP_SYNMAXRTX                   12
    #define LWIP_TCP_SACK_OUT               1
    #define LWIP_TCP_MAX_SACK_NUM           4
-   #define TCP_MSS                         (MTU - 40)
+   #define TCP_MSS                         (LWIP_MTU - 40)
    #define TCP_SND_BUF                     (64 * TCP_MSS)
    #define TCP_SND_QUEUELEN                (64 * (2 * (TCP_SND_BUF/TCP_MSS)))
    #define TCP_SNDLOWAT                    (0xffff - (4*TCP_MSS) - 1)
    #define TCP_SNDQUEUELOWAT               LWIP_MAX(((TCP_SND_QUEUELEN)/2), 5)
    #define TCP_WND_UPDATE_THRESHOLD        LWIP_MIN((TCP_WND / 4), (TCP_MSS * 4))
    #define LWIP_WND_SCALE                  1
-   #define TCP_RCV_SCALE                   0
+   #define TCP_RCV_SCALE                   3
    // tcpip
    #define TCPIP_MBOX_SIZE                 0
    #define LWIP_TCPIP_CORE_LOCKING         1

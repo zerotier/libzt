@@ -324,6 +324,7 @@ bool lwip_is_netif_up(void *n)
 /**
  * Called when a netif is removed (ZTS_EVENT_NETIF_INTERFACE_REMOVED)
  */
+#if LWIP_NETIF_REMOVE_CALLBACK
 static void netif_remove_callback(struct netif *n)
 {
 	// Called from core, no need to lock
@@ -339,10 +340,12 @@ static void netif_remove_callback(struct netif *n)
 	ifd->mac = lwip_htonl(ifd->mac) >> 16;
 	postEvent(ZTS_EVENT_NETIF_REMOVED, (void*)ifd);
 }
+#endif
 
 /**
  * Called when a link is brought up or down (ZTS_EVENT_NETIF_LINK_UP, ZTS_EVENT_NETIF_LINK_DOWN)
  */
+#if LWIP_NETIF_LINK_CALLBACK
 static void netif_link_callback(struct netif *n)
 {
 	// Called from core, no need to lock
@@ -367,6 +370,7 @@ static void netif_link_callback(struct netif *n)
 		postEvent(ZTS_EVENT_NETIF_LINK_DOWN, (void*)ifd);
 	}
 }
+#endif
 
 void lwip_set_callbacks(struct netif *n)
 {

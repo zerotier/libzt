@@ -128,17 +128,23 @@ void lwip_start_dhcp(void *netif);
  *  - Interface is up/down (ZTS_EVENT_NETIF_UP, ZTS_EVENT_NETIF_DOWN)
  *  - Address changes while up (ZTS_EVENT_NETIF_NEW_ADDRESS)
  */
+#if LWIP_NETIF_STATUS_CALLBACK
 static void netif_status_callback(struct netif *netif);
+#endif
 
 /**
  * @brief Called when a netif is removed (ZTS_EVENT_NETIF_INTERFACE_REMOVED)
  */
+#if LWIP_NETIF_REMOVE_CALLBACK
 static void netif_remove_callback(struct netif *netif);
+#endif
 
 /**
  * @brief Called when a link is brought up or down (ZTS_EVENT_NETIF_LINK_UP, ZTS_EVENT_NETIF_LINK_DOWN)
  */
+#if LWIP_NETIF_LINK_CALLBACK
 static void netif_link_callback(struct netif *netif);
+#endif
 
 /**
  * @brief Set up an interface in the network stack for the VirtualTap.

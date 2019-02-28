@@ -49,6 +49,7 @@
 #include "lwip/ip_addr.h"
 #include "lwip/nd6.h"
 #include "lwip/netifapi.h"
+#include "lwip/stats.h"
 
 #include "VirtualTap.hpp"
 #include "lwipDriver.hpp"
@@ -124,7 +125,7 @@ static void main_lwip_driver_loop(void *arg)
 	sys_sem_wait(&sem);
 	// Main loop
 	while(_run_lwip_tcpip) {
-		lwip_sleep(LWIP_GUARDED_BUF_CHECK_INTERVAL);
+		lwip_sleep(LWIP_DRIVER_LOOP_INTERVAL);
 	}
 	_has_exited = true;
 	postEvent(ZTS_EVENT_STACK_DOWN);
@@ -167,7 +168,7 @@ void lwip_driver_shutdown()
 	// Set flag to stop sending frames into the core
 	_run_lwip_tcpip = false;
 	// Wait until the main lwIP thread has exited
-	while (!_has_exited) { lwip_sleep(LWIP_GUARDED_BUF_CHECK_INTERVAL); }
+	while (!_has_exited) { lwip_sleep(LWIP_DRIVER_LOOP_INTERVAL); }
 	/*
 	if (tcpip_shutdown() == ERR_OK) {
 		sys_timeouts_free();
@@ -232,6 +233,9 @@ err_t lwip_eth_tx(struct netif *n, struct pbuf *p)
 void lwip_eth_rx(VirtualTap *tap, const MAC &from, const MAC &to, unsigned int etherType,
 	const void *data, unsigned int len)
 {
+#ifdef LWIP_STATS
+	stats_display();
+#endif
 	if (!_run_lwip_tcpip) {
 		return;
 	}
@@ -400,7 +404,7 @@ static err_t netif_init(struct netif *n)
 	n->name[1]    = '4';
 	n->linkoutput = lwip_eth_tx;
 	n->output     = etharp_output;
-	n->mtu        = ZT_MAX_MTU;
+	n->mtu        = LWIP_MTU < ZT_MAX_MTU ? LWIP_MTU : ZT_MAX_MTU;
 	n->flags      = NETIF_FLAG_BROADCAST
 		| NETIF_FLAG_ETHARP
 		| NETIF_FLAG_ETHERNET

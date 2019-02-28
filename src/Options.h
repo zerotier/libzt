@@ -32,8 +32,14 @@
 #define ZTS_HIBERNATION_MULTIPLIER 50
 
 //////////////////////////////////////////////////////////////////////////////
-// Thread names                                                             //
+// Threading                                                                //
 //////////////////////////////////////////////////////////////////////////////
+
+#define SERVICE_THREAD_NICENESS       0 // -10
+#define CALLBACK_THREAD_NICENESS      0 //  10
+#define LWIP_DRIVER_THREAD_NICENESS   0 //  10
+#define TCPIP_THREAD_NICENESS         0 // -10
+#define TAP_THREAD_NICENESS           0 //  10
 
 #define ZTS_SERVICE_THREAD_NAME "ZeroTierServiceThread"
 #define ZTS_EVENT_CALLBACK_THREAD_NAME "ZeroTierEventCallbackThread"

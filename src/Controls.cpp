@@ -273,6 +273,15 @@ void _api_sleep(int interval_ms)
 #endif
 }
 
+int _change_nice(int increment)
+{
+	if (increment == 0) {
+		return 0;
+	}
+	int  priority = getpriority(PRIO_PROCESS, 0);
+	return setpriority( PRIO_PROCESS, 0, priority+increment);
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // Callback thread                                                          //
 //////////////////////////////////////////////////////////////////////////////
@@ -283,6 +292,7 @@ DWORD WINAPI _zts_run_callbacks(LPVOID thread_id)
 void *_zts_run_callbacks(void *thread_id)
 #endif
 {
+	_change_nice(CALLBACK_THREAD_NICENESS);
 #if defined(__APPLE__)
 	pthread_setname_np(ZTS_EVENT_CALLBACK_THREAD_NAME);
 #endif
@@ -318,7 +328,9 @@ void *_zts_run_service(void *arg)
 	//struct serviceParameters *params = arg;
 	//DEBUG_INFO("path=%s", params->path.c_str());
 	int err;
-	
+
+	_change_nice(SERVICE_THREAD_NICENESS);
+
 	try {
 		std::vector<std::string> hpsp(OSUtils::split(_path.c_str(), ZT_PATH_SEPARATOR_S,"",""));
 		std::string ptmp;

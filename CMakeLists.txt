@@ -1,48 +1,59 @@
-#
-# ZeroTier SDK - Network Virtualization Everywhere
-# Copyright (C) 2011-2019  ZeroTier, Inc.  https://www.zerotier.com/
-# 
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-# 
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-# 
-#  You should have received a copy of the GNU General Public License
-#  along with this program. If not, see <http://www.gnu.org/licenses/>.
-# 
-#  --
-# 
-#  You can be released from the requirements of the license by purchasing
-#  a commercial license. Buying such a license is mandatory as soon as you
-#  develop commercial closed-source software that incorporates or links
-#  directly against ZeroTier software without disclosing the source code
-#  of your own application.
-# 
-
 cmake_minimum_required (VERSION 3.0)
 project (zt)
 
 set (CMAKE_VERBOSE_MAKEFILE OFF)
 
-# Library and executable output paths
-if (NOT CMAKE_BUILD_TYPE)
-    message( FATAL_ERROR "Must specify CMAKE_BUILD_TYPE, CMake will exit." )
+# -----------------------------------------------------------------------------
+# |                     PLATFORM/FEATURE AND IDE DETECTION                    |
+# -----------------------------------------------------------------------------
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Android")
+	set (BUILDING_ANDROID TRUE)
+endif ()
+if (WIN32)
+	set (BUILDING_WIN32 TRUE)
+endif ()
+if ("${CMAKE_GENERATOR}" MATCHES "(Win64|IA64)")
+	set (BUILDING_WIN64 TRUE)
+endif ()
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+	set (BUILDING_DARWIN TRUE)
+endif ()
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+	set (BUILDING_LINUX TRUE)
+endif ()
+if (${CMAKE_GENERATOR} STREQUAL "Xcode")
+	set (IN_XCODE TRUE)
+	set(XCODE_EMIT_EFFECTIVE_PLATFORM_NAME ON)
+	#set_target_properties (${STATIC_LIB_NAME}
+	#	PROPERTIES XCODE_ATTRIBUTE_MY_BUILD_ONLY_ACTIVE_ARCH YES)
+	#set_target_properties (${STATIC_LIB_NAME}
+	#	PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH "${MY_BUILD_ONLY_ACTIVE_ARCH})
+endif ()
+if (BUILDING_WIN32 OR BUILDING_WIN64 OR MSVC)
+	set (BUILDING_WIN TRUE)
+endif ()
+if (NOT BUILDING_ANDROID AND NOT IN_XCODE)
+	set(SHOULD_BUILD_TESTS TRUE)
+endif ()
+if (BUILDING_WIN32 OR BUILDING_WIN64 OR MSVC)
+	set (BUILDING_WIN TRUE)
 endif ()
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set (CMAKE_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin/debug)
+# -----------------------------------------------------------------------------
+# |                                BUILD TYPES                                |
+# -----------------------------------------------------------------------------
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "debug")
+    set (CMAKE_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/bin)
+	set (LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
 endif()
-if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    set (CMAKE_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin/release)
+if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "release")
+	set (CMAKE_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/bin)
+	set (LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
 endif()
 
 set (EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
-set (LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 set (INTERMEDIATE_LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib/intermediate)
 
 # -----------------------------------------------------------------------------
@@ -67,45 +78,18 @@ else ()
 endif ()
 
 # -----------------------------------------------------------------------------
-# |                     PLATFORM/FEATURE AND IDE DETECTION                    |
-# -----------------------------------------------------------------------------
-
-if (${CMAKE_SYSTEM_NAME} MATCHES "Android")
-	set (BUILDING_ANDROID TRUE)
-endif ()
-if (WIN32)
-	set (BUILDING_WIN32 TRUE)
-endif ()
-if ("${CMAKE_GENERATOR}" MATCHES "(Win64|IA64)")
-	set (BUILDING_WIN64 TRUE)
-endif ()
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	set (BUILDING_DARWIN TRUE)
-endif ()
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-	set (BUILDING_LINUX TRUE)
-endif ()
-if (${CMAKE_GENERATOR} STREQUAL "Xcode")
-	set (IN_XCODE TRUE)
-	set(XCODE_EMIT_EFFECTIVE_PLATFORM_NAME ON)
-	#set_target_properties (${STATIC_LIB_NAME} PROPERTIES XCODE_ATTRIBUTE_MY_BUILD_ONLY_ACTIVE_ARCH YES)
-	#set_target_properties (${STATIC_LIB_NAME} PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH "${MY_BUILD_ONLY_ACTIVE_ARCH})
-endif ()
-if (BUILDING_WIN32 OR BUILDING_WIN64 OR MSVC)
-	set (BUILDING_WIN TRUE)
-endif ()
-if (NOT BUILDING_ANDROID AND NOT IN_XCODE AND NOT BUILD_TESTS EQUAL 0)
-	set(SHOULD_BUILD_TESTS TRUE)
-endif ()
-if (BUILDING_WIN32 OR BUILDING_WIN64 OR MSVC)
-	set (BUILDING_WIN TRUE)
-endif ()
-
-# -----------------------------------------------------------------------------
 # |                                    FLAGS                                  |
 # -----------------------------------------------------------------------------
 
-set (SILENCE "-Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-missing-field-initializers")
+set (SILENCE "-Wno-unused-parameter \
+	-Wno-format \
+	-Wno-tautological-constant-out-of-range-compare \
+	-Wno-macro-redefined -Wno-parentheses-equality \
+	-Wno-sign-compare \
+	-Wno-unused-parameter \
+	-Wno-unused-variable \
+	-Wno-missing-field-initializers")
+
 set (LIBZT_FLAGS "-D_USING_LWIP_DEFINITIONS_=1 -DZT_SDK")
 set (ZTCORE_FLAGS "-DZT_USE_MINIUPNPC=1 -DZT_SOFTWARE_UPDATE_DEFAULT=0")
 
@@ -113,24 +97,29 @@ if (BUILDING_WIN)
 	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc -DNOMINMAX")
 else ()
-	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${LIBZT_FLAGS} -fstack-protector")
-	set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${LIBZT_FLAGS} -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
-	set (CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${LIBZT_FLAGS} -fstack-protector")
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SILENCE} ${LIBZT_FLAGS} -O3 -Wall -Wextra -std=c++11")
-	set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${SILENCE} ${LIBZT_FLAGS} -std=c++11 -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
-	set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${SILENCE} ${LIBZT_FLAGS} -O3 -std=c++11")
+	set (CMAKE_C_FLAGS
+		"${SILENCE} ${CMAKE_C_FLAGS} ${LIBZT_FLAGS} -fstack-protector")
+	set (CMAKE_C_FLAGS_DEBUG
+		"${CMAKE_C_FLAGS_DEBUG} ${LIBZT_FLAGS} -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
+	set (CMAKE_C_FLAGS_RELEASE
+		"${SILENCE} ${CMAKE_C_FLAGS_RELEASE} ${LIBZT_FLAGS} -fstack-protector")
+	set (CMAKE_CXX_FLAGS
+		"${CMAKE_CXX_FLAGS} ${SILENCE} ${LIBZT_FLAGS} -O3 -Wall -Wextra -std=c++11")
+	set (CMAKE_CXX_FLAGS_DEBUG
+		"${CMAKE_CXX_FLAGS_DEBUG} ${LIBZT_FLAGS} -std=c++11 -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
+	set (CMAKE_CXX_FLAGS_RELEASE
+		"${CMAKE_CXX_FLAGS_RELEASE} ${SILENCE} ${LIBZT_FLAGS} -O3 -std=c++11")
 endif ()
 
 if (BUILDING_LINUX AND NOT BUILDING_ANDROID)
 	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread")
 endif ()
 
-
-
 # -----------------------------------------------------------------------------
 # |                                      JNI                                  |
 # -----------------------------------------------------------------------------
 
+if (NOT IN_XCODE)
 MESSAGE (STATUS "Looking for JNI")
 
 if (BUILDING_WIN)
@@ -169,6 +158,8 @@ endif ()
 if ((BUILDING_ANDROID OR JNI) AND JNI_FOUND)
 	add_definitions (-DSDK_JNI=1)
 endif ()
+
+endif () # NOT IN_XCODE
 
 # -----------------------------------------------------------------------------
 # |                            SOURCE FILE GLOBS                              |
@@ -223,6 +214,11 @@ file (GLOB lwipSrcGlob
 	${LWIP_SRC_DIR}/core/ipv6/*.c)
 list(REMOVE_ITEM lwipSrcGlob ${LWIP_SRC_DIR}/netif/slipif.c)
 
+# header globs for xcode frameworks
+file (GLOB frameworkPrivateHeaderGlob include/ZeroTier.h include/ZeroTierConstants.h)
+file (GLOB frameworkPublicHeaderGlob include/Xcode-Bridging-Header.h)
+file (GLOB frameworkHeaderGlob ${frameworkPublicHeaderGlob} ${frameworkPrivateHeaderGlob})
+
 # -----------------------------------------------------------------------------
 # |                                  INCLUDES                                 |
 # -----------------------------------------------------------------------------
@@ -238,6 +234,33 @@ include_directories (${PROJ_DIR}/include)
 include_directories (${LWIP_SRC_DIR}/include)
 include_directories (${LWIP_PORT_DIR}/include)
 include_directories (${PROJ_DIR}/ext/concurrentqueue)
+
+# TODO: Should separate this into its own ios.cmake file
+
+if (IOS_FRAMEWORK)
+	set(DEVROOT
+		"/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer")
+	if (IOS_ARM64)
+		set (CMAKE_OSX_ARCHITECTURES arm64)
+		set (SDKVER "11.4")
+	endif ()
+	if (IOS_ARMV7)
+		# armv7 armv7s
+		set (CMAKE_OSX_ARCHITECTURES "$(ARCHS_STANDARD_32_BIT)")
+		set (SDKVER "10.0")
+	endif ()
+
+	set(SDKROOT "${DEVROOT}/SDKs/iPhoneOS${SDKVER}.sdk")
+	if(EXISTS ${SDKROOT})
+		set(CMAKE_OSX_SYSROOT "${SDKROOT}")
+	else()
+		message("Warning, iOS Base SDK path not found: " ${SDKROOT})
+	endif()
+endif ()
+
+if (MACOS_FRAMEWORK)
+	include_directories ("/Library/Developer/CommandLineTools/SDKs/MacOSX10.14.sdk/usr/include/")
+endif ()
 
 # -----------------------------------------------------------------------------
 # |                     OBJECT LIBRARIES (INTERMEDIATE)                       |
@@ -309,26 +332,50 @@ set_target_properties (lwip PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
 
 # libzt.a
-add_library (zt STATIC $<TARGET_OBJECTS:libzt_obj>
+add_library (${STATIC_LIB_NAME} STATIC $<TARGET_OBJECTS:libzt_obj>
 $<TARGET_OBJECTS:zto_obj>
 $<TARGET_OBJECTS:libnatpmp_obj>
 $<TARGET_OBJECTS:miniupnpc_obj>
-$<TARGET_OBJECTS:lwip_obj>)
-set_target_properties (zt PROPERTIES
+$<TARGET_OBJECTS:lwip_obj> ${libztSrcGlob})
+set_target_properties (${STATIC_LIB_NAME} PROPERTIES
     OUTPUT_NAME zt
     LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
 
 # libzt.so/dylib/dll
-add_library (zt-shared SHARED ${libztSrcGlob})
+add_library (${DYNAMIC_LIB_NAME} SHARED ${libztSrcGlob})
 message (STATUS ${libztSrcGlob})
-target_link_libraries (zt-shared lwip_pic zto_pic)
-set_target_properties (zt-shared PROPERTIES COMPILE_FLAGS "${SILENCE} -std=c++11 -DZT_SDK")
-set_target_properties (zt-shared PROPERTIES OUTPUT_NAME ${DYNAMIC_LIB_OUTPUT_NAME}
+target_link_libraries (${DYNAMIC_LIB_NAME} lwip_pic zto_pic)
+set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES COMPILE_FLAGS "${SILENCE} -std=c++11 -DZT_SDK")
+set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES OUTPUT_NAME ${DYNAMIC_LIB_OUTPUT_NAME}
                                     WINDOWS_EXPORT_ALL_SYMBOLS true)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 if (BUILDING_ANDROID)
-	target_link_libraries (zt-shared android log)
+	target_link_libraries (${DYNAMIC_LIB_NAME} android log)
+endif ()
+
+# xcode framework
+if (IN_XCODE)
+    include_directories (${frameworkHeaderGlob})
+
+	add_library(${XCODE_FRAMEWORK_NAME} STATIC
+		$<TARGET_OBJECTS:libzt_obj>
+		$<TARGET_OBJECTS:zto_obj>
+		$<TARGET_OBJECTS:libnatpmp_obj>
+		$<TARGET_OBJECTS:miniupnpc_obj>
+		$<TARGET_OBJECTS:lwip_obj>
+		${libztSrcGlob}
+		${frameworkHeaderGlob})
+
+	set_target_properties(${XCODE_FRAMEWORK_NAME} PROPERTIES
+		FRAMEWORK TRUE
+		FRAMEWORK_VERSION A
+		DEFINES_MODULE TRUE
+		MACOSX_FRAMEWORK_IDENTIFIER com.cmake.${XCODE_FRAMEWORK_NAME}
+		MODULE_MAP "~/op/zt/libzt/libzt_experimental/ports/module.modulemap"
+		PUBLIC_HEADER "${frameworkHeaderGlob}"
+		XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"
+	)
 endif ()
 
 # -----------------------------------------------------------------------------
@@ -338,20 +385,20 @@ endif ()
 if (SHOULD_BUILD_TESTS)
 	# Minimal functional example
 	#add_executable (example ${PROJ_DIR}/test/example.cpp)
-	#target_link_libraries(example zt)
+	#target_link_libraries(example ${STATIC_LIB_NAME})
 
 	# API test
 	#add_executable (apitest ${PROJ_DIR}/test/apitest.cpp)
-	#target_link_libraries(apitest zt)
+	#target_link_libraries(apitest ${STATIC_LIB_NAME})
 
 	# Selftest
 	#add_executable (selftest ${PROJ_DIR}/test/selftest.cpp)
-	#target_link_libraries(selftest zt)
+	#target_link_libraries(selftest ${STATIC_LIB_NAME})
 	#set_target_properties (selftest PROPERTIES COMPILE_FLAGS "-D__SELFTEST__")
 
 	# client/server performance test
 	#add_executable (client ${PROJ_DIR}/test/client.cpp)
-	#target_link_libraries(client zt)
+	#target_link_libraries(client ${STATIC_LIB_NAME})
 	#add_executable (server ${PROJ_DIR}/test/server.cpp)
-	#target_link_libraries(server zt)
+	#target_link_libraries(server ${STATIC_LIB_NAME})
 endif ()

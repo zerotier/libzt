@@ -1,184 +1,258 @@
 #!/bin/bash
 
-# Call this script from the root project directory via `make dist`
-# - submodules will be recursively initialized and updated
-# - patches will be applied to submodules if needed
-# - this script will call CMake to generate library-building packages if necessary
-# - once projects have been generated, this script will use their tooling to build the libraries/packages
-# - when all products have been built and moved to `tmp`, they will be compressed and moved to `products`
+# This script works in conjunction with the Makefile and CMakeLists.txt. It is
+# intented to be called from the Makefile, it generates projects and builds
+# targets as specified in CMakeLists.txt. This script is also responsible for
+# packaging all of the resultant builds, licenses, and documentation.
 
+BUILD_CONCURRENCY=
+#"-j 2"
 OSNAME=$(uname | tr '[A-Z]' '[a-z]')
-BUILD_CONCURRENCY=4
-PROJROOT=$(pwd)
-BUILD_PRODUCTS_DIR=$(pwd)/bin
-LIB_PRODUCTS_DIR=$BUILD_PRODUCTS_DIR/lib
-FINISHED_PRODUCTS_DIR=$(pwd)/products
-STAGING_DIR=$(pwd)/staging
-# Windows (previously built)
-WIN_PREBUILT_DIR=$PROJROOT/staging/win
-WIN_RELEASE_PRODUCTS_DIR=$WIN_PREBUILT_DIR/release
-WIN_DEBUG_PRODUCTS_DIR=$WIN_PREBUILT_DIR/debug
-WIN32_RELEASE_PRODUCTS_DIR=$WIN_RELEASE_PRODUCTS_DIR/win32
-WIN64_RELEASE_PRODUCTS_DIR=$WIN_RELEASE_PRODUCTS_DIR/win64
-WIN32_DEBUG_PRODUCTS_DIR=$WIN_DEBUG_PRODUCTS_DIR/win32
-WIN64_DEBUG_PRODUCTS_DIR=$WIN_DEBUG_PRODUCTS_DIR/win64
-# Linux
-LINUX_PROD_DIR=$PROJROOT/staging/linux
-# macOS
-MACOS_PROD_DIR=$PROJROOT/staging/macos
-MACOS_RELEASE_PROD_DIR=$MACOS_PROD_DIR/release
-MACOS_DEBUG_PROD_DIR=$MACOS_PROD_DIR/debug
-# iOS
-IOS_PROD_DIR=$PROJROOT/staging/ios
-# Android
-ANDROID_PROJ_DIR=$(pwd)/"ports/android"
-ANDROID_ARCHIVE_FILENAME="zt.aar"
-# Xcode
-XCODE_IOS_PROJ_DIR=$(pwd)/"ports/xcode_ios"
-XCODE_MACOS_PROJ_DIR=$(pwd)/"ports/xcode_macos"
+BUILD_TMP=$(pwd)/tmp
+ANDROID_PROJ_DIR=$(pwd)/ports/android
+XCODE_IOS_ARM64_PROJ_DIR=$(pwd)/ports/xcode_ios-arm64
+#XCODE_IOS_ARMV7_PROJ_DIR=$(pwd)/ports/xcode_ios-armv7
+XCODE_MACOS_PROJ_DIR=$(pwd)/ports/xcode_macos
 
-mkdir $FINISHED_PRODUCTS_DIR
-mkdir $STAGING_DIR
-
-# Check that projects exist, generate them and exit if they don't exist
-generate_projects_if_necessary() 
+# Generates projects if needed
+generate_projects() 
 {
+    if [[ ! $OSNAME = *"darwin"* ]]; then
+        exit 0
+    fi
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
 	if [[ $OSNAME = *"darwin"* ]]; then
-		# iOS
-		if [ ! -d "$XCODE_IOS_PROJ_DIR" ]; then
-			echo "BUILDING: iOS project"
-			should_exit=1
-			mkdir -p $XCODE_IOS_PROJ_DIR
-			cd $XCODE_IOS_PROJ_DIR
-			cmake -G Xcode ../../
-			# Bug in CMake requires us to manually replace architecture strings in project file
-			sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' $PROJNAME.xcodeproj/project.pbxproj
+		# iOS (SDK 11+, 64-bit only, arm64)
+		if [ ! -d "$XCODE_IOS_ARM64_PROJ_DIR" ]; then
+			mkdir -p $XCODE_IOS_ARM64_PROJ_DIR
+			cd $XCODE_IOS_ARM64_PROJ_DIR
+			cmake -G Xcode ../../ -DIOS_FRAMEWORK=1 -DIOS_ARM64=1
+            # Manually replace arch strings in project file
+	        sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj 
 			cd -
 		fi
+        # iOS (SDK <11, 32-bit only, armv7, armv7s)
+		#if [ ! -d "$XCODE_IOS_ARMV7_PROJ_DIR" ]; then
+		#	mkdir -p $XCODE_IOS_ARMV7_PROJ_DIR
+		#	cd $XCODE_IOS_ARMV7_PROJ_DIR
+		#	cmake -G Xcode ../../ -DIOS_FRAMEWORK=1 -DIOS_ARMV7=1
+            # Manually replace arch strings in project file
+	    #   sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj 
+		#	cd -
+		#fi
 		# macOS
 		if [ ! -d "$XCODE_MACOS_PROJ_DIR" ]; then
-			echo "BUILDING: macOS project"
-			should_exit=1
 			mkdir -p $XCODE_MACOS_PROJ_DIR
 			cd $XCODE_MACOS_PROJ_DIR
-			cmake -G Xcode ../../
+			cmake -G Xcode ../../ -DMACOS_FRAMEWORK=1
 			cd -
-		fi
-		# android?
-		if [[ $should_exit = 1 ]]; then
-			echo "Generated projects. Perform necessary modifications and then re-run this script"
-			echo "Please place previously built windows binaries in $WIN_PREBUILT_DIR before running again."
-			exit 0
-		else
-			echo "Projects detected, going to build stage next"
-		fi
+        fi
 	fi
 }
 
-build_all_products()
+ios()
 {
-	CONFIG=$1
-	UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
+    if [[ ! $OSNAME = *"darwin"* ]]; then
+        exit 0
+    fi
+    generate_projects # if needed
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
 
-	# Targets to build on and for darwin
-	if [[ $OSNAME = *"darwin"* ]]; then
-		# Xcode Frameworks --- Builds targets from a CMake-generated Xcode project
-		if false; then
-			if [[ $2 != *"JNI"* ]]; then
-				CURR_BUILD_PRODUCTS_DIR=$LIB_PRODUCTS_DIR/$UPPERCASE_CONFIG
-				# (iOS)
-				echo "BUILDING: iOS"
-				cd $XCODE_IOS_PROJ_DIR
-				xcodebuild -target zt -configuration "$UPPERCASE_CONFIG" -sdk "iphoneos"
-				xcodebuild -target zt-static -configuration "$UPPERCASE_CONFIG" -sdk "iphoneos"
-				cd -
-				CURR_ARCH="arm64" # spoof this architecture since HOSTTYPE is likely x86_64
-				CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/ios-$CURR_ARCH
-				mkdir -p $CURR_TMP_PRODUCT_DIR
-				mv $CURR_BUILD_PRODUCTS_DIR/*.framework $CURR_TMP_PRODUCT_DIR
-				mv $CURR_BUILD_PRODUCTS_DIR/libzt.* $CURR_TMP_PRODUCT_DIR
-
-				# (macOS)
-				echo "BUILDING: macOS"
-				cd $XCODE_MACOS_PROJ_DIR
-					xcodebuild -target zt -configuration "$UPPERCASE_CONFIG" -sdk "macosx"
-					xcodebuild -target zt-static -configuration "$UPPERCASE_CONFIG" -sdk "macosx"
-					xcodebuild -target zt-shared -configuration "$UPPERCASE_CONFIG" -sdk "macosx"
-				cd -
-				CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/macos-$(uname -m)
-				mkdir -p $CURR_TMP_PRODUCT_DIR
-				mv $CURR_BUILD_PRODUCTS_DIR/*.framework $CURR_TMP_PRODUCT_DIR
-				mv $CURR_BUILD_PRODUCTS_DIR/libzt.* $CURR_TMP_PRODUCT_DIR
-			fi
-		fi
-		# Android Archive (AAR) --- Executes a Gradle task
-		if true; then
-			CMAKE_FLAGS=$CMAKE_FLAGS" -DSDK_JNI=1"
-			CURR_ARCH="armeabi-v7a" # spoof this architecture since HOSTTYPE is likely x86_64
-			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/android-$CURR_ARCH
-			mkdir -p $CURR_TMP_PRODUCT_DIR
-			echo "BUILDING: AAR"
-			cd $ANDROID_PROJ_DIR
-			./gradlew assemble$UPPERCASE_CONFIG # e.g. assembleRelease
-			mv $ANDROID_PROJ_DIR/app/build/outputs/aar/app-$CONFIG.aar $CURR_TMP_PRODUCT_DIR/$ANDROID_ARCHIVE_FILENAME
-			cd -
-		fi
-		# Java Archive (JAR)
-		if false; then
-			CURR_BUILD_PRODUCTS_DIR=$LIB_PRODUCTS_DIR
-			CMAKE_FLAGS=$CMAKE_FLAGS" -DJNI=1"
-			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/macos-$(uname -m)
-			mkdir -p $CURR_TMP_PRODUCT_DIR
-			echo "BUILDING: JAR"
-			rm -rf $LIB_PRODUCTS_DIR # clean-lite
-			cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=$CONFIG "-DJNI=1 -DBUILD_TESTS=0"
-			cmake --build build
-			cd $PROJROOT/ports/java
-			cp $CURR_BUILD_PRODUCTS_DIR/libzt.dylib .
-			javac com/zerotier/libzt/*.java
-			jar cf zt.jar libzt.dylib com/zerotier/libzt/*.class
-			rm libzt.dylib
-			mv zt.jar $CURR_TMP_PRODUCT_DIR
-			cd -
-		fi
-	fi
-	# Linux targets
-	if [[ $OSNAME = *"linux"* ]]; then
-		CURR_BUILD_PRODUCTS_DIR=$LIB_PRODUCTS_DIR
-		# Ordinary libraries
-		if true; then
-			rm -rf $LIB_PRODUCTS_DIR
-			cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=$CONFIG "-DBUILD_TESTS=0"
-			cmake --build build
-			# -j $BUILD_CONCURRENCY
-			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/linux-$(uname -m)
-			mkdir -p $CURR_TMP_PRODUCT_DIR
-			mv $CURR_BUILD_PRODUCTS_DIR/libzt.* $CURR_TMP_PRODUCT_DIR
-		fi
-		# Java JAR file
-		if true; then
-			rm -rf $LIB_PRODUCTS_DIR
-			cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=$CONFIG "-DJNI=1 -DBUILD_TESTS=0"
-			cmake --build build
-			# -j $BUILD_CONCURRENCY
-			CURR_TMP_PRODUCT_DIR=$STAGING_DIR/$CONFIG/linux-$(uname -m)
-			mkdir -p $CURR_TMP_PRODUCT_DIR
-			cd $PROJROOT/ports/java
-			cp $CURR_BUILD_PRODUCTS_DIR/libzt.so .
-			javac com/zerotier/libzt/*.java
-			jar cf zt.jar libzt.dylib com/zerotier/libzt/*.class
-			rm libzt.dylib
-			mv zt.jar $CURR_TMP_PRODUCT_DIR
-			cd -
-		fi
-	fi
+    # 64-bit
+    cd $XCODE_IOS_ARM64_PROJ_DIR
+    # Framework
+    xcodebuild -arch arm64 -target zt -configuration "$UPPERCASE_CONFIG" -sdk "iphoneos" 
+    cd -
+    OUTPUT_DIR=$(pwd)/lib/$1/ios-arm64
+    mkdir -p $OUTPUT_DIR
+    rm -rf $OUTPUT_DIR/zt.framework # Remove prior to move to prevent error
+    mv $XCODE_IOS_ARM64_PROJ_DIR/$UPPERCASE_CONFIG-iphoneos/* $OUTPUT_DIR
+    
+    # 32-bit
+    #cd $XCODE_IOS_ARMV7_PROJ_DIR
+    # Framework
+    #xcodebuild -target zt -configuration "$UPPERCASE_CONFIG" -sdk "iphoneos10.0"
+    # Manually replace arch strings in project file
+	#sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj  
+    #cd -
+    #OUTPUT_DIR=$(pwd)/lib/$1/ios-armv7
+    #mkdir -p $OUTPUT_DIR
+    #rm -rf $OUTPUT_DIR/*
+    #mv $XCODE_IOS_ARMV7_PROJ_DIR/$UPPERCASE_CONFIG-iphoneos/* $OUTPUT_DIR
 }
 
-main()
+macos()
 {
-	#generate_projects_if_necessary
-	build_all_products "release"
-	build_all_products "debug"
+    if [[ ! $OSNAME = *"darwin"* ]]; then
+        exit 0
+    fi
+    generate_projects # if needed
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
+    cd $XCODE_MACOS_PROJ_DIR
+    # Framework
+    xcodebuild -target zt -configuration "$UPPERCASE_CONFIG" -sdk "macosx"
+    # NOTE: We build the static and dynamic editions in host()
+    # Static library (libzt.a)
+    #xcodebuild -target zt-static -configuration "$UPPERCASE_CONFIG" -sdk "macosx"
+    # Dynamic library (libzt.dylib)
+    #xcodebuild -target zt-shared -configuration "$UPPERCASE_CONFIG" -sdk "macosx"
+    cd -
+    OUTPUT_DIR=$(pwd)/lib/$1/macos-$(uname -m)
+    mkdir -p $OUTPUT_DIR
+    rm -rf $OUTPUT_DIR/zt.framework # Remove prior to move to prevent error
+    mv $XCODE_MACOS_PROJ_DIR/$UPPERCASE_CONFIG/* $OUTPUT_DIR
 }
 
-main "$@"
+host_jar()
+{
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    NORMALIZED_OSNAME=$OSNAME
+    if [[ $OSNAME = *"darwin"* ]]; then
+        DYNAMIC_LIB_NAME="libzt.dylib"
+        NORMALIZED_OSNAME="macos"
+    fi
+    if [[ $OSNAME = *"linux"* ]]; then
+        DYNAMIC_LIB_NAME="libzt.so"
+    fi
+    LIB_OUTPUT_DIR=$(pwd)/lib/$1/${NORMALIZED_OSNAME}-$(uname -m)
+    mkdir -p $LIB_OUTPUT_DIR
+    # Build dynamic library
+    BUILD_DIR=$(pwd)/tmp/${NORMALIZED_OSNAME}-$(uname -m)-jni-$1
+    UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
+    cmake -H. -B$BUILD_DIR -DCMAKE_BUILD_TYPE=$UPPERCASE_CONFIG "-DJNI=1"
+    cmake --build $BUILD_DIR $BUILD_CONCURRENCY
+    # Copy dynamic library from previous build step
+    # And, remove any lib that may exist prior. We don't want accidental successes
+    cd $(pwd)/ports/java
+    rm $DYNAMIC_LIB_NAME
+    mv $BUILD_DIR/lib/$DYNAMIC_LIB_NAME .
+    # Begin constructing JAR
+    export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
+    javac com/zerotier/libzt/*.java
+    jar cf zt.jar $DYNAMIC_LIB_NAME com/zerotier/libzt/*.class
+    rm $DYNAMIC_LIB_NAME
+    cd -
+    # Move completed JAR
+    LIB_OUTPUT_DIR=$(pwd)/lib/$1/${NORMALIZED_OSNAME}-$(uname -m)
+    mkdir -p $LIB_OUTPUT_DIR
+    mv $(pwd)/ports/java/zt.jar $LIB_OUTPUT_DIR
+}
+
+host()
+{
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    NORMALIZED_OSNAME=$OSNAME
+    if [[ $OSNAME = *"darwin"* ]]; then
+        NORMALIZED_OSNAME="macos"
+    fi
+    # CMake build files
+    BUILD_DIR=$(pwd)/tmp/${NORMALIZED_OSNAME}-$(uname -m)-$1
+    mkdir -p $BUILD_DIR
+    # Where to place results
+    BIN_OUTPUT_DIR=$(pwd)/bin/$1/${NORMALIZED_OSNAME}-$(uname -m)
+    mkdir -p $BIN_OUTPUT_DIR
+    LIB_OUTPUT_DIR=$(pwd)/lib/$1/${NORMALIZED_OSNAME}-$(uname -m)
+    mkdir -p $LIB_OUTPUT_DIR
+    # Build
+    cmake -H. -B$BUILD_DIR -DCMAKE_BUILD_TYPE=$1
+    cmake --build $BUILD_DIR $BUILD_CONCURRENCY
+    # Move and clean up
+    mv $BUILD_DIR/bin/* $BIN_OUTPUT_DIR
+    mv $BUILD_DIR/lib/* $LIB_OUTPUT_DIR
+    cleanup
+}
+
+android()
+{
+    # NOTE: There's no reason this won't build on linux, it's just that
+    # for our purposes we limit this to execution on macOS
+    if [[ ! $OSNAME = *"darwin"* ]]; then
+        exit 0
+    fi
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    ARCH="armeabi-v7a"
+    # CMake build files
+    BUILD_DIR=$(pwd)/tmp/android-$ARCH-$1
+    mkdir -p $BUILD_DIR
+    # If clean requested, remove temp build dir
+    if [[ $1 = *"clean"* ]]; then
+        rm -rf $BUILD_DIR
+        exit 0
+    fi
+    # Where to place results
+    LIB_OUTPUT_DIR=$(pwd)/lib/$1/android-$ARCH
+    mkdir -p $LIB_OUTPUT_DIR
+    # Build
+    UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
+    CMAKE_FLAGS=$CMAKE_FLAGS" -DSDK_JNI=1"
+    cd $ANDROID_PROJ_DIR
+    ./gradlew assemble$UPPERCASE_CONFIG # assembleRelease / assembleDebug
+    mv $ANDROID_PROJ_DIR/app/build/outputs/aar/app-$1.aar \
+        $LIB_OUTPUT_DIR/libzt-$1.aar
+    cd -
+}
+
+cleanup()
+{
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    find $(pwd)/lib -type f -name 'liblwip_pic.a' -exec rm {} +
+    find $(pwd)/lib -type f -name 'liblwip.a' -exec rm {} +
+    find $(pwd)/lib -type f -name 'libminiupnpc.a' -exec rm {} +
+    find $(pwd)/lib -type f -name 'libnatpmp.a' -exec rm {} +
+    find $(pwd)/lib -type f -name 'libzto_pic.a' -exec rm {} +
+    find $(pwd)/lib -type f -name 'libzerotiercore.a' -exec rm {} +
+}
+
+package_everything()
+{
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    LIBZT_VERSION=$(git describe)
+    ZT_CORE_VERSION="1.2.12"
+    PROD_NAME=$LIBZT_VERSION-$1
+    PROD_DIR=$(pwd)/products/$PROD_NAME/
+    # Make products directory
+    LICENSE_DIR=$PROD_DIR/licenses
+    mkdir -p $LICENSE_DIR
+    # Licenses
+    cp $(pwd)/ext/lwip/COPYING $LICENSE_DIR/LWIP-LICENSE.BSD
+    cp $(pwd)/ext/concurrentqueue/LICENSE.md $LICENSE_DIR/CONCURRENTQUEUE-LICENSE.BSD
+    cp $(pwd)/LICENSE.GPL-3 $LICENSE_DIR/ZEROTIER-LICENSE.GPL-3
+    cp $(pwd)/include/net/ROUTE_H-LICENSE.APSL $LICENSE_DIR/ROUTE_H-LICENSE.APSL
+    cp $(pwd)/include/net/ROUTE_H-LICENSE $LICENSE_DIR/ROUTE_H-LICENSE
+
+    # Documentation
+    #mkdir -p $PROD_DIR/doc
+    #cp $(pwd)/README.md $PROD_DIR/doc
+    # Header(s)
+    mkdir -p $PROD_DIR/include
+    cp $(pwd)/include/*.h $PROD_DIR/include
+    # Libraries
+    mkdir -p $PROD_DIR/lib
+    cp -r $(pwd)/lib/$1/* $PROD_DIR/lib
+    # Clean
+    find $PROD_DIR -type f \( -name '*.DS_Store' -o -name 'thumbs.db' \) -delete
+    # Emit a README file
+#    echo $'* libzt version: '${LIBZT_VERSION}$'\n* Core ZeroTier version:
+#'${ZT_CORE_VERSION}$'\n* Date: '$(date)$'\n
+#- ZeroTier Manual: https://www.zerotier.com/manual.shtml
+#- libzt Manual: https://www.zerotier.com/manual.shtml#5
+#- libzt Repo: https://github.com/zerotier/libzt
+#- Other Downloads: https://www.zerotier.com/download.shtml
+#- For more assistance, visit https://my.zerotier.com and ask your
+#question in our Community section' > $PROD_DIR/README.FIRST
+    # Tar everything
+    PROD_FILENAME=$(pwd)/products/$PROD_NAME.tar.gz
+    tar --exclude=$PROD_FILENAME -zcvf $PROD_FILENAME $PROD_DIR
+    md5 $PROD_FILENAME
+}
+
+dist()
+{
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    package_everything "debug"
+    package_everything "release"
+}
+
+"$@"

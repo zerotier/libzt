@@ -66,7 +66,7 @@
 #include "Debug.hpp"
 #include "concurrentqueue.h"
 
-#include "libzt.h"
+#include "ZeroTier.h"
 #include "lwipDriver.hpp"
 
 #ifdef __WINDOWS__
@@ -86,7 +86,6 @@
 #include <ifaddrs.h>
 #endif
 
-#include "libzt.h"
 #include "Controls.hpp"
 
 // Use the virtual netcon endpoint instead of a tun/tap port driver

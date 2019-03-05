@@ -223,7 +223,7 @@ public:
 
 	/*
 	 * Timestamp of last run of housekeeping
-	 * SEE: ZT_HOUSEKEEPING_INTERVAL in libzt.h
+	 * SEE: ZT_HOUSEKEEPING_INTERVAL in ZeroTier.h
 	 */
 	uint64_t last_housekeeping_ts = 0;
 

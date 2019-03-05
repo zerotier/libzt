@@ -53,7 +53,7 @@
 
 #include "VirtualTap.hpp"
 #include "lwipDriver.hpp"
-#include "libzt.h"
+#include "ZeroTier.h"
 #include "Controls.hpp"
 
 extern void postEvent(uint64_t eventCode, void *arg);

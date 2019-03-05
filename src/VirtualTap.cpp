@@ -38,7 +38,7 @@
 #include "Service.hpp"
 #include "Mutex.hpp"
 #include "lwipDriver.hpp"
-#include "libzt.h"
+#include "ZeroTier.h"
 
 #ifdef _MSC_VER
 #include "Synchapi.h"

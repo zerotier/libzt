@@ -34,7 +34,7 @@
 #define LIBZT_BRIDGING_HEADER_H
 
 #include <sys/socket.h>
-#include "libzt.h"
+#include "ZeroTier.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // Service Controls                                                         //

@@ -1,29 +1,3 @@
-#
-# ZeroTier SDK - Network Virtualization Everywhere
-# Copyright (C) 2011-2019  ZeroTier, Inc.  https://www.zerotier.com/
-# 
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-# 
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-# 
-#  You should have received a copy of the GNU General Public License
-#  along with this program. If not, see <http://www.gnu.org/licenses/>.
-# 
-#  --
-# 
-#  You can be released from the requirements of the license by purchasing
-#  a commercial license. Buying such a license is mandatory as soon as you
-#  develop commercial closed-source software that incorporates or links
-#  directly against ZeroTier software without disclosing the source code
-#  of your own application.
-# 
-
 ifeq ($(OS),Windows_NT)
 DIST_BUILD_SCRIPT := ports\dist.bat
 CLEAN_SCRIPT := ports\clean.bat
@@ -33,8 +7,6 @@ CLEAN_SCRIPT := ./ports/clean.sh
 PACKAGE_SCRIPT := ./ports/package.sh
 endif
 
-CONCURRENT_BUILD_JOBS=#-j 2
-
 # Patch submodules
 patch:
 	-git -C ext/lwip apply ../lwip.patch
@@ -43,28 +15,56 @@ patch:
 
 .PHONY: clean
 clean:
-	-rm -rf bin staging generated dist
+	-rm -rf tmp lib bin products
 	-find ports -name ".externalNativeBuild" -exec rm -r "{}" \;
+	-rm -f *.o *.s *.exp *.lib *.core core
+	find . -type f \( -name '*.o' -o -name '*.o.d' -o -name \
+        '*.out' -o -name '*.log' -o -name '*.dSYM' -o -name '*.class' \) -delete
 
-all: debug release
+# Use CMake generators to build projects from CMakeLists.txt
+projects:
+	$(DIST_BUILD_SCRIPT) generate_projects
 
-release:
-	-mkdir generated
-	cmake -H. -Bgenerated/release -DCMAKE_BUILD_TYPE=Release
-	cmake --build generated/release $(CONCURRENT_BUILD_JOBS)
+# Android
+android_debug:
+	$(DIST_BUILD_SCRIPT) android "debug"
+android_release:
+	$(DIST_BUILD_SCRIPT) android "release"
+android_clean:
+	$(DIST_BUILD_SCRIPT) android "clean"
+android: android_debug android_release
 
+# macOS
+macos_debug:
+	$(DIST_BUILD_SCRIPT) macos "debug"
+macos_release:
+	$(DIST_BUILD_SCRIPT) macos "release"
+macos: macos_debug macos_release
 
-debug:
-	-mkdir generated
-	cmake -H. -Bgenerated/debug -DCMAKE_BUILD_TYPE=Debug
-	cmake --build generated/debug $(CONCURRENT_BUILD_JOBS)
+# iOS
+ios_debug:
+	$(DIST_BUILD_SCRIPT) ios "debug"
+ios_release:
+	$(DIST_BUILD_SCRIPT) ios "release"
+ios: ios_debug ios_release
 
-# dist:
-# Build and package everything
-# This command shall be run twice:
-# (1) Generates projects
-#    <perform any required modifications>
-# (2) Build products and package everything
-.PHONY: dist
-dist: patch
-	$(DIST_BUILD_SCRIPT)
+# Host
+host_release:
+	$(DIST_BUILD_SCRIPT) host "release"
+host_debug:
+	$(DIST_BUILD_SCRIPT) host "debug"
+host_clean:
+	$(DIST_BUILD_SCRIPT) host "clean"
+host_jar_debug:
+	$(DIST_BUILD_SCRIPT) host_jar "debug"
+host_jar_release:
+	$(DIST_BUILD_SCRIPT) host_jar "release"
+host_jar: host_jar_debug host_jar_release
+host: host_debug host_release host_jar
+
+# all
+all: host macos ios android
+
+# dist
+dist:
+	$(DIST_BUILD_SCRIPT) dist

@@ -30,18 +30,19 @@
  * ZeroTier service controls
  */
 
-#include <queue>
+#if defined(__linux__)
+#include <sys/resource.h>
+#endif
 
-#include "Service.hpp"
 #include "Node.hpp"
 #include "ZeroTierOne.h"
-
 #include "OSUtils.hpp"
+
+#include "Service.hpp"
 #include "VirtualTap.hpp"
 #include "Debug.hpp"
 #include "concurrentqueue.h"
-
-#include "libzt.h"
+#include "ZeroTier.h"
 #include "lwipDriver.hpp"
 
 #if defined(_WIN32)
@@ -124,6 +125,15 @@ moodycamel::ConcurrentQueue<struct zts_callback_msg*> _callbackMsgQueue;
 void postEvent(int eventCode, void *arg)
 {
 	struct zts_callback_msg *msg = new zts_callback_msg();
+
+	msg->node = NULL;
+	msg->network = NULL;
+	msg->netif = NULL;
+	msg->route = NULL;
+	msg->path = NULL;
+	msg->peer = NULL;
+	msg->addr = NULL;
+
 	msg->eventCode = eventCode;
 
 	if (NODE_EVENT_TYPE(eventCode)) {
@@ -171,7 +181,11 @@ only for legacy reasons. */
 #if 1
 	if(_userCallbackMethodRef) {
 		JNIEnv *env;
+#if defined(__ANDROID__)
 		jint rs = jvm->AttachCurrentThread(&env, NULL);
+#else
+		jint rs = jvm->AttachCurrentThread((void **)&env, NULL);
+#endif
 		assert (rs == JNI_OK);
 		uint64_t arg = 0;
 		uint64_t id = 0;
@@ -275,15 +289,11 @@ void _api_sleep(int interval_ms)
 
 int _change_nice(int increment)
 {
-#if !defined(__ANDROID__)
 	if (increment == 0) {
 		return 0;
 	}
 	int  priority = getpriority(PRIO_PROCESS, 0);
-	return setpriority( PRIO_PROCESS, 0, priority+increment);
-#else
-	return 0;
-#endif
+	return setpriority(PRIO_PROCESS, 0, priority+increment);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -312,7 +322,11 @@ void *_zts_run_callbacks(void *thread_id)
 		}
         _api_sleep(ZTS_CALLBACK_PROCESSING_INTERVAL);
     }
+#if SDK_JNI
+	JNIEnv *env;
+	jint rs = jvm->DetachCurrentThread();
     pthread_exit(0);
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -420,7 +434,7 @@ JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_init(JNIEnv *env, jobjec
 }
 #endif
 
-zts_err_t zts_join(const uint64_t nwid)
+int zts_join(const uint64_t nwid)
 {
 	Mutex::Lock _l(_service_lock);
 	if (!__zts_can_perform_service_operation()) {
@@ -439,7 +453,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_join(
 }
 #endif
 
-zts_err_t zts_leave(const uint64_t nwid)
+int zts_leave(const uint64_t nwid)
 {
 	Mutex::Lock _l(_service_lock);
 	if (!__zts_can_perform_service_operation()) {
@@ -458,7 +472,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_leave(
 }
 #endif
 
-zts_err_t zts_leave_all()
+int zts_leave_all()
 {
 	Mutex::Lock _l(_service_lock);
 	if (!__zts_can_perform_service_operation()) {
@@ -472,7 +486,7 @@ zts_err_t zts_leave_all()
 #ifdef SDK_JNI
 #endif
 
-zts_err_t zts_orbit(uint64_t moonWorldId, uint64_t moonSeed)
+int zts_orbit(uint64_t moonWorldId, uint64_t moonSeed)
 {
 	Mutex::Lock _l(_service_lock);
 	void *tptr = NULL;
@@ -486,7 +500,7 @@ zts_err_t zts_orbit(uint64_t moonWorldId, uint64_t moonSeed)
 #ifdef SDK_JNI
 #endif
 
-zts_err_t zts_deorbit(uint64_t moonWorldId)
+int zts_deorbit(uint64_t moonWorldId)
 {
 	Mutex::Lock _l(_service_lock);
 	void *tptr = NULL;
@@ -500,7 +514,7 @@ zts_err_t zts_deorbit(uint64_t moonWorldId)
 #ifdef SDK_JNI
 #endif
 
-zts_err_t zts_start(const char *path, void (*callback)(struct zts_callback_msg*), int port)
+int zts_start(const char *path, void (*callback)(struct zts_callback_msg*), int port)
 {
 	Mutex::Lock _l(_service_lock);
 	lwip_driver_init();
@@ -580,17 +594,17 @@ JNIEXPORT int JNICALL Java_com_zerotier_libzt_ZeroTier_start(
 	JNIEnv *env, jobject thisObj, jstring path, jobject callback, jint port)
 {
 	if (!path) {
-		return;
+		return ZTS_ERR_INVALID_ARG;
 	}
 	jclass eventListenerClass = env->GetObjectClass(callback);
 	if(eventListenerClass == NULL) {
 		DEBUG_ERROR("Couldn't find class for ZeroTierEventListener instance");
-		return;
+		return ZTS_ERR_INVALID_ARG;
 	}
 	jmethodID eventListenerCallbackMethod = env->GetMethodID(eventListenerClass, "onZeroTierEvent", "(JI)V");
 	if(eventListenerCallbackMethod == NULL) {
 		DEBUG_ERROR("Couldn't find onZeroTierEvent method");
-		return;
+		return ZTS_ERR_INVALID_ARG;
 	}
 	objRef = env->NewGlobalRef(callback); // Reference used for later calls
 	_userCallbackMethodRef = eventListenerCallbackMethod;
@@ -601,7 +615,7 @@ JNIEXPORT int JNICALL Java_com_zerotier_libzt_ZeroTier_start(
 }
 #endif
 
-zts_err_t zts_stop()
+int zts_stop()
 {
 	Mutex::Lock _l(_service_lock);
 	bool didStop = false;
@@ -624,10 +638,10 @@ JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_stop(
 }
 #endif
 
-zts_err_t zts_free()
+int zts_free()
 {
 	Mutex::Lock _l(_service_lock);
-	zts_err_t retval = 0;
+	int retval = 0;
 	if (_freeHasBeenCalled) {
 		return ZTS_ERR_INVALID_OP;
 	}
@@ -743,10 +757,10 @@ int zts_get_peer(struct zts_peer_details *pd, uint64_t peerId)
 // Networks                                                                 //
 //////////////////////////////////////////////////////////////////////////////
 
-zts_err_t zts_get_num_joined_networks()
+int zts_get_num_joined_networks()
 {
 	Mutex::Lock _l(_service_lock);
-	zts_err_t retval = ZTS_ERR_OK;
+	int retval = ZTS_ERR_OK;
 	if (!__zts_can_perform_service_operation()) {
 		return ZTS_ERR_SERVICE;
 	}
@@ -807,11 +821,11 @@ void _get_all_network_details(struct zts_network_details *nds, int *num)
 	*/
 }
 
-zts_err_t zts_get_network_details(uint64_t nwid, struct zts_network_details *nd)
+int zts_get_network_details(uint64_t nwid, struct zts_network_details *nd)
 {
 	/*
 	_service_lock.lock();
-	zts_err_t retval = ZTS_ERR_OK;
+	int retval = ZTS_ERR_OK;
 	if (!nd || nwid == 0) {
 		retval = ZTS_ERR_INVALID_ARG;
 	}
@@ -829,11 +843,11 @@ zts_err_t zts_get_network_details(uint64_t nwid, struct zts_network_details *nd)
 #ifdef SDK_JNI
 #endif
 
-zts_err_t zts_get_all_network_details(struct zts_network_details *nds, int *num)
+int zts_get_all_network_details(struct zts_network_details *nds, int *num)
 {
 	/*
 	_service_lock.lock();
-	zts_err_t retval = ZTS_ERR_OK;
+	int retval = ZTS_ERR_OK;
 	if (!nds || !num) {
 		retval = ZTS_ERR_INVALID_ARG;
 	}
@@ -903,7 +917,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_get_1network_1status(
 int zts_get_peer_status(uint64_t peerId)
 {
 	Mutex::Lock _l(_service_lock);
-	zts_err_t retval = ZTS_ERR_OK;
+	int retval = ZTS_ERR_OK;
 	if (!__zts_can_perform_service_operation()) {
 		return ZTS_ERR_SERVICE;
 	}

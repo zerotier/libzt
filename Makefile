@@ -60,10 +60,10 @@ host_jar_debug:
 host_jar_release:
 	$(DIST_BUILD_SCRIPT) host_jar "release"
 host_jar: host_jar_debug host_jar_release
-host: host_debug host_release host_jar
+host: host_debug host_release
 
 # all
-all: host macos ios android
+all: host host_jar macos ios android
 
 # dist
 dist:

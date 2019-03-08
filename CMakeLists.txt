@@ -400,10 +400,4 @@ if (SHOULD_BUILD_TESTS)
 	target_link_libraries(client ${STATIC_LIB_NAME})
 	add_executable (server ${PROJ_DIR}/test/server.cpp)
 	target_link_libraries(server ${STATIC_LIB_NAME})
-
-	# client/server performance test
-	add_executable (gab_client ${PROJ_DIR}/test/gab_client.cpp)
-	target_link_libraries(gab_client ${STATIC_LIB_NAME})
-	add_executable (gab_server ${PROJ_DIR}/test/gab_server.cpp)
-	target_link_libraries(gab_server ${STATIC_LIB_NAME})
 endif ()

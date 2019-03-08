@@ -98,17 +98,17 @@ if (BUILDING_WIN)
 	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc -DNOMINMAX")
 else ()
 	set (CMAKE_C_FLAGS
-		"${SILENCE} ${CMAKE_C_FLAGS} ${LIBZT_FLAGS} -fstack-protector")
+		"${SILENCE} ${CMAKE_C_FLAGS} ${LIBZT_FLAGS} -fstack-protector -O3")
 	set (CMAKE_C_FLAGS_DEBUG
 		"${CMAKE_C_FLAGS_DEBUG} ${LIBZT_FLAGS} -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
 	set (CMAKE_C_FLAGS_RELEASE
-		"${SILENCE} ${CMAKE_C_FLAGS_RELEASE} ${LIBZT_FLAGS} -fstack-protector")
+		"${SILENCE} ${CMAKE_C_FLAGS_RELEASE} ${LIBZT_FLAGS} -fstack-protector -O3")
 	set (CMAKE_CXX_FLAGS
-		"${CMAKE_CXX_FLAGS} ${SILENCE} ${LIBZT_FLAGS} -O3 -Wall -Wextra -std=c++11")
+		"${CMAKE_CXX_FLAGS} ${SILENCE} ${LIBZT_FLAGS} -Wall -Wextra -std=c++11 -O3")
 	set (CMAKE_CXX_FLAGS_DEBUG
 		"${CMAKE_CXX_FLAGS_DEBUG} ${LIBZT_FLAGS} -std=c++11 -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
 	set (CMAKE_CXX_FLAGS_RELEASE
-		"${CMAKE_CXX_FLAGS_RELEASE} ${SILENCE} ${LIBZT_FLAGS} -O3 -std=c++11")
+		"${CMAKE_CXX_FLAGS_RELEASE} ${SILENCE} ${LIBZT_FLAGS} -std=c++11 -O3")
 endif ()
 
 if (BUILDING_LINUX AND NOT BUILDING_ANDROID)
@@ -119,47 +119,46 @@ endif ()
 # |                                      JNI                                  |
 # -----------------------------------------------------------------------------
 
-if (NOT IN_XCODE)
-MESSAGE (STATUS "Looking for JNI")
+if (SDK_JNI)
+	MESSAGE (STATUS "Looking for JNI")
 
-if (BUILDING_WIN)
-	# We are only interested in finding jni.h: we do not care about extended JVM
-	# functionality or the AWT library.
-	#set(JAVA_AWT_LIBRARY NotNeeded)
-	#set(JAVA_JVM_LIBRARY NotNeeded)
-	#set(JAVA_INCLUDE_PATH2 NotNeeded)
-	#set(JAVA_AWT_INCLUDE_PATH NotNeeded)
-	set(JAVA_INCLUDE_PATH "C:\\Program Files\\Java\\jdk-10.0.2\\include")
-endif ()
-
-set(JAVA_AWT_LIBRARY NotNeeded)
-set(JAVA_JVM_LIBRARY NotNeeded)
-set(JAVA_INCLUDE_PATH2 NotNeeded)
-set(JAVA_AWT_INCLUDE_PATH NotNeeded)
-find_package(JNI REQUIRED)
-
-if (JNI_FOUND)
-    message (STATUS "JNI_INCLUDE_DIR=${JNI_INCLUDE_DIRS}")
-    message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
-    list (GET JNI_INCLUDE_DIRS 0 JNI_INCLUDE_DIR)
-    message (STATUS "jni path=${JNI_INCLUDE_DIR}")
-    include_directories ("${JNI_INCLUDE_DIR}")
-    #include_directories ("${JNI_INCLUDE_DIRS}")
 	if (BUILDING_WIN)
-		include_directories ("${JNI_INCLUDE_DIR}\\win32")
+		# We are only interested in finding jni.h: we do not care about extended JVM
+		# functionality or the AWT library.
+		#set(JAVA_AWT_LIBRARY NotNeeded)
+		#set(JAVA_JVM_LIBRARY NotNeeded)
+		#set(JAVA_INCLUDE_PATH2 NotNeeded)
+		#set(JAVA_AWT_INCLUDE_PATH NotNeeded)
+		set(JAVA_INCLUDE_PATH "C:\\Program Files\\Java\\jdk-10.0.2\\include")
 	endif ()
-	if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin") # on macOS
-		include_directories ("${JNI_INCLUDE_DIR}/darwin")
+
+	set(JAVA_AWT_LIBRARY NotNeeded)
+	set(JAVA_JVM_LIBRARY NotNeeded)
+	set(JAVA_INCLUDE_PATH2 NotNeeded)
+	set(JAVA_AWT_INCLUDE_PATH NotNeeded)
+	find_package(JNI REQUIRED)
+
+	if (JNI_FOUND)
+		message (STATUS "JNI_INCLUDE_DIR=${JNI_INCLUDE_DIRS}")
+		message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
+		list (GET JNI_INCLUDE_DIRS 0 JNI_INCLUDE_DIR)
+		message (STATUS "jni path=${JNI_INCLUDE_DIR}")
+		include_directories ("${JNI_INCLUDE_DIR}")
+		#include_directories ("${JNI_INCLUDE_DIRS}")
+		if (BUILDING_WIN)
+			include_directories ("${JNI_INCLUDE_DIR}\\win32")
+		endif ()
+		if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin") # on macOS
+			include_directories ("${JNI_INCLUDE_DIR}/darwin")
+		endif ()
+	else ()
+			message (STATUS "JNI not found")
 	endif ()
-else ()
-	    message (STATUS "JNI not found")
-endif ()
 
-if ((BUILDING_ANDROID OR JNI) AND JNI_FOUND)
-	add_definitions (-DSDK_JNI=1)
-endif ()
-
-endif () # NOT IN_XCODE
+	if ((BUILDING_ANDROID OR JNI) AND JNI_FOUND)
+		add_definitions (-DSDK_JNI=1)
+	endif ()
+endif () # SDK_JNI
 
 # -----------------------------------------------------------------------------
 # |                            SOURCE FILE GLOBS                              |
@@ -397,8 +396,14 @@ if (SHOULD_BUILD_TESTS)
 	#set_target_properties (selftest PROPERTIES COMPILE_FLAGS "-D__SELFTEST__")
 
 	# client/server performance test
-	#add_executable (client ${PROJ_DIR}/test/client.cpp)
-	#target_link_libraries(client ${STATIC_LIB_NAME})
-	#add_executable (server ${PROJ_DIR}/test/server.cpp)
-	#target_link_libraries(server ${STATIC_LIB_NAME})
+	add_executable (client ${PROJ_DIR}/test/client.cpp)
+	target_link_libraries(client ${STATIC_LIB_NAME})
+	add_executable (server ${PROJ_DIR}/test/server.cpp)
+	target_link_libraries(server ${STATIC_LIB_NAME})
+
+	# client/server performance test
+	add_executable (gab_client ${PROJ_DIR}/test/gab_client.cpp)
+	target_link_libraries(gab_client ${STATIC_LIB_NAME})
+	add_executable (gab_server ${PROJ_DIR}/test/gab_server.cpp)
+	target_link_libraries(gab_server ${STATIC_LIB_NAME})
 endif ()

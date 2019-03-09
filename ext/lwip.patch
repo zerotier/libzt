@@ -1,0 +1,18 @@
+diff --git a/src/include/lwip/errno.h b/src/include/lwip/errno.h
+index 48d6b539..9f59afc8 100644
+--- a/src/include/lwip/errno.h
++++ b/src/include/lwip/errno.h
+@@ -174,7 +174,12 @@ extern "C" {
+ #define  EMEDIUMTYPE    124  /* Wrong medium type */
+ 
+ #ifndef errno
+-extern int errno;
++//extern int errno;
++#if defined(__linux__) && !defined(__ANDROID__)
++	#include <errno.h>
++#else
++	extern int errno;
++#endif
+ #endif
+ 
+ #else /* LWIP_PROVIDE_ERRNO */

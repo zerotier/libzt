@@ -7,7 +7,11 @@ CLEAN_SCRIPT := ./ports/clean.sh
 PACKAGE_SCRIPT := ./ports/package.sh
 endif
 
-# Patch submodules
+# Pull all submodules
+update:
+	git submodule update --init
+
+# Patch submodules (issue update first)
 patch:
 	-git -C ext/lwip apply ../lwip.patch
 	-git -C ext/lwip-contrib apply ../lwip-contrib.patch

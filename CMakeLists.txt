@@ -43,11 +43,13 @@ endif ()
 # -----------------------------------------------------------------------------
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "debug")
+	set (DEBUG_BUILD ON)
 	set (CMAKE_VERBOSE_MAKEFILE ON)
     set (CMAKE_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/bin)
 	set (LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
 endif()
 if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "release")
+	set (RELEASE_BUILD ON)
 	set (CMAKE_VERBOSE_MAKEFILE OFF)
 	set (CMAKE_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/bin)
 	set (LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
@@ -95,6 +97,13 @@ set (ZT_FLAGS "${ZT_FLAGS} -DZT_USE_MINIUPNPC=1")
 set (ZT_FLAGS "${ZT_FLAGS} -DZT_SOFTWARE_UPDATE_DEFAULT=0")
 set (ZT_FLAGS "${ZT_FLAGS} -D_USING_LWIP_DEFINITIONS_=0")
 set (ZT_FLAGS "${ZT_FLAGS} -DZT_SDK=1")
+
+if (DEBUG_BUILD)
+	set (LWIP_FLAGS "${LWIP_FLAGS} -DLWIP_DBG_TYPES_ON=128")
+	set (LWIP_FLAGS "${LWIP_FLAGS} -DSOCKETS_DEBUG=128")
+else ()
+	set (LWIP_FLAGS "${LWIP_FLAGS} -DLWIP_DBG_TYPES_ON=0")
+endif ()
 
 set (DEBUG_OPTIMIZATION "-O3")
 set (RELEASE_OPTIMIZATION "-O3")
@@ -192,7 +201,7 @@ set (LWIP_SRC_DIR "${PROJ_DIR}/ext/lwip/src")
 set (ZTO_SRC_DIR "${PROJ_DIR}/ext/ZeroTierOne")
 set (LIBZT_SRC_DIR "${PROJ_DIR}/src")
 
-file (GLOB zerotiercoreSrcGlob
+file (GLOB ztcoreSrcGlob
 	${ZTO_SRC_DIR}/node/*.cpp
 	${ZTO_SRC_DIR}/osdep/OSUtils.cpp
     ${ZTO_SRC_DIR}/osdep/PortMapper.cpp
@@ -289,7 +298,7 @@ endif ()
 # -----------------------------------------------------------------------------
 
 # zto_obj
-add_library (zto_obj OBJECT ${zerotiercoreSrcGlob})
+add_library (zto_obj OBJECT ${ztcoreSrcGlob})
 set_target_properties (zto_obj PROPERTIES
 	COMPILE_FLAGS "${ZT_FLAGS}")
 if (BUILDING_WIN)
@@ -316,7 +325,7 @@ endif ()
 
 # lwip_obj
 add_library (lwip_obj OBJECT ${lwipSrcGlob})
-set_target_properties (lwip_obj PROPERTIES COMPILE_FLAGS "")
+set_target_properties (lwip_obj PROPERTIES COMPILE_FLAGS "${LWIP_FLAGS}")
 
 # libzt_obj
 add_library (libzt_obj OBJECT ${libztSrcGlob})
@@ -325,7 +334,7 @@ set_target_properties (libzt_obj PROPERTIES COMPILE_FLAGS "${ZT_FLAGS}")
 # PIC
 
 # zto_pic
-add_library (zto_pic ${zerotiercoreSrcGlob})
+add_library (zto_pic ${ztcoreSrcGlob})
 set_target_properties (zto_pic PROPERTIES
 	COMPILE_FLAGS "${ZT_FLAGS}"
 	POSITION_INDEPENDENT_CODE ON)
@@ -349,6 +358,7 @@ set_target_properties (miniupnpc_pic PROPERTIES
 # lwip_pic
 add_library (lwip_pic ${lwipSrcGlob})
 set_target_properties (lwip_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties (lwip_pic PROPERTIES COMPILE_FLAGS "${LWIP_FLAGS}")
 
 # libzt_pic
 add_library (zt_pic ${libztSrcGlob})
@@ -360,10 +370,10 @@ set_target_properties (zt_pic PROPERTIES
 # |                      BUILD TARGETS (FINAL PRODUCT)                        |
 # -----------------------------------------------------------------------------
 
-# libzerotiercore.a
-add_library (zerotiercore STATIC $<TARGET_OBJECTS:zto_obj>)
-set_target_properties (zerotiercore PROPERTIES
-    OUTPUT_NAME zerotiercore
+# libztcore.a
+add_library (ztcore STATIC $<TARGET_OBJECTS:zto_obj>)
+set_target_properties (ztcore PROPERTIES
+    OUTPUT_NAME ztcore
     LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
 
 # libnatpmp.a

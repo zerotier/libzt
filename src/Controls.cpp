@@ -327,6 +327,7 @@ void *_zts_run_callbacks(void *thread_id)
 	jint rs = jvm->DetachCurrentThread();
     pthread_exit(0);
 #endif
+	return NULL;
 }
 
 //////////////////////////////////////////////////////////////////////////////

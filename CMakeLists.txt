@@ -1,8 +1,6 @@
 cmake_minimum_required (VERSION 3.0)
 project (zt)
 
-set (CMAKE_VERBOSE_MAKEFILE OFF)
-
 # -----------------------------------------------------------------------------
 # |                     PLATFORM/FEATURE AND IDE DETECTION                    |
 # -----------------------------------------------------------------------------
@@ -45,10 +43,12 @@ endif ()
 # -----------------------------------------------------------------------------
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "debug")
+	set (CMAKE_VERBOSE_MAKEFILE ON)
     set (CMAKE_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/bin)
 	set (LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
 endif()
 if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "release")
+	set (CMAKE_VERBOSE_MAKEFILE OFF)
 	set (CMAKE_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/bin)
 	set (LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
 endif()
@@ -81,34 +81,57 @@ endif ()
 # |                                    FLAGS                                  |
 # -----------------------------------------------------------------------------
 
-set (SILENCE "-Wno-unused-parameter \
-	-Wno-format \
-	-Wno-tautological-constant-out-of-range-compare \
-	-Wno-macro-redefined -Wno-parentheses-equality \
-	-Wno-sign-compare \
-	-Wno-unused-parameter \
-	-Wno-unused-variable \
-	-Wno-missing-field-initializers")
+set (SILENCE "${SILENCE} -Wno-unused-parameter")
+set (SILENCE "${SILENCE} -Wno-format")
+set (SILENCE "${SILENCE} -Wno-tautological-constant-out-of-range-compare ")
+set (SILENCE "${SILENCE} -Wno-macro-redefined")
+set (SILENCE "${SILENCE} -Wno-parentheses-equality")
+set (SILENCE "${SILENCE} -Wno-sign-compare")
+set (SILENCE "${SILENCE} -Wno-unused-variable")
+set (SILENCE "${SILENCE} -Wno-missing-field-initializers")
+set (SILENCE "${SILENCE} -Wno-unused-parameter")
 
-set (LIBZT_FLAGS "-D_USING_LWIP_DEFINITIONS_=1 -DZT_SDK")
-set (ZTCORE_FLAGS "-DZT_USE_MINIUPNPC=1 -DZT_SOFTWARE_UPDATE_DEFAULT=0")
+set (ZT_FLAGS "${ZT_FLAGS} -DZT_USE_MINIUPNPC=1")
+set (ZT_FLAGS "${ZT_FLAGS} -DZT_SOFTWARE_UPDATE_DEFAULT=0")
+set (ZT_FLAGS "${ZT_FLAGS} -D_USING_LWIP_DEFINITIONS_=0")
+set (ZT_FLAGS "${ZT_FLAGS} -DZT_SDK=1")
+
+set (DEBUG_OPTIMIZATION "-O3")
+set (RELEASE_OPTIMIZATION "-O3")
 
 if (BUILDING_WIN)
 	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc -DNOMINMAX")
 else ()
 	set (CMAKE_C_FLAGS
-		"${SILENCE} ${CMAKE_C_FLAGS} ${LIBZT_FLAGS} -fstack-protector -O3")
+		"${CMAKE_C_FLAGS} \
+		 ${ZT_FLAGS} \
+		 -fstack-protector")
+
 	set (CMAKE_C_FLAGS_DEBUG
-		"${CMAKE_C_FLAGS_DEBUG} ${LIBZT_FLAGS} -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
+		"${CMAKE_C_FLAGS_DEBUG} \
+		 ${DEBUG_OPTIMIZATION} \
+		 -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
+
 	set (CMAKE_C_FLAGS_RELEASE
-		"${SILENCE} ${CMAKE_C_FLAGS_RELEASE} ${LIBZT_FLAGS} -fstack-protector -O3")
+		"${SILENCE} \
+		 ${CMAKE_C_FLAGS_RELEASE} \
+		 ${RELEASE_OPTIMIZATION} \
+		 -fstack-protector")
+
 	set (CMAKE_CXX_FLAGS
-		"${CMAKE_CXX_FLAGS} ${SILENCE} ${LIBZT_FLAGS} -Wall -Wextra -std=c++11 -O3")
+		"${CMAKE_CXX_FLAGS} \
+		 ${ZT_FLAGS} -Wall -Wextra -std=c++11")
+
 	set (CMAKE_CXX_FLAGS_DEBUG
-		"${CMAKE_CXX_FLAGS_DEBUG} ${LIBZT_FLAGS} -std=c++11 -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
+		"${CMAKE_CXX_FLAGS_DEBUG} \
+		 ${DEBUG_OPTIMIZATION} \
+		 -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
+
 	set (CMAKE_CXX_FLAGS_RELEASE
-		"${CMAKE_CXX_FLAGS_RELEASE} ${SILENCE} ${LIBZT_FLAGS} -std=c++11 -O3")
+		"${CMAKE_CXX_FLAGS_RELEASE} \
+		 ${SILENCE} \
+		 ${RELEASE_OPTIMIZATION}")
 endif ()
 
 if (BUILDING_LINUX AND NOT BUILDING_ANDROID)
@@ -119,7 +142,7 @@ endif ()
 # |                                      JNI                                  |
 # -----------------------------------------------------------------------------
 
-if (SDK_JNI)
+if (SDK_JNI OR BUILDING_ANDROID)
 	MESSAGE (STATUS "Looking for JNI")
 
 	if (BUILDING_WIN)
@@ -155,7 +178,7 @@ if (SDK_JNI)
 			message (STATUS "JNI not found")
 	endif ()
 
-	if ((BUILDING_ANDROID OR JNI) AND JNI_FOUND)
+	if (JNI_FOUND)
 		add_definitions (-DSDK_JNI=1)
 	endif ()
 endif () # SDK_JNI
@@ -268,7 +291,7 @@ endif ()
 # zto_obj
 add_library (zto_obj OBJECT ${zerotiercoreSrcGlob})
 set_target_properties (zto_obj PROPERTIES
-	COMPILE_FLAGS "${SILENCE} -std=c++11 -DZT_USE_MINIUPNPC=1 -DZT_SOFTWARE_UPDATE_DEFAULT=0")
+	COMPILE_FLAGS "${ZT_FLAGS}")
 if (BUILDING_WIN)
 	target_link_libraries (zto_obj ws2_32)
 	target_link_libraries (zto_obj ${shlwapi_LIBRARY_PATH})
@@ -282,11 +305,14 @@ set_target_properties (libnatpmp_obj PROPERTIES COMPILE_FLAGS "")
 # miniupnpc_obj
 add_library (miniupnpc_obj OBJECT ${libminiupnpcSrcGlob})
 target_compile_definitions(miniupnpc_obj
-	PRIVATE MACOSX ZT_USE_MINIUPNPC MINIUPNP_STATICLIB _DARWIN_C_SOURCE
+	PRIVATE ZT_USE_MINIUPNPC MINIUPNP_STATICLIB _DARWIN_C_SOURCE
 	MINIUPNPC_SET_SOCKET_TIMEOUT MINIUPNPC_GET_SRC_ADDR _BSD_SOURCE
 	_DEFAULT_SOURCE MINIUPNPC_VERSION_STRING=\"2.0\"
 	UPNP_VERSION_STRING=\"UPnP/1.1\" ENABLE_STRNATPMPERR
 	OS_STRING=\"Darwin/15.0.0\")
+if (BUILDING_DARWIN AND NOT IOS_FRAMEWORK)
+	target_compile_definitions(miniupnpc_obj PRIVATE MACOSX)
+endif ()
 
 # lwip_obj
 add_library (lwip_obj OBJECT ${lwipSrcGlob})
@@ -294,13 +320,41 @@ set_target_properties (lwip_obj PROPERTIES COMPILE_FLAGS "")
 
 # libzt_obj
 add_library (libzt_obj OBJECT ${libztSrcGlob})
-set_target_properties (libzt_obj PROPERTIES COMPILE_FLAGS "-std=c++11")
+set_target_properties (libzt_obj PROPERTIES COMPILE_FLAGS "${ZT_FLAGS}")
 
+# PIC
+
+# zto_pic
+add_library (zto_pic ${zerotiercoreSrcGlob})
+set_target_properties (zto_pic PROPERTIES
+	COMPILE_FLAGS "${ZT_FLAGS}"
+	POSITION_INDEPENDENT_CODE ON)
+
+# libnatpmp_pic
+add_library (natpmp_pic ${libnatpmpSrcGlob})
+set_target_properties (natpmp_pic PROPERTIES
+	POSITION_INDEPENDENT_CODE ON)
+
+# miniupnpc_pic
+add_library (miniupnpc_pic ${libminiupnpcSrcGlob})
+target_compile_definitions(miniupnpc_pic
+	PRIVATE MACOSX ZT_USE_MINIUPNPC MINIUPNP_STATICLIB _DARWIN_C_SOURCE
+	MINIUPNPC_SET_SOCKET_TIMEOUT MINIUPNPC_GET_SRC_ADDR _BSD_SOURCE
+	_DEFAULT_SOURCE MINIUPNPC_VERSION_STRING=\"2.0\"
+	UPNP_VERSION_STRING=\"UPnP/1.1\" ENABLE_STRNATPMPERR
+	OS_STRING=\"Darwin/15.0.0\")
+set_target_properties (miniupnpc_pic PROPERTIES
+	POSITION_INDEPENDENT_CODE ON)
+
+# lwip_pic
 add_library (lwip_pic ${lwipSrcGlob})
 set_target_properties (lwip_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
-add_library (zto_pic ${zerotiercoreSrcGlob})
-set_target_properties (zto_pic PROPERTIES COMPILE_FLAGS "${SILENCE} -std=c++11")
-set_target_properties (zto_pic PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# libzt_pic
+add_library (zt_pic ${libztSrcGlob})
+set_target_properties (zt_pic PROPERTIES
+	COMPILE_FLAGS "${ZT_FLAGS}"
+	POSITION_INDEPENDENT_CODE ON)
 
 # -----------------------------------------------------------------------------
 # |                      BUILD TARGETS (FINAL PRODUCT)                        |
@@ -339,12 +393,12 @@ $<TARGET_OBJECTS:lwip_obj> ${libztSrcGlob})
 set_target_properties (${STATIC_LIB_NAME} PROPERTIES
     OUTPUT_NAME zt
     LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
+set_target_properties (${STATIC_LIB_NAME} PROPERTIES COMPILE_FLAGS "${ZT_FLAGS}")
 
 # libzt.so/dylib/dll
 add_library (${DYNAMIC_LIB_NAME} SHARED ${libztSrcGlob})
-message (STATUS ${libztSrcGlob})
-target_link_libraries (${DYNAMIC_LIB_NAME} lwip_pic zto_pic)
-set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES COMPILE_FLAGS "${SILENCE} -std=c++11 -DZT_SDK")
+target_link_libraries (${DYNAMIC_LIB_NAME} zt_pic lwip_pic zto_pic natpmp_pic miniupnpc_pic)
+set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES COMPILE_FLAGS "${ZT_FLAGS}")
 set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES OUTPUT_NAME ${DYNAMIC_LIB_OUTPUT_NAME}
                                     WINDOWS_EXPORT_ALL_SYMBOLS true)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)

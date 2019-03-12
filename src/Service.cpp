@@ -275,6 +275,8 @@ public:
 		/* Packet input concurrency is disabled intentially since it
 		would force the user-space network stack to constantly re-order
 		frames, resulting in lower RX performance */
+
+		/*
 		_incomingPacketConcurrency = 1;
 		// std::max((unsigned long)1,std::min((unsigned long)16,(unsigned long)std::thread::hardware_concurrency()));
 		char *envPool = std::getenv("INCOMING_PACKET_CONCURRENCY");
@@ -311,7 +313,7 @@ public:
 					}
 				}
 			}));
-		}
+		}*/
 	}
 
 	virtual ~OneServiceImpl()
@@ -713,27 +715,24 @@ public:
 
 	inline void phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *localAddr,const struct sockaddr *from,void *data,unsigned long len)
 	{
-		const uint64_t now = OSUtils::now();
 		if ((len >= 16)&&(reinterpret_cast<const InetAddress *>(from)->ipScope() == InetAddress::IP_SCOPE_GLOBAL))
-			_lastDirectReceiveFromGlobal = now;
-
-		OneServiceIncomingPacket *pkt;
-		_incomingPacketMemoryPoolLock.lock();
-		if (_incomingPacketMemoryPool.empty()) {
-			pkt = new OneServiceIncomingPacket;
-		} else {
-			pkt = _incomingPacketMemoryPool.back();
-			_incomingPacketMemoryPool.pop_back();
+			_lastDirectReceiveFromGlobal = OSUtils::now();
+		const ZT_ResultCode rc = _node->processWirePacket(
+			(void *)0,
+			OSUtils::now(),
+			reinterpret_cast<int64_t>(sock),
+			reinterpret_cast<const struct sockaddr_storage *>(from), // Phy<> uses sockaddr_storage, so it'll always be that big
+			data,
+			len,
+			&_nextBackgroundTaskDeadline);
+		if (ZT_ResultCode_isFatal(rc)) {
+			char tmp[256];
+			OSUtils::ztsnprintf(tmp,sizeof(tmp),"fatal error code from processWirePacket: %d",(int)rc);
+			Mutex::Lock _l(_termReason_m);
+			_termReason = ONE_UNRECOVERABLE_ERROR;
+			_fatalErrorMessage = tmp;
+			this->terminate();
 		}
-		_incomingPacketMemoryPoolLock.unlock();
-
-		pkt->now = now;
-		pkt->sock = reinterpret_cast<int64_t>(sock);
-		ZT_FAST_MEMCPY(&(pkt->from),from,sizeof(struct sockaddr_storage));
-		pkt->size = (unsigned int)len;
-		ZT_FAST_MEMCPY(pkt->data,data,len);
-
-		_incomingPacketQueue.postLimit(pkt,16 * _incomingPacketConcurrency);
 	}
 
 	inline void phyOnTcpConnect(PhySocket *sock,void **uptr,bool success) {}

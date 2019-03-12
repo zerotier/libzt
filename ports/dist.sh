@@ -121,7 +121,7 @@ host_jar()
     # Build dynamic library
     BUILD_DIR=$(pwd)/tmp/${NORMALIZED_OSNAME}-$(uname -m)-jni-$1
     UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
-    cmake -H. -B$BUILD_DIR -DCMAKE_BUILD_TYPE=$UPPERCASE_CONFIG "-DJNI=1"
+    cmake -H. -B$BUILD_DIR -DCMAKE_BUILD_TYPE=$UPPERCASE_CONFIG -DSDK_JNI=ON "-DSDK_JNI=1"
     cmake --build $BUILD_DIR $BUILD_CONCURRENCY
     # Copy dynamic library from previous build step
     # And, remove any lib that may exist prior. We don't want accidental successes
@@ -186,7 +186,7 @@ android()
     mkdir -p $LIB_OUTPUT_DIR
     # Build
     UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
-    CMAKE_FLAGS=$CMAKE_FLAGS" -DSDK_JNI=1"
+    CMAKE_FLAGS="-DSDK_JNI=1 -DSDK_JNI=ON"
     cd $ANDROID_PROJ_DIR
     ./gradlew assemble$UPPERCASE_CONFIG # assembleRelease / assembleDebug
     mv $ANDROID_PROJ_DIR/app/build/outputs/aar/app-$1.aar \
@@ -200,8 +200,11 @@ cleanup()
     find $(pwd)/lib -type f -name 'liblwip_pic.a' -exec rm {} +
     find $(pwd)/lib -type f -name 'liblwip.a' -exec rm {} +
     find $(pwd)/lib -type f -name 'libminiupnpc.a' -exec rm {} +
+    find $(pwd)/lib -type f -name 'libminiupnpc_pic.a' -exec rm {} +
     find $(pwd)/lib -type f -name 'libnatpmp.a' -exec rm {} +
+    find $(pwd)/lib -type f -name 'libnatpmp_pic.a' -exec rm {} +
     find $(pwd)/lib -type f -name 'libzto_pic.a' -exec rm {} +
+    find $(pwd)/lib -type f -name 'libzt_pic.a' -exec rm {} +
     find $(pwd)/lib -type f -name 'libzerotiercore.a' -exec rm {} +
 }
 

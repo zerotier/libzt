@@ -152,7 +152,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_accept(
 {
 	struct sockaddr_storage ss;
 	socklen_t addrlen = sizeof(struct sockaddr_storage);
-	int retval =zts_accept(fd, (struct sockaddr *)&ss, &addrlen);
+	int retval = zts_accept(fd, (struct sockaddr *)&ss, &addrlen);
 	ss2zta(env, &ss, addr);
 	return retval > -1 ? retval : -(zts_errno);
 }

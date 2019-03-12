@@ -19,6 +19,7 @@ patch:
 
 .PHONY: clean
 clean:
+	-rm -rf ports/android/app/build
 	-rm -rf tmp lib bin products
 	-find ports -name ".externalNativeBuild" -exec rm -r "{}" \;
 	-rm -f *.o *.s *.exp *.lib *.core core

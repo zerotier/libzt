@@ -205,9 +205,11 @@ cleanup()
     find $(pwd)/lib -type f -name 'libnatpmp_pic.a' -exec rm {} +
     find $(pwd)/lib -type f -name 'libzto_pic.a' -exec rm {} +
     find $(pwd)/lib -type f -name 'libzt_pic.a' -exec rm {} +
-    find $(pwd)/lib -type f -name 'libzerotiercore.a' -exec rm {} +
+    #find $(pwd)/lib -type f -name 'libztcore.a' -exec rm {} +
 }
 
+# Copies binaries, documentation, licenses, etc into a products
+# dir and then tarballs everything together
 package_everything()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
@@ -224,13 +226,14 @@ package_everything()
     cp $(pwd)/LICENSE.GPL-3 $LICENSE_DIR/ZEROTIER-LICENSE.GPL-3
     cp $(pwd)/include/net/ROUTE_H-LICENSE.APSL $LICENSE_DIR/ROUTE_H-LICENSE.APSL
     cp $(pwd)/include/net/ROUTE_H-LICENSE $LICENSE_DIR/ROUTE_H-LICENSE
-
     # Documentation
     #mkdir -p $PROD_DIR/doc
     #cp $(pwd)/README.md $PROD_DIR/doc
+    cp $(pwd)/API.md $PROD_DIR/
     # Header(s)
     mkdir -p $PROD_DIR/include
     cp $(pwd)/include/*.h $PROD_DIR/include
+    cp $(pwd)/ext/ZeroTierOne/include/ZeroTierOne.h $PROD_DIR/include
     # Libraries
     mkdir -p $PROD_DIR/lib
     cp -r $(pwd)/lib/$1/* $PROD_DIR/lib
@@ -247,8 +250,13 @@ package_everything()
 #question in our Community section' > $PROD_DIR/README.FIRST
     # Tar everything
     PROD_FILENAME=$(pwd)/products/$PROD_NAME.tar.gz
-    tar --exclude=$PROD_FILENAME -zcvf $PROD_FILENAME $PROD_DIR
-    md5 $PROD_FILENAME
+    tar --exclude=$PROD_FILENAME -zcvf $PROD_FILENAME -C $PROD_DIR .
+    if [[ $OSNAME = *"darwin"* ]]; then
+        md5 $PROD_FILENAME
+    fi
+    if [[ $OSNAME = *"linux"* ]]; then
+        md5sum $PROD_FILENAME
+    fi
 }
 
 dist()

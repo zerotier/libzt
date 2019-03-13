@@ -10,6 +10,7 @@ endif
 # Pull all submodules
 update:
 	git submodule update --init
+	git submodule status
 
 # Patch submodules (issue update first)
 patch:

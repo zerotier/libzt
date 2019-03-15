@@ -30,7 +30,8 @@ clean_macos:
 clean_android:
 	-rm -rf ports/android/app/build
 	-find ports -name ".externalNativeBuild" -exec rm -r "{}" \;
-
+clean_products:
+	-rm -rf products
 .PHONY: clean
 clean: clean_ios clean_macos clean_android
 	-rm -rf tmp lib bin products

@@ -311,8 +311,7 @@ package_everything()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
     LIBZT_VERSION=$(git describe)
-    ZT_CORE_VERSION="1.2.12"
-    PROD_NAME=$LIBZT_VERSION-$1
+    PROD_NAME=$LIBZT_VERSION-$(date '+%Y%m%d')-$1
     PROD_DIR=$(pwd)/products/$PROD_NAME/
     # Make products directory
     LICENSE_DIR=$PROD_DIR/licenses
@@ -324,9 +323,10 @@ package_everything()
     cp $(pwd)/include/net/ROUTE_H-LICENSE.APSL $LICENSE_DIR/ROUTE_H-LICENSE.APSL
     cp $(pwd)/include/net/ROUTE_H-LICENSE $LICENSE_DIR/ROUTE_H-LICENSE
     # Documentation
-    #mkdir -p $PROD_DIR/doc
-    #cp $(pwd)/README.md $PROD_DIR/doc
-    cp $(pwd)/API.md $PROD_DIR/
+    mkdir -p $PROD_DIR/doc
+    # Copy the errno header from lwIP for customer reference
+    cp ext/lwip/src/include/lwip/errno.h $PROD_DIR/doc
+    cp $(pwd)/API.pdf $PROD_DIR/API.pdf
     # Header(s)
     mkdir -p $PROD_DIR/include
     cp $(pwd)/include/*.h $PROD_DIR/include
@@ -361,6 +361,23 @@ package_everything()
     echo -e "\n"
     tree $PROD_DIR
     cat $PROD_DIR/VERSION
+    # Final check. Display warnings if anything is missing
+    FILES="README
+    VERSION
+    API.pdf
+    doc/errno.h
+    licenses/LWIP-LICENSE.BSD
+    licenses/CONCURRENTQUEUE-LICENSE.BSD
+    licenses/ZEROTIER-LICENSE.GPL-3
+    licenses/ROUTE_H-LICENSE.APSL
+    licenses/ROUTE_H-LICENSE
+    licenses/LWIP-LICENSE.BSD"
+    for f in $FILES
+    do
+        if [ ! -f "$PROD_DIR$f" ]; then
+            echo "Warning: $PROD_DIR$f is missing"
+        fi
+    done
 }
 
 # Package both debug and release

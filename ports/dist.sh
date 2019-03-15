@@ -5,6 +5,30 @@
 # targets as specified in CMakeLists.txt. This script is also responsible for
 # packaging all of the resultant builds, licenses, and documentation.
 
+# Example workflow for producing a full release package:
+#
+# (1) On packaging platform, build most targets (including android and ios):
+#    (1a) make all
+# (2) On other supported platforms, build remaining supported targets
+#     and copy them into a directory structure that is expected by a later stage:
+#    (2a) make all
+#    (2b) make wrap
+# (3) Copy all resultant $(ARCH)_product directories to root project directory
+#     of packaging platform. For instance:
+#
+#  libzt
+#    ├── API.md
+#    ├── products
+#    ├── linux-x86_64_products
+#    ├── linux-armv7l_products
+#    ├── linux-armv6l_products
+#    ├── products
+#    ├── win_products
+#    └── ...
+#
+# (4) Merge all builds into single `products` directory and package:
+#    (4a) make dist
+
 BUILD_CONCURRENCY=
 #"-j 2"
 OSNAME=$(uname | tr '[A-Z]' '[a-z]')
@@ -50,6 +74,7 @@ generate_projects()
 	fi
 }
 
+# Build framework for iOS (with embedded static library)
 ios()
 {
     if [[ ! $OSNAME = *"darwin"* ]]; then
@@ -82,6 +107,7 @@ ios()
     #mv $XCODE_IOS_ARMV7_PROJ_DIR/$UPPERCASE_CONFIG-iphoneos/* $OUTPUT_DIR
 }
 
+# Build framework for current host (macOS only)
 macos()
 {
     if [[ ! $OSNAME = *"darwin"* ]]; then
@@ -105,6 +131,7 @@ macos()
     mv $XCODE_MACOS_PROJ_DIR/$UPPERCASE_CONFIG/* $OUTPUT_DIR
 }
 
+# Build Java JAR for current host (uses JNI)
 host_jar()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
@@ -138,8 +165,17 @@ host_jar()
     LIB_OUTPUT_DIR=$(pwd)/lib/$1/${NORMALIZED_OSNAME}-$(uname -m)
     mkdir -p $LIB_OUTPUT_DIR
     mv $(pwd)/ports/java/zt.jar $LIB_OUTPUT_DIR
+    # Build sample app classes
+    # Remove old dynamic library if it exists
+    rm -rf $(pwd)/examples/java/$DYNAMIC_LIB_NAME
+    javac -cp ".:"$LIB_OUTPUT_DIR/zt.jar $(pwd)/examples/java/src/main/java/*.java
+    # To run:
+    # jar xf $LIB_OUTPUT_DIR/zt.jar libzt.dylib
+    # cp libzt.dylib examples/java/
+    # java -cp "lib/debug/macos-x86_64/zt.jar:examples/java/src/main/java" ExampleApp
 }
 
+# Build all ordinary library types for current host
 host()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
@@ -164,6 +200,7 @@ host()
     cleanup
 }
 
+# Build android AAR from ports/android
 android()
 {
     # NOTE: There's no reason this won't build on linux, it's just that
@@ -194,6 +231,15 @@ android()
     cd -
 }
 
+# At the end of build stage, print contents and trees for inspection
+display()
+{
+    find $(pwd)/lib -type f -name 'zt.jar' -exec echo -e "\n" \; -exec ls {} \; -exec jar tf {} +
+    echo -e "\n"
+    tree $(pwd)/lib
+}
+
+# Remove intermediate object files and/or libraries
 cleanup()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
@@ -205,7 +251,58 @@ cleanup()
     find $(pwd)/lib -type f -name 'libnatpmp_pic.a' -exec rm {} +
     find $(pwd)/lib -type f -name 'libzto_pic.a' -exec rm {} +
     find $(pwd)/lib -type f -name 'libzt_pic.a' -exec rm {} +
-    #find $(pwd)/lib -type f -name 'libztcore.a' -exec rm {} +
+}
+
+# Merge all remotely-built targets. This is used before dist()
+merge()
+{
+    #if [ -d "darwin-x86_64_products" ]; then
+    #    rsync -a darwin-x86_64_products/ products/
+    #else
+    #    echo "Warning: darwin-x86_64_products is missing"
+    #fi
+    # x86_64 64-bit linux
+    REMOTE_PRODUCTS_DIR=linux-x86_64_products
+    if [ -d "$REMOTE_PRODUCTS_DIR" ]; then
+        rsync -a $REMOTE_PRODUCTS_DIR/ products/
+        echo "Merged products from " $REMOTE_PRODUCTS_DIR " to " products
+    else
+        echo "Warning: $REMOTE_PRODUCTS_DIR is missing"
+    fi
+    # armv7l linux
+    REMOTE_PRODUCTS_DIR=linux-armv7l_products
+    if [ -d "$REMOTE_PRODUCTS_DIR" ]; then
+        rsync -a $REMOTE_PRODUCTS_DIR/ products/
+        echo "Merged products from " $REMOTE_PRODUCTS_DIR " to " products
+    else
+        echo "Warning: $REMOTE_PRODUCTS_DIR is missing"
+    fi
+    # armv6l linux
+    REMOTE_PRODUCTS_DIR=linux-armv6l_products
+    if [ -d "$REMOTE_PRODUCTS_DIR" ]; then
+        rsync -a $REMOTE_PRODUCTS_DIR/ products/
+        echo "Merged products from " $REMOTE_PRODUCTS_DIR " to " products
+    else
+        echo "Warning: $REMOTE_PRODUCTS_DIR is missing"
+    fi
+    # 32/64-bit windows
+    REMOTE_PRODUCTS_DIR=win_products
+    if [ -d "$REMOTE_PRODUCTS_DIR" ]; then
+        rsync -a $REMOTE_PRODUCTS_DIR/ products/
+        echo "Merged products from " $REMOTE_PRODUCTS_DIR " to " products
+    else
+        echo "Warning: $REMOTE_PRODUCTS_DIR is missing"
+    fi
+}
+
+# On hosts which are not the final packaging platform (e.g. armv7, armv6l, etc)
+# we will rename the products directory so that we can merge() it at a later
+# stage on the packaging platform
+wrap()
+{
+    ARCH_WRAP_DIR=$OSNAME"-"$(uname -m)_products
+    cp -rf products $ARCH_WRAP_DIR
+    echo "Copied products to: " $ARCH_WRAP_DIR
 }
 
 # Copies binaries, documentation, licenses, etc into a products
@@ -240,14 +337,17 @@ package_everything()
     # Clean
     find $PROD_DIR -type f \( -name '*.DS_Store' -o -name 'thumbs.db' \) -delete
     # Emit a README file
-#    echo $'* libzt version: '${LIBZT_VERSION}$'\n* Core ZeroTier version:
-#'${ZT_CORE_VERSION}$'\n* Date: '$(date)$'\n
-#- ZeroTier Manual: https://www.zerotier.com/manual.shtml
-#- libzt Manual: https://www.zerotier.com/manual.shtml#5
-#- libzt Repo: https://github.com/zerotier/libzt
-#- Other Downloads: https://www.zerotier.com/download.shtml
-#- For more assistance, visit https://my.zerotier.com and ask your
-#question in our Community section' > $PROD_DIR/README.FIRST
+    echo 'See API.md for more information on how to use the SDK
+- ZeroTier Manual: https://www.zerotier.com/manual.shtml
+- libzt Manual: https://www.zerotier.com/manual.shtml#5
+- libzt Repo: https://github.com/zerotier/libzt
+- ZeroTierOne Repo: https://github.com/zerotier/ZeroTierOne
+- Downloads: https://www.zerotier.com/download.shtml' > $PROD_DIR/README
+    # Record the version (and each submodule's version)
+    echo "$(git describe)" > $PROD_DIR/VERSION
+    echo -e "$(git submodule status | awk '{$1=$1};1')" >> $PROD_DIR/VERSION
+    echo -e "$(cat ext/ZeroTierOne/version.h | grep ZEROTIER_ONE_VERSION | sed 's/\#define//g' | awk '{$1=$1};1')" >> $PROD_DIR/VERSION
+    echo "$(date)" >> $PROD_DIR/VERSION
     # Tar everything
     PROD_FILENAME=$(pwd)/products/$PROD_NAME.tar.gz
     tar --exclude=$PROD_FILENAME -zcvf $PROD_FILENAME -C $PROD_DIR .
@@ -257,8 +357,13 @@ package_everything()
     if [[ $OSNAME = *"linux"* ]]; then
         md5sum $PROD_FILENAME
     fi
+    # Print results for post-build inspection
+    echo -e "\n"
+    tree $PROD_DIR
+    cat $PROD_DIR/VERSION
 }
 
+# Package both debug and release
 dist()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"

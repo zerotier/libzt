@@ -7,6 +7,10 @@ CLEAN_SCRIPT := ./ports/clean.sh
 PACKAGE_SCRIPT := ./ports/package.sh
 endif
 
+EXECUTABLES = cmake
+build_reqs := $(foreach exec,$(EXECUTABLES),\
+        $(if $(shell which $(exec)),some string,$(error "No $(exec) in PATH")))
+
 # Pull all submodules
 update:
 	git submodule update --init
@@ -18,15 +22,21 @@ patch:
 	-git -C ext/lwip-contrib apply ../lwip-contrib.patch
 	-git -C ext/ZeroTierOne apply ../ZeroTierOne.patch
 
-.PHONY: clean
-clean:
-	-rm -rf ports/android/app/build
-	-rm -rf ports/xcode_macos
+# Target-specific clean
+clean_ios:
 	-rm -rf ports/xcode_ios-arm64
-	-rm -rf tmp lib bin products
+clean_macos:
+	-rm -rf ports/xcode_macos
+clean_android:
+	-rm -rf ports/android/app/build
 	-find ports -name ".externalNativeBuild" -exec rm -r "{}" \;
+
+.PHONY: clean
+clean: clean_ios clean_macos clean_android
+	-rm -rf tmp lib bin products
 	-rm -f *.o *.s *.exp *.lib *.core core
-	find . -type f \( -name '*.o' -o -name '*.o.d' -o -name \
+	find . -type f \( -name '*.dylib' -o -name '*.so' -o -name \
+		'*.a' -o -name '*.o' -o -name '*.o.d' -o -name \
         '*.out' -o -name '*.log' -o -name '*.dSYM' -o -name '*.class' \) -delete
 
 # Use CMake generators to build projects from CMakeLists.txt
@@ -70,9 +80,15 @@ host_jar_release:
 host_jar: host_jar_debug host_jar_release
 host: host_debug host_release
 
-# all
+# Build every target available on this host
 all: host host_jar macos ios android
+	$(DIST_BUILD_SCRIPT) display
 
-# dist
+# [For distribution process only] Prepare remote builds
+wrap:
+	$(DIST_BUILD_SCRIPT) wrap
+
+# [For distribution process only] Marge and package everything into a tarball
 dist:
+	$(DIST_BUILD_SCRIPT) merge
 	$(DIST_BUILD_SCRIPT) dist

@@ -26,6 +26,7 @@ zerotier-one.port
 *.pid
 
 # Binaries/Executables/Packages/Libraries
+*.aar
 *.dll
 *.lib
 *.so
@@ -42,6 +43,9 @@ zerotier-one.port
 *.jar
 bin/
 gen/
+
+# Keyfiles, etc
+*.keystore
 
 # Python
 *.py[co]

@@ -31,8 +31,7 @@
 # (4) Merge all builds into single `products` directory and package:
 #    (4a) make dist
 
-BUILD_CONCURRENCY=
-#"-j 2"
+BUILD_CONCURRENCY="-j 2"
 OSNAME=$(uname | tr '[A-Z]' '[a-z]')
 BUILD_TMP=$(pwd)/tmp
 ANDROID_PROJ_DIR=$(pwd)/ports/android
@@ -262,7 +261,7 @@ clean()
         '*.out' -o -name '*.log' -o -name '*.dSYM' -o -name '*.class' \) -delete
     # Remove any sources copied to project directories
     rm -rf ports/android/app/src/main/java/com/zerotier/libzt/*.java
-    rm -rf src/java/*.java ports/java/com/zerotier/libzt/*.java
+    rm -rf ports/java/com/zerotier/libzt/*.java
 }
 
 # Copy and rename Android AAR from lib to example app directory

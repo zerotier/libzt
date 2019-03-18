@@ -1,3 +1,13 @@
+# Project
+# Intermediate 
+ports/android/app/src/main/java/com/zerotier/libzt/*.java
+ports/java/com/zerotier/libzt/*.java
+ports/xcode_ios-arm64/
+ports/xcode_macos/
+products/
+tmp/
+API.pdf
+
 # ZeroTier-specific 
 *.conf
 *.public

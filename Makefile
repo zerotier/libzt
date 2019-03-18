@@ -1,10 +1,8 @@
 ifeq ($(OS),Windows_NT)
-DIST_BUILD_SCRIPT := ports\dist.bat
-CLEAN_SCRIPT := ports\clean.bat
+DIST_BUILD_SCRIPT := dist.bat
+CLEAN_SCRIPT := clean.bat
 else
-DIST_BUILD_SCRIPT := ./ports/dist.sh
-CLEAN_SCRIPT := ./ports/clean.sh
-PACKAGE_SCRIPT := ./ports/package.sh
+DIST_BUILD_SCRIPT := ./dist.sh
 endif
 
 EXECUTABLES = cmake

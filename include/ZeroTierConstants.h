@@ -44,6 +44,8 @@
 #define ZTS_ERR_INVALID_OP                 -3
 // The call succeeded, but no object or relevant result was available
 #define ZTS_ERR_NO_RESULT                  -4
+// General internal failure
+#define ZTS_ERR_GENERAL                    -5
 
 /**
  * The system port upon which ZT traffic is sent and received

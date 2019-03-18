@@ -186,7 +186,7 @@ int zts_setsockopt(int fd, int level, int optname, const void *optval, socklen_t
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_setsockopt(
 	JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jobject optval)
 {
-	jclass c = (*env).GetObjectClass(optval);
+	jclass c = env->GetObjectClass(optval);
 	if (!c) {
 		return ZTS_ERR_INVALID_OP;
 	}
@@ -198,8 +198,8 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_setsockopt(
 		|| optname == SO_REUSEPORT
 		|| optname == TCP_NODELAY)
 	{
-		jfieldID fid = (*env).GetFieldID(c, "booleanValue", "Z");
-		optval_int = (int)(*env).GetBooleanField(optval, fid);
+		jfieldID fid = env->GetFieldID(c, "booleanValue", "Z");
+		optval_int = (int)(env->GetBooleanField(optval, fid));
 	}
 	if (optname == IP_TTL
 		|| optname == SO_RCVTIMEO
@@ -208,8 +208,8 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_setsockopt(
 		|| optname == SO_RCVBUF
 		|| optname == SO_SNDBUF)
 	{
-		jfieldID fid = (*env).GetFieldID(c, "integerValue", "I");
-		optval_int = (*env).GetIntField(optval, fid);
+		jfieldID fid = env->GetFieldID(c, "integerValue", "I");
+		optval_int = env->GetIntField(optval, fid);
 	}
 
 	int retval = ZTS_ERR_OK;
@@ -236,7 +236,7 @@ int zts_getsockopt(int fd, int level, int optname, void *optval, socklen_t *optl
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_getsockopt(
 	JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jobject optval)
 {
-	jclass c = (*env).GetObjectClass(optval);
+	jclass c = env->GetObjectClass(optval);
 	if (!c) {
 		return ZTS_ERR_INVALID_OP;
 	}
@@ -262,10 +262,10 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_getsockopt(
 		|| optname == SO_REUSEPORT
 		|| optname == TCP_NODELAY)
 	{
-		jfieldID fid = (*env).GetFieldID(c, "isBoolean", "Z");
-		(*env).SetBooleanField(optval, fid, true);
-		fid = (*env).GetFieldID(c, "booleanValue", "Z");
-		(*env).SetBooleanField(optval, fid, (bool)optval_int);
+		jfieldID fid = env->GetFieldID(c, "isBoolean", "Z");
+		env->SetBooleanField(optval, fid, true);
+		fid = env->GetFieldID(c, "booleanValue", "Z");
+		env->SetBooleanField(optval, fid, (bool)optval_int);
 	}
 	if (optname == IP_TTL
 		|| optname == SO_RCVTIMEO
@@ -274,10 +274,10 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_getsockopt(
 		|| optname == SO_RCVBUF
 		|| optname == SO_SNDBUF)
 	{
-		jfieldID fid = (*env).GetFieldID(c, "isInteger", "Z");
-		(*env).SetBooleanField(optval, fid, true);
-		fid = (*env).GetFieldID(c, "integerValue", "I");
-		(*env).SetIntField(optval, fid, optval_int);
+		jfieldID fid = env->GetFieldID(c, "isInteger", "Z");
+		env->SetBooleanField(optval, fid, true);
+		fid = env->GetFieldID(c, "integerValue", "I");
+		env->SetIntField(optval, fid, optval_int);
 	}
 	return retval > -1 ? retval : -(zts_errno);
 }
@@ -461,12 +461,12 @@ JNIEXPORT int JNICALL Java_com_zerotier_libzt_ZeroTier_ioctl(
 		int bytesRemaining = 0;
 		retval = zts_ioctl(fd, request, &bytesRemaining);	
 		// set value in general object
-		jclass c = (*env).GetObjectClass(argp);
+		jclass c = env->GetObjectClass(argp);
 		if (!c) {
 			return ZTS_ERR_INVALID_ARG;
 		}
-		jfieldID fid = (*env).GetFieldID(c, "integer", "I");
-		(*env).SetIntField(argp, fid, bytesRemaining);
+		jfieldID fid = env->GetFieldID(c, "integer", "I");
+		env->SetIntField(argp, fid, bytesRemaining);
 	}
 	if (request == FIONBIO) {
 		// TODO: double check
@@ -678,40 +678,40 @@ int zts_del_dns_nameserver(struct sockaddr *addr)
 #ifdef SDK_JNI
 void ztfdset2fdset(JNIEnv *env, int nfds, jobject src_ztfd_set, fd_set *dest_fd_set)
 {
-	jclass c = (*env).GetObjectClass(src_ztfd_set);
+	jclass c = env->GetObjectClass(src_ztfd_set);
 	if (!c) {
 		return;
 	}
 	FD_ZERO(dest_fd_set);
 	jfieldID fid = env->GetFieldID(c, "fds_bits", "[B");
-	jobject fdData = (*env).GetObjectField (src_ztfd_set, fid);
+	jobject fdData = env->GetObjectField (src_ztfd_set, fid);
 	jbyteArray * arr = reinterpret_cast<jbyteArray*>(&fdData);
-	char *data = (char*)(*env).GetByteArrayElements(*arr, NULL);	
+	char *data = (char*)env->GetByteArrayElements(*arr, NULL);
 	for (int i=0; i<nfds; i++) {
 		if (data[i] == 0x01)  {
 			FD_SET(i, dest_fd_set);
 		}
 	}
-	(*env).ReleaseByteArrayElements(*arr, (jbyte*)data, 0);
+	env->ReleaseByteArrayElements(*arr, (jbyte*)data, 0);
 	return;
 }
 
 void fdset2ztfdset(JNIEnv *env, int nfds, fd_set *src_fd_set, jobject dest_ztfd_set)
 {
-	jclass c = (*env).GetObjectClass(dest_ztfd_set);
+	jclass c = env->GetObjectClass(dest_ztfd_set);
 	if (!c) {
 		return;
 	}
 	jfieldID fid = env->GetFieldID(c, "fds_bits", "[B");
-	jobject fdData = (*env).GetObjectField (dest_ztfd_set, fid);
+	jobject fdData = env->GetObjectField (dest_ztfd_set, fid);
 	jbyteArray * arr = reinterpret_cast<jbyteArray*>(&fdData);
-	char *data = (char*)(*env).GetByteArrayElements(*arr, NULL);
+	char *data = (char*)env->GetByteArrayElements(*arr, NULL);
 	for (int i=0; i<nfds; i++) {
 		if (FD_ISSET(i, src_fd_set)) {
 			data[i] = 0x01;
 		}
 	}
-	(*env).ReleaseByteArrayElements(*arr, (jbyte*)data, 0);
+	env->ReleaseByteArrayElements(*arr, (jbyte*)data, 0);
 	return;
 }
 
@@ -721,78 +721,78 @@ void fdset2ztfdset(JNIEnv *env, int nfds, fd_set *src_fd_set, jobject dest_ztfd_
 
 void ss2zta(JNIEnv *env, struct sockaddr_storage *ss, jobject addr)
 {
-	jclass c = (*env).GetObjectClass(addr);
+	jclass c = env->GetObjectClass(addr);
 	if (!c) {
 		return;
 	}
 	if(ss->ss_family == AF_INET)
 	{
 		struct sockaddr_in *in4 = (struct sockaddr_in*)ss;
-		jfieldID fid = (*env).GetFieldID(c, "_port", "I");
-		(*env).SetIntField(addr, fid, lwip_ntohs(in4->sin_port));
-		fid = (*env).GetFieldID(c,"_family", "I");
-		(*env).SetIntField(addr, fid, (in4->sin_family));
+		jfieldID fid = env->GetFieldID(c, "_port", "I");
+		env->SetIntField(addr, fid, lwip_ntohs(in4->sin_port));
+		fid = env->GetFieldID(c,"_family", "I");
+		env->SetIntField(addr, fid, (in4->sin_family));
 		fid = env->GetFieldID(c, "_ip4", "[B");
-		jobject ipData = (*env).GetObjectField (addr, fid);
+		jobject ipData = env->GetObjectField (addr, fid);
 		jbyteArray * arr = reinterpret_cast<jbyteArray*>(&ipData);
-		char *data = (char*)(*env).GetByteArrayElements(*arr, NULL);
+		char *data = (char*)env->GetByteArrayElements(*arr, NULL);
 		memcpy(data, &(in4->sin_addr.s_addr), 4);
-		(*env).ReleaseByteArrayElements(*arr, (jbyte*)data, 0);
+		env->ReleaseByteArrayElements(*arr, (jbyte*)data, 0);
 
 		return;
 	}
 	if(ss->ss_family == AF_INET6)
 	{
 		struct sockaddr_in6 *in6 = (struct sockaddr_in6*)ss;
-		jfieldID fid = (*env).GetFieldID(c, "_port", "I");
-		(*env).SetIntField(addr, fid, lwip_ntohs(in6->sin6_port));
-		fid = (*env).GetFieldID(c,"_family", "I");
-		(*env).SetIntField(addr, fid, (in6->sin6_family));
+		jfieldID fid = env->GetFieldID(c, "_port", "I");
+		env->SetIntField(addr, fid, lwip_ntohs(in6->sin6_port));
+		fid = env->GetFieldID(c,"_family", "I");
+		env->SetIntField(addr, fid, (in6->sin6_family));
 		fid = env->GetFieldID(c, "_ip6", "[B");
-		jobject ipData = (*env).GetObjectField (addr, fid);
+		jobject ipData = env->GetObjectField (addr, fid);
 		jbyteArray * arr = reinterpret_cast<jbyteArray*>(&ipData);
-		char *data = (char*)(*env).GetByteArrayElements(*arr, NULL);
+		char *data = (char*)env->GetByteArrayElements(*arr, NULL);
 		memcpy(data, &(in6->sin6_addr.s6_addr), 16);
-		(*env).ReleaseByteArrayElements(*arr, (jbyte*)data, 0);
+		env->ReleaseByteArrayElements(*arr, (jbyte*)data, 0);
 		return;
 	}
 }
 
 void zta2ss(JNIEnv *env, struct sockaddr_storage *ss, jobject addr)
 {
-	jclass c = (*env).GetObjectClass(addr);
+	jclass c = env->GetObjectClass(addr);
 	if (!c) {
 		return;
 	}
-	jfieldID fid = (*env).GetFieldID(c, "_family", "I");
-	int family = (*env).GetIntField(addr, fid);
+	jfieldID fid = env->GetFieldID(c, "_family", "I");
+	int family = env->GetIntField(addr, fid);
 	if (family == AF_INET)
 	{
 		struct sockaddr_in *in4 = (struct sockaddr_in*)ss;
-		fid = (*env).GetFieldID(c, "_port", "I");
-		in4->sin_port = lwip_htons((*env).GetIntField(addr, fid));
+		fid = env->GetFieldID(c, "_port", "I");
+		in4->sin_port = lwip_htons(env->GetIntField(addr, fid));
 		in4->sin_family = AF_INET;
 		fid = env->GetFieldID(c, "_ip4", "[B");
-		jobject ipData = (*env).GetObjectField (addr, fid);
+		jobject ipData = env->GetObjectField (addr, fid);
 		jbyteArray * arr = reinterpret_cast<jbyteArray*>(&ipData);
-		char *data = (char*)(*env).GetByteArrayElements(*arr, NULL);
+		char *data = (char*)env->GetByteArrayElements(*arr, NULL);
 		memcpy(&(in4->sin_addr.s_addr), data, 4);
-		(*env).ReleaseByteArrayElements(*arr, (jbyte*)data, 0);
+		env->ReleaseByteArrayElements(*arr, (jbyte*)data, 0);
 		return;
 	}
 	if (family == AF_INET6)
 	{
 		struct sockaddr_in6 *in6 = (struct sockaddr_in6*)ss;
-		jfieldID fid = (*env).GetFieldID(c, "_port", "I");
-		in6->sin6_port = lwip_htons((*env).GetIntField(addr, fid));
-		fid = (*env).GetFieldID(c,"_family", "I");
+		jfieldID fid = env->GetFieldID(c, "_port", "I");
+		in6->sin6_port = lwip_htons(env->GetIntField(addr, fid));
+		fid = env->GetFieldID(c,"_family", "I");
 		in6->sin6_family = AF_INET6;
 		fid = env->GetFieldID(c, "_ip6", "[B");
-		jobject ipData = (*env).GetObjectField (addr, fid);
+		jobject ipData = env->GetObjectField (addr, fid);
 		jbyteArray * arr = reinterpret_cast<jbyteArray*>(&ipData);
-		char *data = (char*)(*env).GetByteArrayElements(*arr, NULL);
+		char *data = (char*)env->GetByteArrayElements(*arr, NULL);
 		memcpy(&(in6->sin6_addr.s6_addr), data, 16);
-		(*env).ReleaseByteArrayElements(*arr, (jbyte*)data, 0);
+		env->ReleaseByteArrayElements(*arr, (jbyte*)data, 0);
 		return;
 	}
 }

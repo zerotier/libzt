@@ -75,21 +75,15 @@ int _port;
 std::string _path;
 
 /*
- * A lock used to protect any call which relies on the presence of a valid pointer
- * to the ZeroTier service.
+ * A lock used to protect any call which relies on the presence of a valid
+ * pointer to the ZeroTier service.
  */
 Mutex _service_lock;
 
 /*
- * A lock which protects flags and state variables used during the startup and
- * shutdown phase.
- */
-Mutex _startup_lock;
-
-/*
- * A lock used to protect callback method pointers. With a coarser-grained lock it
- * would be possible for one thread to alter the callback method pointer causing 
- * undefined behaviour.
+ * A lock used to protect callback method pointers. With a coarser-grained
+ * lock it would be possible for one thread to alter the callback method
+ * pointer causing undefined behaviour.
  */
 Mutex _callback_lock;
 
@@ -425,13 +419,14 @@ extern "C" {
 
 #ifdef SDK_JNI
 /*
- * Called from Java, saves a static reference to the VM so it can be used later to call
- * a user-specified callback method from C.
+ * Called from Java, saves a static reference to the VM so it can be used
+ * later to call a user-specified callback method from C.
  */
-JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_init(JNIEnv *env, jobject thisObj)
+JNIEXPORT int JNICALL Java_com_zerotier_libzt_ZeroTier_init(
+	JNIEnv *env, jobject thisObj)
 {
     jint rs = env->GetJavaVM(&jvm);
-    assert (rs == JNI_OK);
+	return rs != JNI_OK ? ZTS_ERR_GENERAL : ZTS_ERR_OK;
 }
 #endif
 
@@ -515,7 +510,8 @@ int zts_deorbit(uint64_t moonWorldId)
 #ifdef SDK_JNI
 #endif
 
-int zts_start(const char *path, void (*callback)(struct zts_callback_msg*), int port)
+int zts_start(
+	const char *path, void (*callback)(struct zts_callback_msg*), int port)
 {
 	Mutex::Lock _l(_service_lock);
 	lwip_driver_init();
@@ -524,7 +520,8 @@ int zts_start(const char *path, void (*callback)(struct zts_callback_msg*), int 
 		return ZTS_ERR_INVALID_OP;
 	}
 	if (_freeHasBeenCalled) {
-		// Stack (presumably lwIP) has been dismantled, an application restart is required now
+		// Stack (presumably lwIP) has been dismantled,
+		// an application restart is required now
 		return ZTS_ERR_INVALID_OP;
 	}
 #ifdef SDK_JNI
@@ -607,10 +604,15 @@ JNIEXPORT int JNICALL Java_com_zerotier_libzt_ZeroTier_start(
 		DEBUG_ERROR("Couldn't find onZeroTierEvent method");
 		return ZTS_ERR_INVALID_ARG;
 	}
-	objRef = env->NewGlobalRef(callback); // Reference used for later calls
+	// Reference used for later calls
+	objRef = env->NewGlobalRef(callback);
 	_userCallbackMethodRef = eventListenerCallbackMethod;
 	const char* utf_string = env->GetStringUTFChars(path, NULL);
-	int retval = zts_start(utf_string, NULL, port); // using _userCallbackMethodRef
+	if (!utf_string) {
+		return ZTS_ERR_GENERAL;
+	}
+	// using _userCallbackMethodRef
+	int retval = zts_start(utf_string, NULL, port);
 	env->ReleaseStringUTFChars(path, utf_string);
 	return retval;
 }

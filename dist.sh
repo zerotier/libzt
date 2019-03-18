@@ -415,7 +415,7 @@ package_everything()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
     LIBZT_VERSION=$(git describe)
-    PROD_NAME=$LIBZT_VERSION-$(date '+%Y%m%d')-$1
+    PROD_NAME=$LIBZT_VERSION-$(date '+%Y%m%d_%H-%M')-$1
     PROD_DIR=$(pwd)/products/$PROD_NAME/
     # Make products directory
     LICENSE_DIR=$PROD_DIR/licenses

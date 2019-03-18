@@ -2,8 +2,10 @@
 
 # This script works in conjunction with the Makefile and CMakeLists.txt. It is
 # intented to be called from the Makefile, it generates projects and builds
-# targets as specified in CMakeLists.txt. This script is also responsible for
-# packaging all of the resultant builds, licenses, and documentation.
+# targets as specified in CMakeLists.txt. In addition, this script is
+# responsible for packaging all of the resultant builds, licenses, and
+# documentation as well as controlling the installation and remote execution of
+# tests on mobile devices.
 
 # Example workflow for producing a full release package:
 #
@@ -135,6 +137,7 @@ macos()
 host_jar()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    copy_root_java_sources_to_projects
     NORMALIZED_OSNAME=$OSNAME
     if [[ $OSNAME = *"darwin"* ]]; then
         DYNAMIC_LIB_NAME="libzt.dylib"
@@ -197,12 +200,14 @@ host()
     # Move and clean up
     mv $BUILD_DIR/bin/* $BIN_OUTPUT_DIR
     mv $BUILD_DIR/lib/* $LIB_OUTPUT_DIR
-    cleanup
+    clean_post_build
 }
 
 # Build android AAR from ports/android
 android()
 {
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    copy_root_java_sources_to_projects
     # NOTE: There's no reason this won't build on linux, it's just that
     # for our purposes we limit this to execution on macOS
     if [[ ! $OSNAME = *"darwin"* ]]; then
@@ -231,16 +236,8 @@ android()
     cd -
 }
 
-# At the end of build stage, print contents and trees for inspection
-display()
-{
-    find $(pwd)/lib -type f -name 'zt.jar' -exec echo -e "\n" \; -exec ls {} \; -exec jar tf {} +
-    echo -e "\n"
-    tree $(pwd)/lib
-}
-
 # Remove intermediate object files and/or libraries
-cleanup()
+clean_post_build()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
     find $(pwd)/lib -type f -name 'liblwip_pic.a' -exec rm {} +
@@ -251,6 +248,114 @@ cleanup()
     find $(pwd)/lib -type f -name 'libnatpmp_pic.a' -exec rm {} +
     find $(pwd)/lib -type f -name 'libzto_pic.a' -exec rm {} +
     find $(pwd)/lib -type f -name 'libzt_pic.a' -exec rm {} +
+}
+
+# General clean
+clean()
+{
+    # Remove all temporary build files, products, etc
+    rm -rf tmp lib bin products
+	rm -f *.o *.s *.exp *.lib *.core core
+    # Generally search for and remove object files, libraries, etc
+	find . -type f \( -name '*.dylib' -o -name '*.so' -o -name \
+		'*.a' -o -name '*.o' -o -name '*.o.d' -o -name \
+        '*.out' -o -name '*.log' -o -name '*.dSYM' -o -name '*.class' \) -delete
+    # Remove any sources copied to project directories
+    rm -rf ports/android/app/src/main/java/com/zerotier/libzt/*.java
+    rm -rf src/java/*.java ports/java/com/zerotier/libzt/*.java
+}
+
+# Copy and rename Android AAR from lib to example app directory
+prep_android_example()
+{
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    cp -f lib/$1/android-armeabi-v7a/libzt-$1.aar \
+    examples/android/ExampleAndroidApp/app/libs/libzt.aar
+}
+# Clean Android project
+clean_android_project()
+{
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    ANDROID_EXAMPLE_PROJ_DIR="examples/android/ExampleAndroidApp"
+    cd $ANDROID_EXAMPLE_PROJ_DIR
+    ./gradlew clean
+    ./gradlew cleanBuildCache
+    cd -
+}
+# Build APK from AAR and sources
+build_android_app()
+{
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    ANDROID_EXAMPLE_PROJ_DIR="examples/android/ExampleAndroidApp"
+    UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
+    cd $ANDROID_EXAMPLE_PROJ_DIR
+    ./gradlew assemble$UPPERCASE_CONFIG
+    cd -
+}
+# Stops an Android app that is already installed on device
+stop_android_app()
+{
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    /Users/$USER/Library/Android/sdk/platform-tools/adb shell am \
+    force-stop com.example.mynewestapplication
+}
+# Starts an Android app that is already installed on device
+start_android_app()
+{
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    /Users/$USER/Library/Android/sdk/platform-tools/adb shell \
+    monkey -p com.example.mynewestapplication 1
+}
+# Copy and install example Android app on device
+install_android_app()
+{
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    if [[ $1 = "release" ]]; then
+        APKNAME=app-$1-"unsigned"
+    else
+        APKNAME=app-$1
+    fi
+    APK=examples/android/ExampleAndroidApp/app/build/outputs/apk/$1/$APKNAME.apk
+    echo "Installing $APK ..."
+    /Users/$USER/Library/Android/sdk/platform-tools/adb install -r $APK
+}
+# Perform all steps necessary to run a new instance of the app on device
+run_android_app()
+{
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    stop_android_app
+    prep_android_example $1
+    clean_android_project
+    # The following two functions take 'debug' as an argument regardless
+    # of the build type since the native code is built with the proper
+    # configuration anyway.
+    build_android_app "debug"
+    install_android_app "debug"
+    start_android_app
+}
+# View ADB logs of running Android app
+android_app_log()
+{
+    if [[ $OSNAME = *"darwin"* ]]; then
+        /Users/$USER/Library/Android/sdk/platform-tools/adb logcat
+    fi
+}
+
+# Copy java sources to projects before build process. This is so
+# that we only have to maintain one set of sources for multiple java-
+# based projects.
+copy_root_java_sources_to_projects()
+{
+    cp -f src/java/*.java ports/android/app/src/main/java/com/zerotier/libzt
+    cp -f src/java/*.java ports/java/com/zerotier/libzt/
+}
+
+# At the end of build stage, print contents and trees for inspection
+display()
+{
+    find $(pwd)/lib -type f -name 'zt.jar' -exec echo -e "\n" \; -exec ls {} \; -exec jar tf {} +
+    echo -e "\n"
+    tree $(pwd)/lib
 }
 
 # Merge all remotely-built targets. This is used before dist()

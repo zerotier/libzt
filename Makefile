@@ -11,6 +11,12 @@ EXECUTABLES = cmake
 build_reqs := $(foreach exec,$(EXECUTABLES),\
         $(if $(shell which $(exec)),some string,$(error "No $(exec) in PATH")))
 
+.PHONY: list
+list:
+	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= \
+	-F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") \
+	{print $$1}}' | sort | egrep -v -e '^[^[:alnum:]]' -e '^$@$$' | xargs
+
 # Pull all submodules
 update:
 	git submodule update --init
@@ -34,11 +40,7 @@ clean_products:
 	-rm -rf products
 .PHONY: clean
 clean: clean_ios clean_macos clean_android
-	-rm -rf tmp lib bin products
-	-rm -f *.o *.s *.exp *.lib *.core core
-	find . -type f \( -name '*.dylib' -o -name '*.so' -o -name \
-		'*.a' -o -name '*.o' -o -name '*.o.d' -o -name \
-        '*.out' -o -name '*.log' -o -name '*.dSYM' -o -name '*.class' \) -delete
+	$(DIST_BUILD_SCRIPT) clean
 
 # Use CMake generators to build projects from CMakeLists.txt
 projects:
@@ -47,11 +49,19 @@ projects:
 # Android
 android_debug:
 	$(DIST_BUILD_SCRIPT) android "debug"
+	$(DIST_BUILD_SCRIPT) clean_android_project
+	$(DIST_BUILD_SCRIPT) prep_android_example "debug"
 android_release:
 	$(DIST_BUILD_SCRIPT) android "release"
+	$(DIST_BUILD_SCRIPT) clean_android_project
+	$(DIST_BUILD_SCRIPT) prep_android_example "release"
 android_clean:
 	$(DIST_BUILD_SCRIPT) android "clean"
 android: android_debug android_release
+prep_android_debug_example:
+	$(DIST_BUILD_SCRIPT) prep_android_example "debug"
+prep_android_release_example:
+	$(DIST_BUILD_SCRIPT) prep_android_example "release"
 
 # macOS
 macos_debug:

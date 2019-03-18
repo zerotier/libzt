@@ -2,7 +2,7 @@
 
 <a href="https://www.zerotier.com/?pk_campaign=github_libzt"><img src="https://raw.githubusercontent.com/zerotier/ZeroTierOne/master/artwork/ZeroTierIcon.png" width="128" height="128" align="left" hspace="20"></a>
 
-The ZeroTier SDK is composed of two libraries: `libztcore` which is the  platform-agnostic network hypervisor, and `libzt` which is the network hypervisor paired with a userspace network stack. `libzt` is a superset of `libztcore` and is distinguished by the fact that it exposes a standard [socket API](https://en.wikipedia.org/wiki/Berkeley_sockets) and simple network control API. The full source for these products can be found at [github.com/zerotier/libzt](https://github.com/zerotier/libzt) for the SDK and [github.com/zerotier/ZeroTierOne](https://github.com/zerotier/ZeroTierOne) for the desktop client. With these libraries the stack and virtual link is exclusive to your app and traffic is fully encrypted via the [Salsa20](https://en.wikipedia.org/wiki/Salsa20) cipher. For a more in-depth discussion on the technical side of ZeroTier, check out our [Manual](https://www.zerotier.com/manual.shtml?pk_campaign=github_libzt)
+The ZeroTier SDK is composed of two libraries: `libztcore` which is the  platform-agnostic network hypervisor, and `libzt` which is the network hypervisor paired with a userspace network stack. `libzt` is a superset of `libztcore` and is distinguished by the fact that it exposes a standard [socket API](https://en.wikipedia.org/wiki/Berkeley_sockets) and simple network control API. The full source for these products can be found at [github.com/zerotier/libzt](https://github.com/zerotier/libzt) for the SDK and [github.com/zerotier/ZeroTierOne](https://github.com/zerotier/ZeroTierOne) for the desktop client. With these libraries the stack and virtual link are exclusive to your app and traffic is fully encrypted via the [Salsa20](https://en.wikipedia.org/wiki/Salsa20) cipher. For a more in-depth discussion on the technical side of ZeroTier, check out our [Manual](https://www.zerotier.com/manual.shtml?pk_campaign=github_libzt)
 
 <br>
 
@@ -303,7 +303,7 @@ int main()
     addr.sin_addr.s_addr = inet_addr(remoteIp);
     addr.sin_port = htons(remotePort);
 
-    // Set up ZeroTier service and wai for callbacks
+    // Set up ZeroTier service and wait for callbacks
     int port = 9994;
     int nwid = 0x0123456789abcdef;
     zts_start("test/path", &myZeroTierEventCallback, port);

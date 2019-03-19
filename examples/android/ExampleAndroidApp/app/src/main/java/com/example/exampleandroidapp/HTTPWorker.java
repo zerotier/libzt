@@ -40,7 +40,6 @@ public class HTTPWorker extends Thread {
             long i = 0;
             for (;;) {
                 try {
-                    System.out.println("PEER STATUS IS = " + ZeroTier.get_peer_status(0x7caea82fc4L));
                     int randomNum = ThreadLocalRandom.current().nextInt(0, 2 + 1);
                     i++;
                     Response response = null;
@@ -69,7 +68,6 @@ public class HTTPWorker extends Thread {
                 } catch (Exception e) {
                     System.out.println(e);
                     e.printStackTrace();
-                    //System.exit(0);
                 }
 
             }

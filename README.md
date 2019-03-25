@@ -29,7 +29,7 @@ int main()
     zts_join(0x0123456789abcdef);
     zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
     zts_connect(fd, (const struct sockaddr *)&addr, sizeof(addr));
-    zts_write(fd, "welcome to the machine", strlen(str));
+    zts_write(fd, "welcome to the machine", 22);
     zts_close(fd);
     zts_stop();
     return 0;

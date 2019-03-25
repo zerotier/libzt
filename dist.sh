@@ -31,7 +31,8 @@
 # (4) Merge all builds into single `products` directory and package:
 #    (4a) make dist
 
-BUILD_CONCURRENCY="-j 2"
+BUILD_CONCURRENCY=
+#"-j 2"
 OSNAME=$(uname | tr '[A-Z]' '[a-z]')
 BUILD_TMP=$(pwd)/tmp
 ANDROID_PROJ_DIR=$(pwd)/ports/android
@@ -40,39 +41,39 @@ XCODE_IOS_ARM64_PROJ_DIR=$(pwd)/ports/xcode_ios-arm64
 XCODE_MACOS_PROJ_DIR=$(pwd)/ports/xcode_macos
 
 # Generates projects if needed
-generate_projects() 
+generate_projects()
 {
     if [[ ! $OSNAME = *"darwin"* ]]; then
         exit 0
     fi
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
-	if [[ $OSNAME = *"darwin"* ]]; then
-		# iOS (SDK 11+, 64-bit only, arm64)
-		if [ ! -d "$XCODE_IOS_ARM64_PROJ_DIR" ]; then
-			mkdir -p $XCODE_IOS_ARM64_PROJ_DIR
-			cd $XCODE_IOS_ARM64_PROJ_DIR
-			cmake -G Xcode ../../ -DIOS_FRAMEWORK=1 -DIOS_ARM64=1
+    if [[ $OSNAME = *"darwin"* ]]; then
+        # iOS (SDK 11+, 64-bit only, arm64)
+        if [ ! -d "$XCODE_IOS_ARM64_PROJ_DIR" ]; then
+            mkdir -p $XCODE_IOS_ARM64_PROJ_DIR
+            cd $XCODE_IOS_ARM64_PROJ_DIR
+            cmake -G Xcode ../../ -DIOS_FRAMEWORK=1 -DIOS_ARM64=1
             # Manually replace arch strings in project file
-	        sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj 
-			cd -
-		fi
-        # iOS (SDK <11, 32-bit only, armv7, armv7s)
-		#if [ ! -d "$XCODE_IOS_ARMV7_PROJ_DIR" ]; then
-		#	mkdir -p $XCODE_IOS_ARMV7_PROJ_DIR
-		#	cd $XCODE_IOS_ARMV7_PROJ_DIR
-		#	cmake -G Xcode ../../ -DIOS_FRAMEWORK=1 -DIOS_ARMV7=1
-            # Manually replace arch strings in project file
-	    #   sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj 
-		#	cd -
-		#fi
-		# macOS
-		if [ ! -d "$XCODE_MACOS_PROJ_DIR" ]; then
-			mkdir -p $XCODE_MACOS_PROJ_DIR
-			cd $XCODE_MACOS_PROJ_DIR
-			cmake -G Xcode ../../ -DMACOS_FRAMEWORK=1
-			cd -
+            sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj
+            cd -
         fi
-	fi
+        # iOS (SDK <11, 32-bit only, armv7, armv7s)
+        #if [ ! -d "$XCODE_IOS_ARMV7_PROJ_DIR" ]; then
+        #   mkdir -p $XCODE_IOS_ARMV7_PROJ_DIR
+        #   cd $XCODE_IOS_ARMV7_PROJ_DIR
+        #   cmake -G Xcode ../../ -DIOS_FRAMEWORK=1 -DIOS_ARMV7=1
+            # Manually replace arch strings in project file
+        #   sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj
+        #   cd -
+        #fi
+        # macOS
+        if [ ! -d "$XCODE_MACOS_PROJ_DIR" ]; then
+            mkdir -p $XCODE_MACOS_PROJ_DIR
+            cd $XCODE_MACOS_PROJ_DIR
+            cmake -G Xcode ../../ -DMACOS_FRAMEWORK=1
+            cd -
+        fi
+    fi
 }
 
 # Build framework for iOS (with embedded static library)
@@ -88,19 +89,19 @@ ios()
     # 64-bit
     cd $XCODE_IOS_ARM64_PROJ_DIR
     # Framework
-    xcodebuild -arch arm64 -target zt -configuration "$UPPERCASE_CONFIG" -sdk "iphoneos" 
+    xcodebuild -arch arm64 -target zt -configuration "$UPPERCASE_CONFIG" -sdk "iphoneos"
     cd -
     OUTPUT_DIR=$(pwd)/lib/$1/ios-arm64
     mkdir -p $OUTPUT_DIR
     rm -rf $OUTPUT_DIR/zt.framework # Remove prior to move to prevent error
     mv $XCODE_IOS_ARM64_PROJ_DIR/$UPPERCASE_CONFIG-iphoneos/* $OUTPUT_DIR
-    
+
     # 32-bit
     #cd $XCODE_IOS_ARMV7_PROJ_DIR
     # Framework
     #xcodebuild -target zt -configuration "$UPPERCASE_CONFIG" -sdk "iphoneos10.0"
     # Manually replace arch strings in project file
-	#sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj  
+    #sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj
     #cd -
     #OUTPUT_DIR=$(pwd)/lib/$1/ios-armv7
     #mkdir -p $OUTPUT_DIR
@@ -202,17 +203,29 @@ host()
     clean_post_build
 }
 
+# Set important variables for Android builds
+set_android_env()
+{
+    #JDK=jdk1.8.0_202.jdk
+    # Set ANDROID_HOME because setting sdk.dir in local.properties isn't always reliable
+    export ANDROID_HOME=/Users/$USER/Library/Android/sdk
+    export PATH=/Library/Java/JavaVirtualMachines/$JDK/Contents/Home/bin/:${PATH}
+    export PATH=/Users/$USER/Library/Android/sdk/platform-tools/:${PATH}
+    GRADLE_ARGS=--stacktrace
+    ANDROID_APP_NAME=com.example.mynewestapplication
+}
+
 # Build android AAR from ports/android
 android()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    set_android_env
     copy_root_java_sources_to_projects
     # NOTE: There's no reason this won't build on linux, it's just that
     # for our purposes we limit this to execution on macOS
     if [[ ! $OSNAME = *"darwin"* ]]; then
         exit 0
     fi
-    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
     ARCH="armeabi-v7a"
     # CMake build files
     BUILD_DIR=$(pwd)/tmp/android-$ARCH-$1
@@ -229,7 +242,8 @@ android()
     UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
     CMAKE_FLAGS="-DSDK_JNI=1 -DSDK_JNI=ON"
     cd $ANDROID_PROJ_DIR
-    ./gradlew assemble$UPPERCASE_CONFIG # assembleRelease / assembleDebug
+    ./gradlew $GRADLE_ARGS --recompile-scripts
+    ./gradlew $GRADLE_ARGS assemble$UPPERCASE_CONFIG # assembleRelease / assembleDebug
     mv $ANDROID_PROJ_DIR/app/build/outputs/aar/app-$1.aar \
         $LIB_OUTPUT_DIR/libzt-$1.aar
     cd -
@@ -254,10 +268,10 @@ clean()
 {
     # Remove all temporary build files, products, etc
     rm -rf tmp lib bin products
-	rm -f *.o *.s *.exp *.lib *.core core
+    rm -f *.o *.s *.exp *.lib *.core core
     # Generally search for and remove object files, libraries, etc
-	find . -type f \( -name '*.dylib' -o -name '*.so' -o -name \
-		'*.a' -o -name '*.o' -o -name '*.o.d' -o -name \
+    find . -type f \( -name '*.dylib' -o -name '*.so' -o -name \
+        '*.a' -o -name '*.o' -o -name '*.o.d' -o -name \
         '*.out' -o -name '*.log' -o -name '*.dSYM' -o -name '*.class' \) -delete
     # Remove any sources copied to project directories
     rm -rf ports/android/app/src/main/java/com/zerotier/libzt/*.java
@@ -275,16 +289,18 @@ prep_android_example()
 clean_android_project()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    set_android_env
     ANDROID_EXAMPLE_PROJ_DIR="examples/android/ExampleAndroidApp"
     cd $ANDROID_EXAMPLE_PROJ_DIR
-    ./gradlew clean
-    ./gradlew cleanBuildCache
+    ./gradlew $GRADLE_ARGS clean
+    ./gradlew $GRADLE_ARGS cleanBuildCache
     cd -
 }
 # Build APK from AAR and sources
 build_android_app()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    set_android_env
     ANDROID_EXAMPLE_PROJ_DIR="examples/android/ExampleAndroidApp"
     UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
     cd $ANDROID_EXAMPLE_PROJ_DIR
@@ -295,20 +311,21 @@ build_android_app()
 stop_android_app()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
-    /Users/$USER/Library/Android/sdk/platform-tools/adb shell am \
-    force-stop com.example.mynewestapplication
+    set_android_env
+    adb shell am force-stop $ANDROID_APP_NAME
 }
 # Starts an Android app that is already installed on device
 start_android_app()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
-    /Users/$USER/Library/Android/sdk/platform-tools/adb shell \
-    monkey -p com.example.mynewestapplication 1
+    set_android_env
+    adb shell monkey -p $ANDROID_APP_NAME 1
 }
 # Copy and install example Android app on device
 install_android_app()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    set_android_env
     if [[ $1 = "release" ]]; then
         APKNAME=app-$1-"unsigned"
     else
@@ -316,7 +333,7 @@ install_android_app()
     fi
     APK=examples/android/ExampleAndroidApp/app/build/outputs/apk/$1/$APKNAME.apk
     echo "Installing $APK ..."
-    /Users/$USER/Library/Android/sdk/platform-tools/adb install -r $APK
+    adb install -r $APK
 }
 # Perform all steps necessary to run a new instance of the app on device
 run_android_app()
@@ -335,10 +352,20 @@ run_android_app()
 # View ADB logs of running Android app
 android_app_log()
 {
+    set_android_env
     if [[ $OSNAME = *"darwin"* ]]; then
-        /Users/$USER/Library/Android/sdk/platform-tools/adb logcat
+        adb logcat
     fi
 }
+# View ADB logs of running Android app (filtered, must restart for each app re-launch)
+android_app_log_filtered()
+{
+    set_android_env
+    if [[ $OSNAME = *"darwin"* ]]; then
+        adb logcat | grep -F "`adb shell ps | grep $ANDROID_APP_NAME | cut -c10-15`"
+    fi
+}
+
 
 # Copy java sources to projects before build process. This is so
 # that we only have to maintain one set of sources for multiple java-
@@ -490,6 +517,15 @@ dist()
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
     package_everything "debug"
     package_everything "release"
+}
+
+# List all functions in this script (just for convenience)
+list()
+{
+    IFS=$'\n'
+    for f in $(declare -F); do
+        echo "${f:11}"
+    done
 }
 
 "$@"

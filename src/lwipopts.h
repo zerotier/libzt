@@ -49,6 +49,7 @@
 ------------------------------------------------------------------------------*/
 
 // Misc
+#define LWIP_STATS_LARGE                1
 #define LWIP_NOASSERT                   1
 #if __ANDROID__
 #define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS 0
@@ -82,149 +83,49 @@
 ------------------------------------ Presets -----------------------------------
 ------------------------------------------------------------------------------*/
 
-// Embedded applications (lwIP out-of-the-box defaults)
-#if 0
-   #define TCP_TMR_INTERVAL       250
-#endif
-
-// Desktop-class applications
-#if 1
-   #define LWIP_MTU                        1500
-   #define LWIP_CHKSUM_ALGORITHM           2
-   // memory
-   #define MEMP_NUM_NETCONN                1024
-   #define MEMP_NUM_NETBUF                 2
-   #define MEMP_NUM_TCPIP_MSG_API          1024
-   #define MEMP_NUM_TCPIP_MSG_INPKT        1024
-   #define PBUF_POOL_SIZE                  1024
-   #define TCP_DEFAULT_LISTEN_BACKLOG      0xff
-   // arp
-   #define ARP_TABLE_SIZE                  64
-   #define ARP_MAXAGE                      300
-   #define ARP_QUEUEING                    1
-   #define ARP_QUEUE_LEN                   3
-   // ip
-   #define IP_REASS_MAXAGE                 15
-   #define IP_REASS_MAX_PBUFS              32
-   // tcp
-   #define TCP_TMR_INTERVAL                250
-   #define TCP_WND                         0xffff0
-   #define TCP_MAXRTX                      12
-   #define TCP_SYNMAXRTX                   12
-   #define LWIP_TCP_SACK_OUT               1
-   #define LWIP_TCP_MAX_SACK_NUM           4
-   #define TCP_MSS                         (LWIP_MTU - 40)
-   #define TCP_SND_BUF                     (64 * TCP_MSS)
-   #define TCP_SND_QUEUELEN                (64 * (2 * (TCP_SND_BUF/TCP_MSS)))
-   #define TCP_SNDLOWAT                    (0xffff - (4*TCP_MSS) - 1)
-   #define TCP_SNDQUEUELOWAT               LWIP_MAX(((TCP_SND_QUEUELEN)/2), 5)
-   #define TCP_WND_UPDATE_THRESHOLD        LWIP_MIN((TCP_WND / 4), (TCP_MSS * 4))
-   #define LWIP_WND_SCALE                  1
-   #define TCP_RCV_SCALE                   4
-   // tcpip
-   #define TCPIP_MBOX_SIZE                 0
-   #define LWIP_TCPIP_CORE_LOCKING         1
-   #define LWIP_TCPIP_CORE_LOCKING_INPUT   1
-   // netconn
-   #define LWIP_NETCONN_FULLDUPLEX         0
-   // netif
-   #define LWIP_SINGLE_NETIF               0
-   #define LWIP_NETIF_HWADDRHINT           1
-   #define LWIP_NETIF_TX_SINGLE_PBUF       0
-   #define TCPIP_THREAD_PRIO               1
-#endif
-
-// Desktop-class applications
-#if 0
-   #define MTU                             2800
-   #define LWIP_CHKSUM_ALGORITHM           2
-   // memory
-   #define MEMP_NUM_NETCONN                1024
-   #define MEMP_NUM_NETBUF                 2
-   #define MEMP_NUM_TCPIP_MSG_API          64
-   #define MEMP_NUM_TCPIP_MSG_INPKT        64
-   #define PBUF_POOL_SIZE                  128
-   // arp
-   #define ARP_TABLE_SIZE                  64
-   #define ARP_MAXAGE                      300
-   #define ARP_QUEUEING                    1
-   #define ARP_QUEUE_LEN                   3
-   // ip
-   #define IP_REASS_MAXAGE                 15
-   #define IP_REASS_MAX_PBUFS              32
-   // tcp
-   #define TCP_TMR_INTERVAL                25
-   #define TCP_WND                         0xffff
-   #define TCP_MAXRTX                      12
-   #define TCP_SYNMAXRTX                   12
-   #define LWIP_TCP_SACK_OUT               1
-   #define LWIP_TCP_MAX_SACK_NUM           4
-   #define TCP_MSS                         (MTU - 40)
-   #define TCP_SND_BUF                     (32 * TCP_MSS)
-   #define TCP_SND_QUEUELEN                (64 * (2 * (TCP_SND_BUF/TCP_MSS)))
-   #define TCP_SNDLOWAT                    (0xffff - (4*TCP_MSS) - 1)
-   #define TCP_SNDQUEUELOWAT               LWIP_MAX(((TCP_SND_QUEUELEN)/2), 5)
-   #define TCP_WND_UPDATE_THRESHOLD        LWIP_MIN((TCP_WND / 4), (TCP_MSS * 4))
-   #define LWIP_WND_SCALE                  1
-   #define TCP_RCV_SCALE                   0
-   // tcpip
-   #define TCPIP_MBOX_SIZE                 0
-   #define LWIP_TCPIP_CORE_LOCKING         1
-   #define LWIP_TCPIP_CORE_LOCKING_INPUT   1
-   // netconn
-   #define LWIP_NETCONN_FULLDUPLEX         0
-   // netif
-   #define LWIP_SINGLE_NETIF               0
-   #define LWIP_NETIF_HWADDRHINT           1
-   #define LWIP_NETIF_TX_SINGLE_PBUF       0
-   #define TCPIP_THREAD_PRIO               1
-#endif
-
-// Stable
-#if 0
-   #define MTU                             2800
-   #define LWIP_CHKSUM_ALGORITHM           2
-   // memory
-   #define MEMP_NUM_NETCONN                1024
-   #define MEMP_NUM_NETBUF                 2
-   #define MEMP_NUM_TCPIP_MSG_API          64
-   #define MEMP_NUM_TCPIP_MSG_INPKT        64
-   #define PBUF_POOL_SIZE                  128
-   // arp
-   #define ARP_TABLE_SIZE                  64
-   #define ARP_MAXAGE                      300
-   #define ARP_QUEUEING                    1
-   #define ARP_QUEUE_LEN                   3
-   // ip
-   #define IP_REASS_MAXAGE                 15
-   #define IP_REASS_MAX_PBUFS              32
-   // tcp
-   #define TCP_TMR_INTERVAL                25
-   #define TCP_WND                         0xffff
-   #define TCP_MAXRTX                      12
-   #define TCP_SYNMAXRTX                   12
-   #define LWIP_TCP_SACK_OUT               0
-   #define LWIP_TCP_MAX_SACK_NUM           4
-   #define TCP_MSS                         (MTU - 40)
-   #define TCP_SND_BUF                     (32 * TCP_MSS)
-   #define TCP_SND_QUEUELEN                (64 * (2 * (TCP_SND_BUF/TCP_MSS)))
-   #define TCP_SNDLOWAT                    (0xffff - (4*TCP_MSS) - 1)
-   #define TCP_SNDLOWAT                    LWIP_MIN(LWIP_MAX(((TCP_SND_BUF)/2), (2 * TCP_MSS) + 1), (TCP_SND_BUF) - 1)
-   #define TCP_WND_UPDATE_THRESHOLD        LWIP_MIN((TCP_WND / 4), (TCP_MSS * 4))
-   #define LWIP_WND_SCALE                  1
-   #define TCP_RCV_SCALE                   0
-   // tcpip
-   #define TCPIP_MBOX_SIZE                 0
-   #define LWIP_TCPIP_CORE_LOCKING         1
-   #define LWIP_TCPIP_CORE_LOCKING_INPUT   1
-   // netconn
-   #define LWIP_NETCONN_FULLDUPLEX         0
-   // netif
-   #define LWIP_SINGLE_NETIF               0
-   #define LWIP_NETIF_HWADDRHINT           1
-   #define LWIP_NETIF_TX_SINGLE_PBUF       0
-   #define TCPIP_THREAD_PRIO               1
-#endif
+#define LWIP_MTU                        1500
+#define LWIP_CHKSUM_ALGORITHM           2
+// memory
+#define MEMP_NUM_NETCONN                1024
+#define MEMP_NUM_NETBUF                 2
+#define MEMP_NUM_TCPIP_MSG_API          1024
+#define MEMP_NUM_TCPIP_MSG_INPKT        1024
+#define PBUF_POOL_SIZE                  1024
+#define TCP_DEFAULT_LISTEN_BACKLOG      0xff
+// arp
+#define ARP_TABLE_SIZE                  64
+#define ARP_MAXAGE                      300
+#define ARP_QUEUEING                    1
+#define ARP_QUEUE_LEN                   3
+// ip
+#define IP_REASS_MAXAGE                 15
+#define IP_REASS_MAX_PBUFS              32
+// tcp
+#define TCP_TMR_INTERVAL                250
+#define TCP_WND                         0xffff0
+#define TCP_MAXRTX                      12
+#define TCP_SYNMAXRTX                   12
+#define LWIP_TCP_SACK_OUT               1
+#define LWIP_TCP_MAX_SACK_NUM           4
+#define TCP_MSS                         (LWIP_MTU - 40)
+#define TCP_SND_BUF                     (64 * TCP_MSS)
+#define TCP_SND_QUEUELEN                (64 * (2 * (TCP_SND_BUF/TCP_MSS)))
+#define TCP_SNDLOWAT                    (0xffff - (4*TCP_MSS) - 1)
+#define TCP_SNDQUEUELOWAT               LWIP_MAX(((TCP_SND_QUEUELEN)/2), 5)
+#define TCP_WND_UPDATE_THRESHOLD        LWIP_MIN((TCP_WND / 4), (TCP_MSS * 4))
+#define LWIP_WND_SCALE                  1
+#define TCP_RCV_SCALE                   4
+// tcpip
+#define TCPIP_MBOX_SIZE                 0
+#define LWIP_TCPIP_CORE_LOCKING         1
+#define LWIP_TCPIP_CORE_LOCKING_INPUT   1
+// netconn
+#define LWIP_NETCONN_FULLDUPLEX         0
+// netif
+#define LWIP_SINGLE_NETIF               0
+#define LWIP_NETIF_HWADDRHINT           1
+#define LWIP_NETIF_TX_SINGLE_PBUF       0
+#define TCPIP_THREAD_PRIO               1
 
 /*------------------------------------------------------------------------------
 ------------------------------------ Timers ------------------------------------
@@ -2286,180 +2187,6 @@ happening sooner than they should.
 #if !defined LWIP_SOCKET_POLL || defined __DOXYGEN__
 #define LWIP_SOCKET_POLL                1
 #endif
-/**
- * @}
- */
-
-/*
-   ----------------------------------------
-   ---------- Statistics options ----------
-   ----------------------------------------
-*/
-/**
- * @defgroup lwip_opts_stats Statistics
- * @ingroup lwip_opts_debug
- * @{
- */
-/**
- * LWIP_STATS==1: Enable statistics collection in lwip_stats.
- */
-#if !defined LWIP_STATS || defined __DOXYGEN__
-#define LWIP_STATS                      0
-#endif
-
-#if LWIP_STATS
-
-/**
- * LWIP_STATS_DISPLAY==1: Compile in the statistics output functions.
- */
-#if !defined LWIP_STATS_DISPLAY || defined __DOXYGEN__
-#define LWIP_STATS_DISPLAY              0
-#endif
-
-/**
- * LINK_STATS==1: Enable link stats.
- */
-#if !defined LINK_STATS || defined __DOXYGEN__
-#define LINK_STATS                      0
-#endif
-
-/**
- * ETHARP_STATS==1: Enable etharp stats.
- */
-#if !defined ETHARP_STATS || defined __DOXYGEN__
-#define ETHARP_STATS                    (LWIP_ARP)
-#endif
-
-/**
- * IP_STATS==1: Enable IP stats.
- */
-#if !defined IP_STATS || defined __DOXYGEN__
-#define IP_STATS                        0
-#endif
-
-/**
- * IPFRAG_STATS==1: Enable IP fragmentation stats. Default is
- * on if using either frag or reass.
- */
-#if !defined IPFRAG_STATS || defined __DOXYGEN__
-#define IPFRAG_STATS                    (IP_REASSEMBLY || IP_FRAG)
-#endif
-
-/**
- * ICMP_STATS==1: Enable ICMP stats.
- */
-#if !defined ICMP_STATS || defined __DOXYGEN__
-#define ICMP_STATS                      0
-#endif
-
-/**
- * IGMP_STATS==1: Enable IGMP stats.
- */
-#if !defined IGMP_STATS || defined __DOXYGEN__
-#define IGMP_STATS                      (LWIP_IGMP)
-#endif
-
-/**
- * UDP_STATS==1: Enable UDP stats. Default is on if
- * UDP enabled, otherwise off.
- */
-#if !defined UDP_STATS || defined __DOXYGEN__
-#define UDP_STATS                       (LWIP_UDP)
-#endif
-
-/**
- * TCP_STATS==1: Enable TCP stats. Default is on if TCP
- * enabled, otherwise off.
- */
-#if !defined TCP_STATS || defined __DOXYGEN__
-#define TCP_STATS                       (LWIP_TCP)
-#endif
-
-/**
- * MEM_STATS==1: Enable mem.c stats.
- */
-#if !defined MEM_STATS || defined __DOXYGEN__
-#define MEM_STATS                       ((MEM_LIBC_MALLOC == 0) && (MEM_USE_POOLS == 0))
-#endif
-
-/**
- * MEMP_STATS==1: Enable memp.c pool stats.
- */
-#if !defined MEMP_STATS || defined __DOXYGEN__
-#define MEMP_STATS                      (MEMP_MEM_MALLOC == 0)
-#endif
-
-/**
- * SYS_STATS==1: Enable system stats (sem and mbox counts, etc).
- */
-#if !defined SYS_STATS || defined __DOXYGEN__
-#define SYS_STATS                       (NO_SYS == 0)
-#endif
-
-/**
- * IP6_STATS==1: Enable IPv6 stats.
- */
-#if !defined IP6_STATS || defined __DOXYGEN__
-#define IP6_STATS                       (LWIP_IPV6)
-#endif
-
-/**
- * ICMP6_STATS==1: Enable ICMP for IPv6 stats.
- */
-#if !defined ICMP6_STATS || defined __DOXYGEN__
-#define ICMP6_STATS                     (LWIP_IPV6 && LWIP_ICMP6)
-#endif
-
-/**
- * IP6_FRAG_STATS==1: Enable IPv6 fragmentation stats.
- */
-#if !defined IP6_FRAG_STATS || defined __DOXYGEN__
-#define IP6_FRAG_STATS                  (LWIP_IPV6 && (LWIP_IPV6_FRAG || LWIP_IPV6_REASS))
-#endif
-
-/**
- * MLD6_STATS==1: Enable MLD for IPv6 stats.
- */
-#if !defined MLD6_STATS || defined __DOXYGEN__
-#define MLD6_STATS                      (LWIP_IPV6 && LWIP_IPV6_MLD)
-#endif
-
-/**
- * ND6_STATS==1: Enable Neighbor discovery for IPv6 stats.
- */
-#if !defined ND6_STATS || defined __DOXYGEN__
-#define ND6_STATS                       (LWIP_IPV6)
-#endif
-
-/**
- * MIB2_STATS==1: Stats for SNMP MIB2.
- */
-#if !defined MIB2_STATS || defined __DOXYGEN__
-#define MIB2_STATS                      0
-#endif
-
-#else
-
-#define LINK_STATS                      0
-#define ETHARP_STATS                    0
-#define IP_STATS                        0
-#define IPFRAG_STATS                    0
-#define ICMP_STATS                      0
-#define IGMP_STATS                      0
-#define UDP_STATS                       0
-#define TCP_STATS                       0
-#define MEM_STATS                       0
-#define MEMP_STATS                      0
-#define SYS_STATS                       0
-#define LWIP_STATS_DISPLAY              0
-#define IP6_STATS                       0
-#define ICMP6_STATS                     0
-#define IP6_FRAG_STATS                  0
-#define MLD6_STATS                      0
-#define ND6_STATS                       0
-#define MIB2_STATS                      0
-
-#endif /* LWIP_STATS */
 /**
  * @}
  */

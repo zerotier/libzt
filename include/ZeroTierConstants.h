@@ -30,6 +30,9 @@
  * Common constants used throughout the SDK
  */
 
+#ifndef ZEROTIER_CONSTANTS_H
+#define ZEROTIER_CONSTANTS_H
+
 //////////////////////////////////////////////////////////////////////////////
 // Control API error codes                                                  //
 //////////////////////////////////////////////////////////////////////////////
@@ -228,4 +231,21 @@
 #error "external ZTS_FD_SETSIZE too small for number of sockets"
 #endif // FD_SET
 
+//////////////////////////////////////////////////////////////////////////////
+// Statistics                                                               //
+//////////////////////////////////////////////////////////////////////////////
+
+#define ZTS_STATS_PROTOCOL_LINK      0
+#define ZTS_STATS_PROTOCOL_ETHARP    1
+#define ZTS_STATS_PROTOCOL_IP        2
+#define ZTS_STATS_PROTOCOL_UDP       3
+#define ZTS_STATS_PROTOCOL_TCP       4
+#define ZTS_STATS_PROTOCOL_ICMP      5
+#define ZTS_STATS_PROTOCOL_IP_FRAG   6
+#define ZTS_STATS_PROTOCOL_IP6       7
+#define ZTS_STATS_PROTOCOL_ICMP6     8
+#define ZTS_STATS_PROTOCOL_IP6_FRAG  9
+
 //#if defined(_USING_LWIP_DEFINITIONS_)
+
+#endif // ZEROTIER_CONSTANTS_H

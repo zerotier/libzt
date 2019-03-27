@@ -621,11 +621,9 @@ JNIEXPORT int JNICALL Java_com_zerotier_libzt_ZeroTier_start(
 int zts_stop()
 {
 	Mutex::Lock _l(_service_lock);
-	bool didStop = false;
 	if (__zts_can_perform_service_operation()) {
 		_run_service = false;
 		service->terminate();
-		didStop = true;
 #if defined(_WIN32)
 		WSACleanup();
 #endif
@@ -638,6 +636,41 @@ JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_stop(
 	JNIEnv *env, jobject thisObj)
 {
 	zts_stop();
+}
+#endif
+
+int zts_restart()
+{
+	_service_lock.lock();
+	// Store callback references
+	void (*_tmpUserEventCallbackFunc)(struct zts_callback_msg *);
+	_tmpUserEventCallbackFunc = _userEventCallbackFunc;
+	int tmpPort = _port;
+	std::string tmpPath = _path;
+	// Stop the service
+	if (__zts_can_perform_service_operation()) {
+		_run_service = false;
+		service->terminate();
+#if defined(_WIN32)
+		WSACleanup();
+#endif
+	}
+	else {
+		_service_lock.unlock();
+		return ZTS_ERR_SERVICE;
+	}
+	// Start again with same parameters as initial call
+	_service_lock.unlock();
+	while (service) {
+		_api_sleep(ZTS_CALLBACK_PROCESSING_INTERVAL);
+	}
+	return zts_start(tmpPath.c_str(), _tmpUserEventCallbackFunc, tmpPort);
+}
+#ifdef SDK_JNI
+JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_restart(
+	JNIEnv *env, jobject thisObj)
+{
+	zts_restart();
 }
 #endif
 
@@ -866,6 +899,138 @@ int zts_get_all_network_details(struct zts_network_details *nds, int *num)
 	return 0;
 }
 #ifdef SDK_JNI
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+// Statistics                                                               //
+//////////////////////////////////////////////////////////////////////////////
+
+#include "lwip/stats.h"
+
+extern struct stats_ lwip_stats;
+
+int zts_get_all_stats(struct zts_stats *statsDest)
+{
+#if LWIP_STATS
+	if (!statsDest) {
+		return ZTS_ERR_INVALID_ARG;
+	}
+	memset(statsDest, 0, sizeof(struct zts_stats));
+	// Copy lwIP stats
+	memcpy(&(statsDest->link), &(lwip_stats.link), sizeof(struct stats_proto));
+	memcpy(&(statsDest->etharp), &(lwip_stats.etharp), sizeof(struct stats_proto));
+	memcpy(&(statsDest->ip_frag), &(lwip_stats.ip_frag), sizeof(struct stats_proto));
+	memcpy(&(statsDest->ip), &(lwip_stats.ip), sizeof(struct stats_proto));
+	memcpy(&(statsDest->icmp), &(lwip_stats.icmp), sizeof(struct stats_proto));
+	//memcpy(&(statsDest->igmp), &(lwip_stats.igmp), sizeof(struct stats_igmp));
+	memcpy(&(statsDest->udp), &(lwip_stats.udp), sizeof(struct stats_proto));
+	memcpy(&(statsDest->tcp), &(lwip_stats.tcp), sizeof(struct stats_proto));
+	// mem omitted
+	// memp omitted
+	memcpy(&(statsDest->sys), &(lwip_stats.sys), sizeof(struct stats_sys));
+	memcpy(&(statsDest->ip6), &(lwip_stats.ip6), sizeof(struct stats_proto));
+	memcpy(&(statsDest->icmp6), &(lwip_stats.icmp6), sizeof(struct stats_proto));
+	memcpy(&(statsDest->ip6_frag), &(lwip_stats.ip6_frag), sizeof(struct stats_proto));
+	memcpy(&(statsDest->mld6), &(lwip_stats.mld6), sizeof(struct stats_igmp));
+	memcpy(&(statsDest->nd6), &(lwip_stats.nd6), sizeof(struct stats_proto));
+	memcpy(&(statsDest->ip_frag), &(lwip_stats.ip_frag), sizeof(struct stats_proto));
+	// mib2 omitted
+	// Copy ZT stats
+	// ...
+	return ZTS_ERR_OK;
+#else
+	return ZTS_ERR_NO_RESULT;
+#endif
+}
+#ifdef SDK_JNI
+	// No implementation for JNI
+#endif
+
+int zts_get_protocol_stats(int protocolType, void *protoStatsDest)
+{
+#if LWIP_STATS
+	if (!protoStatsDest) {
+		return ZTS_ERR_INVALID_ARG;
+	}
+	memset(protoStatsDest, 0, sizeof(struct stats_proto));
+	switch (protocolType)
+	{
+		case ZTS_STATS_PROTOCOL_LINK:
+			memcpy(protoStatsDest, &(lwip_stats.link), sizeof(struct stats_proto));
+			break;
+		case ZTS_STATS_PROTOCOL_ETHARP:
+			memcpy(protoStatsDest, &(lwip_stats.etharp), sizeof(struct stats_proto));
+			break;
+		case ZTS_STATS_PROTOCOL_IP:
+			memcpy(protoStatsDest, &(lwip_stats.ip), sizeof(struct stats_proto));
+			break;
+		case ZTS_STATS_PROTOCOL_UDP:
+			memcpy(protoStatsDest, &(lwip_stats.udp), sizeof(struct stats_proto));
+			break;
+		case ZTS_STATS_PROTOCOL_TCP:
+			memcpy(protoStatsDest, &(lwip_stats.tcp), sizeof(struct stats_proto));
+			break;
+		case ZTS_STATS_PROTOCOL_ICMP:
+			memcpy(protoStatsDest, &(lwip_stats.icmp), sizeof(struct stats_proto));
+			break;
+		case ZTS_STATS_PROTOCOL_IP_FRAG:
+			memcpy(protoStatsDest, &(lwip_stats.ip_frag), sizeof(struct stats_proto));
+			break;
+		case ZTS_STATS_PROTOCOL_IP6:
+			memcpy(protoStatsDest, &(lwip_stats.ip6), sizeof(struct stats_proto));
+			break;
+		case ZTS_STATS_PROTOCOL_ICMP6:
+			memcpy(protoStatsDest, &(lwip_stats.icmp6), sizeof(struct stats_proto));
+			break;
+		case ZTS_STATS_PROTOCOL_IP6_FRAG:
+			memcpy(protoStatsDest, &(lwip_stats.ip6_frag), sizeof(struct stats_proto));
+			break;
+		default:
+			return ZTS_ERR_INVALID_ARG;
+	}
+	return ZTS_ERR_OK;
+#else
+	return ZTS_ERR_NO_RESULT;
+#endif
+}
+#ifdef SDK_JNI
+JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_get_1protocol_1stats(
+	JNIEnv *env, jobject thisObj, jint protocolType, jobject protoStatsObj)
+{
+	struct stats_proto stats;
+	int retval = zts_get_protocol_stats(protocolType, &stats);
+	// Copy stats into Java object
+	jclass c = env->GetObjectClass(protoStatsObj);
+	if (!c) {
+		return ZTS_ERR_INVALID_ARG;
+	}
+	jfieldID fid;
+	fid = env->GetFieldID(c, "xmit", "I");
+	env->SetIntField(protoStatsObj, fid, stats.xmit);
+	fid = env->GetFieldID(c, "recv", "I");
+	env->SetIntField(protoStatsObj, fid, stats.recv);
+	fid = env->GetFieldID(c, "fw", "I");
+	env->SetIntField(protoStatsObj, fid, stats.fw);
+	fid = env->GetFieldID(c, "drop", "I");
+	env->SetIntField(protoStatsObj, fid, stats.drop);
+	fid = env->GetFieldID(c, "chkerr", "I");
+	env->SetIntField(protoStatsObj, fid, stats.chkerr);
+	fid = env->GetFieldID(c, "lenerr", "I");
+	env->SetIntField(protoStatsObj, fid, stats.lenerr);
+	fid = env->GetFieldID(c, "memerr", "I");
+	env->SetIntField(protoStatsObj, fid, stats.memerr);
+	fid = env->GetFieldID(c, "rterr", "I");
+	env->SetIntField(protoStatsObj, fid, stats.rterr);
+	fid = env->GetFieldID(c, "proterr", "I");
+	env->SetIntField(protoStatsObj, fid, stats.proterr);
+	fid = env->GetFieldID(c, "opterr", "I");
+	env->SetIntField(protoStatsObj, fid, stats.opterr);
+	fid = env->GetFieldID(c, "err", "I");
+	env->SetIntField(protoStatsObj, fid, stats.err);
+	fid = env->GetFieldID(c, "cachehit", "I");
+	env->SetIntField(protoStatsObj, fid, stats.cachehit);
+	return retval;
+}
 #endif
 
 //////////////////////////////////////////////////////////////////////////////

@@ -30,8 +30,8 @@
  * ZeroTier socket API
  */
 
-#ifndef LIBZT_H
-#define LIBZT_H
+#ifndef ZEROTIER_H
+#define ZEROTIER_H
 
 #include "ZeroTierConstants.h"
 
@@ -87,17 +87,9 @@ extern "C" {
 // Custom errno to prevent conflicts with platform's own errno
 extern int zts_errno;
 
-typedef uint8_t   u8_t;
-typedef int8_t    s8_t;
-typedef uint16_t  u16_t;
-typedef int16_t   s16_t;
-typedef uint32_t  u32_t;
-typedef int32_t   s32_t;
-typedef uintptr_t mem_ptr_t;
-
-typedef u32_t zts_in_addr_t;
-typedef u16_t zts_in_port_t;
-typedef u8_t zts_sa_family_t;
+typedef uint32_t zts_in_addr_t;
+typedef uint16_t zts_in_port_t;
+typedef uint8_t zts_sa_family_t;
 
 struct zts_in_addr {
   zts_in_addr_t s_addr;
@@ -105,14 +97,14 @@ struct zts_in_addr {
 
 struct zts_in6_addr {
   union un {
-    u32_t u32_addr[4];
-    u8_t  u8_addr[16];
+    uint32_t u32_addr[4];
+    uint8_t  u8_addr[16];
   } un;
 //#define s6_addr  un.u8_addr
 };
 
 struct zts_sockaddr_in {
-  u8_t            sin_len;
+  uint8_t            sin_len;
   zts_sa_family_t     sin_family;
   zts_in_port_t       sin_port;
   struct zts_in_addr  sin_addr;
@@ -121,26 +113,26 @@ struct zts_sockaddr_in {
 };
 
 struct zts_sockaddr_in6 {
-  u8_t            sin6_len;      /* length of this structure    */
+  uint8_t            sin6_len;      /* length of this structure    */
   zts_sa_family_t     sin6_family;   /* AF_INET6                    */
   zts_in_port_t       sin6_port;     /* Transport layer port #      */
-  u32_t           sin6_flowinfo; /* IPv6 flow information       */
+  uint32_t           sin6_flowinfo; /* IPv6 flow information       */
   struct zts_in6_addr sin6_addr;     /* IPv6 address                */
-  u32_t           sin6_scope_id; /* Set of interfaces for scope */
+  uint32_t           sin6_scope_id; /* Set of interfaces for scope */
 };
 
 struct zts_sockaddr {
-  u8_t        sa_len;
+  uint8_t        sa_len;
   zts_sa_family_t sa_family;
   char        sa_data[14];
 };
 
 struct zts_sockaddr_storage {
-  u8_t        s2_len;
+  uint8_t        s2_len;
   zts_sa_family_t ss_family;
   char        s2_data1[2];
-  u32_t       s2_data2[3];
-  u32_t       s2_data3[3];
+  uint32_t       s2_data2[3];
+  uint32_t       s2_data3[3];
 };
 
 #if !defined(zts_iovec)
@@ -517,6 +509,16 @@ ZT_SOCKET_API int ZTCALL zts_start(const char *path, void (*userCallbackFunc)(st
 ZT_SOCKET_API int ZTCALL zts_stop();
 
 /**
+ * @brief Stops and re-starts the ZeroTier service.
+ *
+ * @usage This call will block until the service has been brought offline. Then
+ * it will return and the user application can then watch for the appropriate
+ * startup callback events.
+ * @return Returns ZTS_ERR_OK on success, -1 on failure
+ */
+ZT_SOCKET_API int ZTCALL zts_restart();
+
+/**
  * @brief Stops all background services, brings down all interfaces, frees all resources. After calling this function
  * an application restart will be required before the library can be used again. This is a blocking call.
  *
@@ -579,7 +581,6 @@ ZT_SOCKET_API int ZTCALL zts_join(const uint64_t nwid);
  * @return 0 if successful, -1 for any failure
  */
 ZT_SOCKET_API int ZTCALL zts_leave(const uint64_t nwid);
-
 
 /**
  * @brief Leaves all networks
@@ -742,6 +743,114 @@ void *_zts_start_service(void *thread_id);
  * @return 1 or 0
  */
 int _zts_can_perform_service_operation();
+
+//////////////////////////////////////////////////////////////////////////////
+// Statistics                                                               //
+//////////////////////////////////////////////////////////////////////////////
+
+#ifndef LWIP_STATS
+
+/** Protocol related stats */
+struct zts_stats_proto {
+  uint32_t xmit;             /* Transmitted packets. */
+  uint32_t recv;             /* Received packets. */
+  uint32_t fw;               /* Forwarded packets. */
+  uint32_t drop;             /* Dropped packets. */
+  uint32_t chkerr;           /* Checksum error. */
+  uint32_t lenerr;           /* Invalid length error. */
+  uint32_t memerr;           /* Out of memory error. */
+  uint32_t rterr;            /* Routing error. */
+  uint32_t proterr;          /* Protocol error. */
+  uint32_t opterr;           /* Error in options. */
+  uint32_t err;              /* Misc error. */
+  uint32_t cachehit;
+};
+
+/** IGMP stats */
+struct zts_stats_igmp {
+  uint32_t xmit;             /* Transmitted packets. */
+  uint32_t recv;             /* Received packets. */
+  uint32_t drop;             /* Dropped packets. */
+  uint32_t chkerr;           /* Checksum error. */
+  uint32_t lenerr;           /* Invalid length error. */
+  uint32_t memerr;           /* Out of memory error. */
+  uint32_t proterr;          /* Protocol error. */
+  uint32_t rx_v1;            /* Received v1 frames. */
+  uint32_t rx_group;         /* Received group-specific queries. */
+  uint32_t rx_general;       /* Received general queries. */
+  uint32_t rx_report;        /* Received reports. */
+  uint32_t tx_join;          /* Sent joins. */
+  uint32_t tx_leave;         /* Sent leaves. */
+  uint32_t tx_report;        /* Sent reports. */
+};
+
+/** System element stats */
+struct zts_stats_syselem {
+  uint32_t used;
+  uint32_t max;
+  uint32_t err;
+};
+
+/** System stats */
+struct zts_stats_sys {
+  struct zts_stats_syselem sem;
+  struct zts_stats_syselem mutex;
+  struct zts_stats_syselem mbox;
+};
+
+/** lwIP stats container */
+struct zts_stats {
+	/** Link level */
+	struct zts_stats_proto link;
+	/** ARP */
+	struct zts_stats_proto etharp;
+	/** Fragmentation */
+	struct zts_stats_proto ip_frag;
+	/** IP */
+	struct zts_stats_proto ip;
+	/** ICMP */
+	struct zts_stats_proto icmp;
+	/** IGMP */
+	struct zts_stats_igmp igmp;
+	/** UDP */
+	struct zts_stats_proto udp;
+	/** TCP */
+	struct zts_stats_proto tcp;
+	/** System */
+	struct zts_stats_sys sys;
+	/** IPv6 */
+	struct zts_stats_proto ip6;
+	/** ICMP6 */
+	struct zts_stats_proto icmp6;
+	/** IPv6 fragmentation */
+	struct zts_stats_proto ip6_frag;
+	/** Multicast listener discovery */
+	struct zts_stats_igmp mld6;
+	/** Neighbor discovery */
+	struct zts_stats_proto nd6;
+};
+
+#endif
+
+/**
+ * @brief Returns all statistical counters for all protocols (inefficient)
+ *
+ * @usage This function can only be used in debug builds. It can be called at
+ * any time after the node has come online
+ * @return ZTS_ERR_OK if successful, ZTS_ERR_* otherwise
+ */
+int zts_get_all_stats(struct zts_stats *statsDest);
+
+
+/**
+ * @brief Populates the given structure with the requested protocol's
+ * statistical counters (from lwIP)
+ *
+ * @usage This function can only be used in debug builds. It can be called at
+ * any time after the node has come online
+ * @return ZTS_ERR_OK if successful, ZTS_ERR_* otherwise
+ */
+int zts_get_protocol_stats(int protocolType, void *protoStatsDest);
 
 //////////////////////////////////////////////////////////////////////////////
 // Status getters                                                           //

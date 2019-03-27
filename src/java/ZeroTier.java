@@ -182,11 +182,29 @@ public class ZeroTier
 	public static int TCP_KEEPCNT     = 0x00000005;
 
 	//////////////////////////////////////////////////////////////////////////////
+	// Statistics                                                               //
+	//////////////////////////////////////////////////////////////////////////////
+
+	public static int STATS_PROTOCOL_LINK      = 0;
+	public static int STATS_PROTOCOL_ETHARP    = 1;
+	public static int STATS_PROTOCOL_IP        = 2;
+	public static int STATS_PROTOCOL_UDP       = 3;
+	public static int STATS_PROTOCOL_TCP       = 4;
+	public static int STATS_PROTOCOL_ICMP      = 5;
+	public static int STATS_PROTOCOL_IP_FRAG   = 6;
+	public static int STATS_PROTOCOL_IP6       = 7;
+	public static int STATS_PROTOCOL_ICMP6     = 8;
+	public static int STATS_PROTOCOL_IP6_FRAG  = 9;
+
+	public static native int get_protocol_stats(int protocolNum, ZeroTierProtoStats stats);
+
+	//////////////////////////////////////////////////////////////////////////////
 	// ZeroTier Service Controls                                                //
 	//////////////////////////////////////////////////////////////////////////////
 
 	public static native int start(String path, ZeroTierEventListener callbackClass, int port);
 	public static native int stop();
+	public static native int restart();
 	public static native int join(long nwid);
 	public static native int leave(long nwid);
 	public static native long get_node_id();

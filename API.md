@@ -2,19 +2,19 @@
 
 <a href="https://www.zerotier.com/?pk_campaign=github_libzt"><img src="https://raw.githubusercontent.com/zerotier/ZeroTierOne/master/artwork/ZeroTierIcon.png" width="128" height="128" align="left" hspace="20"></a>
 
-The ZeroTier SDK is composed of two libraries: `libztcore` which is the  platform-agnostic network hypervisor, and `libzt` which is the network hypervisor paired with a userspace network stack. `libzt` is a superset of `libztcore` and is distinguished by the fact that it exposes a standard [socket API](https://en.wikipedia.org/wiki/Berkeley_sockets) and simple network control API. The full source for these products can be found at [github.com/zerotier/libzt](https://github.com/zerotier/libzt) for the SDK and [github.com/zerotier/ZeroTierOne](https://github.com/zerotier/ZeroTierOne) for the desktop client. With these libraries the stack and virtual link are exclusive to your app and traffic is fully encrypted via the [Salsa20](https://en.wikipedia.org/wiki/Salsa20) cipher. For a more in-depth discussion on the technical side of ZeroTier, check out our [Manual](https://www.zerotier.com/manual.shtml?pk_campaign=github_libzt)
+The ZeroTier SDK is composed of two libraries: `libztcore` which is the  platform-agnostic network hypervisor, and `libzt` which is the network hypervisor paired with a userspace network stack. `libzt` is a superset of `libztcore` and is distinguished by the fact that it exposes a standard [socket API](https://en.wikipedia.org/wiki/Berkeley_sockets) and simple network control API. The full source for these products can be found at [github.com/zerotier/libzt](https://github.com/zerotier/libzt) for the SDK and [github.com/zerotier/ZeroTierOne](https://github.com/zerotier/ZeroTierOne) for the desktop client. With these libraries the network stack and virtual link are exclusive to your app and traffic is fully encrypted via the [Salsa20](https://en.wikipedia.org/wiki/Salsa20) cipher. For a more in-depth discussion on the technical side of ZeroTier, check out our [Manual](https://www.zerotier.com/manual.shtml?pk_campaign=github_libzt)
 
 <br>
 
 # Getting started
 
-Before we dive into the technicals, the first thing to understand is that there are two API families to choose from and each is intended for very different purposes, they are briefly explained below:
+Before we dive into the technicals, the first thing to understand is that there are two API families to choose from and each is intended for a very different purpose:
 
 `libzt` Intended for convenience and simplicity, derives from [Berkley Sockets](https://en.wikipedia.org/wiki/Berkeley_sockets).
  - socket API: `zts_socket(), zts_connect(), zts_bind(), ...`
  - control API: `zts_start(), zts_join(), zts_leave(), ....` 
 
-`libztcore` Intended for raw performance. If your goal is simply moving frames as quickly as possible and you're willing to put in some extra work, this API exposed in `include/ZeroTierOne.h` is what you're looking for. For an example of how this API is used, see the living documentation that is `src/Service.cpp`.
+`libztcore` Intended for raw performance. If your goal is simply moving frames as quickly as possible and you're willing to put in some extra work, is what you're looking. The API is described in `include/ZeroTierOne.h`. For an example of how this API is used, see the living documentation that is `src/Service.cpp`.
  - core API: `ZT_VirtualNetworkFrameFunction(), ZT_WirePacketSendFunction(), ...`
 
 *NOTE: The remainder of this document will focus on the usage of the socket and control C API exposed in `include/ZeroTier.h` for `libzt`. For more information on the `libztcore` API see `include/ZeroTierOne.h`. We also provide bindings, frameworks, and packages for other languages and platforms in the `ports` directory and example applications using them in the `examples` directory.*
@@ -29,7 +29,7 @@ To start the service, simply call:
 
 `zts_start(char *path, void (*userCallbackFunc)(struct zts_callback_msg*), int port)`
 
-At this stage if a cryptograph identity doesn't already exist, it will generate a new one and store it on disk, the node's address (commonly referred to as `nodeId`) will be derived from this identity and will be presented to you upon receiving the `ZTS_EVENT_NODE_ONLINE` shown below.
+At this stage, if a cryptographic identity for this node does not already exist, it will generate a new one and store it on disk, the node's address (commonly referred to as `nodeId`) will be derived from this identity and will be presented to you upon receiving the `ZTS_EVENT_NODE_ONLINE` shown below.
 
 *NOTE: The first argument `path` is a path where you will allow ZeroTier to store its automatically-generated cryptographic identity files (`identity.public` and `identity.secret`), these files are your keys to communicating on the network. Keep them safe and keep them unique. If any two nodes are online using the same identities you will have a bad time. The second argument `userCallbackFunc` is a function that you specify to handle all generated events for the life of your program (see below):*
 
@@ -40,6 +40,7 @@ void myZeroTierEventCallback(struct zts_callback_msg *msg)
         printf("ZTS_EVENT_NODE_ONLINE, nodeId=%llx\n", msg->node->address);
         // You can join networks now!
     }
+    // ...
 }
 ```
 
@@ -58,9 +59,9 @@ After receiving `ZTS_EVENT_NODE_ONLINE` you will be allowed to join or leave net
 
 At the end of your program or when no more network activity is anticipated, the user application can shut down the service with `zts_stop()`. However, it is safe to leave the service running in the background indefinitely as it doesn't consume much memory or CPU while at idle. `zts_stop()` is a non-blocking call and will itself issue a series of events indicating that various aspects of the ZeroTier service have successfully shut down.
 
-It is worth noting that while `zts_stop()` will stop the service, the userspace network stack will continue operating in a headless hibernation mode. This is intended behavior due to the fact that the network stack we've chosen doesn't currently support the notion of shutdown since it was initially designed for embedded applications that are simply switched off. If you do need a way to shut everything down and free all resources you can call `zts_free()`, but please note that calling this function will prevent all subsequent `zts_start()` calls from succeeding and will require a full application restart if you want to run the service again.
+It is worth noting that while `zts_stop()` will stop the service, but the user-space network stack will continue operating in a headless hibernation mode. This is intended behavior due to the fact that the network stack we've chosen doesn't currently support the notion of shutdown since it was initially designed for embedded applications that are simply switched off. If you do need a way to shut everything down and free all resources you can call `zts_free()`, but please note that calling this function will prevent all subsequent `zts_start()` calls from succeeding and will require a full application restart if you want to run the service again. The events `ZTS_EVENT_NODE_ONLINE` and `ZTS_EVENT_NODE_OFFLINE` can be seen periodically throughout the lifetime of your application depending on the reliability of your underlying network link, these events are lagging indicators and are typically only triggered every thirty (30) seconds.
 
-Lastly, the events `ZTS_EVENT_NODE_ONLINE` and `ZTS_EVENT_NODE_OFFLINE` can be seen periodically throughout the lifetime of your application depending on the reliability of your underlying network link, these events are lagging indicators and are typically only triggered every thirty (30) seconds.
+Lastly, the function `zts_restart()` is provided as a way to restart the ZeroTier service along with all of its virtual interfaces. The network stack will remain online and undisturbed during this call. Note that this call will temporarily block until the service has fully shut down, then will return and you may then watch for the appropriate startup callbacks mentioned above.
 
 <div style="page-break-after: always;"></div>
 
@@ -85,9 +86,9 @@ ZTS_EVENT_NETWORK_DOWN
 
 # Communicating with peers
 
-After successfully starting the service and joining a network, communicating with other nodes (peers) on that network is as easy as it would ordinarily be without ZeroTier. However, one thing to be aware of is the difference between relay and P2P modes. In the event that a direct connection cannot be established between your nodes, ZeroTier offers a free relaying service, this means that your nodes are reachable almost instantaneously but at a temporary performance cost. One should wait to send large amounts of traffic until a `ZTS_EVENT_PEER_P2P` is received for the node that you're interested in talking to. This event usually only takes a few seconds to appear after your node comes online. Similarly if after some time ZeroTier determines that a previously known path to one of your nodes is no longer available you will see a `ZTS_EVENT_PEER_RELAY` event.
+After successfully starting the service and joining a network, communicating with other nodes (peers) on that network is as easy as it would ordinarily be without ZeroTier. However, one thing to be aware of is the difference between relay and P2P modes. In the event that a direct connection cannot be established between your nodes, ZeroTier offers a free relaying service, this means that your nodes are reachable almost instantaneously but at a temporary performance cost. One should wait to send large amounts of traffic until a `ZTS_EVENT_PEER_P2P` is received for the node that you're interested in talking to. This event usually only takes a few seconds to appear after data has initially been sent. Similarly if after some time ZeroTier determines that a previously known path to one of your nodes is no longer available you will see a `ZTS_EVENT_PEER_RELAY` event.
 
-If one wants to query the current reachability state of another node `zts_get_peer_status(uint64_t peerId)` can be used. This function will actually **return** the previously mentioned event values, plus an additional one called `ZTS_EVENT_PEER_UNREACHABLE` if no known direct path exists between the calling node and the remote node.
+One can use `zts_get_peer_status(uint64_t peerId)` to query the current reachability state of another node. This function will actually **return** the previously mentioned event values, plus an additional one called `ZTS_EVENT_PEER_UNREACHABLE` if no known direct path exists between the calling node and the remote node.
 
 <div style="page-break-after: always;"></div>
 
@@ -141,7 +142,7 @@ ZTS_EVENT_PEER_P2P --- node=a09acf0233
 
 ## Node Events
 
-These events pertain to the state of the current node. Additionally, one can query the status of the node with `zts_get_node_status()`. This message type will arrive with a `zts_node_details` object accessible via `msg->node`.
+These events pertain to the state of the current node. This message type will arrive with a `zts_node_details` object accessible via `msg->node`. Additionally, one can query the status of the node with `zts_get_node_status()`, this will **return** the status as an integer value only.
 
 ```
 ZTS_EVENT_NODE_OFFLINE
@@ -155,7 +156,7 @@ ZTS_EVENT_NODE_NORMAL_TERMINATION
 
 ## Network Events
 
-These events pertain to the state of the indicated network. Additionally, one can query the status of the network with `zts_get_network_status(uint64_t networkId)`. This event type will arrive with a `zts_network_details` object accessible via `msg->network`. If for example you want to know the number of assigned routes for your network you can use `msg->network->num_routes`. Similarly for the MTU, use `msg->network->mtu`.
+These events pertain to the state of the indicated network. This event type will arrive with a `zts_network_details` object accessible via `msg->network`. If for example you want to know the number of assigned routes for your network you can use `msg->network->num_routes`. Similarly for the MTU, use `msg->network->mtu`. Additionally, one can query the status of the network with `zts_get_network_status(uint64_t networkId)`, this will **return** the status as an integer value only.
 
 ```
 ZTS_EVENT_NETWORK_NOT_FOUND
@@ -170,7 +171,7 @@ ZTS_EVENT_NETWORK_DOWN
 
 ## Peer Events
 
-These events are triggered when the reachability status of a peer has changed, this can happen at any time. This event type will arrive with a `zts_peer_details` object for additional context.
+These events are triggered when the reachability status of a peer has changed, this can happen at any time. This event type will arrive with a `zts_peer_details` object for additional context. Additionally, one can query the status of the network with `zts_get_peer_status(uint64_t peerId)`, this will **return** the status as an integer value only.
 
 ```
 ZTS_EVENT_PEER_P2P
@@ -244,13 +245,51 @@ The socket API error codes are defined in `doc/errno.h`
 
 *NOTE: For Android/Java (or similar) which use JNI, the socket API's error codes are negative values*
 
+*NOTE: For protocol-level errors (such as dropped packets) or internal network stack errors, see the section `Statistics`*
+
 <div style="page-break-after: always;"></div>
 
-# Threading
+# Thread model
 
-The control API for libzt is thread safe and can be called at any time from any thread. There is a single internal lock guarding access to this API. The socket API is similar in this manner. Callback events are generated by a separate thread and are independent from the rest of the API's internal locking mechanism. Not returning from a callback event won't impact the rest of the API but it will prevent your application from receiving future events so it is in your application's best interest to perform as little work as possible in the callback function and promptly return control back to ZeroTier.
+The control API for `libzt` is thread safe and can be called at any time from any thread. There is a single internal lock guarding access to this API. The socket API is similar in this regard. Callback events are generated by a separate thread and are independent from the rest of the API's internal locking mechanism. Not returning from a callback event won't impact the rest of the API but it will prevent your application from receiving future events so it is in your application's best interest to perform as little work as possible in the callback function and promptly return control back to ZeroTier.
 
 *Note: Internally, `libzt` will spawn a number of threads for various purposes: a thread for the core service, a thread for the network stack, a low priority thread to process callback events, and a thread for each network joined. The vast majority of work is performed by the core service and stack threads.*
+
+# Statistics
+
+Protocol and service statistics are available in debug builds of `libzt`. These statistics are detailed fully in the section of `include/ZeroTier.h` that is guarded by `LWIP_STATS`. The protocol constants are defined in `include/ZeroTierConstants.h`. An example usage is as follows:
+
+C++ example:
+```
+struct zts_stats_proto stats;
+
+// Get received pings
+if (zts_get_protocol_stats(ZTS_STATS_PROTOCOL_ICMP, &stats) == ZTS_ERR_OK) {
+    printf("icmp.recv=%d\n", stats.recv);
+}
+
+// Get dropped TCP packets
+if (zts_get_protocol_stats(ZTS_STATS_PROTOCOL_TCP, &stats) == ZTS_ERR_OK) {
+    printf("tcp.drop=%d\n", stats.drop);
+}
+```
+
+Java Example:
+
+```
+import com.zerotier.libzt.ZeroTierProtoStats;
+
+...
+
+// Get received pings
+ZeroTierProtoStats stats = new ZeroTierProtoStats();
+ZeroTier.get_protocol_stats(ZeroTier.STATS_PROTOCOL_ICMP, stats);
+System.out.println("icmp.recv="+stats.recv);
+```
+
+# Network Controller Mode (Coming soon)
+
+The library form of ZeroTier can act as a network controller and is controlled via the `zts_controller_*` API calls specified in `include/ZeroTier.h`.
 
 # C Example
 
@@ -270,7 +309,7 @@ void myZeroTierEventCallback(struct zts_callback_msg *msg)
     switch (msg->eventCode)
     {
         case ZTS_EVENT_NODE_ONLINE:
-            printf("ZTS_EVENT_NODE_ONLINE, node=%llx\n", msg->node->address);
+            printf("ZTS_EVENT_NODE_ONLINE, nodeId=%llx\n", msg->node->address);
             node_ready = true;
             break;
         case ZTS_EVENT_NODE_OFFLINE:
@@ -278,14 +317,14 @@ void myZeroTierEventCallback(struct zts_callback_msg *msg)
             node_ready = false;
             break;
         case ZTS_EVENT_NETWORK_READY_IP4:
-            printf("ZTS_EVENT_NETWORK_READY_IP4 --- network=%llx\n", msg->network->nwid);
+            printf("ZTS_EVENT_NETWORK_READY_IP4, networkId=%llx\n", msg->network->nwid);
             network_ready = true;
             break;
         case ZTS_EVENT_PEER_P2P:
-            printf("ZTS_EVENT_PEER_P2P --- node=%llx\n", msg->peer->address);
+            printf("ZTS_EVENT_PEER_P2P, nodeId=%llx\n", msg->peer->address);
             break;
         case ZTS_EVENT_PEER_RELAY:
-            printf("ZTS_EVENT_PEER_RELAY --- node=%llx\n", msg->peer->address);
+            printf("ZTS_EVENT_PEER_RELAY, nodeId=%llx\n", msg->peer->address);
             break;
         default:
             break;

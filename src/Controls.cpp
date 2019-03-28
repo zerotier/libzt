@@ -643,8 +643,12 @@ int zts_restart()
 {
 	_service_lock.lock();
 	// Store callback references
+#ifdef SDK_JNI
+	static jmethodID _tmpUserCallbackMethodRef = _userCallbackMethodRef;
+#else
 	void (*_tmpUserEventCallbackFunc)(struct zts_callback_msg *);
 	_tmpUserEventCallbackFunc = _userEventCallbackFunc;
+#endif
 	int tmpPort = _port;
 	std::string tmpPath = _path;
 	// Stop the service
@@ -664,7 +668,14 @@ int zts_restart()
 	while (service) {
 		_api_sleep(ZTS_CALLBACK_PROCESSING_INTERVAL);
 	}
+	/* Some of the logic in Java_com_zerotier_libzt_ZeroTier_start
+	is replicated here */
+#ifdef SDK_JNI
+	_userCallbackMethodRef = _tmpUserCallbackMethodRef;
+	return zts_start(tmpPath.c_str(), NULL, tmpPort);
+#else
 	return zts_start(tmpPath.c_str(), _tmpUserEventCallbackFunc, tmpPort);
+#endif
 }
 #ifdef SDK_JNI
 JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_restart(

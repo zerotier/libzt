@@ -18,6 +18,8 @@ import com.zerotier.libzt.ZeroTierSSLSocketFactory;
 import com.zerotier.libzt.ZeroTierSocketAddress;
 import com.zerotier.libzt.ZeroTierSocketOptionValue;
 import com.zerotier.libzt.ZeroTierSocketImplFactory;
+import com.zerotier.libzt.ZeroTierProtoStats;
+
 // Custom ZeroTierEventListener
 import com.example.exampleandroidapp.MyZeroTierEventListener;
 
@@ -42,6 +44,30 @@ public class MainActivity extends AppCompatActivity {
         while (listener.isNetworkReady == false) { sleep (50); }
 
         boolean testBackgroundWorkerGET = true;
+        boolean testRestart = true;
+        boolean testProtocolStats = true;
+
+        if (testRestart) {
+            for (int i=0; i<10; i++) {
+                System.out.println("restarting...");
+                ZeroTier.restart();
+                sleep(10000);
+            }
+        }
+
+        if (testProtocolStats) {
+            ZeroTierProtoStats protocolSpecificStats = new ZeroTierProtoStats();
+            int numPings = 0;
+            System.out.println("recording stats...");
+            while (true) {
+                sleep(50);
+                ZeroTier.get_protocol_stats(ZeroTier.STATS_PROTOCOL_ICMP, protocolSpecificStats);
+                if (protocolSpecificStats.recv > numPings) {
+                    numPings = protocolSpecificStats.recv;
+                    System.out.println("icmp.recv="+numPings);
+                }
+            }
+        }
 
         if (testBackgroundWorkerGET) {
             // Start worker threads (staggered by)

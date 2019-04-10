@@ -11,11 +11,12 @@ public class MyZeroTierEventListener implements ZeroTierEventListener {
     public void onZeroTierEvent(long id, int eventCode)
     {
         if (eventCode == ZeroTier.EVENT_NODE_UP) {
-            System.out.println("EVENT_NODE_UP: nodeId=" + Long.toHexString(id));
+            // Safe to ignore this callback
+            //System.out.println("EVENT_NODE_UP");
         }
         if (eventCode == ZeroTier.EVENT_NODE_ONLINE) {
             // The core service is running properly and can join networks now
-            System.out.println("EVENT_NODE_ONLINE: nodeId=" + Long.toHexString(ZeroTier.get_node_id()));
+            System.out.println("EVENT_NODE_ONLINE: nodeId=" + Long.toHexString(id));
             isOnline = true;
         }
         if (eventCode == ZeroTier.EVENT_NODE_OFFLINE) {

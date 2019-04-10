@@ -1,10 +1,14 @@
-# ZeroTier SDK
-
-<a href="https://www.zerotier.com/?pk_campaign=github_libzt"><img src="https://raw.githubusercontent.com/zerotier/ZeroTierOne/master/artwork/ZeroTierIcon.png" width="128" height="128" align="left" hspace="20"></a>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/zerotier/ZeroTierOne/master/artwork/ZeroTierIcon.png" width="128" height="128" />
+  <br>
+  ZeroTier SDK
+</p>
 
 The ZeroTier SDK is composed of two libraries: `libztcore` which is the  platform-agnostic network hypervisor, and `libzt` which is the network hypervisor paired with a userspace network stack. `libzt` is a superset of `libztcore` and is distinguished by the fact that it exposes a standard [socket API](https://en.wikipedia.org/wiki/Berkeley_sockets) and simple network control API. The full source for these products can be found at [github.com/zerotier/libzt](https://github.com/zerotier/libzt) for the SDK and [github.com/zerotier/ZeroTierOne](https://github.com/zerotier/ZeroTierOne) for the desktop client. With these libraries the network stack and virtual link are exclusive to your app and traffic is fully encrypted via the [Salsa20](https://en.wikipedia.org/wiki/Salsa20) cipher. For a more in-depth discussion on the technical side of ZeroTier, check out our [Manual](https://www.zerotier.com/manual.shtml?pk_campaign=github_libzt)
 
-<br>
+The ZeroTier source code is open source and is licensed under the GNU GPL v3 (not LGPL). If you'd like to embed it in a closed-source commercial product or appliance, please e-mail contact@zerotier.com to discuss commercial licensing. Otherwise it can be used for free.
+
+<div style="page-break-after: always;"></div>
 
 # Getting started
 
@@ -255,6 +259,8 @@ The control API for `libzt` is thread safe and can be called at any time from an
 
 *Note: Internally, `libzt` will spawn a number of threads for various purposes: a thread for the core service, a thread for the network stack, a low priority thread to process callback events, and a thread for each network joined. The vast majority of work is performed by the core service and stack threads.*
 
+<div style="page-break-after: always;"></div>
+
 # Statistics
 
 Protocol and service statistics are available in debug builds of `libzt`. These statistics are detailed fully in the section of `include/ZeroTier.h` that is guarded by `LWIP_STATS`. The protocol constants are defined in `include/ZeroTierConstants.h`. An example usage is as follows:
@@ -263,12 +269,12 @@ C++ example:
 ```
 struct zts_stats_proto stats;
 
-// Get received pings
+// Get count of received pings
 if (zts_get_protocol_stats(ZTS_STATS_PROTOCOL_ICMP, &stats) == ZTS_ERR_OK) {
     printf("icmp.recv=%d\n", stats.recv);
 }
 
-// Get dropped TCP packets
+// Get count of dropped TCP packets
 if (zts_get_protocol_stats(ZTS_STATS_PROTOCOL_TCP, &stats) == ZTS_ERR_OK) {
     printf("tcp.drop=%d\n", stats.drop);
 }
@@ -287,9 +293,13 @@ ZeroTier.get_protocol_stats(ZeroTier.STATS_PROTOCOL_ICMP, stats);
 System.out.println("icmp.recv="+stats.recv);
 ```
 
-# Network Controller Mode (Coming soon)
+<div style="page-break-after: always;"></div>
 
-The library form of ZeroTier can act as a network controller and is controlled via the `zts_controller_*` API calls specified in `include/ZeroTier.h`.
+# Network Controller Mode
+
+The library form of ZeroTier can act as a network controller and in `libzt` this is controlled via the `zts_controller_*` API calls specified in `include/ZeroTier.h`. Currently controller mode is not available in the `iOS` and `macOS` framework builds.
+
+<div style="page-break-after: always;"></div>
 
 # C Example
 

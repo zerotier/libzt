@@ -439,8 +439,10 @@ merge()
 wrap()
 {
     ARCH_WRAP_DIR=$OSNAME"-"$(uname -m)_products
-    cp -rf products $ARCH_WRAP_DIR
-    echo "Copied products to: " $ARCH_WRAP_DIR
+    cp -rf lib $ARCH_WRAP_DIR
+    echo "Copied products to:" $ARCH_WRAP_DIR
+    PROD_FILENAME=$ARCH_WRAP_DIR.tar.gz
+    tar --exclude=$PROD_FILENAME -zcvf $PROD_FILENAME -C $ARCH_WRAP_DIR .
 }
 
 # Copies binaries, documentation, licenses, etc into a products

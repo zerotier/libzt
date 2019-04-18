@@ -509,10 +509,13 @@ set(PUBLIC_ZT_HEADERS
     ${PROJECT_SOURCE_DIR}/include/ZeroTier.h
     ${PROJECT_SOURCE_DIR}/include/ZeroTierConstants.h)
 
-set(include_dest "include/zt")
-set(main_lib_dest "lib/zt")
+set(PUBLIC_ZTCORE_HEADERS
+    ${PROJECT_SOURCE_DIR}/ext/ZeroTierOne/include/ZeroTierOne.h)
+
+set(include_dest "include")
+set(main_lib_dest "lib")
 set(lib_dest "${main_lib_dest}/${CMAKE_BUILD_TYPE}")
 install(TARGETS ${STATIC_LIB_NAME} EXPORT ${STATIC_LIB_NAME} DESTINATION "${lib_dest}")
-#install(TARGETS ${STATIC_LIB_NAME} DESTINATION "${main_lib_dest}")
 install(FILES ${PUBLIC_ZT_HEADERS} DESTINATION "${include_dest}")
+install(FILES ${PUBLIC_ZTCORE_HEADERS} DESTINATION "${include_dest}")
 install(EXPORT ${STATIC_LIB_NAME} DESTINATION "${lib_dest}")

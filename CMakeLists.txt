@@ -98,6 +98,8 @@ set (SILENCE "${SILENCE} -Wno-sign-compare")
 set (SILENCE "${SILENCE} -Wno-unused-variable")
 set (SILENCE "${SILENCE} -Wno-missing-field-initializers")
 set (SILENCE "${SILENCE} -Wno-unused-parameter")
+#set (SILENCE "${SILENCE} -Wno-nullability-completeness")
+#set (SILENCE "${SILENCE} -Wno-expansion-to-defined")
 
 set (ZT_FLAGS "${ZT_FLAGS} -DZT_USE_MINIUPNPC=1")
 set (ZT_FLAGS "${ZT_FLAGS} -DZT_SOFTWARE_UPDATE_DEFAULT=0")
@@ -498,3 +500,15 @@ if (SHOULD_BUILD_TESTS)
 	#add_executable (simple ${PROJ_DIR}/test/simple.cpp)
 	#target_link_libraries(simple ${STATIC_LIB_NAME})
 endif ()
+
+# -----------------------------------------------------------------------------
+# |                                  INSTALL                                  |
+# -----------------------------------------------------------------------------
+
+set(include_dest "include/zt")
+set(main_lib_dest "lib/zt")
+set(lib_dest "${main_lib_dest}/${CMAKE_BUILD_TYPE}")
+install(TARGETS ${STATIC_LIB_NAME} EXPORT ${STATIC_LIB_NAME} DESTINATION "${lib_dest}")
+install(TARGETS ${STATIC_LIB_NAME} DESTINATION "${main_lib_dest}")
+install(FILES ${PUBLIC_ZT_HEADERS} DESTINATION "${include_dest}")
+install(EXPORT ${STATIC_LIB_NAME} DESTINATION "${lib_dest}")

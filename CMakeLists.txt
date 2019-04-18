@@ -505,6 +505,10 @@ endif ()
 # |                                  INSTALL                                  |
 # -----------------------------------------------------------------------------
 
+set(PUBLIC_ZT_HEADERS
+    ${PROJECT_SOURCE_DIR}/include/ZeroTier.h
+    ${PROJECT_SOURCE_DIR}/include/ZeroTierConstants.h)
+
 set(include_dest "include/zt")
 set(main_lib_dest "lib/zt")
 set(lib_dest "${main_lib_dest}/${CMAKE_BUILD_TYPE}")

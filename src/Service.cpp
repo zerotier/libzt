@@ -41,7 +41,6 @@
 #include "version.h"
 #include "ZeroTierOne.h"
 
-#include "OSUtils.hpp"
 #include "Constants.hpp"
 #include "Mutex.hpp"
 #include "Node.hpp"
@@ -772,7 +771,7 @@ public:
 				// After setting up tap, fall through to CONFIG_UPDATE since we also want to do this...
 
 			case ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_CONFIG_UPDATE:
-				ZT_FAST_MEMCPY(&(n.config),nwc,sizeof(ZT_VirtualNetworkConfig));
+				memcpy(&(n.config),nwc,sizeof(ZT_VirtualNetworkConfig));
 				if (n.tap) { // sanity check
 					syncManagedStuff(n);
 					n.tap->setMtu(nwc->mtu);
@@ -1158,7 +1157,7 @@ public:
 		else return 0;
 		const std::vector<InetAddress> *l = lh->get(ztaddr);
 		if ((l)&&(l->size() > 0)) {
-			ZT_FAST_MEMCPY(result,&((*l)[(unsigned long)_node->prng() % l->size()]),sizeof(struct sockaddr_storage));
+			memcpy(result,&((*l)[(unsigned long)_node->prng() % l->size()]),sizeof(struct sockaddr_storage));
 			return 1;
 		} else return 0;
 	}

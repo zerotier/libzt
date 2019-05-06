@@ -36,8 +36,8 @@ BUILD_CONCURRENCY=
 OSNAME=$(uname | tr '[A-Z]' '[a-z]')
 BUILD_TMP=$(pwd)/tmp
 ANDROID_PROJ_DIR=$(pwd)/ports/android
-XCODE_IOS_ARM64_PROJ_DIR=$(pwd)/ports/xcode_ios-arm64
-#XCODE_IOS_ARMV7_PROJ_DIR=$(pwd)/ports/xcode_ios-armv7
+XCODE_IOS_PROJ_DIR=$(pwd)/ports/xcode_ios
+XCODE_IOS_SIMULATOR_PROJ_DIR=$(pwd)/ports/xcode_ios_simulator
 XCODE_MACOS_PROJ_DIR=$(pwd)/ports/xcode_macos
 
 # Generates projects if needed
@@ -49,23 +49,24 @@ generate_projects()
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
     if [[ $OSNAME = *"darwin"* ]]; then
         # iOS (SDK 11+, 64-bit only, arm64)
-        if [ ! -d "$XCODE_IOS_ARM64_PROJ_DIR" ]; then
-            mkdir -p $XCODE_IOS_ARM64_PROJ_DIR
-            cd $XCODE_IOS_ARM64_PROJ_DIR
+        if [ ! -d "$XCODE_IOS_PROJ_DIR" ]; then
+            mkdir -p $XCODE_IOS_PROJ_DIR
+            cd $XCODE_IOS_PROJ_DIR
             cmake -G Xcode ../../ -DIOS_FRAMEWORK=1 -DIOS_ARM64=1
             # Manually replace arch strings in project file
             sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj
             cd -
         fi
-        # iOS (SDK <11, 32-bit only, armv7, armv7s)
-        #if [ ! -d "$XCODE_IOS_ARMV7_PROJ_DIR" ]; then
-        #   mkdir -p $XCODE_IOS_ARMV7_PROJ_DIR
-        #   cd $XCODE_IOS_ARMV7_PROJ_DIR
-        #   cmake -G Xcode ../../ -DIOS_FRAMEWORK=1 -DIOS_ARMV7=1
+
+        if [ ! -d "$XCODE_IOS_SIMULATOR_PROJ_DIR" ]; then
+            mkdir -p $XCODE_IOS_SIMULATOR_PROJ_DIR
+            cd $XCODE_IOS_SIMULATOR_PROJ_DIR
+            cmake -G Xcode ../../ -DIOS_FRAMEWORK=1
             # Manually replace arch strings in project file
-        #   sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj
-        #   cd -
-        #fi
+            #sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj
+            cd -
+        fi
+
         # macOS
         if [ ! -d "$XCODE_MACOS_PROJ_DIR" ]; then
             mkdir -p $XCODE_MACOS_PROJ_DIR
@@ -86,27 +87,29 @@ ios()
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
     UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
 
-    # 64-bit
-    cd $XCODE_IOS_ARM64_PROJ_DIR
+    cd $XCODE_IOS_PROJ_DIR
     # Framework
     xcodebuild -arch arm64 -target zt -configuration "$UPPERCASE_CONFIG" -sdk "iphoneos"
     cd -
-    OUTPUT_DIR=$(pwd)/lib/$1/ios-arm64
-    mkdir -p $OUTPUT_DIR
-    rm -rf $OUTPUT_DIR/zt.framework # Remove prior to move to prevent error
-    mv $XCODE_IOS_ARM64_PROJ_DIR/$UPPERCASE_CONFIG-iphoneos/* $OUTPUT_DIR
+    IOS_OUTPUT_DIR=$(pwd)/lib/$1/ios
+    mkdir -p $IOS_OUTPUT_DIR
+    rm -rf $IOS_OUTPUT_DIR/zt.framework # Remove prior to move to prevent error
+    mv $XCODE_IOS_PROJ_DIR/$UPPERCASE_CONFIG-iphoneos/* $IOS_OUTPUT_DIR
 
-    # 32-bit
-    #cd $XCODE_IOS_ARMV7_PROJ_DIR
+    cd $XCODE_IOS_SIMULATOR_PROJ_DIR
     # Framework
-    #xcodebuild -target zt -configuration "$UPPERCASE_CONFIG" -sdk "iphoneos10.0"
-    # Manually replace arch strings in project file
-    #sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj
-    #cd -
-    #OUTPUT_DIR=$(pwd)/lib/$1/ios-armv7
-    #mkdir -p $OUTPUT_DIR
-    #rm -rf $OUTPUT_DIR/*
-    #mv $XCODE_IOS_ARMV7_PROJ_DIR/$UPPERCASE_CONFIG-iphoneos/* $OUTPUT_DIR
+    xcodebuild -target zt -configuration "$UPPERCASE_CONFIG" -sdk "iphonesimulator"
+    cd -
+    SIMULATOR_OUTPUT_DIR=$(pwd)/lib/$1/ios-simulator
+    mkdir -p $SIMULATOR_OUTPUT_DIR
+    rm -rf $SIMULATOR_OUTPUT_DIR/zt.framework # Remove prior to move to prevent error
+    mv $XCODE_IOS_SIMULATOR_PROJ_DIR/$UPPERCASE_CONFIG-iphonesimulator/* $SIMULATOR_OUTPUT_DIR
+
+    # Combine the two archs
+    lipo -create $IOS_OUTPUT_DIR/zt.framework/zt $SIMULATOR_OUTPUT_DIR/zt.framework/zt -output $IOS_OUTPUT_DIR/zt.framework/zt
+
+    # Clean up
+    rm -rf $SIMULATOR_OUTPUT_DIR
 }
 
 # Build framework for current host (macOS only)

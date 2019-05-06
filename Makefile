@@ -28,7 +28,8 @@ patch:
 
 # Target-specific clean
 clean_ios:
-	-rm -rf ports/xcode_ios-arm64
+	-rm -rf ports/xcode_ios
+	-rm -rf ports/xcode_ios_simulator
 clean_macos:
 	-rm -rf ports/xcode_macos
 clean_android:

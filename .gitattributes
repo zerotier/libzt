@@ -1,0 +1,5 @@
+/examples export-ignore
+/ports export-ignore
+/test export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore

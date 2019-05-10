@@ -505,18 +505,12 @@ endif ()
 # |                                  INSTALL                                  |
 # -----------------------------------------------------------------------------
 
-set(PUBLIC_ZT_HEADERS
+set (PUBLIC_ZT_HEADERS
     ${PROJECT_SOURCE_DIR}/include/ZeroTier.h
     ${PROJECT_SOURCE_DIR}/include/ZeroTierConstants.h)
 
-set(PUBLIC_ZTCORE_HEADERS
-    ${PROJECT_SOURCE_DIR}/ext/ZeroTierOne/include/ZeroTierOne.h)
-
-set(include_dest "include")
-set(main_lib_dest "lib")
-set(lib_dest "${main_lib_dest}/${CMAKE_BUILD_TYPE}")
-install(TARGETS ${STATIC_LIB_NAME} EXPORT ${STATIC_LIB_NAME} DESTINATION "${lib_dest}")
-install(TARGETS ${DYNAMIC_LIB_NAME} EXPORT ${DYNAMIC_LIB_NAME} DESTINATION "${lib_dest}")
-install(FILES ${PUBLIC_ZT_HEADERS} DESTINATION "${include_dest}")
-install(FILES ${PUBLIC_ZTCORE_HEADERS} DESTINATION "${include_dest}")
-install(EXPORT ${STATIC_LIB_NAME} DESTINATION "${lib_dest}")
+set_target_properties(${STATIC_LIB_NAME} PROPERTIES PUBLIC_HEADER "${PUBLIC_ZT_HEADERS}")
+install (TARGETS ${STATIC_LIB_NAME}
+        LIBRARY DESTINATION "lib"
+        PUBLIC_HEADER DESTINATION "include"
+)

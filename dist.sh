@@ -292,6 +292,7 @@ clean()
 prep_android_example()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    mkdir -p examples/android/ExampleAndroidApp/app/libs/
     cp -f lib/$1/android-armeabi-v7a/libzt-$1.aar \
     examples/android/ExampleAndroidApp/app/libs/libzt.aar
 }
@@ -448,6 +449,19 @@ wrap()
     tar --exclude=$PROD_FILENAME -zcvf $PROD_FILENAME -C $ARCH_WRAP_DIR .
 }
 
+# Renames and copies licenses for libzt and each of its dependencies
+package_licenses()
+{
+    CURR_DIR=$1
+    DEST_DIR=$2
+    mkdir -p $DEST_DIR
+    cp $CURR_DIR/ext/lwip/COPYING $DEST_DIR/LWIP-LICENSE.BSD
+    cp $CURR_DIR/ext/concurrentqueue/LICENSE.md $DEST_DIR/CONCURRENTQUEUE-LICENSE.BSD
+    cp $CURR_DIR/LICENSE.GPL-3 $DEST_DIR/ZEROTIER-LICENSE.GPL-3
+    cp $CURR_DIR/include/net/ROUTE_H-LICENSE.APSL $DEST_DIR/ROUTE_H-LICENSE.APSL
+    cp $CURR_DIR/include/net/ROUTE_H-LICENSE $DEST_DIR/ROUTE_H-LICENSE
+}
+
 # Copies binaries, documentation, licenses, etc into a products
 # dir and then tarballs everything together
 package_everything()
@@ -457,14 +471,8 @@ package_everything()
     PROD_NAME=$LIBZT_VERSION-$(date '+%Y%m%d_%H-%M')-$1
     PROD_DIR=$(pwd)/products/$PROD_NAME/
     # Make products directory
-    LICENSE_DIR=$PROD_DIR/licenses
-    mkdir -p $LICENSE_DIR
     # Licenses
-    cp $(pwd)/ext/lwip/COPYING $LICENSE_DIR/LWIP-LICENSE.BSD
-    cp $(pwd)/ext/concurrentqueue/LICENSE.md $LICENSE_DIR/CONCURRENTQUEUE-LICENSE.BSD
-    cp $(pwd)/LICENSE.GPL-3 $LICENSE_DIR/ZEROTIER-LICENSE.GPL-3
-    cp $(pwd)/include/net/ROUTE_H-LICENSE.APSL $LICENSE_DIR/ROUTE_H-LICENSE.APSL
-    cp $(pwd)/include/net/ROUTE_H-LICENSE $LICENSE_DIR/ROUTE_H-LICENSE
+    package_licenses $(pwd) $PROD_DIR/licenses
     # Documentation
     mkdir -p $PROD_DIR/doc
     # Copy the errno header from lwIP for customer reference
@@ -523,8 +531,67 @@ package_everything()
     done
 }
 
+# Generates a source-only tarball
+sdist()
+{
+    VERSION=$(git describe --abbrev=0)
+    TARBALL_DIR="libzt-${VERSION}"
+    TARBALL_NAME=libzt-${VERSION}-source.tar.gz
+    PROD_DIR=$(pwd)/products/
+    mkdir -p $PROD_DIR
+    #
+    mkdir ${TARBALL_DIR}
+    # primary sources
+    cp -rf src ${TARBALL_DIR}/src
+    cp -rf include ${TARBALL_DIR}/include
+    # important build scripts
+    cp Makefile ${TARBALL_DIR}
+    cp CMakeLists.txt ${TARBALL_DIR}
+    cp *.md ${TARBALL_DIR}
+    cp *.sh ${TARBALL_DIR}
+    cp *.bat ${TARBALL_DIR}
+    # submodules/dependencies
+    # lwIP
+    mkdir ${TARBALL_DIR}/ext
+    mkdir -p ${TARBALL_DIR}/ext/lwip/src
+    cp -rf ext/lwip/src/api ${TARBALL_DIR}/ext/lwip/src
+    cp -rf ext/lwip/src/core ${TARBALL_DIR}/ext/lwip/src
+    cp -rf ext/lwip/src/include ${TARBALL_DIR}/ext/lwip/src
+    cp -rf ext/lwip/src/netif ${TARBALL_DIR}/ext/lwip/src
+    # lwIP ports
+    mkdir -p ${TARBALL_DIR}/ext/lwip-contrib/ports
+    cp -rf ext/lwip-contrib/ports/unix ${TARBALL_DIR}/ext/lwip-contrib/ports
+    cp -rf ext/lwip-contrib/ports/win32 ${TARBALL_DIR}/ext/lwip-contrib/ports
+    # ZeroTierOne
+    mkdir ${TARBALL_DIR}/ext/ZeroTierOne
+    cp -rf ext/ZeroTierOne/*.h ${TARBALL_DIR}/ext/ZeroTierOne
+    cp -rf ext/ZeroTierOne/controller ${TARBALL_DIR}/ext/ZeroTierOne
+    cp -rf ext/ZeroTierOne/ext ${TARBALL_DIR}/ext/ZeroTierOne
+    cp -rf ext/ZeroTierOne/include ${TARBALL_DIR}/ext/ZeroTierOne
+    cp -rf ext/ZeroTierOne/node ${TARBALL_DIR}/ext/ZeroTierOne
+    cp -rf ext/ZeroTierOne/osdep ${TARBALL_DIR}/ext/ZeroTierOne
+    #
+    # Perform selective removal
+    rm -rf ${TARBALL_DIR}/ext/ZeroTierOne/ext/bin
+    rm -rf ${TARBALL_DIR}/ext/ZeroTierOne/ext/tap-mac
+    rm -rf ${TARBALL_DIR}/ext/ZeroTierOne/ext/librethinkdbxx
+    rm -rf ${TARBALL_DIR}/ext/ZeroTierOne/ext/installfiles
+    rm -rf ${TARBALL_DIR}/ext/ZeroTierOne/ext/curl-*
+    rm -rf ${TARBALL_DIR}/ext/ZeroTierOne/ext/http-parser
+    #
+    mkdir ${TARBALL_DIR}/ext/concurrentqueue
+    cp -rf ext/concurrentqueue/*.h ${TARBALL_DIR}/ext/concurrentqueue
+    # Licenses
+    package_licenses $(pwd) $TARBALL_DIR/licenses
+    # Tarball everything and display the results
+    tar -cvf ${TARBALL_NAME} ${TARBALL_DIR}
+    tree ${TARBALL_DIR}
+    rm -rf ${TARBALL_DIR}
+    mv ${TARBALL_NAME} ${PROD_DIR}
+}
+
 # Package both debug and release
-dist()
+bdist()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
     package_everything "debug"

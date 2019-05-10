@@ -17,14 +17,14 @@ list:
 
 # Pull all submodules
 update:
-	git submodule update --init
-	git submodule status
+	@git submodule update --init
+	@git submodule status
 
 # Patch submodules (issue update first)
 patch:
-	-git -C ext/lwip apply ../lwip.patch
-	-git -C ext/lwip-contrib apply ../lwip-contrib.patch
-	-git -C ext/ZeroTierOne apply ../ZeroTierOne.patch
+	-cd ext/lwip; git apply ../lwip.patch;
+	-cd ext/lwip-contrib; git apply ../lwip-contrib.patch;
+	-cd ext/ZeroTierOne; git apply ../ZeroTierOne.patch;
 
 # Target-specific clean
 clean_ios:
@@ -98,7 +98,13 @@ all: host host_jar macos ios android
 wrap:
 	$(DIST_BUILD_SCRIPT) wrap
 
-# [For distribution process only] Marge and package everything into a tarball
-dist:
+# Binary distribution
+bdist:
 	$(DIST_BUILD_SCRIPT) merge
-	$(DIST_BUILD_SCRIPT) dist
+	$(DIST_BUILD_SCRIPT) bdist
+
+# Source distribution
+sdist: update patch
+	$(DIST_BUILD_SCRIPT) sdist
+
+dist: bdist sdist

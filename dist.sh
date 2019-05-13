@@ -598,6 +598,25 @@ bdist()
     package_everything "release"
 }
 
+# Generate a markdown CHANGELOG from git-log
+update_changelog()
+{
+    first_commit=$(git rev-list --max-parents=0 HEAD)
+    git for-each-ref --sort=-refname --format="## [%(refname:short)] - %(taggerdate:short) &(newline)*** &(newline)- %(subject) %(body)" refs/tags > CHANGELOG.md
+    gsed -i '''s/\&(newline)/\n/' CHANGELOG.md # replace first instance
+    gsed -i '''s/\&(newline)/\n/' CHANGELOG.md # replace second instance
+    echo -e "\n" >> CHANGELOG.md
+    for curr_tag in $(git tag -l --sort=-v:refname)
+    do
+        prev_tag=$(git describe --abbrev=0 ${curr_tag}^)
+        if [ -z "${prev_tag}" ]
+        then
+            prev_tag=${first_commit}
+        fi
+        echo "[${curr_tag}]: https://github.com/zerotier/libzt/compare/${prev_tag}..${curr_tag}" >> CHANGELOG.md
+    done
+}
+
 # List all functions in this script (just for convenience)
 list()
 {

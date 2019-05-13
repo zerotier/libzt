@@ -24,7 +24,7 @@ update:
 patch:
 	-cd ext/lwip; git apply ../lwip.patch;
 	-cd ext/lwip-contrib; git apply ../lwip-contrib.patch;
-	-cd ext/ZeroTierOne; git apply ../ZeroTierOne.patch;
+	#-cd ext/ZeroTierOne; git apply ../ZeroTierOne.patch;
 
 # Target-specific clean
 clean_ios:

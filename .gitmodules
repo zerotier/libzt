@@ -4,3 +4,6 @@
 [submodule "ext/lwip"]
 	path = ext/lwip
 	url = https://github.com/joseph-henry/lwip.git
+[submodule "ext/lwip-contrib"]
+	path = ext/lwip-contrib
+	url = https://github.com/joseph-henry/lwip-contrib.git

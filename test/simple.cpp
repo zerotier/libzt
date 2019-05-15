@@ -1,9 +1,9 @@
+#include <ZeroTier.h>
+
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
-#include "ZeroTier.h"
 
 bool node_ready = false;
 bool network_ready = false;
@@ -49,20 +49,21 @@ int main()
 
     // Set up ZeroTier service and wai for callbacks
     int port = 9994;
-    int nwid = 0x0123456789abcdef;
-    zts_start("test/path", &myZeroTierEventCallback, port);
+    uint64_t nwid = 0x0123456789abcdef;
+    zts_start("zt_config/path", &myZeroTierEventCallback, port);
     printf("Waiting for node to come online...\n");
     while (!node_ready) { sleep(1); }
     zts_join(nwid);
     printf("Joined virtual network. Requesting configuration...\n");
     while (!network_ready) { sleep(1); }
 
+    printf("I am %llx\n", zts_get_node_id());
     // Socket API example
     if ((fd = zts_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("error creating socket\n");
     }
     if ((err = zts_connect(fd, (const struct sockaddr *)&addr, sizeof(addr))) < 0) {
-        printf("error connecting to remote host\n");
+        printf("error connecting to remote host (%s)\n", remoteIp);
     }
     if ((err = zts_write(fd, str, strlen(str))) < 0) {
         printf("error writing to socket\n");

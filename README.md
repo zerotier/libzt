@@ -10,7 +10,26 @@ The ZeroTier SDK is composed of two libraries: `libztcore` which is the  platfor
 
 <br>
 
-For a complete example, see [test/simple.cpp](test/simple.cpp) or [test/example.cpp](test/example.cpp). With no error checking, a paraphrased example is as follows:
+## Downloads / Installation
+
+ Tarballs:
+
+  - [libzt-release.tar.gz](https://download.zerotier.com/dist/sdk/libzt-1.3.0-release.tar.gz) // [libzt-debug.tar.gz](https://download.zerotier.com/dist/sdk/libzt-1.3.0-debug.tar.gz) // [libzt-source.tar.gz](https://download.zerotier.com/dist/sdk/libzt-1.3.0-source.tar.gz)
+
+Homebrew
+
+```
+brew install libzt
+```
+
+***
+
+<br>
+
+## Example
+
+ - Complete example: [test/simple.cpp](test/simple.cpp)
+ - Slightly more thorough example: [test/example.cpp](test/example.cpp)
 
 ```
 #include "ZeroTier.h"
@@ -38,11 +57,18 @@ int main()
 ...
 ```
 
+After you've created a virtual network and added its `nwid` to the sample code, run:
+
+```
+clang++ example.cpp -o example -lzt
+./example
+```
+
 The complete API specification can be found here: [API.md](API.md)
 
 ***
 
-## Build
+## Build from source
 
 Build scripts use a combination of make, and cmake. To retrieve sources for all submodules, patch them, and build all targets (debug and release) for your host machine, issue the following:
 

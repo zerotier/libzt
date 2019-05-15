@@ -22,8 +22,8 @@ update:
 
 # Patch submodules (issue update first)
 patch:
-	-cd ext/lwip; git apply ../lwip.patch;
-	-cd ext/lwip-contrib; git apply ../lwip-contrib.patch;
+	#-cd ext/lwip; git apply ../lwip.patch;
+	#-cd ext/lwip-contrib; git apply ../lwip-contrib.patch;
 	#-cd ext/ZeroTierOne; git apply ../ZeroTierOne.patch;
 
 # Target-specific clean

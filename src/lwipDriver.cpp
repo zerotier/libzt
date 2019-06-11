@@ -155,7 +155,7 @@ void lwip_driver_init()
 #if defined(_WIN32)
 	sys_init(); // Required for win32 init of critical sections
 #endif
-	void *st = sys_thread_new(ZTS_LWIP_DRIVER_THREAD_NAME, main_lwip_driver_loop,
+	void *st = (void*)sys_thread_new(ZTS_LWIP_DRIVER_THREAD_NAME, main_lwip_driver_loop,
 		NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
 }
 

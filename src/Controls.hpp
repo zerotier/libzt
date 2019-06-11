@@ -33,6 +33,10 @@
 #ifndef LIBZT_CONTROLS_HPP
 #define LIBZT_CONTROLS_HPP
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 namespace ZeroTier {
 
 //////////////////////////////////////////////////////////////////////////////

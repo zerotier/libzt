@@ -38,16 +38,9 @@
 #include "ZeroTierConstants.h"
 #include "Options.h"
 #include "Debug.hpp"
-#include "Controls.hpp"
 
 #ifdef SDK_JNI
 	#include <jni.h>
-#ifndef _MSC_VER
-	//#include <sys/socket.h>
-	//#include <sys/types.h>
-	//#include <sys/select.h>
-	//#include <sys/ioctl.h>
-#endif
 #endif
 
 namespace ZeroTier {

@@ -79,7 +79,9 @@ VirtualTap::VirtualTap(
 	memset(vtap_full_name, 0, sizeof(vtap_full_name));
 	snprintf(vtap_full_name, sizeof(vtap_full_name), "libzt%llx", (unsigned long long)_nwid);
 	_dev = vtap_full_name;
+#ifndef _WIN32
 	::pipe(_shutdownSignalPipe);
+#endif
 	// Start virtual tap thread and stack I/O loops
 	_thread = Thread::start(this);
 }
@@ -90,13 +92,17 @@ VirtualTap::~VirtualTap()
 	nd->nwid = _nwid;
 	postEvent(ZTS_EVENT_NETWORK_DOWN, (void*)nd);
 	_run = false;
+#ifndef _WIN32
 	::write(_shutdownSignalPipe[1],"\0",1);
+#endif
 	_phy.whack();
 	lwip_remove_netif(netif);
 	netif = NULL;
 	Thread::join(_thread);
+#ifndef _WIN32
 	::close(_shutdownSignalPipe[0]);
 	::close(_shutdownSignalPipe[1]);
+#endif
 }
 
 void VirtualTap::lastConfigUpdate(uint64_t lastConfigUpdateTime)

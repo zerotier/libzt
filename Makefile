@@ -5,9 +5,9 @@ else
 DIST_BUILD_SCRIPT := ./dist.sh
 endif
 
-EXECUTABLES = cmake
-build_reqs := $(foreach exec,$(EXECUTABLES),\
-        $(if $(shell which $(exec)),some string,$(error "No $(exec) in PATH")))
+#EXECUTABLES = cmake
+#build_reqs := $(foreach exec,$(EXECUTABLES),\
+#        $(if $(shell which $(exec)),some string,$(error "No $(exec) in PATH")))
 
 .PHONY: list
 list:

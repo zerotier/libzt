@@ -35,7 +35,10 @@
 
 #include "ZeroTierConstants.h"
 
-#include <stdint.h>
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+typedef int ssize_t;
+#endif
 
 #ifdef _WIN32
 	#ifdef ADD_EXPORTS
@@ -92,7 +95,11 @@ typedef uint16_t zts_in_port_t;
 typedef uint8_t zts_sa_family_t;
 
 struct zts_in_addr {
+#if defined(_WIN32)
+  zts_in_addr_t S_addr;
+#else
   zts_in_addr_t s_addr;
+#endif
 };
 
 struct zts_in6_addr {
@@ -105,34 +112,34 @@ struct zts_in6_addr {
 
 struct zts_sockaddr_in {
   uint8_t            sin_len;
-  zts_sa_family_t     sin_family;
-  zts_in_port_t       sin_port;
-  struct zts_in_addr  sin_addr;
+  zts_sa_family_t    sin_family;
+  zts_in_port_t      sin_port;
+  struct zts_in_addr sin_addr;
 #define SIN_ZERO_LEN 8
-  char            sin_zero[SIN_ZERO_LEN];
+  char sin_zero[SIN_ZERO_LEN];
 };
 
 struct zts_sockaddr_in6 {
-  uint8_t            sin6_len;      /* length of this structure    */
-  zts_sa_family_t     sin6_family;   /* AF_INET6                    */
-  zts_in_port_t       sin6_port;     /* Transport layer port #      */
-  uint32_t           sin6_flowinfo; /* IPv6 flow information       */
-  struct zts_in6_addr sin6_addr;     /* IPv6 address                */
-  uint32_t           sin6_scope_id; /* Set of interfaces for scope */
+	uint8_t             sin6_len;      // length of this structure
+	zts_sa_family_t     sin6_family;   // AF_INET6
+	zts_in_port_t       sin6_port;     // Transport layer port #
+	uint32_t            sin6_flowinfo; // IPv6 flow information
+	struct zts_in6_addr sin6_addr;     // IPv6 address
+	uint32_t            sin6_scope_id; // Set of interfaces for scope
 };
 
 struct zts_sockaddr {
-  uint8_t        sa_len;
+  uint8_t         sa_len;
   zts_sa_family_t sa_family;
-  char        sa_data[14];
+  char            sa_data[14];
 };
 
 struct zts_sockaddr_storage {
-  uint8_t        s2_len;
+  uint8_t         s2_len;
   zts_sa_family_t ss_family;
-  char        s2_data1[2];
-  uint32_t       s2_data2[3];
-  uint32_t       s2_data3[3];
+  char            s2_data1[2];
+  uint32_t        s2_data2[3];
+  uint32_t        s2_data3[3];
 };
 
 #if !defined(zts_iovec)
@@ -156,16 +163,14 @@ struct zts_msghdr {
  * Structure used for manipulating linger option.
  */
 struct zts_linger {
-       int l_onoff;                /* option on/off */
-       int l_linger;               /* linger time in seconds */
+       int l_onoff;                // option on/off
+       int l_linger;               // linger time in seconds
 };
 
-/*
-typedef struct fd_set
+typedef struct zts_fd_set
 {
   unsigned char fd_bits [(FD_SETSIZE+7)/8];
-} fd_set;
-*/
+} zts_fd_set;
 
 #ifdef __cplusplus
 }

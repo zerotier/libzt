@@ -94,9 +94,6 @@ bool _run_lwip_tcpip = false;
 
 //bool _startupError = false;
 
-pthread_t service_thread;
-pthread_t callback_thread;
-
 // Global reference to ZeroTier service
 OneService *service;
 
@@ -272,7 +269,7 @@ int __zts_can_perform_service_operation()
 
 void _api_sleep(int interval_ms)
 {
-#if defined(_WIN32)
+#if defined (_WIN32)
 	Sleep(interval_ms);
 #else
 	struct timespec sleepValue = {0};
@@ -283,11 +280,14 @@ void _api_sleep(int interval_ms)
 
 int _change_nice(int increment)
 {
+#ifndef _WIN32
 	if (increment == 0) {
 		return 0;
 	}
 	int  priority = getpriority(PRIO_PROCESS, 0);
 	return setpriority(PRIO_PROCESS, 0, priority+increment);
+#endif
+	return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -406,7 +406,10 @@ void *_zts_run_service(void *arg)
 	// TODO: Find a more elegant solution
 	_api_sleep(ZTS_CALLBACK_PROCESSING_INTERVAL*2);
 	_run_callbacks = false;
+#ifndef _WIN32
 	pthread_exit(0);
+#endif
+	return NULL;
 }
 
 #ifdef __cplusplus
@@ -566,13 +569,16 @@ int zts_start(
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
 	HANDLE serviceThread = CreateThread(NULL, 0, _zts_run_service, (void*)params, 0, NULL);
 	HANDLE callbackThread = CreateThread(NULL, 0, _zts_run_callbacks, NULL, 0, NULL);
-#endif
+#else
+	pthread_t service_thread;
+	pthread_t callback_thread;
 	if ((err = pthread_create(&service_thread, NULL, _zts_run_service, NULL)) != 0) {
 		retval = err;
 	}
 	if ((err = pthread_create(&callback_thread, NULL, _zts_run_callbacks, NULL)) != 0) {
 		retval = err;
 	}
+#endif
 #if defined(__linux__)
 	pthread_setname_np(service_thread, ZTS_SERVICE_THREAD_NAME);
 	pthread_setname_np(callback_thread, ZTS_EVENT_CALLBACK_THREAD_NAME);
@@ -674,7 +680,7 @@ int zts_restart()
 	_userCallbackMethodRef = _tmpUserCallbackMethodRef;
 	return zts_start(tmpPath.c_str(), NULL, tmpPort);
 #else
-	return zts_start(tmpPath.c_str(), _tmpUserEventCallbackFunc, tmpPort);
+	return ::zts_start(tmpPath.c_str(), _tmpUserEventCallbackFunc, tmpPort);
 #endif
 }
 #ifdef SDK_JNI

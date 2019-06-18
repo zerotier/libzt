@@ -165,10 +165,6 @@ public:
 	void (*_handler)(void *, void *, uint64_t, const MAC &, const MAC &, unsigned int, unsigned int,
 		const void *, unsigned int);
 
-	void phyOnUnixClose(PhySocket *sock, void **uptr);
-	void phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len);
-	void phyOnUnixWritable(PhySocket *sock, void **uptr, bool stack_invoked);
-
 	//////////////////////////////////////////////////////////////////////////////
 	// Lower-level lwIP netif handling and traffic handling readiness           //
 	//////////////////////////////////////////////////////////////////////////////

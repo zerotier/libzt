@@ -1,9 +1,17 @@
-#include <ZeroTier.h>
-
-#include <arpa/inet.h>
 #include <stdio.h>
+
+#ifdef _WIN32
+#include <WinSock2.h>
+#include <stdint.h>
+#include <WS2tcpip.h>
+#include <Windows.h>
+#else
+#include <arpa/inet.h>
 #include <string.h>
 #include <unistd.h>
+#endif
+
+#include <ZeroTier.h>
 
 bool node_ready = false;
 bool network_ready = false;
@@ -36,13 +44,22 @@ void myZeroTierEventCallback(struct zts_callback_msg *msg)
     }
 }
 
+void delay(int n)
+{
+#ifdef _WIN32
+    Sleep(n * 1000);
+#else
+    sleep(n);
+#endif
+}
+
 int main() 
 {
     char *str = "welcome to the machine";
     char *remoteIp = "11.7.7.223";
     int remotePort = 8082;
     int fd, err = 0;
-    struct zts_sockaddr_in addr;	
+    struct sockaddr_in addr;
     addr.sin_family = ZTS_AF_INET;
     addr.sin_addr.s_addr = inet_addr(remoteIp);
     addr.sin_port = htons(remotePort);
@@ -50,12 +67,13 @@ int main()
     // Set up ZeroTier service and wai for callbacks
     int port = 9994;
     uint64_t nwid = 0x0123456789abcdef;
-    zts_start("zt_config/path", &myZeroTierEventCallback, port);
+    zts_start("path", &myZeroTierEventCallback, port);
     printf("Waiting for node to come online...\n");
-    while (!node_ready) { sleep(1); }
+    while (!node_ready) { delay(1); }
+    printf("joining network...\n");
     zts_join(nwid);
     printf("Joined virtual network. Requesting configuration...\n");
-    while (!network_ready) { sleep(1); }
+    while (!network_ready) { delay(1); }
 
     printf("I am %llx\n", zts_get_node_id());
     // Socket API example

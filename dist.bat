@@ -1,40 +1,54 @@
-REM Build all target configurations and copy results into "prebuilt"
+REM build temp directories
+set Win32ReleaseBuildDir=tmp\release\win32
+set Win64ReleaseBuildDir=tmp\release\win64
+set Win32DebugBuildDir=tmp\debug\win32
+set Win64DebugBuildDir=tmp\debug\win64
 
-set PrebuiltDebugWin32Dir=staging\debug\win32
-set PrebuiltDebugWin64Dir=staging\debug\win64
-set PrebuiltReleaseWin32Dir=staging\release\win32
-set PrebuiltReleaseWin64Dir=staging\release\win64
+mkdir %Win32ReleaseBuildDir%
+mkdir %Win64ReleaseBuildDir%
+mkdir %Win32DebugBuildDir%
+mkdir %Win64DebugBuildDir%
 
-mkdir %PrebuiltDebugWin32Dir%
-mkdir %PrebuiltDebugWin64Dir%
-mkdir %PrebuiltReleaseWin32Dir%
-mkdir %PrebuiltReleaseWin64Dir%
+REM final output directories
+set Win32ReleaseOutputDir=lib\release\win32
+set Win64ReleaseOutputDir=lib\release\win64
+set Win32DebugOutputDir=lib\debug\win32
+set Win64DebugOutputDir=lib\debug\win64
 
-set DebugWinBuildDir=bin\lib\Debug
-set ReleaseWinBuildDir=bin\lib\Release
+mkdir %Win32ReleaseOutputDir%
+mkdir %Win64ReleaseOutputDir%
+mkdir %Win32DebugOutputDir%
+mkdir %Win64DebugOutputDir%
 
-mkdir WinBuild32 & pushd WinBuild32
-cmake -G "Visual Studio 15 2017" ../
+pushd %Win32ReleaseBuildDir%
+cmake -G "Visual Studio 15 2017" ../../../
+cmake --build . --config Release
 popd
-mkdir WinBuild64 & pushd WinBuild64
-cmake -G "Visual Studio 15 2017 Win64" ../
+copy %Win32ReleaseBuildDir%\Release\zt.lib %Win32ReleaseOutputDir%\zt.lib
+copy %Win32ReleaseBuildDir%\Release\zt.dll %Win32ReleaseOutputDir%\zt.dll
+
+pushd %Win32DebugBuildDir%
+cmake -G "Visual Studio 15 2017" ../../../
+cmake --build . --config Debug
 popd
+copy %Win32DebugBuildDir%\Debug\zt.lib %Win32DebugOutputDir%\zt.lib
+copy %Win32DebugBuildDir%\Debug\zt.dll %Win32DebugOutputDir%\zt.dll
 
-cmake --build WinBuild32 --config Release
-cmake --build WinBuild32 --config Debug
+pushd %Win64ReleaseBuildDir%
+cmake -G "Visual Studio 15 2017 Win64" ../../../
+cmake --build . --config Release
+popd
+copy %Win64ReleaseBuildDir%\Release\zt.lib %Win64ReleaseOutputDir%\zt.lib
+copy %Win64ReleaseBuildDir%\Release\zt.dll %Win64ReleaseOutputDir%\zt.dll
 
-copy %DebugWinBuildDir%\zt-static.lib %PrebuiltDebugWin32Dir%\zt.lib
-copy %DebugWinBuildDir%\zt-shared.dll %PrebuiltDebugWin32Dir%\zt.dll
-copy %ReleaseWinBuildDir%\zt-static.lib %PrebuiltReleaseWin32Dir%\zt.lib
-copy %ReleaseWinBuildDir%\zt-shared.dll %PrebuiltReleaseWin32Dir%\zt.dll
+pushd %Win64DebugBuildDir%
+cmake -G "Visual Studio 15 2017 Win64" ../../../
+cmake --build . --config Debug
+popd
+copy %Win64DebugBuildDir%\Debug\zt.lib %Win64DebugOutputDir%\zt.lib
+copy %Win64DebugBuildDir%\Debug\zt.dll %Win64DebugOutputDir%\zt.dll
 
-cmake --build WinBuild64 --config Release
-cmake --build WinBuild64 --config Debug
-
-copy %DebugWinBuildDir%\zt-static.lib %PrebuiltDebugWin64Dir%\zt.lib
-copy %DebugWinBuildDir%\zt-shared.dll %PrebuiltDebugWin64Dir%\zt.dll
-copy %ReleaseWinBuildDir%\zt-static.lib %PrebuiltReleaseWin64Dir%\zt.lib
-copy %ReleaseWinBuildDir%\zt-shared.dll %PrebuiltReleaseWin64Dir%\zt.dll
+exit 0
 
 rd /S /Q bin
 

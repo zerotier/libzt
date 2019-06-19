@@ -10,43 +10,39 @@ mkdir %Win32DebugBuildDir%
 mkdir %Win64DebugBuildDir%
 
 REM final output directories
-set Win32ReleaseOutputDir=lib\release\win32
-set Win64ReleaseOutputDir=lib\release\win64
-set Win32DebugOutputDir=lib\debug\win32
-set Win64DebugOutputDir=lib\debug\win64
+set WinReleaseOutputDir=lib\release
+set WinDebugOutputDir=lib\debug
 
-mkdir %Win32ReleaseOutputDir%
-mkdir %Win64ReleaseOutputDir%
-mkdir %Win32DebugOutputDir%
-mkdir %Win64DebugOutputDir%
+mkdir %WinReleaseOutputDir%
+mkdir %WinDebugOutputDir%
 
 pushd %Win32ReleaseBuildDir%
 cmake -G "Visual Studio 15 2017" ../../../
 cmake --build . --config Release
 popd
-copy %Win32ReleaseBuildDir%\Release\zt.lib %Win32ReleaseOutputDir%\zt.lib
-copy %Win32ReleaseBuildDir%\Release\zt.dll %Win32ReleaseOutputDir%\zt.dll
+copy %Win32ReleaseBuildDir%\Release\zt.lib %WinReleaseOutputDir%\libzt32.lib
+copy %Win32ReleaseBuildDir%\Release\zt-shared.dll %WinReleaseOutputDir%\libzt32.dll
 
 pushd %Win32DebugBuildDir%
 cmake -G "Visual Studio 15 2017" ../../../
 cmake --build . --config Debug
 popd
-copy %Win32DebugBuildDir%\Debug\zt.lib %Win32DebugOutputDir%\zt.lib
-copy %Win32DebugBuildDir%\Debug\zt.dll %Win32DebugOutputDir%\zt.dll
+copy %Win32DebugBuildDir%\Debug\zt.lib %WinDebugOutputDir%\libzt32d.lib
+copy %Win32DebugBuildDir%\Debug\zt-shared.dll %WinDebugOutputDir%\libzt32d.dll
 
 pushd %Win64ReleaseBuildDir%
 cmake -G "Visual Studio 15 2017 Win64" ../../../
 cmake --build . --config Release
 popd
-copy %Win64ReleaseBuildDir%\Release\zt.lib %Win64ReleaseOutputDir%\zt.lib
-copy %Win64ReleaseBuildDir%\Release\zt.dll %Win64ReleaseOutputDir%\zt.dll
+copy %Win64ReleaseBuildDir%\Release\zt.lib %WinReleaseOutputDir%\libzt64.lib
+copy %Win64ReleaseBuildDir%\Release\zt-shared.dll %WinReleaseOutputDir%\libzt64.dll
 
 pushd %Win64DebugBuildDir%
 cmake -G "Visual Studio 15 2017 Win64" ../../../
 cmake --build . --config Debug
 popd
-copy %Win64DebugBuildDir%\Debug\zt.lib %Win64DebugOutputDir%\zt.lib
-copy %Win64DebugBuildDir%\Debug\zt.dll %Win64DebugOutputDir%\zt.dll
+copy %Win64DebugBuildDir%\Debug\zt.lib %WinDebugOutputDir%\libzt64d.lib
+copy %Win64DebugBuildDir%\Debug\zt-shared.dll %WinDebugOutputDir%\libzt64d.dll
 
 exit 0
 

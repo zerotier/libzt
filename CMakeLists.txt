@@ -171,6 +171,29 @@ if (BUILDING_LINUX AND NOT BUILDING_ANDROID)
 	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread")
 endif ()
 
+# WINDOWS-specific MSVC flags and libraries
+if (BUILDING_WIN)
+	# 32-bit
+	if(NOT BUILDING_WIN64)
+		set (WINLIBDIR, "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.16299.0/um/x86")
+	endif ()
+	# 64-bit
+	if(BUILDING_WIN64)
+		set (WINLIBDIR, "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.16299.0/um/x64")
+	endif ()
+	#find_library (ws2_32_LIBRARY_PATH NAMES WS2_32 HINTS ${WINLIBDIR})
+	#find_library (shlwapi_LIBRARY_PATH NAMES ShLwApi HINTS ${WINLIBDIR})
+	set (ws2_32_LIBRARY_PATH "${WINLIBDIR}/WS2_32.Lib")
+	set (shlwapi_LIBRARY_PATH "${WINLIBDIR}/ShLwApi.Lib")
+	set (iphlpapi_LIBRARY_PATH "${WINLIBDIR}/iphlpapi.Lib")
+	message (STATUS ${WINLIBDIR})
+	message (STATUS "WS2_32=${ws2_32_LIBRARY_PATH}")
+	message (STATUS "ShLwApi=${shlwapi_LIBRARY_PATH}")
+	message (STATUS "liphlpapi=${iphlpapi_LIBRARY_PATH}")
+	add_definitions (-DZT_SDK=1)
+	add_definitions (-DADD_EXPORTS=1)
+endif ()
+
 # -----------------------------------------------------------------------------
 # |                                      JNI                                  |
 # -----------------------------------------------------------------------------
@@ -235,6 +258,7 @@ file (GLOB ztcoreSrcGlob
 
 file (GLOB libnatpmpSrcGlob
 	${ZTO_SRC_DIR}/ext/libnatpmp/natpmp.c
+	${ZTO_SRC_DIR}/ext/libnatpmp/wingettimeofday.c
 	${ZTO_SRC_DIR}/ext/libnatpmp/getgateway.c)
 
 file (GLOB libminiupnpcSrcGlob
@@ -408,22 +432,22 @@ set_target_properties (ztcore PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
 
 # libnatpmp.a
-add_library (natpmp STATIC $<TARGET_OBJECTS:libnatpmp_obj>)
-set_target_properties (natpmp PROPERTIES
-    OUTPUT_NAME natpmp
-    LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
+#add_library (natpmp STATIC $<TARGET_OBJECTS:libnatpmp_obj>)
+#set_target_properties (natpmp PROPERTIES
+#    OUTPUT_NAME natpmp
+#    LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
 
 # libminiupnpc.a
-add_library (miniupnpc STATIC $<TARGET_OBJECTS:miniupnpc_obj>)
-set_target_properties (miniupnpc PROPERTIES
-    OUTPUT_NAME miniupnpc
-    LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
+#add_library (miniupnpc STATIC $<TARGET_OBJECTS:miniupnpc_obj>)
+#set_target_properties (miniupnpc PROPERTIES
+#    OUTPUT_NAME miniupnpc
+#    LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
 
 # liblwip.a
-add_library (lwip STATIC $<TARGET_OBJECTS:lwip_obj>)
-set_target_properties (lwip PROPERTIES
-    OUTPUT_NAME lwip
-    LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
+#add_library (lwip STATIC $<TARGET_OBJECTS:lwip_obj>)
+#set_target_properties (lwip PROPERTIES
+#    OUTPUT_NAME lwip
+#    LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
 
 # libzt.a
 add_library (${STATIC_LIB_NAME} STATIC $<TARGET_OBJECTS:libzt_obj>
@@ -435,6 +459,13 @@ set_target_properties (${STATIC_LIB_NAME} PROPERTIES
     OUTPUT_NAME zt
     LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
 set_target_properties (${STATIC_LIB_NAME} PROPERTIES COMPILE_FLAGS "${ZT_FLAGS}")
+if (BUILDING_WIN)
+	target_link_libraries (
+		${STATIC_LIB_NAME}
+		${ws2_32_LIBRARY_PATH}
+		${shlwapi_LIBRARY_PATH}
+		${iphlpapi_LIBRARY_PATH})
+endif ()
 
 # libzt.so/dylib/dll
 add_library (${DYNAMIC_LIB_NAME} SHARED ${libztSrcGlob})
@@ -442,6 +473,12 @@ target_link_libraries (${DYNAMIC_LIB_NAME} zt_pic lwip_pic zto_pic natpmp_pic mi
 set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES COMPILE_FLAGS "${ZT_FLAGS}")
 set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES OUTPUT_NAME ${DYNAMIC_LIB_OUTPUT_NAME}
                                     WINDOWS_EXPORT_ALL_SYMBOLS true)
+target_link_libraries (
+	${DYNAMIC_LIB_NAME}
+	${ws2_32_LIBRARY_PATH}
+	${shlwapi_LIBRARY_PATH}
+	${iphlpapi_LIBRARY_PATH} zt_pic lwip_pic zto_pic natpmp_pic miniupnpc_pic)
+
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 if (BUILDING_ANDROID)
@@ -517,4 +554,5 @@ install (TARGETS ${STATIC_LIB_NAME}
 )
 install (TARGETS ${DYNAMIC_LIB_NAME}
         LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
 )

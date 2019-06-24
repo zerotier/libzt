@@ -236,9 +236,8 @@ android()
     if [[ ! $OSNAME = *"darwin"* ]]; then
         exit 0
     fi
-    ARCH="armeabi-v7a"
     # CMake build files
-    BUILD_DIR=$(pwd)/tmp/android-$ARCH-$1
+    BUILD_DIR=$(pwd)/tmp/android-$1
     mkdir -p $BUILD_DIR
     # If clean requested, remove temp build dir
     if [[ $1 = *"clean"* ]]; then
@@ -246,7 +245,7 @@ android()
         exit 0
     fi
     # Where to place results
-    LIB_OUTPUT_DIR=$(pwd)/lib/$1/android-$ARCH
+    LIB_OUTPUT_DIR=$(pwd)/lib/$1/android
     mkdir -p $LIB_OUTPUT_DIR
     # Build
     UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
@@ -293,7 +292,7 @@ prep_android_example()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
     mkdir -p examples/android/ExampleAndroidApp/app/libs/
-    cp -f lib/$1/android-armeabi-v7a/libzt-$1.aar \
+    cp -f lib/$1/android/libzt-$1.aar \
     examples/android/ExampleAndroidApp/app/libs/libzt.aar
 }
 # Clean Android project

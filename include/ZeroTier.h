@@ -55,7 +55,7 @@ typedef int ssize_t;
 #if !defined(_WIN32) && !defined(__ANDROID__)
 typedef unsigned int socklen_t;
 #else
-typedef int socklen_t;
+//typedef int socklen_t;
 //#include <sys/socket.h>
 #endif
 

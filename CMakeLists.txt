@@ -364,7 +364,7 @@ endif ()
 
 # libnatpmp_obj
 add_library (libnatpmp_obj OBJECT ${libnatpmpSrcGlob})
-set_target_properties (libnatpmp_obj PROPERTIES COMPILE_FLAGS "")
+set_target_properties (libnatpmp_obj PROPERTIES COMPILE_FLAGS "-DNATPMP_EXPORTS")
 
 # miniupnpc_obj
 add_library (miniupnpc_obj OBJECT ${libminiupnpcSrcGlob})
@@ -397,6 +397,7 @@ set_target_properties (zto_pic PROPERTIES
 # libnatpmp_pic
 add_library (natpmp_pic ${libnatpmpSrcGlob})
 set_target_properties (natpmp_pic PROPERTIES
+	COMPILE_FLAGS "-DNATPMP_EXPORTS"
 	POSITION_INDEPENDENT_CODE ON)
 
 # miniupnpc_pic

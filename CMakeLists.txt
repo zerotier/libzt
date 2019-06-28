@@ -242,13 +242,38 @@ if (SDK_JNI OR BUILDING_ANDROID)
 endif () # SDK_JNI
 
 # -----------------------------------------------------------------------------
-# |                            SOURCE FILE GLOBS                              |
+# |                                   SOURCES                                 |
 # -----------------------------------------------------------------------------
 
 set (PROJ_DIR ${PROJECT_SOURCE_DIR})
 set (LWIP_SRC_DIR "${PROJ_DIR}/ext/lwip/src")
 set (ZTO_SRC_DIR "${PROJ_DIR}/ext/ZeroTierOne")
 set (LIBZT_SRC_DIR "${PROJ_DIR}/src")
+
+if (SWIG_CSHARP)
+set (libztSwigWrapperSrc ${LIBZT_SRC_DIR}/csharp/*.cxx)
+endif ()
+if (SWIG_PYTHON)
+set (libztSwigWrapperSrc ${LIBZT_SRC_DIR}/python/*.cxx)
+endif ()
+if (SWIG_LUA)
+set (libztSwigWrapperSrc ${LIBZT_SRC_DIR}/lua/*.cxx)
+endif ()
+if (SWIG_GO32)
+set (libztSwigWrapperSrc ${LIBZT_SRC_DIR}/go32/*.cxx)
+endif ()
+if (SWIG_GO64)
+set (libztSwigWrapperSrc ${LIBZT_SRC_DIR}/go64/*.cxx)
+endif ()
+if (SWIG_JS_JSC)
+set (libztSwigWrapperSrc ${LIBZT_SRC_DIR}/js/jsc/*.cxx)
+endif ()
+if (SWIG_JS_V8)
+set (libztSwigWrapperSrc ${LIBZT_SRC_DIR}/js/v8/*.cxx)
+endif ()
+if (SWIG_JS_NODE)
+set (libztSwigWrapperSrc ${LIBZT_SRC_DIR}/js/node/*.cxx)
+endif ()
 
 file (GLOB ztcoreSrcGlob
 	${ZTO_SRC_DIR}/node/*.cpp
@@ -276,7 +301,7 @@ file (GLOB libminiupnpcSrcGlob
     ${ZTO_SRC_DIR}/ext/miniupnpc/upnperrors.c
     ${ZTO_SRC_DIR}/ext/miniupnpc/upnpreplyparse.c)
 
-file (GLOB libztSrcGlob ${LIBZT_SRC_DIR}/*.cpp)
+file (GLOB libztSrcGlob ${LIBZT_SRC_DIR}/*.cpp ${libztSwigWrapperSrc})
 
 if (UNIX)
 	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/unix/port)

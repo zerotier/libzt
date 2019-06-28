@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This script works in conjunction with the Makefile and CMakeLists.txt. It is
-# intented to be called from the Makefile, it generates projects and builds
+# intended to be called from the Makefile, it generates projects and builds
 # targets as specified in CMakeLists.txt. In addition, this script is
 # responsible for packaging all of the resultant builds, licenses, and
 # documentation as well as controlling the installation and remote execution of
@@ -39,6 +39,60 @@ ANDROID_PROJ_DIR=$(pwd)/ports/android
 XCODE_IOS_PROJ_DIR=$(pwd)/ports/xcode_ios
 XCODE_IOS_SIMULATOR_PROJ_DIR=$(pwd)/ports/xcode_ios_simulator
 XCODE_MACOS_PROJ_DIR=$(pwd)/ports/xcode_macos
+
+# Generates wrapper source files for various target languages
+generate_swig_wrappers()
+{
+    SRC=../../src
+
+    cd ports/swig;
+
+    # C#
+    mkdir -p ${SRC}/csharp
+    swig -csharp -c++ zt.i
+    # Prepend our callback garb to libzt.cs, copy new source files into src/csharp
+    cat csharp/csharp_callback.cs libzt.cs > libzt_concat.cs
+    rm libzt.cs
+    mv libzt_concat.cs libzt.cs
+    mv -f *.cs zt_wrap.cxx ${SRC}/csharp/
+
+    # Javascript
+    # Build for all three engines. Why not?
+    ENGINE=jsc
+    mkdir -p ${SRC}/js/${ENGINE}
+    swig -javascript -${ENGINE} -c++ zt.i
+    mv zt_wrap.cxx ${SRC}/js/${ENGINE}
+    ENGINE=v8
+    mkdir -p ${SRC}/js/${ENGINE}
+    swig -javascript -${ENGINE} -c++ zt.i
+    mv zt_wrap.cxx ${SRC}/js/${ENGINE}
+    ENGINE=node
+    mkdir -p ${SRC}/js/${ENGINE}
+    swig -javascript -${ENGINE} -c++ zt.i
+    mv -f zt_wrap.cxx ${SRC}/js/${ENGINE}
+
+    # Python
+    mkdir -p ${SRC}/python
+    swig -python -c++ zt.i
+    mv -f zt_wrap.cxx *.py ${SRC}/python
+
+    # Lua
+    mkdir -p ${SRC}/lua
+    swig -lua -c++ zt.i
+    mv -f zt_wrap.cxx ${SRC}/lua
+
+    # Go 64
+    mkdir -p ${SRC}/go64
+    swig -intgosize 64 -go -c++ zt.i
+    mv -f zt_wrap.cxx *.go *.c ${SRC}/go64
+
+    # Go 32
+    mkdir -p ${SRC}/go32
+    swig -intgosize 32 -go -c++ zt.i
+    mv -f zt_wrap.cxx *.go *.c ${SRC}/go32
+
+    cd -
+}
 
 # Generates projects if needed
 generate_projects()

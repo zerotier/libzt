@@ -94,7 +94,7 @@ void *_zts_run_service(void *thread_id);
  * @usage Can be called at any time
  * @return 1 or 0
  */
-int __zts_can_perform_service_operation();
+int _zts_can_perform_service_operation();
 
 /**
  * @brief [Should not be called from user application] Returns whether or not the node is 
@@ -102,7 +102,7 @@ int __zts_can_perform_service_operation();
  * @usage Can be called at any time
  * @return 1 or 0
  */
-int __zts_node_online();
+int _zts_node_online();
 
 /**
  * @brief [Should not be called from user application] Adjusts the delay multiplier for the

@@ -253,12 +253,12 @@ void _clear_registered_callback()
 	_callback_lock.unlock();
 }
 
-int __zts_node_online()
+int _zts_node_online()
 {
 	return service && service->getNode() && service->getNode()->online();
 }
 
-int __zts_can_perform_service_operation()
+int _zts_can_perform_service_operation()
 {
 	return service
 		&& service->isRunning()
@@ -436,7 +436,7 @@ JNIEXPORT int JNICALL Java_com_zerotier_libzt_ZeroTier_init(
 int zts_join(const uint64_t nwid)
 {
 	Mutex::Lock _l(_service_lock);
-	if (!__zts_can_perform_service_operation()) {
+	if (!_zts_can_perform_service_operation()) {
 		return ZTS_ERR_SERVICE;
 	}
 	else {
@@ -455,7 +455,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_join(
 int zts_leave(const uint64_t nwid)
 {
 	Mutex::Lock _l(_service_lock);
-	if (!__zts_can_perform_service_operation()) {
+	if (!_zts_can_perform_service_operation()) {
 		return ZTS_ERR_SERVICE;
 	}
 	else {
@@ -474,7 +474,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_leave(
 int zts_leave_all()
 {
 	Mutex::Lock _l(_service_lock);
-	if (!__zts_can_perform_service_operation()) {
+	if (!_zts_can_perform_service_operation()) {
 		return ZTS_ERR_SERVICE;
 	}
 	else {
@@ -489,7 +489,7 @@ int zts_orbit(uint64_t moonWorldId, uint64_t moonSeed)
 {
 	Mutex::Lock _l(_service_lock);
 	void *tptr = NULL;
-	if (!__zts_can_perform_service_operation()) {
+	if (!_zts_can_perform_service_operation()) {
 		return ZTS_ERR_SERVICE;
 	} else {
 		service->getNode()->orbit(tptr, moonWorldId, moonSeed);
@@ -503,7 +503,7 @@ int zts_deorbit(uint64_t moonWorldId)
 {
 	Mutex::Lock _l(_service_lock);
 	void *tptr = NULL;
-	if (!__zts_can_perform_service_operation()) {
+	if (!_zts_can_perform_service_operation()) {
 		return ZTS_ERR_SERVICE;
 	} else {
 		service->getNode()->deorbit(tptr, moonWorldId);
@@ -514,7 +514,7 @@ int zts_deorbit(uint64_t moonWorldId)
 #endif
 
 int zts_start(
-	const char *path, void (*callback)(struct zts_callback_msg*), int port)
+	const char *path, userCallbackFunc callback, int port)
 {
 	Mutex::Lock _l(_service_lock);
 	lwip_driver_init();
@@ -627,7 +627,7 @@ JNIEXPORT int JNICALL Java_com_zerotier_libzt_ZeroTier_start(
 int zts_stop()
 {
 	Mutex::Lock _l(_service_lock);
-	if (__zts_can_perform_service_operation()) {
+	if (_zts_can_perform_service_operation()) {
 		_run_service = false;
 		service->terminate();
 #if defined(_WIN32)
@@ -658,7 +658,7 @@ int zts_restart()
 	int tmpPort = _port;
 	std::string tmpPath = _path;
 	// Stop the service
-	if (__zts_can_perform_service_operation()) {
+	if (_zts_can_perform_service_operation()) {
 		_run_service = false;
 		service->terminate();
 #if defined(_WIN32)
@@ -713,7 +713,7 @@ JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_free(
 uint64_t zts_get_node_id()
 {
 	Mutex::Lock _l(_service_lock);
-	if (!__zts_can_perform_service_operation()) {
+	if (!_zts_can_perform_service_operation()) {
 		return ZTS_ERR_SERVICE;
 	}
 	return service->getNode()->address();
@@ -733,7 +733,7 @@ JNIEXPORT jlong JNICALL Java_com_zerotier_libzt_ZeroTier_get_1node_1id(
 int zts_get_peer_count()
 {
 	Mutex::Lock _l(_service_lock);
-	if (!__zts_can_perform_service_operation()) {
+	if (!_zts_can_perform_service_operation()) {
 		return ZTS_ERR_SERVICE;
 	}
 	return service->getNode()->peers()->peerCount;
@@ -752,7 +752,7 @@ int zts_get_peers(struct zts_peer_details *pds, int *num)
 	if (!pds || !num) {
 		return ZTS_ERR_INVALID_ARG;
 	}
-	if (!__zts_can_perform_service_operation()) {
+	if (!_zts_can_perform_service_operation()) {
 		return ZTS_ERR_SERVICE;
 	}
 	ZT_PeerList *pl = service->getNode()->peers();
@@ -782,7 +782,7 @@ int zts_get_peer(struct zts_peer_details *pd, uint64_t peerId)
 	if (!pd || !peerId) {
 		return ZTS_ERR_INVALID_ARG;
 	}
-	if (!__zts_can_perform_service_operation()) {
+	if (!_zts_can_perform_service_operation()) {
 		return ZTS_ERR_SERVICE;
 	}
 	ZT_PeerList *pl = service->getNode()->peers();
@@ -814,7 +814,7 @@ int zts_get_num_joined_networks()
 {
 	Mutex::Lock _l(_service_lock);
 	int retval = ZTS_ERR_OK;
-	if (!__zts_can_perform_service_operation()) {
+	if (!_zts_can_perform_service_operation()) {
 		return ZTS_ERR_SERVICE;
 	}
 	return service->networkCount();
@@ -831,7 +831,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_get_1num_1joined_1networ
 // Network Details                                                          //
 //////////////////////////////////////////////////////////////////////////////
 
-void __get_network_details_helper(uint64_t nwid, struct zts_network_details *nd)
+void _get_network_details_helper(uint64_t nwid, struct zts_network_details *nd)
 {
 	/*
     socklen_t addrlen;
@@ -854,7 +854,7 @@ void _get_network_details(uint64_t nwid, struct zts_network_details *nd)
 {
 	/*
     _vtaps_lock.lock();
-    __get_network_details_helper(nwid, nd);
+    _get_network_details_helper(nwid, nd);
     _vtaps_lock.unlock();
 	*/
 }
@@ -1061,7 +1061,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_get_1protocol_1stats(
 int zts_get_node_status()
 {
 	Mutex::Lock _l(_service_lock);
-	// Don't check __zts_can_perform_service_operation() here.
+	// Don't check _zts_can_perform_service_operation() here.
 	return service
 		&& service->getNode()
 		&& service->getNode()->online() ? ZTS_EVENT_NODE_ONLINE : ZTS_EVENT_NODE_OFFLINE;
@@ -1080,7 +1080,7 @@ int zts_get_network_status(uint64_t networkId)
 	if (!networkId) {
 		return ZTS_ERR_INVALID_ARG;
 	}
-	if (!__zts_can_perform_service_operation()) {
+	if (!_zts_can_perform_service_operation()) {
 		return ZTS_ERR_SERVICE;
 	}
 	/*
@@ -1103,7 +1103,7 @@ int zts_get_peer_status(uint64_t peerId)
 {
 	Mutex::Lock _l(_service_lock);
 	int retval = ZTS_ERR_OK;
-	if (!__zts_can_perform_service_operation()) {
+	if (!_zts_can_perform_service_operation()) {
 		return ZTS_ERR_SERVICE;
 	}
 	return service->getPeerStatus(peerId);

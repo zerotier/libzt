@@ -43,9 +43,9 @@ XCODE_MACOS_PROJ_DIR=$(pwd)/ports/xcode_macos
 # Generates wrapper source files for various target languages
 generate_swig_wrappers()
 {
-    SRC=../../src
+    SRC=../src
 
-    cd ports/swig;
+    cd ports/;
 
     # C#
     mkdir -p ${SRC}/csharp

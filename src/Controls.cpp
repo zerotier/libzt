@@ -1,28 +1,15 @@
 /*
- * ZeroTier SDK - Network Virtualization Everywhere
- * Copyright (C) 2011-2019  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (c)2013-2020 ZeroTier, Inc.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Use of this software is governed by the Business Source License included
+ * in the LICENSE.TXT file in the project's root directory.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Change Date: 2024-01-01
  *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * --
- *
- * You can be released from the requirements of the license by purchasing
- * a commercial license. Buying such a license is mandatory as soon as you
- * develop commercial closed-source software that incorporates or links
- * directly against ZeroTier software without disclosing the source code
- * of your own application.
+ * On the date above, in accordance with the Business Source License, use
+ * of this software will be governed by version 2.0 of the Apache License.
  */
+/****/
 
 /**
  * @file
@@ -142,6 +129,7 @@ void postEvent(int eventCode, void *arg)
 	} if (ADDR_EVENT_TYPE(eventCode)) {
 		msg->addr = (struct zts_addr_details*)arg;
 	}
+
     _callbackMsgQueue.enqueue(msg);
 }
 
@@ -514,7 +502,7 @@ int zts_deorbit(uint64_t moonWorldId)
 #endif
 
 int zts_start(
-	const char *path, userCallbackFunc callback, int port)
+	const char *path, void (*callback)(struct zts_callback_msg*), int port)
 {
 	Mutex::Lock _l(_service_lock);
 	lwip_driver_init();
@@ -725,6 +713,24 @@ JNIEXPORT jlong JNICALL Java_com_zerotier_libzt_ZeroTier_get_1node_1id(
 	return zts_get_node_id();
 }
 #endif
+
+int zts_get_6plane_addr(struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId)
+{
+	if (!addr || !nwid || !nodeId) {
+		return ZTS_ERR_INVALID_ARG;
+	}
+	InetAddress _6planeAddr = InetAddress::makeIpv66plane(nwid,nodeId);
+	memcpy(addr, _6planeAddr.rawIpData(), sizeof(struct sockaddr_storage));
+}
+
+int zts_get_rfc4193_addr(struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId)
+{
+	if (!addr || !nwid || !nodeId) {
+		return ZTS_ERR_INVALID_ARG;
+	}
+	InetAddress _rfc4193Addr = InetAddress::makeIpv6rfc4193(nwid,nodeId);
+	memcpy(addr, _rfc4193Addr.rawIpData(), sizeof(struct sockaddr_storage));
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // Peers                                                                    //

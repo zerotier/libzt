@@ -1,28 +1,15 @@
 /*
- * ZeroTier SDK - Network Virtualization Everywhere
- * Copyright (C) 2011-2019  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (c)2013-2020 ZeroTier, Inc.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Use of this software is governed by the Business Source License included
+ * in the LICENSE.TXT file in the project's root directory.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Change Date: 2024-01-01
  *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * --
- *
- * You can be released from the requirements of the license by purchasing
- * a commercial license. Buying such a license is mandatory as soon as you
- * develop commercial closed-source software that incorporates or links
- * directly against ZeroTier software without disclosing the source code
- * of your own application.
+ * On the date above, in accordance with the Business Source License, use
+ * of this software will be governed by version 2.0 of the Apache License.
  */
+/****/
 
 /**
  * @file
@@ -76,6 +63,7 @@ namespace ZeroTier {
 
 bool _has_exited = false;
 int hibernationDelayMultiplier = 1;
+int netifCount = 0;
 extern bool _run_lwip_tcpip;
 Mutex lwip_driver_m;
 
@@ -178,6 +166,9 @@ void lwip_driver_shutdown()
 
 void lwip_remove_netif(void *netif)
 {
+	if (!netif) {
+		return;
+	}
 	struct netif *n = (struct netif*)netif;
 	LOCK_TCPIP_CORE();
 	netif_remove(n);
@@ -188,6 +179,9 @@ void lwip_remove_netif(void *netif)
 
 err_t lwip_eth_tx(struct netif *n, struct pbuf *p)
 {
+	if (!n) {
+		return ERR_IF;
+	}
 	struct pbuf *q;
 	char buf[ZT_MAX_MTU+32];
 	char *bufptr;
@@ -212,7 +206,6 @@ err_t lwip_eth_tx(struct netif *n, struct pbuf *p)
 	int len = totalLength - sizeof(struct eth_hdr);
 	int proto = Utils::ntoh((uint16_t)ethhdr->type);
 	tap->_handler(tap->_arg, NULL, tap->_nwid, src_mac, dest_mac, proto, 0, data, len);
-/*
 	if (ZT_MSG_TRANSFER == true) {
 		char flagbuf[32];
 		memset(&flagbuf, 0, 32);
@@ -223,10 +216,11 @@ err_t lwip_eth_tx(struct netif *n, struct pbuf *p)
 		MAC mac;
 		mac.setTo(ethhdr->dest.addr, 6);
 		mac.toAddress(tap->_nwid).toString(nodeBuf);
-		DEBUG_TRANS("len=%5d dst=%s [%s TX <-- %s] proto=0x%04x %s", totalLength, macBuf, nodeBuf, tap->nodeId().c_str(),
+		/*
+		DEBUG_TRANS("len=%5d dst=%s [%s TX <-- %s] ethertype=0x%04x %s", totalLength, macBuf, nodeBuf, tap->nodeId().c_str(),
 			Utils::ntoh(ethhdr->type), flagbuf);
+		*/
 	}
-*/
 	return ERR_OK;
 }
 
@@ -244,7 +238,7 @@ void lwip_eth_rx(VirtualTap *tap, const MAC &from, const MAC &to, unsigned int e
 	from.copyTo(ethhdr.src.addr, 6);
 	to.copyTo(ethhdr.dest.addr, 6);
 	ethhdr.type = Utils::hton((uint16_t)etherType);
-/*
+
 	if (ZT_MSG_TRANSFER == true) {
 		char flagbuf[32];
 		memset(&flagbuf, 0, 32);
@@ -255,10 +249,12 @@ void lwip_eth_rx(VirtualTap *tap, const MAC &from, const MAC &to, unsigned int e
 		MAC mac;
 		mac.setTo(ethhdr.src.addr, 6);
 		mac.toAddress(tap->_nwid).toString(nodeBuf);
-		DEBUG_TRANS("len=%5d dst=%s [%s RX --> %s] proto=0x%04x %s", len, macBuf, nodeBuf, tap->nodeId().c_str(),
+		/*
+		DEBUG_TRANS("len=%5d dst=%s [%s RX --> %s] ethertype=0x%04x %s", len, macBuf, nodeBuf, tap->nodeId().c_str(),
 			Utils::ntoh(ethhdr.type), flagbuf);
+		*/
 	}
-*/
+
 	p = pbuf_alloc(PBUF_RAW, len+sizeof(struct eth_hdr), PBUF_RAM);
 	if (!p) {
 		DEBUG_ERROR("dropped packet: unable to allocate memory for pbuf");
@@ -285,9 +281,18 @@ void lwip_eth_rx(VirtualTap *tap, const MAC &from, const MAC &to, unsigned int e
 	}
 	// Feed packet into stack
 	int err;
-	if ((err = ((struct netif *)tap->netif)->input(p, (struct netif *)tap->netif)) != ERR_OK) {
-		DEBUG_ERROR("packet input error (%d)", err);
-		pbuf_free(p);
+
+	if (Utils::ntoh(ethhdr.type) == 0x800 || Utils::ntoh(ethhdr.type) == 0x806) {
+		if ((err = ((struct netif *)tap->netif4)->input(p, (struct netif *)tap->netif4)) != ERR_OK) {
+			DEBUG_ERROR("packet input error (%d)", err);
+			pbuf_free(p);
+		}
+	}
+	if (Utils::ntoh(ethhdr.type) == 0x86DD) {
+		if ((err = ((struct netif *)tap->netif6)->input(p, (struct netif *)tap->netif6)) != ERR_OK) {
+			DEBUG_ERROR("packet input error (%d)", err);
+			pbuf_free(p);
+		}
 	}
 }
 
@@ -315,6 +320,9 @@ static void print_netif_info(struct netif *n) {
 
 bool lwip_is_netif_up(void *n)
 {
+	if (!n) {
+		return false;
+	}
 	LOCK_TCPIP_CORE();
 	bool result = netif_is_up((struct netif*)n);
 	UNLOCK_TCPIP_CORE();
@@ -328,7 +336,7 @@ bool lwip_is_netif_up(void *n)
 static void netif_remove_callback(struct netif *n)
 {
 	// Called from core, no need to lock
-	if (!n->state) {
+	if (!n || !n->state) {
 		return;
 	}
 	VirtualTap *tap = (VirtualTap *)n->state;
@@ -349,7 +357,7 @@ static void netif_remove_callback(struct netif *n)
 static void netif_link_callback(struct netif *n)
 {
 	// Called from core, no need to lock
-	if (!n->state) {
+	if (!n || !n->state) {
 		return;
 	}
 	VirtualTap *tap = (VirtualTap *)n->state;
@@ -374,6 +382,9 @@ static void netif_link_callback(struct netif *n)
 
 void lwip_set_callbacks(struct netif *n)
 {
+	if (!n) {
+		return;
+	}
 #if LWIP_NETIF_STATUS_CALLBACK
 	// Not currently used
 	netif_set_status_callback(n, netif_status_callback);
@@ -388,13 +399,13 @@ void lwip_set_callbacks(struct netif *n)
 
 static struct zts_netif_details *lwip_prepare_netif_status_msg(struct netif *n)
 {
+	if (!n || !n->state) {
+		return NULL;
+	}
 	VirtualTap *tap = (VirtualTap*)(n->state);
 	struct zts_netif_details *ifd = new zts_netif_details;
-	// nwid
 	ifd->nwid = tap->_nwid;
-	// mtu
 	ifd->mtu = n->mtu;
-	// MAC
 	memcpy(&(ifd->mac), n->hwaddr, n->hwaddr_len);
 	ifd->mac = htonll(ifd->mac) >> 16;
 	return ifd;
@@ -402,10 +413,13 @@ static struct zts_netif_details *lwip_prepare_netif_status_msg(struct netif *n)
 
 static err_t netif_init(struct netif *n)
 {
+	if (!n || !n->state) {
+		return ERR_IF;
+	}
 	// Called from netif code, no need to lock
 	n->hwaddr_len = 6;
-	n->name[0]    = 'z';
-	n->name[1]    = '4';
+	n->name[0]    = '4';
+	n->name[1]    = 'a'+netifCount;
 	n->linkoutput = lwip_eth_tx;
 	n->output     = etharp_output;
 	n->mtu        = LWIP_MTU < ZT_MAX_MTU ? LWIP_MTU : ZT_MAX_MTU;
@@ -422,6 +436,31 @@ static err_t netif_init(struct netif *n)
 	return ERR_OK;
 }
 
+static err_t netif_init6(struct netif *n)
+{
+	if (!n || !n->state) {
+		return ERR_IF;
+	}
+	n->hwaddr_len = sizeof(n->hwaddr);
+	VirtualTap *tap = (VirtualTap*)(n->state);
+	tap->_mac.copyTo(n->hwaddr, n->hwaddr_len);
+	// Called from netif code, no need to lock
+	n->hwaddr_len = 6;
+	n->name[0]    = '6';
+	n->name[1]    = 'a'+netifCount;
+	n->linkoutput = lwip_eth_tx;
+	n->output_ip6 = ethip6_output;
+	n->mtu        = LWIP_MTU < ZT_MAX_MTU ? LWIP_MTU : ZT_MAX_MTU;
+	n->flags      = NETIF_FLAG_BROADCAST
+	    | NETIF_FLAG_ETHARP
+		| NETIF_FLAG_ETHERNET
+		| NETIF_FLAG_IGMP
+		| NETIF_FLAG_MLD6
+		| NETIF_FLAG_LINK_UP
+		| NETIF_FLAG_UP;
+	return ERR_OK;
+}
+
 void lwip_init_interface(void *tapref, const MAC &mac, const InetAddress &ip)
 {
 	char ipbuf[INET6_ADDRSTRLEN];
@@ -429,52 +468,64 @@ void lwip_init_interface(void *tapref, const MAC &mac, const InetAddress &ip)
 
 	VirtualTap *vtap = (VirtualTap*)tapref;
 	struct netif *n = NULL;
-	if (vtap->netif) {
-		n = (struct netif*)vtap->netif;
-	}
-	else {
-		n = new struct netif;
-	}
+	bool isNewNetif = false;
 
 	if (ip.isV4()) {
+		if (vtap->netif4) {
+			n = (struct netif*)vtap->netif4;
+		}
+		else {
+			n = new struct netif;
+			isNewNetif = true;
+			netifCount++;
+		}
 		char nmbuf[INET6_ADDRSTRLEN];
-		static ip4_addr_t ipaddr, netmask, gw;
+		static ip4_addr_t ip4, netmask, gw;
 		IP4_ADDR(&gw,127,0,0,1);
-		ipaddr.addr = *((u32_t *)ip.rawIpData());
+		ip4.addr = *((u32_t *)ip.rawIpData());
 		netmask.addr = *((u32_t *)ip.netmask().rawIpData());
 		LOCK_TCPIP_CORE();
-		netif_add(n, &ipaddr, &netmask, &gw, tapref, netif_init, tcpip_input);
+		netif_add(n, &ip4, &netmask, &gw, (void*)vtap, netif_init, tcpip_input);
+		vtap->netif4 = (void*)n;
 		postEvent(ZTS_EVENT_NETIF_UP, (void*)lwip_prepare_netif_status_msg(n));
 		UNLOCK_TCPIP_CORE();
-/*
 		snprintf(macbuf, ZTS_MAC_ADDRSTRLEN, "%02x:%02x:%02x:%02x:%02x:%02x",
 			n->hwaddr[0], n->hwaddr[1], n->hwaddr[2],
 			n->hwaddr[3], n->hwaddr[4], n->hwaddr[5]);
-		DEBUG_INFO("initialized netif=%p as [mac=%s, addr=%s, nm=%s]",n, 
-			macbuf, ip.toString(ipbuf), ip.netmask().toString(nmbuf));
-*/
-		vtap->netif = (void*)n;
+		DEBUG_INFO("initialized netif=%p as [mac=%s, addr=%s, nm=%s, tap=%p]",n,
+			macbuf, ip.toString(ipbuf), ip.netmask().toString(nmbuf), vtap);
 	}
 	if (ip.isV6()) {
-		static ip6_addr_t ipaddr;
-		memcpy(&(ipaddr.addr), ip.rawIpData(), sizeof(ipaddr.addr));
-		n->ip6_autoconfig_enabled = 1;
-
+		if (vtap->netif6) {
+			n = (struct netif*)vtap->netif6;
+		}
+		else {
+			n = new struct netif;
+			isNewNetif = true;
+			netifCount++;
+		}
+		static ip6_addr_t ip6;
+		memcpy(&(ip6.addr), ip.rawIpData(), sizeof(ip6.addr));
 		LOCK_TCPIP_CORE();
-		netif_ip6_addr_set(n, 1, &ipaddr);
-		netif_create_ip6_linklocal_address(n, 1);
-		netif_ip6_addr_set_state(n, 0, IP6_ADDR_TENTATIVE);
-		netif_ip6_addr_set_state(n, 1, IP6_ADDR_TENTATIVE);
+		if (isNewNetif) {
+			vtap->netif6 = (void*)n;
+			netif_add(n, NULL, NULL, NULL, (void*)vtap, netif_init6, ethernet_input);
+			n->ip6_autoconfig_enabled = 1;
+			vtap->_mac.copyTo(n->hwaddr, n->hwaddr_len);
+			netif_create_ip6_linklocal_address(n, 1);
+			netif_set_link_up(n);
+			netif_set_up(n);
+			netif_set_default(n);
+		}
+		netif_add_ip6_address(n,&ip6,NULL);
 		n->output_ip6 = ethip6_output;
-		postEvent(ZTS_EVENT_NETIF_UP, (void*)lwip_prepare_netif_status_msg(n));
 		UNLOCK_TCPIP_CORE();
-/*
+		postEvent(ZTS_EVENT_NETIF_UP, (void*)lwip_prepare_netif_status_msg(n));
 		snprintf(macbuf, ZTS_MAC_ADDRSTRLEN, "%02x:%02x:%02x:%02x:%02x:%02x",
 			n->hwaddr[0], n->hwaddr[1], n->hwaddr[2],
 			n->hwaddr[3], n->hwaddr[4], n->hwaddr[5]);
-		DEBUG_INFO("initialized netif=%p as [mac=%s, addr=%s]", n,
-			macbuf, ip.toString(ipbuf));
-*/
+		DEBUG_INFO("initialized netif=%p as [mac=%s, addr=%s, tap=%p]", n,
+			macbuf, ip.toString(ipbuf), vtap);
 	}
 }
 

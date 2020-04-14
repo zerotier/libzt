@@ -510,7 +510,7 @@ package_licenses()
     mkdir -p $DEST_DIR
     cp $CURR_DIR/ext/lwip/COPYING $DEST_DIR/LWIP-LICENSE.BSD
     cp $CURR_DIR/ext/concurrentqueue/LICENSE.md $DEST_DIR/CONCURRENTQUEUE-LICENSE.BSD
-    cp $CURR_DIR/LICENSE.GPL-3 $DEST_DIR/ZEROTIER-LICENSE.GPL-3
+    cp $CURR_DIR/LICENSE.txt $DEST_DIR/ZEROTIER-LICENSE.BSL-1.1
     cp $CURR_DIR/include/net/ROUTE_H-LICENSE.APSL $DEST_DIR/ROUTE_H-LICENSE.APSL
     cp $CURR_DIR/include/net/ROUTE_H-LICENSE $DEST_DIR/ROUTE_H-LICENSE
 }
@@ -572,7 +572,7 @@ package_everything()
     doc/errno.h
     licenses/LWIP-LICENSE.BSD
     licenses/CONCURRENTQUEUE-LICENSE.BSD
-    licenses/ZEROTIER-LICENSE.GPL-3
+    licenses/ZEROTIER-LICENSE.BSL-1.1
     licenses/ROUTE_H-LICENSE.APSL
     licenses/ROUTE_H-LICENSE
     licenses/LWIP-LICENSE.BSD"

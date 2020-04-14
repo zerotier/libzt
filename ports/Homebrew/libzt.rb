@@ -31,7 +31,7 @@ class Libzt < Formula
     system "cmake", ".", *std_cmake_args
     system "cmake", "--build", "."
     system "make", "install"
-    cp "LICENSE.GPL-3", "#{prefix}/LICENSE"
+    cp "LICENSE.txt", "#{prefix}/LICENSE"
   end
 
   def caveats

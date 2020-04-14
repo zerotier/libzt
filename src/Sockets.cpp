@@ -1,28 +1,15 @@
 /*
- * ZeroTier SDK - Network Virtualization Everywhere
- * Copyright (C) 2011-2019  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (c)2013-2020 ZeroTier, Inc.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Use of this software is governed by the Business Source License included
+ * in the LICENSE.TXT file in the project's root directory.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Change Date: 2024-01-01
  *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * --
- *
- * You can be released from the requirements of the license by purchasing
- * a commercial license. Buying such a license is mandatory as soon as you
- * develop commercial closed-source software that incorporates or links
- * directly against ZeroTier software without disclosing the source code
- * of your own application.
+ * On the date above, in accordance with the Business Source License, use
+ * of this software will be governed by version 2.0 of the Apache License.
  */
+/****/
 
 /**
  * @file
@@ -56,8 +43,6 @@ extern bool _run_lwip_tcpip;
 extern "C" {
 #endif
 
-extern int zts_errno;
-
 #ifdef SDK_JNI
 void ss2zta(JNIEnv *env, struct sockaddr_storage *ss, jobject addr);
 void zta2ss(JNIEnv *env, struct sockaddr_storage *ss, jobject addr);
@@ -74,7 +59,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_socket(
 	JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol)
 {
 	int retval = zts_socket(family, type, protocol);
-	return retval > -1 ? retval : -(zts_errno); // Encode lwip errno in return value for JNI functions only
+	return retval > -1 ? retval : -(zts_errno); // Encode lwIP errno into return value for JNI functions only
 }
 #endif
 

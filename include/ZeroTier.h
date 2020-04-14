@@ -1,28 +1,15 @@
 /*
- * ZeroTier SDK - Network Virtualization Everywhere
- * Copyright (C) 2011-2019  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (c)2013-2020 ZeroTier, Inc.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Use of this software is governed by the Business Source License included
+ * in the LICENSE.TXT file in the project's root directory.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Change Date: 2024-01-01
  *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * --
- *
- * You can be released from the requirements of the license by purchasing
- * a commercial license. Buying such a license is mandatory as soon as you
- * develop commercial closed-source software that incorporates or links
- * directly against ZeroTier software without disclosing the source code
- * of your own application.
+ * On the date above, in accordance with the Business Source License, use
+ * of this software will be governed by version 2.0 of the Apache License.
  */
+/****/
 
 /**
  * @file
@@ -81,9 +68,6 @@ typedef unsigned int socklen_t;
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-// Custom errno to prevent conflicts with platform's own errno
-extern int zts_errno;
 
 typedef uint32_t zts_in_addr_t;
 typedef uint16_t zts_in_port_t;
@@ -230,7 +214,7 @@ struct zts_node_details
 
 	/**
 	 * Whether multipath support is enabled. If true, this node will
-	 * be capable of utilizing multiple physical links simultaneosly
+	 * be capable of utilizing multiple physical links simultaneously
 	 * to create higher quality or more robust aggregate links.
 	 *
 	 * See: https://www.zerotier.com/manual.shtml#2_1_5
@@ -678,7 +662,7 @@ ZT_SOCKET_API int ZTCALL zts_get_address(
  * @param nodeId Node ID
  * @return
  */
-ZT_SOCKET_API void ZTCALL zts_get_6plane_addr(
+ZT_SOCKET_API int ZTCALL zts_get_6plane_addr(
 	struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId);
 
 /**
@@ -690,7 +674,7 @@ ZT_SOCKET_API void ZTCALL zts_get_6plane_addr(
  * @param nodeId Node ID
  * @return
  */
-ZT_SOCKET_API void ZTCALL zts_get_rfc4193_addr(
+ZT_SOCKET_API int ZTCALL zts_get_rfc4193_addr(
 	struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId);
 
 /**

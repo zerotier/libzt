@@ -4,9 +4,11 @@
   ZeroTier SDK
 </p>
 
-The ZeroTier SDK is composed of two libraries: `libztcore` which is the  platform-agnostic network hypervisor, and `libzt` which is the network hypervisor paired with a userspace network stack. `libzt` is a superset of `libztcore` and is distinguished by the fact that it exposes a standard [socket API](https://en.wikipedia.org/wiki/Berkeley_sockets) and simple network control API. The full source for these products can be found at [github.com/zerotier/libzt](https://github.com/zerotier/libzt) for the SDK and [github.com/zerotier/ZeroTierOne](https://github.com/zerotier/ZeroTierOne) for the desktop client. With these libraries the network stack and virtual link are exclusive to your app and traffic is fully encrypted via the [Salsa20](https://en.wikipedia.org/wiki/Salsa20) cipher. For a more in-depth discussion on the technical side of ZeroTier, check out our [Manual](https://www.zerotier.com/manual.shtml?pk_campaign=github_libzt)
+The ZeroTier SDK is composed of two libraries: `libztcore` which is the platform-agnostic network hypervisor, and `libzt` which is the network hypervisor paired with a userspace network stack. `libzt` is a superset of `libztcore` and is distinguished by the fact that it exposes a standard [socket API](https://en.wikipedia.org/wiki/Berkeley_sockets) and simple network control API. The network stack and virtual link are exclusive to your app and traffic is fully encrypted end-to-end.
 
-The ZeroTier source code is open source and is licensed under the GNU GPL v3 (not LGPL). If you'd like to embed it in a closed-source commercial product or appliance, please e-mail contact@zerotier.com to discuss commercial licensing. Otherwise it can be used for free.
+ZeroTier is licensed under the BSL version 1.1. See LICENSE.txt and the ZeroTier pricing page for details. ZeroTier is free to use internally in businesses and academic institutions and for non-commercial purposes. Certain types of commercial use such as building closed-source apps and devices based on ZeroTier or offering ZeroTier network controllers and network management as a SaaS service require a commercial license.
+
+A small amount of third party code is also included in ZeroTier and is not subject to our BSL license. See [AUTHORS.md] for a list of third party code, where it is included, and the licenses that apply to it. All of the third party code in ZeroTier is liberally licensed (MIT, BSD, Apache, public domain, etc.).
 
 <div style="page-break-after: always;"></div>
 

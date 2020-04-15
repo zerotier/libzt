@@ -90,6 +90,8 @@ namespace ZeroTier { typedef VirtualTap EthernetTap; }
 namespace ZeroTier {
 
 extern void postEvent(uint64_t id, int eventCode);
+extern bool _network_caching_enabled;
+extern bool _peer_caching_enabled;
 
 namespace {
 
@@ -422,10 +424,8 @@ public:
 				}
 			}
 #endif
-
-#if NETWORK_CACHING
 			// Join existing networks in networks.d
-			{
+			if (_network_caching_enabled) {
 				std::vector<std::string> networksDotD(OSUtils::listDirectory((_homePath + ZT_PATH_SEPARATOR_S "networks.d").c_str()));
 				for(std::vector<std::string>::iterator f(networksDotD.begin());f!=networksDotD.end();++f) {
 					std::size_t dot = f->find_last_of('.');
@@ -433,8 +433,6 @@ public:
 						_node->join(Utils::hexStrToU64(f->substr(0,dot).c_str()),(void *)0,(void *)0);
 				}
 			}
-#endif
-
 			// Main I/O loop
 			_nextBackgroundTaskDeadline = 0;
 			int64_t clockShouldBe = OSUtils::now();
@@ -773,13 +771,13 @@ public:
 					*nuptr = (void *)0;
 					delete n.tap;
 					_nets.erase(nwid);
-#if NETWORK_CACHING
-					if (op == ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_DESTROY) {
-						char nlcpath[256];
-						OSUtils::ztsnprintf(nlcpath,sizeof(nlcpath),"%s" ZT_PATH_SEPARATOR_S "networks.d" ZT_PATH_SEPARATOR_S "%.16llx.local.conf",_homePath.c_str(),nwid);
-						OSUtils::rm(nlcpath);
+					if (_network_caching_enabled) {
+						if (op == ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_DESTROY) {
+							char nlcpath[256];
+							OSUtils::ztsnprintf(nlcpath,sizeof(nlcpath),"%s" ZT_PATH_SEPARATOR_S "networks.d" ZT_PATH_SEPARATOR_S "%.16llx.local.conf",_homePath.c_str(),nwid);
+							OSUtils::rm(nlcpath);
+						}
 					}
-#endif
 				} else {
 					_nets.erase(nwid);
 				}
@@ -970,19 +968,19 @@ public:
 			case ZT_STATE_OBJECT_PLANET:
 				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "planet",_homePath.c_str());
 				break;
-#if NETWORK_CACHING
 			case ZT_STATE_OBJECT_NETWORK_CONFIG:
-				OSUtils::ztsnprintf(dirname,sizeof(dirname),"%s" ZT_PATH_SEPARATOR_S "networks.d",_homePath.c_str());
-				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "%.16llx.conf",dirname,(unsigned long long)id[0]);
-				secure = true;
+				if (_network_caching_enabled) {
+					OSUtils::ztsnprintf(dirname,sizeof(dirname),"%s" ZT_PATH_SEPARATOR_S "networks.d",_homePath.c_str());
+					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "%.16llx.conf",dirname,(unsigned long long)id[0]);
+					secure = true;
+				}
 				break;
-#endif
-#if PEER_CACHING
 			case ZT_STATE_OBJECT_PEER:
-				OSUtils::ztsnprintf(dirname,sizeof(dirname),"%s" ZT_PATH_SEPARATOR_S "peers.d",_homePath.c_str());
-				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "%.10llx.peer",dirname,(unsigned long long)id[0]);
+				if (_peer_caching_enabled) {
+					OSUtils::ztsnprintf(dirname,sizeof(dirname),"%s" ZT_PATH_SEPARATOR_S "peers.d",_homePath.c_str());
+					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "%.10llx.peer",dirname,(unsigned long long)id[0]);
+				}
 				break;
-#endif
 			default:
 				return;
 		}
@@ -1032,16 +1030,16 @@ public:
 			case ZT_STATE_OBJECT_PLANET:
 				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "planet",_homePath.c_str());
 				break;
-#if NETWORK_CACHING
 			case ZT_STATE_OBJECT_NETWORK_CONFIG:
-				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "networks.d" ZT_PATH_SEPARATOR_S "%.16llx.conf",_homePath.c_str(),(unsigned long long)id[0]);
+				if (_network_caching_enabled) {
+					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "networks.d" ZT_PATH_SEPARATOR_S "%.16llx.conf",_homePath.c_str(),(unsigned long long)id[0]);
+				}
 				break;
-#endif
-#if PEER_CACHING
 			case ZT_STATE_OBJECT_PEER:
-				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "peers.d" ZT_PATH_SEPARATOR_S "%.10llx.peer",_homePath.c_str(),(unsigned long long)id[0]);
+				if (_peer_caching_enabled) {
+					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "peers.d" ZT_PATH_SEPARATOR_S "%.10llx.peer",_homePath.c_str(),(unsigned long long)id[0]);
+				}
 				break;
-#endif
 			default:
 				return -1;
 		}

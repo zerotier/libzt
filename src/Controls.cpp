@@ -79,6 +79,9 @@ bool _run_service = false;
 bool _run_callbacks = false;
 bool _run_lwip_tcpip = false;
 
+bool _network_caching_enabled = true;
+bool _peer_caching_enabled = true;
+
 //bool _startupError = false;
 
 // Global reference to ZeroTier service
@@ -501,6 +504,16 @@ int zts_deorbit(uint64_t moonWorldId)
 #ifdef SDK_JNI
 #endif
 
+void zts_set_network_caching(bool enabled)
+{
+	_network_caching_enabled = enabled;
+}
+
+void zts_set_peer_caching(bool enabled)
+{
+	_peer_caching_enabled = enabled;
+}
+
 int zts_start(
 	const char *path, void (*callback)(struct zts_callback_msg*), int port)
 {
@@ -720,7 +733,8 @@ int zts_get_6plane_addr(struct sockaddr_storage *addr, const uint64_t nwid, cons
 		return ZTS_ERR_INVALID_ARG;
 	}
 	InetAddress _6planeAddr = InetAddress::makeIpv66plane(nwid,nodeId);
-	memcpy(addr, _6planeAddr.rawIpData(), sizeof(struct sockaddr_storage));
+	struct sockaddr_in6 *in6 = (struct sockaddr_in6*)addr;
+	memcpy(in6->sin6_addr.s6_addr, _6planeAddr.rawIpData(), sizeof(struct in6_addr));
 }
 
 int zts_get_rfc4193_addr(struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId)
@@ -729,7 +743,8 @@ int zts_get_rfc4193_addr(struct sockaddr_storage *addr, const uint64_t nwid, con
 		return ZTS_ERR_INVALID_ARG;
 	}
 	InetAddress _rfc4193Addr = InetAddress::makeIpv6rfc4193(nwid,nodeId);
-	memcpy(addr, _rfc4193Addr.rawIpData(), sizeof(struct sockaddr_storage));
+	struct sockaddr_in6 *in6 = (struct sockaddr_in6*)addr;
+	memcpy(in6->sin6_addr.s6_addr, _rfc4193Addr.rawIpData(), sizeof(struct in6_addr));
 }
 
 //////////////////////////////////////////////////////////////////////////////

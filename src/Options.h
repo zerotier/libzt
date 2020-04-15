@@ -77,24 +77,4 @@
  */
 #define ZTS_LWIP_MAX_RX_QUEUE_LEN 1024
 
-//////////////////////////////////////////////////////////////////////////////
-// Service behaviour                                                        //
-//////////////////////////////////////////////////////////////////////////////
-
-/**
- * Whether the service will cache peer details (such as known paths). This will
- * make startup and reachability time shorter but is generally only effective
- * for networks with a somewhat static topology. In other words this would not be
- * recommended for use on mobile devices.
- */
-#define PEER_CACHING 0
-
-/**
- * Whether the service will cache network details. This will shorten startup
- * times. This allows the service to nearly instantly inform the network stack
- * of an address to use for this peer so that it can create an interface. This
- * is only recommended for networks whose IP assignments do not change often.
- */
-#define NETWORK_CACHING 1
-
 #endif

@@ -467,6 +467,36 @@ extern "C" {
 #endif
 
 /**
+ * @brief Enable or disable whether the service will cache network details (enabled by default)
+ *
+ * This can potentially shorten (startup) times. This allows the service to nearly instantly
+ * inform the network stack of an address to use for this peer so that it can
+ * create an interface. This can be disabled for cases where one may not want network
+ * config details to be written to storage. This is especially useful for situations where
+ * address assignments do not change often.
+ *
+ * @usage Should be called before zts_start() if you intend on changing its state.
+ *
+ * @param enabled Whether or not this feature is enabled
+ */
+ZT_SOCKET_API void ZTCALL zts_set_network_caching(bool enabled);
+
+/**
+ * @brief Enable or disable whether the service will cache peer details (enabled by default)
+ *
+ * This can potentially shorten (connection) times. This allows the service to
+ * re-use previously discovered paths to a peer, this prevents the service from having
+ * to go through the entire transport-triggered link provisioning process. This is especially
+ * useful for situations where paths to peers do not change often. This is enabled by default
+ * and can be disabled for cases where one may not want peer details to be written to storage.
+ *
+ * @usage Should be called before zts_start() if you intend on changing its state.
+ *
+ * @param enabled Whether or not this feature is enabled
+ */
+ZT_SOCKET_API void ZTCALL zts_set_peer_caching(bool enabled);
+
+/**
  * @brief Starts the ZeroTier service and notifies user application of events via callback
  *
  * @usage Should be called at the beginning of your application. Will blocks until all of the following conditions are met:

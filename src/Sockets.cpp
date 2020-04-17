@@ -548,7 +548,8 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_recvfrom(
 
 ssize_t zts_recvmsg(int fd, struct msghdr *msg, int flags)
 {
-	return (!_run_service || !_run_lwip_tcpip) ? ZTS_ERR_SERVICE : -1; // Not currently implemented by stack
+	// Not currently implemented by stack
+	return (!_run_service || !_run_lwip_tcpip) ? ZTS_ERR_SERVICE : ZTS_ERR_GENERAL;
 }
 #ifdef SDK_JNI
 #endif

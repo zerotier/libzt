@@ -37,16 +37,18 @@ extern int zts_errno;
 
 // No error.
 #define ZTS_ERR_OK                          0
+// Error (see zts_errno for more info)
+#define ZTS_ERR                            -1
 // A argument provided is invalid (e.g. out of range, NULL, etc)
-#define ZTS_ERR_INVALID_ARG                -1
+#define ZTS_ERR_INVALID_ARG                -2
 // The service isn't initialized or is currently unavailable. Try again.
-#define ZTS_ERR_SERVICE                    -2
+#define ZTS_ERR_SERVICE                    -3
 // This API operation is not permitted or doesn't make sense at this time.
-#define ZTS_ERR_INVALID_OP                 -3
+#define ZTS_ERR_INVALID_OP                 -4
 // The call succeeded, but no object or relevant result was available.
-#define ZTS_ERR_NO_RESULT                  -4
+#define ZTS_ERR_NO_RESULT                  -5
 // General internal failure. Consider filing a bug report.
-#define ZTS_ERR_GENERAL                    -5
+#define ZTS_ERR_GENERAL                    -6
 
 /**
  * The system port upon which ZT traffic is sent and received

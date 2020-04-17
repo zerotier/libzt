@@ -36,16 +36,18 @@ public class ZeroTier
 
 	// Everything is ok
 	public static int ZTS_ERR_OK                       =  0;
+	// Error
+	public static int ZTS_ERR_OK                       = -1;
 	// A argument provided by the user application is invalid (e.g. out of range, NULL, etc)
-	public static int ZTS_ERR_INVALID_ARG              = -1;
+	public static int ZTS_ERR_INVALID_ARG              = -2;
 	// The service isn't initialized or is for some reason currently unavailable. Try again.
-	public static int ZTS_ERR_SERVICE                  = -2;
+	public static int ZTS_ERR_SERVICE                  = -3;
 	// For some reason this API operation is not permitted or doesn't make sense at this time.
-	public static int ZTS_ERR_INVALID_OP               = -3;
+	public static int ZTS_ERR_INVALID_OP               = -4;
 	// The call succeeded, but no object or relevant result was available
-	public static int ZTS_ERR_NO_RESULT                = -4;
+	public static int ZTS_ERR_NO_RESULT                = -5;
 	// General internal failure
-	public static int ZTS_ERR_GENERAL                  = -5;
+	public static int ZTS_ERR_GENERAL                  = -6;
 
 	//////////////////////////////////////////////////////////////////////////////
 	// Static initialization                                                    //

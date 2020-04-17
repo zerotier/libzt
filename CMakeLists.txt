@@ -540,28 +540,14 @@ endif ()
 # -----------------------------------------------------------------------------
 
 if (SHOULD_BUILD_TESTS)
-	# Minimal functional example
-	#add_executable (example ${PROJ_DIR}/test/example.cpp)
-	#target_link_libraries(example ${STATIC_LIB_NAME})
-
-	# API test
-	#add_executable (apitest ${PROJ_DIR}/test/apitest.cpp)
-	#target_link_libraries(apitest ${STATIC_LIB_NAME})
-
-	# Selftest
-	#add_executable (selftest ${PROJ_DIR}/test/selftest.cpp)
-	#target_link_libraries(selftest ${STATIC_LIB_NAME})
-	#set_target_properties (selftest PROPERTIES COMPILE_FLAGS "-D__SELFTEST__")
-
-	# client/server performance test
-	#add_executable (client ${PROJ_DIR}/test/client.cpp)
-	#target_link_libraries(client ${STATIC_LIB_NAME})
-	#add_executable (server ${PROJ_DIR}/test/server.cpp)
-	#target_link_libraries(server ${STATIC_LIB_NAME})
-
-	# Simple Example
-	#add_executable (simple ${PROJ_DIR}/test/simple.cpp)
-	#target_link_libraries(simple ${STATIC_LIB_NAME})
+	add_executable (adhoc ${PROJ_DIR}/examples/cpp/adhoc.cpp)
+	target_link_libraries(adhoc ${STATIC_LIB_NAME})
+	add_executable (comprehensive ${PROJ_DIR}/examples/cpp/comprehensive.cpp)
+	target_link_libraries(comprehensive ${STATIC_LIB_NAME})
+	add_executable (client ${PROJ_DIR}/examples/cpp/client.cpp)
+	target_link_libraries(client ${STATIC_LIB_NAME})
+	add_executable (server ${PROJ_DIR}/examples/cpp/server.cpp)
+	target_link_libraries(server ${STATIC_LIB_NAME})
 endif ()
 
 # -----------------------------------------------------------------------------

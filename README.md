@@ -1,19 +1,12 @@
----
-title: API
-created: '2020-02-21T23:54:22.194Z'
-modified: '2020-04-17T17:19:42.935Z'
----
+# ZeroTier SDK
+Connect physical devices, virtual devices, and application instances as if everything was on a single LAN.
+***
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/zerotier/ZeroTierOne/master/artwork/ZeroTierIcon.png" width="128" height="128" />
-  <br>
-  ZeroTier SDK
-  <br>
-  Connect physical devices, virtual devices, and application instances as if everything was on a single LAN.
-</p>
-
+<a href="https://www.zerotier.com/"><img src="https://raw.githubusercontent.com/zerotier/ZeroTierOne/master/artwork/ZeroTierIcon.png" width="128" height="128" align="left" hspace="20" vspace="9"></a>
 
 The ZeroTier SDK brings your network into userspace. We've paired our network hypervisor core with a network stack ([lwIP](https://savannah.nongnu.org/projects/lwip/)) to provide your application with an exclusive and private virtual network interface. All traffic on this interface is end-to-end encrypted between each peer and we provide an easy-to-use socket interface derived from [Berkeley Sockets](https://en.wikipedia.org/wiki/Berkeley_sockets). Since we aren't using the kernel's network stack that means, no drivers, no root, and no host configuration requirements. For a more in-depth discussion on the technical side of ZeroTier, check out our [Manual](https://www.zerotier.com/manual.shtml). For troubleshooting advice see our [Knowledgebase](https://zerotier.atlassian.net/wiki/spaces/SD/overview). If you need further assistance, create an account at [my.zerotier.com](https://my.zerotier.com) and join our community of users and professionals.
+
+***
 
 # Usage
 

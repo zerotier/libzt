@@ -708,6 +708,31 @@ ZT_SOCKET_API int ZTCALL zts_get_rfc4193_addr(
 	struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId);
 
 /**
+ * Ad-hoc Network:
+ *
+ * ffSSSSEEEE000000
+ * | |   |   |
+ * | |   |   Reserved for future use, must be 0
+ * | |   End of port range (hex)
+ * | Start of port range (hex)
+ * Reserved ZeroTier address prefix indicating a controller-less network.
+ *
+ * Ad-hoc networks are public (no access control) networks that have no network controller. Instead
+ * their configuration and other credentials are generated locally. Ad-hoc networks permit only IPv6
+ * UDP and TCP unicast traffic (no multicast or broadcast) using 6plane format NDP-emulated IPv6
+ * addresses. In addition an ad-hoc network ID encodes an IP port range. UDP packets and TCP SYN
+ * (connection open) packets are only allowed to destination ports within the encoded range.
+ *
+ * For example ff00160016000000 is an ad-hoc network allowing only SSH, while ff0000ffff000000 is an
+ * ad-hoc network allowing any UDP or TCP port.
+ *
+ * Keep in mind that these networks are public and anyone in the entire world can join them. Care must
+ * be taken to avoid exposing vulnerable services or sharing unwanted files or other resources.
+ *
+ */
+uint64_t zts_generate_adhoc_nwid_from_range(uint16_t startPortOfRange, uint16_t endPortOfRange);
+
+/**
  * @brief Return the number of peers
  *
  * @usage Call this after zts_start() has succeeded

@@ -747,6 +747,13 @@ int zts_get_rfc4193_addr(struct sockaddr_storage *addr, const uint64_t nwid, con
 	memcpy(in6->sin6_addr.s6_addr, _rfc4193Addr.rawIpData(), sizeof(struct in6_addr));
 }
 
+uint64_t zts_generate_adhoc_nwid_from_range(uint16_t startPortOfRange, uint16_t endPortOfRange)
+{
+	char nwidStr[INET6_ADDRSTRLEN];
+	sprintf(nwidStr, "ff%04x%04x000000", startPortOfRange, endPortOfRange);
+	return strtoull(nwidStr, NULL, 16);
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // Peers                                                                    //
 //////////////////////////////////////////////////////////////////////////////

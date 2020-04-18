@@ -1,16 +1,16 @@
 # ZeroTier SDK
-Connect physical devices, virtual devices, and application instances as if everything was on a single LAN.
+Connect physical devices, virtual devices, and application instances as if everything is on a single LAN.
 ***
-
-<a href="https://www.zerotier.com/"><img src="https://raw.githubusercontent.com/zerotier/ZeroTierOne/master/artwork/ZeroTierIcon.png" width="128" height="128" align="left" hspace="20" vspace="9"></a>
 
 The ZeroTier SDK brings your network into userspace. We've paired our network hypervisor core with a network stack ([lwIP](https://savannah.nongnu.org/projects/lwip/)) to provide your application with an exclusive and private virtual network interface. All traffic on this interface is end-to-end encrypted between each peer and we provide an easy-to-use socket interface derived from [Berkeley Sockets](https://en.wikipedia.org/wiki/Berkeley_sockets). Since we aren't using the kernel's network stack that means, no drivers, no root, and no host configuration requirements. For a more in-depth discussion on the technical side of ZeroTier, check out our [Manual](https://www.zerotier.com/manual.shtml). For troubleshooting advice see our [Knowledgebase](https://zerotier.atlassian.net/wiki/spaces/SD/overview). If you need further assistance, create an account at [my.zerotier.com](https://my.zerotier.com) and join our community of users and professionals.
 
 ***
 
+<div style="page-break-after: always;"></div>
+
 # Usage
 
-### Downloads: [download.zerotier.com/dist/sdk](https://download.zerotier.com/dist/sdk)
+### Downloads and examples: [download.zerotier.com/dist/sdk](https://download.zerotier.com/dist/sdk)
 
 ### Homebrew
 
@@ -23,11 +23,10 @@ clang++ -o yourApp yourApp.cpp -lzt; ./yourApp
 
 ### Building from source
 
-To build both `release` and `debug` libraries for only your host's architecture use `make host`. Or optionally `make host_release` for release only. To build everything including things like iOS frameworks, Android packages, etc, use `make all`. Possible build targets can be seen by using `make list`. Resultant libraries will be placed in `./lib`, test and example programs will be placed in `./bin`.
+To build both `release` and `debug` libraries for only your host's architecture use `make host`. Or optionally `make host_release` for release only. To build everything including things like iOS frameworks, Android packages, etc, use `make all`. Possible build targets can be seen by using `make list`. Resultant libraries will be placed in `./lib`, test and example programs will be placed in `./bin`:
 
 ```
 make update; make patch; make host
-clang++ -o yourApp yourApp.cpp -L./lib/release/linux-x86_64/ -lzt; ./yourApp
 ```
 
 Typical build output:
@@ -37,12 +36,10 @@ lib
 ├── release
 |    └── linux-x86_64
 |       ├── libzt.a
-|       ├── libztcore.a
 |       └── libzt.so
 └── debug
     └── linux-x86_64
         ├── libzt.a
-        ├── libztcore.a
         └── libzt.so
 bin
 └── release
@@ -51,6 +48,12 @@ bin
         ├── client
         ├── comprehensive
         └── server
+```
+
+Example linking step:
+
+```
+clang++ -o yourApp yourApp.cpp -L./lib/release/linux-x86_64/ -lzt; ./yourApp
 ```
 
 <div style="page-break-after: always;"></div>
@@ -92,7 +95,9 @@ int main()
 
 ```
 
-For more complete examples see [examples/](./examples/)
+For more complete examples see `./examples/`
+
+<div style="page-break-after: always;"></div>
 
 After calling `zts_start()` you will receive one or more of the following events:
 
@@ -185,7 +190,7 @@ A typical ordering of messages may look like the following:
 ```
 ZTS_EVENT_NETIF_UP --- network=a09acf023be465c1, mac=73b7abcfc207, mtu=10000
 ZTS_EVENT_ADDR_NEW_IP4 --- addr=11.7.7.184 (on network=a09acf023be465c1)
-ZTS_EVENT_ADDR_NEW_IP6 --- addr=fda0:9acf:233:e4b0:7099:9309:4c9b:c3c7 (on network=a09acf023be465c1)
+ZTS_EVENT_ADDR_NEW_IP6 --- addr=fda0:9acf:233:e4b0:7099:9309:4c9b:c3c7
 ZTS_EVENT_NODE_ONLINE, node=c4c7ba3cf
 ZTS_EVENT_NETWORK_READY_IP4 --- network=a09acf023be465c1
 ZTS_EVENT_NETWORK_READY_IP6 --- network=a09acf023be465c1
@@ -207,7 +212,6 @@ ZTS_EVENT_NODE_UNRECOVERABLE_ERROR
 ZTS_EVENT_NODE_NORMAL_TERMINATION
 ```
 
-
 ## Network Events
 
 These events pertain to the state of the indicated network. This event type will arrive with a `zts_network_details` object accessible via `msg->network`. If for example you want to know the number of assigned routes for your network you can use `msg->network->num_routes`. Similarly for the MTU, use `msg->network->mtu`. Additionally, one can query the status of the network with `zts_get_network_status(uint64_t networkId)`, this will **return** the status as an integer value only.
@@ -222,6 +226,8 @@ ZTS_EVENT_NETWORK_READY_IP4
 ZTS_EVENT_NETWORK_READY_IP6
 ZTS_EVENT_NETWORK_DOWN
 ```
+
+<div style="page-break-after: always;"></div>
 
 ## Peer Events
 
@@ -267,7 +273,7 @@ ZTS_EVENT_ADDR_REMOVED_IP6
 
 # Error handling
 
-Calling a `zts_*` function will result in one of the following return codes. Only when `ZTS_ERR` is returned will `zts_errno` be set. It's values closely mirror those used in standard socket interfaces and are defined in [ext/lwip/src/include/lwip/errno.h](ext/lwip/src/include/lwip/errno.h).
+Calling a `zts_*` function will result in one of the following return codes. Only when `ZTS_ERR` is returned will `zts_errno` be set. Its values closely mirror those used in standard socket interfaces and are defined in `./ext/lwip/src/include/lwip/errno.h`.
 
  - `ZTS_ERR_OK`: No error
  - `ZTS_ERR`: Error (see `zts_errno`for more information)
@@ -280,17 +286,19 @@ Calling a `zts_*` function will result in one of the following return codes. Onl
 *NOTE: For Android/Java (or similar) which use JNI, the socket API's error codes are negative values encoded in the return values of function calls*
 *NOTE: For protocol-level errors (such as dropped packets) or internal network stack errors, see the section `Statistics`*
 
+<div style="page-break-after: always;"></div>
+
 # Common pitfalls
 
   - If you have started a node but have not received a `ZTS_EVENT_NODE_ONLINE`:
-    - You may need to view our [Router Config Tips](https://zerotier.atlassian.net/wiki/spaces/SD/pages/6815768/Router+Configuration+Tips) knowledgebase article. Sometimes this is due to a firewall/NAT settings.
+    - You may need to view our [Router Config Tips](https://zerotier.atlassian.net/wiki/spaces/SD/pages/6815768/Router+Configuration+Tips) knowledgebase article. Sometimes this is due to firewall/NAT settings.
 
   - If you have received a `ZTS_EVENT_NODE_ONLINE` event and attempted to join a network but do not see your node ID in the network panel on [my.zerotier.com](my.zerotier.com) after some time:
     - You may have typed in your network ID incorrectly.
     - Used an improper integer representation for your network ID (e.g. `int` instead of `uint64_t`).
 
  - If you are unable to reliably connect to peers:
-    - You should first read the section on **Connecting and communicating with peers**. There are subtle difference you should be aware of.
+    - You should first read the section on **Connecting and communicating with peers**.
     - If the previous step doesn't help move onto our knowledgebase article [Router Config Tips](https://zerotier.atlassian.net/wiki/spaces/SD/pages/6815768/Router+Configuration+Tips). Sometimes this can be a transport-triggered link issue, and sometimes it can be a firewall/NAT issue.
 
  - API calls seem to fail in nonsensical ways and you're tearing your hair out:
@@ -328,6 +336,8 @@ struct zts_sockaddr_in6 in6;
     ...
 inet_ntop(AF_INET6, &(in6->sin6_addr), dstStr, INET6_ADDRSTRLEN);
 ```
+
+<div style="page-break-after: always;"></div>
 
 # Thread model
 
@@ -368,6 +378,8 @@ If the information in those sections hasn't helped, there are a couple of ways t
   ```
 
 4) There are a series of additional events which can signal whether the network stack or its virtual network interfaces have been set up properly:
+
+<div style="page-break-after: always;"></div>
 
 **Network stack events** - These signal whether the userspace networking stack was brought up successfully. You can ignore these in most cases. This event type will arrive with no additional contextual information.
 

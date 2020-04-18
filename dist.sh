@@ -11,6 +11,7 @@
 #
 # (1) On packaging platform, build most targets (including android and ios):
 #    (1a) make all
+#    (1b) make wrap
 # (2) On other supported platforms, build remaining supported targets
 #     and copy them into a directory structure that is expected by a later stage:
 #    (2a) make all
@@ -19,7 +20,7 @@
 #     of packaging platform. For instance:
 #
 #  libzt
-#    ├── API.md
+#    ├── README.md
 #    ├── products
 #    ├── linux-x86_64_products
 #    ├── linux-armv7l_products
@@ -29,8 +30,10 @@
 #    └── ...
 #
 # (4) Merge all builds into single `products` directory and package:
+#    (4a) make clean
 #    (4a) make dist
 
+CMAKE=cmake
 BUILD_CONCURRENCY=
 #"-j 2"
 OSNAME=$(uname | tr '[A-Z]' '[a-z]')
@@ -106,7 +109,7 @@ generate_projects()
         if [ ! -d "$XCODE_IOS_PROJ_DIR" ]; then
             mkdir -p $XCODE_IOS_PROJ_DIR
             cd $XCODE_IOS_PROJ_DIR
-            cmake -G Xcode ../../ -DIOS_FRAMEWORK=1 -DIOS_ARM64=1
+            $CMAKE -G Xcode ../../ -DIOS_FRAMEWORK=1 -DIOS_ARM64=1
             # Manually replace arch strings in project file
             sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj
             cd -
@@ -115,7 +118,7 @@ generate_projects()
         if [ ! -d "$XCODE_IOS_SIMULATOR_PROJ_DIR" ]; then
             mkdir -p $XCODE_IOS_SIMULATOR_PROJ_DIR
             cd $XCODE_IOS_SIMULATOR_PROJ_DIR
-            cmake -G Xcode ../../ -DIOS_FRAMEWORK=1
+            $CMAKE -G Xcode ../../ -DIOS_FRAMEWORK=1
             # Manually replace arch strings in project file
             #sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj
             cd -
@@ -125,7 +128,7 @@ generate_projects()
         if [ ! -d "$XCODE_MACOS_PROJ_DIR" ]; then
             mkdir -p $XCODE_MACOS_PROJ_DIR
             cd $XCODE_MACOS_PROJ_DIR
-            cmake -G Xcode ../../ -DMACOS_FRAMEWORK=1
+            $CMAKE -G Xcode ../../ -DMACOS_FRAMEWORK=1
             cd -
         fi
     fi
@@ -209,8 +212,8 @@ host_jar()
     # Build dynamic library
     BUILD_DIR=$(pwd)/tmp/${NORMALIZED_OSNAME}-$(uname -m)-jni-$1
     UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
-    cmake -H. -B$BUILD_DIR -DCMAKE_BUILD_TYPE=$UPPERCASE_CONFIG -DSDK_JNI=ON "-DSDK_JNI=1"
-    cmake --build $BUILD_DIR $BUILD_CONCURRENCY
+    $CMAKE -H. -B$BUILD_DIR -DCMAKE_BUILD_TYPE=$UPPERCASE_CONFIG -DSDK_JNI=ON "-DSDK_JNI=1"
+    $CMAKE --build $BUILD_DIR $BUILD_CONCURRENCY
     # Copy dynamic library from previous build step
     # And, remove any lib that may exist prior. We don't want accidental successes
     cd $(pwd)/ports/java
@@ -259,8 +262,8 @@ host()
     mkdir -p $LIB_OUTPUT_DIR
     rm -rf $LIB_OUTPUT_DIR/libzt.a $LIB_OUTPUT_DIR/$DYNAMIC_LIB_NAME $LIB_OUTPUT_DIR/libztcore.a
     # Build
-    cmake -H. -B$BUILD_DIR -DCMAKE_BUILD_TYPE=$1
-    cmake --build $BUILD_DIR $BUILD_CONCURRENCY
+    $CMAKE -H. -B$BUILD_DIR -DCMAKE_BUILD_TYPE=$1
+    $CMAKE --build $BUILD_DIR $BUILD_CONCURRENCY
     # Move and clean up
     mv $BUILD_DIR/bin/* $BIN_OUTPUT_DIR
     mv $BUILD_DIR/lib/* $LIB_OUTPUT_DIR
@@ -333,7 +336,7 @@ clean()
     rm -rf tmp lib bin products
     rm -f *.o *.s *.exp *.lib *.core core
     # Generally search for and remove object files, libraries, etc
-    find . -type f \( -name '*.dylib' -o -name '*.so' -o -name \
+    find . -path './*_products' -prune -type f \( -name '*.dylib' -o -name '*.so' -o -name \
         '*.a' -o -name '*.o' -o -name '*.o.d' -o -name \
         '*.out' -o -name '*.log' -o -name '*.dSYM' -o -name '*.class' \) -delete
     # Remove any sources copied to project directories
@@ -451,11 +454,11 @@ display()
 # Merge all remotely-built targets. This is used before dist()
 merge()
 {
-    #if [ -d "darwin-x86_64_products" ]; then
-    #    rsync -a darwin-x86_64_products/ products/
-    #else
-    #    echo "Warning: darwin-x86_64_products is missing"
-    #fi
+    if [ -d "darwin-x86_64_products" ]; then
+        rsync -a darwin-x86_64_products/ products/
+    else
+        echo "Warning: darwin-x86_64_products is missing"
+    fi
     # x86_64 64-bit linux
     REMOTE_PRODUCTS_DIR=linux-x86_64_products
     if [ -d "$REMOTE_PRODUCTS_DIR" ]; then
@@ -515,8 +518,8 @@ package_licenses()
     cp $CURR_DIR/include/net/ROUTE_H-LICENSE $DEST_DIR/ROUTE_H-LICENSE
 }
 
-# Copies binaries, documentation, licenses, etc into a products
-# dir and then tarballs everything together
+# Copies binaries, documentation, licenses, source, etc into a products
+# directory and then tarballs everything together
 package_everything()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
@@ -526,27 +529,27 @@ package_everything()
     # Make products directory
     # Licenses
     package_licenses $(pwd) $PROD_DIR/licenses
+    # Examples
+    mkdir -p $PROD_DIR/examples
+    cp examples/cpp/* $PROD_DIR/examples
+    # Source
+    mkdir -p $PROD_DIR/src
+    cp src/*.cpp src/*.hpp src/*.c src/*.h $PROD_DIR/src
     # Documentation
-    mkdir -p $PROD_DIR/doc
+    mkdir -p $PROD_DIR/reference
     # Copy the errno header from lwIP for customer reference
-    cp ext/lwip/src/include/lwip/errno.h $PROD_DIR/doc
-    cp $(pwd)/API.pdf $PROD_DIR/API.pdf
+    cp ext/lwip/src/include/lwip/errno.h $PROD_DIR/reference
+    cp $(pwd)/README.pdf $PROD_DIR/README.pdf
     # Header(s)
     mkdir -p $PROD_DIR/include
     cp $(pwd)/include/*.h $PROD_DIR/include
     cp $(pwd)/ext/ZeroTierOne/include/ZeroTierOne.h $PROD_DIR/include
     # Libraries
     mkdir -p $PROD_DIR/lib
-    cp -r $(pwd)/lib/$1/* $PROD_DIR/lib
+    cp -r $(pwd)/products/$1/* $PROD_DIR/lib
+    rm -rf $(pwd)/products/$1
     # Clean
     find $PROD_DIR -type f \( -name '*.DS_Store' -o -name 'thumbs.db' \) -delete
-    # Emit a README file
-    echo 'See API.md for more information on how to use the SDK
-- ZeroTier Manual: https://www.zerotier.com/manual.shtml
-- libzt Manual: https://www.zerotier.com/manual.shtml#5
-- libzt Repo: https://github.com/zerotier/libzt
-- ZeroTierOne Repo: https://github.com/zerotier/ZeroTierOne
-- Downloads: https://www.zerotier.com/download.shtml' > $PROD_DIR/README
     # Record the version (and each submodule's version)
     echo "$(git describe)" > $PROD_DIR/VERSION
     echo -e "$(git submodule status | awk '{$1=$1};1')" >> $PROD_DIR/VERSION
@@ -566,10 +569,10 @@ package_everything()
     tree $PROD_DIR
     cat $PROD_DIR/VERSION
     # Final check. Display warnings if anything is missing
-    FILES="README
-    VERSION
-    API.pdf
-    doc/errno.h
+    FILES="VERSION
+    README.md
+    README.pdf
+    reference/errno.h
     licenses/LWIP-LICENSE.BSD
     licenses/CONCURRENTQUEUE-LICENSE.BSD
     licenses/ZEROTIER-LICENSE.BSL-1.1

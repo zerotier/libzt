@@ -2,10 +2,8 @@
  * libzt API example
  */
 
-#include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 #include <string>
 #include <inttypes.h>
 
@@ -19,6 +17,15 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #endif
+
+void delay_ms(long ms)
+{
+#if defined(_WIN32)
+	Sleep(ms);
+#else
+	usleep(ms*1000);
+#endif
+}
 
 #include "ZeroTier.h"
 
@@ -204,32 +211,33 @@ int main(int argc, char **argv)
 {
 	if (argc != 5) {
 		printf("\nlibzt example server\n");
-		printf("server <config_file_path> <nwid> <4|6> <bind port>\n");
+		printf("server <config_file_path> <nwid> <serverBindPort> <ztServicePort>\n");
 		exit(0);
 	}
-	uint64_t nwid = strtoull(argv[2],NULL,16);
-	int ipVersion = atoi(argv[3]);
-	int bindPort = atoi(argv[4]);
-	int defaultServicePort = 9998;
+	uint64_t nwid = strtoull(argv[2],NULL,16); // Network ID to join
+	int serverBindPort = atoi(argv[3]); // Port the application should bind to
+	int ztServicePort = atoi(argv[4]); // Port ZT uses to send encrypted UDP packets to peers (try something like 9994)
 	
 	struct zts_sockaddr_in in4, acc_in4;
-	if (ipVersion == 4) {
-		in4.sin_port = htons(bindPort);
-		in4.sin_addr.s_addr = INADDR_ANY;
-		in4.sin_family = ZTS_AF_INET;
-	}
+	in4.sin_port = htons(serverBindPort);
+#if defined(_WIN32)
+	in4.sin_addr.S_addr = INADDR_ANY;
+#else
+	in4.sin_addr.s_addr = INADDR_ANY;
+#endif
+	in4.sin_family = ZTS_AF_INET;
 
 	// Bring up ZeroTier service and join network
 
 	int fd, accfd;
 	int err = ZTS_ERR_OK;
 
-	if((err = zts_start(argv[1], &myZeroTierEventCallback, defaultServicePort)) != ZTS_ERR_OK) {
+	if((err = zts_start(argv[1], &myZeroTierEventCallback, ztServicePort)) != ZTS_ERR_OK) {
 		printf("Unable to start service, error = %d. Exiting.\n", err);
 		exit(1);
 	}
 	printf("Waiting for node to come online...\n");
-	while (!nodeReady) { usleep(50000); }
+	while (!nodeReady) { delay_ms(50); }
 	printf("This node's identity is stored in %s\n", argv[1]);
 
 	if((err = zts_join(nwid)) != ZTS_ERR_OK) {
@@ -238,7 +246,7 @@ int main(int argc, char **argv)
 	}
 	printf("Joining network %llx\n", nwid);
 	printf("Don't forget to authorize this device in my.zerotier.com or the web API!\n");
-	while (!networkReady) { usleep(50000); }
+	while (!networkReady) { delay_ms(50); }
 
 	// Socket-like API example
 

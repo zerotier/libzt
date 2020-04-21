@@ -97,12 +97,31 @@
  *          inet_ntop(AF_INET6, &(in6->sin6_addr), dstStr, INET6_ADDRSTRLEN);
  */
 
-#include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <string>
+#include <inttypes.h>
+#include <stdlib.h>
+
+#if defined(_WIN32)
+#include <WinSock2.h>
+#include <stdint.h>
+#else
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#endif
+
+void delay_ms(long ms)
+{
+#if defined(_WIN32)
+	Sleep(ms);
+#else
+	usleep(ms*1000);
+#endif
+}
 
 #include "ZeroTier.h"
 
@@ -218,7 +237,7 @@ void printPeerDetails(struct zts_peer_details *pd)
 		pd->versionRev,
 		pd->pathCount);
 	// Print all known paths for each peer
-	for (int j=0; j<pd->pathCount; j++) {
+	for (unsigned int j=0; j<pd->pathCount; j++) {
 		char ipstr[INET6_ADDRSTRLEN];
 		int port = 0;
 		struct sockaddr *sa = (struct sockaddr *)&(pd->paths[j].address);
@@ -269,7 +288,7 @@ void getAllPeerDetails()
 	expensive for large numbers of peers. Consider using
 	get_peer(struct zts_peer_details *pds, uint64_t peerId)
 	instead */
-	int num = 128;
+	unsigned int num = 128;
 	int err;
 	if ((err = zts_get_peers(pd, &num)) < 0) {
 		printf("error (%d)\n", err);
@@ -277,7 +296,7 @@ void getAllPeerDetails()
 	}
 	if (num) {
 		printf("num=%d\n", num);
-		for (int i=0; i<num; i++) {
+		for (unsigned int i=0; i<num; i++) {
 			printPeerDetails(&pd[i]);
 		}
 	}
@@ -304,13 +323,13 @@ void display_stack_stats()
 
 int main(int argc, char **argv) 
 {
-	if (argc != 3) {
+	if (argc != 4) {
 		printf("\nlibzt example server\n");
-		printf("server <config_file_path> <nwid> <ztServicePort>\n");
+		printf("comprehensive <config_file_path> <nwid> <ztServicePort>\n");
 		exit(0);
 	}
-	uint64_t nwid = strtoull(argv[2],NULL,16);
-	int ztServicePort = atoi(argv[3]);
+	uint64_t nwid = strtoull(argv[2],NULL,16); // Network ID to join
+	int ztServicePort = atoi(argv[3]); // Port ZT uses to send encrypted UDP packets to peers (try something like 9994)
 	
 	// Bring up ZeroTier service and join network
 
@@ -329,8 +348,8 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	printf("Waiting for node to come online...\n");
-	while (!nodeReady) { usleep(50000); }
-	printf("This node ID is %lx\n", zts_get_node_id());
+	while (!nodeReady) { delay_ms(50); }
+	printf("This node ID is %llx\n", zts_get_node_id());
 	printf("This node's identity is stored in %s\n", argv[1]);
 
 	if((err = zts_join(nwid)) != ZTS_ERR_OK) {
@@ -339,7 +358,7 @@ int main(int argc, char **argv)
 	}
 	printf("Joining network %llx\n", nwid);
 	printf("Don't forget to authorize this device in my.zerotier.com or the web API!\n");
-	while (!networkReady) { usleep(50000); }
+	while (!networkReady) { delay_ms(50); }
 
 	// Get multiple peer's details 
 	getAllPeerDetails();
@@ -360,7 +379,7 @@ int main(int argc, char **argv)
 	// Idle and just show callback events, stack statistics, etc
 
 	while (true) {
-		usleep(50000);
+		delay_ms(1000);
 		status = zts_get_node_status();
 		printf("zts_get_node_status()=%d\n", status);
 		display_stack_stats();

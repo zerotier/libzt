@@ -2,10 +2,8 @@
  * libzt API example
  */
 
-#include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 #include <string>
 #include <inttypes.h>
 
@@ -19,6 +17,15 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #endif
+
+void delay_ms(long ms)
+{
+#if defined(_WIN32)
+	Sleep(ms);
+#else
+	usleep(ms*1000);
+#endif
+}
 
 #include "ZeroTier.h"
 
@@ -202,31 +209,35 @@ void myZeroTierEventCallback(struct zts_callback_msg *msg)
 
 int main(int argc, char **argv) 
 {
-	if (argc != 5) {
+	if (argc != 6) {
 		printf("\nlibzt example client\n");
-		printf("client <config_file_path> <nwid> <remoteAddr> <remotePort>\n");
+		printf("client <config_file_path> <nwid> <remoteAddr> <remotePort> <ztServicePort>\n");
 		exit(0);
 	}
-	uint64_t nwid = strtoull(argv[2],NULL,16);
-	std::string remoteAddr = argv[3];
-	int remotePort = atoi(argv[4]);
-	int defaultServicePort = 9998;
+	uint64_t nwid = strtoull(argv[2],NULL,16); // Network ID to join
+	std::string remoteAddr = argv[3]; // Remote application's virtual ZT address
+	int remotePort = atoi(argv[4]); // Port the application will try to connect to the server on
+	int ztServicePort = atoi(argv[5]); // Port ZT uses to send encrypted UDP packets to peers (try something like 9994)
 
 	struct zts_sockaddr_in in4;
 	in4.sin_port = htons(remotePort);
-	in4.sin_addr.s_addr = inet_addr(remoteAddr.c_str());
+#if defined(_WIN32)
+		in4.sin_addr.S_addr = inet_addr(remoteAddr.c_str());;
+#else
+		in4.sin_addr.s_addr = inet_addr(remoteAddr.c_str());;
+#endif
 	in4.sin_family = ZTS_AF_INET;
 
 	// Bring up ZeroTier service and join network
 
 	int err = ZTS_ERR_OK;
 
-	if((err = zts_start(argv[1], &myZeroTierEventCallback, defaultServicePort)) != ZTS_ERR_OK) {
+	if((err = zts_start(argv[1], &myZeroTierEventCallback, ztServicePort)) != ZTS_ERR_OK) {
 		printf("Unable to start service, error = %d. Exiting.\n", err);
 		exit(1);
 	}
 	printf("Waiting for node to come online...\n");
-	while (!nodeReady) { usleep(50000); }
+	while (!nodeReady) { delay_ms(50); }
 	printf("This node's identity is stored in %s\n", argv[1]);
 
 	if((err = zts_join(nwid)) != ZTS_ERR_OK) {
@@ -235,7 +246,7 @@ int main(int argc, char **argv)
 	}
 	printf("Joining network %llx\n", nwid);
 	printf("Don't forget to authorize this device in my.zerotier.com or the web API!\n");
-	while (!networkReady) { usleep(50000); }
+	while (!networkReady) { delay_ms(50); }
 
 	// Socket-like API example
 
@@ -249,19 +260,18 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	// Retries are often required since ZT uses transport-triggered links (explained above)
-	int delay = 1; // second
 	for (;;) {
 		printf("Connecting to remote host...\n");
 		if ((err = zts_connect(fd, (const struct sockaddr *)&in4, sizeof(in4))) < 0) {
-			printf("Error connecting to remote host (fd=%d, ret=%d, zts_errno=%d). Trying again in %ds\n",
-				fd, err, zts_errno, delay);
+			printf("Error connecting to remote host (fd=%d, ret=%d, zts_errno=%d). Trying again.\n",
+				fd, err, zts_errno);
 			zts_close(fd);
 			printf("Creating socket...\n");
 			if ((fd = zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0)) < 0) {
 				printf("Error creating ZeroTier socket (fd=%d, zts_errno=%d). Exiting.\n", fd, zts_errno);
 				exit(1);
 			}
-			sleep(delay);
+			delay_ms(250);
 		} 
 		else {
 			printf("Connected.\n");

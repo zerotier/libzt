@@ -97,12 +97,31 @@
  *          inet_ntop(AF_INET6, &(in6->sin6_addr), dstStr, INET6_ADDRSTRLEN);
  */
 
-#include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <string>
+#include <inttypes.h>
+#include <stdlib.h>
+
+#if defined(_WIN32)
+#include <WinSock2.h>
+#include <stdint.h>
+#else
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#endif
+
+void delay_ms(long ms)
+{
+#if defined(_WIN32)
+	Sleep(ms);
+#else
+	usleep(ms*1000);
+#endif
+}
 
 #include "ZeroTier.h"
 
@@ -209,12 +228,12 @@ int main(int argc, char **argv)
 {
 	if (argc != 5) {
 		printf("\nlibzt example\n");
-		printf("server <config_file_path> <adhocStartPort> <adhocEndPort> <ztServicePort>\n");
+		printf("adhoc <config_file_path> <adhocStartPort> <adhocEndPort> <ztServicePort>\n");
 		exit(0);
 	}
 	int adhocStartPort = atoi(argv[2]); // Start of port range your application will use
 	int adhocEndPort = atoi(argv[3]); // End of port range your application will use
-	int ztServicePort = atoi(argv[4]); // Port the library uses to send encapsulated and encrypted UDP packets to peers
+	int ztServicePort = atoi(argv[4]); // Port ZT uses to send encrypted UDP packets to peers (try something like 9994)
 
 	uint64_t adhoc_nwid = zts_generate_adhoc_nwid_from_range(adhocStartPort, adhocEndPort);
 	int err = ZTS_ERR_OK;
@@ -226,7 +245,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	printf("Waiting for node to come online...\n");
-	while (!nodeReady) { usleep(50000); }
+	while (!nodeReady) { delay_ms(50); }
 	printf("This node's identity is stored in %s\n", argv[1]);
 
 	if((err = zts_join(adhoc_nwid)) != ZTS_ERR_OK) {
@@ -234,12 +253,12 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	printf("Joining network %llx\n", adhoc_nwid);
-	while (!networkReady) { usleep(50000); }
+	while (!networkReady) { delay_ms(50); }
 
 	// Idle and just show callback events, stack statistics, etc
 
 	printf("Node will now idle...\n");
-	while (true) { sleep(1); }
+	while (true) { delay_ms(1000); }
 
 	// Shut down service and stack threads
 

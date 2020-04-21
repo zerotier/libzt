@@ -13,36 +13,53 @@ REM final output directories
 set WinReleaseOutputDir=lib\release
 set WinDebugOutputDir=lib\debug
 
+mkdir %WinReleaseOutputDir%\win-x86
+mkdir %WinReleaseOutputDir%\win-x86_64
+mkdir %WinDebugOutputDir%\win-x86
+mkdir %WinDebugOutputDir%\win-x86_64
+
 mkdir %WinReleaseOutputDir%
 mkdir %WinDebugOutputDir%
 
 pushd %Win32ReleaseBuildDir%
-cmake -G "Visual Studio 15 2017" ../../../
+cmake -G "Visual Studio 16 2019" ../../../
 cmake --build . --config Release
 popd
-copy %Win32ReleaseBuildDir%\Release\zt.lib %WinReleaseOutputDir%\libzt32.lib
-copy %Win32ReleaseBuildDir%\Release\zt-shared.dll %WinReleaseOutputDir%\libzt32.dll
+copy %Win32ReleaseBuildDir%\Release\zt.lib %WinReleaseOutputDir%\win-x86\libzt32.lib
+copy %Win32ReleaseBuildDir%\Release\zt-shared.dll %WinReleaseOutputDir%\win-x86\libzt32.dll
 
 pushd %Win32DebugBuildDir%
-cmake -G "Visual Studio 15 2017" ../../../
+cmake -G "Visual Studio 16 2019" ../../../
 cmake --build . --config Debug
 popd
-copy %Win32DebugBuildDir%\Debug\zt.lib %WinDebugOutputDir%\libzt32d.lib
-copy %Win32DebugBuildDir%\Debug\zt-shared.dll %WinDebugOutputDir%\libzt32d.dll
+copy %Win32DebugBuildDir%\Debug\zt.lib %WinDebugOutputDir%\win-x86\libzt32d.lib
+copy %Win32DebugBuildDir%\Debug\zt-shared.dll %WinDebugOutputDir%\win-x86\libzt32d.dll
 
 pushd %Win64ReleaseBuildDir%
-cmake -G "Visual Studio 15 2017 Win64" ../../../
+cmake -G "Visual Studio 16 2019" -A x64 ../../../
 cmake --build . --config Release
 popd
-copy %Win64ReleaseBuildDir%\Release\zt.lib %WinReleaseOutputDir%\libzt64.lib
-copy %Win64ReleaseBuildDir%\Release\zt-shared.dll %WinReleaseOutputDir%\libzt64.dll
+copy %Win64ReleaseBuildDir%\Release\zt.lib %WinReleaseOutputDir%\win-x86_64\libzt64.lib
+copy %Win64ReleaseBuildDir%\Release\zt-shared.dll %WinReleaseOutputDir%\win-x86_64\libzt64.dll
 
 pushd %Win64DebugBuildDir%
-cmake -G "Visual Studio 15 2017 Win64" ../../../
+cmake -G "Visual Studio 16 2019" -A x64 ../../../
 cmake --build . --config Debug
 popd
-copy %Win64DebugBuildDir%\Debug\zt.lib %WinDebugOutputDir%\libzt64d.lib
-copy %Win64DebugBuildDir%\Debug\zt-shared.dll %WinDebugOutputDir%\libzt64d.dll
+copy %Win64DebugBuildDir%\Debug\zt.lib %WinDebugOutputDir%\win-x86_64\libzt64d.lib
+copy %Win64DebugBuildDir%\Debug\zt-shared.dll %WinDebugOutputDir%\win-x86_64\libzt64d.dll
+
+REM Copy example binaries
+
+mkdir bin\debug\win-x86\
+copy %Win32DebugBuildDir%\Debug\*.exe bin\debug\win-x86\
+mkdir bin\debug\win-x86_64\
+copy %Win64DebugBuildDir%\Debug\*.exe bin\debug\win-x86_64\
+
+mkdir bin\release\win-x86\
+copy %Win32ReleaseBuildDir%\Release\*.exe bin\release\win-x86\
+mkdir bin\release\win-x86_64\
+copy %Win64ReleaseBuildDir%\Release\*.exe bin\release\win-x86_64\
 
 exit 0
 
@@ -51,10 +68,10 @@ rd /S /Q bin
 # Build with JNI
 
 mkdir WinBuild32 & pushd WinBuild32
-cmake -D JNI:BOOL=ON -G "Visual Studio 15 2017" ../
+cmake -D JNI:BOOL=ON -G "Visual Studio 16 2019" ../
 popd
 mkdir WinBuild64 & pushd WinBuild64
-cmake -D JNI:BOOL=ON -G "Visual Studio 15 2017 Win64" ../
+cmake -D JNI:BOOL=ON -G "Visual Studio 16 2019" -A x64 ../
 popd
 
 cmake --build WinBuild32 --config Release

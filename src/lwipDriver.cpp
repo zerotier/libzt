@@ -36,7 +36,10 @@
 #include "lwip/ip_addr.h"
 #include "lwip/nd6.h"
 #include "lwip/netifapi.h"
+
+#ifdef LWIP_STATS
 #include "lwip/stats.h"
+#endif
 
 #include "VirtualTap.hpp"
 #include "lwipDriver.hpp"
@@ -143,7 +146,7 @@ void lwip_driver_init()
 #if defined(_WIN32)
 	sys_init(); // Required for win32 init of critical sections
 #endif
-	void *st = (void*)sys_thread_new(ZTS_LWIP_DRIVER_THREAD_NAME, main_lwip_driver_loop,
+	sys_thread_new(ZTS_LWIP_DRIVER_THREAD_NAME, main_lwip_driver_loop,
 		NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
 }
 
@@ -255,7 +258,7 @@ void lwip_eth_rx(VirtualTap *tap, const MAC &from, const MAC &to, unsigned int e
 		*/
 	}
 
-	p = pbuf_alloc(PBUF_RAW, len+sizeof(struct eth_hdr), PBUF_RAM);
+	p = pbuf_alloc(PBUF_RAW, (uint16_t)len+sizeof(struct eth_hdr), PBUF_RAM);
 	if (!p) {
 		DEBUG_ERROR("dropped packet: unable to allocate memory for pbuf");
 		return;
@@ -461,7 +464,7 @@ static err_t netif_init6(struct netif *n)
 	return ERR_OK;
 }
 
-void lwip_init_interface(void *tapref, const MAC &mac, const InetAddress &ip)
+void lwip_init_interface(void *tapref, const InetAddress &ip)
 {
 	char ipbuf[INET6_ADDRSTRLEN];
 	char macbuf[ZTS_MAC_ADDRSTRLEN];

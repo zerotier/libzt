@@ -555,7 +555,7 @@ ZT_SOCKET_API int ZTCALL zts_core_running();
  * @usage Call this after zts_start(), zts_startjoin() and/or zts_join()
  * @return Number of networks joined by this node
  */
-ZT_SOCKET_API int ZTCALL zts_get_num_joined_networks();
+ZT_SOCKET_API size_t ZTCALL zts_get_num_joined_networks();
 
 /**
  * @brief Populates a structure with details for a given network
@@ -749,7 +749,7 @@ ZT_SOCKET_API int zts_get_peer_count();
  * @usage Call this after zts_start() has succeeded
  * @return
  */
-ZT_SOCKET_API int zts_get_peers(struct zts_peer_details *pds, int *num);
+ZT_SOCKET_API int zts_get_peers(struct zts_peer_details *pds, unsigned int *num);
 
 /**
  * @brief Return details of a given peer.

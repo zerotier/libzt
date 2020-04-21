@@ -298,8 +298,8 @@ void *_zts_run_callbacks(void *thread_id)
 	while (_run_callbacks || _callbackMsgQueue.size_approx() > 0)
     {
         struct zts_callback_msg *msg;
-		int sz = _callbackMsgQueue.size_approx();
-		for (int j = 0; j < sz; j++) {
+		size_t sz = _callbackMsgQueue.size_approx();
+		for (size_t j = 0; j < sz; j++) {
 			if (_callbackMsgQueue.try_dequeue(msg)) {
 				_process_callback_event(msg);
 				delete msg;
@@ -695,7 +695,6 @@ JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_restart(
 int zts_free()
 {
 	Mutex::Lock _l(_service_lock);
-	int retval = 0;
 	if (_freeHasBeenCalled) {
 		return ZTS_ERR_INVALID_OP;
 	}
@@ -735,6 +734,7 @@ int zts_get_6plane_addr(struct sockaddr_storage *addr, const uint64_t nwid, cons
 	InetAddress _6planeAddr = InetAddress::makeIpv66plane(nwid,nodeId);
 	struct sockaddr_in6 *in6 = (struct sockaddr_in6*)addr;
 	memcpy(in6->sin6_addr.s6_addr, _6planeAddr.rawIpData(), sizeof(struct in6_addr));
+	return ZTS_ERR_OK;
 }
 
 int zts_get_rfc4193_addr(struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId)
@@ -745,6 +745,7 @@ int zts_get_rfc4193_addr(struct sockaddr_storage *addr, const uint64_t nwid, con
 	InetAddress _rfc4193Addr = InetAddress::makeIpv6rfc4193(nwid,nodeId);
 	struct sockaddr_in6 *in6 = (struct sockaddr_in6*)addr;
 	memcpy(in6->sin6_addr.s6_addr, _rfc4193Addr.rawIpData(), sizeof(struct in6_addr));
+	return ZTS_ERR_OK;
 }
 
 uint64_t zts_generate_adhoc_nwid_from_range(uint16_t startPortOfRange, uint16_t endPortOfRange)
@@ -774,7 +775,7 @@ JNIEXPORT jlong JNICALL Java_com_zerotier_libzt_ZeroTier_get_1peer_1count(
 }
 #endif
 
-int zts_get_peers(struct zts_peer_details *pds, int *num)
+int zts_get_peers(struct zts_peer_details *pds, unsigned int *num)
 {
 	Mutex::Lock _l(_service_lock);
 	if (!pds || !num) {
@@ -792,7 +793,7 @@ int zts_get_peers(struct zts_peer_details *pds, int *num)
 		*num = pl->peerCount;
 		for(unsigned long i=0;i<pl->peerCount;++i) {
 			memcpy(&(pds[i]), &(pl->peers[i]), sizeof(struct zts_peer_details));
-			for (int j=0; j<pl->peers[i].pathCount; j++) {
+			for (unsigned int j=0; j<pl->peers[i].pathCount; j++) {
 				memcpy(&(pds[i].paths[j].address),
 					&(pl->peers[i].paths[j].address), sizeof(struct sockaddr_storage));
 			}
@@ -819,7 +820,7 @@ int zts_get_peer(struct zts_peer_details *pd, uint64_t peerId)
 		for(unsigned long i=0;i<pl->peerCount;++i) {
 			if (pl->peers[i].address == peerId) {
 				memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
-				for (int j=0; j<pl->peers[i].pathCount; j++) {
+				for (unsigned int j=0; j<pl->peers[i].pathCount; j++) {
 					memcpy(&(pd->paths[j].address),
 						&(pl->peers[i].paths[j].address), sizeof(struct sockaddr_storage));
 				}
@@ -838,10 +839,9 @@ int zts_get_peer(struct zts_peer_details *pd, uint64_t peerId)
 // Networks                                                                 //
 //////////////////////////////////////////////////////////////////////////////
 
-int zts_get_num_joined_networks()
+size_t zts_get_num_joined_networks()
 {
 	Mutex::Lock _l(_service_lock);
-	int retval = ZTS_ERR_OK;
 	if (!_zts_can_perform_service_operation()) {
 		return ZTS_ERR_SERVICE;
 	}

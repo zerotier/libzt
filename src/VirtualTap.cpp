@@ -156,7 +156,7 @@ bool VirtualTap::addIp(const InetAddress &ip)
 		return false;
 	}
 	if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
-		lwip_init_interface((void*)this, this->_mac, ip);
+		lwip_init_interface((void*)this, ip);
 		// TODO: Add ZTS_EVENT_ADDR_NEW ?
 		_ips.push_back(ip);
 		// Send callback message

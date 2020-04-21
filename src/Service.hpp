@@ -152,7 +152,7 @@ public:
 	 */
 	virtual void getRoutes(uint64_t nwid, void *routeArray, unsigned int *numRoutes) = 0;
 
-	virtual int networkCount() = 0;
+	virtual size_t networkCount() = 0;
 	virtual void leaveAll() = 0;
 	virtual void join(uint64_t nwid) = 0;
 	virtual void leave(uint64_t nwid) = 0;

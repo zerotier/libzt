@@ -138,11 +138,10 @@ static void netif_link_callback(struct netif *netif);
  *
  * @param
  * @param tapref Reference to VirtualTap that will be responsible for sending and receiving data
- * @param mac Virtual hardware address for this ZeroTier VirtualTap interface
  * @param ip Virtual IP address for this ZeroTier VirtualTap interface
  * @return
  */
-void lwip_init_interface(void *tapref, const MAC &mac, const InetAddress &ip);
+void lwip_init_interface(void *tapref, const InetAddress &ip);
 
 /**
  * @brief Called from the stack, outbound ethernet frames from the network stack enter the ZeroTier virtual wire here.

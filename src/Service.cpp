@@ -439,11 +439,9 @@ public:
 			_lastRestart = clockShouldBe;
 			int64_t lastTapMulticastGroupCheck = 0;
 			int64_t lastBindRefresh = 0;
-			int64_t lastUpdateCheck = clockShouldBe;
 			int64_t lastMultipathModeUpdate = 0;
 			int64_t lastCleanedPeersDb = 0;
 			int64_t lastLocalInterfaceAddressCheck = (clockShouldBe - ZT_LOCAL_INTERFACE_CHECK_INTERVAL) + 15000; // do this in 15s to give portmapper time to configure and other things time to settle
-			int64_t lastLocalConfFileCheck = OSUtils::now();
 			for(;;) {
 				_run_m.lock();
 				if (!_run) {
@@ -891,12 +889,12 @@ public:
 				}
 				// Previously known peer, update status
 				else {
-					if (peerCache[pl->peers[i].address] == 0 && pl->peers[i].pathCount > 0) {
+					if ((peerCache[pl->peers[i].address] == false) && pl->peers[i].pathCount > 0) {
 						pd = new zts_peer_details;
 						memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
 						postEvent(ZTS_EVENT_PEER_P2P, (void*)pd);
 					}
-					if (peerCache[pl->peers[i].address] > 0 && pl->peers[i].pathCount == 0) {
+					if ((peerCache[pl->peers[i].address] == true) && pl->peers[i].pathCount == 0) {
 						pd = new zts_peer_details;
 						memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
 						postEvent(ZTS_EVENT_PEER_RELAY, (void*)pd);
@@ -909,7 +907,7 @@ public:
 		_node->freeQueryResult((void *)pl);
 	}
 
-	inline int networkCount()
+	inline size_t networkCount()
 	{
 		Mutex::Lock _l(_nets_m);
 		return _nets.size();
@@ -974,6 +972,9 @@ public:
 					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "%.16llx.conf",dirname,(unsigned long long)id[0]);
 					secure = true;
 				}
+				else {
+					return;
+				}
 				break;
 			case ZT_STATE_OBJECT_PEER:
 				if (_peer_caching_enabled) {
@@ -1033,6 +1034,9 @@ public:
 			case ZT_STATE_OBJECT_NETWORK_CONFIG:
 				if (_network_caching_enabled) {
 					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "networks.d" ZT_PATH_SEPARATOR_S "%.16llx.conf",_homePath.c_str(),(unsigned long long)id[0]);
+				}
+				else {
+					return -1;
 				}
 				break;
 			case ZT_STATE_OBJECT_PEER:

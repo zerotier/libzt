@@ -1,9 +1,3 @@
----
-title: README
-created: '2020-04-17T17:19:44.552Z'
-modified: '2020-05-02T00:31:45.563Z'
----
-
 # ZeroTier SDK
 Connect physical devices, virtual devices, and application instances as if everything is on a single LAN.
 ***

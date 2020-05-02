@@ -127,10 +127,10 @@ void myZeroTierEventCallback(void *msgPtr)
  *   root server has passed contact information to both peers that a direct connection will be
  *   established. Therefore, it is required that multiple connection attempts be undertaken
  *   when initially communicating with a peer. After a transport-triggered link is
- *   established libzt will inform you via ZTS_EVENT_PEER_P2P for a specific peer ID. No
+ *   established libzt will inform you via ZTS_EVENT_PEER_DIRECT for a specific peer ID. No
  *   action is required on your part for this callback event.
  *
- *   Note: In these initial moments before ZTS_EVENT_PEER_P2P has been received for a
+ *   Note: In these initial moments before ZTS_EVENT_PEER_DIRECT has been received for a
  *         specific peer, traffic may be slow, jittery and there may be high packet loss.
  *         This will subside within a couple of seconds.
  *

@@ -1,0 +1,245 @@
+/*
+ * Copyright (c)2013-2020 ZeroTier, Inc.
+ *
+ * Use of this software is governed by the Business Source License included
+ * in the LICENSE.TXT file in the project's root directory.
+ *
+ * Change Date: 2024-01-01
+ *
+ * On the date above, in accordance with the Business Source License, use
+ * of this software will be governed by version 2.0 of the Apache License.
+ */
+/****/
+
+/**
+ * @file
+ *
+ * Callback event processing logic
+ */
+
+#include "concurrentqueue.h"
+
+#ifdef SDK_JNI
+	#include <jni.h>
+#endif
+
+#include "Node.hpp"
+#include "OSUtils.hpp"
+
+#include "Debug.hpp"
+#include "Events.hpp"
+#include "ZeroTierSockets.h"
+#include "NodeService.hpp"
+
+#define NODE_EVENT_TYPE(code) code >= ZTS_EVENT_NODE_UP && code <= ZTS_EVENT_NODE_NORMAL_TERMINATION
+#define NETWORK_EVENT_TYPE(code) code >= ZTS_EVENT_NETWORK_NOT_FOUND && code <= ZTS_EVENT_NETWORK_DOWN
+#define STACK_EVENT_TYPE(code) code >= ZTS_EVENT_STACK_UP && code <= ZTS_EVENT_STACK_DOWN
+#define NETIF_EVENT_TYPE(code) code >= ZTS_EVENT_NETIF_UP && code <= ZTS_EVENT_NETIF_LINK_DOWN
+#define PEER_EVENT_TYPE(code) code >= ZTS_EVENT_PEER_DIRECT && code <= ZTS_EVENT_PEER_UNREACHABLE
+#define PATH_EVENT_TYPE(code) code >= ZTS_EVENT_PATH_DISCOVERED && code <= ZTS_EVENT_PATH_DEAD
+#define ROUTE_EVENT_TYPE(code) code >= ZTS_EVENT_ROUTE_ADDED && code <= ZTS_EVENT_ROUTE_REMOVED
+#define ADDR_EVENT_TYPE(code) code >= ZTS_EVENT_ADDR_ADDED_IP4 && code <= ZTS_EVENT_ADDR_REMOVED_IP6
+
+namespace ZeroTier {
+
+extern NodeService *service;
+
+// Global state variable shared between Socket, Control, Event and NodeService logic.
+uint8_t _serviceStateFlags;
+
+// Lock to guard access to callback function pointers.
+Mutex _callbackLock;
+
+void (*_userEventCallbackFunc)(void *);
+
+moodycamel::ConcurrentQueue<struct ::zts_callback_msg*> _callbackMsgQueue;
+
+void _enqueueEvent(int16_t eventCode, void *arg)
+{
+	struct ::zts_callback_msg *msg = new ::zts_callback_msg();
+
+	msg->node = NULL;
+	msg->network = NULL;
+	msg->netif = NULL;
+	msg->route = NULL;
+	msg->path = NULL;
+	msg->peer = NULL;
+	msg->addr = NULL;
+
+	msg->eventCode = eventCode;
+
+	if (NODE_EVENT_TYPE(eventCode)) {
+		msg->node = (struct zts_node_details*)arg;
+	} if (NETWORK_EVENT_TYPE(eventCode)) {
+		msg->network = (struct zts_network_details*)arg;
+	} if (NETIF_EVENT_TYPE(eventCode)) {
+		msg->netif = (struct zts_netif_details*)arg;
+	} if (ROUTE_EVENT_TYPE(eventCode)) {
+		msg->route = (struct zts_virtual_network_route*)arg;
+	} if (PATH_EVENT_TYPE(eventCode)) {
+		msg->path = (struct zts_physical_path*)arg;
+	} if (PEER_EVENT_TYPE(eventCode)) {
+		msg->peer = (struct zts_peer_details*)arg;
+	} if (ADDR_EVENT_TYPE(eventCode)) {
+		msg->addr = (struct zts_addr_details*)arg;
+	}
+    _callbackMsgQueue.enqueue(msg);
+}
+
+void _freeEvent(struct ::zts_callback_msg *msg)
+{
+	if (!msg) {
+		return;
+	}
+	if (msg->node) { delete msg->node; }
+	if (msg->network) { delete msg->network; }
+	if (msg->netif) { delete msg->netif; }
+	if (msg->route) { delete msg->route; }
+	if (msg->path) { delete msg->path; }
+	if (msg->peer) { delete msg->peer; }
+	if (msg->addr) { delete msg->addr; }
+}
+
+void _passDequeuedEventToUser(struct ::zts_callback_msg *msg)
+{
+#ifdef SDK_JNI
+	if(_userCallbackMethodRef) {
+		JNIEnv *env;
+#if defined(__ANDROID__)
+		jint rs = jvm->AttachCurrentThread(&env, NULL);
+#else
+		jint rs = jvm->AttachCurrentThread((void **)&env, NULL);
+#endif
+		assert (rs == JNI_OK);
+		uint64_t arg = 0;
+		uint64_t id = 0;
+		if (NODE_EVENT_TYPE(msg->eventCode)) {
+			id = msg->node ? msg->node->address : 0;
+		}
+		if (NETWORK_EVENT_TYPE(msg->eventCode)) {
+			id = msg->network ? msg->network->nwid : 0;
+		}
+		if (PEER_EVENT_TYPE(msg->eventCode)) {
+			id = msg->peer ? msg->peer->address : 0;
+		}
+		env->CallVoidMethod(objRef, _userCallbackMethodRef, id, msg->eventCode);
+		_freeEvent(msg);
+	}
+#else
+	if (_userEventCallbackFunc) {
+		_userEventCallbackFunc(msg);
+		_freeEvent(msg);
+	}
+#endif
+}
+
+bool _isCallbackRegistered()
+{
+	_callbackLock.lock();
+	bool retval = false;
+#ifdef SDK_JNI
+	retval = (jvm && objRef && _userCallbackMethodRef);
+#else
+	retval = _userEventCallbackFunc;
+#endif
+	_callbackLock.unlock();
+	return retval;
+}
+
+void _clearRegisteredCallback()
+{
+	_callbackLock.lock();
+#ifdef SDK_JNI
+	objRef = NULL;
+    _userCallbackMethodRef = NULL;
+#else
+	_userEventCallbackFunc = NULL;
+#endif
+	_callbackLock.unlock();
+}
+
+int _canPerformServiceOperation()
+{
+	return service
+		&& service->isRunning()
+		&& service->getNode()
+		&& service->getNode()->online()
+		&& !_getState(ZTS_STATE_FREE_CALLED);
+}
+
+#define RESET_FLAGS( )   _serviceStateFlags  =  0;
+#define   SET_FLAGS(f)   _serviceStateFlags |=  f; 
+#define   CLR_FLAGS(f)   _serviceStateFlags &= ~f; 
+#define   GET_FLAGS(f) ((_serviceStateFlags &   f) > 0)
+
+void _setState(uint8_t newFlags)
+{
+	if ((newFlags ^ _serviceStateFlags) & ZTS_STATE_NET_SERVICE_RUNNING) {
+		return; // No effect. Not allowed to set this flag manually
+	}
+	SET_FLAGS(newFlags);
+	if (   GET_FLAGS(ZTS_STATE_NODE_RUNNING)
+      &&   GET_FLAGS(ZTS_STATE_STACK_RUNNING)
+      && !(GET_FLAGS(ZTS_STATE_FREE_CALLED)))
+	{
+		SET_FLAGS(ZTS_STATE_NET_SERVICE_RUNNING);
+	}
+	else {
+		CLR_FLAGS(ZTS_STATE_NET_SERVICE_RUNNING);
+	}
+}
+
+void _clrState(uint8_t newFlags)
+{
+	if (newFlags & ZTS_STATE_NET_SERVICE_RUNNING) {
+		return; // No effect. Not allowed to set this flag manually
+	}
+	CLR_FLAGS(newFlags);
+	if (   GET_FLAGS(ZTS_STATE_NODE_RUNNING)
+      &&   GET_FLAGS(ZTS_STATE_STACK_RUNNING)
+      && !(GET_FLAGS(ZTS_STATE_FREE_CALLED)))
+	{
+		SET_FLAGS(ZTS_STATE_NET_SERVICE_RUNNING);
+	}
+	else {
+		CLR_FLAGS(ZTS_STATE_NET_SERVICE_RUNNING);
+	}
+}
+
+bool _getState(uint8_t testFlags)
+{
+	return testFlags & _serviceStateFlags;
+}
+
+#if defined(__WINDOWS__)
+DWORD WINAPI _runCallbacks(LPVOID thread_id)
+#else
+void *_runCallbacks(void *thread_id)
+#endif
+{
+#if defined(__APPLE__)
+	pthread_setname_np(ZTS_EVENT_CALLBACK_THREAD_NAME);
+#endif
+	while (_getState(ZTS_STATE_CALLBACKS_RUNNING) || _callbackMsgQueue.size_approx() > 0)
+    {
+        struct ::zts_callback_msg *msg;
+		size_t sz = _callbackMsgQueue.size_approx();
+		for (size_t j = 0; j < sz; j++) {
+			if (_callbackMsgQueue.try_dequeue(msg)) {
+				_callbackLock.lock();
+				_passDequeuedEventToUser(msg);
+				_callbackLock.unlock();
+				delete msg;
+			}
+		}
+        zts_delay_ms(ZTS_CALLBACK_PROCESSING_INTERVAL);
+    }
+#if SDK_JNI
+	JNIEnv *env;
+	jint rs = jvm->DetachCurrentThread();
+    pthread_exit(0);
+#endif
+	return NULL;
+}
+
+} // namespace ZeroTier

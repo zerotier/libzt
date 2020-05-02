@@ -29,10 +29,6 @@ endif ()
 if (${CMAKE_GENERATOR} STREQUAL "Xcode")
 	set (IN_XCODE TRUE)
 	set(XCODE_EMIT_EFFECTIVE_PLATFORM_NAME ON)
-	#set_target_properties (${STATIC_LIB_NAME}
-	#	PROPERTIES XCODE_ATTRIBUTE_MY_BUILD_ONLY_ACTIVE_ARCH YES)
-	#set_target_properties (${STATIC_LIB_NAME}
-	#	PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH "${MY_BUILD_ONLY_ACTIVE_ARCH})
 endif ()
 if (BUILDING_WIN32 OR BUILDING_WIN64 OR MSVC)
 	set (BUILDING_WIN TRUE)
@@ -98,8 +94,6 @@ set (SILENCE "${SILENCE} -Wno-sign-compare")
 set (SILENCE "${SILENCE} -Wno-unused-variable")
 set (SILENCE "${SILENCE} -Wno-missing-field-initializers")
 set (SILENCE "${SILENCE} -Wno-unused-parameter")
-#set (SILENCE "${SILENCE} -Wno-nullability-completeness")
-#set (SILENCE "${SILENCE} -Wno-expansion-to-defined")
 
 set (ZT_FLAGS "${ZT_FLAGS} -DZT_USE_MINIUPNPC=1")
 set (ZT_FLAGS "${ZT_FLAGS} -DZT_SOFTWARE_UPDATE_DEFAULT=0")
@@ -109,8 +103,8 @@ set (ZT_FLAGS "${ZT_FLAGS} -DZT_SDK=1")
 if (DEBUG_BUILD)
 	set (LWIP_FLAGS "${LWIP_FLAGS} -DLWIP_DBG_TYPES_ON=128")
 	set (LWIP_FLAGS "${LWIP_FLAGS} -DSOCKETS_DEBUG=128")
-	set (LWIP_FLAGS "${LWIP_FLAGS} -DLWIP_STATS_LARGE=1")
-	set (LWIP_FLAGS "${LWIP_FLAGS} -DLWIP_STATS=1")
+	#set (LWIP_FLAGS "${LWIP_FLAGS} -DLWIP_STATS_LARGE=1")
+	#set (LWIP_FLAGS "${LWIP_FLAGS} -DLWIP_STATS=1")
 	set (LWIP_FLAGS "${LWIP_FLAGS} -DLINK_STATS=1")
 	set (LWIP_FLAGS "${LWIP_FLAGS} -DETHARP_STATS=1")
 	set (LWIP_FLAGS "${LWIP_FLAGS} -DIPFRAG_STATS=1")
@@ -250,31 +244,6 @@ set (LWIP_SRC_DIR "${PROJ_DIR}/ext/lwip/src")
 set (ZTO_SRC_DIR "${PROJ_DIR}/ext/ZeroTierOne")
 set (LIBZT_SRC_DIR "${PROJ_DIR}/src")
 
-if (SWIG_CSHARP)
-set (libztSwigWrapperSrc ${LIBZT_SRC_DIR}/csharp/*.cxx)
-endif ()
-if (SWIG_PYTHON)
-set (libztSwigWrapperSrc ${LIBZT_SRC_DIR}/python/*.cxx)
-endif ()
-if (SWIG_LUA)
-set (libztSwigWrapperSrc ${LIBZT_SRC_DIR}/lua/*.cxx)
-endif ()
-if (SWIG_GO32)
-set (libztSwigWrapperSrc ${LIBZT_SRC_DIR}/go32/*.cxx)
-endif ()
-if (SWIG_GO64)
-set (libztSwigWrapperSrc ${LIBZT_SRC_DIR}/go64/*.cxx)
-endif ()
-if (SWIG_JS_JSC)
-set (libztSwigWrapperSrc ${LIBZT_SRC_DIR}/js/jsc/*.cxx)
-endif ()
-if (SWIG_JS_V8)
-set (libztSwigWrapperSrc ${LIBZT_SRC_DIR}/js/v8/*.cxx)
-endif ()
-if (SWIG_JS_NODE)
-set (libztSwigWrapperSrc ${LIBZT_SRC_DIR}/js/node/*.cxx)
-endif ()
-
 file (GLOB ztcoreSrcGlob
 	${ZTO_SRC_DIR}/node/*.cpp
 	${ZTO_SRC_DIR}/osdep/OSUtils.cpp
@@ -301,7 +270,7 @@ file (GLOB libminiupnpcSrcGlob
     ${ZTO_SRC_DIR}/ext/miniupnpc/upnperrors.c
     ${ZTO_SRC_DIR}/ext/miniupnpc/upnpreplyparse.c)
 
-file (GLOB libztSrcGlob ${LIBZT_SRC_DIR}/*.cpp ${libztSwigWrapperSrc})
+file (GLOB libztSrcGlob ${LIBZT_SRC_DIR}/*.cpp)
 
 if (UNIX)
 	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/unix/port)
@@ -321,8 +290,7 @@ file (GLOB lwipSrcGlob
 list(REMOVE_ITEM lwipSrcGlob ${LWIP_SRC_DIR}/netif/slipif.c)
 
 # header globs for xcode frameworks
-file (GLOB frameworkPrivateHeaderGlob include/ZeroTier.h include/ZeroTierConstants.h)
-file (GLOB frameworkPublicHeaderGlob include/Xcode-Bridging-Header.h)
+file (GLOB frameworkPublicHeaderGlob include/ZeroTierSockets.h)
 file (GLOB frameworkHeaderGlob ${frameworkPublicHeaderGlob} ${frameworkPrivateHeaderGlob})
 
 # -----------------------------------------------------------------------------
@@ -457,24 +425,6 @@ set_target_properties (ztcore PROPERTIES
     OUTPUT_NAME ztcore
     LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
 
-# libnatpmp.a
-#add_library (natpmp STATIC $<TARGET_OBJECTS:libnatpmp_obj>)
-#set_target_properties (natpmp PROPERTIES
-#    OUTPUT_NAME natpmp
-#    LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
-
-# libminiupnpc.a
-#add_library (miniupnpc STATIC $<TARGET_OBJECTS:miniupnpc_obj>)
-#set_target_properties (miniupnpc PROPERTIES
-#    OUTPUT_NAME miniupnpc
-#    LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
-
-# liblwip.a
-#add_library (lwip STATIC $<TARGET_OBJECTS:lwip_obj>)
-#set_target_properties (lwip PROPERTIES
-#    OUTPUT_NAME lwip
-#    LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
-
 # libzt.a
 add_library (${STATIC_LIB_NAME} STATIC $<TARGET_OBJECTS:libzt_obj>
 $<TARGET_OBJECTS:zto_obj>
@@ -540,6 +490,8 @@ endif ()
 # -----------------------------------------------------------------------------
 
 if (SHOULD_BUILD_TESTS)
+	add_executable (earthtest ${PROJ_DIR}/examples/cpp/earthtest.cpp)
+	target_link_libraries(earthtest ${STATIC_LIB_NAME})
 	add_executable (adhoc ${PROJ_DIR}/examples/cpp/adhoc.cpp)
 	target_link_libraries(adhoc ${STATIC_LIB_NAME})
 	add_executable (comprehensive ${PROJ_DIR}/examples/cpp/comprehensive.cpp)
@@ -554,9 +506,7 @@ endif ()
 # |                                  INSTALL                                  |
 # -----------------------------------------------------------------------------
 
-set (PUBLIC_ZT_HEADERS
-    ${PROJECT_SOURCE_DIR}/include/ZeroTier.h
-    ${PROJECT_SOURCE_DIR}/include/ZeroTierConstants.h)
+set (PUBLIC_ZT_HEADERS ${PROJECT_SOURCE_DIR}/include/ZeroTierSockets.h)
 
 set_target_properties(${STATIC_LIB_NAME} PROPERTIES PUBLIC_HEADER "${PUBLIC_ZT_HEADERS}")
 install (TARGETS ${STATIC_LIB_NAME}

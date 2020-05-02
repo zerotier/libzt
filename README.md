@@ -1,3 +1,9 @@
+---
+title: README
+created: '2020-04-17T17:19:44.552Z'
+modified: '2020-05-02T00:31:45.563Z'
+---
+
 # ZeroTier SDK
 Connect physical devices, virtual devices, and application instances as if everything is on a single LAN.
 ***
@@ -11,15 +17,6 @@ The ZeroTier SDK brings your network into userspace. We've paired our network hy
 # Usage
 
 ### Downloads and examples: [download.zerotier.com/dist/sdk](https://download.zerotier.com/dist/sdk)
-
-### Homebrew
-
-```
-brew install libzt
-clang++ -o yourApp yourApp.cpp -lzt; ./yourApp
-```
-
-### 
 
 ### Building from source
 
@@ -67,7 +64,7 @@ The next few sections explain how to use the network control interface portion o
 At this stage, if a cryptographic identity for this node does not already exist on your local storage medium, it will generate a new one and store it, the node's address (commonly referred to as `nodeId`) will be derived from this identity and will be presented to you upon receiving the `ZTS_EVENT_NODE_ONLINE` shown below. The first argument `path` is a path where you will direct ZeroTier to store its automatically-generated cryptographic identity files (`identity.public` and `identity.secret`), these files are your keys to communicating on the network. Keep them safe and keep them unique. If any two nodes are online using the same identities you will have a bad time. The second argument `userCallbackFunc` is a function that you specify to handle all generated events for the life of your program, see below:
 
 ```
-#include "ZeroTier.h"
+#include "ZeroTierSockets.h"
 
 ...
 
@@ -102,8 +99,8 @@ For more complete examples see `./examples/`
 After calling `zts_start()` you will receive one or more of the following events:
 
 ```
-ZTS_EVENT_NODE_OFFLINE
 ZTS_EVENT_NODE_ONLINE
+ZTS_EVENT_NODE_OFFLINE
 ZTS_EVENT_NODE_DOWN
 ZTS_EVENT_NODE_IDENTITY_COLLISION
 ZTS_EVENT_NODE_UNRECOVERABLE_ERROR
@@ -127,7 +124,7 @@ Joining a ZeroTier virtual network is as easy as calling `zts_join(uint64_t netw
 ```
 ZTS_EVENT_NETWORK_NOT_FOUND
 ZTS_EVENT_NETWORK_CLIENT_TOO_OLD
-ZTS_EVENT_NETWORK_REQUESTING_CONFIG
+ZTS_EVENT_NETWORK_REQ_CONFIG
 ZTS_EVENT_NETWORK_OK
 ZTS_EVENT_NETWORK_ACCESS_DENIED
 ZTS_EVENT_NETWORK_READY_IP4
@@ -153,7 +150,7 @@ One can use `zts_get_peer_status(uint64_t peerId)` to query the current reachabi
 
 # Event handling
 
-As mentioned in previous sections, the control API works by use of non-blocking calls and the generation of a few dozen different event types. Depending on the type of event there may be additional contextual information attached to the `zts_callback_msg` object that you can use. This contextual information will be housed in one of the following structures which are defined in `include/ZeroTier.h`:
+As mentioned in previous sections, the control API works by use of non-blocking calls and the generation of a few dozen different event types. Depending on the type of event there may be additional contextual information attached to the `zts_callback_msg` object that you can use. This contextual information will be housed in one of the following structures which are defined in `include/ZeroTierSockets.h`:
 
 ```
 struct zts_callback_msg
@@ -194,9 +191,9 @@ ZTS_EVENT_ADDR_NEW_IP6 --- addr=fda0:9acf:233:e4b0:7099:9309:4c9b:c3c7
 ZTS_EVENT_NODE_ONLINE, node=c4c7ba3cf
 ZTS_EVENT_NETWORK_READY_IP4 --- network=a09acf023be465c1
 ZTS_EVENT_NETWORK_READY_IP6 --- network=a09acf023be465c1
-ZTS_EVENT_PEER_P2P --- node=74d0f5e89d
-ZTS_EVENT_PEER_P2P --- node=9d219039f3
-ZTS_EVENT_PEER_P2P --- node=a09acf0233
+ZTS_EVENT_PEER_DIRECT --- node=74d0f5e89d
+ZTS_EVENT_PEER_DIRECT --- node=9d219039f3
+ZTS_EVENT_PEER_DIRECT --- node=a09acf0233
 ```
 
 ## Node Events
@@ -219,7 +216,7 @@ These events pertain to the state of the indicated network. This event type will
 ```
 ZTS_EVENT_NETWORK_NOT_FOUND
 ZTS_EVENT_NETWORK_CLIENT_TOO_OLD
-ZTS_EVENT_NETWORK_REQUESTING_CONFIG
+ZTS_EVENT_NETWORK_REQ_CONFIG
 ZTS_EVENT_NETWORK_OK
 ZTS_EVENT_NETWORK_ACCESS_DENIED
 ZTS_EVENT_NETWORK_READY_IP4
@@ -234,7 +231,7 @@ ZTS_EVENT_NETWORK_DOWN
 These events are triggered when the reachability status of a peer has changed, this can happen at any time. This event type will arrive with a `zts_peer_details` object for additional context. Additionally, one can query the status of the network with `zts_get_peer_status(uint64_t peerId)`, this will **return** the status as an integer value only.
 
 ```
-ZTS_EVENT_PEER_P2P
+ZTS_EVENT_PEER_DIRECT
 ZTS_EVENT_PEER_RELAY
 ZTS_EVENT_PEER_UNREACHABLE
 ```
@@ -273,13 +270,12 @@ ZTS_EVENT_ADDR_REMOVED_IP6
 
 # Error handling
 
-Calling a `zts_*` function will result in one of the following return codes. Only when `ZTS_ERR` is returned will `zts_errno` be set. Its values closely mirror those used in standard socket interfaces and are defined in `./ext/lwip/src/include/lwip/errno.h`.
+Calling a `zts_*` function will result in one of the following return codes. Only when `ZTS_ERR` is returned will `zts_errno` be set. Its values closely mirror those used in standard socket interfaces and are defined in `include/ZeroTierSockets.h`.
 
  - `ZTS_ERR_OK`: No error
- - `ZTS_ERR`: Error (see `zts_errno`for more information)
- - `ZTS_ERR_INVALID_ARG`: An argument provided is invalid.
- - `ZTS_ERR_SERVICE`: ZT is not yet initialized. Try again.
- - `ZTS_ERR_INVALID_OP`: Operation is not permitted (Doesn't make sense in this state).
+ - `ZTS_ERR_SOCKET`: Socket error (see `zts_errno`for more information)
+ - `ZTS_ERR_SERVICE`: General ZeroTier internal error. Maybe you called something out of order?
+ - `ZTS_ERR_ARG`: An argument provided is invalid.
  - `ZTS_ERR_NO_RESULT`: Call succeeded but no result was available. Not necessarily an error.
  - `ZTS_ERR_GENERAL`: General internal failure. Consider filing a bug report.
 
@@ -326,8 +322,9 @@ zts_bind(fd, (struct sockaddr *)&in4, sizeof(struct zts_sockaddr_in)) < 0)
 
 If you are calling a host OS function, use your host OS's constants (and structures!):
 ```
-inet_ntop(AF_INET6, &(in6->sin6_addr), ...);     (CORRECT)
-inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), ...); (INCORRECT)
+inet_ntop(AF_INET6, &(in6->sin6_addr), ...);         (CORRECT)
+inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), ...);     (INCORRECT)
+zts_inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), ...); (CORRECT)
 ```
 
 If you are calling a host OS function but passing a `zts_*` structure, this can work sometimes but you should take care to pass the correct host OS constants:
@@ -361,7 +358,7 @@ If the information in those sections hasn't helped, there are a couple of ways t
 
 2) If you believe your problem is in the network stack you can manually enable debug traces for individual modules in `src/lwipopts.h`. Toggle the `*_DEBUG` types from `LWIP_DBG_OFF` to `LWIP_DBG_ON`. And then rebuild. This will come with a significant performance cost.
 
-3) Enabling network stack statistics. This is useful if you want to monitor the stack's receipt and handling of traffic as well as internal things like memory allocations and cache hits. Protocol and service statistics are available in debug builds of `libzt`. These statistics are detailed fully in the section of `include/ZeroTier.h` that is guarded by `LWIP_STATS`. The protocol constants are defined in `include/ZeroTierConstants.h`. An example usage is as follows:
+3) Enabling network stack statistics. This is useful if you want to monitor the stack's receipt and handling of traffic as well as internal things like memory allocations and cache hits. Protocol and service statistics are available in debug builds of `libzt`. These statistics are detailed fully in the section of `include/ZeroTierSockets.h` that is guarded by `LWIP_STATS`.
 
   ```
   struct zts_stats_proto stats;
@@ -402,7 +399,7 @@ ZTS_EVENT_NETIF_LINK_DOWN
 
 # Network controller mode
 
-The library form of ZeroTier can act as a network controller and in `libzt` this is controlled via the `zts_controller_*` API calls specified in `include/ZeroTier.h`. Currently controller mode is not available in the `iOS` and `macOS` framework builds.
+The library form of ZeroTier can act as a network controller and in `libzt` this is controlled via the `zts_controller_*` API calls specified in `include/ZeroTierSockets.h`. Currently controller mode is not available in the `iOS` and `macOS` framework builds.
 
 # Multipath
 

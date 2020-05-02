@@ -535,15 +535,10 @@ package_everything()
     # Source
     mkdir -p $PROD_DIR/src
     cp src/*.cpp src/*.hpp src/*.c src/*.h $PROD_DIR/src
-    # Documentation
-    mkdir -p $PROD_DIR/reference
-    # Copy the errno header from lwIP for customer reference
-    cp ext/lwip/src/include/lwip/errno.h $PROD_DIR/reference
     cp $(pwd)/README.pdf $PROD_DIR/README.pdf
     # Header(s)
     mkdir -p $PROD_DIR/include
     cp $(pwd)/include/*.h $PROD_DIR/include
-    cp $(pwd)/ext/ZeroTierOne/include/ZeroTierOne.h $PROD_DIR/include
     # Libraries
     mkdir -p $PROD_DIR/lib
     cp -r $(pwd)/products/$1/* $PROD_DIR/lib

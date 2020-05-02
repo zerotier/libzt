@@ -11,89 +11,57 @@
  */
 /****/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+/**
+ * @file
+ *
+ * ZeroTier Node Service (a distant relative of OneService)
+ */
 
-#include <string>
-#include <map>
-#include <vector>
-#include <algorithm>
-#include <list>
 #include <thread>
-#include <mutex>
-#include <condition_variable>
 
-#include "version.h"
-#include "ZeroTierOne.h"
+#include "Debug.hpp"
+#include "Events.hpp"
+#include "NodeService.hpp"
+#include "ZeroTierSockets.h"
+#include "VirtualTap.hpp"
 
 #include "Constants.hpp"
-#include "Mutex.hpp"
 #include "Node.hpp"
 #include "Utils.hpp"
-#include "InetAddress.hpp"
 #include "MAC.hpp"
-#include "Identity.hpp"
-#include "World.hpp"
-#include "Salsa20.hpp"
-#include "Poly1305.hpp"
-#include "SHA512.hpp"
-
 #include "Phy.hpp"
 #include "Thread.hpp"
 #include "OSUtils.hpp"
 #include "PortMapper.hpp"
 #include "Binder.hpp"
 #include "ManagedRoute.hpp"
+#include "InetAddress.hpp"
 #include "BlockingQueue.hpp"
 
-#include "Service.hpp"
-#include "Debug.hpp"
-#include "concurrentqueue.h"
-
-#include "ZeroTier.h"
-#include "lwipDriver.hpp"
-
-#ifdef __WINDOWS__
+#if defined(__WINDOWS__)
+WSADATA wsaData;
 #include <WinSock2.h>
 #include <Windows.h>
 #include <ShlObj.h>
 #include <netioapi.h>
 #include <iphlpapi.h>
-//#include <unistd.h>
 #define stat _stat
-#else
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#include <ifaddrs.h>
 #endif
 
-#include "Controls.hpp"
+#ifdef SDK_JNI
+#include <jni.h>
+#endif
 
-// Use the virtual netcon endpoint instead of a tun/tap port driver
-#include "VirtualTap.hpp"
-namespace ZeroTier { typedef VirtualTap EthernetTap; }
-
-// Interface metric for ZeroTier taps -- this ensures that if we are on WiFi and also
-// bridged via ZeroTier to the same LAN traffic will (if the OS is sane) prefer WiFi.
-#define ZT_IF_METRIC 5000
-
-// How often to check for new multicast subscriptions on a tap device
-#define ZT_TAP_CHECK_MULTICAST_INTERVAL 5000
-
-// How often to check for local interface addresses
-#define ZT_LOCAL_INTERFACE_CHECK_INTERVAL 60000
+// Custom errno-like reporting variable
+int zts_errno;
 
 namespace ZeroTier {
 
-extern void postEvent(uint64_t id, int eventCode);
-extern bool _network_caching_enabled;
-extern bool _peer_caching_enabled;
+uint8_t allowNetworkCaching;
+uint8_t allowPeerCaching;
+uint8_t allowLocalConf;
 
-namespace {
+typedef VirtualTap EthernetTap;
 
 static std::string _trimString(const std::string &s)
 {
@@ -114,7 +82,7 @@ static std::string _trimString(const std::string &s)
 	return s.substr(start,end - start);
 }
 
-class OneServiceImpl;
+class NodeServiceImpl;
 
 static int SnodeVirtualNetworkConfigFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t nwid,void **nuptr,enum ZT_VirtualNetworkConfigOperation op,const ZT_VirtualNetworkConfig *nwconf);
 static void SnodeEventCallback(ZT_Node *node,void *uptr,void *tptr,enum ZT_Event event,const void *metaData);
@@ -126,7 +94,7 @@ static int SnodePathCheckFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t z
 static int SnodePathLookupFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t ztaddr,int family,struct sockaddr_storage *result);
 static void StapFrameHandler(void *uptr,void *tptr,uint64_t nwid,const MAC &from,const MAC &to,unsigned int etherType,unsigned int vlanId,const void *data,unsigned int len);
 
-struct OneServiceIncomingPacket
+struct NodeServiceIncomingPacket
 {
 	uint64_t now;
 	int64_t sock;
@@ -135,7 +103,7 @@ struct OneServiceIncomingPacket
 	uint8_t data[ZT_MAX_MTU];
 };
 
-class OneServiceImpl : public OneService
+class NodeServiceImpl : public NodeService
 {
 public:
 	// begin member variables --------------------------------------------------
@@ -145,7 +113,7 @@ public:
 	const std::string _networksPath;
 	const std::string _moonsPath;
 
-	Phy<OneServiceImpl *> _phy;
+	Phy<NodeServiceImpl *> _phy;
 	Node *_node;
 	bool _updateAutoApply;
 	unsigned int _multipathMode = 0;
@@ -159,8 +127,8 @@ public:
 
 	//
 	unsigned long _incomingPacketConcurrency;
-	std::vector<OneServiceIncomingPacket *> _incomingPacketMemoryPool;
-	BlockingQueue<OneServiceIncomingPacket *> _incomingPacketQueue;
+	std::vector<NodeServiceIncomingPacket *> _incomingPacketMemoryPool;
+	BlockingQueue<NodeServiceIncomingPacket *> _incomingPacketQueue;
 	std::vector<std::thread> _incomingPacketThreads;
 	Mutex _incomingPacketMemoryPoolLock,_incomingPacketThreadsLock;
 
@@ -238,7 +206,7 @@ public:
 
 	// end member variables ----------------------------------------------------
 
-	OneServiceImpl(const char *hp,unsigned int port) :
+	NodeServiceImpl(const char *hp,unsigned int port) :
 		_homePath((hp) ? hp : ".")
 		,_phy(this,false,true)
 		,_node((Node *)0)
@@ -259,51 +227,16 @@ public:
 		_ports[1] = 0;
 		_ports[2] = 0;
 
-		/* Packet input concurrency is disabled intentially since it
-		would force the user-space network stack to constantly re-order
-		frames, resulting in lower RX performance */
-
-		/*
-		_incomingPacketConcurrency = 1;
-		// std::max((unsigned long)1,std::min((unsigned long)16,(unsigned long)std::thread::hardware_concurrency()));
-		char *envPool = std::getenv("INCOMING_PACKET_CONCURRENCY");
-		if (envPool != NULL) {
-			int tmp = atoi(envPool);
-			if (tmp > 0) {
-				_incomingPacketConcurrency = tmp;
-			}
-		}
-		for(long t=0;t<_incomingPacketConcurrency;++t) {
-			_incomingPacketThreads.push_back(std::thread([this]() {
-				OneServiceIncomingPacket *pkt = nullptr;
-				for(;;) {
-					if (!_incomingPacketQueue.get(pkt))
-						break;
-					if (!pkt)
-						break;
-					if (!_run)
-						break;
-
-					const ZT_ResultCode rc = _node->processWirePacket(nullptr,pkt->now,pkt->sock,&(pkt->from),pkt->data,pkt->size,&_nextBackgroundTaskDeadline);
-					{
-						Mutex::Lock l(_incomingPacketMemoryPoolLock);
-						_incomingPacketMemoryPool.push_back(pkt);
-					}
-					if (ZT_ResultCode_isFatal(rc)) {
-						char tmp[256];
-						OSUtils::ztsnprintf(tmp,sizeof(tmp),"fatal error code from processWirePacket: %d",(int)rc);
-						Mutex::Lock _l(_termReason_m);
-						_termReason = ONE_UNRECOVERABLE_ERROR;
-						_fatalErrorMessage = tmp;
-						this->terminate();
-						break;
-					}
-				}
-			}));
-		}*/
+		allowNetworkCaching = true;
+		allowPeerCaching = true;
+		allowLocalConf = false;
+#ifdef __WINDOWS__
+		// Initialize WinSock. Used in Phy for loopback pipe
+		WSAStartup(MAKEWORD(2, 2), &wsaData);
+#endif
 	}
 
-	virtual ~OneServiceImpl()
+	virtual ~NodeServiceImpl()
 	{
 		_incomingPacketQueue.stop();
 		_incomingPacketThreadsLock.lock();
@@ -425,7 +358,7 @@ public:
 			}
 #endif
 			// Join existing networks in networks.d
-			if (_network_caching_enabled) {
+			if (allowNetworkCaching) {
 				std::vector<std::string> networksDotD(OSUtils::listDirectory((_homePath + ZT_PATH_SEPARATOR_S "networks.d").c_str()));
 				for(std::vector<std::string>::iterator f(networksDotD.begin());f!=networksDotD.end();++f) {
 					std::size_t dot = f->find_last_of('.');
@@ -769,7 +702,7 @@ public:
 					*nuptr = (void *)0;
 					delete n.tap;
 					_nets.erase(nwid);
-					if (_network_caching_enabled) {
+					if (allowNetworkCaching) {
 						if (op == ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_DESTROY) {
 							char nlcpath[256];
 							OSUtils::ztsnprintf(nlcpath,sizeof(nlcpath),"%s" ZT_PATH_SEPARATOR_S "networks.d" ZT_PATH_SEPARATOR_S "%.16llx.local.conf",_homePath.c_str(),nwid);
@@ -787,17 +720,25 @@ public:
 	inline void nodeEventCallback(enum ZT_Event event,const void *metaData)
 	{
 		// Feed node events into lock-free queue for later dequeuing by the callback thread
-		if (event <= ZT_EVENT_FATAL_ERROR_IDENTITY_COLLISION) {
-			if (event == ZTS_EVENT_NODE_ONLINE) {
+		switch(event) {
+			case ZT_EVENT_UP: {
+				_enqueueEvent(ZTS_EVENT_NODE_UP, NULL);
+			}	break;
+			case ZT_EVENT_ONLINE: {
 				struct zts_node_details *nd = new zts_node_details;
 				nd->address = _node->address();
-				postEvent(event, (void*)nd);
-			}
-			else {
-				postEvent(event, (void*)0);
-			}
-		}
-		switch(event) {
+				_enqueueEvent(ZTS_EVENT_NODE_ONLINE, (void*)nd);
+			}	break;
+			case ZT_EVENT_OFFLINE: {
+				struct zts_node_details *nd = new zts_node_details;
+				nd->address = _node->address();
+				_enqueueEvent(ZTS_EVENT_NODE_OFFLINE, (void*)nd);
+			}	break;
+			case ZT_EVENT_DOWN: {
+				struct zts_node_details *nd = new zts_node_details;
+				nd->address = _node->address();
+				_enqueueEvent(ZTS_EVENT_NODE_DOWN, (void*)nd);
+			}	break;
 			case ZT_EVENT_FATAL_ERROR_IDENTITY_COLLISION: {
 				Mutex::Lock _l(_termReason_m);
 				_termReason = ONE_IDENTITY_COLLISION;
@@ -828,7 +769,7 @@ public:
 	{
 		// Force the ordering of callback messages, these messages are
 		// only useful if the node and stack are both up and running
-		if (!_node->online() || !lwip_is_up()) {
+		if (!_node->online() || !_lwip_is_up()) {
 			return;
 		}
 		// Generate messages to be dequeued by the callback message thread
@@ -842,26 +783,26 @@ public:
 			}
 			switch (mostRecentStatus) {
 				case ZT_NETWORK_STATUS_NOT_FOUND:
-					postEvent(ZTS_EVENT_NETWORK_NOT_FOUND, (void*)prepare_network_details_msg(nwid));
+					_enqueueEvent(ZTS_EVENT_NETWORK_NOT_FOUND, (void*)prepare_network_details_msg(nwid));
 					break;
 				case ZT_NETWORK_STATUS_CLIENT_TOO_OLD:
-					postEvent(ZTS_EVENT_NETWORK_CLIENT_TOO_OLD, (void*)prepare_network_details_msg(nwid));
+					_enqueueEvent(ZTS_EVENT_NETWORK_CLIENT_TOO_OLD, (void*)prepare_network_details_msg(nwid));
 					break;
 				case ZT_NETWORK_STATUS_REQUESTING_CONFIGURATION:
-					postEvent(ZTS_EVENT_NETWORK_REQUESTING_CONFIG, (void*)prepare_network_details_msg(nwid));
+					_enqueueEvent(ZTS_EVENT_NETWORK_REQ_CONFIG, (void*)prepare_network_details_msg(nwid));
 					break;
 				case ZT_NETWORK_STATUS_OK:
-					if (tap->hasIpv4Addr() && lwip_is_netif_up(tap->netif4)) {
-						postEvent(ZTS_EVENT_NETWORK_READY_IP4, (void*)prepare_network_details_msg(nwid));
+					if (tap->hasIpv4Addr() && _lwip_is_netif_up(tap->netif4)) {
+						_enqueueEvent(ZTS_EVENT_NETWORK_READY_IP4, (void*)prepare_network_details_msg(nwid));
 					}
-					if (tap->hasIpv6Addr() && lwip_is_netif_up(tap->netif6)) {
-						postEvent(ZTS_EVENT_NETWORK_READY_IP6, (void*)prepare_network_details_msg(nwid));
+					if (tap->hasIpv6Addr() && _lwip_is_netif_up(tap->netif6)) {
+						_enqueueEvent(ZTS_EVENT_NETWORK_READY_IP6, (void*)prepare_network_details_msg(nwid));
 					}
 					// In addition to the READY messages, send one OK message
-					postEvent(ZTS_EVENT_NETWORK_OK, (void*)prepare_network_details_msg(nwid));
+					_enqueueEvent(ZTS_EVENT_NETWORK_OK, (void*)prepare_network_details_msg(nwid));
 					break;
 				case ZT_NETWORK_STATUS_ACCESS_DENIED:
-					postEvent(ZTS_EVENT_NETWORK_ACCESS_DENIED, (void*)prepare_network_details_msg(nwid));
+					_enqueueEvent(ZTS_EVENT_NETWORK_ACCESS_DENIED, (void*)prepare_network_details_msg(nwid));
 					break;
 				default:
 					break;
@@ -879,12 +820,12 @@ public:
 					if (pl->peers[i].pathCount > 0) {
 						pd = new zts_peer_details;
 						memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
-						postEvent(ZTS_EVENT_PEER_P2P, (void*)pd);
+						_enqueueEvent(ZTS_EVENT_PEER_DIRECT, (void*)pd);
 					}
 					if (pl->peers[i].pathCount == 0) {
 						pd = new zts_peer_details;
 						memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
-						postEvent(ZTS_EVENT_PEER_RELAY, (void*)pd);
+						_enqueueEvent(ZTS_EVENT_PEER_RELAY, (void*)pd);
 					}
 				}
 				// Previously known peer, update status
@@ -892,12 +833,12 @@ public:
 					if ((peerCache[pl->peers[i].address] == false) && pl->peers[i].pathCount > 0) {
 						pd = new zts_peer_details;
 						memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
-						postEvent(ZTS_EVENT_PEER_P2P, (void*)pd);
+						_enqueueEvent(ZTS_EVENT_PEER_DIRECT, (void*)pd);
 					}
 					if ((peerCache[pl->peers[i].address] == true) && pl->peers[i].pathCount == 0) {
 						pd = new zts_peer_details;
 						memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
-						postEvent(ZTS_EVENT_PEER_RELAY, (void*)pd);
+						_enqueueEvent(ZTS_EVENT_PEER_RELAY, (void*)pd);
 					}
 				}
 				// Update our cache with most recently observed path count
@@ -938,7 +879,7 @@ public:
 		if (pl) {
 			for(unsigned long i=0;i<pl->peerCount;++i) {
 				if (pl->peers[i].address == id) {
-					status = pl->peers[i].pathCount > 0 ? ZTS_EVENT_PEER_P2P : ZTS_EVENT_PEER_RELAY;
+					status = pl->peers[i].pathCount > 0 ? ZTS_EVENT_PEER_DIRECT : ZTS_EVENT_PEER_RELAY;
 					break;
 				}
 			}
@@ -967,7 +908,7 @@ public:
 				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "planet",_homePath.c_str());
 				break;
 			case ZT_STATE_OBJECT_NETWORK_CONFIG:
-				if (_network_caching_enabled) {
+				if (allowNetworkCaching) {
 					OSUtils::ztsnprintf(dirname,sizeof(dirname),"%s" ZT_PATH_SEPARATOR_S "networks.d",_homePath.c_str());
 					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "%.16llx.conf",dirname,(unsigned long long)id[0]);
 					secure = true;
@@ -977,7 +918,7 @@ public:
 				}
 				break;
 			case ZT_STATE_OBJECT_PEER:
-				if (_peer_caching_enabled) {
+				if (allowPeerCaching) {
 					OSUtils::ztsnprintf(dirname,sizeof(dirname),"%s" ZT_PATH_SEPARATOR_S "peers.d",_homePath.c_str());
 					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "%.10llx.peer",dirname,(unsigned long long)id[0]);
 				}
@@ -1032,7 +973,7 @@ public:
 				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "planet",_homePath.c_str());
 				break;
 			case ZT_STATE_OBJECT_NETWORK_CONFIG:
-				if (_network_caching_enabled) {
+				if (allowNetworkCaching) {
 					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "networks.d" ZT_PATH_SEPARATOR_S "%.16llx.conf",_homePath.c_str(),(unsigned long long)id[0]);
 				}
 				else {
@@ -1040,7 +981,7 @@ public:
 				}
 				break;
 			case ZT_STATE_OBJECT_PEER:
-				if (_peer_caching_enabled) {
+				if (allowPeerCaching) {
 					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "peers.d" ZT_PATH_SEPARATOR_S "%.10llx.peer",_homePath.c_str(),(unsigned long long)id[0]);
 				}
 				break;
@@ -1249,32 +1190,121 @@ public:
 };
 
 static int SnodeVirtualNetworkConfigFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t nwid,void **nuptr,enum ZT_VirtualNetworkConfigOperation op,const ZT_VirtualNetworkConfig *nwconf)
-{ return reinterpret_cast<OneServiceImpl *>(uptr)->nodeVirtualNetworkConfigFunction(nwid,nuptr,op,nwconf); }
+{ return reinterpret_cast<NodeServiceImpl *>(uptr)->nodeVirtualNetworkConfigFunction(nwid,nuptr,op,nwconf); }
 static void SnodeEventCallback(ZT_Node *node,void *uptr,void *tptr,enum ZT_Event event,const void *metaData)
-{ reinterpret_cast<OneServiceImpl *>(uptr)->nodeEventCallback(event,metaData); }
+{ reinterpret_cast<NodeServiceImpl *>(uptr)->nodeEventCallback(event,metaData); }
 static void SnodeStatePutFunction(ZT_Node *node,void *uptr,void *tptr,enum ZT_StateObjectType type,const uint64_t id[2],const void *data,int len)
-{ reinterpret_cast<OneServiceImpl *>(uptr)->nodeStatePutFunction(type,id,data,len); }
+{ reinterpret_cast<NodeServiceImpl *>(uptr)->nodeStatePutFunction(type,id,data,len); }
 static int SnodeStateGetFunction(ZT_Node *node,void *uptr,void *tptr,enum ZT_StateObjectType type,const uint64_t id[2],void *data,unsigned int maxlen)
-{ return reinterpret_cast<OneServiceImpl *>(uptr)->nodeStateGetFunction(type,id,data,maxlen); }
+{ return reinterpret_cast<NodeServiceImpl *>(uptr)->nodeStateGetFunction(type,id,data,maxlen); }
 static int SnodeWirePacketSendFunction(ZT_Node *node,void *uptr,void *tptr,int64_t localSocket,const struct sockaddr_storage *addr,const void *data,unsigned int len,unsigned int ttl)
-{ return reinterpret_cast<OneServiceImpl *>(uptr)->nodeWirePacketSendFunction(localSocket,addr,data,len,ttl); }
+{ return reinterpret_cast<NodeServiceImpl *>(uptr)->nodeWirePacketSendFunction(localSocket,addr,data,len,ttl); }
 static void SnodeVirtualNetworkFrameFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t nwid,void **nuptr,uint64_t sourceMac,uint64_t destMac,unsigned int etherType,unsigned int vlanId,const void *data,unsigned int len)
-{ reinterpret_cast<OneServiceImpl *>(uptr)->nodeVirtualNetworkFrameFunction(nwid,nuptr,sourceMac,destMac,etherType,vlanId,data,len); }
+{ reinterpret_cast<NodeServiceImpl *>(uptr)->nodeVirtualNetworkFrameFunction(nwid,nuptr,sourceMac,destMac,etherType,vlanId,data,len); }
 static int SnodePathCheckFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t ztaddr,int64_t localSocket,const struct sockaddr_storage *remoteAddr)
-{ return reinterpret_cast<OneServiceImpl *>(uptr)->nodePathCheckFunction(ztaddr,localSocket,remoteAddr); }
+{ return reinterpret_cast<NodeServiceImpl *>(uptr)->nodePathCheckFunction(ztaddr,localSocket,remoteAddr); }
 static int SnodePathLookupFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t ztaddr,int family,struct sockaddr_storage *result)
-{ return reinterpret_cast<OneServiceImpl *>(uptr)->nodePathLookupFunction(ztaddr,family,result); }
+{ return reinterpret_cast<NodeServiceImpl *>(uptr)->nodePathLookupFunction(ztaddr,family,result); }
 static void StapFrameHandler(void *uptr,void *tptr,uint64_t nwid,const MAC &from,const MAC &to,unsigned int etherType,unsigned int vlanId,const void *data,unsigned int len)
-{ reinterpret_cast<OneServiceImpl *>(uptr)->tapFrameHandler(nwid,from,to,etherType,vlanId,data,len); }
+{ reinterpret_cast<NodeServiceImpl *>(uptr)->tapFrameHandler(nwid,from,to,etherType,vlanId,data,len); }
 
-} // anonymous namespace
 
-std::string OneService::platformDefaultHomePath()
+std::string NodeService::platformDefaultHomePath()
 {
 	return OSUtils::platformDefaultHomePath();
 }
 
-OneService *OneService::newInstance(const char *hp,unsigned int port) { return new OneServiceImpl(hp,port); }
-OneService::~OneService() {}
+NodeService *NodeService::newInstance(const char *hp,unsigned int port) { return new NodeServiceImpl(hp,port); }
+NodeService::~NodeService() {}
+
+//////////////////////////////////////////////////////////////////////////////
+// Service                                                                  //
+//////////////////////////////////////////////////////////////////////////////
+
+NodeService *service;
+
+// Lock to guard access to ZeroTier core service
+Mutex serviceLock;
+
+// Starts a ZeroTier NodeService background thread
+#if defined(__WINDOWS__)
+DWORD WINAPI _runNodeService(LPVOID arg)
+#else
+void *_runNodeService(void *arg)
+#endif
+{	
+#if defined(__APPLE__)
+	pthread_setname_np(ZTS_SERVICE_THREAD_NAME);
+#endif
+	struct serviceParameters *params = (struct serviceParameters *)arg;
+	int err;
+	try {
+		std::vector<std::string> hpsp(OSUtils::split(params->path.c_str(), ZT_PATH_SEPARATOR_S,"",""));
+		std::string ptmp;
+		if (params->path[0] == ZT_PATH_SEPARATOR) {
+			ptmp.push_back(ZT_PATH_SEPARATOR);
+		}
+		for (std::vector<std::string>::iterator pi(hpsp.begin());pi!=hpsp.end();++pi) {
+			if (ptmp.length() > 0) {
+				ptmp.push_back(ZT_PATH_SEPARATOR);
+			}
+			ptmp.append(*pi);
+			if ((*pi != ".")&&(*pi != "..")) {
+				if (OSUtils::mkdir(ptmp) == false) {
+					DEBUG_ERROR("home path does not exist, and could not create");
+					err = true;
+					perror("error\n");
+				}
+			}
+		}
+		for(;;) {
+			serviceLock.lock();
+			service = NodeService::newInstance(params->path.c_str(),params->port);
+			service->_userProvidedPort = params->port;
+			service->_userProvidedPath = params->path;
+			serviceLock.unlock();
+			switch(service->run()) {
+				case NodeService::ONE_STILL_RUNNING:
+				case NodeService::ONE_NORMAL_TERMINATION:
+					_enqueueEvent(ZTS_EVENT_NODE_NORMAL_TERMINATION,NULL);
+					break;
+				case NodeService::ONE_UNRECOVERABLE_ERROR:
+					DEBUG_ERROR("fatal error: %s", service->fatalErrorMessage().c_str());
+					err = true;
+					_enqueueEvent(ZTS_EVENT_NODE_UNRECOVERABLE_ERROR,NULL);
+					break;
+				case NodeService::ONE_IDENTITY_COLLISION: {
+					err = true;
+					delete service;
+					service = (NodeService *)0;
+					std::string oldid;
+					OSUtils::readFile((params->path + ZT_PATH_SEPARATOR_S + "identity.secret").c_str(),oldid);
+					if (oldid.length()) {
+						OSUtils::writeFile((params->path + ZT_PATH_SEPARATOR_S + "identity.secret.saved_after_collision").c_str(),oldid);
+						OSUtils::rm((params->path + ZT_PATH_SEPARATOR_S + "identity.secret").c_str());
+						OSUtils::rm((params->path + ZT_PATH_SEPARATOR_S + "identity.public").c_str());
+					}
+					_enqueueEvent(ZTS_EVENT_NODE_IDENTITY_COLLISION,NULL);
+				}	continue; // restart!
+			}
+			break; // terminate loop -- normally we don't keep restarting
+		}
+		serviceLock.lock();
+		_clrState(ZTS_STATE_NODE_RUNNING);
+		delete service;
+		service = (NodeService *)0;
+		serviceLock.unlock();
+		_enqueueEvent(ZTS_EVENT_NODE_DOWN,NULL);
+	} catch ( ... ) {
+		DEBUG_ERROR("unexpected exception starting ZeroTier instance");
+	}
+	delete params;
+	zts_delay_ms(ZTS_CALLBACK_PROCESSING_INTERVAL*2);
+	_clrState(ZTS_STATE_CALLBACKS_RUNNING);
+#ifndef __WINDOWS__
+	pthread_exit(0);
+#endif
+	return NULL;
+}
 
 } // namespace ZeroTier

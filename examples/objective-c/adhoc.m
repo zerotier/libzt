@@ -10,7 +10,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import <zt/ZeroTier.h>
+#import <zt/ZeroTierSockets.h>
 
 #include <arpa/inet.h>
 
@@ -22,12 +22,12 @@
  *   the location given in the first argument to zts_start(path, ...). If you accidentally
  *   duplicate the identity files and use them simultaneously in a different node instance
  *   you will experience undefined behavior and it is likely nothing will work.
- * 
+ *
  * - You must authorize the node ID provided by the ZTS_EVENT_NODE_ONLINE callback to join
  *   your network, otherwise nothing will happen. This can be done manually or via
  *   our web API: https://my.zerotier.com/help/api
  *
- * - An exception to the above rule is if you are using an Ad-hoc network, it has no 
+ * - An exception to the above rule is if you are using an Ad-hoc network, it has no
  *   controller and therefore requires no authorization.
  *
  *
@@ -60,28 +60,27 @@
  *   Category 1: Control functions (zts_start, zts_join, zts_get_peer_status, etc). Errors
  *                returned by these functions can be any of the following:
  *
- *      [ 0] ZTS_ERR_OK          - No error.
- *      [-1] ZTS_ERR             - Error (see zts_errno for more information).
- *      [-2] ZTS_ERR_INVALID_ARG - An argument provided is invalid.
- *      [-3] ZTS_ERR_SERVICE     - ZT is not yet initialized. Try again.
- *      [-4] ZTS_ERR_INVALID_OP  - Operation is not permitted (Doesn't make sense in this state).
- *      [-5] ZTS_ERR_NO_RESULT   - Call succeeded but no result was available. Not always an error.
- *      [-6] ZTS_ERR_GENERAL     - General internal failure. Consider filing a bug report.
+ *      ZTS_ERR_OK            0 // No error
+ *      ZTS_ERR_SOCKET       -1 // Socket error, see zts_errno
+ *      ZTS_ERR_SERVICE      -2 // You probably did something at the wrong time
+ *      ZTS_ERR_ARG          -3 // Invalid argument
+ *      ZTS_ERR_NO_RESULT    -4 // No result (not necessarily an error)
+ *      ZTS_ERR_GENERAL      -5 // Consider filing a bug report
  *
  *   Category 2: Sockets (zts_socket, zts_bind, zts_connect, zts_listen, etc).
  *               Errors returned by these functions can be the same as the above. With
  *               the added possibility of zts_errno being set. Much like standard
  *               errno this will provide a more specific reason for an error's occurrence.
- *               These error values are defined in: libzt/ext/lwip/src/include/lwip/errno.h
- *               and closely map to standard Linux error values.
+ *               See ZeroTierSockets.h for values.
  *
  *
  *   API COMPATIBILITY WITH HOST OS:
  *
- * - Since libzt re-implements a socket API probably very similar to your host OS's own
- *   API it may be tempting to mix and match host OS structures and functions with those
- *   of libzt. This may work on occasion, but you are tempting fate, so here are a few
- *   guidelines:
+ * - While the ZeroTier socket interface can coexist with your host OS's own interface in
+ *   the same file with no type and naming conflicts, try not to mix and match host
+ *   OS/libzt structures, functions, or constants. It may look similar and may even work
+ *   some of the time but there enough differences that it will cause headaches. Here
+ *   are a few guidelines:
  *
  *   If you are calling a zts_* function, use the appropriate ZTS_* constants:
  *             
@@ -92,19 +91,8 @@
  *
  *          struct zts_sockaddr_in in4;  <------ Note the zts_* prefix
  *             ...
- *          zts_bind(fd, (struct sockaddr *)&in4, sizeof(struct zts_sockaddr_in)) < 0)
+ *          zts_bind(fd, (struct zts_sockaddr *)&in4, sizeof(struct zts_sockaddr_in)) < 0)
  *
- *   If you are calling a host OS function, use your host OS's constants (and structures!):
- *       
- *          inet_ntop(AF_INET6, &(in6->sin6_addr), ...);     (CORRECT)
- *          inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), ...); (INCORRECT)
- *
- *   If you are calling a host OS function but passing a zts_* structure, this can
- *       work sometimes but you should take care to pass the correct host OS constants:
- *
- *          struct zts_sockaddr_in6 in6;
- *             ...
- *          inet_ntop(AF_INET6, &(in6->sin6_addr), dstStr, INET6_ADDRSTRLEN);
  */
 
 void delay_ms(long ms) { usleep(ms*1000); }
@@ -129,8 +117,8 @@ void myZeroTierEventCallback(struct zts_callback_msg *msg)
 		NSLog(@"ZTS_EVENT_NETWORK_NOT_FOUND --- Are you sure %llx is a valid network?\n",
 			msg->network->nwid);
 	}
-	if (msg->eventCode == ZTS_EVENT_NETWORK_REQUESTING_CONFIG) {
-		NSLog(@"ZTS_EVENT_NETWORK_REQUESTING_CONFIG --- Requesting config for network %llx, please wait a few seconds...\n", msg->network->nwid);
+	if (msg->eventCode == ZTS_EVENT_NETWORK_REQ_CONFIG) {
+		NSLog(@"ZTS_EVENT_NETWORK_REQ_CONFIG --- Requesting config for network %llx, please wait a few seconds...\n", msg->network->nwid);
 	} 
 	if (msg->eventCode == ZTS_EVENT_NETWORK_ACCESS_DENIED) {
 		NSLog(@"ZTS_EVENT_NETWORK_ACCESS_DENIED --- Access to virtual network %llx has been denied. Did you authorize the node yet?\n",
@@ -169,8 +157,8 @@ void myZeroTierEventCallback(struct zts_callback_msg *msg)
 	}
 	// Peer events
 	// If you don't recognize the peer ID, don't panic, this is most likely one of our root servers
-	if (msg->eventCode == ZTS_EVENT_PEER_P2P) {
-		NSLog(@"ZTS_EVENT_PEER_P2P --- There is now a direct path to peer %llx\n",
+	if (msg->eventCode == ZTS_EVENT_PEER_DIRECT) {
+		NSLog(@"ZTS_EVENT_PEER_DIRECT --- There is now a direct path to peer %llx\n",
 			msg->peer->address);
 	}
 	if (msg->eventCode == ZTS_EVENT_PEER_RELAY) {
@@ -218,7 +206,7 @@ int main(int argc, char **argv)
 	uint64_t adhoc_nwid = zts_generate_adhoc_nwid_from_range(adhocStartPort, adhocEndPort);
 	int err = ZTS_ERR_OK;
 
-	zts_set_network_caching(false);
+	zts_allow_network_caching(false);
 
 	if((err = zts_start(argv[1], &myZeroTierEventCallback, ztServicePort)) != ZTS_ERR_OK) {
 		NSLog(@"Unable to start service, error = %d. Exiting.\n", err);

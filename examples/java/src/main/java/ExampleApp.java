@@ -44,7 +44,7 @@ public class ExampleApp
 		// Wait for EVENT_NODE_ONLINE
 		System.out.println("waiting for node to come online...");
 		while (listener.isOnline == false) { sleep(50); }
-		System.out.println("joinging network");
+		System.out.println("joining network");
 		ZeroTier.join(0x0123456789abcdefL);
 		// Wait for EVENT_NETWORK_READY_IP4/6
 		System.out.println("waiting for network config...");

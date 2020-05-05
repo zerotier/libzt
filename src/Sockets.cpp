@@ -392,22 +392,10 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_select(JNIEnv *env, jobj
 
 int zts_fcntl(int fd, int cmd, int flags)
 {
-	// translation from platform flag values to stack flag values
-	int translated_flags = 0;
-#if defined(__linux__)
-	if (flags == 2048) {
-		translated_flags = 1;
-	}
-#endif
-#if defined(__APPLE__)
-	if (flags == 4) {
-		translated_flags = 1;
-	}
-#endif
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
 	}
-	return lwip_fcntl(fd, cmd, translated_flags);
+	return lwip_fcntl(fd, cmd, flags);
 }
 #ifdef SDK_JNI
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_fcntl(

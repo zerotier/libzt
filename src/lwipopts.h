@@ -83,7 +83,7 @@
 ------------------------------------ Presets -----------------------------------
 ------------------------------------------------------------------------------*/
 
-#define LWIP_MTU                        1500
+#define LWIP_MTU                        2800
 #define LWIP_CHKSUM_ALGORITHM           2
 // memory
 #define MEMP_NUM_NETCONN                1024

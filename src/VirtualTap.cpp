@@ -223,7 +223,7 @@ std::vector<InetAddress> VirtualTap::ips() const
 void VirtualTap::put(const MAC &from,const MAC &to,unsigned int etherType,
 	const void *data,unsigned int len)
 {
-	if (len <= _mtu && _enabled) {
+	if (len && _enabled) {
 		_lwip_eth_rx(this, from, to, etherType, data, len);
 	}
 }
@@ -653,12 +653,13 @@ static err_t _netif_init4(struct netif *n)
 		return ERR_IF;
 	}
 	// Called from netif code, no need to lock
+	VirtualTap *tap = (VirtualTap*)(n->state);
 	n->hwaddr_len = 6;
 	n->name[0]    = '4';
 	n->name[1]    = 'a'+netifCount;
 	n->linkoutput = _lwip_eth_tx;
 	n->output     = etharp_output;
-	n->mtu        = LWIP_MTU < ZT_MAX_MTU ? LWIP_MTU : ZT_MAX_MTU;
+	n->mtu        = std::min(LWIP_MTU,(int)tap->_mtu);
 	n->flags      = NETIF_FLAG_BROADCAST
 		| NETIF_FLAG_ETHARP
 		| NETIF_FLAG_ETHERNET
@@ -667,7 +668,6 @@ static err_t _netif_init4(struct netif *n)
 		| NETIF_FLAG_LINK_UP
 		| NETIF_FLAG_UP;
 	n->hwaddr_len = sizeof(n->hwaddr);
-	VirtualTap *tap = (VirtualTap*)(n->state);
 	tap->_mac.copyTo(n->hwaddr, n->hwaddr_len);
 	return ERR_OK;
 }
@@ -686,7 +686,7 @@ static err_t _netif_init6(struct netif *n)
 	n->name[1]    = 'a'+netifCount;
 	n->linkoutput = _lwip_eth_tx;
 	n->output_ip6 = ethip6_output;
-	n->mtu        = LWIP_MTU < ZT_MAX_MTU ? LWIP_MTU : ZT_MAX_MTU;
+	n->mtu        = std::min(LWIP_MTU,(int)tap->_mtu);
 	n->flags      = NETIF_FLAG_BROADCAST
 	    | NETIF_FLAG_ETHARP
 		| NETIF_FLAG_ETHERNET

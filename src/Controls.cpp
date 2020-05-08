@@ -440,7 +440,7 @@ int zts_deorbit(uint64_t moonWorldId)
 #ifdef SDK_JNI
 #endif
 
-int zts_get_6plane_addr(struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId)
+int zts_get_6plane_addr(struct zts_sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId)
 {
 	if (!addr || !nwid || !nodeId) {
 		return ZTS_ERR_ARG;
@@ -451,7 +451,7 @@ int zts_get_6plane_addr(struct sockaddr_storage *addr, const uint64_t nwid, cons
 	return ZTS_ERR_OK;
 }
 
-int zts_get_rfc4193_addr(struct sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId)
+int zts_get_rfc4193_addr(struct zts_sockaddr_storage *addr, const uint64_t nwid, const uint64_t nodeId)
 {
 	if (!addr || !nwid || !nodeId) {
 		return ZTS_ERR_ARG;

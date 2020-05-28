@@ -47,7 +47,7 @@ endif ()
 if (CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "debug")
 	set (DEBUG_BUILD ON)
 	set (CMAKE_VERBOSE_MAKEFILE ON)
-    set (CMAKE_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/bin)
+	set (CMAKE_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/bin)
 	set (LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/lib)
 endif()
 if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "release")
@@ -247,7 +247,7 @@ set (LIBZT_SRC_DIR "${PROJ_DIR}/src")
 file (GLOB ztcoreSrcGlob
 	${ZTO_SRC_DIR}/node/*.cpp
 	${ZTO_SRC_DIR}/osdep/OSUtils.cpp
-    ${ZTO_SRC_DIR}/osdep/PortMapper.cpp
+	${ZTO_SRC_DIR}/osdep/PortMapper.cpp
 	${ZTO_SRC_DIR}/osdep/ManagedRoute.cpp)
 
 file (GLOB libnatpmpSrcGlob
@@ -256,19 +256,19 @@ file (GLOB libnatpmpSrcGlob
 	${ZTO_SRC_DIR}/ext/libnatpmp/getgateway.c)
 
 file (GLOB libminiupnpcSrcGlob
-    ${ZTO_SRC_DIR}/ext/miniupnpc/connecthostport.c
-    ${ZTO_SRC_DIR}/ext/miniupnpc/igd_desc_parse.c
-    ${ZTO_SRC_DIR}/ext/miniupnpc/minisoap.c
-    ${ZTO_SRC_DIR}/ext/miniupnpc/minissdpc.c
-    ${ZTO_SRC_DIR}/ext/miniupnpc/miniupnpc.c
-    ${ZTO_SRC_DIR}/ext/miniupnpc/miniwget.c
-    ${ZTO_SRC_DIR}/ext/miniupnpc/minixml.c
-    ${ZTO_SRC_DIR}/ext/miniupnpc/portlistingparse.c
-    ${ZTO_SRC_DIR}/ext/miniupnpc/receivedata.c
-    ${ZTO_SRC_DIR}/ext/miniupnpc/upnpcommands.c
-    ${ZTO_SRC_DIR}/ext/miniupnpc/upnpdev.c
-    ${ZTO_SRC_DIR}/ext/miniupnpc/upnperrors.c
-    ${ZTO_SRC_DIR}/ext/miniupnpc/upnpreplyparse.c)
+	${ZTO_SRC_DIR}/ext/miniupnpc/connecthostport.c
+	${ZTO_SRC_DIR}/ext/miniupnpc/igd_desc_parse.c
+	${ZTO_SRC_DIR}/ext/miniupnpc/minisoap.c
+	${ZTO_SRC_DIR}/ext/miniupnpc/minissdpc.c
+	${ZTO_SRC_DIR}/ext/miniupnpc/miniupnpc.c
+	${ZTO_SRC_DIR}/ext/miniupnpc/miniwget.c
+	${ZTO_SRC_DIR}/ext/miniupnpc/minixml.c
+	${ZTO_SRC_DIR}/ext/miniupnpc/portlistingparse.c
+	${ZTO_SRC_DIR}/ext/miniupnpc/receivedata.c
+	${ZTO_SRC_DIR}/ext/miniupnpc/upnpcommands.c
+	${ZTO_SRC_DIR}/ext/miniupnpc/upnpdev.c
+	${ZTO_SRC_DIR}/ext/miniupnpc/upnperrors.c
+	${ZTO_SRC_DIR}/ext/miniupnpc/upnpreplyparse.c)
 
 file (GLOB libztSrcGlob ${LIBZT_SRC_DIR}/*.cpp)
 
@@ -422,8 +422,8 @@ set_target_properties (zt_pic PROPERTIES
 # libztcore.a
 add_library (ztcore STATIC $<TARGET_OBJECTS:zto_obj>)
 set_target_properties (ztcore PROPERTIES
-    OUTPUT_NAME ztcore
-    LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
+	OUTPUT_NAME ztcore
+	LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
 
 # libzt.a
 add_library (${STATIC_LIB_NAME} STATIC $<TARGET_OBJECTS:libzt_obj>
@@ -432,8 +432,8 @@ $<TARGET_OBJECTS:libnatpmp_obj>
 $<TARGET_OBJECTS:miniupnpc_obj>
 $<TARGET_OBJECTS:lwip_obj> ${libztSrcGlob})
 set_target_properties (${STATIC_LIB_NAME} PROPERTIES
-    OUTPUT_NAME zt
-    LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
+	OUTPUT_NAME zt
+	LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
 set_target_properties (${STATIC_LIB_NAME} PROPERTIES COMPILE_FLAGS "${ZT_FLAGS}")
 if (BUILDING_WIN)
 	target_link_libraries (
@@ -448,7 +448,7 @@ add_library (${DYNAMIC_LIB_NAME} SHARED ${libztSrcGlob})
 target_link_libraries (${DYNAMIC_LIB_NAME} zt_pic lwip_pic zto_pic natpmp_pic miniupnpc_pic)
 set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES COMPILE_FLAGS "${ZT_FLAGS}")
 set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES OUTPUT_NAME ${DYNAMIC_LIB_OUTPUT_NAME}
-                                    WINDOWS_EXPORT_ALL_SYMBOLS true)
+									WINDOWS_EXPORT_ALL_SYMBOLS true)
 target_link_libraries (
 	${DYNAMIC_LIB_NAME}
 	${ws2_32_LIBRARY_PATH}
@@ -463,7 +463,7 @@ endif ()
 
 # xcode framework
 if (IN_XCODE)
-    include_directories (${frameworkHeaderGlob})
+	include_directories (${frameworkHeaderGlob})
 
 
 	add_library(${XCODE_FRAMEWORK_NAME} STATIC
@@ -520,11 +520,11 @@ set (PUBLIC_ZT_HEADERS ${PROJECT_SOURCE_DIR}/include/ZeroTierSockets.h)
 
 set_target_properties(${STATIC_LIB_NAME} PROPERTIES PUBLIC_HEADER "${PUBLIC_ZT_HEADERS}")
 install (TARGETS ${STATIC_LIB_NAME}
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        PUBLIC_HEADER DESTINATION include
+		LIBRARY DESTINATION lib
+		ARCHIVE DESTINATION lib
+		PUBLIC_HEADER DESTINATION include
 )
 install (TARGETS ${DYNAMIC_LIB_NAME}
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
+		LIBRARY DESTINATION lib
+		ARCHIVE DESTINATION lib
 )

@@ -506,6 +506,10 @@ if (SHOULD_BUILD_TESTS)
 	target_link_libraries(client ${STATIC_LIB_NAME})
 	add_executable (server ${PROJ_DIR}/examples/cpp/server.cpp)
 	target_link_libraries(server ${STATIC_LIB_NAME})
+	add_executable (nonblockingclient ${PROJ_DIR}/examples/cpp/nonblockingclient.cpp)
+	target_link_libraries(nonblockingclient ${STATIC_LIB_NAME})
+	add_executable (nonblockingserver ${PROJ_DIR}/examples/cpp/nonblockingserver.cpp)
+	target_link_libraries(nonblockingserver ${STATIC_LIB_NAME})
 endif ()
 
 # -----------------------------------------------------------------------------

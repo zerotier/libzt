@@ -29,7 +29,7 @@ BEGIN
             VALUE "CompanyName", "ZeroTier, Inc.\0"
             VALUE "FileDescription", "ZeroTier SDK\0"
             VALUE "InternalName", "zt\0"
-            VALUE "LegalCopyright", "Copyright (C) 2019 ZeroTier, Inc.\0"
+            VALUE "LegalCopyright", "Copyright (C) 2020 ZeroTier, Inc.\0"
             VALUE "OriginalFilename", "libzt.dll\0"
             VALUE "PrivateBuild", "0\0"
             VALUE "ProductName", "libzt\0"

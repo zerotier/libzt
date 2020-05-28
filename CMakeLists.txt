@@ -257,13 +257,13 @@ file (GLOB libnatpmpSrcGlob
 
 file (GLOB libminiupnpcSrcGlob
     ${ZTO_SRC_DIR}/ext/miniupnpc/connecthostport.c
-    ${ZTO_SRC_DIR}/ext/miniupnpc/igd_desc_parse.c 
+    ${ZTO_SRC_DIR}/ext/miniupnpc/igd_desc_parse.c
     ${ZTO_SRC_DIR}/ext/miniupnpc/minisoap.c
     ${ZTO_SRC_DIR}/ext/miniupnpc/minissdpc.c
-    ${ZTO_SRC_DIR}/ext/miniupnpc/miniupnpc.c 
+    ${ZTO_SRC_DIR}/ext/miniupnpc/miniupnpc.c
     ${ZTO_SRC_DIR}/ext/miniupnpc/miniwget.c
     ${ZTO_SRC_DIR}/ext/miniupnpc/minixml.c
-    ${ZTO_SRC_DIR}/ext/miniupnpc/portlistingparse.c 
+    ${ZTO_SRC_DIR}/ext/miniupnpc/portlistingparse.c
     ${ZTO_SRC_DIR}/ext/miniupnpc/receivedata.c
     ${ZTO_SRC_DIR}/ext/miniupnpc/upnpcommands.c
     ${ZTO_SRC_DIR}/ext/miniupnpc/upnpdev.c
@@ -465,6 +465,7 @@ endif ()
 if (IN_XCODE)
     include_directories (${frameworkHeaderGlob})
 
+
 	add_library(${XCODE_FRAMEWORK_NAME} STATIC
 		$<TARGET_OBJECTS:libzt_obj>
 		$<TARGET_OBJECTS:zto_obj>
@@ -474,12 +475,17 @@ if (IN_XCODE)
 		${libztSrcGlob}
 		${frameworkHeaderGlob})
 
+	set_target_properties(${XCODE_FRAMEWORK_NAME} PROPERTIES ENABLE_BITCODE "YES")
+	set_target_properties(${XCODE_FRAMEWORK_NAME} PROPERTIES BITCODE_GENERATION_MODE bitcode)
+	target_compile_options( ${XCODE_FRAMEWORK_NAME} PUBLIC -fembed-bitcode )
+	target_link_libraries( ${XCODE_FRAMEWORK_NAME} PUBLIC -fembed-bitcode )
+
 	set_target_properties(${XCODE_FRAMEWORK_NAME} PROPERTIES
 		FRAMEWORK TRUE
 		FRAMEWORK_VERSION A
 		DEFINES_MODULE TRUE
 		MACOSX_FRAMEWORK_IDENTIFIER com.cmake.${XCODE_FRAMEWORK_NAME}
-		MODULE_MAP "~/op/zt/libzt/libzt_experimental/ports/module.modulemap"
+		MODULE_MAP "${PROJ_DIR}/ports/module.modulemap"
 		PUBLIC_HEADER "${frameworkHeaderGlob}"
 		XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"
 	)

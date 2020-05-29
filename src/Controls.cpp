@@ -36,6 +36,8 @@ using namespace ZeroTier;
 	#include <jni.h>
 #endif
 
+
+
 namespace ZeroTier
 {
 	extern NodeService *service;
@@ -153,6 +155,11 @@ int zts_start(const char *path, void (*callback)(void *), uint16_t port)
 	return retval;
 }
 
+
+#ifdef __cplusplus
+	extern "C" {
+#endif
+
 #ifdef SDK_JNI
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_start(
 	JNIEnv *env, jobject thisObj, jstring path, jobject callback, jint port)
@@ -198,7 +205,7 @@ int zts_stop()
 	return ZTS_ERR_SERVICE;
 }
 #ifdef SDK_JNI
-JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_stop(
+	JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_stop(
 	JNIEnv *env, jobject thisObj)
 {
 	zts_stop();
@@ -248,7 +255,7 @@ int zts_restart()
 #endif
 }
 #ifdef SDK_JNI
-JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_restart(
+	JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_restart(
 	JNIEnv *env, jobject thisObj)
 {
 	zts_restart();
@@ -266,7 +273,7 @@ int zts_free()
 	// TODO: add stack shutdown logic
 }
 #ifdef SDK_JNI
-JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_free(
+	JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_free(
 	JNIEnv *env, jobject thisObj)
 {
 	zts_free();
@@ -282,7 +289,7 @@ uint64_t zts_get_node_id()
 	return service->getNode()->address();
 }
 #ifdef SDK_JNI
-JNIEXPORT jlong JNICALL Java_com_zerotier_libzt_ZeroTier_get_1node_1id(
+	JNIEXPORT jlong JNICALL Java_com_zerotier_libzt_ZeroTier_get_1node_1id(
 	JNIEnv *env, jobject thisObj)
 {
 	return zts_get_node_id();
@@ -298,7 +305,7 @@ int zts_get_node_status()
 		&& service->getNode()->online() ? ZTS_EVENT_NODE_ONLINE : ZTS_EVENT_NODE_OFFLINE;
 }
 #ifdef SDK_JNI
-JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_get_1node_1status(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_get_1node_1status(
 	JNIEnv *env, jobject thisObj)
 {
 	return zts_get_node_status();
@@ -323,7 +330,7 @@ int zts_get_network_status(uint64_t networkId)
 	return ZTS_ERR_NO_RESULT;
 }
 #ifdef SDK_JNI
-JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_get_1network_1status(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_get_1network_1status(
 	JNIEnv *env, jobject thisObj, jlong networkId)
 {
 	return zts_get_network_status(networkId);
@@ -340,7 +347,7 @@ int zts_get_peer_status(uint64_t peerId)
 	return service->getPeerStatus(peerId);
 }
 #ifdef SDK_JNI
-JNIEXPORT jlong JNICALL Java_com_zerotier_libzt_ZeroTier_get_1peer_1status(
+	JNIEXPORT jlong JNICALL Java_com_zerotier_libzt_ZeroTier_get_1peer_1status(
 	JNIEnv *env, jobject thisObj, jlong peerId)
 {
 	return zts_get_peer_status(peerId);
@@ -352,7 +359,7 @@ JNIEXPORT jlong JNICALL Java_com_zerotier_libzt_ZeroTier_get_1peer_1status(
  * Called from Java, saves a static reference to the VM so it can be used
  * later to call a user-specified callback method from C.
  */
-JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_init(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_init(
 	JNIEnv *env, jobject thisObj)
 {
     jint rs = env->GetJavaVM(&jvm);
@@ -372,12 +379,17 @@ int zts_join(const uint64_t nwid)
 	return ZTS_ERR_OK;
 }
 #ifdef SDK_JNI
-JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_join(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_join(
 	JNIEnv *env, jobject thisObj, jlong nwid)
 {
 	return zts_join((uint64_t)nwid);
 }
 #endif
+
+#ifdef __cplusplus
+}
+#endif
+
 
 int zts_leave(const uint64_t nwid)
 {
@@ -391,7 +403,7 @@ int zts_leave(const uint64_t nwid)
 	return ZTS_ERR_OK;
 }
 #ifdef SDK_JNI
-JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_leave(
+	JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_leave(
 	JNIEnv *env, jobject thisObj, jlong nwid)
 {
 	return zts_leave((uint64_t)nwid);
@@ -617,6 +629,9 @@ int zts_get_all_network_details(struct zts_network_details *nds, int *num)
 #ifdef SDK_JNI
 #endif
 
+
+
+
 void zts_delay_ms(long interval_ms)
 {
 #if defined(__WINDOWS__)
@@ -627,3 +642,7 @@ void zts_delay_ms(long interval_ms)
 	nanosleep(&sleepValue, NULL);
 #endif
 }
+
+
+
+

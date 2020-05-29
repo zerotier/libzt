@@ -120,6 +120,7 @@ void printPeerDetails(const char *msgStr, struct zts_peer_details *d)
 	printf("\t- latency                    : %llx\n", d->latency);
 	printf("\t- pathCount                  : %llx\n", d->pathCount);
 	printf("\t- version                    : %d.%d.%d\n", d->versionMajor, d->versionMinor, d->versionRev);
+	printf("\t- pathCount                  : %d\n", d->pathCount);
 	printf("\t- paths:\n");
 
 	// Print all known paths for each peer
@@ -220,7 +221,7 @@ no state-change implications. */
 void myZeroTierEventCallback(void *msgPtr)
 {
 	struct zts_callback_msg *msg = (struct zts_callback_msg *)msgPtr;
-	printf("code=%d\n", msg->eventCode);
+	printf("eventCode=%d\n", msg->eventCode);
 
 	// Node events
 	if (msg->eventCode == ZTS_EVENT_NODE_ONLINE) {

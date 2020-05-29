@@ -60,12 +60,12 @@
  *   Category 1: Control functions (zts_start, zts_join, zts_get_peer_status, etc). Errors
  *                returned by these functions can be any of the following:
  *
- *      ZTS_ERR_OK            0 // No error
- *      ZTS_ERR_SOCKET       -1 // Socket error, see zts_errno
- *      ZTS_ERR_SERVICE      -2 // You probably did something at the wrong time
- *      ZTS_ERR_ARG          -3 // Invalid argument
- *      ZTS_ERR_NO_RESULT    -4 // No result (not necessarily an error)
- *      ZTS_ERR_GENERAL      -5 // Consider filing a bug report
+ *      ZTS_ERR_OK            // No error
+ *      ZTS_ERR_SOCKET        // Socket error, see zts_errno
+ *      ZTS_ERR_SERVICE       // You probably did something at the wrong time
+ *      ZTS_ERR_ARG           // Invalid argument
+ *      ZTS_ERR_NO_RESULT     // No result (not necessarily an error)
+ *      ZTS_ERR_GENERAL       // Consider filing a bug report
  *
  *   Category 2: Sockets (zts_socket, zts_bind, zts_connect, zts_listen, etc).
  *               Errors returned by these functions can be the same as the above. With
@@ -83,7 +83,7 @@
  *   are a few guidelines:
  *
  *   If you are calling a zts_* function, use the appropriate ZTS_* constants:
- *             
+ *
  *          zts_socket(ZTS_AF_INET6, ZTS_SOCK_DGRAM, 0); (CORRECT)
  *          zts_socket(AF_INET6, SOCK_DGRAM, 0);         (INCORRECT)
  *
@@ -119,7 +119,7 @@ void myZeroTierEventCallback(struct zts_callback_msg *msg)
 	}
 	if (msg->eventCode == ZTS_EVENT_NETWORK_REQ_CONFIG) {
 		NSLog(@"ZTS_EVENT_NETWORK_REQ_CONFIG --- Requesting config for network %llx, please wait a few seconds...\n", msg->network->nwid);
-	} 
+	}
 	if (msg->eventCode == ZTS_EVENT_NETWORK_ACCESS_DENIED) {
 		NSLog(@"ZTS_EVENT_NETWORK_ACCESS_DENIED --- Access to virtual network %llx has been denied. Did you authorize the node yet?\n",
 			msg->network->nwid);
@@ -134,17 +134,17 @@ void myZeroTierEventCallback(struct zts_callback_msg *msg)
 	}
 	// Network stack events
 	if (msg->eventCode == ZTS_EVENT_NETIF_UP) {
-		NSLog(@"ZTS_EVENT_NETIF_UP --- network=%llx, mac=%llx, mtu=%d\n", 
+		NSLog(@"ZTS_EVENT_NETIF_UP --- network=%llx, mac=%llx, mtu=%d\n",
 			msg->netif->nwid,
 			msg->netif->mac,
 			msg->netif->mtu);
 		networkReady = true;
 	}
 	if (msg->eventCode == ZTS_EVENT_NETIF_DOWN) {
-		NSLog(@"ZTS_EVENT_NETIF_DOWN --- network=%llx, mac=%llx\n", 
+		NSLog(@"ZTS_EVENT_NETIF_DOWN --- network=%llx, mac=%llx\n",
 			msg->netif->nwid,
 			msg->netif->mac);
-		
+
 		networkReady = true;
 	}
 	// Address events
@@ -152,7 +152,7 @@ void myZeroTierEventCallback(struct zts_callback_msg *msg)
 		char ipstr[INET6_ADDRSTRLEN];
 		struct zts_sockaddr_in6 *in6 = (struct zts_sockaddr_in6*)&(msg->addr->addr);
 		inet_ntop(AF_INET6, &(in6->sin6_addr), ipstr, INET6_ADDRSTRLEN);
-		NSLog(@"ZTS_EVENT_ADDR_NEW_IP6 --- Join %llx and ping me at %s\n", 
+		NSLog(@"ZTS_EVENT_ADDR_NEW_IP6 --- Join %llx and ping me at %s\n",
 			msg->addr->nwid, ipstr);
 	}
 	// Peer events
@@ -192,7 +192,7 @@ be taken to avoid exposing vulnerable services or sharing unwanted files or othe
 
 */
 
-int main(int argc, char **argv) 
+int main(int argc, char **argv)
 {
 	if (argc != 5) {
 		NSLog(@"\nlibzt example\n");

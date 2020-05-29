@@ -1,10 +1,5 @@
 /**
- * libzt Swift example
- *
- * swiftc -lc++ -import-objc-header ../../include/ZeroTierSockets.h -L. -lzt main.swift -o main;
- * ./main
- *
- * TODO: This example is incomplete
+ * I'll order you a pizza if you can rewrite this in modern idomatic Swift
  */
 
 import Swift
@@ -56,12 +51,12 @@ import Foundation
  *   Category 1: Control functions (zts_start, zts_join, zts_get_peer_status, etc). Errors
  *                returned by these functions can be any of the following:
  *
- *      ZTS_ERR_OK            0 // No error
- *      ZTS_ERR_SOCKET       -1 // Socket error, see zts_errno
- *      ZTS_ERR_SERVICE      -2 // You probably did something at the wrong time
- *      ZTS_ERR_ARG          -3 // Invalid argument
- *      ZTS_ERR_NO_RESULT    -4 // No result (not necessarily an error)
- *      ZTS_ERR_GENERAL      -5 // Consider filing a bug report
+ *      ZTS_ERR_OK            // No error
+ *      ZTS_ERR_SOCKET        // Socket error, see zts_errno
+ *      ZTS_ERR_SERVICE       // You probably did something at the wrong time
+ *      ZTS_ERR_ARG           // Invalid argument
+ *      ZTS_ERR_NO_RESULT     // No result (not necessarily an error)
+ *      ZTS_ERR_GENERAL       // Consider filing a bug report
  *
  *   Category 2: Sockets (zts_socket, zts_bind, zts_connect, zts_listen, etc).
  *               Errors returned by these functions can be the same as the above. With
@@ -91,6 +86,119 @@ import Foundation
  *
  */
 
+let printNodeDetails : @convention(c) (UnsafeMutableRawPointer?) -> Void =
+{
+	(msgPtr) -> Void in
+	let msg = msgPtr?.bindMemory(to: zts_callback_msg.self, capacity: 1)
+	let d = msg?.pointee.node;
+	print(String(format: "\t- id            : %llx", d!.pointee.address));
+	print(String(format: "\t- version       : %d.%d.%d", d!.pointee.versionMajor, d!.pointee.versionMinor, d!.pointee.versionRev));
+	print(String(format: "\t- primaryPort   : %d", d!.pointee.primaryPort));
+	print(String(format: "\t- secondaryPort : %d", d!.pointee.secondaryPort));
+}
+
+/*
+func convertTupleToArray<Tuple, Value>(from tuple: Tuple) -> [Value] {
+	let tupleMirror = Mirror(reflecting: tuple)
+	func convert(child: Mirror.Child) -> Value? {
+		let valueMirror = Mirror(reflecting: child.value)
+		return child.value as? Value
+	}
+	return tupleMirror.children.flatMap(convert)
+}
+*/
+
+let printNetworkDetails : @convention(c) (UnsafeMutableRawPointer?) -> Void =
+{
+	(msgPtr) -> Void in
+	let msg = msgPtr?.bindMemory(to: zts_callback_msg.self, capacity: 1)
+	let d = msg?.pointee.network;
+	let name = ""; // String(d!.pointee.name);
+
+	print(String(format: "\t- nwid                       : %llx", d!.pointee.nwid));
+	print(String(format: "\t- mac                        : %lx", d!.pointee.mac));
+	print(String(format: "\t- name                       : %s", name));
+	print(String(format: "\t- type                       : %d", Int(d!.pointee.type.rawValue)));
+	/* MTU for the virtual network can be set via our web API */
+	print(String(format: "\t- mtu                        : %d", d!.pointee.mtu));
+	print(String(format: "\t- dhcp                       : %d", d!.pointee.dhcp));
+	print(String(format: "\t- bridge                     : %d", d!.pointee.bridge));
+	print(String(format: "\t- broadcastEnabled           : %d", d!.pointee.broadcastEnabled));
+	print(String(format: "\t- portError                  : %d", d!.pointee.portError));
+	print(String(format: "\t- netconfRevision            : %d", d!.pointee.netconfRevision));
+	print(String(format: "\t- routeCount                 : %d", d!.pointee.routeCount));
+	print(String(format: "\t- multicastSubscriptionCount : %d", d!.pointee.multicastSubscriptionCount));
+/*
+	var addresses: [zts_sockaddr_storage] = convertTupleToArray(from: d!.pointee.assignedAddresses)
+
+	print("\t- addresses:\n");
+	for i in 0...d!.pointee.assignedAddressCount {
+		if (addresses[Int(i)].ss_family == ZTS_AF_INET) {
+			// Allocate a byte array that can hold the largest possible IPv4 human-readable string
+			var ipCharByteArray = Array<Int8>(repeating: 0, count: Int(ZTS_INET_ADDRSTRLEN))
+			// Cast unsafe pointer from zts_sockaddr_storage to zts_sockaddr_in
+			var addr:zts_sockaddr_in = withUnsafePointer(to: &(addresses[Int(i)])) {
+			  $0.withMemoryRebound(to: zts_sockaddr_in.self, capacity: 1) {
+				  $0.pointee
+			  }
+			}
+			// Pass unsafe pointer (addr) to a ntop to convert into human-readable byte array
+			zts_inet_ntop(ZTS_AF_INET, &(addr.sin_addr), &ipCharByteArray, UInt32(ZTS_INET_ADDRSTRLEN))
+			//print(ipCharByteArray) // [49, 55, 50, 46, 50, 55, 46, 49, 49, 54, 46, 49, 54, 55, 0, 0]
+			// Somehow convery Int8 byte array to Swift String ???
+			//let ipString = String(bytes: ipStr, encoding: .utf8)
+			//print(ipString)
+
+			// Pass unsafe pointer (addr) to a ntop to convert into human-readable byte array
+			// convert to UInt8 byte array
+			let uintArray = ipCharByteArray.map { UInt8(bitPattern: $0) }
+			if let string = String(bytes: uintArray, encoding: .utf8) {
+				print("\t\t-", string)
+			}
+		}
+		if (addresses[Int(i)].ss_family == ZTS_AF_INET6) {
+			// ...
+		}
+	}
+*/
+/*
+	print("\t- routes:\n");
+
+	for i in 0...d!.pointee.routeCount {
+		// ...
+	}
+*/
+}
+
+let printPeerDetails : @convention(c) (UnsafeMutableRawPointer?) -> Void =
+{
+	(msgPtr) -> Void in
+	let msg = msgPtr?.bindMemory(to: zts_callback_msg.self, capacity: 1)
+	let d = msg?.pointee.peer;
+	print(String(format: "\t- peer                       : %llx", d!.pointee.address));
+	print(String(format: "\t- role                       : %d", Int(d!.pointee.role.rawValue)));
+	print(String(format: "\t- latency                    : %llx", d!.pointee.latency));
+	print(String(format: "\t- pathCount                  : %llx", d!.pointee.pathCount));
+	print(String(format: "\t- version                    : %d.%d.%d", d!.pointee.versionMajor, d!.pointee.versionMinor, d!.pointee.versionRev));
+	print(String(format: "\t- paths:\n"));
+
+/*
+	for i in 0...d!.pointee.pathCount {
+		// ...
+	}
+*/
+}
+
+let printNetifDetails : @convention(c) (UnsafeMutableRawPointer?) -> Void =
+{
+	(msgPtr) -> Void in
+	let msg = msgPtr?.bindMemory(to: zts_callback_msg.self, capacity: 1)
+	let d = msg?.pointee.netif;
+	print(String(format: "\t- nwid : %llx", d!.pointee.nwid));
+	print(String(format: "\t- mac  : %llx", d!.pointee.mac));
+	print(String(format: "\t- mtu  : %d", d!.pointee.mtu));
+}
+
 var nodeReady:Bool = false
 var networkReady:Bool = false
 
@@ -99,16 +207,18 @@ let myZeroTierEventCallback : @convention(c) (UnsafeMutableRawPointer?) -> Void 
 	(msgPtr) -> Void in
 	let msg = msgPtr?.bindMemory(to: zts_callback_msg.self, capacity: 1)
 
-	var eventCode = msg!.pointee.eventCode
-
-	let node = msg?.pointee.node;
+	let eventCode = msg!.pointee.eventCode
 	let network = msg?.pointee.network;
+	let peer = msg?.pointee.peer;
 
-    switch Int32(eventCode)
-    {
+	switch Int32(eventCode)
+	{
+	case ZTS_EVENT_NODE_UP:
+		print("ZTS_EVENT_NODE_UP (you can ignore this)\n")
+
 	case ZTS_EVENT_NODE_ONLINE:
-		let nodeId:UInt64 = node!.pointee.address
-		print(String(format: "ZTS_EVENT_NODE_ONLINE (%llx)", nodeId))
+		print("ZTS_EVENT_NODE_ONLINE\n")
+		printNodeDetails(msg)
 		nodeReady = true;
 
 	case ZTS_EVENT_NODE_OFFLINE:
@@ -144,71 +254,68 @@ let myZeroTierEventCallback : @convention(c) (UnsafeMutableRawPointer?) -> Void 
 		let networkId:UInt64 = network!.pointee.nwid
 		print(String(format: "ZTS_EVENT_NETWORK_DOWN (%llx)", networkId))
 
-/*
-	// Network stack events
-	case ZTS_EVENT_NETIF_UP:
-		print("ZTS_EVENT_NETIF_UP --- network=%llx, mac=%llx, mtu=%d\n", 
-			msg.netif->nwid,
-			msg.netif->mac,
-			msg.netif->mtu)
-		//networkReady = true;
+	case ZTS_EVENT_NETWORK_UPDATE:
+		print("ZTS_EVENT_NETWORK_UPDATE\n")
+		printNetworkDetails(msg)
 
-	case ZTS_EVENT_NETIF_DOWN:
-		print("ZTS_EVENT_NETIF_DOWN --- network=%llx, mac=%llx\n", 
-			msg.netif->nwid,
-			msg.netif->mac)
-		//networkReady = true;
 
-	// Address events
 	case ZTS_EVENT_ADDR_ADDED_IP4:
-		print("ZTS_EVENT_ADDR_ADDED_IP4")
-	/*
-		char ipstr[INET_ADDRSTRLEN];
-		struct zts_sockaddr_in *in4 = (struct zts_sockaddr_in*)&(msg.addr->addr);
-		inet_ntop(AF_INET, &(in4->sin_addr), ipstr, INET_ADDRSTRLEN);
-		print("ZTS_EVENT_ADDR_NEW_IP4 --- This node's virtual address on network %llx is %s\n", 
-			msg.addr->nwid, ipstr)
-			*/
+		print("ZTS_EVENT_ADDR_ADDED_IP4\n")
 
 	case ZTS_EVENT_ADDR_ADDED_IP6:
-		print("ZTS_EVENT_ADDR_ADDED_IP6")
-		/*
-		char ipstr[INET6_ADDRSTRLEN];
-		struct zts_sockaddr_in6 *in6 = (struct zts_sockaddr_in6*)&(msg.addr->addr);
-		inet_ntop(AF_INET6, &(in6->sin6_addr), ipstr, INET6_ADDRSTRLEN);
-		print("ZTS_EVENT_ADDR_NEW_IP6 --- This node's virtual address on network %llx is %s\n", 
-			msg.addr->nwid, ipstr)
-			*/
+		print("ZTS_EVENT_ADDR_ADDED_IP6\n")
 
 	case ZTS_EVENT_ADDR_REMOVED_IP4:
-		print("ZTS_EVENT_ADDR_REMOVED_IP4")
-		/*
-		char ipstr[INET_ADDRSTRLEN];
-		struct zts_sockaddr_in *in4 = (struct zts_sockaddr_in*)&(msg.addr->addr);
-		inet_ntop(AF_INET, &(in4->sin_addr), ipstr, INET_ADDRSTRLEN);
-		print("ZTS_EVENT_ADDR_REMOVED_IP4 --- The virtual address %s for this node on network %llx has been removed.\n", 
-			ipstr, msg.addr->nwid)
-			*/
+		print("ZTS_EVENT_ADDR_REMOVED_IP4\n")
 
 	case ZTS_EVENT_ADDR_REMOVED_IP6:
-		print("ZTS_EVENT_ADDR_REMOVED_IP6")
-	/*
-		char ipstr[INET6_ADDRSTRLEN];
-		struct zts_sockaddr_in6 *in6 = (struct zts_sockaddr_in6*)&(msg.addr->addr);
-		inet_ntop(AF_INET6, &(in6->sin6_addr), ipstr, INET6_ADDRSTRLEN);
-		print("ZTS_EVENT_ADDR_REMOVED_IP6 --- The virtual address %s for this node on network %llx has been removed.\n", 
-			ipstr, msg.addr->nwid)
-		*/
-	// Peer events
+		print("ZTS_EVENT_ADDR_REMOVED_IP6\n")
+
+
 	case ZTS_EVENT_PEER_DIRECT:
-		print("ZTS_EVENT_PEER_DIRECT --- node=%llx\n", msg.peer->address)
+		let peerId:UInt64 = peer!.pointee.address
+		print(String(format: "ZTS_EVENT_PEER_DIRECT (%llx)", peerId))
+		printPeerDetails(msg)
+
 	case ZTS_EVENT_PEER_RELAY:
-		print("ZTS_EVENT_PEER_RELAY --- node=%llx\n", msg.peer->address)
+		let peerId:UInt64 = peer!.pointee.address
+		print(String(format: "ZTS_EVENT_PEER_RELAY (%llx)", peerId))
+		printPeerDetails(msg)
+
+	case ZTS_EVENT_PEER_PATH_DISCOVERED:
+		let peerId:UInt64 = peer!.pointee.address
+		print(String(format: "ZTS_EVENT_PEER_PATH_DISCOVERED (%llx)", peerId))
+		printPeerDetails(msg)
+
+	case ZTS_EVENT_PEER_PATH_DEAD:
+		let peerId:UInt64 = peer!.pointee.address
+		print(String(format: "ZTS_EVENT_PEER_PATH_DEAD (%llx)", peerId))
+		printPeerDetails(msg)
 
 
-*/
+	case ZTS_EVENT_NETIF_UP:
+		print("ZTS_EVENT_NETIF_UP\n")
+
+	case ZTS_EVENT_NETIF_DOWN:
+		print("ZTS_EVENT_NETIF_DOWN\n")
+
+	case ZTS_EVENT_NETIF_REMOVED:
+		print("ZTS_EVENT_NETIF_REMOVED\n")
+
+	case ZTS_EVENT_NETIF_LINK_UP:
+		print("ZTS_EVENT_NETIF_LINK_UP\n")
+
+	case ZTS_EVENT_NETIF_LINK_DOWN:
+		print("ZTS_EVENT_NETIF_LINK_DOWN\n")
+
+	case ZTS_EVENT_STACK_UP:
+		print("ZTS_EVENT_STACK_UP\n")
+
+	case ZTS_EVENT_STACK_DOWN:
+		print("ZTS_EVENT_STACK_DOWN\n")
+
 	default:
-		print("UNKNOWN_EVENT")
+		print("UNKNOWN_EVENT: ", eventCode)
 	}
 }
 
@@ -221,6 +328,26 @@ func main()
 	}
 	print("Joining network")
 
+	let nwId : UInt64 = 0x0123456789abcdef; // Specify your network ID here
+	zts_join(nwId);
+
+	// create address structure
+	let addr_str = "0.0.0.0"
+	let port = 8080
+	var in4 = zts_sockaddr_in(sin_len: UInt8(MemoryLayout<zts_sockaddr_in>.size),
+						  sin_family: UInt8(ZTS_AF_INET),
+						  sin_port: UInt16(port).bigEndian,
+						  sin_addr: zts_in_addr(s_addr: 0),
+						  sin_zero: (0,0,0,0,0,0,0,0))
+	zts_inet_pton(ZTS_AF_INET, addr_str, &(in4.sin_addr));
+
+	print("fd=", zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0));
+
+	// ...
+
+	while(true) {
+		sleep(1);
+	}
 }
 
 main()

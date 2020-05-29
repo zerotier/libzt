@@ -9,10 +9,19 @@
 
 #include "ZeroTierSockets.h"
 
-bool nodeReady = false;
-bool networkReady = false;
+struct Node
+{
+	Node() : online(false), joinedAtLeastOneNetwork(false), id(0) {}
+	bool online;
+	bool joinedAtLeastOneNetwork;
+	uint64_t id;
+	// etc
+} myNode;
 
-// Example callbacks
+/* Callback handler, you should return control from this function as quickly as you can
+to ensure timely receipt of future events. You should not call libzt API functions from
+this function unless it's something trivial like zts_inet_ntop() or similar that has
+no state-change implications. */
 void myZeroTierEventCallback(void *msgPtr)
 {
 	struct zts_callback_msg *msg = (struct zts_callback_msg *)msgPtr;
@@ -20,11 +29,12 @@ void myZeroTierEventCallback(void *msgPtr)
 	// Node events
 	if (msg->eventCode == ZTS_EVENT_NODE_ONLINE) {
 		printf("ZTS_EVENT_NODE_ONLINE --- This node's ID is %llx\n", msg->node->address);
-		nodeReady = true;
+		myNode.id = msg->node->address;
+		myNode.online = true;
 	}
 	if (msg->eventCode == ZTS_EVENT_NODE_OFFLINE) {
 		printf("ZTS_EVENT_NODE_OFFLINE --- Check your physical Internet connection, router, firewall, etc. What ports are you blocking?\n");
-		nodeReady = false;
+		myNode.online = false;
 	}
 	if (msg->eventCode == ZTS_EVENT_NODE_NORMAL_TERMINATION) {
 		printf("ZTS_EVENT_NODE_NORMAL_TERMINATION\n");
@@ -37,7 +47,7 @@ void myZeroTierEventCallback(void *msgPtr)
 	}
 	if (msg->eventCode == ZTS_EVENT_NETWORK_REQ_CONFIG) {
 		printf("ZTS_EVENT_NETWORK_REQ_CONFIG --- Requesting config for network %llx, please wait a few seconds...\n", msg->network->nwid);
-	} 
+	}
 	if (msg->eventCode == ZTS_EVENT_NETWORK_ACCESS_DENIED) {
 		printf("ZTS_EVENT_NETWORK_ACCESS_DENIED --- Access to virtual network %llx has been denied. Did you authorize the node yet?\n",
 			msg->network->nwid);
@@ -45,12 +55,12 @@ void myZeroTierEventCallback(void *msgPtr)
 	if (msg->eventCode == ZTS_EVENT_NETWORK_READY_IP4) {
 		printf("ZTS_EVENT_NETWORK_READY_IP4 --- Network config received. IPv4 traffic can now be sent over network %llx\n",
 			msg->network->nwid);
-		networkReady = true;
+		myNode.joinedAtLeastOneNetwork = true;
 	}
 	if (msg->eventCode == ZTS_EVENT_NETWORK_READY_IP6) {
 		printf("ZTS_EVENT_NETWORK_READY_IP6 --- Network config received. IPv6 traffic can now be sent over network %llx\n",
 			msg->network->nwid);
-		networkReady = true;
+		myNode.joinedAtLeastOneNetwork = true;
 	}
 	if (msg->eventCode == ZTS_EVENT_NETWORK_DOWN) {
 		printf("ZTS_EVENT_NETWORK_DOWN --- %llx\n", msg->network->nwid);
@@ -61,38 +71,52 @@ void myZeroTierEventCallback(void *msgPtr)
 		char ipstr[ZTS_INET_ADDRSTRLEN];
 		struct zts_sockaddr_in *in4 = (struct zts_sockaddr_in*)&(msg->addr->addr);
 		zts_inet_ntop(ZTS_AF_INET, &(in4->sin_addr), ipstr, ZTS_INET_ADDRSTRLEN);
-		printf("ZTS_EVENT_ADDR_NEW_IP4 --- This node's virtual address on network %llx is %s\n", 
+		printf("ZTS_EVENT_ADDR_NEW_IP4 --- This node's virtual address on network %llx is %s\n",
 			msg->addr->nwid, ipstr);
 	}
 	if (msg->eventCode == ZTS_EVENT_ADDR_ADDED_IP6) {
 		char ipstr[ZTS_INET6_ADDRSTRLEN];
 		struct zts_sockaddr_in6 *in6 = (struct zts_sockaddr_in6*)&(msg->addr->addr);
 		zts_inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), ipstr, ZTS_INET6_ADDRSTRLEN);
-		printf("ZTS_EVENT_ADDR_NEW_IP6 --- This node's virtual address on network %llx is %s\n", 
+		printf("ZTS_EVENT_ADDR_NEW_IP6 --- This node's virtual address on network %llx is %s\n",
 			msg->addr->nwid, ipstr);
 	}
 	if (msg->eventCode == ZTS_EVENT_ADDR_REMOVED_IP4) {
 		char ipstr[ZTS_INET_ADDRSTRLEN];
 		struct zts_sockaddr_in *in4 = (struct zts_sockaddr_in*)&(msg->addr->addr);
 		zts_inet_ntop(ZTS_AF_INET, &(in4->sin_addr), ipstr, ZTS_INET_ADDRSTRLEN);
-		printf("ZTS_EVENT_ADDR_REMOVED_IP4 --- The virtual address %s for this node on network %llx has been removed.\n", 
+		printf("ZTS_EVENT_ADDR_REMOVED_IP4 --- The virtual address %s for this node on network %llx has been removed.\n",
 			ipstr, msg->addr->nwid);
 	}
 	if (msg->eventCode == ZTS_EVENT_ADDR_REMOVED_IP6) {
 		char ipstr[ZTS_INET6_ADDRSTRLEN];
 		struct zts_sockaddr_in6 *in6 = (struct zts_sockaddr_in6*)&(msg->addr->addr);
 		zts_inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), ipstr, ZTS_INET6_ADDRSTRLEN);
-		printf("ZTS_EVENT_ADDR_REMOVED_IP6 --- The virtual address %s for this node on network %llx has been removed.\n", 
+		printf("ZTS_EVENT_ADDR_REMOVED_IP6 --- The virtual address %s for this node on network %llx has been removed.\n",
 			ipstr, msg->addr->nwid);
 	}
 	// Peer events
-	if (msg->eventCode == ZTS_EVENT_PEER_DIRECT) {
-		printf("ZTS_EVENT_PEER_DIRECT --- node=%llx\n", msg->peer->address);
-		// A direct path is known for nodeId
-	}
-	if (msg->eventCode == ZTS_EVENT_PEER_RELAY) {
-		printf("ZTS_EVENT_PEER_RELAY --- node=%llx\n", msg->peer->address);
-		// No direct path is known for nodeId
+	if (msg->peer) {
+		if (msg->peer->role == ZTS_PEER_ROLE_PLANET) {
+			/* Safe to ignore, these are our roots. They orchestrate the P2P connection.
+			You might also see other unknown peers, these are our network controllers. */
+			return;
+		}
+		if (msg->eventCode == ZTS_EVENT_PEER_DIRECT) {
+			printf("ZTS_EVENT_PEER_DIRECT --- A direct path is known for node=%llx\n",
+				msg->peer->address);
+		}
+		if (msg->eventCode == ZTS_EVENT_PEER_RELAY) {
+			printf("ZTS_EVENT_PEER_RELAY --- No direct path to node=%llx\n", msg->peer->address);
+		}
+		if (msg->eventCode == ZTS_EVENT_PEER_PATH_DISCOVERED) {
+			printf("ZTS_EVENT_PEER_PATH_DISCOVERED --- A new direct path was discovered for node=%llx\n",
+				msg->peer->address);
+		}
+		if (msg->eventCode == ZTS_EVENT_PEER_PATH_DEAD) {
+			printf("ZTS_EVENT_PEER_PATH_DEAD --- A direct path has died for node=%llx\n",
+				msg->peer->address);
+		}
 	}
 }
 
@@ -104,7 +128,7 @@ void myZeroTierEventCallback(void *msgPtr)
  *   the location given in the first argument to zts_start(path, ...). If you accidentally
  *   duplicate the identity files and use them simultaneously in a different node instance
  *   you will experience undefined behavior and it is likely nothing will work.
- * 
+ *
  * - You must authorize the node ID provided by the ZTS_EVENT_NODE_ONLINE callback to join
  *   your network, otherwise nothing will happen. This can be done manually or via
  *   our web API: https://my.zerotier.com/help/api
@@ -143,12 +167,12 @@ void myZeroTierEventCallback(void *msgPtr)
  *   Category 1: Control functions (zts_start, zts_join, zts_get_peer_status, etc). Errors
  *                returned by these functions can be any of the following:
  *
- *      ZTS_ERR_OK            0 // No error
- *      ZTS_ERR_SOCKET       -1 // Socket error, see zts_errno
- *      ZTS_ERR_SERVICE      -2 // You probably did something at the wrong time
- *      ZTS_ERR_ARG          -3 // Invalid argument
- *      ZTS_ERR_NO_RESULT    -4 // No result (not necessarily an error)
- *      ZTS_ERR_GENERAL      -5 // Consider filing a bug report
+ *      ZTS_ERR_OK            // No error
+ *      ZTS_ERR_SOCKET        // Socket error, see zts_errno
+ *      ZTS_ERR_SERVICE       // You probably did something at the wrong time
+ *      ZTS_ERR_ARG           // Invalid argument
+ *      ZTS_ERR_NO_RESULT     // No result (not necessarily an error)
+ *      ZTS_ERR_GENERAL       // Consider filing a bug report
  *
  *   Category 2: Sockets (zts_socket, zts_bind, zts_connect, zts_listen, etc).
  *               Errors returned by these functions can be the same as the above. With
@@ -166,7 +190,7 @@ void myZeroTierEventCallback(void *msgPtr)
  *   are a few guidelines:
  *
  *   If you are calling a zts_* function, use the appropriate ZTS_* constants:
- *             
+ *
  *          zts_socket(ZTS_AF_INET6, ZTS_SOCK_DGRAM, 0); (CORRECT)
  *          zts_socket(AF_INET6, SOCK_DGRAM, 0);         (INCORRECT)
  *
@@ -178,7 +202,7 @@ void myZeroTierEventCallback(void *msgPtr)
  *
  */
 
-int main(int argc, char **argv) 
+int main(int argc, char **argv)
 {
 	if (argc != 6) {
 		printf("\nlibzt example client\n");
@@ -208,7 +232,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	printf("Waiting for node to come online...\n");
-	while (!nodeReady) { zts_delay_ms(50); }
+	while (!myNode.online) { zts_delay_ms(50); }
 	printf("This node's identity is stored in %s\n", argv[1]);
 
 	if((err = zts_join(nwid)) != ZTS_ERR_OK) {
@@ -217,7 +241,7 @@ int main(int argc, char **argv)
 	}
 	printf("Joining network %llx\n", nwid);
 	printf("Don't forget to authorize this device in my.zerotier.com or the web API!\n");
-	while (!networkReady) { zts_delay_ms(50); }
+	while (!myNode.joinedAtLeastOneNetwork) { zts_delay_ms(50); }
 
 	// Socket-like API example
 
@@ -243,7 +267,7 @@ int main(int argc, char **argv)
 				exit(1);
 			}
 			zts_delay_ms(250);
-		} 
+		}
 		else {
 			printf("Connected.\n");
 			break;

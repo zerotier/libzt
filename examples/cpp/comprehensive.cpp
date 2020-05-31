@@ -92,8 +92,9 @@
 
 #include "ZeroTierSockets.h"
 
+#ifdef __WINDOWS__
 #include "winsock.h"
-
+#endif
 struct Node
 {
 	Node() : online(false), joinedAtLeastOneNetwork(false), id(0) {}
@@ -117,8 +118,7 @@ void printPeerDetails(const char *msgStr, struct zts_peer_details *d)
 	printf("\n%s\n", msgStr);
 	printf("\t- peer                       : %llx\n", d->address);
 	printf("\t- role                       : %llx\n", d->role);
-	printf("\t- latency                    : %llx\n", d->latency);
-	printf("\t- pathCount                  : %llx\n", d->pathCount);
+	printf("\t- latency                    : %d\n", d->latency);
 	printf("\t- version                    : %d.%d.%d\n", d->versionMajor, d->versionMinor, d->versionRev);
 	printf("\t- pathCount                  : %d\n", d->pathCount);
 	printf("\t- paths:\n");
@@ -128,7 +128,7 @@ void printPeerDetails(const char *msgStr, struct zts_peer_details *d)
 		char ipstr[ZTS_INET6_ADDRSTRLEN];
 		int port = 0;
 		struct zts_sockaddr *sa = (struct zts_sockaddr *)&(d->paths[j].address);
-		if (sa->sa_family == ZTS_AF_INET) { // TODO: Probably broken
+		if (sa->sa_family == ZTS_AF_INET) {
 			struct zts_sockaddr_in *in4 = (struct zts_sockaddr_in*)sa;
 			zts_inet_ntop(ZTS_AF_INET, &(in4->sin_addr), ipstr, ZTS_INET_ADDRSTRLEN);
 			port = zts_ntohs(in4->sin_port);
@@ -373,7 +373,6 @@ void display_stack_stats()
 
 int main(int argc, char **argv)
 {
-	fprintf(stderr, "AF_INET=%d, SOCK_STREAM=%d, IPPROTO_TCP=%d", AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (argc != 4) {
 		printf("\nlibzt example server\n");
 		printf("comprehensive <config_file_path> <nwid> <ztServicePort>\n");

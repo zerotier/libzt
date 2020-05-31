@@ -136,7 +136,6 @@
 	#else
 		#define DEBUG_TRANS(fmt, args...)
 	#endif
-
 #else // !LIBZT_DEBUG || !__NATIVE_TEST__
 	#if defined(_WIN32)
 		#define DEBUG_ERROR(...)

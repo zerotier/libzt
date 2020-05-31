@@ -22,7 +22,7 @@
 
 #include "lwip/err.h"
 
-#define ZTS_LWIP_DRIVER_THREAD_NAME "NetworkStackThread"
+#define ZTS_LWIP_DRIVER_THREAD_NAME "ZTNetworkStackThread"
 
 #include "MAC.hpp"
 #include "Phy.hpp"
@@ -119,20 +119,6 @@ public:
 	void threadMain()
 		throw();
 
-#if defined(__MINGW32__)
-	/* The following is merely to make ZeroTier's OneService happy while building on Windows.
-		we won't use these in libzt */
-	NET_LUID _deviceLuid;
-	std::string _deviceInstanceId;
-
-	/**
-	 * Returns whether the VirtualTap interface has been initialized
-	 */
-	bool isInitialized() const { return _initialized; };
-
-	inline const NET_LUID &luid() const { return _deviceLuid; }
-	inline const std::string &instanceId() const { return _deviceInstanceId; }
-#endif
 	/**
 	 * For moving data onto the ZeroTier virtual wire
 	 */
@@ -150,8 +136,6 @@ public:
 	void lastConfigUpdate(uint64_t lastConfigUpdateTime);
 
 	int _networkStatus = 0;
-
-	std::vector<std::pair<InetAddress, InetAddress> > routes;
 
 	char vtap_full_name[64];
 
@@ -223,7 +207,6 @@ bool _lwip_is_up();
  * @brief Initialize network stack semaphores, threads, and timers.
  *
  * @usage This is called during the initial setup of each VirtualTap but is only allowed to execute once
- * @return
  */
 void _lwip_driver_init();
 
@@ -233,30 +216,21 @@ void _lwip_driver_init();
  * @usage This is to be called after it is determined that no further network activity will take place.
  * The tcpip thread will be stopped, all interfaces will be brought down and all resources will
  * be deallocated. A full application restart will be required to bring the stack back online.
- * @return
  */
 void _lwip_driver_shutdown();
 
 /**
  * @brief Requests that a netif be brought down and removed.
- *
- * @return
  */
 void _lwip_remove_netif(void *netif);
 
 /**
  * @brief Initialize and start the DNS client
- *
- * @usage Called after lwip_driver_init()
- * @return
  */
 void _lwip_dns_init();
 
 /**
  * @brief Starts DHCP timers
- *
- * @usage lwip_driver_init()
- * @return
  */
 void _lwip_start_dhcp(void *netif);
 
@@ -286,12 +260,18 @@ static void _netif_link_callback(struct netif *netif);
 /**
  * @brief Set up an interface in the network stack for the VirtualTap.
  *
- * @param
  * @param tapref Reference to VirtualTap that will be responsible for sending and receiving data
  * @param ip Virtual IP address for this ZeroTier VirtualTap interface
- * @return
  */
 void _lwip_init_interface(void *tapref, const InetAddress &ip);
+
+/**
+ * @brief Remove an assigned address from an lwIP netif
+ *
+ * @param tapref Reference to VirtualTap
+ * @param ip Virtual IP address to remove from this interface
+ */
+void _lwip_remove_address_from_netif(void *tapref, const InetAddress &ip);
 
 /**
  * @brief Called from the stack, outbound ethernet frames from the network stack enter the ZeroTier virtual wire here.
@@ -313,7 +293,6 @@ err_t _lwip_eth_tx(struct netif *netif, struct pbuf *p);
  * @param etherType Protocol type
  * @param data Pointer to Ethernet frame
  * @param len Length of Ethernet frame
- * @return
  */
 void _lwip_eth_rx(VirtualTap *tap, const MAC &from, const MAC &to, unsigned int etherType,
 	const void *data, unsigned int len);

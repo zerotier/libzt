@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 
+#include "Constants.hpp"
 #include "Node.hpp"
 #include "InetAddress.hpp"
 #include "Mutex.hpp"
@@ -168,12 +169,9 @@ public:
 	 */
 	virtual void getRoutes(uint64_t nwid, void *routeArray, unsigned int *numRoutes) = 0;
 
-	virtual size_t networkCount() = 0;
-	virtual void leaveAll() = 0;
 	virtual void join(uint64_t nwid) = 0;
 	virtual void leave(uint64_t nwid) = 0;
-	virtual int getPeerStatus(uint64_t id) = 0;
-	
+
 	/**
 	 * Terminate background service (can be called from other threads)
 	 */

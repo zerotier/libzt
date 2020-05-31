@@ -23,7 +23,13 @@
 #include "lwip/stats.h"
 
 #include "ZeroTierSockets.h"
-#include "Events.hpp"
+//#include "Events.hpp"
+
+#define ZTS_STATE_NODE_RUNNING              0x01
+#define ZTS_STATE_STACK_RUNNING             0x02
+#define ZTS_STATE_NET_SERVICE_RUNNING       0x04
+#define ZTS_STATE_CALLBACKS_RUNNING         0x08
+#define ZTS_STATE_FREE_CALLED               0x10
 
 #ifdef SDK_JNI
 	#include <jni.h>

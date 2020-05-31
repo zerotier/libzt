@@ -23,6 +23,7 @@
 	#include <jni.h>
 #endif
 
+#include "Constants.hpp"
 #include "Node.hpp"
 #include "OSUtils.hpp"
 
@@ -32,11 +33,10 @@
 #include "NodeService.hpp"
 
 #define NODE_EVENT_TYPE(code) code >= ZTS_EVENT_NODE_UP && code <= ZTS_EVENT_NODE_NORMAL_TERMINATION
-#define NETWORK_EVENT_TYPE(code) code >= ZTS_EVENT_NETWORK_NOT_FOUND && code <= ZTS_EVENT_NETWORK_DOWN
+#define NETWORK_EVENT_TYPE(code) code >= ZTS_EVENT_NETWORK_NOT_FOUND && code <= ZTS_EVENT_NETWORK_UPDATE
 #define STACK_EVENT_TYPE(code) code >= ZTS_EVENT_STACK_UP && code <= ZTS_EVENT_STACK_DOWN
 #define NETIF_EVENT_TYPE(code) code >= ZTS_EVENT_NETIF_UP && code <= ZTS_EVENT_NETIF_LINK_DOWN
-#define PEER_EVENT_TYPE(code) code >= ZTS_EVENT_PEER_DIRECT && code <= ZTS_EVENT_PEER_UNREACHABLE
-#define PATH_EVENT_TYPE(code) code >= ZTS_EVENT_PATH_DISCOVERED && code <= ZTS_EVENT_PATH_DEAD
+#define PEER_EVENT_TYPE(code) code >= ZTS_EVENT_PEER_DIRECT && code <= ZTS_EVENT_PEER_PATH_DEAD
 #define ROUTE_EVENT_TYPE(code) code >= ZTS_EVENT_ROUTE_ADDED && code <= ZTS_EVENT_ROUTE_REMOVED
 #define ADDR_EVENT_TYPE(code) code >= ZTS_EVENT_ADDR_ADDED_IP4 && code <= ZTS_EVENT_ADDR_REMOVED_IP6
 
@@ -52,41 +52,39 @@ Mutex _callbackLock;
 
 void (*_userEventCallbackFunc)(void *);
 
-moodycamel::ConcurrentQueue<struct ::zts_callback_msg*> _callbackMsgQueue;
+moodycamel::ConcurrentQueue<struct zts_callback_msg*> _callbackMsgQueue;
 
 void _enqueueEvent(int16_t eventCode, void *arg)
 {
-	struct ::zts_callback_msg *msg = new ::zts_callback_msg();
-
-	msg->node = NULL;
-	msg->network = NULL;
-	msg->netif = NULL;
-	msg->route = NULL;
-	msg->path = NULL;
-	msg->peer = NULL;
-	msg->addr = NULL;
-
+	struct zts_callback_msg *msg = new zts_callback_msg();
 	msg->eventCode = eventCode;
 
 	if (NODE_EVENT_TYPE(eventCode)) {
 		msg->node = (struct zts_node_details*)arg;
 	} if (NETWORK_EVENT_TYPE(eventCode)) {
 		msg->network = (struct zts_network_details*)arg;
+	} if (STACK_EVENT_TYPE(eventCode)) {
+		/* nothing to convey to user */
 	} if (NETIF_EVENT_TYPE(eventCode)) {
 		msg->netif = (struct zts_netif_details*)arg;
 	} if (ROUTE_EVENT_TYPE(eventCode)) {
 		msg->route = (struct zts_virtual_network_route*)arg;
-	} if (PATH_EVENT_TYPE(eventCode)) {
-		msg->path = (struct zts_physical_path*)arg;
 	} if (PEER_EVENT_TYPE(eventCode)) {
 		msg->peer = (struct zts_peer_details*)arg;
 	} if (ADDR_EVENT_TYPE(eventCode)) {
 		msg->addr = (struct zts_addr_details*)arg;
 	}
-    _callbackMsgQueue.enqueue(msg);
+
+	if (msg && _callbackMsgQueue.size_approx() > 1024) {
+		// Rate-limit number of events
+		_freeEvent(msg);
+	}
+	else {
+		_callbackMsgQueue.enqueue(msg);
+	}
 }
 
-void _freeEvent(struct ::zts_callback_msg *msg)
+void _freeEvent(struct zts_callback_msg *msg)
 {
 	if (!msg) {
 		return;
@@ -95,21 +93,21 @@ void _freeEvent(struct ::zts_callback_msg *msg)
 	if (msg->network) { delete msg->network; }
 	if (msg->netif) { delete msg->netif; }
 	if (msg->route) { delete msg->route; }
-	if (msg->path) { delete msg->path; }
 	if (msg->peer) { delete msg->peer; }
 	if (msg->addr) { delete msg->addr; }
 }
 
-void _passDequeuedEventToUser(struct ::zts_callback_msg *msg)
+void _passDequeuedEventToUser(struct zts_callback_msg *msg)
 {
+	bool bShouldStopCallbackThread = (msg->eventCode == ZTS_EVENT_STACK_DOWN);
 #ifdef SDK_JNI
 	if(_userCallbackMethodRef) {
 		JNIEnv *env;
-#if defined(__ANDROID__)
+	#if defined(__ANDROID__)
 		jint rs = jvm->AttachCurrentThread(&env, NULL);
-#else
+	#else
 		jint rs = jvm->AttachCurrentThread((void **)&env, NULL);
-#endif
+	#endif
 		assert (rs == JNI_OK);
 		uint64_t arg = 0;
 		uint64_t id = 0;
@@ -131,6 +129,11 @@ void _passDequeuedEventToUser(struct ::zts_callback_msg *msg)
 		_freeEvent(msg);
 	}
 #endif
+	if (bShouldStopCallbackThread) {
+		/* Ensure last possible callback ZTS_EVENT_STACK_DOWN is
+		delivered before callback thread is finally stopped. */
+		_clrState(ZTS_STATE_CALLBACKS_RUNNING);
+	}
 }
 
 bool _isCallbackRegistered()
@@ -168,8 +171,8 @@ int _canPerformServiceOperation()
 }
 
 #define RESET_FLAGS( )   _serviceStateFlags  =  0;
-#define   SET_FLAGS(f)   _serviceStateFlags |=  f; 
-#define   CLR_FLAGS(f)   _serviceStateFlags &= ~f; 
+#define   SET_FLAGS(f)   _serviceStateFlags |=  f;
+#define   CLR_FLAGS(f)   _serviceStateFlags &= ~f;
 #define   GET_FLAGS(f) ((_serviceStateFlags &   f) > 0)
 
 void _setState(uint8_t newFlags)
@@ -222,7 +225,7 @@ void *_runCallbacks(void *thread_id)
 #endif
 	while (_getState(ZTS_STATE_CALLBACKS_RUNNING) || _callbackMsgQueue.size_approx() > 0)
     {
-        struct ::zts_callback_msg *msg;
+        struct zts_callback_msg *msg;
 		size_t sz = _callbackMsgQueue.size_approx();
 		for (size_t j = 0; j < sz; j++) {
 			if (_callbackMsgQueue.try_dequeue(msg)) {

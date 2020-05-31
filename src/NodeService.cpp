@@ -18,6 +18,9 @@
  */
 
 #include <thread>
+#include <iostream>
+
+#include "../version.h"
 
 #include "Debug.hpp"
 #include "Events.hpp"
@@ -39,7 +42,7 @@
 #include "BlockingQueue.hpp"
 
 #if defined(__WINDOWS__)
-WSADATA wsaData;
+//WSADATA wsaData;
 #include <WinSock2.h>
 #include <Windows.h>
 #include <ShlObj.h>
@@ -123,7 +126,7 @@ public:
 	volatile unsigned int _udpPortPickerCounter;
 
 	//
-	std::map<uint64_t, bool> peerCache;
+	std::map<uint64_t, int> peerCache;
 
 	//
 	unsigned long _incomingPacketConcurrency;
@@ -230,10 +233,6 @@ public:
 		allowNetworkCaching = true;
 		allowPeerCaching = true;
 		allowLocalConf = false;
-#ifdef __WINDOWS__
-		// Initialize WinSock. Used in Phy for loopback pipe
-		WSAStartup(MAKEWORD(2, 2), &wsaData);
-#endif
 	}
 
 	virtual ~NodeServiceImpl()
@@ -609,14 +608,42 @@ public:
 		newManagedIps.erase(std::unique(newManagedIps.begin(),newManagedIps.end()),newManagedIps.end());
 		for(std::vector<InetAddress>::iterator ip(n.managedIps.begin());ip!=n.managedIps.end();++ip) {
 			if (std::find(newManagedIps.begin(),newManagedIps.end(),*ip) == newManagedIps.end()) {
-				if (!n.tap->removeIp(*ip))
+				if (!n.tap->removeIp(*ip)) {
 					fprintf(stderr,"ERROR: unable to remove ip address %s" ZT_EOL_S, ip->toString(ipbuf));
+				} else {
+					struct zts_addr_details *ad = new zts_addr_details();
+					ad->nwid = n.tap->_nwid;
+					if ((*ip).isV4()) {
+						struct sockaddr_in *in4 = (struct sockaddr_in*)&(ad->addr);
+						memcpy(&(in4->sin_addr.s_addr), (*ip).rawIpData(), 4);
+						_enqueueEvent(ZTS_EVENT_ADDR_REMOVED_IP4, (void*)ad);
+					}
+					if ((*ip).isV6()) {
+						struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&(ad->addr);
+						memcpy(&(in6->sin6_addr.s6_addr), (*ip).rawIpData(), 16);
+						_enqueueEvent(ZTS_EVENT_ADDR_REMOVED_IP6, (void*)ad);
+					}
+				}
 			}
 		}
 		for(std::vector<InetAddress>::iterator ip(newManagedIps.begin());ip!=newManagedIps.end();++ip) {
 			if (std::find(n.managedIps.begin(),n.managedIps.end(),*ip) == n.managedIps.end()) {
-				if (!n.tap->addIp(*ip))
+				if (!n.tap->addIp(*ip)) {
 					fprintf(stderr,"ERROR: unable to add ip address %s" ZT_EOL_S, ip->toString(ipbuf));
+				} else {
+					struct zts_addr_details *ad = new zts_addr_details();
+					ad->nwid = n.tap->_nwid;
+					if ((*ip).isV4()) {
+						struct sockaddr_in *in4 = (struct sockaddr_in*)&(ad->addr);
+						memcpy(&(in4->sin_addr.s_addr), (*ip).rawIpData(), 4);
+						_enqueueEvent(ZTS_EVENT_ADDR_ADDED_IP4, (void*)ad);
+					}
+					if ((*ip).isV6()) {
+						struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&(ad->addr);
+						memcpy(&(in6->sin6_addr.s6_addr), (*ip).rawIpData(), 16);
+						_enqueueEvent(ZTS_EVENT_ADDR_ADDED_IP6, (void*)ad);
+					}
+				}
 			}
 		}
 		n.managedIps.swap(newManagedIps);
@@ -694,6 +721,9 @@ public:
 					_nets.erase(nwid);
 					return -999; // tap init failed
 				}
+				if (op == ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_CONFIG_UPDATE) { // Prevent junk from ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_UP
+					_enqueueEvent(ZTS_EVENT_NETWORK_UPDATE, (void*)prepare_network_details_msg(n));
+				}
 				break;
 
 			case ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_DOWN:
@@ -727,6 +757,12 @@ public:
 			case ZT_EVENT_ONLINE: {
 				struct zts_node_details *nd = new zts_node_details;
 				nd->address = _node->address();
+				nd->versionMajor = ZEROTIER_ONE_VERSION_MAJOR;
+				nd->versionMinor = ZEROTIER_ONE_VERSION_MINOR;
+				nd->versionRev = ZEROTIER_ONE_VERSION_REVISION;
+				nd->primaryPort = _primaryPort;
+				nd->secondaryPort = _secondaryPort;
+				nd->tertiaryPort = _tertiaryPort;
 				_enqueueEvent(ZTS_EVENT_NODE_ONLINE, (void*)nd);
 			}	break;
 			case ZT_EVENT_OFFLINE: {
@@ -758,10 +794,65 @@ public:
 		}
 	}
 
-	inline struct zts_network_details *prepare_network_details_msg(uint64_t nwid)
+	void native_ss_to_zts_ss(struct zts_sockaddr_storage *ss_out, const struct sockaddr_storage *ss_in)
 	{
-		struct zts_network_details *nd = new zts_network_details;
-		nd->nwid = nwid;
+		if (ss_in->ss_family == AF_INET) {
+			struct sockaddr_in *s_in4 = (struct sockaddr_in *)ss_in;
+			struct zts_sockaddr_in *d_in4 = (struct zts_sockaddr_in *)ss_out;
+#ifndef __WINDOWS__
+			d_in4->sin_len = 0; // s_in4->sin_len;
+#endif
+			d_in4->sin_family = ZTS_AF_INET;
+			d_in4->sin_port = s_in4->sin_port;
+			memcpy(&(d_in4->sin_addr), &(s_in4->sin_addr), sizeof(s_in4->sin_addr));
+		}
+		if (ss_in->ss_family == AF_INET6) {
+			struct sockaddr_in6 *s_in6 = (struct sockaddr_in6 *)ss_in;
+			struct zts_sockaddr_in6 *d_in6 = (struct zts_sockaddr_in6 *)ss_out;
+#ifndef __WINDOWS__
+			d_in6->sin6_len = 0; // s_in6->sin6_len;
+#endif
+			d_in6->sin6_family = ZTS_AF_INET6;
+			d_in6->sin6_port = s_in6->sin6_port;
+			d_in6->sin6_flowinfo = s_in6->sin6_flowinfo;
+			memcpy(&(d_in6->sin6_addr), &(s_in6->sin6_addr), sizeof(s_in6->sin6_addr));
+			d_in6->sin6_scope_id = s_in6->sin6_scope_id;
+		}
+	}
+
+	struct zts_network_details *prepare_network_details_msg(const NetworkState &n)
+	{
+		struct zts_network_details *nd = new zts_network_details();
+
+		nd->nwid = n.config.nwid;
+		nd->mac = n.config.mac;
+		memcpy(nd->name, n.config.name, sizeof(n.config.name));
+		nd->status = (ZTS_VirtualNetworkStatus)n.config.status;
+		nd->type = (ZTS_VirtualNetworkType)n.config.type;
+		nd->mtu = n.config.mtu;
+		nd->dhcp = n.config.dhcp;
+		nd->bridge = n.config.bridge;
+		nd->broadcastEnabled = n.config.broadcastEnabled;
+		nd->portError = n.config.portError;
+		nd->netconfRevision = n.config.netconfRevision;
+
+		// Copy and convert address structures
+		nd->assignedAddressCount = n.config.assignedAddressCount;
+		for (int i=0; i<n.config.assignedAddressCount; i++) {
+			native_ss_to_zts_ss(&(nd->assignedAddresses[i]), &(n.config.assignedAddresses[i]));
+		}
+
+		nd->routeCount = n.config.routeCount;
+		for (int i=0; i<n.config.routeCount; i++) {
+			 native_ss_to_zts_ss(&(nd->routes[i].target), &(n.config.routes[i].target));
+			 native_ss_to_zts_ss(&(nd->routes[i].via), &(n.config.routes[i].via));
+			 nd->routes[i].flags = n.config.routes[i].flags;
+			 nd->routes[i].metric = n.config.routes[i].metric;
+		}
+
+		nd->multicastSubscriptionCount = n.config.multicastSubscriptionCount;
+		memcpy(nd->multicastSubscriptions, &(n.config.multicastSubscriptions), sizeof(n.config.multicastSubscriptions));
+
 		return nd;
 	}
 
@@ -783,34 +874,34 @@ public:
 			}
 			switch (mostRecentStatus) {
 				case ZT_NETWORK_STATUS_NOT_FOUND:
-					_enqueueEvent(ZTS_EVENT_NETWORK_NOT_FOUND, (void*)prepare_network_details_msg(nwid));
+					_enqueueEvent(ZTS_EVENT_NETWORK_NOT_FOUND, (void*)prepare_network_details_msg(n->second));
 					break;
 				case ZT_NETWORK_STATUS_CLIENT_TOO_OLD:
-					_enqueueEvent(ZTS_EVENT_NETWORK_CLIENT_TOO_OLD, (void*)prepare_network_details_msg(nwid));
+					_enqueueEvent(ZTS_EVENT_NETWORK_CLIENT_TOO_OLD, (void*)prepare_network_details_msg(n->second));
 					break;
 				case ZT_NETWORK_STATUS_REQUESTING_CONFIGURATION:
-					_enqueueEvent(ZTS_EVENT_NETWORK_REQ_CONFIG, (void*)prepare_network_details_msg(nwid));
+					_enqueueEvent(ZTS_EVENT_NETWORK_REQ_CONFIG, (void*)prepare_network_details_msg(n->second));
 					break;
 				case ZT_NETWORK_STATUS_OK:
 					if (tap->hasIpv4Addr() && _lwip_is_netif_up(tap->netif4)) {
-						_enqueueEvent(ZTS_EVENT_NETWORK_READY_IP4, (void*)prepare_network_details_msg(nwid));
+						_enqueueEvent(ZTS_EVENT_NETWORK_READY_IP4, (void*)prepare_network_details_msg(n->second));
 					}
 					if (tap->hasIpv6Addr() && _lwip_is_netif_up(tap->netif6)) {
-						_enqueueEvent(ZTS_EVENT_NETWORK_READY_IP6, (void*)prepare_network_details_msg(nwid));
+						_enqueueEvent(ZTS_EVENT_NETWORK_READY_IP6, (void*)prepare_network_details_msg(n->second));
 					}
 					// In addition to the READY messages, send one OK message
-					_enqueueEvent(ZTS_EVENT_NETWORK_OK, (void*)prepare_network_details_msg(nwid));
+					_enqueueEvent(ZTS_EVENT_NETWORK_OK, (void*)prepare_network_details_msg(n->second));
 					break;
 				case ZT_NETWORK_STATUS_ACCESS_DENIED:
-					_enqueueEvent(ZTS_EVENT_NETWORK_ACCESS_DENIED, (void*)prepare_network_details_msg(nwid));
+					_enqueueEvent(ZTS_EVENT_NETWORK_ACCESS_DENIED, (void*)prepare_network_details_msg(n->second));
 					break;
 				default:
 					break;
 			}
 			n->second.tap->_networkStatus = mostRecentStatus;
 		}
-
-		// TODO: Add ZTS_EVENT_PEER_NEW
+		bool bShouldCopyPeerInfo = false;
+		int eventCode = 0;
 		ZT_PeerList *pl = _node->peers();
 		struct zts_peer_details *pd;
 		if (pl) {
@@ -818,40 +909,47 @@ public:
 				if (!peerCache.count(pl->peers[i].address)) {
 					// New peer, add status
 					if (pl->peers[i].pathCount > 0) {
-						pd = new zts_peer_details;
-						memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
-						_enqueueEvent(ZTS_EVENT_PEER_DIRECT, (void*)pd);
+						bShouldCopyPeerInfo=true;
+						eventCode = ZTS_EVENT_PEER_DIRECT;
 					}
 					if (pl->peers[i].pathCount == 0) {
-						pd = new zts_peer_details;
-						memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
-						_enqueueEvent(ZTS_EVENT_PEER_RELAY, (void*)pd);
+						bShouldCopyPeerInfo=true;
+						eventCode = ZTS_EVENT_PEER_RELAY, (void*)pd;
 					}
 				}
 				// Previously known peer, update status
 				else {
-					if ((peerCache[pl->peers[i].address] == false) && pl->peers[i].pathCount > 0) {
-						pd = new zts_peer_details;
-						memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
-						_enqueueEvent(ZTS_EVENT_PEER_DIRECT, (void*)pd);
+					if (peerCache[pl->peers[i].address] < pl->peers[i].pathCount) {
+						bShouldCopyPeerInfo=true;
+						eventCode = ZTS_EVENT_PEER_PATH_DISCOVERED, (void*)pd;
 					}
-					if ((peerCache[pl->peers[i].address] == true) && pl->peers[i].pathCount == 0) {
-						pd = new zts_peer_details;
-						memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
-						_enqueueEvent(ZTS_EVENT_PEER_RELAY, (void*)pd);
+					if (peerCache[pl->peers[i].address] > pl->peers[i].pathCount) {
+						bShouldCopyPeerInfo=true;
+						eventCode = ZTS_EVENT_PEER_PATH_DEAD, (void*)pd;
 					}
+					if (peerCache[pl->peers[i].address] == 0 && pl->peers[i].pathCount > 0) {
+						bShouldCopyPeerInfo=true;
+						eventCode = ZTS_EVENT_PEER_DIRECT, (void*)pd;
+					}
+					if (peerCache[pl->peers[i].address] > 0 && pl->peers[i].pathCount == 0) {
+						bShouldCopyPeerInfo=true;
+						eventCode = ZTS_EVENT_PEER_RELAY, (void*)pd;
+					}
+				}
+				if (bShouldCopyPeerInfo) {
+					pd = new zts_peer_details();
+					memcpy(pd, &(pl->peers[i]), sizeof(struct zts_peer_details));
+					for (unsigned int j=0; j<pl->peers[i].pathCount; j++) {
+						native_ss_to_zts_ss(&(pd->paths[j].address), &(pl->peers[i].paths[j].address));
+					}
+					_enqueueEvent(eventCode, (void*)pd);
+					bShouldCopyPeerInfo = false;
 				}
 				// Update our cache with most recently observed path count
 				peerCache[pl->peers[i].address] = pl->peers[i].pathCount;
 			}
 		}
 		_node->freeQueryResult((void *)pl);
-	}
-
-	inline size_t networkCount()
-	{
-		Mutex::Lock _l(_nets_m);
-		return _nets.size();
 	}
 
 	inline void join(uint64_t nwid)
@@ -862,30 +960,6 @@ public:
 	inline void leave(uint64_t nwid)
 	{
 		_node->leave(nwid, NULL, NULL);
-	}
-
-	inline void leaveAll()
-	{
-		Mutex::Lock _l(_nets_m);
-		for(std::map<uint64_t,NetworkState>::iterator n(_nets.begin());n!=_nets.end();++n) {
-			_node->leave(n->first, NULL, NULL);
-		}
-	}
-
-	inline int getPeerStatus(uint64_t id)
-	{
-		ZT_PeerList *pl = _node->peers();
-		int status = ZTS_EVENT_PEER_UNREACHABLE;
-		if (pl) {
-			for(unsigned long i=0;i<pl->peerCount;++i) {
-				if (pl->peers[i].address == id) {
-					status = pl->peers[i].pathCount > 0 ? ZTS_EVENT_PEER_DIRECT : ZTS_EVENT_PEER_RELAY;
-					break;
-				}
-			}
-		}
-		_node->freeQueryResult((void *)pl);
-		return status;
 	}
 
 	inline void nodeStatePutFunction(enum ZT_StateObjectType type,const uint64_t id[2],const void *data,int len)
@@ -1232,7 +1306,7 @@ DWORD WINAPI _runNodeService(LPVOID arg)
 #else
 void *_runNodeService(void *arg)
 #endif
-{	
+{
 #if defined(__APPLE__)
 	pthread_setname_np(ZTS_SERVICE_THREAD_NAME);
 #endif
@@ -1295,12 +1369,12 @@ void *_runNodeService(void *arg)
 		service = (NodeService *)0;
 		serviceLock.unlock();
 		_enqueueEvent(ZTS_EVENT_NODE_DOWN,NULL);
-	} catch ( ... ) {
+	}
+	catch ( ... ) {
 		DEBUG_ERROR("unexpected exception starting ZeroTier instance");
 	}
 	delete params;
 	zts_delay_ms(ZTS_CALLBACK_PROCESSING_INTERVAL*2);
-	_clrState(ZTS_STATE_CALLBACKS_RUNNING);
 #ifndef __WINDOWS__
 	pthread_exit(0);
 #endif

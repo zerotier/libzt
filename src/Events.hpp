@@ -22,7 +22,12 @@
 
 #include <string>
 
+#include "Constants.hpp"
 #include "ZeroTierSockets.h"
+
+#ifdef __WINDOWS__
+#include <BaseTsd.h>
+#endif
 
 #ifdef SDK_JNI
 	#include <jni.h>

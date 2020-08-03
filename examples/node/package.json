@@ -1,0 +1,21 @@
+{
+  "name": "libzt",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "preinstall": "mkdir -p libzt; cd libzt; ln -sf ../../../include include; ln -sf ../../../lib lib",
+    "autogypi": "autogypi",
+    "node-gyp": "node-gyp",
+    "ndts": "ndts",
+    "install": "autogypi && node-gyp configure build"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "autogypi": "^0.2.2",
+    "nbind": "github:charto/nbind",
+    "node-gyp": "^7.0.0"
+  }
+}

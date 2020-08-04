@@ -415,6 +415,17 @@ public:
 		return zts_write(fd, buf.data(), buf.length());
 	}
 
+	static ssize_t writev(int fd, std::vector<nbind::Buffer> bufs)
+	{
+		std::size_t size = bufs.size();
+		zts_iovec iov[size];
+		for (std::size_t i = 0; i != size; ++i) {
+			iov[i].iov_base = bufs[i].data();
+			iov[i].iov_len = bufs[i].length();
+		}
+		return zts_writev(fd, iov, bufs.size());
+	}
+
 	static ssize_t recv(int fd, nbind::Buffer buf, int flags)
 	{
 		return zts_recv(fd, buf.data(), buf.length(), flags);
@@ -466,6 +477,7 @@ NBIND_CLASS(ZeroTier) {
 	method(connect);
 	method(read);
 	method(write);
+	method(writev);
 	method(recv);
 	method(send);
 	method(fcntlSetBlocking);

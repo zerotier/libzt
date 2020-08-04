@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node test.js",
     "preinstall": "mkdir -p libzt; cd libzt; ln -sf ../../../include; ln -sf ../../../lib",
     "autogypi": "autogypi",
     "node-gyp": "node-gyp",

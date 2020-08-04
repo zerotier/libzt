@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "preinstall": "mkdir -p libzt; cd libzt; ln -sf ../../../include include; ln -sf ../../../lib lib",
+    "preinstall": "mkdir -p libzt; cd libzt; ln -sf ../../../include; ln -sf ../../../lib",
     "autogypi": "autogypi",
     "node-gyp": "node-gyp",
     "ndts": "ndts",
@@ -14,6 +14,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@mcesystems/nbind": "^0.3.18",
     "autogypi": "^0.2.2",
     "nbind": "github:charto/nbind",
     "node-gyp": "^7.0.0"

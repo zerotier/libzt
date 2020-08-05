@@ -127,7 +127,8 @@ function afterConnect(status, self, req, readable, writable) {
 }
 
 function writeGeneric(self, chunk, encoding, callback) {
-  const buf = (!self.decodeStrings && !Buffer.isBuffer(chunk)) ? Buffer.from(chunk, encoding) : chunk
+  const decodeStrings = self._writableState && self._writableState.decodeStrings
+  const buf = (!decodeStrings && !Buffer.isBuffer(chunk)) ? Buffer.from(chunk, encoding) : chunk
 
   let bytes
   const err = ZeroTier.send(self._fd, buf, 0)
@@ -153,7 +154,8 @@ function writeGeneric(self, chunk, encoding, callback) {
 }
 
 function writevGeneric(self, chunks, callback) {
-  const bufs = chunks.map(({ chunk, encoding }) => (!self.decodeStrings && !Buffer.isBuffer(chunk)) ? Buffer.from(chunk, encoding) : chunk)
+  const decodeStrings = self._writableState && self._writableState.decodeStrings
+  const bufs = chunks.map(({ chunk, encoding }) => (!decodeStrings && !Buffer.isBuffer(chunk)) ? Buffer.from(chunk, encoding) : chunk)
 
   let bytes
   const err = ZeroTier.writev(self._fd, bufs)
@@ -359,4 +361,7 @@ module.exports = {
   createConnection: connect,
   Socket,
   Stream: Socket, // Legacy naming
+  restart: ZeroTier.restart,
+  stop: ZeroTier.stop,
+  free: ZeroTier.free,
 };

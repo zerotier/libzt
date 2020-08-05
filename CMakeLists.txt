@@ -426,13 +426,14 @@ set_target_properties (ztcore PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
 
 # libzt.a
-add_library (${STATIC_LIB_NAME} STATIC $<TARGET_OBJECTS:libzt_obj>
-$<TARGET_OBJECTS:zto_obj>
-$<TARGET_OBJECTS:libnatpmp_obj>
-$<TARGET_OBJECTS:miniupnpc_obj>
-$<TARGET_OBJECTS:lwip_obj> ${libztSrcGlob})
+add_library (${STATIC_LIB_NAME} STATIC $<TARGET_OBJECTS:zt_pic>
+$<TARGET_OBJECTS:zto_pic>
+$<TARGET_OBJECTS:natpmp_pic>
+$<TARGET_OBJECTS:miniupnpc_pic>
+$<TARGET_OBJECTS:lwip_pic> ${libztSrcGlob})
 set_target_properties (${STATIC_LIB_NAME} PROPERTIES
 	OUTPUT_NAME zt
+	POSITION_INDEPENDENT_CODE ON
 	LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
 set_target_properties (${STATIC_LIB_NAME} PROPERTIES COMPILE_FLAGS "${ZT_FLAGS}")
 if (BUILDING_WIN)

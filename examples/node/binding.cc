@@ -127,6 +127,19 @@ void myZeroTierEventCallback(void *msgPtr)
 	}
 }
 
+zts_sockaddr_in sockaddr_in(const char *remoteAddr, const int remotePort)
+{
+	struct zts_sockaddr_in in4;
+	in4.sin_port = zts_htons(remotePort);
+#if defined(_WIN32)
+	in4.sin_addr.S_addr = zts_inet_addr(remoteAddr);
+#else
+	in4.sin_addr.s_addr = zts_inet_addr(remoteAddr);
+#endif
+	in4.sin_family = ZTS_AF_INET;
+	return in4;
+}
+
 /**
  *
  *   IDENTITIES and AUTHORIZATION:
@@ -211,6 +224,8 @@ void myZeroTierEventCallback(void *msgPtr)
 class ZeroTier
 {
 public:
+	static Node getMyNode() { return myNode; }
+
 	/**
 	* @brief Starts the ZeroTier service and notifies user application of events via callback
 	*
@@ -299,89 +314,220 @@ public:
 		return err;
 	}
 
-	static int connectStream(const char *remoteAddr, const int remotePort)
+	static int openStream()
 	{
-		return connect(ZTS_AF_INET, ZTS_SOCK_STREAM, 0, remoteAddr, remotePort);
+		return open(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
 	}
 
-	static int connectDgram(const char *remoteAddr, const int remotePort)
+	static int openDgram()
 	{
-		return connect(ZTS_AF_INET, ZTS_SOCK_DGRAM, 0, remoteAddr, remotePort);
+		return open(ZTS_AF_INET, ZTS_SOCK_DGRAM, 0);
 	}
 
-	static int connectRaw(const char *remoteAddr, const int remotePort, const int protocol)
+	static int openRaw(const int protocol)
 	{
-		return connect(ZTS_AF_INET, ZTS_SOCK_RAW, protocol, remoteAddr, remotePort);
+		return open(ZTS_AF_INET, ZTS_SOCK_RAW, protocol);
 	}
 
-	static int connectStream6(const char *remoteAddr, const int remotePort)
+	static int openStream6()
 	{
-		return connect(ZTS_AF_INET6, ZTS_SOCK_STREAM, 0, remoteAddr, remotePort);
+		return open(ZTS_AF_INET6, ZTS_SOCK_STREAM, 0);
 	}
 
-	static int connectDgram6(const char *remoteAddr, const int remotePort)
+	static int openDgram6()
 	{
-		return connect(ZTS_AF_INET6, ZTS_SOCK_DGRAM, 0, remoteAddr, remotePort);
+		return open(ZTS_AF_INET6, ZTS_SOCK_DGRAM, 0);
 	}
 
-	static int connectRaw6(const char *remoteAddr, const int remotePort, const int protocol)
+	static int openRaw6(const int protocol)
 	{
-		return connect(ZTS_AF_INET6, ZTS_SOCK_RAW, protocol, remoteAddr, remotePort);
+		return open(ZTS_AF_INET6, ZTS_SOCK_RAW, protocol);
+	}
+
+	/**
+	* @brief Create a socket (sets zts_errno)
+	*
+	* @param socket_family Address family (ZTS_AF_INET, ZTS_AF_INET6)
+	* @param socket_type Type of socket (ZTS_SOCK_STREAM, ZTS_SOCK_DGRAM, ZTS_SOCK_RAW)
+	* @param protocol Protocols supported on this socket
+	* @return Numbered file descriptor on success. ZTS_ERR_SERVICE or ZTS_ERR_SOCKET on failure.
+	*/
+	static int open(const int socket_family, const int socket_type, const int protocol)
+	{
+		int fd;
+		if ((fd = zts_socket(socket_family, socket_type, protocol)) < 0) {
+			printf("Error creating ZeroTier socket (fd=%d, zts_errno=%d).\n", fd, zts_errno);
+		}
+		return fd;
+	}
+
+	/**
+	* @brief Close a socket (sets zts_errno)
+	*
+	* @param fd Socket file descriptor
+	* @return ZTS_ERR_OK on success. ZTS_ERR_SOCKET, ZTS_ERR_SERVICE on failure.
+	*/
+	static int close(int fd)
+	{
+		return zts_close(fd);
+	}
+
+	/**
+	* @brief Shut down some aspect of a socket (sets zts_errno)
+	*
+	* @param fd Socket file descriptor
+	* @return ZTS_ERR_OK on success. ZTS_ERR_SOCKET, ZTS_ERR_SERVICE, ZTS_ERR_ARG on failure.
+	*/
+	static int shutdown(int fd)
+	{
+		return zts_shutdown(fd, ZTS_SHUT_RDWR);
+	}
+
+	/**
+	* @brief Bind a socket to a virtual interface (sets zts_errno)
+	*
+	* @param fd Socket file descriptor
+	* @param remoteAddr Remote Address to connect to
+	* @param remotePort Remote Port to connect to
+	* @return ZTS_ERR_OK on success. ZTS_ERR_SOCKET, ZTS_ERR_SERVICE, ZTS_ERR_ARG on failure.
+	*/
+	static int bind(int fd, const char *localAddr, const int localPort)
+	{
+		struct zts_sockaddr_in in4 = sockaddr_in(localAddr, localPort);
+
+		int err = ZTS_ERR_OK;
+		if ((err = zts_bind(fd, (const struct zts_sockaddr *)&in4, sizeof(in4))) < 0) {
+				printf("Error binding to interface (fd=%d, ret=%d, zts_errno=%d).\n",
+					fd, err, zts_errno);
+		}
+		return err;
+	}
+
+	static int bind6(int fd, const char *remoteAddr, const int remotePort)
+	{
+		printf("IPv6 NOT IMPLEMENTED.\n");
+		return ZTS_ERR_ARG;
 	}
 
 	/**
 	* @brief Connect a socket to a remote host (sets zts_errno)
 	*
-	* @param socket_family Address family (ZTS_AF_INET, ZTS_AF_INET6)
-	* @param socket_type Type of socket (ZTS_SOCK_STREAM, ZTS_SOCK_DGRAM, ZTS_SOCK_RAW)
-	* @param protocol Protocols supported on this socket
+	* @param fd Socket file descriptor
 	* @param remoteAddr Remote Address to connect to
 	* @param remotePort Remote Port to connect to
 	* @return ZTS_ERR_OK on success. ZTS_ERR_SOCKET, ZTS_ERR_SERVICE, ZTS_ERR_ARG on failure.
 	*/
-	static int connect(const int socket_family, const int socket_type, const int protocol, const char *remoteAddr, const int remotePort)
+	static int connect(int fd, const char *remoteAddr, const int remotePort)
 	{
-		if (socket_family == ZTS_AF_INET6) {
-			printf("IPv6 NOT IMPLEMENTED.\n");
-			return -1;
-		}
-
 		struct zts_sockaddr_in in4 = sockaddr_in(remoteAddr, remotePort);
-
-		int fd;
-		if ((fd = zts_socket(socket_family, socket_type, protocol)) < 0) {
-			printf("Error creating ZeroTier socket (fd=%d, zts_errno=%d).\n", fd, zts_errno);
-			return -1;
-		}
 
 		// Retries are often required since ZT uses transport-triggered links (explained above)
 		int err = ZTS_ERR_OK;
-		for (;;) {
-			printf("Connecting to remote host...\n");
-			if ((err = zts_connect(fd, (const struct zts_sockaddr *)&in4, sizeof(in4))) < 0) {
-				printf("Error connecting to remote host (fd=%d, ret=%d, zts_errno=%d). Trying again.\n",
+		if ((err = zts_connect(fd, (const struct zts_sockaddr *)&in4, sizeof(in4))) < 0) {
+				printf("Error connecting to remote host (fd=%d, ret=%d, zts_errno=%d).\n",
 					fd, err, zts_errno);
-				zts_close(fd);
-				// printf("Creating socket...\n");
-				if ((fd = zts_socket(socket_family, socket_type, protocol)) < 0) {
-					printf("Error creating ZeroTier socket (fd=%d, zts_errno=%d).\n", fd, zts_errno);
-					return -1;
-				}
-				zts_delay_ms(250);
-			}
-			else {
-				printf("Connected.\n");
-				break;
-			}
+		} else {
+			// Set non-blocking mode
+			fcntl(fd, ZTS_F_SETFL, ZTS_O_NONBLOCK);
 		}
+		return err;
 
-		// Set non-blocking mode
-		fcntl(fd, ZTS_F_SETFL, ZTS_O_NONBLOCK);
-
-		return fd;
+		// int err = ZTS_ERR_OK;
+		// for (;;) {
+		// 	printf("Connecting to remote host...\n");
+		// 	if ((err = zts_connect(fd, (const struct zts_sockaddr *)&in4, sizeof(in4))) < 0) {
+		// 		printf("Error connecting to remote host (fd=%d, ret=%d, zts_errno=%d). Trying again.\n",
+		// 			fd, err, zts_errno);
+		// 		zts_close(fd);
+		// 		// printf("Creating socket...\n");
+		// 		if ((fd = zts_socket(socket_family, socket_type, protocol)) < 0) {
+		// 			printf("Error creating ZeroTier socket (fd=%d, zts_errno=%d).\n", fd, zts_errno);
+		// 			return -1;
+		// 		}
+		// 		zts_delay_ms(250);
+		// 	}
+		// 	else {
+		// 		printf("Connected.\n");
+		// 		break;
+		// 	}
+		// }
 	}
 
-	static int fcntlSetBlocking(int fd, bool isBlocking)
+	static int connect6(int fd, const char *remoteAddr, const int remotePort)
+	{
+		printf("IPv6 NOT IMPLEMENTED.\n");
+		return ZTS_ERR_ARG;
+	}
+
+	/**
+	* @brief Read bytes from socket onto buffer (sets zts_errno)
+	*
+	* @param fd Socket file descriptor
+	* @param buf Pointer to data buffer
+	* @return Byte count received on success. ZTS_ERR_SOCKET, ZTS_ERR_SERVICE, ZTS_ERR_ARG on failure.
+	*/
+	static ssize_t read(int fd, nbind::Buffer buf)
+	{
+		return zts_read(fd, buf.data(), buf.length());
+	}
+
+	/**
+	* @brief Write bytes from buffer to socket (sets zts_errno)
+	*
+	* @param fd Socket file descriptor
+	* @param buf Pointer to data buffer
+	* @return Byte count sent on success. ZTS_ERR_SOCKET, ZTS_ERR_SERVICE, ZTS_ERR_ARG on failure.
+	*/
+	static ssize_t write(int fd, nbind::Buffer buf)
+	{
+		return zts_write(fd, buf.data(), buf.length());
+	}
+
+	/**
+	* @brief Write data from multiple buffers to socket. (sets zts_errno)
+	*
+	* @param fd Socket file descriptor
+	* @param bufs Array of source buffers
+	* @return Byte count sent on success. ZTS_ERR_SOCKET, ZTS_ERR_SERVICE, ZTS_ERR_ARG on failure.
+	*/
+	static ssize_t writev(int fd, std::vector<nbind::Buffer> bufs)
+	{
+		std::size_t size = bufs.size();
+		zts_iovec iov[size];
+		for (std::size_t i = 0; i != size; ++i) {
+			iov[i].iov_base = bufs[i].data();
+			iov[i].iov_len = bufs[i].length();
+		}
+		return zts_writev(fd, iov, bufs.size());
+	}
+
+	/**
+	* @brief Receive data from remote host (sets zts_errno)
+	*
+	* @param fd Socket file descriptor
+	* @param buf Pointer to data buffer
+	* @param flags
+	* @return Byte count received on success. ZTS_ERR_SOCKET, ZTS_ERR_SERVICE, ZTS_ERR_ARG on failure.
+	*/
+	static ssize_t recv(int fd, nbind::Buffer buf, int flags)
+	{
+		return zts_recv(fd, buf.data(), buf.length(), flags);
+	}
+
+	/**
+	* @brief Send data to remote host (sets zts_errno)
+	*
+	* @param fd Socket file descriptor
+	* @param buf data buffer
+	* @param flags
+	* @return Byte count sent on success. ZTS_ERR_SOCKET, ZTS_ERR_SERVICE, ZTS_ERR_ARG on failure.
+	*/
+	static ssize_t send(int fd, nbind::Buffer buf, int flags)
+	{
+		return zts_send(fd, buf.data(), buf.length(), flags);
+	}
+
+	static int setBlocking(int fd, bool isBlocking)
 	{
 		int flags = fcntl(fd, ZTS_F_GETFL, 0);
 		if (isBlocking) {
@@ -390,6 +536,27 @@ public:
 			flags &= ZTS_O_NONBLOCK;
 		}
 		return fcntl(fd, ZTS_F_SETFL, flags);
+	}
+
+	static int setNoDelay(int fd, bool isNdelay)
+	{
+		int flags = fcntl(fd, ZTS_F_GETFL, 0);
+		if (isNdelay) {
+			flags &= ~ZTS_O_NDELAY;
+		} else {
+			flags &= ZTS_O_NDELAY;
+		}
+		return fcntl(fd, ZTS_F_SETFL, flags);
+	}
+
+	static int setKeepalive(int fd, int yes)
+	{
+		return setsockopt(fd, ZTS_SOL_SOCKET, ZTS_SO_KEEPALIVE, &yes, sizeof(yes));
+	}
+
+	static int setKeepidle(int fd, int idle)
+	{
+		return setsockopt(fd, ZTS_IPPROTO_TCP, ZTS_TCP_KEEPIDLE, &idle, sizeof(idle));
 	}
 
 	/**
@@ -405,56 +572,109 @@ public:
 		return zts_fcntl(fd, cmd, flags);
 	}
 
-	static ssize_t read(int fd, nbind::Buffer buf)
+	/**
+	* @brief Set socket options (sets zts_errno)
+	*
+	* @param fd Socket file descriptor
+	* @param level Protocol level to which option name should apply
+	* @param optname Option name to set
+	* @param optval Source of option value to set
+	* @param optlen Length of option value
+	* @return ZTS_ERR_OK on success. ZTS_ERR_SOCKET, ZTS_ERR_SERVICE, ZTS_ERR_ARG on failure.
+	*/
+	static int setsockopt(int fd, int level, int optname, const void *optval, zts_socklen_t optlen)
 	{
-		return zts_read(fd, buf.data(), buf.length());
+		return zts_setsockopt(fd, level, optname, optval, optlen);
 	}
 
-	static ssize_t write(int fd, nbind::Buffer buf)
+	/**
+	* @brief Get socket options (sets zts_errno)
+	*
+	* @param fd Socket file descriptor
+	* @param level Protocol level to which option name should apply
+	* @param optname Option name to get
+	* @param optval Where option value will be stored
+	* @param optlen Length of value
+	* @return ZTS_ERR_OK on success. ZTS_ERR_SOCKET, ZTS_ERR_SERVICE, ZTS_ERR_ARG on failure.
+	*/
+	static int getsockopt(int fd, int level, int optname, void *optval, zts_socklen_t *optlen)
 	{
-		return zts_write(fd, buf.data(), buf.length());
+		return zts_getsockopt(fd, level, optname, optval, optlen);
 	}
 
-	static ssize_t writev(int fd, std::vector<nbind::Buffer> bufs)
+	/**
+	* @brief Get socket name (sets zts_errno)
+	*
+	* @param fd Socket file descriptor
+	* @param addr Name associated with this socket
+	* @param addrlen Length of name
+	* @return Sockaddress structure
+	*/
+	static zts_sockaddr_in getsockname(int fd)
 	{
-		std::size_t size = bufs.size();
-		zts_iovec iov[size];
-		for (std::size_t i = 0; i != size; ++i) {
-			iov[i].iov_base = bufs[i].data();
-			iov[i].iov_len = bufs[i].length();
-		}
-		return zts_writev(fd, iov, bufs.size());
-	}
-
-	static ssize_t recv(int fd, nbind::Buffer buf, int flags)
-	{
-		return zts_recv(fd, buf.data(), buf.length(), flags);
-	}
-
-	static ssize_t send(int fd, nbind::Buffer buf, int flags)
-	{
-		return zts_send(fd, buf.data(), buf.length(), flags);
-	}
-
-	static int close(int fd)
-	{
-		return zts_close(fd);
-	}
-
-    static zts_sockaddr_in sockaddr_in(const char *remoteAddr, const int remotePort)
-    {
-        struct zts_sockaddr_in in4;
-		in4.sin_port = zts_htons(remotePort);
-	#if defined(_WIN32)
-		in4.sin_addr.S_addr = zts_inet_addr(remoteAddr);
-	#else
-		in4.sin_addr.s_addr = zts_inet_addr(remoteAddr);
-	#endif
-		in4.sin_family = ZTS_AF_INET;
+		struct zts_sockaddr_in in4;
+		zts_socklen_t addrlen;
+		zts_getsockname(fd, (struct zts_sockaddr *)&in4, &addrlen);
 		return in4;
-    }
+	}
 
-	static Node getMyNode() { return myNode; }
+	static zts_sockaddr_in6 getsockname6(int fd)
+	{
+		struct zts_sockaddr_in6 in6;
+		zts_socklen_t addrlen;
+		zts_getsockname(fd, (struct zts_sockaddr *)&in6, &addrlen);
+		return in6;
+	}
+
+	/**
+	* @brief Get the peer name for the remote end of a connected socket
+	*
+	* @param fd Socket file descriptor
+	* @param addr Name associated with remote end of this socket
+	* @param addrlen Length of name
+	* @return Sockaddress structure
+	*/
+	static zts_sockaddr_in getpeername(int fd)
+	{
+		struct zts_sockaddr_in in4;
+		zts_socklen_t addrlen;
+		zts_getpeername(fd, (struct zts_sockaddr *)&in4, &addrlen);
+		return in4;
+	}
+
+	static zts_sockaddr_in6 getpeername6(int fd)
+	{
+		struct zts_sockaddr_in6 in6;
+		zts_socklen_t addrlen;
+		zts_getpeername(fd, (struct zts_sockaddr *)&in6, &addrlen);
+		return in6;
+	}
+
+	/**
+	* Convert IPv4 and IPv6 address structures to human-readable text form.
+	*
+	* @param af Address family (ZTS_AF_INET, ZTS_AF_INET6)
+	* @param src Pointer to source address structure
+	* @param dst Pointer to destination character array
+	* @param size Size of the destination buffer
+	* @return On success, returns a non-null pointer to the destination character array
+	*/
+	static const char * inet_ntop(const zts_sockaddr in)
+	{
+		if (in.sa_family == ZTS_AF_INET) {
+			const zts_sockaddr_in *in4 = (const zts_sockaddr_in *)&in;
+			char ipstr[ZTS_INET_ADDRSTRLEN];
+			zts_inet_ntop(ZTS_AF_INET, &(in4->sin_addr), ipstr, ZTS_INET_ADDRSTRLEN);
+			return ipstr;
+		} else if (in.sa_family == ZTS_AF_INET6) {
+			const zts_sockaddr_in6 *in6 = (const zts_sockaddr_in6 *)&in;
+			char ipstr[ZTS_INET6_ADDRSTRLEN];
+			zts_inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), ipstr, ZTS_INET6_ADDRSTRLEN);
+			return ipstr;
+		} else {
+			return "";
+		}
+	}
 };
 
 #include "nbind/nbind.h"
@@ -467,24 +687,44 @@ NBIND_CLASS(Node) {
 
 NBIND_CLASS(ZeroTier) {
 	method(start);
+	method(restart);
+	method(stop);
+	method(free);
+
 	method(join);
-	method(connectStream);
-	method(connectDgram);
-	method(connectRaw);
-	method(connectStream6);
-	method(connectDgram6);
-	method(connectRaw6);
+
+	method(openStream);
+	method(openDgram);
+	method(openRaw);
+	method(openStream6);
+	method(openDgram6);
+	method(openRaw6);
+	method(open);
+	method(close);
+	method(shutdown);
+
+	method(bind);
+	method(bind6);
 	method(connect);
+	method(connect6);
+
 	method(read);
 	method(write);
 	method(writev);
 	method(recv);
 	method(send);
-	method(fcntlSetBlocking);
+
+	method(setBlocking);
+	method(setNoDelay);
+	method(setKeepalive);
+	method(setKeepidle);
 	method(fcntl);
-	method(close);
-	method(restart);
-	method(stop);
-	method(free);
+
+	method(getsockname);
+	method(getsockname6);
+	method(getpeername);
+	method(getpeername6);
+	method(inet_ntop);
+
 	method(getMyNode);
 }

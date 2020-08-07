@@ -14,6 +14,9 @@ To build both `release` and `debug` libraries for only your host's architecture 
 
 ```
 make update; make patch; make host
+# OR
+brew install cmake
+make clean; make update && make patch && make host_release CC=clang CXX=clang++
 ```
 
 Typical build output:

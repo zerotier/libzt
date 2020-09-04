@@ -1491,7 +1491,7 @@ ZTS_API int ZTCALL zts_ioctl(int fd, unsigned long request, void *argp);
  * @param fd Socket file descriptor
  * @param buf Pointer to data buffer
  * @param len Length of data to write
- * @param flags
+ * @param flags (e.g. ZTS_MSG_DONTWAIT, ZTS_MSG_MORE)
  * @return Byte count sent on success. ZTS_ERR_SOCKET, ZTS_ERR_SERVICE, ZTS_ERR_ARG on failure.
  */
 ZTS_API ssize_t ZTCALL zts_send(int fd, const void *buf, size_t len, int flags);

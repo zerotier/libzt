@@ -24,43 +24,41 @@
  * of your own application.
  */
 
+package com.zerotier.libzt.javasimpleexample;
+
 import com.zerotier.libzt.ZeroTier;
-import com.zerotier.libzt.ZeroTierEventListener;
 
-public class ExampleApp
-{
-	static void sleep(int ms)
-	{
-		try { Thread.sleep(ms); } 
-		catch (InterruptedException e) { e.printStackTrace(); }
-	}
+public class Main {
 
-	public static void main(String[] args) 
-	{
-		// Set up event listener and start service
-		MyZeroTierEventListener listener = new MyZeroTierEventListener();
-		int servicePort = 9994;
-		ZeroTier.start("test/path", listener, servicePort);
-		// Wait for EVENT_NODE_ONLINE
-		System.out.println("waiting for node to come online...");
-		while (listener.isOnline == false) { sleep(50); }
-		System.out.println("joining network");
-		ZeroTier.join(0x0123456789abcdefL);
-		// Wait for EVENT_NETWORK_READY_IP4/6
-		System.out.println("waiting for network config...");
-		while (listener.isNetworkReady == false) { sleep(50); }
-		System.out.println("joined");
+    static void sleep(int ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) {
+        // Set up event listener and start service
+        MyZeroTierEventListener listener = new MyZeroTierEventListener();
+        int servicePort = 9994;
+        ZeroTier.start("test/path", listener, servicePort);
+        // Wait for EVENT_NODE_ONLINE
+        System.out.println("waiting for node to come online...");
+        while (listener.isOnline == false) { sleep(50); }
+        System.out.println("joining network");
+        ZeroTier.join(0x0123456789abcdefL);
+        // Wait for EVENT_NETWORK_READY_IP4/6
+        System.out.println("waiting for network config...");
+        while (listener.isNetworkReady == false) { sleep(50); }
+        System.out.println("joined");
 
 		/*
-		
+
 		Begin using socket API after this point
-
 		Use ZeroTier.ZeroTierSocket, ZeroTier.ZeroTierSocketFactory, etc
-
 		(or)
-
 		ZeroTier.socket(), ZeroTier.connect(), etc
-
 		*/
-	}
+    }
 }

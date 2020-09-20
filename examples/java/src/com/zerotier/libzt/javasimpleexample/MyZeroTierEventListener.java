@@ -1,14 +1,14 @@
+package com.zerotier.libzt.javasimpleexample;
+
 import com.zerotier.libzt.ZeroTier;
 import com.zerotier.libzt.ZeroTierEventListener;
-import com.zerotier.libzt.ZeroTierPeerDetails;
 
 public class MyZeroTierEventListener implements ZeroTierEventListener {
 
     public boolean isNetworkReady = false;
     public boolean isOnline = false;
 
-    public void onZeroTierEvent(long id, int eventCode)
-    {
+    public void onZeroTierEvent(long id, int eventCode) {
         if (eventCode == ZeroTier.EVENT_NODE_UP) {
             System.out.println("EVENT_NODE_UP: nodeId=" + Long.toHexString(id));
         }
@@ -40,7 +40,7 @@ public class MyZeroTierEventListener implements ZeroTierEventListener {
         if (eventCode == ZeroTier.EVENT_NETWORK_READY_IP4) {
             // We have at least one assigned address and we've received a network configuration
             System.out.println("ZTS_EVENT_NETWORK_READY_IP4: nwid=" + Long.toHexString(id));
-            if ( id == 0xa09acf0233e4b070L) {
+            if (id == 0xa09acf0233e4b070L) {
                 isNetworkReady = true;
             }
         }

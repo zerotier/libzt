@@ -871,7 +871,7 @@ ZTS_API int ZTCALL zts_allow_network_caching(uint8_t allowed);
 ZTS_API int ZTCALL zts_allow_peer_caching(uint8_t allowed);
 
 /**
- * @brief Enable or disable whether the service will read from a local.conf
+ * @brief Enable or disable whether the service will read node configuration settings from a local.conf
  *
  * @usage Should be called before zts_start() if you intend on changing its state.
  *

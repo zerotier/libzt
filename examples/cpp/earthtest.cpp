@@ -181,7 +181,13 @@ int main(int argc, char **argv)
 	int ztServicePort = atoi(argv[2]); // Port ZT uses to send encrypted UDP packets to peers (try something like 9994)
 
 	int err = ZTS_ERR_OK;
-	zts_allow_network_caching(false);
+
+	// If disabled: (network) details will NOT be written to or read from (networks.d/). It may take slightly longer to start the node
+	zts_allow_network_caching(1);
+	// If disabled: (peer) details will NOT be written to or read from (peers.d/). It may take slightly longer to contact a remote peer
+	zts_allow_peer_caching(1);
+	// If disabled: Settings will NOT be read from local.conf
+	zts_allow_local_conf(1);
 
 	if((err = zts_start(argv[1], &myZeroTierEventCallback, ztServicePort)) != ZTS_ERR_OK) {
 		printf("Unable to start service, error = %d. Exiting.\n", err);

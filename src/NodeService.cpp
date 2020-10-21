@@ -229,10 +229,6 @@ public:
 		_ports[0] = 0;
 		_ports[1] = 0;
 		_ports[2] = 0;
-
-		allowNetworkCaching = true;
-		allowPeerCaching = true;
-		allowLocalConf = false;
 	}
 
 	virtual ~NodeServiceImpl()

@@ -226,16 +226,15 @@ int main(int argc, char **argv)
 
 	// Bring up ZeroTier service and join network
 
-	// Enable/Disable caching of network details in networks.d
-	// (read function documentation before disabling!)
-	// zts_allow_network_caching(0)
-
-	// Enable/Disable caching of peer details in peers.d
-	// (read function documentation before disabling!)
-	// zts_allow_network_caching(1)
-
 	int fd, accfd;
 	int err = ZTS_ERR_OK;
+
+	// If disabled: (network) details will NOT be written to or read from (networks.d/). It may take slightly longer to start the node
+	zts_allow_network_caching(1);
+	// If disabled: (peer) details will NOT be written to or read from (peers.d/). It may take slightly longer to contact a remote peer
+	zts_allow_peer_caching(1);
+	// If disabled: Settings will NOT be read from local.conf
+	zts_allow_local_conf(1);
 
 	if((err = zts_start(argv[1], &myZeroTierEventCallback, ztServicePort)) != ZTS_ERR_OK) {
 		printf("Unable to start service, error = %d. Exiting.\n", err);

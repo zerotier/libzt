@@ -482,15 +482,19 @@ void _lwip_eth_rx(VirtualTap *tap, const MAC &from, const MAC &to, unsigned int 
 	int err;
 
 	if (Utils::ntoh(ethhdr.type) == 0x800 || Utils::ntoh(ethhdr.type) == 0x806) {
-		if ((err = ((struct netif *)tap->netif4)->input(p, (struct netif *)tap->netif4)) != ERR_OK) {
-			DEBUG_ERROR("packet input error (%d)", err);
-			pbuf_free(p);
+		if (tap->netif4) {
+			if ((err = ((struct netif *)tap->netif4)->input(p, (struct netif *)tap->netif4)) != ERR_OK) {
+				DEBUG_ERROR("packet input error (%d)", err);
+				pbuf_free(p);
+			}
 		}
 	}
 	if (Utils::ntoh(ethhdr.type) == 0x86DD) {
-		if ((err = ((struct netif *)tap->netif6)->input(p, (struct netif *)tap->netif6)) != ERR_OK) {
-			DEBUG_ERROR("packet input error (%d)", err);
-			pbuf_free(p);
+		if (tap->netif6) {
+			if ((err = ((struct netif *)tap->netif6)->input(p, (struct netif *)tap->netif6)) != ERR_OK) {
+				DEBUG_ERROR("packet input error (%d)", err);
+				pbuf_free(p);
+			}
 		}
 	}
 }

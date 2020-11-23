@@ -232,7 +232,7 @@ host_jar()
     # Build sample app classes
     # Remove old dynamic library if it exists
     rm -rf $(pwd)/examples/java/$DYNAMIC_LIB_NAME
-    javac -cp ".:"$LIB_OUTPUT_DIR/zt.jar $(pwd)/examples/java/src/main/java/*.java
+    javac -cp ".:"$LIB_OUTPUT_DIR/zt.jar $(pwd)/examples/java/src/com/zerotier/libzt/javasimpleexample/*.java
     # To run:
     # jar xf $LIB_OUTPUT_DIR/zt.jar libzt.dylib
     # cp libzt.dylib examples/java/

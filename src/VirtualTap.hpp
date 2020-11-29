@@ -1,64 +1,43 @@
 /*
- * ZeroTier SDK - Network Virtualization Everywhere
- * Copyright (C) 2011-2019  ZeroTier, Inc.  https://www.zerotier.com/
+ * Copyright (c)2013-2020 ZeroTier, Inc.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Use of this software is governed by the Business Source License included
+ * in the LICENSE.TXT file in the project's root directory.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Change Date: 2024-01-01
  *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * --
- *
- * You can be released from the requirements of the license by purchasing
- * a commercial license. Buying such a license is mandatory as soon as you
- * develop commercial closed-source software that incorporates or links
- * directly against ZeroTier software without disclosing the source code
- * of your own application.
+ * On the date above, in accordance with the Business Source License, use
+ * of this software will be governed by version 2.0 of the Apache License.
  */
+/****/
 
 /**
  * @file
  *
- * Virtual Ethernet tap device
+ * Header for virtual ethernet tap device and combined network stack driver
  */
 
-#ifndef LIBZT_VIRTUALTAP_HPP
-#define LIBZT_VIRTUALTAP_HPP
+#ifndef ZT_VIRTUAL_TAP_HPP
+#define ZT_VIRTUAL_TAP_HPP
 
-#ifndef _MSC_VER
-extern int errno;
-#endif
+#include "lwip/err.h"
 
+#define ZTS_LWIP_DRIVER_THREAD_NAME "ZTNetworkStackThread"
+
+#include "MAC.hpp"
 #include "Phy.hpp"
 #include "Thread.hpp"
-#include "InetAddress.hpp"
-#include "MulticastGroup.hpp"
-#include "Mutex.hpp"
-
-#include "Options.h"
-
-#if defined(_WIN32)
-#include <WinSock2.h>
-#include <Windows.h>
-#include <IPHlpApi.h>
-#include <Ifdef.h>
-#endif
 
 namespace ZeroTier {
 
 class Mutex;
+class MAC;
+class MulticastGroup;
+struct InetAddress;
 
 /**
- * A virtual tap device. The ZeroTier core service creates one of these for each
- * virtual network joined. It will be destroyed upon leave().
+ * A virtual tap device. The ZeroTier Node Service will create one per
+ * joined network. It will be destroyed upon leave().
  */
 class VirtualTap
 {
@@ -97,18 +76,18 @@ public:
 	bool hasIpv6Addr();
 
 	/**
-	 * Adds an address to the userspace stack interface associated with this VirtualTap
+	 * Adds an address to the user-space stack interface associated with this VirtualTap
 	 * - Starts VirtualTap main thread ONLY if successful
 	 */
 	bool addIp(const InetAddress &ip);
 
 	/**
-	 * Removes an address from the userspace stack interface associated with this VirtualTap
+	 * Removes an address from the user-space stack interface associated with this VirtualTap
 	 */
 	bool removeIp(const InetAddress &ip);
 
 	/**
-	 * Presents data to the userspace stack
+	 * Presents data to the user-space stack
 	 */
 	void put(const MAC &from,const MAC &to,unsigned int etherType,const void *data,
 		unsigned int len);
@@ -117,11 +96,6 @@ public:
 	 * Get VirtualTap device name (e.g. 'libzt17d72843bc2c5760')
 	 */
 	std::string deviceName() const;
-
-	/**
-	 * Get Node ID (ZT address)
-	 */
-	std::string nodeId() const;
 
 	/**
 	 * Set friendly name
@@ -145,56 +119,23 @@ public:
 	void threadMain()
 		throw();
 
-#if defined(__MINGW32__)
-	/* The following is merely to make ZeroTier's OneService happy while building on Windows.
-		we won't use these in libzt */
-	NET_LUID _deviceLuid;
-	std::string _deviceInstanceId;
-
-	/**
-	 * Returns whether the VirtualTap interface has been initialized
-	 */
-	bool isInitialized() const { return _initialized; };
-
-	inline const NET_LUID &luid() const { return _deviceLuid; }
-	inline const std::string &instanceId() const { return _deviceInstanceId; }
-#endif
 	/**
 	 * For moving data onto the ZeroTier virtual wire
 	 */
 	void (*_handler)(void *, void *, uint64_t, const MAC &, const MAC &, unsigned int, unsigned int,
 		const void *, unsigned int);
 
-	void phyOnUnixClose(PhySocket *sock, void **uptr);
-	void phyOnUnixData(PhySocket *sock, void **uptr, void *data, ssize_t len);
-	void phyOnUnixWritable(PhySocket *sock, void **uptr, bool stack_invoked);
-
-	//////////////////////////////////////////////////////////////////////////////
-	// Lower-level lwIP netif handling and traffic handling readiness           //
-	//////////////////////////////////////////////////////////////////////////////
-
-	void *netif = NULL;
+	void *netif4 = NULL;
+	void *netif6 = NULL;
 
 	/**
 	 * The last time that this virtual tap received a network config update from the core
 	 */
 	uint64_t _lastConfigUpdateTime = 0;
 
-	/**
-	 * The last time that a callback notification was sent to the user application signalling
-	 * that this interface is ready to process traffic.
-	 */
-	uint64_t _lastReadyReportTime = 0;
-
 	void lastConfigUpdate(uint64_t lastConfigUpdateTime);
 
 	int _networkStatus = 0;
-
-	//////////////////////////////////////////////////////////////////////////////
-	// Vars                                                                     //
-	//////////////////////////////////////////////////////////////////////////////
-
-	std::vector<std::pair<InetAddress, InetAddress> > routes;
 
 	char vtap_full_name[64];
 
@@ -221,17 +162,6 @@ public:
 	std::vector<MulticastGroup> _multicastGroups;
 	Mutex _multicastGroups_m;
 
-	/*
-	 * Timestamp of last run of housekeeping
-	 * SEE: ZT_HOUSEKEEPING_INTERVAL in ZeroTier.h
-	 */
-	uint64_t last_housekeeping_ts = 0;
-
-	/**
-	 * Performs miscellaneous background tasks
-	 */
-	void Housekeeping();
-
 	//////////////////////////////////////////////////////////////////////////////
 	// Not used in this implementation                                          //
 	//////////////////////////////////////////////////////////////////////////////
@@ -244,8 +174,130 @@ public:
 	void phyOnTcpClose(PhySocket *sock,void **uptr);
 	void phyOnTcpData(PhySocket *sock,void **uptr,void *data,unsigned long len);
 	void phyOnTcpWritable(PhySocket *sock,void **uptr);
+	void phyOnUnixClose(PhySocket *sock,void **uptr);
 };
+
+/**
+ * @brief Return whether a given netif's NETIF_FLAG_UP flag is set
+ *
+ * @usage This is a convenience function to encapsulate a macro
+ */
+bool _lwip_is_netif_up(void *netif);
+
+/**
+ * @brief Increase the delay multiplier for the main driver loop
+ *
+ * @usage This should be called when we know the stack won't be used by any virtual taps
+ */
+void _lwip_hibernate_driver();
+
+/**
+ * @brief Decrease the delay multiplier for the main driver loop
+ *
+ * @usage This should be called when at least one virtual tap is active
+ */
+void _lwip_wake_driver();
+
+/**
+ * Returns whether the lwIP network stack is up and ready to process traffic
+ */
+bool _lwip_is_up();
+
+/**
+ * @brief Initialize network stack semaphores, threads, and timers.
+ *
+ * @usage This is called during the initial setup of each VirtualTap but is only allowed to execute once
+ */
+void _lwip_driver_init();
+
+/**
+ * @brief Shutdown the stack as completely as possible (not officially supported by lwIP)
+ *
+ * @usage This is to be called after it is determined that no further network activity will take place.
+ * The tcpip thread will be stopped, all interfaces will be brought down and all resources will
+ * be deallocated. A full application restart will be required to bring the stack back online.
+ */
+void _lwip_driver_shutdown();
+
+/**
+ * @brief Requests that a netif be brought down and removed.
+ */
+void _lwip_remove_netif(void *netif);
+
+/**
+ * @brief Initialize and start the DNS client
+ */
+void _lwip_dns_init();
+
+/**
+ * @brief Starts DHCP timers
+ */
+void _lwip_start_dhcp(void *netif);
+
+/**
+ * @brief Called when the status of a netif changes:
+ *  - Interface is up/down (ZTS_EVENT_NETIF_UP, ZTS_EVENT_NETIF_DOWN)
+ *  - Address changes while up (ZTS_EVENT_NETIF_NEW_ADDRESS)
+ */
+#if LWIP_NETIF_STATUS_CALLBACK
+static void _netif_status_callback(struct netif *netif);
+#endif
+
+/**
+ * @brief Called when a netif is removed (ZTS_EVENT_NETIF_INTERFACE_REMOVED)
+ */
+#if LWIP_NETIF_REMOVE_CALLBACK
+static void _netif_remove_callback(struct netif *netif);
+#endif
+
+/**
+ * @brief Called when a link is brought up or down (ZTS_EVENT_NETIF_LINK_UP, ZTS_EVENT_NETIF_LINK_DOWN)
+ */
+#if LWIP_NETIF_LINK_CALLBACK
+static void _netif_link_callback(struct netif *netif);
+#endif
+
+/**
+ * @brief Set up an interface in the network stack for the VirtualTap.
+ *
+ * @param tapref Reference to VirtualTap that will be responsible for sending and receiving data
+ * @param ip Virtual IP address for this ZeroTier VirtualTap interface
+ */
+void _lwip_init_interface(void *tapref, const InetAddress &ip);
+
+/**
+ * @brief Remove an assigned address from an lwIP netif
+ *
+ * @param tapref Reference to VirtualTap
+ * @param ip Virtual IP address to remove from this interface
+ */
+void _lwip_remove_address_from_netif(void *tapref, const InetAddress &ip);
+
+/**
+ * @brief Called from the stack, outbound ethernet frames from the network stack enter the ZeroTier virtual wire here.
+ *
+ * @usage This shall only be called from the stack or the stack driver. Not the application thread.
+ * @param netif Transmits an outgoing Ethernet fram from the network stack onto the ZeroTier virtual wire
+ * @param p A pointer to the beginning of a chain pf struct pbufs
+ * @return
+ */
+err_t _lwip_eth_tx(struct netif *netif, struct pbuf *p);
+
+/**
+ * @brief Receives incoming Ethernet frames from the ZeroTier virtual wire
+ *
+ * @usage This shall be called from the VirtualTap's I/O thread (via VirtualTap::put())
+ * @param tap Pointer to VirtualTap from which this data comes
+ * @param from Origin address (virtual ZeroTier hardware address)
+ * @param to Intended destination address (virtual ZeroTier hardware address)
+ * @param etherType Protocol type
+ * @param data Pointer to Ethernet frame
+ * @param len Length of Ethernet frame
+ */
+void _lwip_eth_rx(VirtualTap *tap, const MAC &from, const MAC &to, unsigned int etherType,
+	const void *data, unsigned int len);
 
 } // namespace ZeroTier
 
 #endif // _H
+

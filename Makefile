@@ -5,9 +5,9 @@ else
 DIST_BUILD_SCRIPT := ./dist.sh
 endif
 
-EXECUTABLES = cmake
-build_reqs := $(foreach exec,$(EXECUTABLES),\
-        $(if $(shell which $(exec)),some string,$(error "No $(exec) in PATH")))
+#EXECUTABLES = cmake
+#build_reqs := $(foreach exec,$(EXECUTABLES),\
+#        $(if $(shell which $(exec)),some string,$(error "No $(exec) in PATH")))
 
 .PHONY: list
 list:
@@ -17,18 +17,19 @@ list:
 
 # Pull all submodules
 update:
-	git submodule update --init
-	git submodule status
+	@git submodule update --init
+	@git submodule status
 
 # Patch submodules (issue update first)
 patch:
-	-git -C ext/lwip apply ../lwip.patch
-	-git -C ext/lwip-contrib apply ../lwip-contrib.patch
-	-git -C ext/ZeroTierOne apply ../ZeroTierOne.patch
+	#-cd ext/lwip; git apply ../lwip.patch;
+	#-cd ext/lwip-contrib; git apply ../lwip-contrib.patch;
+	#-cd ext/ZeroTierOne; git apply ../ZeroTierOne.patch;
 
 # Target-specific clean
 clean_ios:
-	-rm -rf ports/xcode_ios-arm64
+	-rm -rf ports/xcode_ios
+	-rm -rf ports/xcode_ios_simulator
 clean_macos:
 	-rm -rf ports/xcode_macos
 clean_android:
@@ -97,7 +98,13 @@ all: host host_jar macos ios android
 wrap:
 	$(DIST_BUILD_SCRIPT) wrap
 
-# [For distribution process only] Marge and package everything into a tarball
-dist:
+# Binary distribution
+bdist:
 	$(DIST_BUILD_SCRIPT) merge
-	$(DIST_BUILD_SCRIPT) dist
+	$(DIST_BUILD_SCRIPT) bdist
+
+# Source distribution
+sdist: update patch
+	$(DIST_BUILD_SCRIPT) sdist
+
+dist: bdist sdist

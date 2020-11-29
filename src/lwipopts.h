@@ -55,7 +55,7 @@
 #define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS 0
 #endif
 #if __ANDROID__
-#define LWIP_PROVIDE_ERRNO              1
+//#define LWIP_PROVIDE_ERRNO              0
 #define SOCKLEN_T_DEFINED
 #elif !defined(_MSC_VER)
 #define LWIP_PROVIDE_ERRNO              1
@@ -83,7 +83,7 @@
 ------------------------------------ Presets -----------------------------------
 ------------------------------------------------------------------------------*/
 
-#define LWIP_MTU                        1500
+#define LWIP_MTU                        2800
 #define LWIP_CHKSUM_ALGORITHM           2
 // memory
 #define MEMP_NUM_NETCONN                1024

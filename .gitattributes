@@ -1,0 +1,24 @@
+examples export-ignore
+ports export-ignore
+test export-ignore
+
+ext/lwip-contrib/apps export-ignore
+ext/lwip-contrib/addons export-ignore
+ext/lwip-contrib/Coverity export-ignore
+ext/lwip-contrib/examples export-ignore
+ext/lwip-contrib/*.mk export-ignore
+ext/lwip-contrib/*.cmake export-ignore
+ext/lwip/test export-ignore
+ext/lwip/doc export-ignore
+
+ext/ZeroTierOne/artwork export-ignore
+ext/ZeroTierOne/attic export-ignore
+ext/ZeroTierOne/debian export-ignore
+ext/ZeroTierOne/doc export-ignore
+ext/ZeroTierOne/docker export-ignore
+ext/ZeroTierOne/java export-ignore
+ext/ZeroTierOne/macui export-ignore
+ext/ZeroTierOne/rule-compiler export-ignore
+
+.gitattributes export-ignore
+.gitignore export-ignore

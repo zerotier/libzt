@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This script works in conjunction with the Makefile and CMakeLists.txt. It is
-# intented to be called from the Makefile, it generates projects and builds
+# intended to be called from the Makefile, it generates projects and builds
 # targets as specified in CMakeLists.txt. In addition, this script is
 # responsible for packaging all of the resultant builds, licenses, and
 # documentation as well as controlling the installation and remote execution of
@@ -11,6 +11,7 @@
 #
 # (1) On packaging platform, build most targets (including android and ios):
 #    (1a) make all
+#    (1b) make wrap
 # (2) On other supported platforms, build remaining supported targets
 #     and copy them into a directory structure that is expected by a later stage:
 #    (2a) make all
@@ -19,7 +20,7 @@
 #     of packaging platform. For instance:
 #
 #  libzt
-#    ├── API.md
+#    ├── README.md
 #    ├── products
 #    ├── linux-x86_64_products
 #    ├── linux-armv7l_products
@@ -29,16 +30,72 @@
 #    └── ...
 #
 # (4) Merge all builds into single `products` directory and package:
+#    (4a) make clean
 #    (4a) make dist
 
+CMAKE=cmake
 BUILD_CONCURRENCY=
 #"-j 2"
 OSNAME=$(uname | tr '[A-Z]' '[a-z]')
 BUILD_TMP=$(pwd)/tmp
 ANDROID_PROJ_DIR=$(pwd)/ports/android
-XCODE_IOS_ARM64_PROJ_DIR=$(pwd)/ports/xcode_ios-arm64
-#XCODE_IOS_ARMV7_PROJ_DIR=$(pwd)/ports/xcode_ios-armv7
+XCODE_IOS_PROJ_DIR=$(pwd)/ports/xcode_ios
+XCODE_IOS_SIMULATOR_PROJ_DIR=$(pwd)/ports/xcode_ios_simulator
 XCODE_MACOS_PROJ_DIR=$(pwd)/ports/xcode_macos
+
+# Generates wrapper source files for various target languages
+generate_swig_wrappers()
+{
+    SRC=../src
+
+    cd ports/;
+
+    # C#
+    mkdir -p ${SRC}/csharp
+    swig -csharp -c++ zt.i
+    # Prepend our callback garb to libzt.cs, copy new source files into src/csharp
+    cat csharp/csharp_callback.cs libzt.cs > libzt_concat.cs
+    rm libzt.cs
+    mv libzt_concat.cs libzt.cs
+    mv -f *.cs zt_wrap.cxx ${SRC}/csharp/
+
+    # Javascript
+    # Build for all three engines. Why not?
+    ENGINE=jsc
+    mkdir -p ${SRC}/js/${ENGINE}
+    swig -javascript -${ENGINE} -c++ zt.i
+    mv zt_wrap.cxx ${SRC}/js/${ENGINE}
+    ENGINE=v8
+    mkdir -p ${SRC}/js/${ENGINE}
+    swig -javascript -${ENGINE} -c++ zt.i
+    mv zt_wrap.cxx ${SRC}/js/${ENGINE}
+    ENGINE=node
+    mkdir -p ${SRC}/js/${ENGINE}
+    swig -javascript -${ENGINE} -c++ zt.i
+    mv -f zt_wrap.cxx ${SRC}/js/${ENGINE}
+
+    # Python
+    mkdir -p ${SRC}/python
+    swig -python -c++ zt.i
+    mv -f zt_wrap.cxx *.py ${SRC}/python
+
+    # Lua
+    mkdir -p ${SRC}/lua
+    swig -lua -c++ zt.i
+    mv -f zt_wrap.cxx ${SRC}/lua
+
+    # Go 64
+    mkdir -p ${SRC}/go64
+    swig -intgosize 64 -go -c++ zt.i
+    mv -f zt_wrap.cxx *.go *.c ${SRC}/go64
+
+    # Go 32
+    mkdir -p ${SRC}/go32
+    swig -intgosize 32 -go -c++ zt.i
+    mv -f zt_wrap.cxx *.go *.c ${SRC}/go32
+
+    cd -
+}
 
 # Generates projects if needed
 generate_projects()
@@ -49,28 +106,29 @@ generate_projects()
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
     if [[ $OSNAME = *"darwin"* ]]; then
         # iOS (SDK 11+, 64-bit only, arm64)
-        if [ ! -d "$XCODE_IOS_ARM64_PROJ_DIR" ]; then
-            mkdir -p $XCODE_IOS_ARM64_PROJ_DIR
-            cd $XCODE_IOS_ARM64_PROJ_DIR
-            cmake -G Xcode ../../ -DIOS_FRAMEWORK=1 -DIOS_ARM64=1
+        if [ ! -d "$XCODE_IOS_PROJ_DIR" ]; then
+            mkdir -p $XCODE_IOS_PROJ_DIR
+            cd $XCODE_IOS_PROJ_DIR
+            $CMAKE -G Xcode ../../ -DIOS_FRAMEWORK=1 -DIOS_ARM64=1
             # Manually replace arch strings in project file
             sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj
             cd -
         fi
-        # iOS (SDK <11, 32-bit only, armv7, armv7s)
-        #if [ ! -d "$XCODE_IOS_ARMV7_PROJ_DIR" ]; then
-        #   mkdir -p $XCODE_IOS_ARMV7_PROJ_DIR
-        #   cd $XCODE_IOS_ARMV7_PROJ_DIR
-        #   cmake -G Xcode ../../ -DIOS_FRAMEWORK=1 -DIOS_ARMV7=1
+
+        if [ ! -d "$XCODE_IOS_SIMULATOR_PROJ_DIR" ]; then
+            mkdir -p $XCODE_IOS_SIMULATOR_PROJ_DIR
+            cd $XCODE_IOS_SIMULATOR_PROJ_DIR
+            $CMAKE -G Xcode ../../ -DIOS_FRAMEWORK=1
             # Manually replace arch strings in project file
-        #   sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj
-        #   cd -
-        #fi
+            #sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj
+            cd -
+        fi
+
         # macOS
         if [ ! -d "$XCODE_MACOS_PROJ_DIR" ]; then
             mkdir -p $XCODE_MACOS_PROJ_DIR
             cd $XCODE_MACOS_PROJ_DIR
-            cmake -G Xcode ../../ -DMACOS_FRAMEWORK=1
+            $CMAKE -G Xcode ../../ -DMACOS_FRAMEWORK=1
             cd -
         fi
     fi
@@ -86,27 +144,29 @@ ios()
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
     UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
 
-    # 64-bit
-    cd $XCODE_IOS_ARM64_PROJ_DIR
+    cd $XCODE_IOS_PROJ_DIR
     # Framework
     xcodebuild -arch arm64 -target zt -configuration "$UPPERCASE_CONFIG" -sdk "iphoneos"
     cd -
-    OUTPUT_DIR=$(pwd)/lib/$1/ios-arm64
-    mkdir -p $OUTPUT_DIR
-    rm -rf $OUTPUT_DIR/zt.framework # Remove prior to move to prevent error
-    mv $XCODE_IOS_ARM64_PROJ_DIR/$UPPERCASE_CONFIG-iphoneos/* $OUTPUT_DIR
+    IOS_OUTPUT_DIR=$(pwd)/lib/$1/ios
+    mkdir -p $IOS_OUTPUT_DIR
+    rm -rf $IOS_OUTPUT_DIR/zt.framework # Remove prior to move to prevent error
+    mv $XCODE_IOS_PROJ_DIR/$UPPERCASE_CONFIG-iphoneos/* $IOS_OUTPUT_DIR
 
-    # 32-bit
-    #cd $XCODE_IOS_ARMV7_PROJ_DIR
+    cd $XCODE_IOS_SIMULATOR_PROJ_DIR
     # Framework
-    #xcodebuild -target zt -configuration "$UPPERCASE_CONFIG" -sdk "iphoneos10.0"
-    # Manually replace arch strings in project file
-    #sed -i '' 's/x86_64/$(CURRENT_ARCH)/g' zt.xcodeproj/project.pbxproj
-    #cd -
-    #OUTPUT_DIR=$(pwd)/lib/$1/ios-armv7
-    #mkdir -p $OUTPUT_DIR
-    #rm -rf $OUTPUT_DIR/*
-    #mv $XCODE_IOS_ARMV7_PROJ_DIR/$UPPERCASE_CONFIG-iphoneos/* $OUTPUT_DIR
+    xcodebuild -target zt -configuration "$UPPERCASE_CONFIG" -sdk "iphonesimulator"
+    cd -
+    SIMULATOR_OUTPUT_DIR=$(pwd)/lib/$1/ios-simulator
+    mkdir -p $SIMULATOR_OUTPUT_DIR
+    rm -rf $SIMULATOR_OUTPUT_DIR/zt.framework # Remove prior to move to prevent error
+    mv $XCODE_IOS_SIMULATOR_PROJ_DIR/$UPPERCASE_CONFIG-iphonesimulator/* $SIMULATOR_OUTPUT_DIR
+
+    # Combine the two archs
+    lipo -create $IOS_OUTPUT_DIR/zt.framework/zt $SIMULATOR_OUTPUT_DIR/zt.framework/zt -output $IOS_OUTPUT_DIR/zt.framework/zt
+
+    # Clean up
+    rm -rf $SIMULATOR_OUTPUT_DIR
 }
 
 # Build framework for current host (macOS only)
@@ -152,8 +212,8 @@ host_jar()
     # Build dynamic library
     BUILD_DIR=$(pwd)/tmp/${NORMALIZED_OSNAME}-$(uname -m)-jni-$1
     UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
-    cmake -H. -B$BUILD_DIR -DCMAKE_BUILD_TYPE=$UPPERCASE_CONFIG -DSDK_JNI=ON "-DSDK_JNI=1"
-    cmake --build $BUILD_DIR $BUILD_CONCURRENCY
+    $CMAKE -H. -B$BUILD_DIR -DCMAKE_BUILD_TYPE=$UPPERCASE_CONFIG -DSDK_JNI=ON "-DSDK_JNI=1"
+    $CMAKE --build $BUILD_DIR $BUILD_CONCURRENCY
     # Copy dynamic library from previous build step
     # And, remove any lib that may exist prior. We don't want accidental successes
     cd $(pwd)/ports/java
@@ -172,7 +232,7 @@ host_jar()
     # Build sample app classes
     # Remove old dynamic library if it exists
     rm -rf $(pwd)/examples/java/$DYNAMIC_LIB_NAME
-    javac -cp ".:"$LIB_OUTPUT_DIR/zt.jar $(pwd)/examples/java/src/main/java/*.java
+    javac -cp ".:"$LIB_OUTPUT_DIR/zt.jar $(pwd)/examples/java/src/com/zerotier/libzt/javasimpleexample/*.java
     # To run:
     # jar xf $LIB_OUTPUT_DIR/zt.jar libzt.dylib
     # cp libzt.dylib examples/java/
@@ -202,8 +262,8 @@ host()
     mkdir -p $LIB_OUTPUT_DIR
     rm -rf $LIB_OUTPUT_DIR/libzt.a $LIB_OUTPUT_DIR/$DYNAMIC_LIB_NAME $LIB_OUTPUT_DIR/libztcore.a
     # Build
-    cmake -H. -B$BUILD_DIR -DCMAKE_BUILD_TYPE=$1
-    cmake --build $BUILD_DIR $BUILD_CONCURRENCY
+    $CMAKE -H. -B$BUILD_DIR -DCMAKE_BUILD_TYPE=$1
+    $CMAKE --build $BUILD_DIR $BUILD_CONCURRENCY
     # Move and clean up
     mv $BUILD_DIR/bin/* $BIN_OUTPUT_DIR
     mv $BUILD_DIR/lib/* $LIB_OUTPUT_DIR
@@ -233,9 +293,8 @@ android()
     if [[ ! $OSNAME = *"darwin"* ]]; then
         exit 0
     fi
-    ARCH="armeabi-v7a"
     # CMake build files
-    BUILD_DIR=$(pwd)/tmp/android-$ARCH-$1
+    BUILD_DIR=$(pwd)/tmp/android-$1
     mkdir -p $BUILD_DIR
     # If clean requested, remove temp build dir
     if [[ $1 = *"clean"* ]]; then
@@ -243,7 +302,7 @@ android()
         exit 0
     fi
     # Where to place results
-    LIB_OUTPUT_DIR=$(pwd)/lib/$1/android-$ARCH
+    LIB_OUTPUT_DIR=$(pwd)/lib/$1/android
     mkdir -p $LIB_OUTPUT_DIR
     # Build
     UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
@@ -277,7 +336,7 @@ clean()
     rm -rf tmp lib bin products
     rm -f *.o *.s *.exp *.lib *.core core
     # Generally search for and remove object files, libraries, etc
-    find . -type f \( -name '*.dylib' -o -name '*.so' -o -name \
+    find . -path './*_products' -prune -type f \( -name '*.dylib' -o -name '*.so' -o -name \
         '*.a' -o -name '*.o' -o -name '*.o.d' -o -name \
         '*.out' -o -name '*.log' -o -name '*.dSYM' -o -name '*.class' \) -delete
     # Remove any sources copied to project directories
@@ -289,7 +348,8 @@ clean()
 prep_android_example()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
-    cp -f lib/$1/android-armeabi-v7a/libzt-$1.aar \
+    mkdir -p examples/android/ExampleAndroidApp/app/libs/
+    cp -f lib/$1/android/libzt-$1.aar \
     examples/android/ExampleAndroidApp/app/libs/libzt.aar
 }
 # Clean Android project
@@ -394,11 +454,11 @@ display()
 # Merge all remotely-built targets. This is used before dist()
 merge()
 {
-    #if [ -d "darwin-x86_64_products" ]; then
-    #    rsync -a darwin-x86_64_products/ products/
-    #else
-    #    echo "Warning: darwin-x86_64_products is missing"
-    #fi
+    if [ -d "darwin-x86_64_products" ]; then
+        rsync -a darwin-x86_64_products/ products/
+    else
+        echo "Warning: darwin-x86_64_products is missing"
+    fi
     # x86_64 64-bit linux
     REMOTE_PRODUCTS_DIR=linux-x86_64_products
     if [ -d "$REMOTE_PRODUCTS_DIR" ]; then
@@ -445,8 +505,21 @@ wrap()
     tar --exclude=$PROD_FILENAME -zcvf $PROD_FILENAME -C $ARCH_WRAP_DIR .
 }
 
-# Copies binaries, documentation, licenses, etc into a products
-# dir and then tarballs everything together
+# Renames and copies licenses for libzt and each of its dependencies
+package_licenses()
+{
+    CURR_DIR=$1
+    DEST_DIR=$2
+    mkdir -p $DEST_DIR
+    cp $CURR_DIR/ext/lwip/COPYING $DEST_DIR/LWIP-LICENSE.BSD
+    cp $CURR_DIR/ext/concurrentqueue/LICENSE.md $DEST_DIR/CONCURRENTQUEUE-LICENSE.BSD
+    cp $CURR_DIR/LICENSE.txt $DEST_DIR/ZEROTIER-LICENSE.BSL-1.1
+    cp $CURR_DIR/include/net/ROUTE_H-LICENSE.APSL $DEST_DIR/ROUTE_H-LICENSE.APSL
+    cp $CURR_DIR/include/net/ROUTE_H-LICENSE $DEST_DIR/ROUTE_H-LICENSE
+}
+
+# Copies binaries, documentation, licenses, source, etc into a products
+# directory and then tarballs everything together
 package_everything()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
@@ -454,35 +527,24 @@ package_everything()
     PROD_NAME=$LIBZT_VERSION-$(date '+%Y%m%d_%H-%M')-$1
     PROD_DIR=$(pwd)/products/$PROD_NAME/
     # Make products directory
-    LICENSE_DIR=$PROD_DIR/licenses
-    mkdir -p $LICENSE_DIR
     # Licenses
-    cp $(pwd)/ext/lwip/COPYING $LICENSE_DIR/LWIP-LICENSE.BSD
-    cp $(pwd)/ext/concurrentqueue/LICENSE.md $LICENSE_DIR/CONCURRENTQUEUE-LICENSE.BSD
-    cp $(pwd)/LICENSE.GPL-3 $LICENSE_DIR/ZEROTIER-LICENSE.GPL-3
-    cp $(pwd)/include/net/ROUTE_H-LICENSE.APSL $LICENSE_DIR/ROUTE_H-LICENSE.APSL
-    cp $(pwd)/include/net/ROUTE_H-LICENSE $LICENSE_DIR/ROUTE_H-LICENSE
-    # Documentation
-    mkdir -p $PROD_DIR/doc
-    # Copy the errno header from lwIP for customer reference
-    cp ext/lwip/src/include/lwip/errno.h $PROD_DIR/doc
-    cp $(pwd)/API.pdf $PROD_DIR/API.pdf
+    package_licenses $(pwd) $PROD_DIR/licenses
+    # Examples
+    mkdir -p $PROD_DIR/examples
+    cp examples/cpp/* $PROD_DIR/examples
+    # Source
+    mkdir -p $PROD_DIR/src
+    cp src/*.cpp src/*.hpp src/*.c src/*.h $PROD_DIR/src
+    cp $(pwd)/README.pdf $PROD_DIR/README.pdf
     # Header(s)
     mkdir -p $PROD_DIR/include
     cp $(pwd)/include/*.h $PROD_DIR/include
-    cp $(pwd)/ext/ZeroTierOne/include/ZeroTierOne.h $PROD_DIR/include
     # Libraries
     mkdir -p $PROD_DIR/lib
-    cp -r $(pwd)/lib/$1/* $PROD_DIR/lib
+    cp -r $(pwd)/products/$1/* $PROD_DIR/lib
+    rm -rf $(pwd)/products/$1
     # Clean
     find $PROD_DIR -type f \( -name '*.DS_Store' -o -name 'thumbs.db' \) -delete
-    # Emit a README file
-    echo 'See API.md for more information on how to use the SDK
-- ZeroTier Manual: https://www.zerotier.com/manual.shtml
-- libzt Manual: https://www.zerotier.com/manual.shtml#5
-- libzt Repo: https://github.com/zerotier/libzt
-- ZeroTierOne Repo: https://github.com/zerotier/ZeroTierOne
-- Downloads: https://www.zerotier.com/download.shtml' > $PROD_DIR/README
     # Record the version (and each submodule's version)
     echo "$(git describe)" > $PROD_DIR/VERSION
     echo -e "$(git submodule status | awk '{$1=$1};1')" >> $PROD_DIR/VERSION
@@ -502,13 +564,13 @@ package_everything()
     tree $PROD_DIR
     cat $PROD_DIR/VERSION
     # Final check. Display warnings if anything is missing
-    FILES="README
-    VERSION
-    API.pdf
-    doc/errno.h
+    FILES="VERSION
+    README.md
+    README.pdf
+    reference/errno.h
     licenses/LWIP-LICENSE.BSD
     licenses/CONCURRENTQUEUE-LICENSE.BSD
-    licenses/ZEROTIER-LICENSE.GPL-3
+    licenses/ZEROTIER-LICENSE.BSL-1.1
     licenses/ROUTE_H-LICENSE.APSL
     licenses/ROUTE_H-LICENSE
     licenses/LWIP-LICENSE.BSD"
@@ -520,12 +582,90 @@ package_everything()
     done
 }
 
+# Generates a source-only tarball
+sdist()
+{
+    VERSION=$(git describe --abbrev=0)
+    TARBALL_DIR="libzt-${VERSION}"
+    TARBALL_NAME=libzt-${VERSION}-source.tar.gz
+    PROD_DIR=$(pwd)/products/
+    mkdir -p $PROD_DIR
+    #
+    mkdir ${TARBALL_DIR}
+    # primary sources
+    cp -rf src ${TARBALL_DIR}/src
+    cp -rf include ${TARBALL_DIR}/include
+    # important build scripts
+    cp Makefile ${TARBALL_DIR}
+    cp CMakeLists.txt ${TARBALL_DIR}
+    cp *.md ${TARBALL_DIR}
+    cp *.sh ${TARBALL_DIR}
+    cp *.bat ${TARBALL_DIR}
+    # submodules/dependencies
+    # lwIP
+    mkdir ${TARBALL_DIR}/ext
+    mkdir -p ${TARBALL_DIR}/ext/lwip/src
+    cp -rf ext/lwip/src/api ${TARBALL_DIR}/ext/lwip/src
+    cp -rf ext/lwip/src/core ${TARBALL_DIR}/ext/lwip/src
+    cp -rf ext/lwip/src/include ${TARBALL_DIR}/ext/lwip/src
+    cp -rf ext/lwip/src/netif ${TARBALL_DIR}/ext/lwip/src
+    # lwIP ports
+    mkdir -p ${TARBALL_DIR}/ext/lwip-contrib/ports
+    cp -rf ext/lwip-contrib/ports/unix ${TARBALL_DIR}/ext/lwip-contrib/ports
+    cp -rf ext/lwip-contrib/ports/win32 ${TARBALL_DIR}/ext/lwip-contrib/ports
+    # ZeroTierOne
+    mkdir ${TARBALL_DIR}/ext/ZeroTierOne
+    cp -rf ext/ZeroTierOne/*.h ${TARBALL_DIR}/ext/ZeroTierOne
+    cp -rf ext/ZeroTierOne/controller ${TARBALL_DIR}/ext/ZeroTierOne
+    cp -rf ext/ZeroTierOne/ext ${TARBALL_DIR}/ext/ZeroTierOne
+    cp -rf ext/ZeroTierOne/include ${TARBALL_DIR}/ext/ZeroTierOne
+    cp -rf ext/ZeroTierOne/node ${TARBALL_DIR}/ext/ZeroTierOne
+    cp -rf ext/ZeroTierOne/osdep ${TARBALL_DIR}/ext/ZeroTierOne
+    #
+    # Perform selective removal
+    rm -rf ${TARBALL_DIR}/ext/ZeroTierOne/ext/bin
+    rm -rf ${TARBALL_DIR}/ext/ZeroTierOne/ext/tap-mac
+    rm -rf ${TARBALL_DIR}/ext/ZeroTierOne/ext/librethinkdbxx
+    rm -rf ${TARBALL_DIR}/ext/ZeroTierOne/ext/installfiles
+    rm -rf ${TARBALL_DIR}/ext/ZeroTierOne/ext/curl-*
+    rm -rf ${TARBALL_DIR}/ext/ZeroTierOne/ext/http-parser
+    #
+    mkdir ${TARBALL_DIR}/ext/concurrentqueue
+    cp -rf ext/concurrentqueue/*.h ${TARBALL_DIR}/ext/concurrentqueue
+    # Licenses
+    package_licenses $(pwd) $TARBALL_DIR/licenses
+    # Tarball everything and display the results
+    tar -cvf ${TARBALL_NAME} ${TARBALL_DIR}
+    tree ${TARBALL_DIR}
+    rm -rf ${TARBALL_DIR}
+    mv ${TARBALL_NAME} ${PROD_DIR}
+}
+
 # Package both debug and release
-dist()
+bdist()
 {
     echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
     package_everything "debug"
     package_everything "release"
+}
+
+# Generate a markdown CHANGELOG from git-log
+update_changelog()
+{
+    first_commit=$(git rev-list --max-parents=0 HEAD)
+    git for-each-ref --sort=-refname --format="## [%(refname:short)] - %(taggerdate:short) &(newline)*** &(newline)- %(subject) %(body)" refs/tags > CHANGELOG.md
+    gsed -i '''s/\&(newline)/\n/' CHANGELOG.md # replace first instance
+    gsed -i '''s/\&(newline)/\n/' CHANGELOG.md # replace second instance
+    echo -e "\n" >> CHANGELOG.md
+    for curr_tag in $(git tag -l --sort=-v:refname)
+    do
+        prev_tag=$(git describe --abbrev=0 ${curr_tag}^)
+        if [ -z "${prev_tag}" ]
+        then
+            prev_tag=${first_commit}
+        fi
+        echo "[${curr_tag}]: https://github.com/zerotier/libzt/compare/${prev_tag}..${curr_tag}" >> CHANGELOG.md
+    done
 }
 
 # List all functions in this script (just for convenience)

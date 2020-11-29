@@ -1,5 +1,5 @@
 framework module zt {
-  umbrella header "Xcode-Bridging-Header.h"
+  umbrella header "ZeroTierSockets.h"
 
   export *
   module * { export * }

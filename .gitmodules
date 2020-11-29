@@ -1,13 +1,9 @@
-[submodule "zto"]
-	path = zto
-	url = https://github.com/zerotier/ZeroTierOne.git
-	branch = dev
-[submodule "ext/lwip"]
-	path = ext/lwip
-	url = https://git.savannah.nongnu.org/git/lwip.git
-[submodule "ext/lwip-contrib"]
-	path = ext/lwip-contrib
-	url = https://git.savannah.nongnu.org/git/lwip/lwip-contrib.git
 [submodule "ext/ZeroTierOne"]
 	path = ext/ZeroTierOne
 	url = https://github.com/zerotier/ZeroTierOne.git
+[submodule "ext/lwip"]
+	path = ext/lwip
+	url = https://github.com/joseph-henry/lwip.git
+[submodule "ext/lwip-contrib"]
+	path = ext/lwip-contrib
+	url = https://github.com/joseph-henry/lwip-contrib.git

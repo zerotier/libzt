@@ -1,50 +1,77 @@
-REM Build all target configurations and copy results into "prebuilt"
+REM build temp directories
+set Win32ReleaseBuildDir=tmp\release\win32
+set Win64ReleaseBuildDir=tmp\release\win64
+set Win32DebugBuildDir=tmp\debug\win32
+set Win64DebugBuildDir=tmp\debug\win64
 
-set PrebuiltDebugWin32Dir=staging\debug\win32
-set PrebuiltDebugWin64Dir=staging\debug\win64
-set PrebuiltReleaseWin32Dir=staging\release\win32
-set PrebuiltReleaseWin64Dir=staging\release\win64
+mkdir %Win32ReleaseBuildDir%
+mkdir %Win64ReleaseBuildDir%
+mkdir %Win32DebugBuildDir%
+mkdir %Win64DebugBuildDir%
 
-mkdir %PrebuiltDebugWin32Dir%
-mkdir %PrebuiltDebugWin64Dir%
-mkdir %PrebuiltReleaseWin32Dir%
-mkdir %PrebuiltReleaseWin64Dir%
+REM final output directories
+set WinReleaseOutputDir=lib\release
+set WinDebugOutputDir=lib\debug
 
-set DebugWinBuildDir=bin\lib\Debug
-set ReleaseWinBuildDir=bin\lib\Release
+mkdir %WinReleaseOutputDir%\win-x86
+mkdir %WinReleaseOutputDir%\win-x86_64
+mkdir %WinDebugOutputDir%\win-x86
+mkdir %WinDebugOutputDir%\win-x86_64
 
-mkdir WinBuild32 & pushd WinBuild32
-cmake -G "Visual Studio 15 2017" ../
+mkdir %WinReleaseOutputDir%
+mkdir %WinDebugOutputDir%
+
+pushd %Win32ReleaseBuildDir%
+cmake -G "Visual Studio 16 2019" ../../../
+cmake --build . --config Release
 popd
-mkdir WinBuild64 & pushd WinBuild64
-cmake -G "Visual Studio 15 2017 Win64" ../
+copy %Win32ReleaseBuildDir%\Release\zt.lib %WinReleaseOutputDir%\win-x86\libzt32.lib
+copy %Win32ReleaseBuildDir%\Release\zt-shared.dll %WinReleaseOutputDir%\win-x86\libzt32.dll
+
+pushd %Win32DebugBuildDir%
+cmake -G "Visual Studio 16 2019" ../../../
+cmake --build . --config Debug
 popd
+copy %Win32DebugBuildDir%\Debug\zt.lib %WinDebugOutputDir%\win-x86\libzt32d.lib
+copy %Win32DebugBuildDir%\Debug\zt-shared.dll %WinDebugOutputDir%\win-x86\libzt32d.dll
 
-cmake --build WinBuild32 --config Release
-cmake --build WinBuild32 --config Debug
+pushd %Win64ReleaseBuildDir%
+cmake -G "Visual Studio 16 2019" -A x64 ../../../
+cmake --build . --config Release
+popd
+copy %Win64ReleaseBuildDir%\Release\zt.lib %WinReleaseOutputDir%\win-x86_64\libzt64.lib
+copy %Win64ReleaseBuildDir%\Release\zt-shared.dll %WinReleaseOutputDir%\win-x86_64\libzt64.dll
 
-copy %DebugWinBuildDir%\zt-static.lib %PrebuiltDebugWin32Dir%\zt.lib
-copy %DebugWinBuildDir%\zt-shared.dll %PrebuiltDebugWin32Dir%\zt.dll
-copy %ReleaseWinBuildDir%\zt-static.lib %PrebuiltReleaseWin32Dir%\zt.lib
-copy %ReleaseWinBuildDir%\zt-shared.dll %PrebuiltReleaseWin32Dir%\zt.dll
+pushd %Win64DebugBuildDir%
+cmake -G "Visual Studio 16 2019" -A x64 ../../../
+cmake --build . --config Debug
+popd
+copy %Win64DebugBuildDir%\Debug\zt.lib %WinDebugOutputDir%\win-x86_64\libzt64d.lib
+copy %Win64DebugBuildDir%\Debug\zt-shared.dll %WinDebugOutputDir%\win-x86_64\libzt64d.dll
 
-cmake --build WinBuild64 --config Release
-cmake --build WinBuild64 --config Debug
+REM Copy example binaries
 
-copy %DebugWinBuildDir%\zt-static.lib %PrebuiltDebugWin64Dir%\zt.lib
-copy %DebugWinBuildDir%\zt-shared.dll %PrebuiltDebugWin64Dir%\zt.dll
-copy %ReleaseWinBuildDir%\zt-static.lib %PrebuiltReleaseWin64Dir%\zt.lib
-copy %ReleaseWinBuildDir%\zt-shared.dll %PrebuiltReleaseWin64Dir%\zt.dll
+mkdir bin\debug\win-x86\
+copy %Win32DebugBuildDir%\Debug\*.exe bin\debug\win-x86\
+mkdir bin\debug\win-x86_64\
+copy %Win64DebugBuildDir%\Debug\*.exe bin\debug\win-x86_64\
+
+mkdir bin\release\win-x86\
+copy %Win32ReleaseBuildDir%\Release\*.exe bin\release\win-x86\
+mkdir bin\release\win-x86_64\
+copy %Win64ReleaseBuildDir%\Release\*.exe bin\release\win-x86_64\
+
+exit 0
 
 rd /S /Q bin
 
 # Build with JNI
 
 mkdir WinBuild32 & pushd WinBuild32
-cmake -D JNI:BOOL=ON -G "Visual Studio 15 2017" ../
+cmake -D JNI:BOOL=ON -G "Visual Studio 16 2019" ../
 popd
 mkdir WinBuild64 & pushd WinBuild64
-cmake -D JNI:BOOL=ON -G "Visual Studio 15 2017 Win64" ../
+cmake -D JNI:BOOL=ON -G "Visual Studio 16 2019" -A x64 ../
 popd
 
 cmake --build WinBuild32 --config Release

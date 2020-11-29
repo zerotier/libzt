@@ -1,7 +1,5 @@
 /**
  * libzt API example
- *
- * Pingable node joined to public ZT network "earth"
  */
 
 /**
@@ -88,6 +86,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <string>
 
 #include "ZeroTierSockets.h"
 
@@ -108,6 +108,7 @@ void myZeroTierEventCallback(void *msgPtr)
 {
 	struct zts_callback_msg *msg = (struct zts_callback_msg *)msgPtr;
 
+	// Node events
 	if (msg->eventCode == ZTS_EVENT_NODE_ONLINE) {
 		printf("ZTS_EVENT_NODE_ONLINE --- This node's ID is %llx\n", msg->node->address);
 		myNode.id = msg->node->address;
@@ -117,12 +118,28 @@ void myZeroTierEventCallback(void *msgPtr)
 		printf("ZTS_EVENT_NODE_OFFLINE --- Check your physical Internet connection, router, firewall, etc. What ports are you blocking?\n");
 		myNode.online = false;
 	}
+	if (msg->eventCode == ZTS_EVENT_NODE_NORMAL_TERMINATION) {
+		printf("ZTS_EVENT_NODE_NORMAL_TERMINATION\n");
+		myNode.online = false;
+	}
+
+	// Virtual network events
+	if (msg->eventCode == ZTS_EVENT_NETWORK_NOT_FOUND) {
+		printf("ZTS_EVENT_NETWORK_NOT_FOUND --- Are you sure %llx is a valid network?\n",
+			msg->network->nwid);
+	}
 	if (msg->eventCode == ZTS_EVENT_NETWORK_REQ_CONFIG) {
-		printf("ZTS_EVENT_NETWORK_REQ_CONFIG --- Requesting config for network %llx, please wait a few seconds...\n", msg->network->nwid);
+		printf("ZTS_EVENT_NETWORK_REQ_CONFIG --- Requesting config for network %llx, please wait a few seconds...\n",
+			msg->network->nwid);
 	}
 	if (msg->eventCode == ZTS_EVENT_NETWORK_ACCESS_DENIED) {
 		printf("ZTS_EVENT_NETWORK_ACCESS_DENIED --- Access to virtual network %llx has been denied. Did you authorize the node yet?\n",
 			msg->network->nwid);
+	}
+	if (msg->eventCode == ZTS_EVENT_NETWORK_READY_IP4) {
+		printf("ZTS_EVENT_NETWORK_READY_IP4 --- Network config received. IPv4 traffic can now be sent over network %llx\n",
+			msg->network->nwid);
+		myNode.joinedAtLeastOneNetwork = true;
 	}
 	if (msg->eventCode == ZTS_EVENT_NETWORK_READY_IP6) {
 		printf("ZTS_EVENT_NETWORK_READY_IP6 --- Network config received. IPv6 traffic can now be sent over network %llx\n",
@@ -132,20 +149,37 @@ void myZeroTierEventCallback(void *msgPtr)
 	if (msg->eventCode == ZTS_EVENT_NETWORK_DOWN) {
 		printf("ZTS_EVENT_NETWORK_DOWN --- %llx\n", msg->network->nwid);
 	}
+
+	// Address events
 	if (msg->eventCode == ZTS_EVENT_ADDR_ADDED_IP4) {
 		char ipstr[ZTS_INET_ADDRSTRLEN];
 		struct zts_sockaddr_in *in4 = (struct zts_sockaddr_in*)&(msg->addr->addr);
 		zts_inet_ntop(ZTS_AF_INET, &(in4->sin_addr), ipstr, ZTS_INET_ADDRSTRLEN);
-		printf("ZTS_EVENT_ADDR_NEW_IP4 --- Join %llx and ping me at %s\n",
+		printf("ZTS_EVENT_ADDR_NEW_IP4 --- This node's virtual address on network %llx is %s\n",
 			msg->addr->nwid, ipstr);
 	}
 	if (msg->eventCode == ZTS_EVENT_ADDR_ADDED_IP6) {
 		char ipstr[ZTS_INET6_ADDRSTRLEN];
 		struct zts_sockaddr_in6 *in6 = (struct zts_sockaddr_in6*)&(msg->addr->addr);
 		zts_inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), ipstr, ZTS_INET6_ADDRSTRLEN);
-		printf("ZTS_EVENT_ADDR_NEW_IP6 --- Join %llx and ping me at %s\n",
+		printf("ZTS_EVENT_ADDR_NEW_IP6 --- This node's virtual address on network %llx is %s\n",
 			msg->addr->nwid, ipstr);
 	}
+	if (msg->eventCode == ZTS_EVENT_ADDR_REMOVED_IP4) {
+		char ipstr[ZTS_INET_ADDRSTRLEN];
+		struct zts_sockaddr_in *in4 = (struct zts_sockaddr_in*)&(msg->addr->addr);
+		zts_inet_ntop(ZTS_AF_INET, &(in4->sin_addr), ipstr, ZTS_INET_ADDRSTRLEN);
+		printf("ZTS_EVENT_ADDR_REMOVED_IP4 --- The virtual address %s for this node on network %llx has been removed.\n",
+			ipstr, msg->addr->nwid);
+	}
+	if (msg->eventCode == ZTS_EVENT_ADDR_REMOVED_IP6) {
+		char ipstr[ZTS_INET6_ADDRSTRLEN];
+		struct zts_sockaddr_in6 *in6 = (struct zts_sockaddr_in6*)&(msg->addr->addr);
+		zts_inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), ipstr, ZTS_INET6_ADDRSTRLEN);
+		printf("ZTS_EVENT_ADDR_REMOVED_IP6 --- The virtual address %s for this node on network %llx has been removed.\n",
+			ipstr, msg->addr->nwid);
+	}
+
 	// Peer events
 	if (msg->peer) {
 		if (msg->peer->role == ZTS_PEER_ROLE_PLANET) {
@@ -173,12 +207,26 @@ void myZeroTierEventCallback(void *msgPtr)
 
 int main(int argc, char **argv)
 {
-	if (argc != 3) {
-		printf("\nlibzt example\n");
-		printf("earthtest <config_file_path> <ztServicePort>\n");
+	if (argc != 6) {
+		printf("\nlibzt example non-blocking client\n");
+		printf("nonblockingclient <config_file_path> <nwid> <remoteAddr> <remotePort> <ztServicePort>\n");
 		exit(0);
 	}
-	int ztServicePort = atoi(argv[2]); // Port ZT uses to send encrypted UDP packets to peers (try something like 9994)
+	uint64_t nwid = strtoull(argv[2],NULL,16); // Network ID to join
+	std::string remoteAddr = argv[3]; // Remote application's virtual ZT address
+	int remotePort = atoi(argv[4]); // Port the application will try to connect to the server on
+	int ztServicePort = atoi(argv[5]); // Port ZT uses to send encrypted UDP packets to peers (try something like 9994)
+
+	struct zts_sockaddr_in in4;
+	in4.sin_port = zts_htons(remotePort);
+#if defined(_WIN32)
+	in4.sin_addr.S_addr = zts_inet_addr(remoteAddr.c_str());
+#else
+	in4.sin_addr.s_addr = zts_inet_addr(remoteAddr.c_str());
+#endif
+	in4.sin_family = ZTS_AF_INET;
+
+	// Bring up ZeroTier service and join network
 
 	int err = ZTS_ERR_OK;
 
@@ -197,22 +245,59 @@ int main(int argc, char **argv)
 	while (!myNode.online) { zts_delay_ms(50); }
 	printf("This node's identity is stored in %s\n", argv[1]);
 
-	uint64_t nwid = 0x8056c2e21c000001;
-
 	if((err = zts_join(nwid)) != ZTS_ERR_OK) {
 		printf("Unable to join network, error = %d. Exiting.\n", err);
 		exit(1);
 	}
 	printf("Joining network %llx\n", nwid);
+	printf("Don't forget to authorize this device in my.zerotier.com or the web API!\n");
 	while (!myNode.joinedAtLeastOneNetwork) { zts_delay_ms(50); }
 
-	// Idle and just show callback events, stack statistics, etc
+	// Socket-like API example
 
-	printf("Node will now idle...\n");
-	while (true) { zts_delay_ms(1000); }
+	char *msgStr = (char*)"Welcome to the machine";
+	int bytes=0, fd;
+	char recvBuf[128];
+	memset(recvBuf, 0, sizeof(recvBuf));
 
-	// Shut down service and stack threads
+	if ((fd = zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0)) < 0) {
+		printf("Error creating ZeroTier socket (fd=%d, zts_errno=%d). Exiting.\n", fd, zts_errno);
+		exit(1);
+	}
+	// Retries are often required since ZT uses transport-triggered links (explained above)
+	for (;;) {
+		printf("Connecting to remote host...\n");
+		if ((err = zts_connect(fd, (const struct zts_sockaddr *)&in4, sizeof(in4))) < 0) {
+			printf("Error connecting to remote host (fd=%d, ret=%d, zts_errno=%d). Trying again.\n",
+				fd, err, zts_errno);
+			zts_close(fd);
+			printf("Creating socket...\n");
+			if ((fd = zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0)) < 0) {
+				printf("Error creating ZeroTier socket (fd=%d, zts_errno=%d). Exiting.\n", fd, zts_errno);
+				exit(1);
+			}
+			zts_delay_ms(250);
+		}
+		else {
+			printf("Connected.\n");
+			break;
+		}
+	}
 
+	// Wait random intervals to send a message to the server
+	// The non-blocking aspect of this example is server-side
+	while(1) {
+		if((bytes = zts_send(fd, msgStr, strlen(msgStr), 0)) < 0) {
+			printf("Error writing to socket (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, bytes, zts_errno);
+			exit(1);
+		}
+		printf("zts_send()=%d\n", bytes);
+		zts_delay_ms((rand() % 100) * 50);
+	}
+	printf("Read %d bytes: %s\n", bytes, recvBuf);
+	printf("Closing socket\n");
+	zts_close(fd);
+	printf("Shutting down service\n");
 	zts_stop();
 	return 0;
 }

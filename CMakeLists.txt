@@ -338,7 +338,9 @@ endif ()
 if (MACOS_FRAMEWORK)
 	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOMIT_JSON_SUPPORT=1")
 	set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DOMIT_JSON_SUPPORT=1")
-	include_directories ("/Library/Developer/CommandLineTools/SDKs/MacOSX10.14.sdk/usr/include/")
+	set (CMAKE_XCODE_ATTRIBUTE_ARCHS "$(ARCHS_STANDARD)")
+	set (CMAKE_XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH NO)
+	include_directories ("/Library/Developer/CommandLineTools/SDKs/MacOSX11.0.sdk/usr/include/")
 endif ()
 
 # -----------------------------------------------------------------------------
@@ -486,7 +488,7 @@ if (IN_XCODE)
 		FRAMEWORK_VERSION A
 		DEFINES_MODULE TRUE
 		MACOSX_FRAMEWORK_IDENTIFIER com.cmake.${XCODE_FRAMEWORK_NAME}
-		MODULE_MAP "${PROJ_DIR}/ports/module.modulemap"
+		MODULEMAP_FILE "${PROJ_DIR}/ports/module.modulemap"
 		PUBLIC_HEADER "${frameworkHeaderGlob}"
 		XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"
 	)

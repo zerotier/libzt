@@ -69,6 +69,13 @@ macos_release:
 	$(DIST_BUILD_SCRIPT) macos "release"
 macos: macos_debug macos_release
 
+# xcframework
+xcframework_debug:
+	$(DIST_BUILD_SCRIPT) xcframework "debug"
+xcframework_release:
+	$(DIST_BUILD_SCRIPT) xcframework "release"
+xcframework: xcframework_release
+
 # iOS
 ios_debug:
 	$(DIST_BUILD_SCRIPT) ios "debug"

@@ -253,6 +253,7 @@ int zts_restart()
 	_userCallbackMethodRef = _tmpUserCallbackMethodRef;
 	return zts_start(userProvidedPath.c_str(), NULL, userProvidedPort);
 #else
+    return ZTS_ERR_OK;
 	//return zts_start(userProvidedPath.c_str(), _tmpUserEventCallbackFunc, userProvidedPort);
 #endif
 }

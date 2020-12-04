@@ -20,8 +20,6 @@
 #ifndef ZT_SOCKETS_H
 #define ZT_SOCKETS_H
 
-#include <inttypes.h>
-
 #if defined(_MSC_VER)
 	#ifndef ssize_t
 		// TODO: Should be SSIZE_T, would require lwIP patch

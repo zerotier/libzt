@@ -70,11 +70,20 @@ macos_release:
 macos: macos_debug macos_release
 
 # xcframework
-xcframework_debug:
-	$(DIST_BUILD_SCRIPT) xcframework "debug"
-xcframework_release:
-	$(DIST_BUILD_SCRIPT) xcframework "release"
-xcframework: xcframework_release
+xcframework:
+	xcodebuild -project ports/apple/zt.xcodeproj archive -scheme zt -sdk macosx -archivePath build/macosx
+	xcodebuild -project ports/apple/zt.xcodeproj archive -scheme zt -sdk iphoneos -archivePath build/iphoneos
+	xcodebuild -project ports/apple/zt.xcodeproj archive -scheme zt -sdk iphonesimulator -archivePath build/iphonesimulator
+
+	xcodebuild -create-xcframework \
+		-framework build/macosx.xcarchive/Products/Library/Frameworks/zt.framework \
+		-framework build/iphoneos.xcarchive/Products/Library/Frameworks/zt.framework \
+		-framework build/iphonesimulator.xcarchive/Products/Library/Frameworks/zt.framework \
+		-output lib/zt.xcframework
+    
+	rm -rf build/macosx.xcarchive
+	rm -rf build/iphoneos.xcarchive
+	rm -rf build/iphonesimulator.xcarchive
 
 # iOS
 ios_debug:

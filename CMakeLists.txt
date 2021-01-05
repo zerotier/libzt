@@ -270,7 +270,12 @@ file (GLOB libminiupnpcSrcGlob
 	${ZTO_SRC_DIR}/ext/miniupnpc/upnperrors.c
 	${ZTO_SRC_DIR}/ext/miniupnpc/upnpreplyparse.c)
 
-file (GLOB libztSrcGlob ${LIBZT_SRC_DIR}/*.cpp)
+if (ZTS_PINVOKE)
+	set (ZTS_SWIG_WRAPPER_FILE ${PROJ_DIR}/examples/csharp/*.cxx)
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_PINVOKE=1")
+endif ()
+
+file (GLOB libztSrcGlob ${LIBZT_SRC_DIR}/*.cpp ${ZTS_SWIG_WRAPPER_FILE})
 
 if (UNIX)
 	set (LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/unix/port)
@@ -466,8 +471,13 @@ endif ()
 
 # xcode framework
 if (IN_XCODE)
-	include_directories (${frameworkHeaderGlob})
 
+	# stdint.h is needed for API definitions but can cause conflicts
+	# in certain projects where integers may already be defined.
+	# Thus this flag is used to exclude their definition in ZeroTierSockets.h
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_NO_STDINT_H=1")
+
+	include_directories (${frameworkHeaderGlob})
 
 	add_library(${XCODE_FRAMEWORK_NAME} STATIC
 		$<TARGET_OBJECTS:libzt_obj>

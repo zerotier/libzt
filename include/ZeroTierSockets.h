@@ -17,6 +17,10 @@
  * This defines the external C API for ZeroTier Sockets
  */
 
+#if !ZTS_NO_STDINT_H
+#include <stdint.h>
+#endif
+
 #ifndef ZT_SOCKETS_H
 #define ZT_SOCKETS_H
 
@@ -885,7 +889,14 @@ ZTS_API int ZTCALL zts_allow_local_conf(uint8_t allowed);
  * @param callback User-specified callback for ZTS_EVENT_* events
  * @return ZTS_ERR_OK on success. ZTS_ERR_SERVICE or ZTS_ERR_ARG on failure
  */
-ZTS_API int ZTCALL zts_start(const char *path, void (*callback)(void *), uint16_t port);
+
+#ifdef ZTS_PINVOKE
+	// Used by P/INVOKE wrappers
+	typedef void (*CppCallback)(void *msg);
+	ZTS_API int ZTCALL zts_start(const char *path, CppCallback callback, uint16_t port);
+#else
+	ZTS_API int ZTCALL zts_start(const char *path, void (*callback)(void *), uint16_t port);
+#endif
 
 /**
  * @brief Stops the ZeroTier service and brings down all virtual network interfaces

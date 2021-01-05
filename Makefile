@@ -80,7 +80,7 @@ xcframework:
 		-framework build/iphoneos.xcarchive/Products/Library/Frameworks/zt.framework \
 		-framework build/iphonesimulator.xcarchive/Products/Library/Frameworks/zt.framework \
 		-output lib/zt.xcframework
-    
+
 	rm -rf build/macosx.xcarchive
 	rm -rf build/iphoneos.xcarchive
 	rm -rf build/iphonesimulator.xcarchive
@@ -104,6 +104,13 @@ host_jar_debug:
 host_jar_release:
 	$(DIST_BUILD_SCRIPT) host_jar "release"
 host_jar: host_jar_debug host_jar_release
+
+host_pinvoke_release:
+	$(DIST_BUILD_SCRIPT) host_pinvoke "release"
+host_pinvoke_debug:
+	$(DIST_BUILD_SCRIPT) host_pinvoke "debug"
+host_pinvoke: host_pinvoke_release host_pinvoke_debug
+
 host: host_debug host_release
 
 # Build every target available on this host

@@ -93,7 +93,11 @@ int zts_allow_local_conf(uint8_t allowed = 1)
 	return ZTS_ERR_SERVICE;
 }
 
+#ifdef ZTS_PINVOKE
+int zts_start(const char *path, CppCallback callback, uint16_t port)
+#else
 int zts_start(const char *path, void (*callback)(void *), uint16_t port)
+#endif
 {
 	Mutex::Lock _l(serviceLock);
 	_lwip_driver_init();

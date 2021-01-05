@@ -264,6 +264,37 @@ host_jar()
 }
 
 # Build all ordinary library types for current host
+host_pinvoke()
+{
+	echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+	NORMALIZED_OSNAME=$OSNAME
+	if [[ $OSNAME = *"darwin"* ]]; then
+		DYNAMIC_LIB_NAME="libzt.dylib"
+		NORMALIZED_OSNAME="macos"
+	fi
+	if [[ $OSNAME = *"linux"* ]]; then
+		DYNAMIC_LIB_NAME="libzt.so"
+	fi
+	# CMake build files
+	BUILD_DIR=$(pwd)/tmp/${NORMALIZED_OSNAME}-$(uname -m)-$1
+	mkdir -p $BUILD_DIR
+	# Where to place results
+	BIN_OUTPUT_DIR=$(pwd)/bin/$1/${NORMALIZED_OSNAME}-$(uname -m)
+	mkdir -p $BIN_OUTPUT_DIR
+	rm -rf $BIN_OUTPUT_DIR/*
+	LIB_OUTPUT_DIR=$(pwd)/lib/$1/${NORMALIZED_OSNAME}-$(uname -m)
+	mkdir -p $LIB_OUTPUT_DIR
+	rm -rf $LIB_OUTPUT_DIR/libzt.a $LIB_OUTPUT_DIR/$DYNAMIC_LIB_NAME $LIB_OUTPUT_DIR/libztcore.a
+	# Build
+	cmake -DZTS_PINVOKE=True -H. -B$BUILD_DIR -DCMAKE_BUILD_TYPE=$1
+	$CMAKE --build $BUILD_DIR $BUILD_CONCURRENCY
+	# Move and clean up
+	mv $BUILD_DIR/bin/* $BIN_OUTPUT_DIR
+	mv $BUILD_DIR/lib/* $LIB_OUTPUT_DIR
+	clean_post_build
+}
+
+# Build all ordinary library types for current host
 host()
 {
 	echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"

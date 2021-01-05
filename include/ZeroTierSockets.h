@@ -17,12 +17,12 @@
  * This defines the external C API for ZeroTier Sockets
  */
 
+#ifndef ZT_SOCKETS_H
+#define ZT_SOCKETS_H
+
 #if !ZTS_NO_STDINT_H
 #include <stdint.h>
 #endif
-
-#ifndef ZT_SOCKETS_H
-#define ZT_SOCKETS_H
 
 #if defined(_MSC_VER)
 	#ifndef ssize_t

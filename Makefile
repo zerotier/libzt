@@ -1,9 +1,4 @@
-ifeq ($(OS),Windows_NT)
-DIST_BUILD_SCRIPT := dist.bat
-CLEAN_SCRIPT := clean.bat
-else
 DIST_BUILD_SCRIPT := ./dist.sh
-endif
 
 #EXECUTABLES = cmake
 #build_reqs := $(foreach exec,$(EXECUTABLES),\

@@ -8,16 +8,21 @@ Downloads: [download.zerotier.com/dist/sdk](https://download.zerotier.com/dist/s
 
 <div style="page-break-after: always;"></div>
 
-## Building from source
+## Building on Linux, macOS
+*Requires [CMake](https://cmake.org/download/), [Clang](https://releases.llvm.org/download.html) is recommended*
+```
+make update && make patch && make host_release CC=clang CXX=clang++
+```
 
-To build both `release` and `debug` libraries for only your host's architecture use `make host`. Or optionally `make host_release` for release only. To build everything including things like iOS frameworks, Android packages, etc, use `make all`. Possible build targets can be seen by using `make list`. Resultant libraries will be placed in `./lib`, test and example programs will be placed in `./bin`:
+## Building on Windows
+*Requires [CMake](https://cmake.org/download/) and [PowerShell](https://github.com/powershell/powershell)*
 
 ```
-make update; make patch; make host
-# OR
-brew install cmake
-make clean; make update && make patch && make host_release CC=clang CXX=clang++
+. ./dist.ps1
+Build-Library -BuildType "Release" -Arch "Win32|x64|ARM|ARM64" -LanguageBinding "none|csharp"
 ```
+
+*Note: To build both `release` and `debug` libraries for only your host's architecture use `make host`. Or optionally `make host_release` for release only. To build everything including things like iOS frameworks, Android packages, etc, use `make all`. Possible build targets can be seen by using `make list`. Resultant libraries will be placed in `./lib`, test and example programs will be placed in `./bin`*
 
 Typical build output:
 

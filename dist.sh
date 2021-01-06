@@ -282,7 +282,7 @@ host_pinvoke()
 	BIN_OUTPUT_DIR=$(pwd)/bin/$1/${NORMALIZED_OSNAME}-$(uname -m)
 	mkdir -p $BIN_OUTPUT_DIR
 	rm -rf $BIN_OUTPUT_DIR/*
-	LIB_OUTPUT_DIR=$(pwd)/lib/$1/${NORMALIZED_OSNAME}-$(uname -m)
+	LIB_OUTPUT_DIR=$(pwd)/lib/$1/${NORMALIZED_OSNAME}-$(uname -m)-pinvoke
 	mkdir -p $LIB_OUTPUT_DIR
 	rm -rf $LIB_OUTPUT_DIR/libzt.a $LIB_OUTPUT_DIR/$DYNAMIC_LIB_NAME $LIB_OUTPUT_DIR/libztcore.a
 	# Build

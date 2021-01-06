@@ -114,7 +114,7 @@ host_pinvoke: host_pinvoke_release host_pinvoke_debug
 host: host_debug host_release
 
 # Build every target available on this host
-all: host host_jar macos ios android
+all: host host_pinvoke host_jar macos ios android
 	$(DIST_BUILD_SCRIPT) display
 
 # [For distribution process only] Prepare remote builds

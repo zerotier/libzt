@@ -15,6 +15,7 @@ using System.Runtime.InteropServices;
 using System;
 
 // Prototype of callback used by ZeroTier to signal events to C# application
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 public delegate void CSharpCallbackWithStruct(IntPtr msgPtr);
 
 /// <summary>
@@ -473,7 +474,7 @@ namespace ZeroTier
 		struct zts_callback_msg
 		{
 			public short eventCode;
-			[MarshalAs(UnmanagedType.LPStruct, SizeConst = 4)]
+			//[MarshalAs(UnmanagedType.LPStruct, SizeConst = 4)]
 			public IntPtr node;
 			public IntPtr network;
 		}

@@ -82,10 +82,10 @@ namespace ZeroTier
 			switch (protocolType)
 			{
 				case ProtocolType.Udp:
-					protocol = Constants.IPPROTO_TCP;
+					protocol = Constants.IPPROTO_UDP;
 					break;
 				case ProtocolType.Tcp:
-					protocol = Constants.IPPROTO_UDP;
+					protocol = Constants.IPPROTO_TCP;
 					break;
 				case ProtocolType.Unspecified:
 					protocol = 0; // ?

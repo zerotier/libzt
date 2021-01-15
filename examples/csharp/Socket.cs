@@ -23,6 +23,16 @@ using ZeroTier;
 /// </summary>
 namespace ZeroTier
 {
+	public class ZeroTierException : Exception
+	{
+		public ZeroTierException(int _serviceErrorCode, int _socketErrorCode) {
+			ServiceErrorCode = _serviceErrorCode;
+			SocketErrorCode = _socketErrorCode;
+		}
+		public int ServiceErrorCode { get; set; }
+		public int SocketErrorCode { get; set; }
+	}
+
 	/// <summary>
 	/// ZeroTier Socket - An lwIP socket mediated over a ZeroTier virtual link
 	/// </summary>
@@ -172,7 +182,7 @@ namespace ZeroTier
 				*/
 			}
 			if (err < 0) {
-				throw new SocketException((int)err);
+				throw new ZeroTierException(err, ZeroTier.Node.ErrNo);
 			}
 			_remoteEndPoint = remoteEndPoint;
 		}

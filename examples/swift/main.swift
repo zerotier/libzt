@@ -202,7 +202,7 @@ let printNetifDetails : @convention(c) (UnsafeMutableRawPointer?) -> Void =
 var nodeReady:Bool = false
 var networkReady:Bool = false
 
-let myZeroTierEventCallback : @convention(c) (UnsafeMutableRawPointer?) -> Void =
+let on_zts_event : @convention(c) (UnsafeMutableRawPointer?) -> Void =
 {
 	(msgPtr) -> Void in
 	let msg = msgPtr?.bindMemory(to: zts_callback_msg.self, capacity: 1)
@@ -322,7 +322,7 @@ let myZeroTierEventCallback : @convention(c) (UnsafeMutableRawPointer?) -> Void 
 func main()
 {
 	print("waiting for node to come online...")
-	zts_start("config_path", myZeroTierEventCallback, 0)
+	zts_start("config_path", on_zts_event, 0)
 	while(!nodeReady) {
 		sleep(1)
 	}

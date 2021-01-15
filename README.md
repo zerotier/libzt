@@ -66,7 +66,7 @@ At this stage, if a cryptographic identity for this node does not already exist 
 
 bool networkReady = false;
 
-void myZeroTierEventCallback(struct zts_callback_msg *msg)
+void on_zts_event(struct zts_callback_msg *msg)
 {
     if (msg->eventCode == ZTS_EVENT_NODE_ONLINE) {
         printf("ZTS_EVENT_NODE_ONLINE, nodeId=%llx\n", msg->node->address);
@@ -77,7 +77,7 @@ void myZeroTierEventCallback(struct zts_callback_msg *msg)
 
 int main()
 {
-    zts_start("configPath", &myZeroTierEventCallback, 9994);
+    zts_start("configPath", &on_zts_event, 9994);
     uint64_t nwid = 0x0123456789abcdef;
     while (!networkReady) { sleep(1); }
     zts_join(nwid);
@@ -138,7 +138,7 @@ struct zts_callback_msg
 Here's an example of a callback function:
 
 ```
-void myZeroTierEventCallback(struct zts_callback_msg *msg)
+void on_zts_event(struct zts_callback_msg *msg)
 {
     if (msg->eventCode == ZTS_EVENT_NODE_ONLINE) {
         printf("ZTS_EVENT_NODE_ONLINE, node=%llx\n", msg->node->address);

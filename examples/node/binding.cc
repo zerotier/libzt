@@ -29,7 +29,7 @@ struct Node
 to ensure timely receipt of future events. You should not call libzt API functions from
 this function unless it's something trivial like zts_inet_ntop() or similar that has
 no state-change implications. */
-void myZeroTierEventCallback(void *msgPtr)
+void on_zts_event(void *msgPtr)
 {
 	struct zts_callback_msg *msg = (struct zts_callback_msg *)msgPtr;
 
@@ -239,7 +239,7 @@ public:
 
 		int err = ZTS_ERR_OK;
 
-		if((err = zts_start(configPath, &myZeroTierEventCallback, servicePort)) != ZTS_ERR_OK) {
+		if((err = zts_start(configPath, &on_zts_event, servicePort)) != ZTS_ERR_OK) {
 			printf("Unable to start service, error = %d.\n", err);
 			return err;
 		}

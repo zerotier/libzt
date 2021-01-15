@@ -101,7 +101,7 @@ bool nodeReady = false;
 bool networkReady = false;
 
 // Example callbacks
-void myZeroTierEventCallback(struct zts_callback_msg *msg)
+void on_zts_event(struct zts_callback_msg *msg)
 {
 	// Node events
 	if (msg->eventCode == ZTS_EVENT_NODE_ONLINE) {
@@ -213,7 +213,7 @@ int main(int argc, char **argv)
 	// If disabled: Settings will NOT be read from local.conf
 	zts_allow_local_conf(1);
 
-	if((err = zts_start(argv[1], &myZeroTierEventCallback, ztServicePort)) != ZTS_ERR_OK) {
+	if((err = zts_start(argv[1], &on_zts_event, ztServicePort)) != ZTS_ERR_OK) {
 		NSLog(@"Unable to start service, error = %d. Exiting.\n", err);
 		exit(1);
 	}

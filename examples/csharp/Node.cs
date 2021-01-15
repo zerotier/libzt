@@ -39,7 +39,7 @@ namespace ZeroTier
 		static ZeroTierManagedEventCallback _managedCallback;
 
 		// Callback used internally to ferry events from the C++ layer
-		static void myZeroTierEventCallback(IntPtr msgPtr)
+		static void OnZeroTierEvent(IntPtr msgPtr)
 		{
 			// Marshal the callback message pointer to a structure that we can inspect
 			zts_callback_msg msg =
@@ -224,7 +224,7 @@ namespace ZeroTier
 			if (_hasBeenFreed == true) {
 				throw new ObjectDisposedException("ZeroTier Node has previously been freed. Restart application to create new instance.");
 			}
-			return zts_start(_configFilePath,myZeroTierEventCallback,_servicePort);
+			return zts_start(_configFilePath,OnZeroTierEvent,_servicePort);
 		}
 
 		/// <summary>

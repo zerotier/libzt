@@ -16,11 +16,11 @@ public class ExampleApp {
 	 */
 	public void StartZeroTier(string configFilePath, ushort servicePort, ulong networkId)
 	{
-		node = new ZeroTier.Node(configFilePath, myZeroTierEventCallback, servicePort);
+		node = new ZeroTier.Node(configFilePath, OnZeroTierEvent, servicePort);
 		node.Start(); // Network activity only begins after calling Start()
 
 		/* How you do this next part is up to you, but essentially we're waiting for the node
-		to signal to us (via a ZeroTierEvent) that it has access to the internet and is
+		to signal to us (via a ZeroTier.Event) that it has access to the internet and is
 		able to talk to one of our root servers. As a convenience you can just periodically check
 		IsOnline() instead of looking for the event via the callback. */
 		while (!node.IsOnline()) { Thread.Sleep(100); }
@@ -31,7 +31,7 @@ public class ExampleApp {
 		or removed routes, etc. */
 		node.Join(networkId);
 
-		/* Note that ZeroTierSocket calls will fail if there are no routes available, for this
+		/* Note that ZeroTier.Socket calls will fail if there are no routes available, for this
 		reason we should wait to make those calls until the node has indicated to us that at
 		least one network has been joined successfully. */
 		while (!node.HasRoutes()) { Thread.Sleep(100); }
@@ -49,13 +49,13 @@ public class ExampleApp {
 	 * Your application should process event messages and return control as soon as possible. Blocking
 	 * or otherwise time-consuming operations are not reccomended here.
 	 */
-	public void myZeroTierEventCallback(ZeroTier.Event e)
+	public void OnZeroTierEvent(ZeroTier.Event e)
 	{
 		Console.WriteLine("Event.eventCode = {0} ({1})", e.EventCode, e.EventName);
-		
+
 		if (e.EventCode == ZeroTier.Constants.EVENT_NODE_ONLINE) {
 			Console.WriteLine("Node is online");
-			Console.WriteLine(" - Address (NodeId): " + node.NodeId);
+			Console.WriteLine(" - Address (NodeId): " + node.NodeId.ToString("x16"));
 		}
 
 		if (e.EventCode == ZeroTier.Constants.EVENT_NETWORK_OK) {
@@ -66,136 +66,153 @@ public class ExampleApp {
 	/**
 	 * Example server
 	 */
-	public void YourServer() {
+	public void YourServer(IPEndPoint localEndPoint) {
 		string data = null;
 
-		// Data buffer for incoming data.  
-		byte[] bytes = new Byte[1024];  
-  
-		string serverIP = "0.0.0.0";
-		int port = 8000;
-		IPAddress ipAddress = IPAddress.Parse(serverIP);
-		IPEndPoint localEndPoint = new IPEndPoint(ipAddress, port);
+		// Data buffer for incoming data.
+		byte[] bytes = new Byte[1024];
 
 		Console.WriteLine(localEndPoint.ToString());
-		ZeroTier.Socket listener = new ZeroTier.Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp ); 
-  
-		// Bind the socket to the local endpoint and
-		// listen for incoming connections.  
+		ZeroTier.Socket listener = new ZeroTier.Socket(AddressFamily.InterNetwork,
+			SocketType.Stream, ProtocolType.Tcp );
 
-		try {  
-			listener.Bind(localEndPoint);  
-			listener.Listen(10);  
-  
-			// Start listening for connections.  
-			while (true) {  
-				Console.WriteLine("Waiting for a connection...");  
-				// Program is suspended while waiting for an incoming connection.  
+		// Bind the socket to the local endpoint and
+		// listen for incoming connections.
+
+		try {
+			listener.Bind(localEndPoint);
+			listener.Listen(10);
+
+			// Start listening for connections.
+			while (true) {
+				Console.WriteLine("Waiting for a connection...");
+				// Program is suspended while waiting for an incoming connection.
 				Console.WriteLine("accepting...");
-				ZeroTier.Socket handler = listener.Accept();  
-				data = null;  
+				ZeroTier.Socket handler = listener.Accept();
+				data = null;
 
 				Console.WriteLine("accepted connection from: " + handler.RemoteEndPoint.ToString());
- 
-				// An incoming connection needs to be processed.  
-				while (true) {  
-					int bytesRec = handler.Receive(bytes);  
-					data += Encoding.ASCII.GetString(bytes,0,bytesRec);  
-					if (data.IndexOf("<EOF>") > -1) {  
-						break;  
-					}  
-				}  
-  
-				// Show the data on the console.  
-				Console.WriteLine( "Text received : {0}", data);  
-  
-				// Echo the data back to the client.  
-				byte[] msg = Encoding.ASCII.GetBytes(data);  
-  
-				handler.Send(msg);  
-				handler.Shutdown(SocketShutdown.Both);  
-				handler.Close();  
-			}  
-  
-		} catch (Exception e) {  
-			Console.WriteLine(e.ToString());  
-		}  
-  
-		Console.WriteLine("\nPress ENTER to continue...");  
+
+				// An incoming connection needs to be processed.
+				while (true) {
+					int bytesRec = handler.Receive(bytes);
+					Console.WriteLine("Bytes received: {0}", bytesRec);
+					data += Encoding.ASCII.GetString(bytes,0,bytesRec);
+
+					if (bytesRec > 0) {
+						Console.WriteLine( "Text received : {0}", data);
+						break;
+					}
+				}
+				// Echo the data back to the client.
+				byte[] msg = Encoding.ASCII.GetBytes(data);
+
+				handler.Send(msg);
+				handler.Shutdown(SocketShutdown.Both);
+				handler.Close();
+			}
+
+		} catch (ZeroTier.ZeroTierException e) {
+			Console.WriteLine(e);
+			Console.WriteLine("ServiveErrorCode={0} SocketErrorCode={1}", e.ServiceErrorCode, e.SocketErrorCode);
+		}
+
+		Console.WriteLine("\nPress ENTER to continue...");
 		Console.Read();
-	}  
+	}
 
 	/**
 	 * Example client
 	 */
-	public void YourClient() {  
-		// Data buffer for incoming data.  
-		byte[] bytes = new byte[1024];  
-  
-		// Connect to a remote device.  
+	public void YourClient(IPEndPoint remoteServerEndPoint) {
+		// Data buffer for incoming data.
+		byte[] bytes = new byte[1024];
+
+		// Connect to a remote device.
 		try {
-			string serverIP = "10.244.180.7";
-			int port = 8000;
-			IPAddress ipAddress = IPAddress.Parse(serverIP);
-			IPEndPoint remoteEndPoint = new IPEndPoint(ipAddress, port); 
-  
-			// Create a TCP/IP  socket.  
-			ZeroTier.Socket sender = new ZeroTier.Socket(ipAddress.AddressFamily,
-				SocketType.Stream, ProtocolType.Tcp );  
-  
-			// Connect the socket to the remote endpoint. Catch any errors.  
-			try {  
+			// Create a TCP/IP  socket.
+			ZeroTier.Socket sender = new ZeroTier.Socket(AddressFamily.InterNetwork,
+				SocketType.Stream, ProtocolType.Tcp );
 
-				Console.WriteLine("Socket connecting to {0}...",  
-					remoteEndPoint.ToString());  
+			// Connect the socket to the remote endpoint. Catch any errors.
+			try {
 
-				sender.Connect(remoteEndPoint);  
+				Console.WriteLine("Socket connecting to {0}...",
+					remoteServerEndPoint.ToString());
 
-				Console.WriteLine("Socket connected to {0}",  
-					sender.RemoteEndPoint.ToString());  
-  
-				// Encode the data string into a byte array.  
-				byte[] msg = Encoding.ASCII.GetBytes("This is a test");  
-  
-				// Send the data through the socket.  
-				int bytesSent = sender.Send(msg);  
-  
-				// Receive the response from the remote device.  
-				int bytesRec = sender.Receive(bytes);  
-				Console.WriteLine("Echoed test = {0}",  
+				sender.Connect(remoteServerEndPoint);
+
+				Console.WriteLine("Socket connected to {0}",
+					sender.RemoteEndPoint.ToString());
+
+				// Encode the data string into a byte array.
+				byte[] msg = Encoding.ASCII.GetBytes("This is a test");
+
+				// Send the data through the socket.
+				int bytesSent = sender.Send(msg);
+
+				// Receive the response from the remote device.
+				int bytesRec = sender.Receive(bytes);
+				Console.WriteLine("Echoed test = {0}",
 					Encoding.ASCII.GetString(bytes,0,bytesRec));
-  
-				// Release the socket.  
-				sender.Shutdown(SocketShutdown.Both);  
-				sender.Close();  
-  
-			} catch (ArgumentNullException ane) {  
-				Console.WriteLine("ArgumentNullException : {0}",ane.ToString());  
-			} catch (SocketException se) {  
-				Console.WriteLine("SocketException : {0}",se.ToString());  
-			} catch (Exception e) {  
-				Console.WriteLine("Unexpected exception : {0}", e.ToString());  
-			}  
-  
-		} catch (Exception e) {  
-			Console.WriteLine( e.ToString());  
-		}  
+
+				// Release the socket.
+				sender.Shutdown(SocketShutdown.Both);
+				sender.Close();
+
+			} catch (ArgumentNullException ane) {
+				Console.WriteLine("ArgumentNullException : {0}",ane.ToString());
+			} catch (SocketException se) {
+				Console.WriteLine("SocketException : {0}",se.ToString());
+			} catch (ZeroTier.ZeroTierException e) {
+				Console.WriteLine(e);
+				Console.WriteLine("ServiveErrorCode={0} SocketErrorCode={1}", e.ServiceErrorCode, e.SocketErrorCode);
+			}
+		} catch (Exception e) {
+			Console.WriteLine( e.ToString());
+		}
 	}
 }
 
 public class example
 {
-	static void Main()
+	static int Main(string[] args)
 	{
+		if (args.Length < 5 || args.Length > 6)
+		{
+			Console.WriteLine("\nPlease specify either client or server mode and required arguments:");
+			Console.WriteLine(" Usage: example server <config_path> <ztServicePort> <nwid> <serverPort>");
+			Console.WriteLine(" Usage: example client <config_path> <ztServicePort> <nwid> <remoteServerIp> <remoteServerPort>\n");
+			return 1;
+		}
+		string configFilePath = args[1];
+		ushort servicePort = (ushort)Int16.Parse(args[2]);
+		ulong networkId = (ulong)Int64.Parse(args[3], System.Globalization.NumberStyles.HexNumber);
+
 		ExampleApp exampleApp = new ExampleApp();
 
-		ulong networkId = 0x8216ab0a47c622a1;
-		ushort servicePort = 9991;
-		string configFilePath = "path";
+		if (args[0].Equals("server"))
+		{
+			Console.WriteLine("Server mode...");
+			ushort serverPort = (ushort)Int16.Parse(args[4]);
+			exampleApp.StartZeroTier(configFilePath, servicePort, networkId);
+			IPAddress ipAddress = IPAddress.Parse("0.0.0.0");
+			IPEndPoint localEndPoint = new IPEndPoint(ipAddress, serverPort);
+			exampleApp.YourServer(localEndPoint);
+		}
 
-		exampleApp.StartZeroTier(configFilePath, servicePort, networkId);
-		exampleApp.YourClient();
-		exampleApp.StopZeroTier();		
+		if (args[0].Equals("client"))
+		{
+			Console.WriteLine("Client mode...");
+			string serverIP = args[4];
+			int port = Int16.Parse(args[5]);
+			IPAddress ipAddress = IPAddress.Parse(serverIP);
+			IPEndPoint remoteEndPoint = new IPEndPoint(ipAddress, port);
+			exampleApp.StartZeroTier(configFilePath, servicePort, networkId);
+			exampleApp.YourClient(remoteEndPoint);
+		}
+		exampleApp.StopZeroTier();
+		return 0;
 	}
 }
- 
+

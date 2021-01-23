@@ -7,3 +7,6 @@
 [submodule "ext/lwip-contrib"]
 	path = ext/lwip-contrib
 	url = https://github.com/joseph-henry/lwip-contrib.git
+[submodule "ext/curl"]
+	path = ext/curl
+	url = https://github.com/curl/curl.git

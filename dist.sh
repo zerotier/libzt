@@ -289,8 +289,8 @@ host_pinvoke()
 	cmake -DZTS_PINVOKE=True -H. -B$BUILD_DIR -DCMAKE_BUILD_TYPE=$1
 	$CMAKE --build $BUILD_DIR $BUILD_CONCURRENCY
 	# Move and clean up
-	mv $BUILD_DIR/bin/* $BIN_OUTPUT_DIR
-	mv $BUILD_DIR/lib/* $LIB_OUTPUT_DIR
+	cp -f $BUILD_DIR/bin/* $BIN_OUTPUT_DIR
+	cp -f $BUILD_DIR/lib/* $LIB_OUTPUT_DIR
 	clean_post_build
 }
 
@@ -320,8 +320,8 @@ host()
 	$CMAKE -H. -B$BUILD_DIR -DCMAKE_BUILD_TYPE=$1
 	$CMAKE --build $BUILD_DIR $BUILD_CONCURRENCY
 	# Move and clean up
-	mv $BUILD_DIR/bin/* $BIN_OUTPUT_DIR
-	mv $BUILD_DIR/lib/* $LIB_OUTPUT_DIR
+	cp -f $BUILD_DIR/bin/* $BIN_OUTPUT_DIR
+	cp -f $BUILD_DIR/lib/* $LIB_OUTPUT_DIR
 	clean_post_build
 }
 

@@ -542,3 +542,15 @@ install (TARGETS ${DYNAMIC_LIB_NAME}
 		LIBRARY DESTINATION lib
 		ARCHIVE DESTINATION lib
 )
+
+# -----------------------------------------------------------------------------
+# |                                  TESTS                                    |
+# -----------------------------------------------------------------------------
+
+add_executable (errortest ${PROJ_DIR}/test/error.cpp)
+target_link_libraries(errortest ${STATIC_LIB_NAME})
+
+project (TEST)
+#add_subdirectory (test)
+enable_testing ()
+add_test (NAME MyTest COMMAND errortest)

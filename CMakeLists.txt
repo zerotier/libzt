@@ -1,5 +1,6 @@
 cmake_minimum_required (VERSION 3.0)
 project (zt)
+find_package (Threads)
 
 # -----------------------------------------------------------------------------
 # |                     PLATFORM/FEATURE AND IDE DETECTION                    |
@@ -159,10 +160,6 @@ else ()
 		"${CMAKE_CXX_FLAGS_RELEASE} \
 		 ${SILENCE} \
 		 ${RELEASE_OPTIMIZATION}")
-endif ()
-
-if (BUILDING_LINUX AND NOT BUILDING_ANDROID)
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread")
 endif ()
 
 # WINDOWS-specific MSVC flags and libraries
@@ -443,6 +440,7 @@ set_target_properties (${STATIC_LIB_NAME} PROPERTIES
 	POSITION_INDEPENDENT_CODE ON
 	LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
 set_target_properties (${STATIC_LIB_NAME} PROPERTIES COMPILE_FLAGS "${ZT_FLAGS}")
+target_link_libraries (${STATIC_LIB_NAME} ${CMAKE_THREAD_LIBS_INIT})
 if (BUILDING_WIN)
 	target_link_libraries (
 		${STATIC_LIB_NAME}
@@ -459,6 +457,7 @@ set_target_properties (${DYNAMIC_LIB_NAME} PROPERTIES OUTPUT_NAME ${DYNAMIC_LIB_
 									WINDOWS_EXPORT_ALL_SYMBOLS true)
 target_link_libraries (
 	${DYNAMIC_LIB_NAME}
+	${CMAKE_THREAD_LIBS_INIT}
 	${ws2_32_LIBRARY_PATH}
 	${shlwapi_LIBRARY_PATH}
 	${iphlpapi_LIBRARY_PATH} zt_pic lwip_pic zto_pic natpmp_pic miniupnpc_pic)

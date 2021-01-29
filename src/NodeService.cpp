@@ -112,7 +112,6 @@ public:
 	// begin member variables --------------------------------------------------
 
 	const std::string _homePath;
-	std::string _authToken;
 	const std::string _networksPath;
 	const std::string _moonsPath;
 
@@ -256,26 +255,6 @@ public:
 	virtual ReasonForTermination run()
 	{
 		try {
-			{
-				const std::string authTokenPath(_homePath + ZT_PATH_SEPARATOR_S "authtoken.secret");
-				if (!OSUtils::readFile(authTokenPath.c_str(),_authToken)) {
-					unsigned char foo[24];
-					Utils::getSecureRandom(foo,sizeof(foo));
-					_authToken = "";
-					for(unsigned int i=0;i<sizeof(foo);++i)
-						_authToken.push_back("abcdefghijklmnopqrstuvwxyz0123456789"[(unsigned long)foo[i] % 36]);
-					if (!OSUtils::writeFile(authTokenPath.c_str(),_authToken)) {
-						Mutex::Lock _l(_termReason_m);
-						_termReason = ONE_UNRECOVERABLE_ERROR;
-						_fatalErrorMessage = "authtoken.secret could not be written";
-						return _termReason;
-					} else {
-						OSUtils::lockDownFile(authTokenPath.c_str(),false);
-					}
-				}
-				_authToken = _trimString(_authToken);
-			}
-
 			{
 				struct ZT_Node_Callbacks cb;
 				cb.version = 0;

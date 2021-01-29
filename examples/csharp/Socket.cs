@@ -13,7 +13,7 @@
 
 using System; // For ObjectDisposedException
 using System.Net; // For IPEndPoint
-using System.Net.Sockets; // For SocketException
+using System.Net.Sockets; // For ZeroTier.SocketException
 using System.Runtime.InteropServices;
 
 using ZeroTier;
@@ -23,16 +23,6 @@ using ZeroTier;
 /// </summary>
 namespace ZeroTier
 {
-	public class ZeroTierException : Exception
-	{
-		public ZeroTierException(int _serviceErrorCode, int _socketErrorCode) {
-			ServiceErrorCode = _serviceErrorCode;
-			SocketErrorCode = _socketErrorCode;
-		}
-		public int ServiceErrorCode { get; set; }
-		public int SocketErrorCode { get; set; }
-	}
-
 	/// <summary>
 	/// ZeroTier Socket - An lwIP socket mediated over a ZeroTier virtual link
 	/// </summary>
@@ -54,6 +44,7 @@ namespace ZeroTier
 		int _fd;
 		bool _isClosed;
 		bool _isListening;
+		bool _isBlocking;
 
 		AddressFamily _socketFamily;
 		SocketType _socketType;
@@ -61,6 +52,13 @@ namespace ZeroTier
 
 		internal EndPoint _localEndPoint;
 		internal EndPoint _remoteEndPoint;
+
+		private void InitializeInternalFlags()
+		{
+			_isClosed = false;
+			_isListening = false;
+			_isBlocking = false;
+		}
 
 		public Socket(AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType)
 		{
@@ -103,12 +101,12 @@ namespace ZeroTier
 			}
 			if ((_fd = zts_socket(family, type, protocol)) < 0)
 			{
-				throw new SocketException((int)_fd);
+				throw new ZeroTier.SocketException((int)_fd);
 			}
 			_socketFamily = addressFamily;
 			_socketType = socketType;
 			_socketProtocol = protocolType;
-			_isClosed = false;
+			InitializeInternalFlags();
 		}
 
 		private Socket(int fileDescriptor,
@@ -123,9 +121,8 @@ namespace ZeroTier
 			_socketProtocol = protocolType;
 			_localEndPoint = localEndPoint;
 			_remoteEndPoint = remoteEndPoint;
-			_isClosed = false;
-			_isListening = false;
 			_fd = fileDescriptor;
+			InitializeInternalFlags();
 		}
 
 		public void Connect(IPEndPoint remoteEndPoint)
@@ -135,7 +132,7 @@ namespace ZeroTier
 			}
 			if (_fd < 0) {
 				// Invalid file descriptor
-				throw new SocketException((int)Constants.ERR_SOCKET);
+				throw new ZeroTier.SocketException((int)Constants.ERR_SOCKET);
 			}
 			if (remoteEndPoint == null) {
 				throw new ArgumentNullException(nameof(remoteEndPoint));
@@ -182,7 +179,7 @@ namespace ZeroTier
 				*/
 			}
 			if (err < 0) {
-				throw new ZeroTierException(err, ZeroTier.Node.ErrNo);
+				throw new ZeroTier.SocketException(err, ZeroTier.Node.ErrNo);
 			}
 			_remoteEndPoint = remoteEndPoint;
 		}
@@ -194,7 +191,7 @@ namespace ZeroTier
 			}
 			if (_fd < 0) {
 				// Invalid file descriptor
-				throw new SocketException((int)Constants.ERR_SOCKET);
+				throw new ZeroTier.SocketException((int)Constants.ERR_SOCKET);
 			}
 			if (localEndPoint == null) {
 				throw new ArgumentNullException(nameof(localEndPoint));
@@ -239,7 +236,7 @@ namespace ZeroTier
 				*/
 			}
 			if (err < 0) {
-				throw new SocketException((int)err);
+				throw new ZeroTier.SocketException((int)err);
 			}
 			_localEndPoint = localEndPoint;
 		}
@@ -251,12 +248,12 @@ namespace ZeroTier
 			}
 			if (_fd < 0) {
 				// Invalid file descriptor
-				throw new SocketException((int)Constants.ERR_SOCKET);
+				throw new ZeroTier.SocketException((int)Constants.ERR_SOCKET);
 			}
 			int err = Constants.ERR_OK;
 			if ((err = zts_listen(_fd, backlog)) < 0) {
 				// Invalid backlog value perhaps?
-				throw new SocketException((int)Constants.ERR_SOCKET);
+				throw new ZeroTier.SocketException((int)Constants.ERR_SOCKET);
 			}
 			_isListening = true;
 		}
@@ -268,7 +265,7 @@ namespace ZeroTier
 			}
 			if (_fd < 0) {
 				// Invalid file descriptor
-				throw new SocketException((int)Constants.ERR_SOCKET);
+				throw new ZeroTier.SocketException((int)Constants.ERR_SOCKET);
 			}
 			if (_isListening == false) {
 				throw new InvalidOperationException("Socket is not in a listening state. Call Listen() first");
@@ -284,7 +281,7 @@ namespace ZeroTier
 
 			int err = zts_accept(_fd, remoteAddrPtr, addrlenPtr);
 			if (err < 0) {
-				throw new SocketException((int)err);
+				throw new ZeroTier.SocketException(err, ZeroTier.Node.ErrNo);
 			}
 			in4 = (zts_sockaddr_in)Marshal.PtrToStructure(remoteAddrPtr, typeof(zts_sockaddr_in));
 			// Convert sockaddr contents to IPEndPoint
@@ -340,13 +337,79 @@ namespace ZeroTier
 			}
 		}
 
+		public bool Blocking
+		{
+			get {
+				return _isBlocking;
+			}
+			set {
+				if (_isClosed) {
+					throw new ObjectDisposedException("Socket has been closed");
+				}
+				int opts = 0;
+				if ((opts = zts_fcntl(_fd, (int)(ZeroTier.Constants.F_GETFL), 0)) < 0) {
+					throw new ZeroTier.SocketException(opts, ZeroTier.Node.ErrNo);
+				}
+				Console.WriteLine("before.opts={0}", opts);
+				if (value) { // Blocking
+					opts = opts & (~(ZeroTier.Constants.O_NONBLOCK));
+				}
+				if (!value) { // Non-Blocking
+					opts = opts | (int)(ZeroTier.Constants.O_NONBLOCK);
+				}
+				Console.WriteLine("after.opts={0}", opts);
+				if ((opts = zts_fcntl(_fd, ZeroTier.Constants.F_SETFL, (int)opts)) < 0) {
+					throw new ZeroTier.SocketException(opts, ZeroTier.Node.ErrNo);
+				}
+				_isBlocking = value;
+			}
+		}
+
+		public bool Poll(int microSeconds, System.Net.Sockets.SelectMode mode)
+		{
+			if (_isClosed) {
+				throw new ObjectDisposedException("Socket has been closed");
+			}
+			zts_pollfd poll_set = new zts_pollfd();
+			poll_set.fd = _fd;
+			if (mode == SelectMode.SelectRead) {
+				poll_set.events = (short)((byte)ZeroTier.Constants.POLLIN);
+			}
+			if (mode == SelectMode.SelectWrite) {
+				poll_set.events = (short)((byte)ZeroTier.Constants.POLLOUT);
+			}
+			if (mode == SelectMode.SelectError) {
+				poll_set.events = (short)((byte)ZeroTier.Constants.POLLERR | (byte)ZeroTier.Constants.POLLNVAL);
+			}
+			IntPtr poll_fd_ptr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(zts_pollfd)));
+			Marshal.StructureToPtr(poll_set, poll_fd_ptr, false);
+			int result = 0;
+			int timeout_ms = (microSeconds / 1000);
+			uint numfds = 1;
+			if ((result = zts_poll(poll_fd_ptr, numfds, timeout_ms)) < 0) {
+				throw new ZeroTier.SocketException(result, ZeroTier.Node.ErrNo);
+			}
+			poll_set = (zts_pollfd)Marshal.PtrToStructure(poll_fd_ptr, typeof(zts_pollfd));
+			if (result == 0) { return false; } // No events
+			if (mode == SelectMode.SelectRead) {
+				return ((byte)poll_set.revents & (byte)ZeroTier.Constants.POLLIN) != 0;
+			}
+			if (mode == SelectMode.SelectWrite) {
+				return ((byte)poll_set.revents & (byte)ZeroTier.Constants.POLLOUT) != 0;
+			}
+			if (mode == SelectMode.SelectError) {
+				return ((poll_set.revents & (byte)ZeroTier.Constants.POLLERR) != 0) || ((poll_set.revents & (byte)ZeroTier.Constants.POLLNVAL) != 0);
+			}
+			return false;
+		}
+
 		public Int32 Send(Byte[] buffer)
 		{
 			if (_isClosed) {
 				throw new ObjectDisposedException("Socket has been closed");
 			}
 			if (_fd < 0) {
-				throw new SocketException((int)ZeroTier.Constants.ERR_SOCKET);
+				throw new ZeroTier.SocketException((int)ZeroTier.Constants.ERR_SOCKET);
 			}
 			if (buffer == null) {
 				throw new ArgumentNullException(nameof(buffer));
@@ -362,7 +425,7 @@ namespace ZeroTier
 				throw new ObjectDisposedException("Socket has been closed");
 			}
 			if (_fd < 0) {
-				throw new SocketException((int)ZeroTier.Constants.ERR_SOCKET);
+				throw new ZeroTier.SocketException((int)ZeroTier.Constants.ERR_SOCKET);
 			}
 			if (buffer == null) {
 				throw new ArgumentNullException(nameof(buffer));
@@ -483,10 +546,7 @@ namespace ZeroTier
 		[DllImport("libzt", EntryPoint="CSharp_zts_errno_get")]
 		static extern int zts_errno_get();
 
-		/// <summary>
-		/// Gets the value of errno from the unmanaged region
-		/// </summary>
-		/// <value></value>
+		/// <value>The value of errno for the low-level socket layer</value>
 		public static int ErrNo {
 			get {
 				return zts_errno_get();
@@ -518,6 +578,14 @@ namespace ZeroTier
 			public byte[] sin_addr;
 			[MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
 			public char[] sin_zero; // SIN_ZERO_LEN
+		}
+
+		[StructLayout(LayoutKind.Sequential)]
+		struct zts_pollfd
+		{
+			public int fd;
+			public short events;
+			public short revents;
 		}
 	}
 }

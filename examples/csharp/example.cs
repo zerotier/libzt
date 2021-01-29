@@ -87,11 +87,31 @@ public class ExampleApp {
 			while (true) {
 				Console.WriteLine("Waiting for a connection...");
 				// Program is suspended while waiting for an incoming connection.
-				Console.WriteLine("accepting...");
-				ZeroTier.Socket handler = listener.Accept();
-				data = null;
+				bool nonblocking = true;
 
-				Console.WriteLine("accepted connection from: " + handler.RemoteEndPoint.ToString());
+				ZeroTier.Socket handler;
+
+				if (nonblocking) { // Non-blocking style Accept() loop using Poll()
+					Console.WriteLine("Starting non-blocking Accept() loop...");
+					listener.Blocking = false;
+					// loop
+					int timeout = 1000000; // microseconds (1 second)
+					while (true) {
+						Console.WriteLine("Polling... (for data or incoming connections)");
+						if (listener.Poll(timeout, SelectMode.SelectRead)) {
+							Console.WriteLine("Detected event (SelectRead). Accepting...");
+							handler = listener.Accept();
+							break;
+						}
+						Thread.Sleep(1000);
+					}
+				}
+				else { // Blocking style
+					Console.WriteLine("Starting blocking Accept() call...");
+					handler = listener.Accept();
+				}
+				data = null;
+				Console.WriteLine("Accepted connection from: " + handler.RemoteEndPoint.ToString());
 
 				// An incoming connection needs to be processed.
 				while (true) {
@@ -112,7 +132,7 @@ public class ExampleApp {
 				handler.Close();
 			}
 
-		} catch (ZeroTier.ZeroTierException e) {
+		} catch (ZeroTier.SocketException e) {
 			Console.WriteLine(e);
 			Console.WriteLine("ServiveErrorCode={0} SocketErrorCode={1}", e.ServiceErrorCode, e.SocketErrorCode);
 		}
@@ -136,7 +156,6 @@ public class ExampleApp {
 
 			// Connect the socket to the remote endpoint. Catch any errors.
 			try {
-
 				Console.WriteLine("Socket connecting to {0}...",
 					remoteServerEndPoint.ToString());
 
@@ -162,9 +181,7 @@ public class ExampleApp {
 
 			} catch (ArgumentNullException ane) {
 				Console.WriteLine("ArgumentNullException : {0}",ane.ToString());
-			} catch (SocketException se) {
-				Console.WriteLine("SocketException : {0}",se.ToString());
-			} catch (ZeroTier.ZeroTierException e) {
+			} catch (ZeroTier.SocketException e) {
 				Console.WriteLine(e);
 				Console.WriteLine("ServiveErrorCode={0} SocketErrorCode={1}", e.ServiceErrorCode, e.SocketErrorCode);
 			}

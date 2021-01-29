@@ -45,10 +45,10 @@ function Build-Library([string]$BuildType, [string]$Arch, [string]$LanguageBindi
 
 	# Directory for CMake to build and store intermediate files
 	$env:BuildDir="tmp\$BuildType\"+$Arch+$LanguageBindingPostfix
-	md $env:BuildDir
+	md $env:BuildDir -ErrorAction:'silentlycontinue'
 	# Directory where we plan to store the resultant libraries
 	$env:OutputDir="lib\"+$BuildType.ToLower()
-	md $env:OutputDir\$archAlias$LanguageBindingPostfix
+	md $env:OutputDir\$archAlias$LanguageBindingPostfix -ErrorAction:'silentlycontinue'
 	Push-Location -Path $env:BuildDir
 	cmake ${OptionalLanguageBinding} -G "Visual Studio 16 2019" -A $Arch ../../../
 	cmake --build . --config $BuildType

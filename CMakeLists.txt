@@ -2,6 +2,18 @@ cmake_minimum_required (VERSION 3.0)
 project (zt)
 find_package (Threads)
 
+SET(requiredlibs)
+
+if (CENTRAL_API)
+	FIND_PACKAGE(CURL)
+	IF(CURL_FOUND)
+		INCLUDE_DIRECTORIES(${CURL_INCLUDE_DIR})
+		SET(requiredlibs ${requiredlibs} ${CURL_LIBRARIES} )
+	ELSE(CURL_FOUND)
+		MESSAGE(FATAL_ERROR "Could not find the CURL library and development files.")
+	ENDIF(CURL_FOUND)
+endif ()
+
 # -----------------------------------------------------------------------------
 # |                     PLATFORM/FEATURE AND IDE DETECTION                    |
 # -----------------------------------------------------------------------------
@@ -441,6 +453,11 @@ set_target_properties (${STATIC_LIB_NAME} PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY ${INTERMEDIATE_LIBRARY_OUTPUT_PATH})
 set_target_properties (${STATIC_LIB_NAME} PROPERTIES COMPILE_FLAGS "${ZT_FLAGS}")
 target_link_libraries (${STATIC_LIB_NAME} ${CMAKE_THREAD_LIBS_INIT})
+
+if (CENTRAL_API)
+	target_link_libraries (${STATIC_LIB_NAME} ${CURL_LIBRARIES})
+endif ()
+
 if (BUILDING_WIN)
 	target_link_libraries (
 		${STATIC_LIB_NAME}
@@ -461,6 +478,10 @@ target_link_libraries (
 	${ws2_32_LIBRARY_PATH}
 	${shlwapi_LIBRARY_PATH}
 	${iphlpapi_LIBRARY_PATH} zt_pic lwip_pic zto_pic natpmp_pic miniupnpc_pic)
+
+if (CENTRAL_API)
+	target_link_libraries (${DYNAMIC_LIB_NAME} ${CURL_LIBRARIES})
+endif ()
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
@@ -523,6 +544,10 @@ if (SHOULD_BUILD_TESTS)
 	target_link_libraries(nonblockingclient ${STATIC_LIB_NAME})
 	add_executable (nonblockingserver ${PROJ_DIR}/examples/cpp/nonblockingserver.cpp)
 	target_link_libraries(nonblockingserver ${STATIC_LIB_NAME})
+if (CENTRAL_API)
+	add_executable (centralapi ${PROJ_DIR}/examples/cpp/centralapi.cpp)
+	target_link_libraries(centralapi ${STATIC_LIB_NAME})
+endif ()
 endif ()
 
 # -----------------------------------------------------------------------------
@@ -543,13 +568,11 @@ install (TARGETS ${DYNAMIC_LIB_NAME}
 )
 
 # -----------------------------------------------------------------------------
-# |                                  TESTS                                    |
+# |                                 CI TESTS                                  |
 # -----------------------------------------------------------------------------
 
 add_executable (errortest ${PROJ_DIR}/test/error.cpp)
 target_link_libraries(errortest ${STATIC_LIB_NAME})
-
 project (TEST)
-#add_subdirectory (test)
 enable_testing ()
 add_test (NAME MyTest COMMAND errortest)

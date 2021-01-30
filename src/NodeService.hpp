@@ -1,10 +1,10 @@
 /*
- * Copyright (c)2013-2020 ZeroTier, Inc.
+ * Copyright (c)2013-2021 ZeroTier, Inc.
  *
  * Use of this software is governed by the Business Source License included
  * in the LICENSE.TXT file in the project's root directory.
  *
- * Change Date: 2024-01-01
+ * Change Date: 2025-01-01
  *
  * On the date above, in accordance with the Business Source License, use
  * of this software will be governed by version 2.0 of the Apache License.
@@ -54,6 +54,8 @@ public:
 
 	uint16_t _userProvidedPort;
 	std::string _userProvidedPath;
+	char _userProvidedPublicIdentity[ZT_IDENTITY_STRING_BUFFER_LENGTH];
+	char _userProvidedSecretIdentity[ZT_IDENTITY_STRING_BUFFER_LENGTH];
 
 	/**
 	 * Returned by node main if/when it terminates
@@ -171,6 +173,7 @@ public:
 
 	virtual void join(uint64_t nwid) = 0;
 	virtual void leave(uint64_t nwid) = 0;
+	virtual void getIdentity(char *key_pair_str, uint16_t *key_buf_len) = 0;
 
 	/**
 	 * Terminate background service (can be called from other threads)
@@ -203,6 +206,8 @@ struct serviceParameters
 {
 	int port;
 	std::string path;
+	char publicIdentityStr[ZT_IDENTITY_STRING_BUFFER_LENGTH];
+	char secretIdentityStr[ZT_IDENTITY_STRING_BUFFER_LENGTH];
 };
 
 #ifdef __WINDOWS__

@@ -1,10 +1,10 @@
 /*
- * Copyright (c)2013-2020 ZeroTier, Inc.
+ * Copyright (c)2013-2021 ZeroTier, Inc.
  *
  * Use of this software is governed by the Business Source License included
  * in the LICENSE.TXT file in the project's root directory.
  *
- * Change Date: 2024-01-01
+ * Change Date: 2025-01-01
  *
  * On the date above, in accordance with the Business Source License, use
  * of this software will be governed by version 2.0 of the Apache License.
@@ -14,7 +14,7 @@
 /**
  * @file
  *
- * Network control interface
+ * Node / Network control interface
  */
 
 #include <inttypes.h>
@@ -50,6 +50,7 @@ namespace ZeroTier
 	extern uint8_t allowNetworkCaching;
 	extern uint8_t allowPeerCaching;
 	extern uint8_t allowLocalConf;
+	extern uint8_t disableLocalStorage; // Off by default
 
 #ifdef SDK_JNI
 	// References to JNI objects and VM kept for future callbacks
@@ -62,6 +63,134 @@ namespace ZeroTier
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+int zts_generate_orphan_identity(char *key_pair_str, uint16_t *key_buf_len)
+{
+	if (*key_buf_len < ZT_IDENTITY_STRING_BUFFER_LENGTH || key_pair_str == NULL) {
+		return ZTS_ERR_ARG;
+	}
+	Identity id;
+	id.generate();
+	char idtmp[1024];
+	std::string idser = id.toString(true,idtmp);
+	uint16_t key_pair_len = idser.length();
+	if (key_pair_len > *key_buf_len) {
+		return ZTS_ERR_ARG;
+	}
+	memcpy(key_pair_str, idser.c_str(), key_pair_len);
+	*key_buf_len = key_pair_len;
+	return ZTS_ERR_OK;
+}
+
+int zts_verify_identity(const char *key_pair_str)
+{
+	if (key_pair_str == NULL || strlen(key_pair_str) > ZT_IDENTITY_STRING_BUFFER_LENGTH) {
+		return false;
+	}
+	Identity id;
+	if ((strlen(key_pair_str) > 32) && (key_pair_str[10] == ':')) {
+		if (id.fromString(key_pair_str)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+int zts_get_node_identity(char *key_pair_str, uint16_t *key_buf_len)
+{
+	Mutex::Lock _l(serviceLock);
+	if (*key_buf_len == 0 || key_pair_str == NULL) {
+		return ZTS_ERR_ARG;
+	}
+	if (!service) {
+		return ZTS_ERR_SERVICE;
+	}
+	service->getIdentity(key_pair_str, key_buf_len);
+	return *key_buf_len > 0 ? ZTS_ERR_OK : ZTS_ERR_GENERAL;
+}
+
+// TODO: This logic should be further generalized in the next API redesign
+#ifdef ZTS_PINVOKE
+int zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
+	CppCallback callback, uint16_t port)
+#else
+int zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
+	void (*callback)(void *), uint16_t port)
+#endif
+{
+	if (!zts_verify_identity(key_pair_str)) {
+		return ZTS_ERR_ARG;
+	}
+	Mutex::Lock _l(serviceLock);
+	_lwip_driver_init();
+	if (service || _getState(ZTS_STATE_NODE_RUNNING)) {
+		// Service is already initialized
+		return ZTS_ERR_SERVICE;
+	}
+	if (_getState(ZTS_STATE_FREE_CALLED)) {
+		// Stack (presumably lwIP) has been dismantled,
+		// an application restart is required now
+		return ZTS_ERR_SERVICE;
+	}
+	if (port < 0 || port > 0xFFFF) {
+		return ZTS_ERR_ARG;
+	}
+	serviceParameters *params = new serviceParameters();
+	params->port = port;
+	params->path = "";
+
+	Identity id;
+	if ((strlen(key_pair_str) > 32) && (key_pair_str[10] == ':')) {
+		if (id.fromString(key_pair_str)) {
+			id.toString(false, params->publicIdentityStr);
+			id.toString(true, params->secretIdentityStr);
+		}
+	}
+	if (!id) {
+		return ZTS_ERR_ARG;
+	}
+
+#ifdef SDK_JNI
+	_userEventCallbackFunc = callback;
+#else
+	_userEventCallbackFunc = callback;
+#endif
+	if (!_isCallbackRegistered()) {
+		// Must have a callback
+		return ZTS_ERR_ARG;
+	}
+	int err;
+	int retval = ZTS_ERR_OK;
+
+	_setState(ZTS_STATE_CALLBACKS_RUNNING);
+	_setState(ZTS_STATE_NODE_RUNNING);
+	// Start the ZT service thread
+#if defined(__WINDOWS__)
+	WSAStartup(MAKEWORD(2, 2), &wsaData);
+	HANDLE serviceThread = CreateThread(NULL, 0, _runNodeService, (void*)params, 0, NULL);
+	HANDLE callbackThread = CreateThread(NULL, 0, _runCallbacks, NULL, 0, NULL);
+#else
+	pthread_t service_thread;
+	pthread_t callback_thread;
+	if ((err = pthread_create(&service_thread, NULL, _runNodeService, (void*)params)) != 0) {
+		retval = err;
+	}
+	if ((err = pthread_create(&callback_thread, NULL, _runCallbacks, NULL)) != 0) {
+		retval = err;
+	}
+#endif
+#if defined(__linux__)
+	pthread_setname_np(service_thread, ZTS_SERVICE_THREAD_NAME);
+	pthread_setname_np(callback_thread, ZTS_EVENT_CALLBACK_THREAD_NAME);
+#endif
+	if (retval != ZTS_ERR_OK) {
+		_clrState(ZTS_STATE_CALLBACKS_RUNNING);
+		_clrState(ZTS_STATE_NODE_RUNNING);
+		_clearRegisteredCallback();
+		//delete params;
+	}
+	return retval;
+}
 
 int zts_allow_network_caching(uint8_t allowed = 1)
 {
@@ -88,6 +217,16 @@ int zts_allow_local_conf(uint8_t allowed = 1)
 	Mutex::Lock _l(serviceLock);
 	if(!service) {
 		allowLocalConf = allowed;
+		return ZTS_ERR_OK;
+	}
+	return ZTS_ERR_SERVICE;
+}
+
+int zts_disable_local_storage(uint8_t disabled)
+{
+	Mutex::Lock _l(serviceLock);
+	if(!service) {
+		disableLocalStorage = disabled;
 		return ZTS_ERR_OK;
 	}
 	return ZTS_ERR_SERVICE;

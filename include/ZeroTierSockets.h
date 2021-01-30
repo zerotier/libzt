@@ -1,10 +1,10 @@
 /*
- * Copyright (c)2013-2020 ZeroTier, Inc.
+ * Copyright (c)2013-2021 ZeroTier, Inc.
  *
  * Use of this software is governed by the Business Source License included
  * in the LICENSE.TXT file in the project's root directory.
  *
- * Change Date: 2024-01-01
+ * Change Date: 2025-01-01
  *
  * On the date above, in accordance with the Business Source License, use
  * of this software will be governed by version 2.0 of the Apache License.
@@ -840,6 +840,201 @@ struct zts_peer_list
 	#define ZTCALL
 #endif
 
+//////////////////////////////////////////////////////////////////////////////
+// Central API                                                              //
+//////////////////////////////////////////////////////////////////////////////
+
+#ifndef NO_CENTRAL_API
+
+#define CENTRAL_API_DEFAULT_URL         "https://my.zerotier.com"
+#define CENRTAL_API_MAX_URL_LEN         128
+#define CENTRAL_API_TOKEN_LEN           32
+#define CENTRAL_API_RESP_BUF_DEFAULT_SZ (128*1024)
+
+#define HTTP_GET    0
+#define HTTP_POST   1
+#define HTTP_DELETE 2
+
+#define ZTS_CENTRAL_NODE_AUTH_FALSE 0
+#define ZTS_CENTRAL_NODE_AUTH_TRUE  1
+
+#define ZTS_CENTRAL_READ  1
+#define ZTS_CENTRAL_WRITE 2
+
+/**
+ * @brief Enables read/write capability. Default before calling this is
+ * read-only (ZTS_CENTRAL_READ.)
+ *
+ * @param modes Whether the API allows read, write, or both
+ */
+ZTS_API void ZTCALL zts_central_api_set_access(int8_t modes);
+
+/**
+ * @brief Enables or disables libcurl verbosity
+ *
+ * @param is_verbose Whether debug information is desired
+ */
+ZTS_API void ZTCALL zts_central_api_set_verbose(int8_t is_verbose);
+
+ZTS_API void ZTCALL zts_central_api_clear_response_buffer();
+
+/**
+ * @brief Set the Central API URL and user API token.
+ *
+ * @param url_str The URL to the Central API server
+ * @param token_str User API token
+ * @param response_buffer Destination buffer for raw JSON output
+ * @param buffer_len Size of buffer for server response (specify 0 for default size)
+ * @return ZTS_ERR_OK on success. ZTS_ERR_ARG if invalid arguments provided.
+ */
+ZTS_API int ZTCALL zts_central_api_init(const char *url_str, const char *token_str, char *response_buffer, uint32_t buffer_len);
+
+ZTS_API void ZTCALL zts_central_api_cleanup();
+
+/**
+ * @brief Copies the JSON-formatted string buffer from the last request into a user-provided buffer.
+ *
+ * @param dest_buffer User-provided destination buffer
+ * @param dest_buffer_len Length of aforementioned buffer
+ * @return ZTS_ERR_OK if all contents were copied successfully. ZTS_ERR_ARG if provided buffer was too small.
+ */
+ZTS_API int ZTCALL zts_get_last_response_buffer(char *dest_buffer, int dest_buffer_len);
+
+/**
+ * @brief Get the status of the Central API server.
+ *
+ * @return Standard HTTP response codes.
+ */
+ZTS_API int ZTCALL zts_central_api_get_status(int *http_response_code);
+
+/**
+ * @brief Get the currently authenticated user’s user record.
+ *
+ * @return Standard HTTP response codes.
+ */
+ZTS_API int ZTCALL zts_central_api_get_self(int *http_response_code);
+
+/**
+ * @brief Retrieve a Network.
+ *
+ * @return Standard HTTP response codes.
+ */
+ZTS_API int ZTCALL zts_central_api_get_network(int *http_response_code, int64_t nwid);
+
+/**
+ * @brief Update or create a Network.
+ *
+ * Only fields marked as [rw] can be directly modified. If other fields are
+ * present in the posted request they are ignored. New networks can be created by POSTing
+ * to /api/network with no networkId parameter. The server will create a random unused
+ * network ID and return the new network record.
+ *
+ * @return Standard HTTP response codes.
+ */
+ZTS_API int ZTCALL zts_central_api_update_network(int *http_response_code, int64_t nwid);
+
+/**
+ * @brief Delete a Network.
+ *
+ * Delete a network and all its related information permanently.
+ * Use extreme caution as this cannot be undone!
+ *
+ * @return Standard HTTP response codes.
+ */
+ZTS_API int ZTCALL zts_central_api_delete_network(int *http_response_code, int64_t nwid);
+
+/**
+ * @brief Get All Viewable Networks.
+ *
+ * Get all networks for which you have at least read access.
+ *
+ * @return Standard HTTP response codes.
+ */
+ZTS_API int ZTCALL zts_central_api_get_networks(int *http_response_code);
+/**
+ * @brief Retrieve a Member.
+ *
+ * @return Standard HTTP response codes.
+ */
+ZTS_API int ZTCALL zts_central_api_get_member(int *http_response_code, int64_t nwid, int64_t nodeid);
+
+/**
+ * @brief Update or add a Member.
+ *
+ * New members can be added to a network by POSTing them.
+ *
+ * @return Standard HTTP response codes.
+ */
+ZTS_API int ZTCALL zts_central_api_update_member(int *http_response_code, int64_t nwid, int64_t nodeid, char *post_data);
+
+/**
+ * @brief Authorize or (De)authorize a node on a network. This operation is idempotent.
+ *
+ * @param nwid The network ID
+ * @param nodeid The node ID
+ * @param is_authed Boolean value for whether this node should be authorized
+ * @return Standard HTTP response codes. ZTS_ERR_ARG invalid argument specified.
+ */
+ZTS_API int ZTCALL zts_set_node_auth(int *http_response_code, int64_t nwid, int64_t nodeid, int8_t is_authed);
+
+/**
+ * @brief Get All Members of a Network.
+ *
+ * Get all members of a network for which you have at least read access.
+ *
+ * @return Standard HTTP response codes.
+ */
+ZTS_API int ZTCALL zts_central_api_get_members_of_network(int *http_response_code, int64_t nwid);
+
+#endif // NO_CENTRAL_API
+
+//////////////////////////////////////////////////////////////////////////////
+// Identity Management                                                      //
+//////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Generates a node identity (public/secret keypair) and stores it in a user-provided buffer.
+ *
+ * @param key_pair_str User-provided destination buffer
+ * @param key_buf_len Length of user-provided destination buffer. Will be set to number of bytes copied.
+ * @return ZTS_ERR_OK on success. ZTS_ERR_SERVICE on failure.
+ */
+ZTS_API int ZTCALL zts_generate_orphan_identity(char *key_pair_str, uint16_t *key_buf_len);
+
+/**
+ * @brief Verifies that a keypair is valid for use.
+ *
+ * @param key_pair_str Buffer containing keypair
+ * @return ZTS_ERR_OK on success. ZTS_ERR_SERVICE on failure.
+ */
+ZTS_API int ZTCALL zts_verify_identity(const char *key_pair_str);
+
+/**
+ * @brief Copies the current node's identity into a buffer
+ *
+ * @param key_pair_str User-provided destination buffer
+ * @param key_buf_len Length of user-provided destination buffer. Will be set to number of bytes copied.
+ * @return ZTS_ERR_OK on success. ZTS_ERR_SERVICE on failure.
+ */
+ZTS_API int ZTCALL zts_get_node_identity(char *key_pair_str, uint16_t *key_buf_len);
+
+/**
+ * @brief Starts the ZeroTier service and notifies user application of events via callback. This
+ * variant will assign a user-provided identity to the node.
+ *
+ * @param path path directory where configuration files are stored
+ * @param callback User-specified callback for ZTS_EVENT_* events
+ * @param port Port that the library should use for talking to other ZeroTier nodes
+ * @return ZTS_ERR_OK on success. ZTS_ERR_SERVICE or ZTS_ERR_ARG on failure
+ */
+#ifdef ZTS_PINVOKE
+	ZTS_API int ZTCALL zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
+		CppCallback callback, uint16_t port);
+#else
+	ZTS_API int ZTCALL zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
+		void (*callback)(void *), uint16_t port);
+#endif
+
 /**
  * @brief Enable or disable whether the service will cache network details (enabled by default)
  *
@@ -883,13 +1078,23 @@ ZTS_API int ZTCALL zts_allow_peer_caching(uint8_t allowed);
 ZTS_API int ZTCALL zts_allow_local_conf(uint8_t allowed);
 
 /**
+ * @brief Enable or disable whether the service will read or write config data to local storage
+ *
+ * @usage Should be called before zts_start() if you intend on changing its state.
+ *
+ * @param enabled Whether or not this feature is enabled
+ * @return ZTS_ERR_OK on success. ZTS_ERR_SERVICE on failure.
+ */
+ZTS_API int ZTCALL zts_disable_local_storage(uint8_t disabled);
+
+/**
  * @brief Starts the ZeroTier service and notifies user application of events via callback
  *
  * @param path path directory where configuration files are stored
  * @param callback User-specified callback for ZTS_EVENT_* events
+ * @param port Port that the library should use for talking to other ZeroTier nodes
  * @return ZTS_ERR_OK on success. ZTS_ERR_SERVICE or ZTS_ERR_ARG on failure
  */
-
 #ifdef ZTS_PINVOKE
 	// Used by P/INVOKE wrappers
 	typedef void (*CppCallback)(void *msg);

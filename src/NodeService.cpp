@@ -1,10 +1,10 @@
 /*
- * Copyright (c)2013-2020 ZeroTier, Inc.
+ * Copyright (c)2013-2021 ZeroTier, Inc.
  *
  * Use of this software is governed by the Business Source License included
  * in the LICENSE.TXT file in the project's root directory.
  *
- * Change Date: 2024-01-01
+ * Change Date: 2025-01-01
  *
  * On the date above, in accordance with the Business Source License, use
  * of this software will be governed by version 2.0 of the Apache License.
@@ -63,6 +63,7 @@ namespace ZeroTier {
 uint8_t allowNetworkCaching;
 uint8_t allowPeerCaching;
 uint8_t allowLocalConf;
+uint8_t disableLocalStorage; // Off by default
 
 typedef VirtualTap EthernetTap;
 
@@ -937,6 +938,21 @@ public:
 		_node->leave(nwid, NULL, NULL);
 	}
 
+	inline void getIdentity(char *key_pair_str, uint16_t *key_buf_len)
+	{
+		if (key_pair_str == NULL || *key_buf_len < ZT_IDENTITY_STRING_BUFFER_LENGTH) {
+			return;
+		}
+		uint16_t keylen = strlen(_userProvidedSecretIdentity);
+		if (*key_buf_len < keylen) {
+			*key_buf_len = 0;
+			return;
+		}
+		memcpy(key_pair_str, _userProvidedSecretIdentity, keylen);
+		*key_buf_len = keylen;
+	}
+
+	// TODO: This logic should be further generalized in the next API redesign
 	inline void nodeStatePutFunction(enum ZT_StateObjectType type,const uint64_t id[2],const void *data,int len)
 	{
 		char p[1024];
@@ -947,30 +963,52 @@ public:
 
 		switch(type) {
 			case ZT_STATE_OBJECT_IDENTITY_PUBLIC:
-				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "identity.public",_homePath.c_str());
+				memcpy(_userProvidedPublicIdentity, data, len);
+				if (disableLocalStorage) {
+					return;
+				} else {
+					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "identity.public",_homePath.c_str());
+				}
 				break;
 			case ZT_STATE_OBJECT_IDENTITY_SECRET:
-				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "identity.secret",_homePath.c_str());
+				memcpy(_userProvidedSecretIdentity, data, len);
+				if (disableLocalStorage) {
+					return;
+				} else {
+					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "identity.secret",_homePath.c_str());
+				}
 				secure = true;
 				break;
 			case ZT_STATE_OBJECT_PLANET:
-				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "planet",_homePath.c_str());
+				if (disableLocalStorage) {
+					return;
+				} else {
+					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "planet",_homePath.c_str());
+				}
 				break;
 			case ZT_STATE_OBJECT_NETWORK_CONFIG:
-				if (allowNetworkCaching) {
-					OSUtils::ztsnprintf(dirname,sizeof(dirname),"%s" ZT_PATH_SEPARATOR_S "networks.d",_homePath.c_str());
-					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "%.16llx.conf",dirname,(unsigned long long)id[0]);
-					secure = true;
-				} else {
+				if (disableLocalStorage) {
 					return;
+				} else {
+					if (allowNetworkCaching) {
+						OSUtils::ztsnprintf(dirname,sizeof(dirname),"%s" ZT_PATH_SEPARATOR_S "networks.d",_homePath.c_str());
+						OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "%.16llx.conf",dirname,(unsigned long long)id[0]);
+						secure = true;
+					} else {
+						return;
+					}
 				}
 				break;
 			case ZT_STATE_OBJECT_PEER:
-				if (allowPeerCaching) {
-					OSUtils::ztsnprintf(dirname,sizeof(dirname),"%s" ZT_PATH_SEPARATOR_S "peers.d",_homePath.c_str());
-					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "%.10llx.peer",dirname,(unsigned long long)id[0]);
+				if (disableLocalStorage) {
+					return;
 				} else {
-					return; // Do nothing
+					if (allowPeerCaching) {
+						OSUtils::ztsnprintf(dirname,sizeof(dirname),"%s" ZT_PATH_SEPARATOR_S "peers.d",_homePath.c_str());
+						OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "%.10llx.peer",dirname,(unsigned long long)id[0]);
+					} else {
+						return; // Do nothing
+					}
 				}
 				break;
 			default:
@@ -1009,25 +1047,57 @@ public:
 		}
 	}
 
+	// TODO: This logic should be further generalized in the next API redesign
 	inline int nodeStateGetFunction(enum ZT_StateObjectType type,const uint64_t id[2],void *data,unsigned int maxlen)
 	{
 		char p[4096];
+		int keylen = 0;
 		switch(type) {
 			case ZT_STATE_OBJECT_IDENTITY_PUBLIC:
-				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "identity.public",_homePath.c_str());
+				if (disableLocalStorage) {
+					keylen = strlen(_userProvidedPublicIdentity);
+					if (keylen > maxlen) {
+						return -1;
+					}
+					if (keylen > 0) {
+						memcpy(data, _userProvidedPublicIdentity, keylen);
+						return keylen;
+					}
+				} else {
+					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "identity.public",_homePath.c_str());
+				}
 				break;
 			case ZT_STATE_OBJECT_IDENTITY_SECRET:
-				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "identity.secret",_homePath.c_str());
+				if (disableLocalStorage) {
+					keylen = strlen(_userProvidedSecretIdentity);
+					if (keylen > maxlen) {
+						return -1;
+					}
+					if (keylen > 0) {
+						memcpy(data, _userProvidedSecretIdentity, keylen);
+						return keylen;
+					}
+				} else {
+					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "identity.secret",_homePath.c_str());
+				}
 				break;
 			case ZT_STATE_OBJECT_PLANET:
-				OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "planet",_homePath.c_str());
+				if (disableLocalStorage) {
+					return -1;
+				} else {
+					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "planet",_homePath.c_str());
+				}
 				break;
 			case ZT_STATE_OBJECT_NETWORK_CONFIG:
-				if (allowNetworkCaching) {
-					OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "networks.d" ZT_PATH_SEPARATOR_S "%.16llx.conf",_homePath.c_str(),(unsigned long long)id[0]);
-				}
-				else {
+				if (disableLocalStorage) {
 					return -1;
+				} else {
+					if (allowNetworkCaching) {
+						OSUtils::ztsnprintf(p,sizeof(p),"%s" ZT_PATH_SEPARATOR_S "networks.d" ZT_PATH_SEPARATOR_S "%.16llx.conf",_homePath.c_str(),(unsigned long long)id[0]);
+					}
+					else {
+						return -1;
+					}
 				}
 				break;
 			case ZT_STATE_OBJECT_PEER:
@@ -1312,6 +1382,11 @@ void *_runNodeService(void *arg)
 			service = NodeService::newInstance(params->path.c_str(),params->port);
 			service->_userProvidedPort = params->port;
 			service->_userProvidedPath = params->path;
+			if (strlen(params->publicIdentityStr) > 0 && strlen(params->secretIdentityStr) > 0 && params->path.length() == 0) {
+				memcpy(service->_userProvidedPublicIdentity, params->publicIdentityStr, strlen(params->publicIdentityStr));
+				memcpy(service->_userProvidedSecretIdentity, params->secretIdentityStr, strlen(params->secretIdentityStr));
+			}
+
 			serviceLock.unlock();
 			switch(service->run()) {
 				case NodeService::ONE_STILL_RUNNING:

@@ -129,7 +129,7 @@ bool VirtualTap::hasIpv4Addr()
 	std::vector<InetAddress>::iterator it(_ips.begin());
 	while (it != _ips.end()) {
 		if ((*it).isV4()) { return true; }
-		it++;
+		++it;
 	}
 	return false;
 }
@@ -140,7 +140,7 @@ bool VirtualTap::hasIpv6Addr()
 	std::vector<InetAddress>::iterator it(_ips.begin());
 	while (it != _ips.end()) {
 		if ((*it).isV6()) { return true; }
-		it++;
+		++it;
 	}
 	return false;
 }
@@ -223,7 +223,6 @@ void VirtualTap::scanMulticastGroups(std::vector<MulticastGroup> &added,
 		newGroups.push_back(MulticastGroup::deriveMulticastGroupForAddressResolution(*ip));
 
 	std::sort(newGroups.begin(),newGroups.end());
-	std::unique(newGroups.begin(),newGroups.end());
 
 	for (std::vector<MulticastGroup>::iterator m(newGroups.begin());m!=newGroups.end();++m) {
 		if (!std::binary_search(_multicastGroups.begin(),_multicastGroups.end(),*m))
@@ -510,6 +509,7 @@ bool _lwip_is_netif_up(void *n)
 	return result;
 }
 
+/*
 static struct zts_netif_details *_lwip_prepare_netif_status_msg(struct netif *n)
 {
 	if (!n || !n->state) {
@@ -560,6 +560,7 @@ static void _netif_link_callback(struct netif *n)
 		_enqueueEvent(ZTS_EVENT_NETIF_LINK_DOWN, (void*)_lwip_prepare_netif_status_msg(n));
 	}
 }
+*/
 
 static err_t _netif_init4(struct netif *n)
 {
@@ -613,7 +614,6 @@ static err_t _netif_init6(struct netif *n)
 
 void _lwip_init_interface(void *tapref, const InetAddress &ip)
 {
-	char ipbuf[INET6_ADDRSTRLEN];
 	char macbuf[ZTS_MAC_ADDRSTRLEN];
 
 	VirtualTap *vtap = (VirtualTap*)tapref;
@@ -634,7 +634,6 @@ void _lwip_init_interface(void *tapref, const InetAddress &ip)
 		netif_set_remove_callback(n, _netif_remove_callback);
 		netif_set_link_callback(n, _netif_link_callback);
 		*/
-		char nmbuf[INET6_ADDRSTRLEN];
 		static ip4_addr_t ip4, netmask, gw;
 		IP4_ADDR(&gw,127,0,0,1);
 		ip4.addr = *((u32_t *)ip.rawIpData());
@@ -646,8 +645,12 @@ void _lwip_init_interface(void *tapref, const InetAddress &ip)
 		snprintf(macbuf, ZTS_MAC_ADDRSTRLEN, "%02x:%02x:%02x:%02x:%02x:%02x",
 			n->hwaddr[0], n->hwaddr[1], n->hwaddr[2],
 			n->hwaddr[3], n->hwaddr[4], n->hwaddr[5]);
-		//DEBUG_INFO("initialized netif=%p as [mac=%s, addr=%s, nm=%s, tap=%p]",n,
-		//	macbuf, ip.toString(ipbuf), ip.netmask().toString(nmbuf), vtap);
+		/*
+		char nmbuf[INET6_ADDRSTRLEN];
+		char ipbuf[INET6_ADDRSTRLEN];
+		DEBUG_INFO("initialized netif=%p as [mac=%s, addr=%s, nm=%s, tap=%p]",n,
+			macbuf, ip.toString(ipbuf), ip.netmask().toString(nmbuf), vtap);
+		*/
 	}
 	if (ip.isV6()) {
 		if (vtap->netif6) {
@@ -681,8 +684,10 @@ void _lwip_init_interface(void *tapref, const InetAddress &ip)
 		snprintf(macbuf, ZTS_MAC_ADDRSTRLEN, "%02x:%02x:%02x:%02x:%02x:%02x",
 			n->hwaddr[0], n->hwaddr[1], n->hwaddr[2],
 			n->hwaddr[3], n->hwaddr[4], n->hwaddr[5]);
-		//DEBUG_INFO("initialized netif=%p as [mac=%s, addr=%s, tap=%p]", n,
-		//	macbuf, ip.toString(ipbuf), vtap);
+		/*
+		DEBUG_INFO("initialized netif=%p as [mac=%s, addr=%s, tap=%p]", n,
+			macbuf, ip.toString(ipbuf), vtap);
+		*/
 	}
 }
 

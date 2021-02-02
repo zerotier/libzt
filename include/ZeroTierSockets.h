@@ -924,7 +924,7 @@ ZTS_API int ZTCALL zts_central_api_get_self(int *http_response_code);
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_api_get_network(int *http_response_code, int64_t nwid);
+ZTS_API int ZTCALL zts_central_api_get_network(int *http_response_code, uint64_t nwid);
 
 /**
  * @brief Update or create a Network.
@@ -936,7 +936,7 @@ ZTS_API int ZTCALL zts_central_api_get_network(int *http_response_code, int64_t 
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_api_update_network(int *http_response_code, int64_t nwid);
+ZTS_API int ZTCALL zts_central_api_update_network(int *http_response_code, uint64_t nwid);
 
 /**
  * @brief Delete a Network.
@@ -946,7 +946,7 @@ ZTS_API int ZTCALL zts_central_api_update_network(int *http_response_code, int64
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_api_delete_network(int *http_response_code, int64_t nwid);
+ZTS_API int ZTCALL zts_central_api_delete_network(int *http_response_code, uint64_t nwid);
 
 /**
  * @brief Get All Viewable Networks.
@@ -961,7 +961,7 @@ ZTS_API int ZTCALL zts_central_api_get_networks(int *http_response_code);
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_api_get_member(int *http_response_code, int64_t nwid, int64_t nodeid);
+ZTS_API int ZTCALL zts_central_api_get_member(int *http_response_code, int64_t nwid, uint64_t nodeid);
 
 /**
  * @brief Update or add a Member.
@@ -970,7 +970,7 @@ ZTS_API int ZTCALL zts_central_api_get_member(int *http_response_code, int64_t n
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_api_update_member(int *http_response_code, int64_t nwid, int64_t nodeid, char *post_data);
+ZTS_API int ZTCALL zts_central_api_update_member(int *http_response_code, uint64_t nwid, uint64_t nodeid, char *post_data);
 
 /**
  * @brief Authorize or (De)authorize a node on a network. This operation is idempotent.
@@ -980,7 +980,7 @@ ZTS_API int ZTCALL zts_central_api_update_member(int *http_response_code, int64_
  * @param is_authed Boolean value for whether this node should be authorized
  * @return Standard HTTP response codes. ZTS_ERR_ARG invalid argument specified.
  */
-ZTS_API int ZTCALL zts_set_node_auth(int *http_response_code, int64_t nwid, int64_t nodeid, int8_t is_authed);
+ZTS_API int ZTCALL zts_set_node_auth(int *http_response_code, uint64_t nwid, uint64_t nodeid, uint64_t is_authed);
 
 /**
  * @brief Get All Members of a Network.
@@ -989,7 +989,7 @@ ZTS_API int ZTCALL zts_set_node_auth(int *http_response_code, int64_t nwid, int6
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_api_get_members_of_network(int *http_response_code, int64_t nwid);
+ZTS_API int ZTCALL zts_central_api_get_members_of_network(int *http_response_code, uint64_t nwid);
 
 #endif // NO_CENTRAL_API
 

@@ -67,25 +67,6 @@ uint8_t disableLocalStorage; // Off by default
 
 typedef VirtualTap EthernetTap;
 
-static std::string _trimString(const std::string &s)
-{
-	unsigned long end = (unsigned long)s.length();
-	while (end) {
-		char c = s[end - 1];
-		if ((c == ' ')||(c == '\r')||(c == '\n')||(!c)||(c == '\t'))
-			--end;
-		else break;
-	}
-	unsigned long start = 0;
-	while (start < end) {
-		char c = s[start];
-		if ((c == ' ')||(c == '\r')||(c == '\n')||(!c)||(c == '\t'))
-			++start;
-		else break;
-	}
-	return s.substr(start,end - start);
-}
-
 class NodeServiceImpl;
 
 static int SnodeVirtualNetworkConfigFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t nwid,void **nuptr,enum ZT_VirtualNetworkConfigOperation op,const ZT_VirtualNetworkConfig *nwconf);
@@ -120,9 +101,9 @@ public:
 	Node *_node;
 	bool _updateAutoApply;
 	unsigned int _multipathMode = 0;
-	unsigned int _primaryPort;
+	unsigned int _primaryPort = 0;
 	unsigned int _secondaryPort = 0;
-	unsigned int _tertiaryPort;
+	unsigned int _tertiaryPort = 0;
 	volatile unsigned int _udpPortPickerCounter;
 
 	//
@@ -253,7 +234,7 @@ public:
 #endif
 	}
 
-	virtual ReasonForTermination run()
+	virtual ReasonForTermination run() override
 	{
 		try {
 			{
@@ -472,19 +453,19 @@ public:
 		return _termReason;
 	}
 
-	virtual ReasonForTermination reasonForTermination() const
+	virtual ReasonForTermination reasonForTermination() const override
 	{
 		Mutex::Lock _l(_termReason_m);
 		return _termReason;
 	}
 
-	virtual std::string fatalErrorMessage() const
+	virtual std::string fatalErrorMessage() const override
 	{
 		Mutex::Lock _l(_termReason_m);
 		return _fatalErrorMessage;
 	}
 
-	virtual std::string portDeviceName(uint64_t nwid) const
+	virtual std::string portDeviceName(uint64_t nwid) const override
 	{
 		Mutex::Lock _l(_nets_m);
 		std::map<uint64_t,NetworkState>::const_iterator n(_nets.find(nwid));
@@ -498,7 +479,7 @@ public:
 		return _homePath;
 	}
 
-	void getRoutes(uint64_t nwid, void *routeArray, unsigned int *numRoutes)
+	void getRoutes(uint64_t nwid, void *routeArray, unsigned int *numRoutes) override
 	{
 		Mutex::Lock _l(_nets_m);
 		NetworkState &n = _nets[nwid];
@@ -509,12 +490,12 @@ public:
 		}
 	}
 
-	virtual Node *getNode()
+	virtual Node *getNode() override
 	{
 		return _node;
 	}
 
-	virtual void terminate()
+	virtual void terminate() override
 	{
 		_run_m.lock();
 		_run = false;
@@ -522,7 +503,7 @@ public:
 		_phy.whack();
 	}
 
-	virtual bool getNetworkSettings(const uint64_t nwid,NetworkSettings &settings) const
+	virtual bool getNetworkSettings(const uint64_t nwid,NetworkSettings &settings) const override
 	{
 		Mutex::Lock _l(_nets_m);
 		std::map<uint64_t,NetworkState>::const_iterator n(_nets.find(nwid));
@@ -814,12 +795,12 @@ public:
 
 		// Copy and convert address structures
 		nd->assignedAddressCount = n.config.assignedAddressCount;
-		for (int i=0; i<n.config.assignedAddressCount; i++) {
+		for (unsigned int i=0; i<n.config.assignedAddressCount; i++) {
 			native_ss_to_zts_ss(&(nd->assignedAddresses[i]), &(n.config.assignedAddresses[i]));
 		}
 
 		nd->routeCount = n.config.routeCount;
-		for (int i=0; i<n.config.routeCount; i++) {
+		for (unsigned int i=0; i<n.config.routeCount; i++) {
 			 native_ss_to_zts_ss(&(nd->routes[i].target), &(n.config.routes[i].target));
 			 native_ss_to_zts_ss(&(nd->routes[i].via), &(n.config.routes[i].via));
 			 nd->routes[i].flags = n.config.routes[i].flags;
@@ -844,7 +825,7 @@ public:
 		for(std::map<uint64_t,NetworkState>::iterator n(_nets.begin());n!=_nets.end();++n) {
 			int mostRecentStatus = n->second.config.status;
 			VirtualTap *tap = n->second.tap;
-			uint64_t nwid = n->first;
+			// uint64_t nwid = n->first;
 			if (n->second.tap->_networkStatus == mostRecentStatus) {
 				continue; // No state change
 			}
@@ -890,26 +871,26 @@ public:
 					}
 					if (pl->peers[i].pathCount == 0) {
 						bShouldCopyPeerInfo=true;
-						eventCode = ZTS_EVENT_PEER_RELAY, (void*)pd;
+						eventCode = ZTS_EVENT_PEER_RELAY;
 					}
 				}
 				// Previously known peer, update status
 				else {
 					if (peerCache[pl->peers[i].address] < pl->peers[i].pathCount) {
 						bShouldCopyPeerInfo=true;
-						eventCode = ZTS_EVENT_PEER_PATH_DISCOVERED, (void*)pd;
+						eventCode = ZTS_EVENT_PEER_PATH_DISCOVERED;
 					}
 					if (peerCache[pl->peers[i].address] > pl->peers[i].pathCount) {
 						bShouldCopyPeerInfo=true;
-						eventCode = ZTS_EVENT_PEER_PATH_DEAD, (void*)pd;
+						eventCode = ZTS_EVENT_PEER_PATH_DEAD;
 					}
 					if (peerCache[pl->peers[i].address] == 0 && pl->peers[i].pathCount > 0) {
 						bShouldCopyPeerInfo=true;
-						eventCode = ZTS_EVENT_PEER_DIRECT, (void*)pd;
+						eventCode = ZTS_EVENT_PEER_DIRECT;
 					}
 					if (peerCache[pl->peers[i].address] > 0 && pl->peers[i].pathCount == 0) {
 						bShouldCopyPeerInfo=true;
-						eventCode = ZTS_EVENT_PEER_RELAY, (void*)pd;
+						eventCode = ZTS_EVENT_PEER_RELAY;
 					}
 				}
 				if (bShouldCopyPeerInfo) {
@@ -928,17 +909,17 @@ public:
 		_node->freeQueryResult((void *)pl);
 	}
 
-	inline void join(uint64_t nwid)
+	inline void join(uint64_t nwid) override
 	{
 		_node->join(nwid, NULL, NULL);
 	}
 
-	inline void leave(uint64_t nwid)
+	inline void leave(uint64_t nwid) override
 	{
 		_node->leave(nwid, NULL, NULL);
 	}
 
-	inline void getIdentity(char *key_pair_str, uint16_t *key_buf_len)
+	inline void getIdentity(char *key_pair_str, uint16_t *key_buf_len) override
 	{
 		if (key_pair_str == NULL || *key_buf_len < ZT_IDENTITY_STRING_BUFFER_LENGTH) {
 			return;
@@ -1051,7 +1032,7 @@ public:
 	inline int nodeStateGetFunction(enum ZT_StateObjectType type,const uint64_t id[2],void *data,unsigned int maxlen)
 	{
 		char p[4096];
-		int keylen = 0;
+		unsigned int keylen = 0;
 		switch(type) {
 			case ZT_STATE_OBJECT_IDENTITY_PUBLIC:
 				if (disableLocalStorage) {
@@ -1309,25 +1290,57 @@ public:
 	}
 };
 
-static int SnodeVirtualNetworkConfigFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t nwid,void **nuptr,enum ZT_VirtualNetworkConfigOperation op,const ZT_VirtualNetworkConfig *nwconf)
-{ return reinterpret_cast<NodeServiceImpl *>(uptr)->nodeVirtualNetworkConfigFunction(nwid,nuptr,op,nwconf); }
-static void SnodeEventCallback(ZT_Node *node,void *uptr,void *tptr,enum ZT_Event event,const void *metaData)
-{ reinterpret_cast<NodeServiceImpl *>(uptr)->nodeEventCallback(event,metaData); }
-static void SnodeStatePutFunction(ZT_Node *node,void *uptr,void *tptr,enum ZT_StateObjectType type,const uint64_t id[2],const void *data,int len)
-{ reinterpret_cast<NodeServiceImpl *>(uptr)->nodeStatePutFunction(type,id,data,len); }
-static int SnodeStateGetFunction(ZT_Node *node,void *uptr,void *tptr,enum ZT_StateObjectType type,const uint64_t id[2],void *data,unsigned int maxlen)
-{ return reinterpret_cast<NodeServiceImpl *>(uptr)->nodeStateGetFunction(type,id,data,maxlen); }
-static int SnodeWirePacketSendFunction(ZT_Node *node,void *uptr,void *tptr,int64_t localSocket,const struct sockaddr_storage *addr,const void *data,unsigned int len,unsigned int ttl)
-{ return reinterpret_cast<NodeServiceImpl *>(uptr)->nodeWirePacketSendFunction(localSocket,addr,data,len,ttl); }
-static void SnodeVirtualNetworkFrameFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t nwid,void **nuptr,uint64_t sourceMac,uint64_t destMac,unsigned int etherType,unsigned int vlanId,const void *data,unsigned int len)
-{ reinterpret_cast<NodeServiceImpl *>(uptr)->nodeVirtualNetworkFrameFunction(nwid,nuptr,sourceMac,destMac,etherType,vlanId,data,len); }
-static int SnodePathCheckFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t ztaddr,int64_t localSocket,const struct sockaddr_storage *remoteAddr)
-{ return reinterpret_cast<NodeServiceImpl *>(uptr)->nodePathCheckFunction(ztaddr,localSocket,remoteAddr); }
-static int SnodePathLookupFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t ztaddr,int family,struct sockaddr_storage *result)
-{ return reinterpret_cast<NodeServiceImpl *>(uptr)->nodePathLookupFunction(ztaddr,family,result); }
-static void StapFrameHandler(void *uptr,void *tptr,uint64_t nwid,const MAC &from,const MAC &to,unsigned int etherType,unsigned int vlanId,const void *data,unsigned int len)
-{ reinterpret_cast<NodeServiceImpl *>(uptr)->tapFrameHandler(nwid,from,to,etherType,vlanId,data,len); }
+static int SnodeVirtualNetworkConfigFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t nwid,
+	void **nuptr,enum ZT_VirtualNetworkConfigOperation op,const ZT_VirtualNetworkConfig *nwconf)
+{
+	return reinterpret_cast<NodeServiceImpl *>(uptr)->nodeVirtualNetworkConfigFunction(nwid,nuptr,op,nwconf);
+}
 
+static void SnodeEventCallback(ZT_Node *node,void *uptr,void *tptr,enum ZT_Event event,const void *metaData)
+{
+	reinterpret_cast<NodeServiceImpl *>(uptr)->nodeEventCallback(event,metaData);
+}
+
+static void SnodeStatePutFunction(ZT_Node *node,void *uptr,void *tptr,enum ZT_StateObjectType type,
+	const uint64_t id[2],const void *data,int len)
+{
+	reinterpret_cast<NodeServiceImpl *>(uptr)->nodeStatePutFunction(type,id,data,len);
+}
+
+static int SnodeStateGetFunction(ZT_Node *node,void *uptr,void *tptr,enum ZT_StateObjectType type,
+	const uint64_t id[2],void *data,unsigned int maxlen)
+{
+	return reinterpret_cast<NodeServiceImpl *>(uptr)->nodeStateGetFunction(type,id,data,maxlen);
+}
+
+static int SnodeWirePacketSendFunction(ZT_Node *node,void *uptr,void *tptr,int64_t localSocket,
+	const struct sockaddr_storage *addr,const void *data,unsigned int len,unsigned int ttl)
+{
+	return reinterpret_cast<NodeServiceImpl *>(uptr)->nodeWirePacketSendFunction(localSocket,addr,data,len,ttl);
+}
+
+static void SnodeVirtualNetworkFrameFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t nwid,
+	void **nuptr,uint64_t sourceMac,uint64_t destMac,unsigned int etherType,unsigned int vlanId,const void *data,unsigned int len)
+{
+	reinterpret_cast<NodeServiceImpl *>(uptr)->nodeVirtualNetworkFrameFunction(nwid,nuptr,sourceMac,destMac,etherType,vlanId,data,len);
+}
+
+static int SnodePathCheckFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t ztaddr,int64_t localSocket,
+	const struct sockaddr_storage *remoteAddr)
+{
+	return reinterpret_cast<NodeServiceImpl *>(uptr)->nodePathCheckFunction(ztaddr,localSocket,remoteAddr);
+}
+
+static int SnodePathLookupFunction(ZT_Node *node,void *uptr,void *tptr,uint64_t ztaddr,int family,struct sockaddr_storage *result)
+{
+	return reinterpret_cast<NodeServiceImpl *>(uptr)->nodePathLookupFunction(ztaddr,family,result);
+}
+
+static void StapFrameHandler(void *uptr,void *tptr,uint64_t nwid,const MAC &from,const MAC &to,
+	unsigned int etherType,unsigned int vlanId,const void *data,unsigned int len)
+{
+	reinterpret_cast<NodeServiceImpl *>(uptr)->tapFrameHandler(nwid,from,to,etherType,vlanId,data,len);
+}
 
 std::string NodeService::platformDefaultHomePath()
 {

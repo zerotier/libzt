@@ -458,7 +458,7 @@ JNIEXPORT int JNICALL Java_com_zerotier_libzt_ZeroTier_ioctl(
 
 ssize_t zts_send(int fd, const void *buf, size_t len, int flags)
 {
-	if (!buf || len <= 0) {
+	if (!buf) {
 		return ZTS_ERR_ARG;
 	}
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
@@ -480,7 +480,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_send(
 ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags, 
 	const struct zts_sockaddr *addr,zts_socklen_t addrlen)
 {
-	if (!addr || !buf || len <= 0) {
+	if (!addr || !buf) {
 		return ZTS_ERR_ARG;
 	}
 	if (addrlen > (int)sizeof(struct zts_sockaddr_storage) || addrlen < (int)sizeof(struct zts_sockaddr_in)) {
@@ -634,7 +634,7 @@ ssize_t zts_readv(int s, const struct zts_iovec *iov, int iovcnt)
 
 ssize_t zts_write(int fd, const void *buf, size_t len)
 {
-	if (!buf || len <= 0) {
+	if (!buf) {
 		return ZTS_ERR_ARG;
 	}
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {

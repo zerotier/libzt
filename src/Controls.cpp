@@ -132,9 +132,16 @@ int zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
 		// an application restart is required now
 		return ZTS_ERR_SERVICE;
 	}
-	if (port < 0 || port > 0xFFFF) {
+	#ifdef SDK_JNI
+	_userEventCallbackFunc = callback;
+#else
+	_userEventCallbackFunc = callback;
+#endif
+	if (!_isCallbackRegistered()) {
+		// Must have a callback
 		return ZTS_ERR_ARG;
 	}
+
 	serviceParameters *params = new serviceParameters();
 	params->port = port;
 	params->path = "";
@@ -147,18 +154,10 @@ int zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
 		}
 	}
 	if (!id) {
+		delete params;
 		return ZTS_ERR_ARG;
 	}
 
-#ifdef SDK_JNI
-	_userEventCallbackFunc = callback;
-#else
-	_userEventCallbackFunc = callback;
-#endif
-	if (!_isCallbackRegistered()) {
-		// Must have a callback
-		return ZTS_ERR_ARG;
-	}
 	int err;
 	int retval = ZTS_ERR_OK;
 
@@ -261,11 +260,7 @@ int zts_start(const char *path, void (*callback)(void *), uint16_t port)
 	if (!path) {
 		return ZTS_ERR_ARG;
 	}
-	if (port < 0 || port > 0xFFFF) {
-		return ZTS_ERR_ARG;
-	}
 	serviceParameters *params = new serviceParameters();
-
 	params->port = port;
 	params->path = std::string(path);
 
@@ -357,6 +352,7 @@ JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_stop(
 }
 #endif
 
+// TODO: Make sure this woks with user-provided identities
 int zts_restart()
 {
 	serviceLock.lock();

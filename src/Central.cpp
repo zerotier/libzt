@@ -223,21 +223,21 @@ int zts_central_api_get_self(int *http_response_code)
 	return _central_req(HTTP_GET, central_api_url, (char*)"/api/self", central_api_token, http_response_code, NULL);
 }
 
-int zts_central_api_get_network(int *http_response_code, int64_t nwid)
+int zts_central_api_get_network(int *http_response_code, uint64_t nwid)
 {
 	char req[64];
 	sprintf(req, "/api/network/%llx", nwid);
 	return _central_req(HTTP_GET, central_api_url, req, central_api_token, http_response_code, NULL);
 }
 
-int zts_central_api_update_network(int *http_response_code, int64_t nwid)
+int zts_central_api_update_network(int *http_response_code, uint64_t nwid)
 {
 	char req[64];
 	sprintf(req, "/api/network/%llx", nwid);
 	return _central_req(HTTP_POST, central_api_url, req, central_api_token, http_response_code, NULL);
 }
 
-int zts_central_api_delete_network(int *http_response_code, int64_t nwid)
+int zts_central_api_delete_network(int *http_response_code, uint64_t nwid)
 {
 	char req[64];
 	sprintf(req, "/api/network/%llx", nwid);
@@ -249,7 +249,7 @@ int zts_central_api_get_networks(int *http_response_code)
 	return _central_req(HTTP_GET, central_api_url, (char*)"/api/network", central_api_token, http_response_code, NULL);
 }
 
-int zts_central_api_get_member(int *http_response_code, int64_t nwid, int64_t nodeid)
+int zts_central_api_get_member(int *http_response_code, uint64_t nwid, uint64_t nodeid)
 {
 	if (nwid == 0 || nodeid == 0) {
 		return ZTS_ERR_ARG;
@@ -259,7 +259,7 @@ int zts_central_api_get_member(int *http_response_code, int64_t nwid, int64_t no
 	return _central_req(HTTP_GET, central_api_url, req, central_api_token, http_response_code, NULL);
 }
 
-int zts_central_api_update_member(int *http_response_code, int64_t nwid, int64_t nodeid, char *post_data)
+int zts_central_api_update_member(int *http_response_code, uuint64_t nwid, uuint64_t nodeid, char *post_data)
 {
 	if (nwid == 0 || nodeid == 0 || post_data == NULL) {
 		return ZTS_ERR_ARG;
@@ -269,7 +269,7 @@ int zts_central_api_update_member(int *http_response_code, int64_t nwid, int64_t
 	return _central_req(HTTP_POST, central_api_url, req, central_api_token, http_response_code, post_data);
 }
 
-int zts_set_node_auth(int *http_response_code, int64_t nwid, int64_t nodeid, int8_t is_authed)
+int zts_set_node_auth(int *http_response_code, uint64_t nwid, uint64_t nodeid, int8_t is_authed)
 {
 	if (is_authed != 0 && is_authed != 1) {
 		return ZTS_ERR_ARG;
@@ -284,7 +284,7 @@ int zts_set_node_auth(int *http_response_code, int64_t nwid, int64_t nodeid, int
 	return zts_central_api_update_member(http_response_code, nwid, nodeid, config_data);
 }
 
-int zts_central_api_get_members_of_network(int *http_response_code, int64_t nwid)
+int zts_central_api_get_members_of_network(int *http_response_code, uint64_t nwid)
 {
 	char req[64];
 	sprintf(req, "/api/network/%llx/member", nwid);

@@ -204,10 +204,10 @@ namespace ZeroTier
 		public Node(string configFilePath, ZeroTierManagedEventCallback managedCallback, UInt16 servicePort)
 		{
 			if (String.IsNullOrEmpty(configFilePath)) {
-				throw new ArgumentNullException(nameof(configFilePath));
+				throw new ArgumentNullException("configFilePath");
 			}
 			if (managedCallback == null) {
-				throw new ArgumentNullException(nameof(managedCallback));
+				throw new ArgumentNullException("managedCallback");
 			}
 			_nodeId = 0x0;
 			_configFilePath = configFilePath;

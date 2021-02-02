@@ -30,9 +30,9 @@ namespace ZeroTier
 			SocketErrorCode = _socketErrorCode;
 		}
 		/// <value>High-level service error code. See Constants.cs</value>
-		public int ServiceErrorCode { get; }
+		public int ServiceErrorCode { get; private set; }
 
 		/// <value>Low-level socket error code. See Constants.cs</value>
-		public int SocketErrorCode { get; }
+		public int SocketErrorCode { get; private set; }
 	}
 }

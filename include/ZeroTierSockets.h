@@ -39,6 +39,11 @@
 extern "C" {
 #endif
 
+#ifdef ZTS_PINVOKE
+	// Used by P/INVOKE wrappers
+	typedef void (*CppCallback)(void *msg);
+#endif
+
 //////////////////////////////////////////////////////////////////////////////
 // Event codes                                                              //
 //////////////////////////////////////////////////////////////////////////////
@@ -1096,8 +1101,6 @@ ZTS_API int ZTCALL zts_disable_local_storage(uint8_t disabled);
  * @return ZTS_ERR_OK on success. ZTS_ERR_SERVICE or ZTS_ERR_ARG on failure
  */
 #ifdef ZTS_PINVOKE
-	// Used by P/INVOKE wrappers
-	typedef void (*CppCallback)(void *msg);
 	ZTS_API int ZTCALL zts_start(const char *path, CppCallback callback, uint16_t port);
 #else
 	ZTS_API int ZTCALL zts_start(const char *path, void (*callback)(void *), uint16_t port);

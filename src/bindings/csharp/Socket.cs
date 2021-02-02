@@ -135,7 +135,7 @@ namespace ZeroTier
 				throw new ZeroTier.SocketException((int)Constants.ERR_SOCKET);
 			}
 			if (remoteEndPoint == null) {
-				throw new ArgumentNullException(nameof(remoteEndPoint));
+				throw new ArgumentNullException("remoteEndPoint");
 			}
 			int err = Constants.ERR_OK;
 			int addrlen = 0;
@@ -194,7 +194,7 @@ namespace ZeroTier
 				throw new ZeroTier.SocketException((int)Constants.ERR_SOCKET);
 			}
 			if (localEndPoint == null) {
-				throw new ArgumentNullException(nameof(localEndPoint));
+				throw new ArgumentNullException("localEndPoint");
 			}
 			int err = Constants.ERR_OK;
 			int addrlen = 0;
@@ -412,7 +412,7 @@ namespace ZeroTier
 				throw new ZeroTier.SocketException((int)ZeroTier.Constants.ERR_SOCKET);
 			}
 			if (buffer == null) {
-				throw new ArgumentNullException(nameof(buffer));
+				throw new ArgumentNullException("buffer");
 			}
 			int flags = 0;
 			IntPtr bufferPtr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
@@ -428,7 +428,7 @@ namespace ZeroTier
 				throw new ZeroTier.SocketException((int)ZeroTier.Constants.ERR_SOCKET);
 			}
 			if (buffer == null) {
-				throw new ArgumentNullException(nameof(buffer));
+				throw new ArgumentNullException("buffer");
 			}
 			int flags = 0;
 			IntPtr bufferPtr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);

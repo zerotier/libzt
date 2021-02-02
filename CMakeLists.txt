@@ -280,7 +280,7 @@ file (GLOB libminiupnpcSrcGlob
 	${ZTO_SRC_DIR}/ext/miniupnpc/upnpreplyparse.c)
 
 if (ZTS_PINVOKE)
-	set (ZTS_SWIG_WRAPPER_FILE ${PROJ_DIR}/examples/csharp/*.cxx)
+	set (ZTS_SWIG_WRAPPER_FILE ${LIBZT_SRC_DIR}/bindings/csharp/*.cxx)
 	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_PINVOKE=1")
 endif ()
 
@@ -544,6 +544,8 @@ if (SHOULD_BUILD_TESTS)
 	target_link_libraries(nonblockingclient ${STATIC_LIB_NAME})
 	add_executable (nonblockingserver ${PROJ_DIR}/examples/cpp/nonblockingserver.cpp)
 	target_link_libraries(nonblockingserver ${STATIC_LIB_NAME})
+	add_executable (keymanagement ${PROJ_DIR}/examples/cpp/keymanagement.cpp)
+	target_link_libraries(keymanagement ${STATIC_LIB_NAME})
 if (CENTRAL_API)
 	add_executable (centralapi ${PROJ_DIR}/examples/cpp/centralapi.cpp)
 	target_link_libraries(centralapi ${STATIC_LIB_NAME})

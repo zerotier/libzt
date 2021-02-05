@@ -388,11 +388,11 @@ clean_post_build()
 clean()
 {
 	# Remove all temporary build files, products, etc
-	rm -rf tmp lib bin products
+	rm -rf builds tmp lib bin products
 	rm -f *.o *.s *.exp *.lib *.core core
 	# Generally search for and remove object files, libraries, etc
-	find . -path './*_products' -prune -type f \( -name '*.dylib' -o -name '*.so' -o -name \
-		'*.a' -o -name '*.o' -o -name '*.o.d' -o -name \
+	find . -path './*_products' -prune -type f \( -name '*.dylib' -o -name '*.dll' -o -name '*.so' -o -name \
+		'*.a' -o -name '*.o' -o -name '*.exe' -o -name '*.o.d' -o -name \
 		'*.out' -o -name '*.log' -o -name '*.dSYM' -o -name '*.class' \) -delete
 	# Remove any sources copied to project directories
 	rm -rf ports/android/app/src/main/java/com/zerotier/libzt/*.java

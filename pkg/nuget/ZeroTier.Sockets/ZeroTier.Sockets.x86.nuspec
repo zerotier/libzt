@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+	<metadata>
+		<id>ZeroTier.Sockets.x86</id>
+		<version>0.0.0</version>
+		<authors>ZeroTier, Inc.</authors>
+		<owners>ZeroTier, Inc.</owners>
+		<projectUrl>http://github.com/zerotier/libzt</projectUrl>
+		<license type="file">LICENSE.txt</license>
+		<icon>icon.png</icon>
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
+		<releaseNotes>Initial release</releaseNotes>
+		<description>Encrypted P2P SD-WAN networking layer (Managed C# API) [x86]</description>
+		<title>Encrypted P2P SD-WAN networking layer (Managed C# API) [x86]</title>
+		<copyright>Copyright 2021 ZeroTier, Inc.</copyright>
+		<tags>p2p networking utility library sdwan socket tcp udp ip encryption vpn sdk zerotier libzt libzerotier native</tags>
+		<repository type="git" url="https://github.com/zerotier/libzt" />
+		<contentFiles>
+      		<files include="cs/**/*.*" buildAction="None" flatten="false" copyToOutput="true"/>
+    	</contentFiles>
+	</metadata>
+	<files>
+		<file src="readme.txt" target="" />
+		<file src="icon.png" target="" />
+		<file src="lib\**" target="lib" />
+		<file src="runtimes\**" target="runtimes" />
+		<file src="licenses\LICENSE.txt" target="" />
+		<file src="runtimes\win10-x86\lib\uap10.0\*.dll" target="ref\uap10.0" />
+		<file src="contentFiles\*.cs" target="contentFiles\cs\any\ZeroTier.Source.ReadOnly" /> 
+		<file src="runtimes\win10-x86\lib\uap10.0\*.dll" target="build" />
+		<file src="runtimes\win10-x86\native\*.dll" target="ref\native" />
+	</files>
+</package>

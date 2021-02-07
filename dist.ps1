@@ -71,7 +71,7 @@ function Build-Library([string]$BuildType, [string]$Arch, [string]$LanguageBindi
 	Pop-Location
 	Copy-Item $env:BuildDir\$BuildType\zt.lib $env:OutputDir\$archAlias$LanguageBindingPostfix\libzt$bitCount.lib
 	Copy-Item $env:BuildDir\$BuildType\zt-shared.dll $env:OutputDir\$archAlias$LanguageBindingPostfix\libzt$bitCount.dll
-	Copy-Item $env:BuildDir\$BuildType\zt-shared.pdb $env:OutputDir\$archAlias$LanguageBindingPostfix\libzt$bitCount.pdb
+	Copy-Item $env:BuildDir\$BuildType\zt-shared.pdb $env:OutputDir\$archAlias$LanguageBindingPostfix\libzt$bitCount.pdb -ErrorAction:'silentlycontinue'
 }
 
 function Build-All

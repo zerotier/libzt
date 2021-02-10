@@ -340,34 +340,33 @@ set_android_env()
 # Build android AAR from ports/android
 android()
 {
-	echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
-	set_android_env
-	copy_root_java_sources_to_projects
-	# NOTE: There's no reason this won't build on linux, it's just that
-	# for our purposes we limit this to execution on macOS
-	if [[ ! $OSNAME = *"darwin"* ]]; then
-		exit 0
-	fi
-	# CMake build files
-	BUILD_DIR=$(pwd)/tmp/android-$1
-	mkdir -p $BUILD_DIR
-	# If clean requested, remove temp build dir
-	if [[ $1 = *"clean"* ]]; then
-		rm -rf $BUILD_DIR
-		exit 0
-	fi
-	# Where to place results
-	LIB_OUTPUT_DIR=$(pwd)/lib/$1/android
-	mkdir -p $LIB_OUTPUT_DIR
-	# Build
-	UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
-	CMAKE_FLAGS="-DSDK_JNI=1 -DSDK_JNI=ON"
-	cd $ANDROID_PROJ_DIR
-	./gradlew $GRADLE_ARGS --recompile-scripts
-	./gradlew $GRADLE_ARGS assemble$UPPERCASE_CONFIG # assembleRelease / assembleDebug
-	mv $ANDROID_PROJ_DIR/app/build/outputs/aar/app-$1.aar \
-		$LIB_OUTPUT_DIR/libzt-$1.aar
-	cd -
+    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+    set_android_env
+    copy_root_java_sources_to_projects
+    # NOTE: There's no reason this won't build on linux, it's just that
+    # for our purposes we limit this to execution on macOS
+    if [[ ! $OSNAME = *"darwin"* ]]; then
+        exit 0
+    fi
+    # CMake build files
+    BUILD_DIR=$(pwd)/tmp/android-$1
+    mkdir -p $BUILD_DIR
+    # If clean requested, remove temp build dir
+    if [[ $1 = *"clean"* ]]; then
+        rm -rf $BUILD_DIR
+        exit 0
+    fi
+    # Where to place results
+    LIB_OUTPUT_DIR=$(pwd)/lib/$1/android
+    mkdir -p $LIB_OUTPUT_DIR
+    # Build
+    UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
+    CMAKE_FLAGS="-DSDK_JNI=1 -DSDK_JNI=ON"
+    cd $ANDROID_PROJ_DIR
+    ./gradlew $GRADLE_ARGS assemble$UPPERCASE_CONFIG # assembleRelease / assembleDebug
+    mv $ANDROID_PROJ_DIR/app/build/outputs/aar/app-$1.aar \
+        $LIB_OUTPUT_DIR/libzt-$1.aar
+    cd -
 }
 
 # Remove intermediate object files and/or libraries

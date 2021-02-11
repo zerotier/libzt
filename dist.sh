@@ -38,7 +38,7 @@ BUILD_CONCURRENCY=
 #"-j 2"
 OSNAME=$(uname | tr '[A-Z]' '[a-z]')
 BUILD_TMP=$(pwd)/tmp
-ANDROID_PROJ_DIR=$(pwd)/ports/android
+ANDROID_PROJ_DIR=$(pwd)/pkg/android
 XCODE_IOS_PROJ_DIR=$(pwd)/ports/xcode_ios
 XCODE_IOS_SIMULATOR_PROJ_DIR=$(pwd)/ports/xcode_ios_simulator
 XCODE_MACOS_PROJ_DIR=$(pwd)/ports/xcode_macos
@@ -328,45 +328,49 @@ host()
 # Set important variables for Android builds
 set_android_env()
 {
-	#JDK=jdk1.8.0_202.jdk
 	# Set ANDROID_HOME because setting sdk.dir in local.properties isn't always reliable
-	export ANDROID_HOME=/Users/$USER/Library/Android/sdk
-	export PATH=/Library/Java/JavaVirtualMachines/$JDK/Contents/Home/bin/:${PATH}
-	export PATH=/Users/$USER/Library/Android/sdk/platform-tools/:${PATH}
+	#export PATH=/Library/Java/JavaVirtualMachines/$JDK/Contents/Home/bin/:${PATH}
+	#export PATH=/Users/$USER/Library/Android/sdk/platform-tools/:${PATH}
 	GRADLE_ARGS=--stacktrace
-	ANDROID_APP_NAME=com.example.mynewestapplication
+	#ANDROID_APP_NAME=com.example.mynewestapplication
+	# for our purposes we limit this to execution on macOS
+	if [[ $OSNAME = *"linux"* ]]; then
+		export ANDROID_HOME=/usr/lib/android-sdk/
+	fi
+	if [[ $OSNAME = *"darwin"* ]]; then
+		export ANDROID_HOME=/Users/$USER/Library/Android/sdk
+	fi
 }
 
-# Build android AAR from ports/android
+# Build android AAR
 android()
 {
-    echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
-    set_android_env
-    copy_root_java_sources_to_projects
-    # NOTE: There's no reason this won't build on linux, it's just that
-    # for our purposes we limit this to execution on macOS
-    if [[ ! $OSNAME = *"darwin"* ]]; then
-        exit 0
-    fi
-    # CMake build files
-    BUILD_DIR=$(pwd)/tmp/android-$1
-    mkdir -p $BUILD_DIR
-    # If clean requested, remove temp build dir
-    if [[ $1 = *"clean"* ]]; then
-        rm -rf $BUILD_DIR
-        exit 0
-    fi
-    # Where to place results
-    LIB_OUTPUT_DIR=$(pwd)/lib/$1/android
-    mkdir -p $LIB_OUTPUT_DIR
-    # Build
-    UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
-    CMAKE_FLAGS="-DSDK_JNI=1 -DSDK_JNI=ON"
-    cd $ANDROID_PROJ_DIR
-    ./gradlew $GRADLE_ARGS assemble$UPPERCASE_CONFIG # assembleRelease / assembleDebug
-    mv $ANDROID_PROJ_DIR/app/build/outputs/aar/app-$1.aar \
-        $LIB_OUTPUT_DIR/libzt-$1.aar
-    cd -
+	echo "Executing task: " ${FUNCNAME[ 0 ]} "(" $1 ")"
+	# Unsure why, but Gradle's build script chokes on this non-source file now
+	rm -rf ext/ZeroTierOne/ext/miniupnpc/VERSION
+	export PATH=$ANDROID_HOME/cmdline-tools/tools/bin:$PATH
+	set_android_env
+	# Copy source files into project
+	cp -f src/bindings/java/*.java ${ANDROID_PROJ_DIR}/app/src/main/java/com/zerotier/libzt
+	# CMake build files
+	BUILD_DIR=$(pwd)/tmp/android-$1
+	mkdir -p $BUILD_DIR
+	# If clean requested, remove temp build dir
+	if [[ $1 = *"clean"* ]]; then
+		rm -rf $BUILD_DIR
+		exit 0
+	fi
+	# Where to place results
+	LIB_OUTPUT_DIR=$(pwd)/lib/$1/android
+	mkdir -p $LIB_OUTPUT_DIR
+	# Build
+	UPPERCASE_CONFIG="$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
+	CMAKE_FLAGS="-DSDK_JNI=1 -DSDK_JNI=ON"
+	cd $ANDROID_PROJ_DIR
+	./gradlew $GRADLE_ARGS assemble$UPPERCASE_CONFIG # assembleRelease / assembleDebug
+	mv $ANDROID_PROJ_DIR/app/build/outputs/aar/*.aar \
+		$LIB_OUTPUT_DIR/libzt-$1.aar
+	cd -
 }
 
 # Remove intermediate object files and/or libraries
@@ -493,8 +497,7 @@ android_app_log_filtered()
 # based projects.
 copy_root_java_sources_to_projects()
 {
-	cp -f src/java/*.java ports/android/app/src/main/java/com/zerotier/libzt
-	cp -f src/java/*.java ports/java/com/zerotier/libzt/
+	cp -f src/bindings/java/*.java ports/java/com/zerotier/libzt/
 }
 
 # At the end of build stage, print contents and trees for inspection

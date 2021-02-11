@@ -28,8 +28,9 @@ clean_ios:
 clean_macos:
 	-rm -rf ports/xcode_macos
 clean_android:
-	-rm -rf ports/android/app/build
-	-find ports -name ".externalNativeBuild" -exec rm -r "{}" \;
+	-rm -rf pkg/android/app/build
+	-find pkg -name ".externalNativeBuild" -exec rm -r "{}" \;
+	$(DIST_BUILD_SCRIPT) android "clean"
 clean_products:
 	-rm -rf products
 .PHONY: clean
@@ -49,8 +50,6 @@ android_release:
 	$(DIST_BUILD_SCRIPT) android "release"
 	$(DIST_BUILD_SCRIPT) clean_android_project
 	$(DIST_BUILD_SCRIPT) prep_android_example "release"
-android_clean:
-	$(DIST_BUILD_SCRIPT) android "clean"
 android: android_debug android_release
 prep_android_debug_example:
 	$(DIST_BUILD_SCRIPT) prep_android_example "debug"

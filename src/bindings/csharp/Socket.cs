@@ -13,7 +13,7 @@
 
 using System; // For ObjectDisposedException
 using System.Net; // For IPEndPoint
-using System.Net.Sockets; // For ZeroTier.SocketException
+using System.Net.Sockets; // For ZeroTier.Sockets.SocketException
 using System.Runtime.InteropServices;
 
 using ZeroTier;
@@ -21,7 +21,7 @@ using ZeroTier;
 /// <summary>
 /// ZeroTier SDK
 /// </summary>
-namespace ZeroTier
+namespace ZeroTier.Sockets
 {
 	/// <summary>
 	/// ZeroTier Socket - An lwIP socket mediated over a ZeroTier virtual link
@@ -45,6 +45,8 @@ namespace ZeroTier
 		bool _isClosed;
 		bool _isListening;
 		bool _isBlocking;
+		bool _isBound;
+		bool _isConnected;
 
 		AddressFamily _socketFamily;
 		SocketType _socketType;
@@ -101,7 +103,7 @@ namespace ZeroTier
 			}
 			if ((_fd = zts_socket(family, type, protocol)) < 0)
 			{
-				throw new ZeroTier.SocketException((int)_fd);
+				throw new ZeroTier.Sockets.SocketException((int)_fd);
 			}
 			_socketFamily = addressFamily;
 			_socketType = socketType;
@@ -132,13 +134,14 @@ namespace ZeroTier
 			}
 			if (_fd < 0) {
 				// Invalid file descriptor
-				throw new ZeroTier.SocketException((int)Constants.ERR_SOCKET);
+				throw new ZeroTier.Sockets.SocketException((int)Constants.ERR_SOCKET);
 			}
 			if (remoteEndPoint == null) {
 				throw new ArgumentNullException("remoteEndPoint");
 			}
 			int err = Constants.ERR_OK;
 			int addrlen = 0;
+			IntPtr remoteAddrPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(zts_sockaddr)));
 			if (remoteEndPoint.AddressFamily == AddressFamily.InterNetwork)
 			{	            
 				zts_sockaddr_in sa = new zts_sockaddr_in();
@@ -159,10 +162,9 @@ namespace ZeroTier
 				sa.sin_addr = remoteEndPoint.Address.GetAddressBytes();
 				sa.sin_len = (byte)addrlen; // lwIP-specific
 			
-				IntPtr ptr1 = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(zts_sockaddr)));
-				Marshal.StructureToPtr(sa, ptr1, false);
-				//zts_sockaddr sAddr = (zts_sockaddr)Marshal.PtrToStructure(ptr1, typeof(zts_sockaddr));
-				err = zts_connect(_fd, ptr1, (byte)addrlen);
+				Marshal.StructureToPtr(sa, remoteAddrPtr, false);
+				//zts_sockaddr sAddr = (zts_sockaddr)Marshal.PtrToStructure(remoteAddrPtr, typeof(zts_sockaddr));
+				err = zts_connect(_fd, remoteAddrPtr, (byte)addrlen);
 
 			}
 			if (remoteEndPoint.AddressFamily == AddressFamily.InterNetworkV6)
@@ -179,9 +181,11 @@ namespace ZeroTier
 				*/
 			}
 			if (err < 0) {
-				throw new ZeroTier.SocketException(err, ZeroTier.Node.ErrNo);
+				throw new ZeroTier.Sockets.SocketException(err, ZeroTier.Core.Node.ErrNo);
 			}
+			Marshal.FreeHGlobal(remoteAddrPtr);
 			_remoteEndPoint = remoteEndPoint;
+			_isConnected = true;
 		}
 
 		public void Bind(IPEndPoint localEndPoint)
@@ -191,13 +195,14 @@ namespace ZeroTier
 			}
 			if (_fd < 0) {
 				// Invalid file descriptor
-				throw new ZeroTier.SocketException((int)Constants.ERR_SOCKET);
+				throw new ZeroTier.Sockets.SocketException((int)Constants.ERR_SOCKET);
 			}
 			if (localEndPoint == null) {
 				throw new ArgumentNullException("localEndPoint");
 			}
 			int err = Constants.ERR_OK;
 			int addrlen = 0;
+			IntPtr localAddrPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(zts_sockaddr)));
 			if (localEndPoint.AddressFamily == AddressFamily.InterNetwork)
 			{	            
 				zts_sockaddr_in sa = new zts_sockaddr_in();
@@ -217,10 +222,9 @@ namespace ZeroTier
 				sa.sin_port = (short)zts_htons((ushort)localEndPoint.Port);
 				sa.sin_addr = localEndPoint.Address.GetAddressBytes();
 				sa.sin_len = (byte)addrlen; // lwIP-specific
-			
-				IntPtr ptr1 = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(zts_sockaddr)));
-				Marshal.StructureToPtr(sa, ptr1, false);
-				err = zts_bind(_fd, ptr1, (byte)addrlen);
+
+				Marshal.StructureToPtr(sa, localAddrPtr, false);
+				err = zts_bind(_fd, localAddrPtr, (byte)addrlen);
 			}
 			if (localEndPoint.AddressFamily == AddressFamily.InterNetworkV6)
 			{
@@ -236,9 +240,11 @@ namespace ZeroTier
 				*/
 			}
 			if (err < 0) {
-				throw new ZeroTier.SocketException((int)err);
+				throw new ZeroTier.Sockets.SocketException((int)err);
 			}
+			Marshal.FreeHGlobal(localAddrPtr);
 			_localEndPoint = localEndPoint;
+			_isBound = true;
 		}
 
 		public void Listen(int backlog)
@@ -248,12 +254,12 @@ namespace ZeroTier
 			}
 			if (_fd < 0) {
 				// Invalid file descriptor
-				throw new ZeroTier.SocketException((int)Constants.ERR_SOCKET);
+				throw new ZeroTier.Sockets.SocketException((int)Constants.ERR_SOCKET);
 			}
 			int err = Constants.ERR_OK;
 			if ((err = zts_listen(_fd, backlog)) < 0) {
 				// Invalid backlog value perhaps?
-				throw new ZeroTier.SocketException((int)Constants.ERR_SOCKET);
+				throw new ZeroTier.Sockets.SocketException((int)Constants.ERR_SOCKET);
 			}
 			_isListening = true;
 		}
@@ -265,7 +271,7 @@ namespace ZeroTier
 			}
 			if (_fd < 0) {
 				// Invalid file descriptor
-				throw new ZeroTier.SocketException((int)Constants.ERR_SOCKET);
+				throw new ZeroTier.Sockets.SocketException((int)Constants.ERR_SOCKET);
 			}
 			if (_isListening == false) {
 				throw new InvalidOperationException("Socket is not in a listening state. Call Listen() first");
@@ -281,7 +287,7 @@ namespace ZeroTier
 
 			int err = zts_accept(_fd, remoteAddrPtr, addrlenPtr);
 			if (err < 0) {
-				throw new ZeroTier.SocketException(err, ZeroTier.Node.ErrNo);
+				throw new ZeroTier.Sockets.SocketException(err, ZeroTier.Core.Node.ErrNo);
 			}
 			in4 = (zts_sockaddr_in)Marshal.PtrToStructure(remoteAddrPtr, typeof(zts_sockaddr_in));
 			// Convert sockaddr contents to IPEndPoint
@@ -290,6 +296,7 @@ namespace ZeroTier
 			// Create new socket by providing file descriptor returned from zts_accept call.
 			Socket clientSocket = new Socket(
 				err, _socketFamily, _socketType, _socketProtocol, _localEndPoint, clientEndPoint);
+			Marshal.FreeHGlobal(remoteAddrPtr);
 			return clientSocket;
 		}
 
@@ -323,20 +330,6 @@ namespace ZeroTier
 			_isClosed = true;
 		}
 
-		public EndPoint RemoteEndPoint
-		{
-			get {
-				return _remoteEndPoint;
-			}
-		}
-
-		public EndPoint LocalEndPoint
-		{
-			get {
-				return _localEndPoint;
-			}
-		}
-
 		public bool Blocking
 		{
 			get {
@@ -348,18 +341,16 @@ namespace ZeroTier
 				}
 				int opts = 0;
 				if ((opts = zts_fcntl(_fd, (int)(ZeroTier.Constants.F_GETFL), 0)) < 0) {
-					throw new ZeroTier.SocketException(opts, ZeroTier.Node.ErrNo);
+					throw new ZeroTier.Sockets.SocketException(opts, ZeroTier.Core.Node.ErrNo);
 				}
-				Console.WriteLine("before.opts={0}", opts);
 				if (value) { // Blocking
 					opts = opts & (~(ZeroTier.Constants.O_NONBLOCK));
 				}
 				if (!value) { // Non-Blocking
 					opts = opts | (int)(ZeroTier.Constants.O_NONBLOCK);
 				}
-				Console.WriteLine("after.opts={0}", opts);
 				if ((opts = zts_fcntl(_fd, ZeroTier.Constants.F_SETFL, (int)opts)) < 0) {
-					throw new ZeroTier.SocketException(opts, ZeroTier.Node.ErrNo);
+					throw new ZeroTier.Sockets.SocketException(opts, ZeroTier.Core.Node.ErrNo);
 				}
 				_isBlocking = value;
 			}
@@ -379,7 +370,8 @@ namespace ZeroTier
 				poll_set.events = (short)((byte)ZeroTier.Constants.POLLOUT);
 			}
 			if (mode == SelectMode.SelectError) {
-				poll_set.events = (short)((byte)ZeroTier.Constants.POLLERR | (byte)ZeroTier.Constants.POLLNVAL);
+				poll_set.events = (short)((byte)ZeroTier.Constants.POLLERR |
+					(byte)ZeroTier.Constants.POLLNVAL);
 			}
 			IntPtr poll_fd_ptr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(zts_pollfd)));
 			Marshal.StructureToPtr(poll_set, poll_fd_ptr, false);
@@ -387,20 +379,23 @@ namespace ZeroTier
 			int timeout_ms = (microSeconds / 1000);
 			uint numfds = 1;
 			if ((result = zts_poll(poll_fd_ptr, numfds, timeout_ms)) < 0) {
-				throw new ZeroTier.SocketException(result, ZeroTier.Node.ErrNo);
+				throw new ZeroTier.Sockets.SocketException(result, ZeroTier.Core.Node.ErrNo);
 			}
 			poll_set = (zts_pollfd)Marshal.PtrToStructure(poll_fd_ptr, typeof(zts_pollfd));
-			if (result == 0) { return false; } // No events
-			if (mode == SelectMode.SelectRead) {
-				return ((byte)poll_set.revents & (byte)ZeroTier.Constants.POLLIN) != 0;
+			if (result != 0) {
+				if (mode == SelectMode.SelectRead) {
+					result = Convert.ToInt32(((byte)poll_set.revents & (byte)ZeroTier.Constants.POLLIN) != 0);
+				}
+				if (mode == SelectMode.SelectWrite) {
+					result = Convert.ToInt32(((byte)poll_set.revents & (byte)ZeroTier.Constants.POLLOUT) != 0);
+				}
+				if (mode == SelectMode.SelectError) {
+					result = Convert.ToInt32(((poll_set.revents & (byte)ZeroTier.Constants.POLLERR) != 0) ||
+					((poll_set.revents & (byte)ZeroTier.Constants.POLLNVAL) != 0));
+				}
 			}
-			if (mode == SelectMode.SelectWrite) {
-				return ((byte)poll_set.revents & (byte)ZeroTier.Constants.POLLOUT) != 0;
-			}
-			if (mode == SelectMode.SelectError) {
-				return ((poll_set.revents & (byte)ZeroTier.Constants.POLLERR) != 0) || ((poll_set.revents & (byte)ZeroTier.Constants.POLLNVAL) != 0);
-			}
-			return false;
+			Marshal.FreeHGlobal(poll_fd_ptr);
+			return result > 0;
 		}
 
 		public Int32 Send(Byte[] buffer)
@@ -409,7 +404,7 @@ namespace ZeroTier
 				throw new ObjectDisposedException("Socket has been closed");
 			}
 			if (_fd < 0) {
-				throw new ZeroTier.SocketException((int)ZeroTier.Constants.ERR_SOCKET);
+				throw new ZeroTier.Sockets.SocketException((int)ZeroTier.Constants.ERR_SOCKET);
 			}
 			if (buffer == null) {
 				throw new ArgumentNullException("buffer");
@@ -425,7 +420,7 @@ namespace ZeroTier
 				throw new ObjectDisposedException("Socket has been closed");
 			}
 			if (_fd < 0) {
-				throw new ZeroTier.SocketException((int)ZeroTier.Constants.ERR_SOCKET);
+				throw new ZeroTier.Sockets.SocketException((int)ZeroTier.Constants.ERR_SOCKET);
 			}
 			if (buffer == null) {
 				throw new ArgumentNullException("buffer");
@@ -434,6 +429,87 @@ namespace ZeroTier
 			IntPtr bufferPtr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
 			return zts_recv(_fd, bufferPtr, (uint)Buffer.ByteLength(buffer), (int)flags);
 		}
+
+		private void _set_timeout(int timeout_ms, int optname)
+		{
+			zts_timeval tv = new zts_timeval();
+			// Convert milliseconds to timeval struct
+			tv.tv_sec = timeout_ms / 1000;
+			tv.tv_usec = (timeout_ms % 1000) * 1000;
+			IntPtr tv_ptr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(zts_timeval)));
+			Marshal.StructureToPtr(tv, tv_ptr, false);
+			ushort option_size = (ushort)Marshal.SizeOf(typeof(zts_sockaddr_in));
+			int err = 0;
+			if ((err = zts_setsockopt(_fd, ZeroTier.Constants.SOL_SOCKET,
+				ZeroTier.Constants.SO_RCVTIMEO, tv_ptr, option_size)) < 0) {
+				throw new ZeroTier.Sockets.SocketException(err, ZeroTier.Core.Node.ErrNo);
+			}
+			Marshal.FreeHGlobal(tv_ptr);
+		}
+
+		private int _get_timeout(int optname)
+		{
+			zts_timeval tv = new zts_timeval();
+			IntPtr tv_ptr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(zts_timeval)));
+			Marshal.StructureToPtr(tv, tv_ptr, false);
+			ushort optlen = (ushort)Marshal.SizeOf(typeof(zts_timeval));
+			GCHandle optlen_gc_handle = GCHandle.Alloc(optlen, GCHandleType.Pinned);
+			IntPtr optlen_ptr = optlen_gc_handle.AddrOfPinnedObject();
+			int err = 0;
+			if ((err = zts_getsockopt(_fd, ZeroTier.Constants.SOL_SOCKET,
+				ZeroTier.Constants.SO_RCVTIMEO, tv_ptr, optlen_ptr)) < 0) {
+				throw new ZeroTier.Sockets.SocketException(err, ZeroTier.Core.Node.ErrNo);
+			}
+			tv = (zts_timeval)Marshal.PtrToStructure(tv_ptr, typeof(zts_timeval));
+			optlen_gc_handle.Free();
+			Marshal.FreeHGlobal(tv_ptr);
+			// Convert timeval struct to milliseconds
+			return (int)((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
+		}
+
+		public int ReceiveTimeout
+		{
+			get { return _get_timeout(ZeroTier.Constants.SO_RCVTIMEO); }
+			set { _set_timeout(value, ZeroTier.Constants.SO_RCVTIMEO); }
+		}
+
+		public int SendTimeout
+		{
+			get { return _get_timeout(ZeroTier.Constants.SO_SNDTIMEO); }
+			set { _set_timeout(value, ZeroTier.Constants.SO_SNDTIMEO); }
+		}
+
+		/* TODO 
+		public int ReceiveBufferSize { get; set; }
+
+		public int SendBufferSize { get; set; }
+
+		public short Ttl { get; set; }
+
+		public LingerOption LingerState { get; set; }
+
+		public bool NoDelay { get; set;  }
+		*/
+
+		public bool Connected { get { return _isConnected; } }
+
+		public bool IsBound { get { return _isBound; } }
+
+		public AddressFamily AddressFamily { get { return _socketFamily; } }
+
+		public SocketType SocketType { get { return _socketType; } }
+
+		public ProtocolType ProtocolType { get { return _socketProtocol; } }
+
+		/* .NET has moved to OSSupportsIPv* but libzt isn't an OS so we keep this old convention */
+		public static bool SupportsIPv4 { get { return true; } }
+
+		/* .NET has moved to OSSupportsIPv* but libzt isn't an OS so we keep this old convention */
+		public static bool SupportsIPv6 { get { return true; } }
+
+		public EndPoint RemoteEndPoint { get { return _remoteEndPoint; } }
+
+		public EndPoint LocalEndPoint { get { return _localEndPoint; } }
 
 		/* Structures and functions used internally to communicate with
 		lower-level C API defined in include/ZeroTierSockets.h */
@@ -586,6 +662,13 @@ namespace ZeroTier
 			public int fd;
 			public short events;
 			public short revents;
+		}
+
+		[StructLayout(LayoutKind.Sequential)]
+		struct zts_timeval
+		{
+			public long tv_sec;
+			public long tv_usec;
 		}
 	}
 }

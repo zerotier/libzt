@@ -13,7 +13,7 @@
 
 using System;
 
-namespace ZeroTier
+namespace ZeroTier.Sockets
 {
 	/// <summary>Exception class for ZeroTier service and low-level socket errors</summary>
 	public class SocketException : Exception

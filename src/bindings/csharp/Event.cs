@@ -15,7 +15,7 @@ using System.Net;
 
 using ZeroTier;
 
-namespace ZeroTier
+namespace ZeroTier.Core
 {
 	/* Convenience structures for exposing lower level operational details to the user.
 	These structures do not have the same memory layout or content as those found in

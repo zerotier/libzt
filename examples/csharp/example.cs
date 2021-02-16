@@ -5,24 +5,39 @@ using System.Net;
 using System.Net.Sockets; // For SocketType, etc
 using System.Text; // For Encoding
 
-using ZeroTier; // For ZeroTier.Node, ZeroTier.Event, and ZeroTier.Socket
+/**
+ *
+ * Namespaces explained:
+ *
+ * ZeroTier.Core (API to control a ZeroTier Node)
+ *   -> class ZeroTier.Core.Node
+ *   -> class ZeroTier.Core.Event
+ *
+ * ZeroTier.Sockets (Socket API similar to System.Net.Sockets)
+ *   -> class ZeroTier.Sockets.Socket
+ *   -> class ZeroTier.Sockets.SocketException
+ *
+ * ZeroTier.Central (upcoming)
+ *
+ */
+using ZeroTier;
 
 public class ExampleApp {
 
-	ZeroTier.Node node;
+	ZeroTier.Core.Node node;
 
 	/**
 	 * Initialize and start ZeroTier
 	 */
 	public void StartZeroTier(string configFilePath, ushort servicePort, ulong networkId)
 	{
-		node = new ZeroTier.Node(configFilePath, OnZeroTierEvent, servicePort);
+		node = new ZeroTier.Core.Node(configFilePath, OnZeroTierEvent, servicePort);
 		node.Start(); // Network activity only begins after calling Start()
 
 		/* How you do this next part is up to you, but essentially we're waiting for the node
-		to signal to us (via a ZeroTier.Event) that it has access to the internet and is
-		able to talk to one of our root servers. As a convenience you can just periodically check
-		IsOnline() instead of looking for the event via the callback. */
+		to signal to us via OnZeroTierEvent(ZeroTier.Core.Event) that it has access to the
+		internet and is able to talk to one of our root servers. As a convenience you can just
+		periodically check Node.IsOnline() instead of looking for the event via the callback. */
 		while (!node.IsOnline()) { Thread.Sleep(100); }
 
 		/* After the node comes online you may now join/leave networks. You will receive
@@ -31,7 +46,7 @@ public class ExampleApp {
 		or removed routes, etc. */
 		node.Join(networkId);
 
-		/* Note that ZeroTier.Socket calls will fail if there are no routes available, for this
+		/* Note that ZeroTier.Sockets.Socket calls will fail if there are no routes available, for this
 		reason we should wait to make those calls until the node has indicated to us that at
 		least one network has been joined successfully. */
 		while (!node.HasRoutes()) { Thread.Sleep(100); }
@@ -49,7 +64,7 @@ public class ExampleApp {
 	 * Your application should process event messages and return control as soon as possible. Blocking
 	 * or otherwise time-consuming operations are not reccomended here.
 	 */
-	public void OnZeroTierEvent(ZeroTier.Event e)
+	public void OnZeroTierEvent(ZeroTier.Core.Event e)
 	{
 		Console.WriteLine("Event.eventCode = {0} ({1})", e.EventCode, e.EventName);
 
@@ -73,7 +88,7 @@ public class ExampleApp {
 		byte[] bytes = new Byte[1024];
 
 		Console.WriteLine(localEndPoint.ToString());
-		ZeroTier.Socket listener = new ZeroTier.Socket(AddressFamily.InterNetwork,
+		ZeroTier.Sockets.Socket listener = new ZeroTier.Sockets.Socket(AddressFamily.InterNetwork,
 			SocketType.Stream, ProtocolType.Tcp );
 
 		// Bind the socket to the local endpoint and
@@ -89,13 +104,13 @@ public class ExampleApp {
 				// Program is suspended while waiting for an incoming connection.
 				bool nonblocking = true;
 
-				ZeroTier.Socket handler;
+				ZeroTier.Sockets.Socket handler;
 
 				if (nonblocking) { // Non-blocking style Accept() loop using Poll()
 					Console.WriteLine("Starting non-blocking Accept() loop...");
 					listener.Blocking = false;
 					// loop
-					int timeout = 1000000; // microseconds (1 second)
+					int timeout = 100000; // microseconds (1 second)
 					while (true) {
 						Console.WriteLine("Polling... (for data or incoming connections)");
 						if (listener.Poll(timeout, SelectMode.SelectRead)) {
@@ -103,7 +118,7 @@ public class ExampleApp {
 							handler = listener.Accept();
 							break;
 						}
-						Thread.Sleep(1000);
+						//Thread.Sleep(5);
 					}
 				}
 				else { // Blocking style
@@ -113,26 +128,40 @@ public class ExampleApp {
 				data = null;
 				Console.WriteLine("Accepted connection from: " + handler.RemoteEndPoint.ToString());
 
+				// handler.ReceiveTimeout = 1000;
+
 				// An incoming connection needs to be processed.
 				while (true) {
-					int bytesRec = handler.Receive(bytes);
-					Console.WriteLine("Bytes received: {0}", bytesRec);
-					data += Encoding.ASCII.GetString(bytes,0,bytesRec);
-
+					int bytesRec = 0;
+					try {
+						Console.WriteLine("Receiving...");
+						bytesRec = handler.Receive(bytes);
+					}
+					catch (ZeroTier.Sockets.SocketException e)
+					{
+						Console.WriteLine("ServiveErrorCode={0} SocketErrorCode={1}", e.ServiceErrorCode, e.SocketErrorCode);
+					}
 					if (bytesRec > 0) {
+						Console.WriteLine("Bytes received: {0}", bytesRec);
+						data = Encoding.ASCII.GetString(bytes,0,bytesRec);
 						Console.WriteLine( "Text received : {0}", data);
-						break;
+						//break;
+						// Echo the data back to the client.
+						byte[] msg = Encoding.ASCII.GetBytes(data);
+						handler.Send(msg);
+					}
+					else
+					{
+						System.GC.Collect();
+						Console.WriteLine("No data...");
 					}
 				}
-				// Echo the data back to the client.
-				byte[] msg = Encoding.ASCII.GetBytes(data);
 
-				handler.Send(msg);
 				handler.Shutdown(SocketShutdown.Both);
 				handler.Close();
 			}
 
-		} catch (ZeroTier.SocketException e) {
+		} catch (ZeroTier.Sockets.SocketException e) {
 			Console.WriteLine(e);
 			Console.WriteLine("ServiveErrorCode={0} SocketErrorCode={1}", e.ServiceErrorCode, e.SocketErrorCode);
 		}
@@ -151,7 +180,7 @@ public class ExampleApp {
 		// Connect to a remote device.
 		try {
 			// Create a TCP/IP  socket.
-			ZeroTier.Socket sender = new ZeroTier.Socket(AddressFamily.InterNetwork,
+			ZeroTier.Sockets.Socket sender = new ZeroTier.Sockets.Socket(AddressFamily.InterNetwork,
 				SocketType.Stream, ProtocolType.Tcp );
 
 			// Connect the socket to the remote endpoint. Catch any errors.
@@ -181,7 +210,7 @@ public class ExampleApp {
 
 			} catch (ArgumentNullException ane) {
 				Console.WriteLine("ArgumentNullException : {0}",ane.ToString());
-			} catch (ZeroTier.SocketException e) {
+			} catch (ZeroTier.Sockets.SocketException e) {
 				Console.WriteLine(e);
 				Console.WriteLine("ServiveErrorCode={0} SocketErrorCode={1}", e.ServiceErrorCode, e.SocketErrorCode);
 			}

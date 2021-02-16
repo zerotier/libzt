@@ -9,7 +9,7 @@
 		<license type="file">LICENSE.txt</license>
 		<icon>icon.png</icon>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
-		<releaseNotes>Initial release</releaseNotes>
+		<releaseNotes>Namespace adjustments, additions to Socket API, memory leak fixes.</releaseNotes>
 		<description>Encrypted P2P SD-WAN networking layer (Managed C# API) [x64]</description>
 		<title>Encrypted P2P SD-WAN networking layer (Managed C# API) [x64]</title>
 		<copyright>Copyright 2021 ZeroTier, Inc.</copyright>

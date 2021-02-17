@@ -14,6 +14,8 @@
 using System.Runtime.InteropServices;
 using System;
 
+using ZeroTier;
+
 // Prototype of callback used by ZeroTier to signal events to C# application
 [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 public delegate void CSharpCallbackWithStruct(IntPtr msgPtr);
@@ -21,9 +23,9 @@ public delegate void CSharpCallbackWithStruct(IntPtr msgPtr);
 /// <summary>
 /// ZeroTier SDK
 /// </summary>
-namespace ZeroTier
+namespace ZeroTier.Core
 {
-	public delegate void ZeroTierManagedEventCallback(ZeroTier.Event nodeEvent);
+	public delegate void ZeroTierManagedEventCallback(ZeroTier.Core.Event nodeEvent);
 
 	/// <summary>
 	/// ZeroTier Node - Virtual network subsystem
@@ -45,11 +47,11 @@ namespace ZeroTier
 			zts_callback_msg msg =
 				(zts_callback_msg)Marshal.PtrToStructure(msgPtr, typeof(zts_callback_msg));
 
-			ZeroTier.Event newEvent = null;
+			ZeroTier.Core.Event newEvent = null;
 
 			// Node events
 			if (msg.eventCode == Constants.EVENT_NODE_UP) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NODE_UP");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NODE_UP");
 			}
 			if (msg.eventCode == Constants.EVENT_NODE_ONLINE) {
 				_isOnline = true;
@@ -57,135 +59,135 @@ namespace ZeroTier
 				zts_node_details details =
 					(zts_node_details)Marshal.PtrToStructure(msg.node, typeof(zts_node_details));
 				_nodeId = details.address;
-				newEvent = new ZeroTier.Event(msg.eventCode, "EVENT_NODE_ONLINE");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode, "EVENT_NODE_ONLINE");
 			}
 			if (msg.eventCode == Constants.EVENT_NODE_OFFLINE) {
 				_isOnline = false;
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NODE_OFFLINE");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NODE_OFFLINE");
 			}
 			if (msg.eventCode == Constants.EVENT_NODE_NORMAL_TERMINATION) {
 				_isOnline = false;
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NODE_NORMAL_TERMINATION");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NODE_NORMAL_TERMINATION");
 			}
 			if (msg.eventCode == Constants.EVENT_NODE_DOWN) {
 				_isOnline = false;
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NODE_DOWN");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NODE_DOWN");
 			}
 			if (msg.eventCode == Constants.EVENT_NODE_IDENTITY_COLLISION) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NODE_IDENTITY_COLLISION");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NODE_IDENTITY_COLLISION");
 				_isOnline = false;
 			}
 			if (msg.eventCode == Constants.EVENT_NODE_UNRECOVERABLE_ERROR) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NODE_UNRECOVERABLE_ERROR");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NODE_UNRECOVERABLE_ERROR");
 				_isOnline = false;
 			}
 
 			// Network events
 			if (msg.eventCode == Constants.EVENT_NETWORK_NOT_FOUND) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETWORK_NOT_FOUND");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETWORK_NOT_FOUND");
 			}
 			if (msg.eventCode == Constants.EVENT_NETWORK_REQ_CONFIG) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETWORK_REQ_CONFIG");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETWORK_REQ_CONFIG");
 			}
 			if (msg.eventCode == Constants.EVENT_NETWORK_ACCESS_DENIED) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETWORK_ACCESS_DENIED");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETWORK_ACCESS_DENIED");
 			}
 			if (msg.eventCode == Constants.EVENT_NETWORK_READY_IP4) {
 				_joinedAtLeastOneNetwork = true;
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETWORK_READY_IP4");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETWORK_READY_IP4");
 			}
 			if (msg.eventCode == Constants.EVENT_NETWORK_READY_IP6) {
 				_joinedAtLeastOneNetwork = true;
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETWORK_READY_IP6");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETWORK_READY_IP6");
 			}
 			if (msg.eventCode == Constants.EVENT_NETWORK_DOWN) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETWORK_DOWN");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETWORK_DOWN");
 			}
 			if (msg.eventCode == Constants.EVENT_NETWORK_CLIENT_TOO_OLD) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETWORK_CLIENT_TOO_OLD");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETWORK_CLIENT_TOO_OLD");
 			}
 			if (msg.eventCode == Constants.EVENT_NETWORK_REQ_CONFIG) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETWORK_REQ_CONFIG");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETWORK_REQ_CONFIG");
 			}
 			if (msg.eventCode == Constants.EVENT_NETWORK_OK) {
 				zts_network_details unmanagedDetails =
 					(zts_network_details)Marshal.PtrToStructure(msg.network, typeof(zts_network_details));
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETWORK_OK");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETWORK_OK");
 				newEvent.networkDetails = new NetworkDetails();
 				newEvent.networkDetails.networkId = unmanagedDetails.nwid;
 			}
 			if (msg.eventCode == Constants.EVENT_NETWORK_ACCESS_DENIED) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETWORK_ACCESS_DENIED");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETWORK_ACCESS_DENIED");
 			}
 			if (msg.eventCode == Constants.EVENT_NETWORK_READY_IP4_IP6) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETWORK_READY_IP4_IP6");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETWORK_READY_IP4_IP6");
 			}
 			if (msg.eventCode == Constants.EVENT_NETWORK_UPDATE) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETWORK_UPDATE");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETWORK_UPDATE");
 			}
 
 			// Stack events
 			if (msg.eventCode == Constants.EVENT_STACK_UP) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_STACK_UP");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_STACK_UP");
 			}
 			if (msg.eventCode == Constants.EVENT_STACK_DOWN) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_STACK_DOWN");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_STACK_DOWN");
 			}
 
 			// Address events
 			if (msg.eventCode == Constants.EVENT_ADDR_ADDED_IP4) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_ADDR_ADDED_IP4");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_ADDR_ADDED_IP4");
 			}
 			if (msg.eventCode == Constants.EVENT_ADDR_ADDED_IP6) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_ADDR_ADDED_IP6");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_ADDR_ADDED_IP6");
 			}
 			if (msg.eventCode == Constants.EVENT_ADDR_REMOVED_IP4) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_ADDR_REMOVED_IP4");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_ADDR_REMOVED_IP4");
 			}
 			if (msg.eventCode == Constants.EVENT_ADDR_REMOVED_IP6) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_ADDR_REMOVED_IP6");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_ADDR_REMOVED_IP6");
 			}
 			// peer events
 			if (msg.eventCode == Constants.EVENT_PEER_DIRECT) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_PEER_DIRECT");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_PEER_DIRECT");
 			}
 			if (msg.eventCode == Constants.EVENT_PEER_RELAY) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_PEER_RELAY");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_PEER_RELAY");
 			}
-			// newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_PEER_UNREACHABLE");
+			// newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_PEER_UNREACHABLE");
 			if (msg.eventCode == Constants.EVENT_PEER_PATH_DISCOVERED) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_PEER_PATH_DISCOVERED");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_PEER_PATH_DISCOVERED");
 			}
 			if (msg.eventCode == Constants.EVENT_PEER_PATH_DEAD) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_PEER_PATH_DEAD");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_PEER_PATH_DEAD");
 			}
 
 			// Route events
 			if (msg.eventCode == Constants.EVENT_ROUTE_ADDED) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_ROUTE_ADDED");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_ROUTE_ADDED");
 			}
 			if (msg.eventCode == Constants.EVENT_ROUTE_REMOVED) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_ROUTE_REMOVED");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_ROUTE_REMOVED");
 			}
 
 			// Netif events
 			if (msg.eventCode == Constants.EVENT_NETIF_UP) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETIF_UP");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETIF_UP");
 			}
 			if (msg.eventCode == Constants.EVENT_NETIF_DOWN) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETIF_DOWN");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETIF_DOWN");
 			}
 			if (msg.eventCode == Constants.EVENT_NETIF_REMOVED) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETIF_REMOVED");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETIF_REMOVED");
 			}
 			if (msg.eventCode == Constants.EVENT_NETIF_LINK_UP) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETIF_LINK_UP");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETIF_LINK_UP");
 			}
 			if (msg.eventCode == Constants.EVENT_NETIF_LINK_DOWN) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_NETIF_LINK_DOWN");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETIF_LINK_DOWN");
 			}
 			if (msg.eventCode == Constants.EVENT_ADDR_REMOVED_IP6) {
-				newEvent = new ZeroTier.Event(msg.eventCode,"EVENT_ADDR_REMOVED_IP6");
+				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_ADDR_REMOVED_IP6");
 			}
 
 			// Pass the converted Event to the managed callback (visible to user)

@@ -250,7 +250,7 @@ namespace ZeroTier
 		public static readonly short MSG_DONTWAIT    = 0x0008;
 		public static readonly short MSG_MORE        = 0x0010;
 
-		// Macro's for defining ioctl() command values
+		// Macros for defining ioctl() command values
 		/*
 		public static readonly ulong IOCPARM_MASK    = 0x7fU;
 		public static readonly ulong IOC_VOID        = 0x20000000UL;

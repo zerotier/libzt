@@ -587,7 +587,7 @@ SWIGEXPORT void SWIGSTDCALL CSharp_zts_delay_ms(long jarg1) {
   zts_delay_ms(arg1);
 }
 
-
+/*
 SWIGEXPORT int SWIGSTDCALL CSharp_zts_get_all_stats(void * jarg1) {
   int jresult ;
   zts_stats *arg1 = (zts_stats *) 0 ;
@@ -612,7 +612,7 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_get_protocol_stats(int jarg1, void * jarg2
   jresult = result; 
   return jresult;
 }
-
+*/
 
 SWIGEXPORT int SWIGSTDCALL CSharp_zts_socket(int jarg1, int jarg2, int jarg3) {
   int jresult ;

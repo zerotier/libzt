@@ -20,6 +20,21 @@
 #ifndef ZT_SOCKETS_H
 #define ZT_SOCKETS_H
 
+//////////////////////////////////////////////////////////////////////////////
+// Configuration Options                                                    //
+//////////////////////////////////////////////////////////////////////////////
+
+#ifdef ZTS_ENABLE_PYTHON
+	/* In some situations (Python comes to mind) a signal may not make its
+	way to libzt, for this reason we make sure to define a custom signal handler
+	that can at least process SIGTERMs */
+	#define ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS 1
+#endif
+
+#if !defined(ZTS_ENABLE_PYTHON) && !defined(ZTS_ENABLE_PINVOKE)
+#define ZTS_C_API_ONLY 1
+#endif
+
 #if !ZTS_NO_STDINT_H
 #include <stdint.h>
 #endif
@@ -39,7 +54,7 @@
 extern "C" {
 #endif
 
-#ifdef ZTS_PINVOKE
+#ifdef ZTS_ENABLE_PINVOKE
 	// Used by P/INVOKE wrappers
 	typedef void (*CppCallback)(void *msg);
 #endif
@@ -735,9 +750,6 @@ struct zts_network_details
 	} multicastSubscriptions[ZTS_MAX_MULTICAST_SUBSCRIPTIONS];
 };
 
-
-
-
 /**
  * Physical network path to a peer
  */
@@ -830,6 +842,94 @@ struct zts_peer_list
 };
 
 //////////////////////////////////////////////////////////////////////////////
+// Python bits                                                              //
+//////////////////////////////////////////////////////////////////////////////
+
+#ifdef ZTS_ENABLE_PYTHON
+
+#include "Python.h"
+
+/**
+ * Abstract class used as a director. Pointer to an instance of this class
+ * is provided to the Python layer.
+ *
+ * See: https://rawgit.com/swig/swig/master/Doc/Manual/SWIGPlus.html#SWIGPlus_target_language_callbacks
+ */
+class PythonDirectorCallbackClass
+{
+public:
+	/**
+	 * Called by native code on event. Implemented in Python
+	 */
+	virtual void on_zerotier_event(struct zts_callback_msg *msg);
+	virtual ~PythonDirectorCallbackClass() {};
+};
+
+extern PythonDirectorCallbackClass *_userEventCallback;
+
+/**
+ * @brief 
+ *
+ * @param fd
+ * @param
+ * @param
+ * @param
+ *
+ * @return 
+ */
+int zts_sock_bind(int fd, int family, int type, PyObject *addro);
+
+/**
+ * @brief 
+ *
+ * @param fd
+ * @param
+ * @param
+ * @param
+ *
+ * @return 
+ */
+int zts_sock_connect(int fd, int family, int type, PyObject *addro);
+
+/**
+ * @brief 
+ *
+ * @param fd
+ * @param
+ * @param
+ * @param
+ *
+ * @return 
+ */
+PyObject * zts_sock_accept(int fd);
+
+/**
+ * @brief 
+ *
+ * @param fd
+ * @param
+ * @param
+ * @param
+ *
+ * @return 
+ */
+PyObject * zts_sock_recv(int fd, int len, int flags);
+
+/**
+ * @brief 
+ *
+ * @param fd
+ * @param
+ * @param
+ * @param
+ *
+ * @return 
+ */
+int zts_sock_send(int fd, PyObject *buf, int len, int flags);
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
 // ZeroTier Service Controls                                                //
 //////////////////////////////////////////////////////////////////////////////
 
@@ -849,7 +949,7 @@ struct zts_peer_list
 // Central API                                                              //
 //////////////////////////////////////////////////////////////////////////////
 
-#ifndef NO_CENTRAL_API
+#ifdef ZTS_ENABLE_CENTRAL_API
 
 #define CENTRAL_API_DEFAULT_URL         "https://my.zerotier.com"
 #define CENRTAL_API_MAX_URL_LEN         128
@@ -1032,12 +1132,17 @@ ZTS_API int ZTCALL zts_get_node_identity(char *key_pair_str, uint16_t *key_buf_l
  * @param port Port that the library should use for talking to other ZeroTier nodes
  * @return ZTS_ERR_OK on success. ZTS_ERR_SERVICE or ZTS_ERR_ARG on failure
  */
-#ifdef ZTS_PINVOKE
-	ZTS_API int ZTCALL zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
-		CppCallback callback, uint16_t port);
-#else
-	ZTS_API int ZTCALL zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
-		void (*callback)(void *), uint16_t port);
+#ifdef ZTS_ENABLE_PYTHON
+int zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
+		PythonDirectorCallbackClass *callback, uint16_t port);
+#endif
+#ifdef ZTS_ENABLE_PINVOKE
+int zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
+	CppCallback callback, uint16_t port);
+#endif
+#ifdef ZTS_C_API_ONLY
+int zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
+	void (*callback)(void *), uint16_t port);
 #endif
 
 /**
@@ -1100,9 +1205,13 @@ ZTS_API int ZTCALL zts_disable_local_storage(uint8_t disabled);
  * @param port Port that the library should use for talking to other ZeroTier nodes
  * @return ZTS_ERR_OK on success. ZTS_ERR_SERVICE or ZTS_ERR_ARG on failure
  */
-#ifdef ZTS_PINVOKE
+#ifdef ZTS_ENABLE_PYTHON
+	ZTS_API int ZTCALL zts_start(const char *path, PythonDirectorCallbackClass *callback, uint16_t port);
+#endif
+#ifdef ZTS_ENABLE_PINVOKE
 	ZTS_API int ZTCALL zts_start(const char *path, CppCallback callback, uint16_t port);
-#else
+#endif
+#ifdef ZTS_C_API_ONLY
 	ZTS_API int ZTCALL zts_start(const char *path, void (*callback)(void *), uint16_t port);
 #endif
 
@@ -1234,6 +1343,8 @@ ZTS_API void ZTCALL zts_delay_ms(long interval_ms);
 // Statistics                                                               //
 //////////////////////////////////////////////////////////////////////////////
 
+#ifdef ZTS_ENABLE_STATS
+
 #define ZTS_STATS_PROTOCOL_LINK      0
 #define ZTS_STATS_PROTOCOL_ETHARP    1
 #define ZTS_STATS_PROTOCOL_IP        2
@@ -1324,6 +1435,8 @@ struct zts_stats {
 	/** Neighbor discovery */
 	struct zts_stats_proto nd6;
 };
+
+#endif
 
 /**
  * @brief Return all statistical counters for all protocols (inefficient)

@@ -29,7 +29,7 @@
 #include <BaseTsd.h>
 #endif
 
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 	#include <jni.h>
 #endif
 namespace ZeroTier {
@@ -40,7 +40,7 @@ namespace ZeroTier {
 #define ZTS_STATE_CALLBACKS_RUNNING         0x08
 #define ZTS_STATE_FREE_CALLED               0x10
 
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 	// References to JNI objects and VM kept for future callbacks
 	extern JavaVM *jvm;
 	extern jobject objRef;

@@ -23,15 +23,14 @@
 #include "lwip/stats.h"
 
 #include "ZeroTierSockets.h"
-//#include "Events.hpp"
 
-#define ZTS_STATE_NODE_RUNNING              0x01
-#define ZTS_STATE_STACK_RUNNING             0x02
-#define ZTS_STATE_NET_SERVICE_RUNNING       0x04
-#define ZTS_STATE_CALLBACKS_RUNNING         0x08
-#define ZTS_STATE_FREE_CALLED               0x10
+#define ZTS_STATE_NODE_RUNNING        0x01
+#define ZTS_STATE_STACK_RUNNING       0x02
+#define ZTS_STATE_NET_SERVICE_RUNNING 0x04
+#define ZTS_STATE_CALLBACKS_RUNNING   0x08
+#define ZTS_STATE_FREE_CALLED         0x10
 
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 	#include <jni.h>
 #endif
 
@@ -45,7 +44,7 @@ extern uint8_t _serviceStateFlags;
 extern "C" {
 #endif
 
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 void ss2zta(JNIEnv *env, struct zts_sockaddr_storage *ss, jobject addr);
 void zta2ss(JNIEnv *env, struct zts_sockaddr_storage *ss, jobject addr);
 void ztfdset2fdset(JNIEnv *env, int nfds, jobject src_ztfd_set, zts_fd_set *dest_fd_set);
@@ -59,7 +58,7 @@ int zts_socket(const int socket_family, const int socket_type, const int protoco
 	}
 	return lwip_socket(socket_family, socket_type, protocol);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_socket(
 	JNIEnv *env, jobject thisObj, jint family, jint type, jint protocol)
 {
@@ -81,7 +80,7 @@ int zts_connect(int fd, const struct zts_sockaddr *addr, zts_socklen_t addrlen)
 	}
 	return lwip_connect(fd, (sockaddr*)addr, addrlen);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_connect(
 	JNIEnv *env, jobject thisObj, jint fd, jobject addr)
 {
@@ -106,7 +105,8 @@ int zts_bind(int fd, const struct zts_sockaddr *addr, zts_socklen_t addrlen)
 	}
 	return lwip_bind(fd, (sockaddr*)addr, addrlen);
 }
-#ifdef SDK_JNI
+
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_bind(
 	JNIEnv *env, jobject thisObj, jint fd, jobject addr)
 {
@@ -125,7 +125,7 @@ int zts_listen(int fd, int backlog)
 	}
 	return lwip_listen(fd, backlog);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_listen(
 	JNIEnv *env, jobject thisObj, jint fd, int backlog)
 {
@@ -141,7 +141,7 @@ int zts_accept(int fd, struct zts_sockaddr *addr, zts_socklen_t *addrlen)
 	}
 	return lwip_accept(fd, (sockaddr*)addr, (socklen_t*)addrlen);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_accept(
 	JNIEnv *env, jobject thisObj, jint fd, jobject addr, jint port)
 {
@@ -162,7 +162,7 @@ int zts_accept4(int fd, struct zts_sockaddr *addr, zts_socklen_t *addrlen, int f
 	return ZTS_ERR_SERVICE; // TODO
 }
 #endif
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 #if defined(__linux__)
  JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_accept4(
 	JNIEnv *env, jobject thisObj, jint fd, jobject addr, jint port, jint flags)
@@ -183,7 +183,7 @@ int zts_setsockopt(int fd, int level, int optname, const void *optval,zts_sockle
 	}
 	return lwip_setsockopt(fd, level, optname, optval, optlen);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_setsockopt(
 	JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jobject optval)
 {
@@ -236,7 +236,7 @@ int zts_getsockopt(int fd, int level, int optname, void *optval, zts_socklen_t *
 	}
 	return lwip_getsockopt(fd, level, optname, optval, (socklen_t*)optlen);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_getsockopt(
 	JNIEnv *env, jobject thisObj, jint fd, jint level, jint optname, jobject optval)
 {
@@ -300,7 +300,7 @@ int zts_getsockname(int fd, struct zts_sockaddr *addr, zts_socklen_t *addrlen)
 	}
 	return lwip_getsockname(fd, (sockaddr*)addr, (socklen_t*)addrlen);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jboolean JNICALL Java_com_zerotier_libzt_ZeroTier_getsockname(JNIEnv *env, jobject thisObj,
 	jint fd, jobject addr)
 {
@@ -325,7 +325,7 @@ int zts_getpeername(int fd, struct zts_sockaddr *addr, zts_socklen_t *addrlen)
 	}
 	return lwip_getpeername(fd, (sockaddr*)addr, (socklen_t*)addrlen);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_getpeername(JNIEnv *env, jobject thisObj,
 	jint fd, jobject addr)
 {
@@ -343,7 +343,7 @@ int zts_close(int fd)
 	}
 	return lwip_close(fd);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_close(
 	JNIEnv *env, jobject thisObj, jint fd)
 {
@@ -359,7 +359,7 @@ int zts_select(int nfds, zts_fd_set *readfds, zts_fd_set *writefds, zts_fd_set *
 	}
 	return lwip_select(nfds, (fd_set*)readfds, (fd_set*)writefds, (fd_set*)exceptfds, (timeval*)timeout);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_select(JNIEnv *env, jobject thisObj,
 	jint nfds, jobject readfds, jobject writefds, jobject exceptfds, jint timeout_sec, jint timeout_usec)
 {
@@ -403,7 +403,7 @@ int zts_fcntl(int fd, int cmd, int flags)
 	}
 	return lwip_fcntl(fd, cmd, flags);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_fcntl(
 	JNIEnv *env, jobject thisObj, jint fd, jint cmd, jint flags)
 {
@@ -431,7 +431,7 @@ int zts_ioctl(int fd, unsigned long request, void *argp)
 	}
 	return lwip_ioctl(fd, request, argp);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT int JNICALL Java_com_zerotier_libzt_ZeroTier_ioctl(
 	JNIEnv *env, jobject thisObj, jint fd, jlong request, jobject argp)
 {
@@ -466,7 +466,7 @@ ssize_t zts_send(int fd, const void *buf, size_t len, int flags)
 	}
 	return lwip_send(fd, buf, len, flags);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_send(
 	JNIEnv *env, jobject thisObj, jint fd, jbyteArray buf, int flags)
 {
@@ -491,7 +491,7 @@ ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags,
 	}
 	return lwip_sendto(fd, buf, len, flags, (sockaddr*)addr, addrlen);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_sendto(
 	JNIEnv *env, jobject thisObj, jint fd, jbyteArray buf, jint flags, jobject addr)
 {
@@ -512,7 +512,7 @@ ssize_t zts_sendmsg(int fd, const struct msghdr *msg, int flags)
 	}
 	return lwip_sendmsg(fd, msg, flags);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 #endif
 
 ssize_t zts_recv(int fd, void *buf, size_t len, int flags)
@@ -525,7 +525,7 @@ ssize_t zts_recv(int fd, void *buf, size_t len, int flags)
 	}
 	return lwip_recv(fd, buf, len, flags);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_recv(JNIEnv *env, jobject thisObj,
 	jint fd, jbyteArray buf, jint flags)
 {
@@ -547,7 +547,7 @@ ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags,
 	}
 	return lwip_recvfrom(fd, buf, len, flags, (sockaddr*)addr, (socklen_t*)addrlen);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_recvfrom(
 	JNIEnv *env, jobject thisObj, jint fd, jbyteArray buf, jint flags, jobject addr)
 {
@@ -572,7 +572,7 @@ ssize_t zts_recvmsg(int fd, struct msghdr *msg, int flags)
 	}
 	return lwip_recvmsg(fd, msg, flags);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 #endif
 
 ssize_t zts_read(int fd, void *buf, size_t len)
@@ -596,7 +596,7 @@ ssize_t zts_read_offset(int fd, void *buf, size_t offset, size_t len)
 	char *cbuf = (char*)buf;
 	return lwip_read(fd, &(cbuf[offset]), len);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_read(JNIEnv *env, jobject thisObj,
 	jint fd, jbyteArray buf)
 {
@@ -642,7 +642,7 @@ ssize_t zts_write(int fd, const void *buf, size_t len)
 	}
 	return lwip_write(fd, buf, len);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_write__IB(JNIEnv *env, jobject thisObj,
 	jint fd, jbyteArray buf)
 {
@@ -683,7 +683,7 @@ int zts_shutdown(int fd, int how)
 	}
 	return lwip_shutdown(fd, how);
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_shutdown(
 	JNIEnv *env, jobject thisObj, int fd, int how)
 {
@@ -698,7 +698,7 @@ int zts_add_dns_nameserver(struct zts_sockaddr *addr)
 	}
 	return ZTS_ERR_SERVICE; // TODO
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 #endif
 
 int zts_del_dns_nameserver(struct zts_sockaddr *addr)
@@ -708,7 +708,7 @@ int zts_del_dns_nameserver(struct zts_sockaddr *addr)
 	}
 	return ZTS_ERR_SERVICE; // TODO
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 #endif
 
 uint16_t zts_htons(uint16_t n)
@@ -750,6 +750,8 @@ uint32_t zts_inet_addr(const char *cp)
 // Statistics                                                               //
 //////////////////////////////////////////////////////////////////////////////
 
+#ifdef ZTS_ENABLE_STATS
+
 extern struct stats_ lwip_stats;
 
 int zts_get_all_stats(struct zts_stats *statsDest)
@@ -785,7 +787,7 @@ int zts_get_all_stats(struct zts_stats *statsDest)
 	return ZTS_ERR_NO_RESULT;
 #endif
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 	// No implementation for JNI
 #endif
 
@@ -836,7 +838,7 @@ int zts_get_protocol_stats(int protocolType, void *protoStatsDest)
 	return ZTS_ERR_NO_RESULT;
 #endif
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_get_1protocol_1stats(
 	JNIEnv *env, jobject thisObj, jint protocolType, jobject protoStatsObj)
 {
@@ -876,7 +878,9 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_get_1protocol_1stats(
 }
 #endif
 
-#ifdef SDK_JNI
+#endif // ZTS_ENABLE_STATS
+
+#ifdef ZTS_ENABLE_JAVA
 void ztfdset2fdset(JNIEnv *env, int nfds, jobject src_ztfd_set, zts_fd_set *dest_fd_set)
 {
 	jclass c = env->GetObjectClass(src_ztfd_set);

@@ -25,15 +25,16 @@
 #include "Mutex.hpp"
 #include "OSUtils.hpp"
 
+#include "ZeroTierSockets.h"
 #include "Debug.hpp"
 #include "NodeService.hpp"
 #include "VirtualTap.hpp"
 #include "Events.hpp"
-#include "ZeroTierSockets.h"
+#include "Signals.hpp"
 
 using namespace ZeroTier;
 
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 	#include <jni.h>
 #endif
 
@@ -46,13 +47,20 @@ namespace ZeroTier
 {
 	extern NodeService *service;
 	extern Mutex serviceLock;
-	extern void (*_userEventCallbackFunc)(void *);
+#ifdef ZTS_ENABLE_PYTHON
+
+#endif
+#ifdef ZTS_ENABLE_PINVOKE
+	extern void (*_userEventCallback)(void *);
+#endif
+#ifdef ZTS_C_API_ONLY
+	extern void (*_userEventCallback)(void *);
+#endif
 	extern uint8_t allowNetworkCaching;
 	extern uint8_t allowPeerCaching;
 	extern uint8_t allowLocalConf;
 	extern uint8_t disableLocalStorage; // Off by default
-
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 	// References to JNI objects and VM kept for future callbacks
 	JavaVM *jvm = NULL;
 	jobject objRef = NULL;
@@ -110,10 +118,15 @@ int zts_get_node_identity(char *key_pair_str, uint16_t *key_buf_len)
 }
 
 // TODO: This logic should be further generalized in the next API redesign
-#ifdef ZTS_PINVOKE
+#ifdef ZTS_ENABLE_PYTHON
+int zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
+		PythonDirectorCallbackClass *callback, uint16_t port)
+#endif
+#ifdef ZTS_ENABLE_PINVOKE
 int zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
 	CppCallback callback, uint16_t port)
-#else
+#endif
+#ifdef ZTS_C_API_ONLY
 int zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
 	void (*callback)(void *), uint16_t port)
 #endif
@@ -122,6 +135,9 @@ int zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
 		return ZTS_ERR_ARG;
 	}
 	Mutex::Lock _l(serviceLock);
+//#ifdef ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
+	_install_signal_handlers();
+//#endif // ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
 	_lwip_driver_init();
 	if (service || _getState(ZTS_STATE_NODE_RUNNING)) {
 		// Service is already initialized
@@ -132,11 +148,7 @@ int zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
 		// an application restart is required now
 		return ZTS_ERR_SERVICE;
 	}
-	#ifdef SDK_JNI
-	_userEventCallbackFunc = callback;
-#else
-	_userEventCallbackFunc = callback;
-#endif
+	_userEventCallback = callback;
 	if (!_isCallbackRegistered()) {
 		// Must have a callback
 		return ZTS_ERR_ARG;
@@ -231,13 +243,20 @@ int zts_disable_local_storage(uint8_t disabled)
 	return ZTS_ERR_SERVICE;
 }
 
-#ifdef ZTS_PINVOKE
+#ifdef ZTS_ENABLE_PYTHON
+int zts_start(const char *path, PythonDirectorCallbackClass *callback, uint16_t port)
+#endif
+#ifdef ZTS_ENABLE_PINVOKE
 int zts_start(const char *path, CppCallback callback, uint16_t port)
-#else
+#endif
+#ifdef ZTS_C_API_ONLY
 int zts_start(const char *path, void (*callback)(void *), uint16_t port)
 #endif
 {
 	Mutex::Lock _l(serviceLock);
+//#ifdef ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
+	_install_signal_handlers();
+//#endif // ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
 	_lwip_driver_init();
 	if (service || _getState(ZTS_STATE_NODE_RUNNING)) {
 		// Service is already initialized
@@ -248,11 +267,7 @@ int zts_start(const char *path, void (*callback)(void *), uint16_t port)
 		// an application restart is required now
 		return ZTS_ERR_SERVICE;
 	}
-#ifdef SDK_JNI
-	_userEventCallbackFunc = callback;
-#else
-	_userEventCallbackFunc = callback;
-#endif
+	_userEventCallback = callback;
 	if (!_isCallbackRegistered()) {
 		// Must have a callback
 		return ZTS_ERR_ARG;
@@ -300,7 +315,7 @@ int zts_start(const char *path, void (*callback)(void *), uint16_t port)
 	return retval;
 }
 
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_start(
 	JNIEnv *env, jobject thisObj, jstring path, jobject callback, jint port)
 {
@@ -344,7 +359,7 @@ int zts_stop()
 	}
 	return ZTS_ERR_SERVICE;
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_stop(
 	JNIEnv *env, jobject thisObj)
 {
@@ -357,11 +372,8 @@ int zts_restart()
 {
 	serviceLock.lock();
 	// Store callback references
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 	static jmethodID _tmpUserCallbackMethodRef = _userCallbackMethodRef;
-#else
-	void (*_tmpUserEventCallbackFunc)(void *);
-	_tmpUserEventCallbackFunc = _userEventCallbackFunc;
 #endif
 	int userProvidedPort = 0;
 	std::string userProvidedPath;
@@ -388,15 +400,14 @@ int zts_restart()
 	}
 	/* Some of the logic in Java_com_zerotier_libzt_ZeroTier_start
 	is replicated here */
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 	_userCallbackMethodRef = _tmpUserCallbackMethodRef;
 	return zts_start(userProvidedPath.c_str(), NULL, userProvidedPort);
 #else
-    return ZTS_ERR_OK;
-	//return zts_start(userProvidedPath.c_str(), _tmpUserEventCallbackFunc, userProvidedPort);
+	return ZTS_ERR_OK;
 #endif
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_restart(
 	JNIEnv *env, jobject thisObj)
 {
@@ -415,7 +426,7 @@ int zts_free()
 	_lwip_driver_shutdown();
 	return err;
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_free(
 	JNIEnv *env, jobject thisObj)
 {
@@ -423,7 +434,7 @@ JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_free(
 }
 #endif
 
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 /*
  * Called from Java, saves a static reference to the VM so it can be used
  * later to call a user-specified callback method from C.
@@ -431,7 +442,7 @@ JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_free(
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_init(
 	JNIEnv *env, jobject thisObj)
 {
-    jint rs = env->GetJavaVM(&jvm);
+	jint rs = env->GetJavaVM(&jvm);
 	return rs != JNI_OK ? ZTS_ERR_GENERAL : ZTS_ERR_OK;
 }
 #endif
@@ -447,7 +458,7 @@ int zts_join(const uint64_t networkId)
 	}
 	return ZTS_ERR_OK;
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_join(
 	JNIEnv *env, jobject thisObj, jlong networkId)
 {
@@ -466,7 +477,7 @@ int zts_leave(const uint64_t networkId)
 	}
 	return ZTS_ERR_OK;
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_leave(
 	JNIEnv *env, jobject thisObj, jlong networkId)
 {
@@ -485,7 +496,7 @@ int zts_orbit(uint64_t moonWorldId, uint64_t moonSeed)
 	}
 	return ZTS_ERR_OK;
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 #endif
 
 int zts_deorbit(uint64_t moonWorldId)
@@ -499,7 +510,7 @@ int zts_deorbit(uint64_t moonWorldId)
 	}
 	return ZTS_ERR_OK;
 }
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 #endif
 
 int zts_get_6plane_addr(struct zts_sockaddr_storage *addr, const uint64_t networkId, const uint64_t nodeId)
@@ -542,14 +553,14 @@ uint64_t zts_generate_adhoc_nwid_from_range(uint16_t startPortOfRange, uint16_t 
 void zts_delay_ms(long milliseconds)
 {
 #ifdef __WINDOWS__
-    Sleep(milliseconds);
+	Sleep(milliseconds);
 #elif _POSIX_C_SOURCE >= 199309L
-    struct timespec ts;
-    ts.tv_sec = milliseconds / 1000;
-    ts.tv_nsec = (milliseconds % 1000) * 1000000;
-    nanosleep(&ts, NULL);
+	struct timespec ts;
+	ts.tv_sec = milliseconds / 1000;
+	ts.tv_nsec = (milliseconds % 1000) * 1000000;
+	nanosleep(&ts, NULL);
 #else
-    usleep(milliseconds * 1000);
+	usleep(milliseconds * 1000);
 #endif
 }
 

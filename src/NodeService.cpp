@@ -51,7 +51,7 @@
 #define stat _stat
 #endif
 
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 #include <jni.h>
 #endif
 

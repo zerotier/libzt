@@ -19,7 +19,7 @@
 
 #include "concurrentqueue.h"
 
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 	#include <jni.h>
 #endif
 
@@ -40,6 +40,15 @@
 #define ROUTE_EVENT_TYPE(code) code >= ZTS_EVENT_ROUTE_ADDED && code <= ZTS_EVENT_ROUTE_REMOVED
 #define ADDR_EVENT_TYPE(code) code >= ZTS_EVENT_ADDR_ADDED_IP4 && code <= ZTS_EVENT_ADDR_REMOVED_IP6
 
+#include <execinfo.h>
+#include <signal.h>
+
+#ifdef ZTS_ENABLE_PYTHON
+	#include "Python.h"
+	PythonDirectorCallbackClass *_userEventCallback = NULL;
+	void PythonDirectorCallbackClass::on_zerotier_event(struct zts_callback_msg *msg) { }
+#endif
+
 namespace ZeroTier {
 
 extern NodeService *service;
@@ -50,7 +59,12 @@ uint8_t _serviceStateFlags;
 // Lock to guard access to callback function pointers.
 Mutex _callbackLock;
 
-void (*_userEventCallbackFunc)(void *);
+#ifdef ZTS_ENABLE_PINVOKE
+	void (*_userEventCallback)(void *);
+#endif
+#ifdef ZTS_C_API_ONLY
+	void (*_userEventCallback)(void *);
+#endif
 
 moodycamel::ConcurrentQueue<struct zts_callback_msg*> _callbackMsgQueue;
 
@@ -100,7 +114,12 @@ void _freeEvent(struct zts_callback_msg *msg)
 void _passDequeuedEventToUser(struct zts_callback_msg *msg)
 {
 	bool bShouldStopCallbackThread = (msg->eventCode == ZTS_EVENT_STACK_DOWN);
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_PYTHON
+	PyGILState_STATE state = PyGILState_Ensure();
+	_userEventCallback->on_zerotier_event(msg);
+	PyGILState_Release(state);
+#endif
+#ifdef ZTS_ENABLE_JAVA
 	if(_userCallbackMethodRef) {
 		JNIEnv *env;
 	#if defined(__ANDROID__)
@@ -121,14 +140,19 @@ void _passDequeuedEventToUser(struct zts_callback_msg *msg)
 			id = msg->peer ? msg->peer->address : 0;
 		}
 		env->CallVoidMethod(objRef, _userCallbackMethodRef, id, msg->eventCode);
-		_freeEvent(msg);
 	}
-#else
-	if (_userEventCallbackFunc) {
-		_userEventCallbackFunc(msg);
-		_freeEvent(msg);
+#endif // ZTS_ENABLE_JAVA
+#ifdef ZTS_ENABLE_PINVOKE
+	if (_userEventCallback) {
+		_userEventCallback(msg);
 	}
 #endif
+#ifdef ZTS_C_API_ONLY
+	if (_userEventCallback) {
+		_userEventCallback(msg);
+	}
+#endif
+	_freeEvent(msg);
 	if (bShouldStopCallbackThread) {
 		/* Ensure last possible callback ZTS_EVENT_STACK_DOWN is
 		delivered before callback thread is finally stopped. */
@@ -140,10 +164,10 @@ bool _isCallbackRegistered()
 {
 	_callbackLock.lock();
 	bool retval = false;
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 	retval = (jvm && objRef && _userCallbackMethodRef);
 #else
-	retval = _userEventCallbackFunc;
+	retval = _userEventCallback;
 #endif
 	_callbackLock.unlock();
 	return retval;
@@ -152,11 +176,11 @@ bool _isCallbackRegistered()
 void _clearRegisteredCallback()
 {
 	_callbackLock.lock();
-#ifdef SDK_JNI
+#ifdef ZTS_ENABLE_JAVA
 	objRef = NULL;
     _userCallbackMethodRef = NULL;
 #else
-	_userEventCallbackFunc = NULL;
+	_userEventCallback = NULL;
 #endif
 	_callbackLock.unlock();
 }
@@ -237,7 +261,7 @@ void *_runCallbacks(void *thread_id)
 		}
         zts_delay_ms(ZTS_CALLBACK_PROCESSING_INTERVAL);
     }
-#if SDK_JNI
+#if ZTS_ENABLE_JAVA
 	JNIEnv *env;
 	jint rs = jvm->DetachCurrentThread();
     pthread_exit(0);

@@ -1,0 +1,23 @@
+
+
+--------------------------------------------------------------------------------
+            libzt --- Encrypted P2P SD-WAN library by ZeroTier
+--------------------------------------------------------------------------------
+
+This project uses cmake as a build system generator. The scripts build.sh and
+build.ps1 are used to simplify building and packaging for various targets.
+
+ dist/  : Finished targets: libraries, binaries, packages, etc.
+ cache/ : Build system caches that can safely be deleted after build.
+ pkg/   : Project, script and spec files to generate packages.
+
+1. git submodule update --init
+2. (*)nix  : ./build.sh host "release"
+2. Windows : . .\build.ps1; Build-Host -BuildType "Release"
+
+To see additional build targets:
+
+./build.sh list
+
+Help, bugs, and feature requests: https://github.com/zerotier/libzt/issues
+

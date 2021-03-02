@@ -135,9 +135,9 @@ int zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
 		return ZTS_ERR_ARG;
 	}
 	Mutex::Lock _l(serviceLock);
-//#ifdef ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
+#ifdef ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
 	_install_signal_handlers();
-//#endif // ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
+#endif // ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
 	_lwip_driver_init();
 	if (service || _getState(ZTS_STATE_NODE_RUNNING)) {
 		// Service is already initialized
@@ -254,9 +254,9 @@ int zts_start(const char *path, void (*callback)(void *), uint16_t port)
 #endif
 {
 	Mutex::Lock _l(serviceLock);
-//#ifdef ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
+#ifdef ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
 	_install_signal_handlers();
-//#endif // ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
+#endif // ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
 	_lwip_driver_init();
 	if (service || _getState(ZTS_STATE_NODE_RUNNING)) {
 		// Service is already initialized

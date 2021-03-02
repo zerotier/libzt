@@ -25,9 +25,11 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #ifdef ZTS_ENABLE_PYTHON
-	/* In some situations (Python comes to mind) a signal may not make its
-	way to libzt, for this reason we make sure to define a custom signal handler
-	that can at least process SIGTERMs */
+	/**
+	* In some situations (Python comes to mind) a signal may not make its
+	* way to libzt, for this reason we make sure to define a custom signal
+	* handler that can at least process SIGTERMs
+	*/
 	#define ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS 1
 #endif
 
@@ -842,7 +844,7 @@ struct zts_peer_list
 };
 
 //////////////////////////////////////////////////////////////////////////////
-// Python bits                                                              //
+// Python Bindings (Subset of regular socket API)                           //
 //////////////////////////////////////////////////////////////////////////////
 
 #ifdef ZTS_ENABLE_PYTHON
@@ -867,67 +869,15 @@ public:
 
 extern PythonDirectorCallbackClass *_userEventCallback;
 
-/**
- * @brief 
- *
- * @param fd
- * @param
- * @param
- * @param
- *
- * @return 
- */
-int zts_sock_bind(int fd, int family, int type, PyObject *addro);
+int zts_py_bind(int fd, int family, int type, PyObject *addro);
+int zts_py_connect(int fd, int family, int type, PyObject *addro);
+PyObject * zts_py_accept(int fd);
+int zts_py_listen(int fd, int backlog);
+PyObject * zts_py_recv(int fd, int len, int flags);
+int zts_py_send(int fd, PyObject *buf, int len, int flags);
+int zts_py_close(int fd);
 
-/**
- * @brief 
- *
- * @param fd
- * @param
- * @param
- * @param
- *
- * @return 
- */
-int zts_sock_connect(int fd, int family, int type, PyObject *addro);
-
-/**
- * @brief 
- *
- * @param fd
- * @param
- * @param
- * @param
- *
- * @return 
- */
-PyObject * zts_sock_accept(int fd);
-
-/**
- * @brief 
- *
- * @param fd
- * @param
- * @param
- * @param
- *
- * @return 
- */
-PyObject * zts_sock_recv(int fd, int len, int flags);
-
-/**
- * @brief 
- *
- * @param fd
- * @param
- * @param
- * @param
- *
- * @return 
- */
-int zts_sock_send(int fd, PyObject *buf, int len, int flags);
-
-#endif
+#endif // ZTS_ENABLE_PYTHON
 
 //////////////////////////////////////////////////////////////////////////////
 // ZeroTier Service Controls                                                //
@@ -1436,8 +1386,6 @@ struct zts_stats {
 	struct zts_stats_proto nd6;
 };
 
-#endif
-
 /**
  * @brief Return all statistical counters for all protocols (inefficient)
  *
@@ -1454,6 +1402,8 @@ ZTS_API int ZTCALL zts_get_all_stats(struct zts_stats *statsDest);
  * @return ZTS_ERR_OK on success. ZTS_ERR_ARG or ZTS_ERR_NO_RESULT on failure.
  */
 ZTS_API int ZTCALL zts_get_protocol_stats(int protocolType, void *protoStatsDest);
+
+#endif // ZTS_ENABLE_STATS
 
 //////////////////////////////////////////////////////////////////////////////
 // Socket API                                                               //

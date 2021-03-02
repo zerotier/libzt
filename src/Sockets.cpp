@@ -259,7 +259,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_getsockopt(
 	else {
 		retval = zts_getsockopt(fd, level, optname, &optval_int, &optlen);
 	}
-	
+
 	if (optname == SO_BROADCAST
 		|| optname == SO_KEEPALIVE
 		|| optname == SO_REUSEADDR
@@ -307,7 +307,7 @@ JNIEXPORT jboolean JNICALL Java_com_zerotier_libzt_ZeroTier_getsockname(JNIEnv *
 	struct zts_sockaddr_storage ss;
 	zts_socklen_t addrlen = sizeof(struct zts_sockaddr_storage);
 	int retval = zts_getsockname(fd, (struct zts_sockaddr *)&ss, &addrlen);
-	ss2zta(env, &ss, addr);	 
+	ss2zta(env, &ss, addr);
 	return retval > -1 ? retval : -(zts_errno);
 }
 #endif
@@ -331,7 +331,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_getpeername(JNIEnv *env,
 {
 	struct zts_sockaddr_storage ss;
 	int retval = zts_getpeername(fd, (struct zts_sockaddr *)&ss, (zts_socklen_t*)sizeof(struct zts_sockaddr_storage));
-	ss2zta(env, &ss, addr);	 
+	ss2zta(env, &ss, addr);
 	return retval > -1 ? retval : -(zts_errno);
 }
 #endif
@@ -391,7 +391,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_select(JNIEnv *env, jobj
 	}
 	if (exceptfds) {
 		fdset2ztfdset(env, nfds, &_exceptfds, exceptfds);
-	}	 
+	}
 	return retval > -1 ? retval : -(zts_errno);
 }
 #endif
@@ -438,7 +438,7 @@ JNIEXPORT int JNICALL Java_com_zerotier_libzt_ZeroTier_ioctl(
 	int retval = ZTS_ERR_OK;
 	if (request == FIONREAD) {
 		int bytesRemaining = 0;
-		retval = zts_ioctl(fd, request, &bytesRemaining);	
+		retval = zts_ioctl(fd, request, &bytesRemaining);
 		// set value in general object
 		jclass c = env->GetObjectClass(argp);
 		if (!c) {
@@ -450,7 +450,7 @@ JNIEXPORT int JNICALL Java_com_zerotier_libzt_ZeroTier_ioctl(
 	if (request == FIONBIO) {
 		// TODO: double check
 		int meaninglessVariable = 0;
-		retval = zts_ioctl(fd, request, &meaninglessVariable);		
+		retval = zts_ioctl(fd, request, &meaninglessVariable);
 	}
 	return retval > -1 ? retval : -(zts_errno);
 }
@@ -472,12 +472,12 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_send(
 {
 	void *data = env->GetPrimitiveArrayCritical(buf, NULL);
 	int retval = zts_send(fd, data, env->GetArrayLength(buf), flags);
-	env->ReleasePrimitiveArrayCritical(buf, data, 0);	 
+	env->ReleasePrimitiveArrayCritical(buf, data, 0);
 	return retval > -1 ? retval : -(zts_errno);
 }
 #endif
 
-ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags, 
+ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags,
 	const struct zts_sockaddr *addr,zts_socklen_t addrlen)
 {
 	if (!addr || !buf) {
@@ -500,7 +500,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_sendto(
 	zta2ss(env, &ss, addr);
 	zts_socklen_t addrlen = ss.ss_family == ZTS_AF_INET ? sizeof(struct zts_sockaddr_in) : sizeof(struct zts_sockaddr_in6);
 	int retval = zts_sendto(fd, data, env->GetArrayLength(buf), flags, (struct zts_sockaddr *)&ss, addrlen);
-	env->ReleasePrimitiveArrayCritical(buf, data, 0);	 
+	env->ReleasePrimitiveArrayCritical(buf, data, 0);
 	return retval > -1 ? retval : -(zts_errno);
 }
 #endif
@@ -536,7 +536,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_recv(JNIEnv *env, jobjec
 }
 #endif
 
-ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags, 
+ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags,
 	struct zts_sockaddr *addr, zts_socklen_t *addrlen)
 {
 	if (!buf) {
@@ -556,7 +556,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_recvfrom(
 	void *data = env->GetPrimitiveArrayCritical(buf, NULL);
 	int retval = zts_recvfrom(fd, data, env->GetArrayLength(buf), flags, (struct zts_sockaddr *)&ss, &addrlen);
 	env->ReleasePrimitiveArrayCritical(buf, data, 0);
-	ss2zta(env, &ss, addr);	 
+	ss2zta(env, &ss, addr);
 	return retval > -1 ? retval : -(zts_errno);
 }
 #endif
@@ -602,7 +602,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_read(JNIEnv *env, jobjec
 {
 	void *data = env->GetPrimitiveArrayCritical(buf, NULL);
 	int retval = zts_read(fd, data, env->GetArrayLength(buf));
-	env->ReleasePrimitiveArrayCritical(buf, data, 0);	 
+	env->ReleasePrimitiveArrayCritical(buf, data, 0);
 	return retval > -1 ? retval : -(zts_errno);
 }
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_read_1offset(JNIEnv *env, jobject thisObj,
@@ -610,7 +610,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_read_1offset(JNIEnv *env
 {
 	void *data = env->GetPrimitiveArrayCritical(buf, NULL);
 	int retval = zts_read_offset(fd, data, offset, len);
-	env->ReleasePrimitiveArrayCritical(buf, data, 0);	 
+	env->ReleasePrimitiveArrayCritical(buf, data, 0);
 	return retval > -1 ? retval : -(zts_errno);
 }
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_read_1length(JNIEnv *env, jobject thisObj,
@@ -618,7 +618,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_read_1length(JNIEnv *env
 {
 	void *data = env->GetPrimitiveArrayCritical(buf, NULL);
 	int retval = zts_read(fd, data, len);
-	env->ReleasePrimitiveArrayCritical(buf, data, 0);	
+	env->ReleasePrimitiveArrayCritical(buf, data, 0);
 	return retval > -1 ? retval : -(zts_errno);
 }
 #endif
@@ -648,7 +648,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_write__IB(JNIEnv *env, j
 {
 	void *data = env->GetPrimitiveArrayCritical(buf, NULL);
 	int retval = zts_write(fd, data, env->GetArrayLength(buf));
-	env->ReleasePrimitiveArrayCritical(buf, data, 0);	 
+	env->ReleasePrimitiveArrayCritical(buf, data, 0);
 	return retval > -1 ? retval : -(zts_errno);
 }
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_write_1offset(JNIEnv *env, jobject thisObj,
@@ -656,7 +656,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_write_1offset(JNIEnv *en
 {
 	void *data = env->GetPrimitiveArrayCritical(&(buf[offset]), NULL); // PENDING: check?
 	int retval = zts_write(fd, data, len);
-	env->ReleasePrimitiveArrayCritical(buf, data, 0);	
+	env->ReleasePrimitiveArrayCritical(buf, data, 0);
 	return retval > -1 ? retval : -(zts_errno);
 }
 JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_write_1byte(JNIEnv *env, jobject thisObj,

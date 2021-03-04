@@ -1,7 +1,6 @@
 import time, sys
 
 import libzt
-from prototype import *
 
 # Where identity files are stored
 keyPath = "."
@@ -114,7 +113,7 @@ print('Joined network')
 if (mode == 'server'):
 	print("Starting server...")
 	try:
-		serv = zerotier.socket(libzt.ZTS_AF_INET6, libzt.ZTS_SOCK_STREAM, 0)
+		serv = libzt.zerotier.socket(libzt.ZTS_AF_INET, libzt.ZTS_SOCK_STREAM, 0)
 		serv.bind(('::', serverPort))
 		serv.listen(5)
 		while True:
@@ -144,7 +143,7 @@ if (mode == 'server'):
 if (mode == 'client'):
 	print("Starting client...")
 	try:
-		client = zerotier.socket(libzt.ZTS_AF_INET6, libzt.ZTS_SOCK_STREAM, 0)
+		client = libzt.zerotier.socket(libzt.ZTS_AF_INET, libzt.ZTS_SOCK_STREAM, 0)
 		print("connecting...")
 		client.connect((remoteIP, serverPort))
 		print("send...")

@@ -22,7 +22,25 @@
 
 #ifdef ZTS_ENABLE_PYTHON
 
-static int tuple_to_sockaddr(int family,
+int zts_py_setblocking(int fd, int flag)
+{
+	int flags = ZTS_ERR_OK;
+	if ((flags = zts_fcntl(fd, F_GETFL, 0)) < 0) {
+		return ZTS_ERR_SOCKET;
+	}
+	return zts_fcntl(fd, F_SETFL, flags | ZTS_O_NONBLOCK);
+}
+
+int zts_py_getblocking(int fd)
+{
+	int flags = ZTS_ERR_OK;
+	if ((flags = zts_fcntl(fd, F_GETFL, 0)) < 0) {
+		return ZTS_ERR_SOCKET;
+	}
+	return flags & ZTS_O_NONBLOCK;
+}
+
+static int zts_py_tuple_to_sockaddr(int family,
 	PyObject *addr_obj, struct zts_sockaddr *dst_addr, int *addrlen)
 {
 	if (family == AF_INET) {
@@ -33,7 +51,7 @@ static int tuple_to_sockaddr(int family,
 			return ZTS_ERR_ARG;
 		}
 		if (!PyArg_ParseTuple(addr_obj,
-			"eti:tuple_to_sockaddr", "idna", &host_str, &port)) {
+			"eti:zts_py_tuple_to_sockaddr", "idna", &host_str, &port)) {
 			return ZTS_ERR_ARG;
 		}
 		addr = (struct zts_sockaddr_in*)dst_addr;
@@ -84,7 +102,7 @@ int zts_py_bind(int fd, int family, int type, PyObject *addr_obj)
 	struct zts_sockaddr_storage addrbuf;
 	int addrlen;
 	int err;
-	if (tuple_to_sockaddr(family, addr_obj,
+	if (zts_py_tuple_to_sockaddr(family, addr_obj,
 		(struct zts_sockaddr *)&addrbuf, &addrlen) != ZTS_ERR_OK)
 	{
 		return ZTS_ERR_ARG;
@@ -101,7 +119,7 @@ int zts_py_connect(int fd, int family, int type, PyObject *addr_obj)
 	struct zts_sockaddr_storage addrbuf;
 	int addrlen;
 	int err;
-	if (tuple_to_sockaddr(family, addr_obj,
+	if (zts_py_tuple_to_sockaddr(family, addr_obj,
 		(struct zts_sockaddr *)&addrbuf, &addrlen) != ZTS_ERR_OK)
 	{
 		return ZTS_ERR_ARG;

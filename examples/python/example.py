@@ -66,7 +66,7 @@ print('serverPort    = ', serverPort)
 #
 # Event handler
 #
-class MyEventCallbackClass(libzt.PythonDirectorCallbackClass):
+class MyEventCallbackClass(libzt.EventCallbackClass):
 	def on_zerotier_event(self, msg):
 		global is_online
 		global is_joined
@@ -95,12 +95,12 @@ class MyEventCallbackClass(libzt.PythonDirectorCallbackClass):
 #
 print("Starting ZeroTier...");
 eventCallback = MyEventCallbackClass()
-libzt.zts_start(keyPath, eventCallback, ztServicePort)
+libzt.start(keyPath, eventCallback, ztServicePort)
 print("Waiting for node to come online...")
 while (not is_online):
 	time.sleep(1)
 print("Joining network:", hex(networkId));
-libzt.zts_join(networkId)
+libzt.join(networkId)
 while (not is_joined):
 	time.sleep(1) # You can ping this app at this point
 print('Joined network')
@@ -112,22 +112,23 @@ print('Joined network')
 #
 if (mode == 'server'):
 	print("Starting server...")
+	serv = libzt.socket(libzt.ZTS_AF_INET, libzt.ZTS_SOCK_STREAM, 0)
 	try:
-		serv = libzt.zerotier.socket(libzt.ZTS_AF_INET, libzt.ZTS_SOCK_STREAM, 0)
+		#serv.setblocking(True)
 		serv.bind(('::', serverPort))
 		serv.listen(5)
 		while True:
 			conn, addr = serv.accept()
 			print('Accepted connection from: ', addr)
 			while True:
-				print('recv()...')
+				print('recv:')
 				data = conn.recv(4096)
 				if data:
 					print('data = ', data)
 					#print(type(b'what'))
 					#exit(0)
 				if not data: break
-				print('send()...')
+				print('send:')
 				#bytes(data, 'ascii')  + b'\x00'
 				n_bytes = conn.send(data) # echo back to the server
 				print('sent ' + str(n_bytes) + ' byte(s)')
@@ -135,6 +136,7 @@ if (mode == 'server'):
 			print('client disconnected')
 	except Exception as e:
 		print(e)
+	print('errno=',libzt.errno()) # See include/ZeroTierSockets.h for codes
 
 
 #
@@ -142,17 +144,16 @@ if (mode == 'server'):
 #
 if (mode == 'client'):
 	print("Starting client...")
+	client = libzt.socket(libzt.ZTS_AF_INET, libzt.ZTS_SOCK_STREAM, 0)
 	try:
-		client = libzt.zerotier.socket(libzt.ZTS_AF_INET, libzt.ZTS_SOCK_STREAM, 0)
 		print("connecting...")
 		client.connect((remoteIP, serverPort))
-		print("send...")
+		print("send:")
 		data = 'Hello, world!'
 		client.send(data)
-		print("rx...")
 		data = client.recv(1024)
-
 		print('Received', repr(data))
 	except Exception as e:
 		print(e)
+	print('errno=',libzt.errno())
 

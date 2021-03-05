@@ -4,6 +4,11 @@ from setuptools import setup, Extension, Command, Distribution
 import glob
 import os
 
+from os import path
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
+
 class BinaryDistribution(Distribution):
 	def is_pure(self):
 		return False
@@ -67,16 +72,18 @@ setup(
 	name = 'libzt',
 	version = '1.3.3',
 	description = 'ZeroTier',
-	long_description = 'Encrypted P2P communication between apps and services',
+#	long_description = 'Encrypted P2P communication between apps and services',
+	long_description=long_description,
+    long_description_content_type='text/markdown',
 	author = 'ZeroTier, Inc.',
-	author_email = 'joseph.henry@zerotier.com',
+	author_email = 'joseph@zerotier.com',
 	url = 'https://github.com/zerotier/libzt',
 	license='BUSL 1.1',
-	download_url = 'https://github.com/zerotier/libzt/archive/1.3.3.tar.gz',
-	keywords = 'zerotier sdwan sdn virtual network socket p2p peer-to-peer',
+	download_url = 'https://github.com/zerotier/libzt/releases',
+	keywords = 'zerotier p2p peer-to-peer sdwan sdn virtual network socket tcp udp zt encryption encrypted',
 	py_modules = ['libzt'],
 	packages = ['libzt'],
-	classifiers = ['Development Status :: 3 - Alpha',
+	classifiers = ['Development Status :: 4 - Beta',
 		'Topic :: Internet',
 		'Topic :: System :: Networking',
 		'Topic :: Security :: Cryptography',
@@ -88,13 +95,17 @@ setup(
 		'Intended Audience :: Telecommunications Industry',
 		'Intended Audience :: End Users/Desktop',
 		'License :: Free for non-commercial use',
-		'Operating System :: MacOS :: MacOS X',
+		'Operating System :: MacOS',
 		'Operating System :: Microsoft :: Windows',
 		'Operating System :: POSIX :: BSD',
+		'Operating System :: POSIX :: Linux',
 		'Operating System :: Unix',
-		'Programming Language :: C++',
 		'Programming Language :: C',
-		'Programming Language :: Python'
+		'Programming Language :: C++',
+		'Programming Language :: Python',
+		'Programming Language :: Java',
+		'Programming Language :: C#',
+		'Programming Language :: Rust'
 	],
 	distclass=BinaryDistribution,
 	libraries=[cstuff],

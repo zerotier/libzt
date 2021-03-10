@@ -39,6 +39,7 @@ namespace ZeroTier.Core
 		string _configFilePath;
 		ushort _servicePort;
 		static ZeroTierManagedEventCallback _managedCallback;
+		CSharpCallbackWithStruct _unmanagedCallback;
 
 		// Callback used internally to ferry events from the C++ layer
 		static void OnZeroTierEvent(IntPtr msgPtr)
@@ -226,7 +227,8 @@ namespace ZeroTier.Core
 			if (_hasBeenFreed == true) {
 				throw new ObjectDisposedException("ZeroTier Node has previously been freed. Restart application to create new instance.");
 			}
-			return zts_start(_configFilePath,OnZeroTierEvent,_servicePort);
+			_unmanagedCallback = OnZeroTierEvent;
+			return zts_start(_configFilePath,_unmanagedCallback,_servicePort);
 		}
 
 		/// <summary>

@@ -1,5 +1,8 @@
 <div align="center">
+
 <h1>ZeroTier SDK</h1>
+<img alt="zts_socket()" src="https://i.imgur.com/BwSHwE3.png"> </img>
+
 Peer-to-peer and cross-platform encrypted connections built right into your app or service. No drivers, no root, and no host configuration.
 
 <br>
@@ -7,10 +10,12 @@ Peer-to-peer and cross-platform encrypted connections built right into your app 
 <a href="./examples">Examples</a> |
 <a href="./include/README.md">API Documentation</a> |
 <a href="https://discuss.zerotier.com/">Community</a> |
-<a href="./FAQ.md">FAQ</a> |
 <a href="https://github.com/zerotier/libzt/issues">Report a Bug</a>
 
-<br>
+
+<a href="https://www.twitter.com/zerotier"><img alt="@zerotier" src="https://img.shields.io/twitter/follow/zerotier?style=social"/></a>
+<a href="https://old.reddit.com/r/zerotier"><img alt="r/zerotier" src="https://img.shields.io/reddit/subreddit-subscribers/zerotier?style=social"/></a>
+
 
 <img alt="latest libzt version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label=latest version"/></a>
 <a href="https://github.com/zerotier/libzt/commits/master"><img alt="Last Commit" src="https://img.shields.io/github/last-commit/zerotier/libzt"/></a>
@@ -19,18 +24,18 @@ Peer-to-peer and cross-platform encrypted connections built right into your app 
 
 | Language/Platform | Installation | Version | Example |
 |:----------|:---------|:---|:---|
-| C/C++  | [Build from source](./BUILDING.md) | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>|[C/C++](./examples/cpp)  |
+| C/C++  | [Build from source](#build-from-source) | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>|[C/C++](./examples/cpp)  |
 | Objective-C  | See [examples/objective-c](./examples/objective-c) | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> |[Objective-C](./examples/objective-c)  |
 | C#  | `Install-Package ZeroTier.Sockets` |<a href="https://www.nuget.org/packages/ZeroTier.Sockets/"><img src="https://img.shields.io/github/v/tag/zerotier/libzt?label=NuGet"/></a> |[C#](./examples/csharp)  |
 | Python  | `pip install libzt`|<a href="https://pypi.org/project/libzt/"><img src="https://img.shields.io/pypi/v/libzt?label=PyPI"/></a> |[Python](./examples/python)  |
-| Rust  | Coming Soon | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>|[Rust](./examples/rust)  |
+| Rust  | Coming *very* soon | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>|[Rust](./examples/rust)  |
 | Swift  | See [examples/swift](./examples/swift) |<img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> |[Swift](./examples/swift)  |
-| Java  | See [examples/java](./examples/java) |<img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> |[Java](./examples/java)  |
+| Java  | `./build.sh host-jar` |<img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> |[Java](./examples/java)  |
 | Node.js  | See [examples/nodejs](./examples/nodejs) |<img src="https://img.shields.io/badge/-help--wanted-green"/>|[Node.js](./examples/nodejs)  |
 | Linux  | [Build from source](#build-from-source) | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/></a>| [C/C++](./examples/cpp)  |
 | macOS  | `brew install libzt`|<a href="https://formulae.brew.sh/formula/libzt#default"><img src="https://img.shields.io/homebrew/v/libzt?label=Homebrew"/></a> | [C/C++](./examples/cpp), [Objective-C](./examples/objective-c)  |
-| iOS / iPadOS  | [zt.framework]() | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>| [Objective-C](./examples/objective-c), [Swift](./examples/swift)  |
-| Android  | [zt.aar]() | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> | [Java](./examples/java)  |
+| iOS / iPadOS  | `./build.sh ios-framework` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>| [Objective-C](./examples/objective-c), [Swift](./examples/swift)  |
+| Android  |`./build.sh android-aar` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> | [Java](./examples/java)  |
 
 <br>
 
@@ -98,10 +103,7 @@ While we do operate a global network of redundant root servers, network controll
  - Examples: [examples/](./examples)
  - Bug reports: [Open a github issue](https://github.com/zerotier/libzt/issues).
  - General ZeroTier troubleshooting: [Knowledgebase](https://zerotier.atlassian.net/wiki/spaces/SD/overview).
- - Talk to us:
-    - Community: [discuss.zerotier.com](https://discuss.zerotier.com)
-    - <a href="https://www.twitter.com/zerotier"><img alt="@zerotier" src="https://img.shields.io/twitter/follow/zerotier?style=social"/></a>
-    - <a href="https://old.reddit.com/r/zerotier"><img alt="r/zerotier" src="https://img.shields.io/reddit/subreddit-subscribers/zerotier?style=social"/></a>
+ - Chat with us: [discuss.zerotier.com](https://discuss.zerotier.com)
 
 # Licensing
 

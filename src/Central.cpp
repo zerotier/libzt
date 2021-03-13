@@ -14,7 +14,7 @@
 #ifndef ZT_CENTRAL_H
 #define ZT_CENTRAL_H
 
-#ifdef CENTRAL_API
+#ifdef ZTS_ENABLE_CENTRAL_API
 
 #include <stdio.h>
 #include <curl/curl.h>

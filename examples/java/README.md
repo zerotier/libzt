@@ -1,25 +1,9 @@
-### How to compile/use this example:
+# Java example
 
-1. Follow "Building from source" section from README.md in the root of this git repository
-(the linking step/example from that section does not apply to this example)
+1). Build or download the `zt-1.3.3.jar`, copy it to this directory
 
-2. Create the java library .jar file:
+2). Run `make`
 
-```
-make host_jar_release
-```
+3). `java -cp ".:zt-1.3.3.jar" Example id_path 0123456789abcdef 9997`
 
-for other `host_jar` variants see Makefile in the root of this git repository
-
-2. Copy the output .jar to this directory:
-
-```
-cp lib/lib/release/linux-x86_64/zt.jar examples/java/simpleExample/
-```
-
-3. Now you can compile this example:
-
-```
-cd src
-javac -cp ../zt.jar ./com/zerotier/libzt/javasimpleexample/*.java 
-```
+See [src/bindings/java](../../src/bindings/java) for wrapper implementation code.

@@ -1,8 +1,14 @@
 #!/usr/bin/env python
 
 from setuptools import setup, Extension, Command, Distribution
+from distutils.util import convert_path
 import glob
 import os
+
+main_ns = {}
+ver_path = convert_path('libzt/version.py')
+with open(ver_path) as ver_file:
+    exec(ver_file.read(), main_ns)
 
 from os import path
 this_directory = path.abspath(path.dirname(__file__))
@@ -70,9 +76,8 @@ cstuff = ('cstuff', {'sources':
 
 setup(
 	name = 'libzt',
-	version = '1.3.3',
+	version = main_ns['__version__'],
 	description = 'ZeroTier',
-#	long_description = 'Encrypted P2P communication between apps and services',
 	long_description=long_description,
     long_description_content_type='text/markdown',
 	author = 'ZeroTier, Inc.',
@@ -87,28 +92,21 @@ setup(
 		'Topic :: Internet',
 		'Topic :: System :: Networking',
 		'Topic :: Security :: Cryptography',
-		'Operating System :: OS Independent',
 		'Intended Audience :: Developers',
 		'Intended Audience :: Information Technology',
-		'Intended Audience :: Science/Research',
 		'Intended Audience :: System Administrators',
 		'Intended Audience :: Telecommunications Industry',
 		'Intended Audience :: End Users/Desktop',
 		'License :: Free for non-commercial use',
 		'Operating System :: MacOS',
-		'Operating System :: Microsoft :: Windows',
 		'Operating System :: POSIX :: BSD',
 		'Operating System :: POSIX :: Linux',
 		'Operating System :: Unix',
 		'Programming Language :: C',
 		'Programming Language :: C++',
-		'Programming Language :: Python',
-		'Programming Language :: Java',
-		'Programming Language :: C#',
-		'Programming Language :: Rust'
+		'Programming Language :: Python'
 	],
 	distclass=BinaryDistribution,
 	libraries=[cstuff],
 	ext_modules = [libzt_module],
-	python_requires='>=3.0',
 )

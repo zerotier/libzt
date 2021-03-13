@@ -1,4 +1,3 @@
-__version__ = "1.3.3"
-
 from .libzt import *
 from .sockets import *
+from .version import __version__

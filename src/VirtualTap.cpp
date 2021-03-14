@@ -288,6 +288,7 @@ void VirtualTap::phyOnUnixClose(PhySocket *sock,void **uptr) {}
 //////////////////////////////////////////////////////////////////////////////
 
 bool _has_exited = false;
+bool _has_started = false;
 
 // Used to generate enumerated lwIP interface names
 int netifCount = 0;
@@ -301,6 +302,7 @@ static void _tcpip_init_done(void *arg)
 	sys_sem_t *sem;
 	sem = (sys_sem_t *)arg;
 	_setState(ZTS_STATE_STACK_RUNNING);
+	_has_started = true;
 	_enqueueEvent(ZTS_EVENT_STACK_UP);
 	sys_sem_signal(sem);
 }
@@ -359,7 +361,9 @@ void _lwip_driver_shutdown()
 	// Set flag to stop sending frames into the core
 	_clrState(ZTS_STATE_STACK_RUNNING);
 	// Wait until the main lwIP thread has exited
-	while (!_has_exited) { zts_delay_ms(LWIP_DRIVER_LOOP_INTERVAL); }
+	if (_has_started) {
+		while (!_has_exited) { zts_delay_ms(LWIP_DRIVER_LOOP_INTERVAL); }
+	}
 }
 
 void _lwip_remove_netif(void *netif)

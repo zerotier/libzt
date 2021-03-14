@@ -101,7 +101,7 @@ if (ZTS_ENABLE_PINVOKE)
 	set(ALLOW_INSTALL_TARGET   FALSE)
 	set(BUILD_HOST_SELFTEST    FALSE)
 	# Sources and libraries
-	set(ZTS_SWIG_WRAPPER_FILE ${LIBZT_SRC_DIR}/bindings/csharp/*.cpp)
+	set(LANG_WRAPPER_FILE ${LIBZT_SRC_DIR}/bindings/csharp/*.cpp)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_ENABLE_PINVOKE=1")
 endif()
 
@@ -119,7 +119,7 @@ if (ZTS_ENABLE_PYTHON)
 	# Sources and libraries
 	find_package(PythonLibs REQUIRED)
 	include_directories(${PYTHON_INCLUDE_DIRS})
-	set(ZTS_SWIG_WRAPPER_FILE ${LIBZT_SRC_DIR}/bindings/python/*.cpp)
+	set(LANG_WRAPPER_FILE ${LIBZT_SRC_DIR}/bindings/python/*.cpp)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_ENABLE_PYTHON=1")
 endif()
 
@@ -131,6 +131,7 @@ if (ZTS_ENABLE_JAVA)
 	set(ALLOW_INSTALL_TARGET   FALSE)
 	set(BUILD_HOST_SELFTEST    FALSE)
 	set(ZTS_ENABLE_STATS       FALSE)
+	set(LANG_WRAPPER_FILE ${LIBZT_SRC_DIR}/bindings/java/*.cpp)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_ENABLE_JAVA=1")
 endif()
 
@@ -483,7 +484,7 @@ file(
 	${ZTO_SRC_DIR}/ext/miniupnpc/upnperrors.c
 	${ZTO_SRC_DIR}/ext/miniupnpc/upnpreplyparse.c)
 
-file(GLOB libztSrcGlob ${LIBZT_SRC_DIR}/*.cpp ${ZTS_SWIG_WRAPPER_FILE})
+file(GLOB libztSrcGlob ${LIBZT_SRC_DIR}/*.cpp ${LANG_WRAPPER_FILE})
 
 file(
 	GLOB

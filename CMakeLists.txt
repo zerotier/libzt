@@ -87,18 +87,19 @@ include_directories(${LWIP_PORT_DIR}/include)
 # -----------------------------------------------------------------------------
 
 # Defaults
-set(ALLOW_INSTALL_TARGET      TRUE)
-set(BUILD_STATIC_LIB          TRUE)
-set(BUILD_SHARED_LIB          TRUE)
+set(ALLOW_INSTALL_TARGET        TRUE)
+set(BUILD_STATIC_LIB            TRUE)
+set(BUILD_SHARED_LIB            TRUE)
+set(BUILD_HOST_SELFTEST         TRUE)
 
 # C# language bindings (libzt.dll/dylib/so)
 if (ZTS_ENABLE_PINVOKE)
 	# Features
-	set(BUILD_STATIC_LIB     FALSE)
-	set(BUILD_SHARED_LIB      TRUE)
-	set(BUILD_EXAMPLES       FALSE)
-	set(ALLOW_INSTALL_TARGET FALSE)
-	set(BUILD_HOST_SELFTEST  FALSE)
+	set(BUILD_STATIC_LIB       FALSE)
+	set(BUILD_SHARED_LIB        TRUE)
+	set(BUILD_EXAMPLES         FALSE)
+	set(ALLOW_INSTALL_TARGET   FALSE)
+	set(BUILD_HOST_SELFTEST    FALSE)
 	# Sources and libraries
 	set(ZTS_SWIG_WRAPPER_FILE ${LIBZT_SRC_DIR}/bindings/csharp/*.cpp)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_ENABLE_PINVOKE=1")
@@ -107,14 +108,14 @@ endif()
 # Python language bindings (_libzt.so)
 if (ZTS_ENABLE_PYTHON)
 	# Features
-	set(ZTS_ENABLE_PYTHON     TRUE)
-	#set(ZTS_ENABLE_STATS     FALSE)
+	set(ZTS_ENABLE_PYTHON       TRUE)
+	#set(ZTS_ENABLE_STATS      FALSE)
 	# Targets
-	set(BUILD_STATIC_LIB     FALSE)
-	set(BUILD_SHARED_LIB      TRUE)
-	set(BUILD_EXAMPLES       FALSE)
-	set(ALLOW_INSTALL_TARGET FALSE)
-	set(BUILD_HOST_SELFTEST  FALSE)
+	set(BUILD_STATIC_LIB       FALSE)
+	set(BUILD_SHARED_LIB        TRUE)
+	set(BUILD_EXAMPLES         FALSE)
+	set(ALLOW_INSTALL_TARGET   FALSE)
+	set(BUILD_HOST_SELFTEST    FALSE)
 	# Sources and libraries
 	find_package(PythonLibs REQUIRED)
 	include_directories(${PYTHON_INCLUDE_DIRS})
@@ -124,51 +125,52 @@ endif()
 
 # Java language bindings
 if (ZTS_ENABLE_JAVA)
-	set(BUILD_STATIC_LIB     FALSE)
-	set(BUILD_SHARED_LIB      TRUE)
-	set(BUILD_HOST_EXAMPLES  FALSE)
-	set(ALLOW_INSTALL_TARGET FALSE)
-	set(BUILD_HOST_SELFTEST  FALSE)
-	set(ZTS_ENABLE_STATS     FALSE)
+	set(BUILD_STATIC_LIB       FALSE)
+	set(BUILD_SHARED_LIB        TRUE)
+	set(BUILD_HOST_EXAMPLES    FALSE)
+	set(ALLOW_INSTALL_TARGET   FALSE)
+	set(BUILD_HOST_SELFTEST    FALSE)
+	set(ZTS_ENABLE_STATS       FALSE)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_ENABLE_JAVA=1")
 endif()
 
 # All native targets for this host
 if(BUILD_HOST)
-	set(BUILD_STATIC_LIB      TRUE)
-	set(BUILD_SHARED_LIB      TRUE)
-	set(BUILD_HOST_EXAMPLES   TRUE)
-	set(ALLOW_INSTALL_TARGET  TRUE)
-	set(BUILD_HOST_SELFTEST   TRUE)
-	set(ZTS_ENABLE_STATS      TRUE)
+	set(BUILD_STATIC_LIB        TRUE)
+	set(BUILD_SHARED_LIB        TRUE)
+	set(BUILD_HOST_EXAMPLES     TRUE)
+	set(ALLOW_INSTALL_TARGET    TRUE)
+	set(BUILD_HOST_SELFTEST    FALSE)
+	set(ZTS_ENABLE_STATS        TRUE)
+	set(ZTS_ENABLE_CENTRAL_API FALSE)
 endif()
 
 # CI
 if(BUILD_HOST_SELFTEST_ONLY)
-	set(BUILD_STATIC_LIB      TRUE)
-	set(BUILD_SHARED_LIB     FALSE)
-	set(BUILD_HOST_EXAMPLES  FALSE)
-	set(ALLOW_INSTALL_TARGET FALSE)
-	set(BUILD_HOST_SELFTEST   TRUE)
-	set(ZTS_ENABLE_STATS     FALSE)
+	set(BUILD_STATIC_LIB        TRUE)
+	set(BUILD_SHARED_LIB       FALSE)
+	set(BUILD_HOST_EXAMPLES    FALSE)
+	set(ALLOW_INSTALL_TARGET   FALSE)
+	set(BUILD_HOST_SELFTEST     TRUE)
+	set(ZTS_ENABLE_STATS       FALSE)
 endif()
 
 # Android AAR containing libzt.so
 if(${CMAKE_SYSTEM_NAME} MATCHES "Android")
-	set(BUILD_ANDROID         TRUE)
-	set(BUILD_STATIC_LIB     FALSE)
-	set(BUILD_SHARED_LIB      TRUE)
-	set(BUILD_SELFTEST       FALSE)
-	set(BUILD_EXAMPLES       FALSE)
-	set(ALLOW_INSTALL_TARGET FALSE)
+	set(BUILD_ANDROID           TRUE)
+	set(BUILD_STATIC_LIB       FALSE)
+	set(BUILD_SHARED_LIB        TRUE)
+	set(BUILD_SELFTEST         FALSE)
+	set(BUILD_EXAMPLES         FALSE)
+	set(ALLOW_INSTALL_TARGET   FALSE)
 endif()
 
 if(BUILD_MACOS_FRAMEWORK)
-	set(BUILD_STATIC_LIB      TRUE)
-	set(BUILD_SHARED_LIB      TRUE)
-	set(BUILD_SELFTEST       FALSE)
-	set(BUILD_EXAMPLES       FALSE)
-	set(ALLOW_INSTALL_TARGET FALSE)
+	set(BUILD_STATIC_LIB        TRUE)
+	set(BUILD_SHARED_LIB        TRUE)
+	set(BUILD_SELFTEST         FALSE)
+	set(BUILD_EXAMPLES         FALSE)
+	set(ALLOW_INSTALL_TARGET   FALSE)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOMIT_JSON_SUPPORT=1")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DOMIT_JSON_SUPPORT=1")
 	set(CMAKE_XCODE_ATTRIBUTE_ARCHS "$(ARCHS_STANDARD)")
@@ -178,11 +180,11 @@ if(BUILD_MACOS_FRAMEWORK)
 endif()
 
 if(BUILD_IOS_FRAMEWORK)
-	set(BUILD_STATIC_LIB      TRUE)
-	set(BUILD_SHARED_LIB      TRUE)
-	set(BUILD_SELFTEST       FALSE)
-	set(BUILD_EXAMPLES       FALSE)
-	set(ALLOW_INSTALL_TARGET FALSE)
+	set(BUILD_STATIC_LIB        TRUE)
+	set(BUILD_SHARED_LIB        TRUE)
+	set(BUILD_SELFTEST         FALSE)
+	set(BUILD_EXAMPLES         FALSE)
+	set(ALLOW_INSTALL_TARGET   FALSE)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOMIT_JSON_SUPPORT=1")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DOMIT_JSON_SUPPORT=1")
 	set(DEVROOT
@@ -204,8 +206,22 @@ if(BUILD_IOS_FRAMEWORK)
 	endif()
 endif()
 
+# -----------------------------------------------------------------------------
+# |                    TESTING (and) FEATURE FLAGS                            |
+# -----------------------------------------------------------------------------
+
+if(BUILD_HOST_SELFTEST)
+	set(ZTS_ENABLE_STATS TRUE)
+	set(ZTS_ENABLE_CENTRAL_API TRUE)
+endif()
+
+# Enable specific features (eventually these will be enabled by default)
 if(ZTS_ENABLE_STATS)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_ENABLE_STATS=1")
+endif()
+
+if(ZTS_ENABLE_CENTRAL_API)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_ENABLE_CENTRAL_API=1")
 endif()
 
 # -----------------------------------------------------------------------------
@@ -279,7 +295,7 @@ if(BUILD_HOST_EXAMPLES)
 		${PROJ_DIR}/examples/cpp/keymanagement.cpp)
 	target_link_libraries(keymanagement ${STATIC_LIB_NAME})
 
-	if(CENTRAL_API)
+	if(ZTS_ENABLE_CENTRAL_API)
 		add_executable(centralapi ${PROJ_DIR}/examples/cpp/centralapi.cpp)
 		target_link_libraries(centralapi ${STATIC_LIB_NAME})
 	endif()
@@ -378,7 +394,7 @@ endif()
 # |                              OPTIONAL FEATURES                            |
 # -----------------------------------------------------------------------------
 
-if(CENTRAL_API)
+if(ZTS_ENABLE_CENTRAL_API)
 	set(requiredlibs)
 	find_package(CURL)
 	if(CURL_FOUND)
@@ -605,12 +621,13 @@ if(BUILD_STATIC_LIB)
 	if(BUILD_WIN)
 		target_link_libraries(${STATIC_LIB_NAME} ${ws2_32_LIBRARY_PATH}
 			${shlwapi_LIBRARY_PATH} ${iphlpapi_LIBRARY_PATH})
-	endif() # BUILD_STATIC_LIB
-endif()
+	endif()
+	if(ZTS_ENABLE_CENTRAL_API)
+		target_link_libraries(${STATIC_LIB_NAME} ${CURL_LIBRARIES})
+	endif()
+endif() # BUILD_STATIC_LIB
 
-if(CENTRAL_API)
-#  target_link_libraries(${STATIC_LIB_NAME} ${CURL_LIBRARIES})
-endif()
+
 
 
 
@@ -642,7 +659,7 @@ if(BUILD_SHARED_LIB)
 		natpmp_pic
 		miniupnpc_pic)
 
-	if(CENTRAL_API)
+	if(ZTS_ENABLE_CENTRAL_API)
 		target_link_libraries(${DYNAMIC_LIB_NAME} ${CURL_LIBRARIES})
 	endif()
 
@@ -650,6 +667,9 @@ if(BUILD_SHARED_LIB)
 
 	if(BUILD_ANDROID)
 		target_link_libraries(${DYNAMIC_LIB_NAME} android log)
+	endif()
+	if(ZTS_ENABLE_CENTRAL_API)
+		target_link_libraries(${DYNAMIC_LIB_NAME} ${CURL_LIBRARIES})
 	endif()
 endif() # BUILD_SHARED_LIB
 

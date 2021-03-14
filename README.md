@@ -48,8 +48,8 @@ int main()
 {
     zts_start(...)
     zts_join(networkId);
-    zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
-    zts_connect(...);
+    int fd = zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
+    zts_connect(fd, ...);
     ...
 }
 ```
@@ -68,7 +68,7 @@ This project uses [CMake](https://cmake.org/download/) as a build system generat
 |macOS | `./build.sh host "release"`| [build.sh](./build.sh) |
 |Windows | `. .\build.ps1; Build-Host -BuildType "Release"`| [build.ps1](./build.ps1), *Requires [PowerShell](https://github.com/powershell/powershell)*|
 
-Using the `host` keyword will automatically detect the current machine type and build standard libzt for use in C/C++ (no additional language bindings.) See `./build.sh list` for additional target options.
+ Using the `host` keyword will automatically detect the current machine type and build standard libzt for use in C/C++ (no additional language bindings.) See `./build.sh list` for additional target options. `libzt` depends on [cURL](https://github.com/curl/curl) for the optional portion of the API that interfaces with our hosted web offering ([my.zerotier.com](my.zerotier.com)). If you do not need this functionality you can omit it by passing `-DZTS_ENABLE_CENTRAL_API=0` to CMake.
 
 Example output:
 

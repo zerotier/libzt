@@ -903,14 +903,14 @@ int zts_py_getblocking(int fd);
 
 #ifdef ZTS_ENABLE_CENTRAL_API
 
-#define CENTRAL_API_DEFAULT_URL         "https://my.zerotier.com"
-#define CENRTAL_API_MAX_URL_LEN         128
-#define CENTRAL_API_TOKEN_LEN           32
-#define CENTRAL_API_RESP_BUF_DEFAULT_SZ (128*1024)
+#define ZTS_CENTRAL_DEFAULT_URL         "https://my.zerotier.com"
+#define ZTS_CENRTAL_MAX_URL_LEN         128
+#define ZTS_CENTRAL_TOKEN_LEN           32
+#define ZTS_CENTRAL_RESP_BUF_DEFAULT_SZ (128*1024)
 
-#define HTTP_GET    0
-#define HTTP_POST   1
-#define HTTP_DELETE 2
+#define ZTS_HTTP_GET    0
+#define ZTS_HTTP_POST   1
+#define ZTS_HTTP_DELETE 2
 
 #define ZTS_CENTRAL_NODE_AUTH_FALSE 0
 #define ZTS_CENTRAL_NODE_AUTH_TRUE  1
@@ -924,71 +924,77 @@ int zts_py_getblocking(int fd);
  *
  * @param modes Whether the API allows read, write, or both
  */
-ZTS_API void ZTCALL zts_central_api_set_access(int8_t modes);
+ZTS_API void ZTCALL zts_central_set_access_mode(int8_t modes);
 
 /**
  * @brief Enables or disables libcurl verbosity
  *
  * @param is_verbose Whether debug information is desired
  */
-ZTS_API void ZTCALL zts_central_api_set_verbose(int8_t is_verbose);
+ZTS_API void ZTCALL zts_central_set_verbose(int8_t is_verbose);
 
-ZTS_API void ZTCALL zts_central_api_clear_response_buffer();
+ZTS_API void ZTCALL zts_central_clear_resp_buf();
 
 /**
  * @brief Set the Central API URL and user API token.
  *
  * @param url_str The URL to the Central API server
  * @param token_str User API token
- * @param response_buffer Destination buffer for raw JSON output
- * @param buffer_len Size of buffer for server response (specify 0 for default size)
+ * @param resp_buf Destination buffer for raw JSON output
+ * @param buf_len Size of buffer for server response (specify 0 for default size)
  * @return ZTS_ERR_OK on success. ZTS_ERR_ARG if invalid arguments provided.
  */
-ZTS_API int ZTCALL zts_central_api_init(const char *url_str, const char *token_str, char *response_buffer, uint32_t buffer_len);
+ZTS_API int ZTCALL zts_central_init(
+	const char *url_str, const char *token_str, char *resp_buf, uint32_t buf_len);
 
-ZTS_API void ZTCALL zts_central_api_cleanup();
+ZTS_API void ZTCALL zts_central_cleanup();
 
 /**
- * @brief Copies the JSON-formatted string buffer from the last request into a user-provided buffer.
+ * @brief Copies the JSON-formatted string buffer from the last request into
+ *        a user-provided buffer.
  *
  * @param dest_buffer User-provided destination buffer
- * @param dest_buffer_len Length of aforementioned buffer
- * @return ZTS_ERR_OK if all contents were copied successfully. ZTS_ERR_ARG if provided buffer was too small.
+ * @param dest_buf_len Length of aforementioned buffer
+ * @return ZTS_ERR_OK if all contents were copied successfully.
+ *         ZTS_ERR_ARG if provided buffer was too small.
  */
-ZTS_API int ZTCALL zts_get_last_response_buffer(char *dest_buffer, int dest_buffer_len);
+ZTS_API int ZTCALL zts_central_get_last_response_buf(
+	char *dest_buffer, int dest_buf_len);
 
 /**
  * @brief Get the status of the Central API server.
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_api_get_status(int *http_response_code);
+ZTS_API int ZTCALL zts_central_get_status(int *http_response_code);
 
 /**
  * @brief Get the currently authenticated user’s user record.
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_api_get_self(int *http_response_code);
+ZTS_API int ZTCALL zts_central_get_self(int *http_response_code);
 
 /**
  * @brief Retrieve a Network.
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_api_get_network(int *http_response_code, uint64_t nwid);
+ZTS_API int ZTCALL zts_central_get_network(
+	int *http_response_code, uint64_t nwid);
 
 /**
  * @brief Update or create a Network.
  *
  * Only fields marked as [rw] can be directly modified. If other fields are
- * present in the posted request they are ignored. New networks can be created by POSTing
- * to /api/network with no networkId parameter. The server will create a random unused
- * network ID and return the new network record.
+ * present in the posted request they are ignored. New networks can be
+ * created by POSTing to /api/network with no networkId parameter. The server
+ * will create a random unused network ID and return the new network record.
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_api_update_network(int *http_response_code, uint64_t nwid);
+ZTS_API int ZTCALL zts_central_update_network(
+	int *http_response_code, uint64_t nwid);
 
 /**
  * @brief Delete a Network.
@@ -998,7 +1004,8 @@ ZTS_API int ZTCALL zts_central_api_update_network(int *http_response_code, uint6
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_api_delete_network(int *http_response_code, uint64_t nwid);
+ZTS_API int ZTCALL zts_central_delete_network(
+	int *http_response_code, uint64_t nwid);
 
 /**
  * @brief Get All Viewable Networks.
@@ -1007,13 +1014,14 @@ ZTS_API int ZTCALL zts_central_api_delete_network(int *http_response_code, uint6
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_api_get_networks(int *http_response_code);
+ZTS_API int ZTCALL zts_central_get_networks(int *http_response_code);
 /**
  * @brief Retrieve a Member.
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_api_get_member(int *http_response_code, int64_t nwid, uint64_t nodeid);
+ZTS_API int ZTCALL zts_central_get_member(
+	int *http_response_code, uint64_t nwid, uint64_t nodeid);
 
 /**
  * @brief Update or add a Member.
@@ -1022,17 +1030,20 @@ ZTS_API int ZTCALL zts_central_api_get_member(int *http_response_code, int64_t n
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_api_update_member(int *http_response_code, uint64_t nwid, uint64_t nodeid, char *post_data);
+ZTS_API int ZTCALL zts_central_update_member(
+	int *http_response_code, uint64_t nwid, uint64_t nodeid, char *post_data);
 
 /**
- * @brief Authorize or (De)authorize a node on a network. This operation is idempotent.
+ * @brief Authorize or (De)authorize a node on a network. This operation
+ * is idempotent.
  *
  * @param nwid The network ID
  * @param nodeid The node ID
  * @param is_authed Boolean value for whether this node should be authorized
  * @return Standard HTTP response codes. ZTS_ERR_ARG invalid argument specified.
  */
-ZTS_API int ZTCALL zts_set_node_auth(int *http_response_code, uint64_t nwid, uint64_t nodeid, uint64_t is_authed);
+ZTS_API int ZTCALL zts_central_set_node_auth(
+	int *http_response_code, uint64_t nwid, uint64_t nodeid, uint8_t is_authed);
 
 /**
  * @brief Get All Members of a Network.
@@ -1041,7 +1052,8 @@ ZTS_API int ZTCALL zts_set_node_auth(int *http_response_code, uint64_t nwid, uin
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_api_get_members_of_network(int *http_response_code, uint64_t nwid);
+ZTS_API int ZTCALL zts_central_get_members_of_network(
+	int *http_response_code, uint64_t nwid);
 
 #endif // NO_CENTRAL_API
 

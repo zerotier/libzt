@@ -69,14 +69,14 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_socket(
 
 int zts_connect(int fd, const struct zts_sockaddr *addr, zts_socklen_t addrlen)
 {
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
 	if (!addr) {
 		return ZTS_ERR_ARG;
 	}
 	if (addrlen > (int)sizeof(struct zts_sockaddr_storage) || addrlen < (int)sizeof(struct zts_sockaddr_in)) {
 		return ZTS_ERR_ARG;
-	}
-	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
-		return ZTS_ERR_SERVICE;
 	}
 	return lwip_connect(fd, (sockaddr*)addr, addrlen);
 }
@@ -94,14 +94,14 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_connect(
 
 int zts_bind(int fd, const struct zts_sockaddr *addr, zts_socklen_t addrlen)
 {
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
 	if (!addr) {
 		return ZTS_ERR_ARG;
 	}
 	if (addrlen > (int)sizeof(struct zts_sockaddr_storage) || addrlen < (int)sizeof(struct zts_sockaddr_in)) {
 		return ZTS_ERR_ARG;
-	}
-	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
-		return ZTS_ERR_SERVICE;
 	}
 	return lwip_bind(fd, (sockaddr*)addr, addrlen);
 }
@@ -266,14 +266,14 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_getsockopt(
 
 int zts_getsockname(int fd, struct zts_sockaddr *addr, zts_socklen_t *addrlen)
 {
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
 	if (!addr) {
 		return ZTS_ERR_ARG;
 	}
 	if (*addrlen > (int)sizeof(struct zts_sockaddr_storage) || *addrlen < (int)sizeof(struct zts_sockaddr_in)) {
 		return ZTS_ERR_ARG;
-	}
-	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
-		return ZTS_ERR_SERVICE;
 	}
 	return lwip_getsockname(fd, (sockaddr*)addr, (socklen_t*)addrlen);
 }
@@ -291,14 +291,14 @@ JNIEXPORT jboolean JNICALL Java_com_zerotier_libzt_ZeroTier_getsockname(JNIEnv *
 
 int zts_getpeername(int fd, struct zts_sockaddr *addr, zts_socklen_t *addrlen)
 {
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
 	if (!addr) {
 		return ZTS_ERR_ARG;
 	}
 	if (*addrlen > (int)sizeof(struct zts_sockaddr_storage) || *addrlen < (int)sizeof(struct zts_sockaddr_in)) {
 		return ZTS_ERR_ARG;
-	}
-	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
-		return ZTS_ERR_SERVICE;
 	}
 	return lwip_getpeername(fd, (sockaddr*)addr, (socklen_t*)addrlen);
 }
@@ -400,11 +400,11 @@ int zts_poll(struct zts_pollfd *fds, nfds_t nfds, int timeout)
 
 int zts_ioctl(int fd, unsigned long request, void *argp)
 {
-	if (!argp) {
-		return ZTS_ERR_ARG;
-	}
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
+	}
+	if (!argp) {
+		return ZTS_ERR_ARG;
 	}
 	return lwip_ioctl(fd, request, argp);
 }
@@ -435,11 +435,11 @@ JNIEXPORT int JNICALL Java_com_zerotier_libzt_ZeroTier_ioctl(
 
 ssize_t zts_send(int fd, const void *buf, size_t len, int flags)
 {
-	if (!buf) {
-		return ZTS_ERR_ARG;
-	}
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
+	}
+	if (!buf) {
+		return ZTS_ERR_ARG;
 	}
 	return lwip_send(fd, buf, len, flags);
 }
@@ -457,14 +457,14 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_send(
 ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags,
 	const struct zts_sockaddr *addr,zts_socklen_t addrlen)
 {
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
 	if (!addr || !buf) {
 		return ZTS_ERR_ARG;
 	}
 	if (addrlen > (int)sizeof(struct zts_sockaddr_storage) || addrlen < (int)sizeof(struct zts_sockaddr_in)) {
 		return ZTS_ERR_ARG;
-	}
-	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
-		return ZTS_ERR_SERVICE;
 	}
 	return lwip_sendto(fd, buf, len, flags, (sockaddr*)addr, addrlen);
 }
@@ -494,11 +494,11 @@ ssize_t zts_sendmsg(int fd, const struct msghdr *msg, int flags)
 
 ssize_t zts_recv(int fd, void *buf, size_t len, int flags)
 {
-	if (!buf) {
-		return ZTS_ERR_ARG;
-	}
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
+	}
+	if (!buf) {
+		return ZTS_ERR_ARG;
 	}
 	return lwip_recv(fd, buf, len, flags);
 }
@@ -516,11 +516,11 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_recv(JNIEnv *env, jobjec
 ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags,
 	struct zts_sockaddr *addr, zts_socklen_t *addrlen)
 {
-	if (!buf) {
-		return ZTS_ERR_ARG;
-	}
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
+	}
+	if (!buf) {
+		return ZTS_ERR_ARG;
 	}
 	return lwip_recvfrom(fd, buf, len, flags, (sockaddr*)addr, (socklen_t*)addrlen);
 }
@@ -541,11 +541,11 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_recvfrom(
 // TODO: JNI version
 ssize_t zts_recvmsg(int fd, struct msghdr *msg, int flags)
 {
-	if (!msg) {
-		return ZTS_ERR_ARG;
-	}
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
+	}
+	if (!msg) {
+		return ZTS_ERR_ARG;
 	}
 	return lwip_recvmsg(fd, msg, flags);
 }
@@ -554,21 +554,21 @@ ssize_t zts_recvmsg(int fd, struct msghdr *msg, int flags)
 
 ssize_t zts_read(int fd, void *buf, size_t len)
 {
-	if (!buf) {
-		return ZTS_ERR_ARG;
-	}
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
+	}
+	if (!buf) {
+		return ZTS_ERR_ARG;
 	}
 	return lwip_read(fd, buf, len);
 }
 ssize_t zts_read_offset(int fd, void *buf, size_t offset, size_t len)
 {
-	if (!buf) {
-		return ZTS_ERR_ARG;
-	}
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
+	}
+	if (!buf) {
+		return ZTS_ERR_ARG;
 	}
 	char *cbuf = (char*)buf;
 	return lwip_read(fd, &(cbuf[offset]), len);
@@ -611,11 +611,11 @@ ssize_t zts_readv(int s, const struct zts_iovec *iov, int iovcnt)
 
 ssize_t zts_write(int fd, const void *buf, size_t len)
 {
-	if (!buf) {
-		return ZTS_ERR_ARG;
-	}
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
+	}
+	if (!buf) {
+		return ZTS_ERR_ARG;
 	}
 	return lwip_write(fd, buf, len);
 }
@@ -733,6 +733,9 @@ extern struct stats_ lwip_stats;
 
 int zts_get_all_stats(struct zts_stats *statsDest)
 {
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
 #if LWIP_STATS
 	if (!statsDest) {
 		return ZTS_ERR_ARG;
@@ -764,12 +767,12 @@ int zts_get_all_stats(struct zts_stats *statsDest)
 	return ZTS_ERR_NO_RESULT;
 #endif
 }
-#ifdef ZTS_ENABLE_JAVA
-	// No implementation for JNI
-#endif
 
 int zts_get_protocol_stats(int protocolType, void *protoStatsDest)
 {
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
 #if LWIP_STATS
 	if (!protoStatsDest) {
 		return ZTS_ERR_ARG;

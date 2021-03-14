@@ -25,7 +25,6 @@
 %ignore zts_sockaddr_in6;
 
 %ignore zts_linger;
-%ignore zts_accept4;
 %ignore zts_ip_mreq;
 %ignore zts_in_pktinfo;
 %ignore zts_ipv6_mreq;

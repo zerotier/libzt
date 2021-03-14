@@ -1463,19 +1463,6 @@ ZTS_API int ZTCALL zts_listen(int fd, int backlog);
  */
 ZTS_API int ZTCALL zts_accept(int fd, struct zts_sockaddr *addr, zts_socklen_t *addrlen);
 
-/**
- * @brief Accept an incoming connection (sets zts_errno)
- *
- * @param fd Socket file descriptor
- * @param addr Address of remote host for accepted connection
- * @param addrlen Length of address
- * @param flags
- * @return New socket file descriptor on success. ZTS_ERR_SOCKET, ZTS_ERR_SERVICE, ZTS_ERR_ARG on failure.
- */
-#if defined(__linux__)
-	int zts_accept4(int fd, struct zts_sockaddr *addr, zts_socklen_t *addrlen, int flags);
-#endif
-
 // Socket level option number
 #define ZTS_SOL_SOCKET      0x0fff
 // Socket options

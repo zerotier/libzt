@@ -153,29 +153,6 @@ JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_accept(
 }
 #endif
 
-#if defined(__linux__)
-int zts_accept4(int fd, struct zts_sockaddr *addr, zts_socklen_t *addrlen, int flags)
-{
-	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
-		return ZTS_ERR_SERVICE;
-	}
-	return ZTS_ERR_SERVICE; // TODO
-}
-#endif
-#ifdef ZTS_ENABLE_JAVA
-#if defined(__linux__)
- JNIEXPORT jint JNICALL Java_com_zerotier_libzt_ZeroTier_accept4(
-	JNIEnv *env, jobject thisObj, jint fd, jobject addr, jint port, jint flags)
- {
-	struct zts_sockaddr_storage ss;
-	zts_socklen_t addrlen = sizeof(struct zts_sockaddr_storage);
-	int retval = zts_accept4(fd, (struct zts_sockaddr *)&ss, &addrlen, flags);
-	ss2zta(env, &ss, addr);
-	return retval > -1 ? retval : -(zts_errno);
-}
-#endif
-#endif
-
 int zts_setsockopt(int fd, int level, int optname, const void *optval,zts_socklen_t optlen)
 {
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {

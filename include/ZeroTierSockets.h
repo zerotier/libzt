@@ -297,6 +297,11 @@ extern int zts_errno;
  *
  */
 
+/**
+ * Length of human-readable MAC address string
+ */
+#define ZTS_MAC_ADDRSTRLEN     18
+
 #define ZTS_INET_ADDRSTRLEN    16
 #define ZTS_INET6_ADDRSTRLEN   46
 
@@ -1819,7 +1824,7 @@ struct zts_msghdr {
  * @param flags
  * @return Byte count sent on success. ZTS_ERR_SOCKET, ZTS_ERR_SERVICE, ZTS_ERR_ARG on failure.
  */
-ZTS_API ssize_t ZTCALL zts_sendmsg(int fd, const struct msghdr *msg, int flags);
+ZTS_API ssize_t ZTCALL zts_sendmsg(int fd, const struct zts_msghdr *msg, int flags);
 
 /**
  * @brief Receive data from remote host (sets zts_errno)
@@ -1854,7 +1859,7 @@ ZTS_API ssize_t ZTCALL zts_recvfrom(
  * @param flags
  * @return Byte count received on success. ZTS_ERR_SOCKET, ZTS_ERR_SERVICE, ZTS_ERR_ARG on failure.
  */
-ZTS_API ssize_t ZTCALL zts_recvmsg(int fd, struct msghdr *msg,int flags);
+ZTS_API ssize_t ZTCALL zts_recvmsg(int fd, struct zts_msghdr *msg,int flags);
 
 /**
  * @brief Read bytes from socket onto buffer (sets zts_errno)
@@ -1926,47 +1931,6 @@ ZTS_API int ZTCALL zts_add_dns_nameserver(struct zts_sockaddr *addr);
 ZTS_API int ZTCALL zts_del_dns_nameserver(struct zts_sockaddr *addr);
 
 /**
- * Convert an uint16_t from host to network byte order.
- *
- * @param n uint16_t in host byte order
- * @return n in network byte order
- */
-ZTS_API uint16_t ZTCALL zts_htons(uint16_t n);
-
-/**
- * Convert an uint32_t from host to network byte order.
- *
- * @param n uint32_t in host byte order
- * @return n in network byte order
- */
-ZTS_API uint32_t ZTCALL zts_htonl(uint32_t n);
-
-/**
- * Length of human-readable MAC address string
- */
-#define ZTS_MAC_ADDRSTRLEN 18
-
-#ifndef htonll
-#define htonll(x) ((1==htonl(1)) ? (x) : ((uint64_t)htonl((x) & 0xFFFFFFFF) << 32) | htonl((x) >> 32))
-#endif
-
-/**
- * Convert an uint16_t from network to host byte order.
- *
- * @param n uint16_t in network byte order
- * @return n in host byte order
- */
-ZTS_API uint16_t ZTCALL zts_ntohs(uint16_t n);
-
-/**
- * Convert an uint32_t from network to host byte order.
- *
- * @param n uint32_t in network byte order
- * @return n in host byte order
- */
-ZTS_API uint32_t ZTCALL zts_ntohl(uint32_t n);
-
-/**
  * Convert IPv4 and IPv6 address structures to human-readable text form.
  *
  * @param af Address family (ZTS_AF_INET, ZTS_AF_INET6)
@@ -1986,14 +1950,6 @@ ZTS_API const char * ZTCALL zts_inet_ntop(int af, const void *src, char *dst, zt
  * @return return 1 on success. 0 or -1 on failure. (Does not follow zts_* conventions)
  */
 ZTS_API int ZTCALL zts_inet_pton(int af, const char *src, void *dst);
-
-/**
- * Convert a C-string IPv4 address to integer representation.
- *
- * @param cp Human-readable IPv4 string
- * @return 32-bit integer representation of address
- */
-ZTS_API uint32_t ZTCALL zts_inet_addr(const char *cp);
 
 #ifdef __cplusplus
 } // extern "C"

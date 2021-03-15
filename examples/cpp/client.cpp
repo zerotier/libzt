@@ -215,11 +215,11 @@ int main(int argc, char **argv)
 	int ztServicePort = atoi(argv[5]); // Port ZT uses to send encrypted UDP packets to peers (try something like 9994)
 
 	struct zts_sockaddr_in in4;
-	in4.sin_port = zts_htons(remotePort);
+	in4.sin_port = htons(remotePort);
 #if defined(_WIN32)
-	in4.sin_addr.S_addr = zts_inet_addr(remoteAddr.c_str());
+	zts_inet_pton(ZTS_AF_INET, remoteAddr.c_str(), &(in4.sin_addr.S_addr));
 #else
-	in4.sin_addr.s_addr = zts_inet_addr(remoteAddr.c_str());
+	zts_inet_pton(ZTS_AF_INET, remoteAddr.c_str(), &(in4.sin_addr.s_addr));
 #endif
 	in4.sin_family = ZTS_AF_INET;
 

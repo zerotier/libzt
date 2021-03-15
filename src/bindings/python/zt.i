@@ -33,6 +33,5 @@
 %ignore zts_pollfd;
 %ignore zts_nfds_t;
 %ignore zts_msghdr;
-%ignore zts_inet_addr;
 
 %include "ZeroTierSockets.h"

@@ -18,6 +18,8 @@
  */
 
 #include "lwip/sockets.h"
+#include "lwip/inet.h"
+
 #include "ZeroTierSockets.h"
 
 #ifdef ZTS_ENABLE_PYTHON
@@ -55,7 +57,7 @@ static int zts_py_tuple_to_sockaddr(int family,
 			return ZTS_ERR_ARG;
 		}
 		addr = (struct zts_sockaddr_in*)dst_addr;
-		addr->sin_addr.s_addr = zts_inet_addr(host_str);
+		zts_inet_pton(ZTS_AF_INET, host_str, &(addr->sin_addr.s_addr));
 		PyMem_Free(host_str);
 		if (port < 0 || port > 0xFFFF) {
 			return ZTS_ERR_ARG;
@@ -64,7 +66,7 @@ static int zts_py_tuple_to_sockaddr(int family,
 			return ZTS_ERR_ARG;
 		}
 		addr->sin_family = AF_INET;
-		addr->sin_port   = htons((short)port);
+		addr->sin_port   = lwip_htons((short)port);
 		*addrlen         = sizeof *addr;
 		return ZTS_ERR_OK;
 	}
@@ -87,7 +89,7 @@ PyObject * zts_py_accept(int fd)
 	t = PyTuple_New(3);
 	PyTuple_SetItem(t, 0, PyLong_FromLong(err)); // New file descriptor
 	PyTuple_SetItem(t, 1, PyUnicode_FromString(ipstr));
-	PyTuple_SetItem(t, 2, PyLong_FromLong(zts_ntohs(addrbuf.sin_port)));
+	PyTuple_SetItem(t, 2, PyLong_FromLong(lwip_ntohs(addrbuf.sin_port)));
 	Py_INCREF(t);
 	return t;
 }

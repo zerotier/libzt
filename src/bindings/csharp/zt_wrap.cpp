@@ -170,7 +170,7 @@ template <typename T> T SwigValueInit() {
 #include <stdio.h>
 
 
-/* Support for throwing C# exceptions from C/C++. There are two types: 
+/* Support for throwing C# exceptions from C/C++. There are two types:
  * Exceptions that take a message and ArgumentExceptions that take a message and a parameter name. */
 typedef enum {
   SWIG_CSharpApplicationException,
@@ -243,19 +243,19 @@ static void SWIGUNUSED SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpExcepti
 
 
 #ifdef __cplusplus
-extern "C" 
+extern "C"
 #endif
 SWIGEXPORT void SWIGSTDCALL SWIGRegisterExceptionCallbacks_zt(
                                                 SWIG_CSharpExceptionCallback_t applicationCallback,
                                                 SWIG_CSharpExceptionCallback_t arithmeticCallback,
-                                                SWIG_CSharpExceptionCallback_t divideByZeroCallback, 
-                                                SWIG_CSharpExceptionCallback_t indexOutOfRangeCallback, 
+                                                SWIG_CSharpExceptionCallback_t divideByZeroCallback,
+                                                SWIG_CSharpExceptionCallback_t indexOutOfRangeCallback,
                                                 SWIG_CSharpExceptionCallback_t invalidCastCallback,
                                                 SWIG_CSharpExceptionCallback_t invalidOperationCallback,
                                                 SWIG_CSharpExceptionCallback_t ioCallback,
                                                 SWIG_CSharpExceptionCallback_t nullReferenceCallback,
-                                                SWIG_CSharpExceptionCallback_t outOfMemoryCallback, 
-                                                SWIG_CSharpExceptionCallback_t overflowCallback, 
+                                                SWIG_CSharpExceptionCallback_t outOfMemoryCallback,
+                                                SWIG_CSharpExceptionCallback_t overflowCallback,
                                                 SWIG_CSharpExceptionCallback_t systemCallback) {
   SWIG_csharp_exceptions[SWIG_CSharpApplicationException].callback = applicationCallback;
   SWIG_csharp_exceptions[SWIG_CSharpArithmeticException].callback = arithmeticCallback;
@@ -271,7 +271,7 @@ SWIGEXPORT void SWIGSTDCALL SWIGRegisterExceptionCallbacks_zt(
 }
 
 #ifdef __cplusplus
-extern "C" 
+extern "C"
 #endif
 SWIGEXPORT void SWIGSTDCALL SWIGRegisterExceptionArgumentCallbacks_zt(
                                                 SWIG_CSharpExceptionArgumentCallback_t argumentCallback,
@@ -289,7 +289,7 @@ static SWIG_CSharpStringHelperCallback SWIG_csharp_string_callback = NULL;
 
 
 #ifdef __cplusplus
-extern "C" 
+extern "C"
 #endif
 SWIGEXPORT void SWIGSTDCALL SWIGRegisterStringCallback_zt(SWIG_CSharpStringHelperCallback callback) {
   SWIG_csharp_string_callback = callback;
@@ -387,8 +387,8 @@ extern "C" {
 
 SWIGEXPORT void SWIGSTDCALL CSharp_zts_errno_set(int jarg1) {
   int arg1 ;
-  
-  arg1 = (int)jarg1; 
+
+  arg1 = (int)jarg1;
   zts_errno = arg1;
 }
 
@@ -396,9 +396,9 @@ SWIGEXPORT void SWIGSTDCALL CSharp_zts_errno_set(int jarg1) {
 SWIGEXPORT int SWIGSTDCALL CSharp_zts_errno_get() {
   int jresult ;
   int result;
-  
+
   result = (int)zts_errno;
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -406,10 +406,10 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_allow_network_caching(unsigned char jarg1)
   int jresult ;
   uint8_t arg1 ;
   int result;
-  
-  arg1 = (uint8_t)jarg1; 
+
+  arg1 = (uint8_t)jarg1;
   result = (int)zts_allow_network_caching(arg1);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -418,10 +418,10 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_allow_peer_caching(unsigned char jarg1) {
   int jresult ;
   uint8_t arg1 ;
   int result;
-  
-  arg1 = (uint8_t)jarg1; 
+
+  arg1 = (uint8_t)jarg1;
   result = (int)zts_allow_peer_caching(arg1);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -430,10 +430,10 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_allow_local_conf(unsigned char jarg1) {
   int jresult ;
   uint8_t arg1 ;
   int result;
-  
-  arg1 = (uint8_t)jarg1; 
+
+  arg1 = (uint8_t)jarg1;
   result = (int)zts_allow_local_conf(arg1);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -444,12 +444,12 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_start(char * jarg1, void * jarg2, unsigned
   CppCallback arg2 = (CppCallback) 0 ;
   uint16_t arg3 ;
   int result;
-  
-  arg1 = (char *)jarg1; 
-  arg2 = (CppCallback)jarg2; 
-  arg3 = (uint16_t)jarg3; 
+
+  arg1 = (char *)jarg1;
+  arg2 = (CppCallback)jarg2;
+  arg3 = (uint16_t)jarg3;
   result = (int)zts_start((char const *)arg1,arg2,arg3);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -457,9 +457,9 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_start(char * jarg1, void * jarg2, unsigned
 SWIGEXPORT int SWIGSTDCALL CSharp_zts_stop() {
   int jresult ;
   int result;
-  
+
   result = (int)zts_stop();
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -467,9 +467,9 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_stop() {
 SWIGEXPORT int SWIGSTDCALL CSharp_zts_restart() {
   int jresult ;
   int result;
-  
+
   result = (int)zts_restart();
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -477,9 +477,9 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_restart() {
 SWIGEXPORT int SWIGSTDCALL CSharp_zts_free() {
   int jresult ;
   int result;
-  
+
   result = (int)zts_free();
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -488,10 +488,10 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_join(unsigned long long jarg1) {
   int jresult ;
   uint64_t arg1 ;
   int result;
-  
-  arg1 = (uint64_t)jarg1; 
+
+  arg1 = (uint64_t)jarg1;
   result = (int)zts_join(arg1);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -500,10 +500,10 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_leave(unsigned long long jarg1) {
   int jresult ;
   uint64_t arg1 ;
   int result;
-  
-  arg1 = (uint64_t)jarg1; 
+
+  arg1 = (uint64_t)jarg1;
   result = (int)zts_leave(arg1);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -513,11 +513,11 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_orbit(unsigned long long jarg1, unsigned l
   uint64_t arg1 ;
   uint64_t arg2 ;
   int result;
-  
-  arg1 = (uint64_t)jarg1; 
-  arg2 = (uint64_t)jarg2; 
+
+  arg1 = (uint64_t)jarg1;
+  arg2 = (uint64_t)jarg2;
   result = (int)zts_orbit(arg1,arg2);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -526,10 +526,10 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_deorbit(unsigned long long jarg1) {
   int jresult ;
   uint64_t arg1 ;
   int result;
-  
-  arg1 = (uint64_t)jarg1; 
+
+  arg1 = (uint64_t)jarg1;
   result = (int)zts_deorbit(arg1);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -540,12 +540,12 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_get_6plane_addr(void * jarg1, unsigned lon
   uint64_t arg2 ;
   uint64_t arg3 ;
   int result;
-  
-  arg1 = (zts_sockaddr_storage *)jarg1; 
-  arg2 = (uint64_t)jarg2; 
-  arg3 = (uint64_t)jarg3; 
+
+  arg1 = (zts_sockaddr_storage *)jarg1;
+  arg2 = (uint64_t)jarg2;
+  arg3 = (uint64_t)jarg3;
   result = (int)zts_get_6plane_addr(arg1,arg2,arg3);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -556,12 +556,12 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_get_rfc4193_addr(void * jarg1, unsigned lo
   uint64_t arg2 ;
   uint64_t arg3 ;
   int result;
-  
-  arg1 = (zts_sockaddr_storage *)jarg1; 
-  arg2 = (uint64_t)jarg2; 
-  arg3 = (uint64_t)jarg3; 
+
+  arg1 = (zts_sockaddr_storage *)jarg1;
+  arg2 = (uint64_t)jarg2;
+  arg3 = (uint64_t)jarg3;
   result = (int)zts_get_rfc4193_addr(arg1,arg2,arg3);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -571,19 +571,19 @@ SWIGEXPORT unsigned long long SWIGSTDCALL CSharp_zts_generate_adhoc_nwid_from_ra
   uint16_t arg1 ;
   uint16_t arg2 ;
   uint64_t result;
-  
-  arg1 = (uint16_t)jarg1; 
-  arg2 = (uint16_t)jarg2; 
+
+  arg1 = (uint16_t)jarg1;
+  arg2 = (uint16_t)jarg2;
   result = zts_generate_adhoc_nwid_from_range(arg1,arg2);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
 
 SWIGEXPORT void SWIGSTDCALL CSharp_zts_delay_ms(long jarg1) {
   long arg1 ;
-  
-  arg1 = (long)jarg1; 
+
+  arg1 = (long)jarg1;
   zts_delay_ms(arg1);
 }
 
@@ -592,10 +592,10 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_get_all_stats(void * jarg1) {
   int jresult ;
   zts_stats *arg1 = (zts_stats *) 0 ;
   int result;
-  
-  arg1 = (zts_stats *)jarg1; 
+
+  arg1 = (zts_stats *)jarg1;
   result = (int)zts_get_all_stats(arg1);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -605,11 +605,11 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_get_protocol_stats(int jarg1, void * jarg2
   int arg1 ;
   void *arg2 = (void *) 0 ;
   int result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (void *)jarg2; 
+
+  arg1 = (int)jarg1;
+  arg2 = (void *)jarg2;
   result = (int)zts_get_protocol_stats(arg1,arg2);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 */
@@ -620,12 +620,12 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_socket(int jarg1, int jarg2, int jarg3) {
   int arg2 ;
   int arg3 ;
   int result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (int)jarg2; 
-  arg3 = (int)jarg3; 
+
+  arg1 = (int)jarg1;
+  arg2 = (int)jarg2;
+  arg3 = (int)jarg3;
   result = (int)zts_socket(arg1,arg2,arg3);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -636,12 +636,12 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_connect(int jarg1, zts_sockaddr* jarg2, un
   zts_sockaddr *arg2 = (zts_sockaddr *) 0 ;
   zts_socklen_t arg3 ;
   int result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (zts_sockaddr *)jarg2; 
-  arg3 = (zts_socklen_t)jarg3; 
+
+  arg1 = (int)jarg1;
+  arg2 = (zts_sockaddr *)jarg2;
+  arg3 = (zts_socklen_t)jarg3;
   result = (int)zts_connect(arg1,(zts_sockaddr const *)arg2,arg3);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -652,12 +652,12 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_bind(int jarg1, zts_sockaddr* jarg2, unsig
   zts_sockaddr *arg2 = (zts_sockaddr *) 0 ;
   zts_socklen_t arg3 ;
   int result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (zts_sockaddr *)jarg2; 
-  arg3 = (zts_socklen_t)jarg3; 
+
+  arg1 = (int)jarg1;
+  arg2 = (zts_sockaddr *)jarg2;
+  arg3 = (zts_socklen_t)jarg3;
   result = (int)zts_bind(arg1,(zts_sockaddr const *)arg2,arg3);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -667,11 +667,11 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_listen(int jarg1, int jarg2) {
   int arg1 ;
   int arg2 ;
   int result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (int)jarg2; 
+
+  arg1 = (int)jarg1;
+  arg2 = (int)jarg2;
   result = (int)zts_listen(arg1,arg2);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -682,12 +682,12 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_accept(int jarg1, zts_sockaddr* jarg2, int
   zts_sockaddr *arg2 = (zts_sockaddr *) 0 ;
   zts_socklen_t *arg3 = (zts_socklen_t *) 0 ;
   int result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (zts_sockaddr *)jarg2; 
-  arg3 = (zts_socklen_t *)jarg3; 
+
+  arg1 = (int)jarg1;
+  arg2 = (zts_sockaddr *)jarg2;
+  arg3 = (zts_socklen_t *)jarg3;
   result = (int)zts_accept(arg1,arg2,arg3);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -700,14 +700,14 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_setsockopt(int jarg1, int jarg2, int jarg3
   void *arg4 = (void *) 0 ;
   zts_socklen_t arg5 ;
   int result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (int)jarg2; 
-  arg3 = (int)jarg3; 
-  arg4 = (void *)jarg4; 
-  arg5 = (zts_socklen_t)jarg5; 
+
+  arg1 = (int)jarg1;
+  arg2 = (int)jarg2;
+  arg3 = (int)jarg3;
+  arg4 = (void *)jarg4;
+  arg5 = (zts_socklen_t)jarg5;
   result = (int)zts_setsockopt(arg1,arg2,arg3,(void const *)arg4,arg5);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -720,14 +720,14 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_getsockopt(int jarg1, int jarg2, int jarg3
   void *arg4 = (void *) 0 ;
   zts_socklen_t *arg5 = (zts_socklen_t *) 0 ;
   int result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (int)jarg2; 
-  arg3 = (int)jarg3; 
-  arg4 = (void *)jarg4; 
-  arg5 = (zts_socklen_t *)jarg5; 
+
+  arg1 = (int)jarg1;
+  arg2 = (int)jarg2;
+  arg3 = (int)jarg3;
+  arg4 = (void *)jarg4;
+  arg5 = (zts_socklen_t *)jarg5;
   result = (int)zts_getsockopt(arg1,arg2,arg3,arg4,arg5);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -738,12 +738,12 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_getsockname(int jarg1, zts_sockaddr* jarg2
   zts_sockaddr *arg2 = (zts_sockaddr *) 0 ;
   zts_socklen_t *arg3 = (zts_socklen_t *) 0 ;
   int result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (zts_sockaddr *)jarg2; 
-  arg3 = (zts_socklen_t *)jarg3; 
+
+  arg1 = (int)jarg1;
+  arg2 = (zts_sockaddr *)jarg2;
+  arg3 = (zts_socklen_t *)jarg3;
   result = (int)zts_getsockname(arg1,arg2,arg3);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -754,12 +754,12 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_getpeername(int jarg1, zts_sockaddr* jarg2
   zts_sockaddr *arg2 = (zts_sockaddr *) 0 ;
   zts_socklen_t *arg3 = (zts_socklen_t *) 0 ;
   int result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (zts_sockaddr *)jarg2; 
-  arg3 = (zts_socklen_t *)jarg3; 
+
+  arg1 = (int)jarg1;
+  arg2 = (zts_sockaddr *)jarg2;
+  arg3 = (zts_socklen_t *)jarg3;
   result = (int)zts_getpeername(arg1,arg2,arg3);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -768,10 +768,10 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_close(int jarg1) {
   int jresult ;
   int arg1 ;
   int result;
-  
-  arg1 = (int)jarg1; 
+
+  arg1 = (int)jarg1;
   result = (int)zts_close(arg1);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -784,14 +784,14 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_select(int jarg1, void * jarg2, void * jar
   zts_fd_set *arg4 = (zts_fd_set *) 0 ;
   zts_timeval *arg5 = (zts_timeval *) 0 ;
   int result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (zts_fd_set *)jarg2; 
-  arg3 = (zts_fd_set *)jarg3; 
-  arg4 = (zts_fd_set *)jarg4; 
-  arg5 = (zts_timeval *)jarg5; 
+
+  arg1 = (int)jarg1;
+  arg2 = (zts_fd_set *)jarg2;
+  arg3 = (zts_fd_set *)jarg3;
+  arg4 = (zts_fd_set *)jarg4;
+  arg5 = (zts_timeval *)jarg5;
   result = (int)zts_select(arg1,arg2,arg3,arg4,arg5);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -802,12 +802,12 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_fcntl(int jarg1, int jarg2, int jarg3) {
   int arg2 ;
   int arg3 ;
   int result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (int)jarg2; 
-  arg3 = (int)jarg3; 
+
+  arg1 = (int)jarg1;
+  arg2 = (int)jarg2;
+  arg3 = (int)jarg3;
   result = (int)zts_fcntl(arg1,arg2,arg3);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -818,12 +818,12 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_poll(void * jarg1, unsigned int jarg2, int
   zts_nfds_t arg2 ;
   int arg3 ;
   int result;
-  
-  arg1 = (zts_pollfd *)jarg1; 
-  arg2 = (zts_nfds_t)jarg2; 
-  arg3 = (int)jarg3; 
+
+  arg1 = (zts_pollfd *)jarg1;
+  arg2 = (zts_nfds_t)jarg2;
+  arg3 = (int)jarg3;
   result = (int)zts_poll(arg1,arg2,arg3);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -834,12 +834,12 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_ioctl(int jarg1, unsigned long jarg2, void
   unsigned long arg2 ;
   void *arg3 = (void *) 0 ;
   int result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (unsigned long)jarg2; 
-  arg3 = (void *)jarg3; 
+
+  arg1 = (int)jarg1;
+  arg2 = (unsigned long)jarg2;
+  arg3 = (void *)jarg3;
   result = (int)zts_ioctl(arg1,arg2,arg3);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -851,13 +851,13 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_zts_send(int jarg1, void * jarg2, unsigned 
   size_t arg3 ;
   int arg4 ;
   ssize_t result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (void *)jarg2; 
-  arg3 = (size_t)jarg3; 
-  arg4 = (int)jarg4; 
+
+  arg1 = (int)jarg1;
+  arg2 = (void *)jarg2;
+  arg3 = (size_t)jarg3;
+  arg4 = (int)jarg4;
   result = zts_send(arg1,(void const *)arg2,arg3,arg4);
-  jresult = new ssize_t((const ssize_t &)result); 
+  jresult = new ssize_t((const ssize_t &)result);
   return jresult;
 }
 
@@ -871,15 +871,15 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_zts_sendto(int jarg1, void * jarg2, unsigne
   zts_sockaddr *arg5 = (zts_sockaddr *) 0 ;
   zts_socklen_t arg6 ;
   ssize_t result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (void *)jarg2; 
-  arg3 = (size_t)jarg3; 
-  arg4 = (int)jarg4; 
-  arg5 = (zts_sockaddr *)jarg5; 
-  arg6 = (zts_socklen_t)jarg6; 
+
+  arg1 = (int)jarg1;
+  arg2 = (void *)jarg2;
+  arg3 = (size_t)jarg3;
+  arg4 = (int)jarg4;
+  arg5 = (zts_sockaddr *)jarg5;
+  arg6 = (zts_socklen_t)jarg6;
   result = zts_sendto(arg1,(void const *)arg2,arg3,arg4,(zts_sockaddr const *)arg5,arg6);
-  jresult = new ssize_t((const ssize_t &)result); 
+  jresult = new ssize_t((const ssize_t &)result);
   return jresult;
 }
 
@@ -890,12 +890,12 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_zts_sendmsg(int jarg1, void * jarg2, int ja
   msghdr *arg2 = (msghdr *) 0 ;
   int arg3 ;
   ssize_t result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (msghdr *)jarg2; 
-  arg3 = (int)jarg3; 
+
+  arg1 = (int)jarg1;
+  arg2 = (msghdr *)jarg2;
+  arg3 = (int)jarg3;
   result = zts_sendmsg(arg1,(msghdr const *)arg2,arg3);
-  jresult = new ssize_t((const ssize_t &)result); 
+  jresult = new ssize_t((const ssize_t &)result);
   return jresult;
 }
 
@@ -907,11 +907,11 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_recv(int jarg1, void * jarg2, unsigned lon
   size_t arg3 ;
   int arg4 ;
   ssize_t result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (void *)jarg2; 
-  arg3 = (size_t)jarg3; 
-  arg4 = (int)jarg4; 
+
+  arg1 = (int)jarg1;
+  arg2 = (void *)jarg2;
+  arg3 = (size_t)jarg3;
+  arg4 = (int)jarg4;
   result = zts_recv(arg1,arg2,arg3,arg4);
   return result;
 }
@@ -926,15 +926,15 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_zts_recvfrom(int jarg1, void * jarg2, unsig
   zts_sockaddr *arg5 = (zts_sockaddr *) 0 ;
   zts_socklen_t *arg6 = (zts_socklen_t *) 0 ;
   ssize_t result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (void *)jarg2; 
-  arg3 = (size_t)jarg3; 
-  arg4 = (int)jarg4; 
-  arg5 = (zts_sockaddr *)jarg5; 
-  arg6 = (zts_socklen_t *)jarg6; 
+
+  arg1 = (int)jarg1;
+  arg2 = (void *)jarg2;
+  arg3 = (size_t)jarg3;
+  arg4 = (int)jarg4;
+  arg5 = (zts_sockaddr *)jarg5;
+  arg6 = (zts_socklen_t *)jarg6;
   result = zts_recvfrom(arg1,arg2,arg3,arg4,arg5,arg6);
-  jresult = new ssize_t((const ssize_t &)result); 
+  jresult = new ssize_t((const ssize_t &)result);
   return jresult;
 }
 
@@ -945,12 +945,12 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_zts_recvmsg(int jarg1, void * jarg2, int ja
   msghdr *arg2 = (msghdr *) 0 ;
   int arg3 ;
   ssize_t result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (msghdr *)jarg2; 
-  arg3 = (int)jarg3; 
+
+  arg1 = (int)jarg1;
+  arg2 = (msghdr *)jarg2;
+  arg3 = (int)jarg3;
   result = zts_recvmsg(arg1,arg2,arg3);
-  jresult = new ssize_t((const ssize_t &)result); 
+  jresult = new ssize_t((const ssize_t &)result);
   return jresult;
 }
 
@@ -961,12 +961,12 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_zts_read(int jarg1, void * jarg2, unsigned 
   void *arg2 = (void *) 0 ;
   size_t arg3 ;
   ssize_t result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (void *)jarg2; 
-  arg3 = (size_t)jarg3; 
+
+  arg1 = (int)jarg1;
+  arg2 = (void *)jarg2;
+  arg3 = (size_t)jarg3;
   result = zts_read(arg1,arg2,arg3);
-  jresult = new ssize_t((const ssize_t &)result); 
+  jresult = new ssize_t((const ssize_t &)result);
   return jresult;
 }
 
@@ -977,12 +977,12 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_zts_readv(int jarg1, void * jarg2, int jarg
   zts_iovec *arg2 = (zts_iovec *) 0 ;
   int arg3 ;
   ssize_t result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (zts_iovec *)jarg2; 
-  arg3 = (int)jarg3; 
+
+  arg1 = (int)jarg1;
+  arg2 = (zts_iovec *)jarg2;
+  arg3 = (int)jarg3;
   result = zts_readv(arg1,(zts_iovec const *)arg2,arg3);
-  jresult = new ssize_t((const ssize_t &)result); 
+  jresult = new ssize_t((const ssize_t &)result);
   return jresult;
 }
 
@@ -993,12 +993,12 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_zts_write(int jarg1, void * jarg2, unsigned
   void *arg2 = (void *) 0 ;
   size_t arg3 ;
   ssize_t result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (void *)jarg2; 
-  arg3 = (size_t)jarg3; 
+
+  arg1 = (int)jarg1;
+  arg2 = (void *)jarg2;
+  arg3 = (size_t)jarg3;
   result = zts_write(arg1,(void const *)arg2,arg3);
-  jresult = new ssize_t((const ssize_t &)result); 
+  jresult = new ssize_t((const ssize_t &)result);
   return jresult;
 }
 
@@ -1009,12 +1009,12 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_zts_writev(int jarg1, void * jarg2, int jar
   zts_iovec *arg2 = (zts_iovec *) 0 ;
   int arg3 ;
   ssize_t result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (zts_iovec *)jarg2; 
-  arg3 = (int)jarg3; 
+
+  arg1 = (int)jarg1;
+  arg2 = (zts_iovec *)jarg2;
+  arg3 = (int)jarg3;
   result = zts_writev(arg1,(zts_iovec const *)arg2,arg3);
-  jresult = new ssize_t((const ssize_t &)result); 
+  jresult = new ssize_t((const ssize_t &)result);
   return jresult;
 }
 
@@ -1024,11 +1024,11 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_shutdown(int jarg1, int jarg2) {
   int arg1 ;
   int arg2 ;
   int result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (int)jarg2; 
+
+  arg1 = (int)jarg1;
+  arg2 = (int)jarg2;
   result = (int)zts_shutdown(arg1,arg2);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -1037,10 +1037,10 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_add_dns_nameserver(zts_sockaddr* jarg1) {
   int jresult ;
   zts_sockaddr *arg1 = (zts_sockaddr *) 0 ;
   int result;
-  
-  arg1 = (zts_sockaddr *)jarg1; 
+
+  arg1 = (zts_sockaddr *)jarg1;
   result = (int)zts_add_dns_nameserver(arg1);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -1049,57 +1049,10 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_del_dns_nameserver(zts_sockaddr* jarg1) {
   int jresult ;
   zts_sockaddr *arg1 = (zts_sockaddr *) 0 ;
   int result;
-  
-  arg1 = (zts_sockaddr *)jarg1; 
+
+  arg1 = (zts_sockaddr *)jarg1;
   result = (int)zts_del_dns_nameserver(arg1);
-  jresult = result; 
-  return jresult;
-}
-
-
-SWIGEXPORT unsigned short SWIGSTDCALL CSharp_zts_htons(unsigned short jarg1) {
-  unsigned short jresult ;
-  uint16_t arg1 ;
-  uint16_t result;
-  
-  arg1 = (uint16_t)jarg1; 
-  result = zts_htons(arg1);
-  jresult = result; 
-  return jresult;
-}
-
-
-SWIGEXPORT unsigned short SWIGSTDCALL CSharp_zts_htonl(unsigned short jarg1) {
-  unsigned short jresult ;
-  uint32_t arg1 ;
-  uint32_t result;
-  
-  arg1 = (uint32_t)jarg1; 
-  result = zts_htonl(arg1);
-  jresult = result; 
-  return jresult;
-}
-
-SWIGEXPORT unsigned short SWIGSTDCALL CSharp_zts_ntohs(unsigned short jarg1) {
-  unsigned short jresult ;
-  uint16_t arg1 ;
-  uint16_t result;
-  
-  arg1 = (uint16_t)jarg1; 
-  result = zts_ntohs(arg1);
-  jresult = result; 
-  return jresult;
-}
-
-
-SWIGEXPORT unsigned short SWIGSTDCALL CSharp_zts_ntohl(unsigned short jarg1) {
-  unsigned short jresult ;
-  uint32_t arg1 ;
-  uint32_t result;
-  
-  arg1 = (uint32_t)jarg1; 
-  result = zts_ntohl(arg1);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 
@@ -1111,13 +1064,13 @@ SWIGEXPORT char * SWIGSTDCALL CSharp_zts_inet_ntop(int jarg1, void * jarg2, char
   char *arg3 = (char *) 0 ;
   zts_socklen_t arg4 ;
   char *result = 0 ;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (void *)jarg2; 
-  arg3 = (char *)jarg3; 
-  arg4 = (zts_socklen_t)jarg4; 
+
+  arg1 = (int)jarg1;
+  arg2 = (void *)jarg2;
+  arg3 = (char *)jarg3;
+  arg4 = (zts_socklen_t)jarg4;
   result = (char *)zts_inet_ntop(arg1,(void const *)arg2,arg3,arg4);
-  jresult = SWIG_csharp_string_callback((const char *)result); 
+  jresult = SWIG_csharp_string_callback((const char *)result);
   return jresult;
 }
 
@@ -1128,12 +1081,12 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_inet_pton(int jarg1, char * jarg2, void * 
   char *arg2 = (char *) 0 ;
   void *arg3 = (void *) 0 ;
   int result;
-  
-  arg1 = (int)jarg1; 
-  arg2 = (char *)jarg2; 
-  arg3 = (void *)jarg3; 
+
+  arg1 = (int)jarg1;
+  arg2 = (char *)jarg2;
+  arg3 = (void *)jarg3;
   result = (int)zts_inet_pton(arg1,(char const *)arg2,arg3);
-  jresult = result; 
+  jresult = result;
   return jresult;
 }
 

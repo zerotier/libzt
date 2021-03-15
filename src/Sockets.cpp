@@ -206,12 +206,12 @@ ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags,
 	return lwip_sendto(fd, buf, len, flags, (sockaddr*)addr, addrlen);
 }
 
-ssize_t zts_sendmsg(int fd, const struct msghdr *msg, int flags)
+ssize_t zts_sendmsg(int fd, const struct zts_msghdr *msg, int flags)
 {
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
 	}
-	return lwip_sendmsg(fd, msg, flags);
+	return lwip_sendmsg(fd, (const struct msghdr *)msg, flags);
 }
 
 ssize_t zts_recv(int fd, void *buf, size_t len, int flags)
@@ -237,7 +237,7 @@ ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags,
 	return lwip_recvfrom(fd, buf, len, flags, (sockaddr*)addr, (socklen_t*)addrlen);
 }
 
-ssize_t zts_recvmsg(int fd, struct msghdr *msg, int flags)
+ssize_t zts_recvmsg(int fd, struct zts_msghdr *msg, int flags)
 {
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
@@ -245,7 +245,7 @@ ssize_t zts_recvmsg(int fd, struct msghdr *msg, int flags)
 	if (!msg) {
 		return ZTS_ERR_ARG;
 	}
-	return lwip_recvmsg(fd, msg, flags);
+	return lwip_recvmsg(fd, (struct msghdr *)msg, flags);
 }
 
 ssize_t zts_read(int fd, void *buf, size_t len)
@@ -310,26 +310,6 @@ int zts_del_dns_nameserver(struct zts_sockaddr *addr)
 	return ZTS_ERR_SERVICE; // TODO
 }
 
-uint16_t zts_htons(uint16_t n)
-{
-	return lwip_htons(n);
-}
-
-uint32_t zts_htonl(uint32_t n)
-{
-	return lwip_htonl(n);
-}
-
-uint16_t zts_ntohs(uint16_t n)
-{
-	return lwip_htons(n);
-}
-
-uint32_t zts_ntohl(uint32_t n)
-{
-	return lwip_htonl(n);
-}
-
 const char *zts_inet_ntop(int af, const void *src, char *dst,zts_socklen_t size)
 {
 	return lwip_inet_ntop(af,src,dst,size);
@@ -338,11 +318,6 @@ const char *zts_inet_ntop(int af, const void *src, char *dst,zts_socklen_t size)
 int zts_inet_pton(int af, const char *src, void *dst)
 {
 	return lwip_inet_pton(af,src,dst);
-}
-
-uint32_t zts_inet_addr(const char *cp)
-{
-	return ipaddr_addr(cp);
 }
 
 //////////////////////////////////////////////////////////////////////////////

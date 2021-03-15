@@ -143,7 +143,7 @@ namespace ZeroTier.Sockets
 			int addrlen = 0;
 			IntPtr remoteAddrPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(zts_sockaddr)));
 			if (remoteEndPoint.AddressFamily == AddressFamily.InterNetwork)
-			{	            
+			{
 				zts_sockaddr_in sa = new zts_sockaddr_in();
 				addrlen = Marshal.SizeOf(typeof(zts_sockaddr_in));
 				switch (remoteEndPoint.AddressFamily)
@@ -158,10 +158,10 @@ namespace ZeroTier.Sockets
 						sa.sin_family = (byte)Constants.AF_UNSPEC;
 						break;
 				}
-				sa.sin_port = (short)zts_htons((ushort)remoteEndPoint.Port);
+				sa.sin_port = (short)IPAddress.HostToNetworkOrder((ushort)remoteEndPoint.Port);
 				sa.sin_addr = remoteEndPoint.Address.GetAddressBytes();
 				sa.sin_len = (byte)addrlen; // lwIP-specific
-			
+
 				Marshal.StructureToPtr(sa, remoteAddrPtr, false);
 				//zts_sockaddr sAddr = (zts_sockaddr)Marshal.PtrToStructure(remoteAddrPtr, typeof(zts_sockaddr));
 				err = zts_connect(_fd, remoteAddrPtr, (byte)addrlen);
@@ -204,7 +204,7 @@ namespace ZeroTier.Sockets
 			int addrlen = 0;
 			IntPtr localAddrPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(zts_sockaddr)));
 			if (localEndPoint.AddressFamily == AddressFamily.InterNetwork)
-			{	            
+			{
 				zts_sockaddr_in sa = new zts_sockaddr_in();
 				addrlen = Marshal.SizeOf(typeof(zts_sockaddr_in));
 				switch (localEndPoint.AddressFamily)
@@ -219,7 +219,7 @@ namespace ZeroTier.Sockets
 						sa.sin_family = (byte)Constants.AF_UNSPEC;
 						break;
 				}
-				sa.sin_port = (short)zts_htons((ushort)localEndPoint.Port);
+				sa.sin_port = (short)IPAddress.HostToNetworkOrder((ushort)localEndPoint.Port);
 				sa.sin_addr = localEndPoint.Address.GetAddressBytes();
 				sa.sin_len = (byte)addrlen; // lwIP-specific
 
@@ -292,7 +292,7 @@ namespace ZeroTier.Sockets
 			in4 = (zts_sockaddr_in)Marshal.PtrToStructure(remoteAddrPtr, typeof(zts_sockaddr_in));
 			// Convert sockaddr contents to IPEndPoint
 			IPAddress ipAddress = new IPAddress(in4.sin_addr);
-			IPEndPoint clientEndPoint = new IPEndPoint(ipAddress, zts_ntohs((ushort)in4.sin_port));
+			IPEndPoint clientEndPoint = new IPEndPoint(ipAddress, IPAddress.NetworkToHostOrder(((ushort)in4.sin_port));
 			// Create new socket by providing file descriptor returned from zts_accept call.
 			Socket clientSocket = new Socket(
 				err, _socketFamily, _socketType, _socketProtocol, _localEndPoint, clientEndPoint);
@@ -479,7 +479,7 @@ namespace ZeroTier.Sockets
 			set { _set_timeout(value, ZeroTier.Constants.SO_SNDTIMEO); }
 		}
 
-		/* TODO 
+		/* TODO
 		public int ReceiveBufferSize { get; set; }
 
 		public int SendBufferSize { get; set; }
@@ -598,26 +598,11 @@ namespace ZeroTier.Sockets
 		[DllImport("libzt", EntryPoint="CSharp_zts_del_dns_nameserver")]
 		static extern int zts_del_dns_nameserver(IntPtr arg1);
 
-		[DllImport("libzt", EntryPoint="CSharp_zts_htons")]
-		static extern ushort zts_htons(ushort arg1);
-
-		[DllImport("libzt", EntryPoint="CSharp_zts_htonl")]
-		static extern ushort zts_htonl(ushort arg1);
-
-		[DllImport("libzt", EntryPoint="CSharp_zts_ntohs")]
-		static extern ushort zts_ntohs(ushort arg1);
-
-		[DllImport("libzt", EntryPoint="CSharp_zts_ntohl")]
-		static extern ushort zts_ntohl(ushort arg1);
-
 		[DllImport("libzt", EntryPoint="CSharp_zts_inet_ntop")]
 		static extern string zts_inet_ntop(int arg1, IntPtr arg2, string arg3, ushort arg4);
 
 		[DllImport("libzt", EntryPoint="CSharp_zts_inet_pton")]
 		static extern int zts_inet_pton(int arg1, string arg2, IntPtr arg3);
-
-		[DllImport("libzt", EntryPoint="CSharp_zts_inet_addr")]
-		static extern ushort zts_inet_addr(string arg1);
 
 		[DllImport("libzt", EntryPoint="CSharp_zts_errno_get")]
 		static extern int zts_errno_get();

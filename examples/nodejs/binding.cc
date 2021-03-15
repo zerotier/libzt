@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <string.h>
 #include <string>
+#include <arpa/inet.h>
 
 #include "ZeroTierSockets.h"
 #include "nbind/api.h"
@@ -130,11 +131,11 @@ void on_zts_event(void *msgPtr)
 zts_sockaddr_in sockaddr_in(const char *remoteAddr, const int remotePort)
 {
 	struct zts_sockaddr_in in4;
-	in4.sin_port = zts_htons(remotePort);
+	in4.sin_port = htons(remotePort);
 #if defined(_WIN32)
-	in4.sin_addr.S_addr = zts_inet_addr(remoteAddr);
+	zts_inet_pton(ZTS_AF_INET, remoteAddr.c_str(), &(in4.sin_addr.S_addr));
 #else
-	in4.sin_addr.s_addr = zts_inet_addr(remoteAddr);
+	zts_inet_pton(ZTS_AF_INET, remoteAddr.c_str(), &(in4.sin_addr.s_addr));
 #endif
 	in4.sin_family = ZTS_AF_INET;
 	return in4;

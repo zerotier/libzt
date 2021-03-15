@@ -131,7 +131,7 @@ void printPeerDetails(const char *msgStr, struct zts_peer_details *d)
 		if (sa->sa_family == ZTS_AF_INET) {
 			struct zts_sockaddr_in *in4 = (struct zts_sockaddr_in*)sa;
 			zts_inet_ntop(ZTS_AF_INET, &(in4->sin_addr), ipstr, ZTS_INET_ADDRSTRLEN);
-			port = zts_ntohs(in4->sin_port);
+			port = ntohs(in4->sin_port);
 		}
 		if (sa->sa_family == ZTS_AF_INET6) {
 			struct zts_sockaddr_in6 *in6 = (struct zts_sockaddr_in6*)sa;

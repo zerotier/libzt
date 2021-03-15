@@ -230,6 +230,7 @@ ZTS_EREMOTEIO = _libzt.ZTS_EREMOTEIO
 ZTS_EDQUOT = _libzt.ZTS_EDQUOT
 ZTS_ENOMEDIUM = _libzt.ZTS_ENOMEDIUM
 ZTS_EMEDIUMTYPE = _libzt.ZTS_EMEDIUMTYPE
+ZTS_MAC_ADDRSTRLEN = _libzt.ZTS_MAC_ADDRSTRLEN
 ZTS_INET_ADDRSTRLEN = _libzt.ZTS_INET_ADDRSTRLEN
 ZTS_INET6_ADDRSTRLEN = _libzt.ZTS_INET6_ADDRSTRLEN
 ZTS_SOCK_STREAM = _libzt.ZTS_SOCK_STREAM
@@ -746,22 +747,10 @@ def zts_add_dns_nameserver(addr):
 def zts_del_dns_nameserver(addr):
     return _libzt.zts_del_dns_nameserver(addr)
 
-def zts_htons(n):
-    return _libzt.zts_htons(n)
-
-def zts_htonl(n):
-    return _libzt.zts_htonl(n)
-ZTS_MAC_ADDRSTRLEN = _libzt.ZTS_MAC_ADDRSTRLEN
-
-def zts_ntohs(n):
-    return _libzt.zts_ntohs(n)
-
-def zts_ntohl(n):
-    return _libzt.zts_ntohl(n)
-
 def zts_inet_ntop(af, src, dst, size):
     return _libzt.zts_inet_ntop(af, src, dst, size)
 
 def zts_inet_pton(af, src, dst):
     return _libzt.zts_inet_pton(af, src, dst)
+
 

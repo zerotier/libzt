@@ -216,7 +216,7 @@ int main(int argc, char **argv)
 	int ztServicePort = atoi(argv[4]); // Port ZT uses to send encrypted UDP packets to peers (try something like 9994)
 
 	struct zts_sockaddr_in in4, acc_in4;
-	in4.sin_port = zts_htons(serverBindPort);
+	in4.sin_port = htons(serverBindPort);
 #if defined(_WIN32)
 	in4.sin_addr.S_addr = ZTS_INADDR_ANY;
 #else
@@ -281,7 +281,7 @@ int main(int argc, char **argv)
 	char ipstr[ZTS_INET_ADDRSTRLEN];
 	memset(ipstr, 0, sizeof(ipstr));
 	zts_inet_ntop(ZTS_AF_INET, &(acc_in4.sin_addr), ipstr, ZTS_INET_ADDRSTRLEN);
-	printf("Accepted connection from %s:%d\n", ipstr, zts_ntohs(acc_in4.sin_port));
+	printf("Accepted connection from %s:%d\n", ipstr, ntohs(acc_in4.sin_port));
 
 	int bytes=0;
 	char recvBuf[128];

@@ -1953,8 +1953,8 @@ struct zts_ip6_addr {
  */
 typedef struct zts_ip_addr {
 	union {
-		zts_ip6_addr ip6;
-		zts_ip4_addr ip4;
+		struct zts_ip6_addr ip6;
+		struct zts_ip4_addr ip4;
 	} u_addr;
 	uint8_t type; // ZTS_IPADDR_TYPE_V4, ZTS_IPADDR_TYPE_V6
 } zts_ip_addr;

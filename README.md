@@ -17,7 +17,7 @@ Peer-to-peer and cross-platform encrypted connections built right into your app 
 <a href="https://old.reddit.com/r/zerotier"><img alt="r/zerotier" src="https://img.shields.io/reddit/subreddit-subscribers/zerotier?style=social"/></a>
 
 
-<img alt="latest libzt version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label=latest version"/></a>
+<img alt="latest libzt version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label=latest"/></a>
 <a href="https://github.com/zerotier/libzt/commits/master"><img alt="Last Commit" src="https://img.shields.io/github/last-commit/zerotier/libzt"/></a>
 <a href="https://github.com/zerotier/libzt/actions"><img alt="Build Status (master branch)" src="https://img.shields.io/github/workflow/status/zerotier/libzt/CMake/master"/></a>
 </div>

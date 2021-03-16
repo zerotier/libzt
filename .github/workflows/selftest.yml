@@ -18,7 +18,7 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Install libcurl (used for Central API)
-      run: sudo apt-get install libcurl4 -y
+      run: sudo apt-get install libcurl4 libcurl4-gnutls-dev -y
 
     - name: Checkout submodules
       run: git submodule update --init

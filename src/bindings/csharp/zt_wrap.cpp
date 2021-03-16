@@ -887,14 +887,14 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_zts_sendto(int jarg1, void * jarg2, unsigne
 SWIGEXPORT void * SWIGSTDCALL CSharp_zts_sendmsg(int jarg1, void * jarg2, int jarg3) {
   void * jresult ;
   int arg1 ;
-  msghdr *arg2 = (msghdr *) 0 ;
+  zts_msghdr *arg2 = (zts_msghdr *) 0 ;
   int arg3 ;
   ssize_t result;
 
   arg1 = (int)jarg1;
-  arg2 = (msghdr *)jarg2;
+  arg2 = (zts_msghdr *)jarg2;
   arg3 = (int)jarg3;
-  result = zts_sendmsg(arg1,(msghdr const *)arg2,arg3);
+  result = zts_sendmsg(arg1,(zts_msghdr const *)arg2,arg3);
   jresult = new ssize_t((const ssize_t &)result);
   return jresult;
 }
@@ -942,12 +942,12 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_zts_recvfrom(int jarg1, void * jarg2, unsig
 SWIGEXPORT void * SWIGSTDCALL CSharp_zts_recvmsg(int jarg1, void * jarg2, int jarg3) {
   void * jresult ;
   int arg1 ;
-  msghdr *arg2 = (msghdr *) 0 ;
+  zts_msghdr *arg2 = (zts_msghdr *) 0 ;
   int arg3 ;
   ssize_t result;
 
   arg1 = (int)jarg1;
-  arg2 = (msghdr *)jarg2;
+  arg2 = (zts_msghdr *)jarg2;
   arg3 = (int)jarg3;
   result = zts_recvmsg(arg1,arg2,arg3);
   jresult = new ssize_t((const ssize_t &)result);
@@ -1032,8 +1032,8 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_shutdown(int jarg1, int jarg2) {
   return jresult;
 }
 
-
-SWIGEXPORT int SWIGSTDCALL CSharp_zts_add_dns_nameserver(zts_sockaddr* jarg1) {
+/*
+SWIGEXPORT int SWIGSTDCALL CSharp_zts_dns_set_server(zts_sockaddr* jarg1) {
   int jresult ;
   zts_sockaddr *arg1 = (zts_sockaddr *) 0 ;
   int result;
@@ -1045,7 +1045,7 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_add_dns_nameserver(zts_sockaddr* jarg1) {
 }
 
 
-SWIGEXPORT int SWIGSTDCALL CSharp_zts_del_dns_nameserver(zts_sockaddr* jarg1) {
+SWIGEXPORT int SWIGSTDCALL CSharp_zts_dns_get_server(zts_sockaddr* jarg1) {
   int jresult ;
   zts_sockaddr *arg1 = (zts_sockaddr *) 0 ;
   int result;
@@ -1055,6 +1055,7 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_del_dns_nameserver(zts_sockaddr* jarg1) {
   jresult = result;
   return jresult;
 }
+*/
 
 
 SWIGEXPORT char * SWIGSTDCALL CSharp_zts_inet_ntop(int jarg1, void * jarg2, char * jarg3, unsigned short jarg4) {

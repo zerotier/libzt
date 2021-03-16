@@ -225,11 +225,6 @@ void _lwip_driver_shutdown();
 void _lwip_remove_netif(void *netif);
 
 /**
- * @brief Initialize and start the DNS client
- */
-void _lwip_dns_init();
-
-/**
  * @brief Starts DHCP timers
  */
 void _lwip_start_dhcp(void *netif);

@@ -64,7 +64,6 @@ class _SwigNonDynamicMeta(type):
 import weakref
 
 ZTS_ENABLE_PYTHON = _libzt.ZTS_ENABLE_PYTHON
-ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS = _libzt.ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
 ZTS_EVENT_NODE_UP = _libzt.ZTS_EVENT_NODE_UP
 ZTS_EVENT_NODE_ONLINE = _libzt.ZTS_EVENT_NODE_ONLINE
 ZTS_EVENT_NODE_OFFLINE = _libzt.ZTS_EVENT_NODE_OFFLINE
@@ -740,12 +739,76 @@ ZTS_SHUT_RDWR = _libzt.ZTS_SHUT_RDWR
 
 def zts_shutdown(fd, how):
     return _libzt.zts_shutdown(fd, how)
+class zts_hostent(object):
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
+    __repr__ = _swig_repr
+    h_name = property(_libzt.zts_hostent_h_name_get, _libzt.zts_hostent_h_name_set)
+    h_aliases = property(_libzt.zts_hostent_h_aliases_get, _libzt.zts_hostent_h_aliases_set)
+    h_addrtype = property(_libzt.zts_hostent_h_addrtype_get, _libzt.zts_hostent_h_addrtype_set)
+    h_length = property(_libzt.zts_hostent_h_length_get, _libzt.zts_hostent_h_length_set)
+    h_addr_list = property(_libzt.zts_hostent_h_addr_list_get, _libzt.zts_hostent_h_addr_list_set)
 
-def zts_add_dns_nameserver(addr):
-    return _libzt.zts_add_dns_nameserver(addr)
+    def __init__(self):
+        _libzt.zts_hostent_swiginit(self, _libzt.new_zts_hostent())
+    __swig_destroy__ = _libzt.delete_zts_hostent
 
-def zts_del_dns_nameserver(addr):
-    return _libzt.zts_del_dns_nameserver(addr)
+# Register zts_hostent in _libzt:
+_libzt.zts_hostent_swigregister(zts_hostent)
+
+
+def zts_gethostbyname(name):
+    return _libzt.zts_gethostbyname(name)
+ZTS_IPADDR_TYPE_V4 = _libzt.ZTS_IPADDR_TYPE_V4
+ZTS_IPADDR_TYPE_V6 = _libzt.ZTS_IPADDR_TYPE_V6
+ZTS_IPADDR_TYPE_ANY = _libzt.ZTS_IPADDR_TYPE_ANY
+class zts_ip4_addr(object):
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
+    __repr__ = _swig_repr
+    addr = property(_libzt.zts_ip4_addr_addr_get, _libzt.zts_ip4_addr_addr_set)
+
+    def __init__(self):
+        _libzt.zts_ip4_addr_swiginit(self, _libzt.new_zts_ip4_addr())
+    __swig_destroy__ = _libzt.delete_zts_ip4_addr
+
+# Register zts_ip4_addr in _libzt:
+_libzt.zts_ip4_addr_swigregister(zts_ip4_addr)
+
+class zts_ip6_addr(object):
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
+    __repr__ = _swig_repr
+    addr = property(_libzt.zts_ip6_addr_addr_get, _libzt.zts_ip6_addr_addr_set)
+
+    def __init__(self):
+        _libzt.zts_ip6_addr_swiginit(self, _libzt.new_zts_ip6_addr())
+    __swig_destroy__ = _libzt.delete_zts_ip6_addr
+
+# Register zts_ip6_addr in _libzt:
+_libzt.zts_ip6_addr_swigregister(zts_ip6_addr)
+
+class zts_ip_addr(object):
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
+    __repr__ = _swig_repr
+    type = property(_libzt.zts_ip_addr_type_get, _libzt.zts_ip_addr_type_set)
+
+    def __init__(self):
+        _libzt.zts_ip_addr_swiginit(self, _libzt.new_zts_ip_addr())
+    __swig_destroy__ = _libzt.delete_zts_ip_addr
+
+# Register zts_ip_addr in _libzt:
+_libzt.zts_ip_addr_swigregister(zts_ip_addr)
+
+
+def zts_dns_set_server(index, addr):
+    return _libzt.zts_dns_set_server(index, addr)
+
+def zts_dns_get_server(index):
+    return _libzt.zts_dns_get_server(index)
+
+def zts_ipaddr_ntoa(addr):
+    return _libzt.zts_ipaddr_ntoa(addr)
+
+def zts_ipaddr_aton(cp, addr):
+    return _libzt.zts_ipaddr_aton(cp, addr)
 
 def zts_inet_ntop(af, src, dst, size):
     return _libzt.zts_inet_ntop(af, src, dst, size)

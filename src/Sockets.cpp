@@ -21,6 +21,9 @@
 #include "lwip/def.h"
 #include "lwip/inet.h"
 #include "lwip/stats.h"
+#include "lwip/netdb.h"
+#include "lwip/dns.h"
+#include "lwip/ip_addr.h"
 
 #include "ZeroTierSockets.h"
 
@@ -294,23 +297,54 @@ int zts_shutdown(int fd, int how)
 	return lwip_shutdown(fd, how);
 }
 
-int zts_add_dns_nameserver(struct zts_sockaddr *addr)
+struct zts_hostent *zts_gethostbyname(const char *name)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return NULL;
+	}
+	if (!name) {
+		return NULL;
+	}
+	return (struct zts_hostent *)lwip_gethostbyname(name);
+}
+
+int zts_dns_set_server(uint8_t index, const zts_ip_addr *addr)
 {
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
 	}
-	return ZTS_ERR_SERVICE; // TODO
+	if (index >= DNS_MAX_SERVERS) {
+		return ZTS_ERR_ARG;
+	}
+	if (!addr) {
+		return ZTS_ERR_ARG;
+	}
+	dns_setserver(index, (const ip_addr_t *)addr);
+	return ZTS_ERR_OK;
 }
 
-int zts_del_dns_nameserver(struct zts_sockaddr *addr)
+const zts_ip_addr *zts_dns_get_server(uint8_t index)
 {
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
-		return ZTS_ERR_SERVICE;
+		return NULL;
 	}
-	return ZTS_ERR_SERVICE; // TODO
+	if (index >= DNS_MAX_SERVERS) {
+		return NULL;
+	}
+	return (const zts_ip_addr *)dns_getserver(index);
 }
 
-const char *zts_inet_ntop(int af, const void *src, char *dst,zts_socklen_t size)
+char *zts_ipaddr_ntoa(const zts_ip_addr *addr)
+{
+	return ipaddr_ntoa((ip_addr_t *)addr);
+}
+
+int zts_ipaddr_aton(const char *cp, zts_ip_addr *addr)
+{
+	return ipaddr_aton(cp, (ip_addr_t *)addr);
+}
+
+const char *zts_inet_ntop(int af, const void *src, char *dst, zts_socklen_t size)
 {
 	return lwip_inet_ntop(af,src,dst,size);
 }

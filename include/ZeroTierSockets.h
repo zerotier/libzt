@@ -24,15 +24,6 @@
 // Configuration Options                                                    //
 //////////////////////////////////////////////////////////////////////////////
 
-#ifdef ZTS_ENABLE_PYTHON
-	/**
-	* In some situations (Python comes to mind) a signal may not make its
-	* way to libzt, for this reason we make sure to define a custom signal
-	* handler that can at least process SIGTERMs
-	*/
-	#define ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS 1
-#endif
-
 #if !defined(ZTS_ENABLE_PYTHON) && !defined(ZTS_ENABLE_PINVOKE)
 #define ZTS_C_API_ONLY 1
 #endif
@@ -1914,21 +1905,100 @@ ZTS_API ssize_t ZTCALL zts_writev(int fd, const struct zts_iovec *iov, int iovcn
  */
 ZTS_API int ZTCALL zts_shutdown(int fd, int how);
 
-/**
- * @brief Add a DNS nameserver for the network stack to use
- *
- * @param addr Address for DNS nameserver
- * @return ZTS_ERR_SERVICE
- */
-ZTS_API int ZTCALL zts_add_dns_nameserver(struct zts_sockaddr *addr);
+//////////////////////////////////////////////////////////////////////////////
+// DNS                                                                      //
+//////////////////////////////////////////////////////////////////////////////
+
+struct zts_hostent {
+	char  *h_name;            /* Official name of the host. */
+	char **h_aliases;         /* A pointer to an array of pointers to alternative host names,
+						         terminated by a null pointer. */
+	int    h_addrtype;        /* Address type. */
+	int    h_length;          /* The length, in bytes, of the address. */
+	char **h_addr_list;       /* A pointer to an array of pointers to network addresses (in
+						         network byte order) for the host, terminated by a null pointer. */
+#define h_addr h_addr_list[0] /* for backward compatibility */
+};
 
 /**
- * @brief Remove a DNS nameserver
+ * @brief Resolve a hostname
  *
- * @param addr Address for DNS nameserver
- * @return ZTS_ERR_SERVICE
+ * @param name A null-terminated string representating the name of the host
+ * @return Pointer to struct zts_hostent if successful, NULL otherwise
  */
-ZTS_API int ZTCALL zts_del_dns_nameserver(struct zts_sockaddr *addr);
+struct zts_hostent *zts_gethostbyname(const char *name);
+
+enum zts_ip_addr_type {
+	ZTS_IPADDR_TYPE_V4 =   0U,
+	ZTS_IPADDR_TYPE_V6 =   6U,
+	ZTS_IPADDR_TYPE_ANY = 46U // Dual stack
+};
+
+struct zts_ip4_addr {
+	uint32_t addr;
+};
+
+/** This is the aligned version of ip6_addr_t,
+	used as local variable, on the stack, etc. */
+struct zts_ip6_addr {
+	uint32_t addr[4];
+#if LWIP_IPV6_SCOPES
+	uint8_t zone;
+#endif /* LWIP_IPV6_SCOPES */
+};
+
+/**
+ * A union struct for both IP version's addresses.
+ * ATTENTION: watch out for its size when adding IPv6 address scope!
+ */
+typedef struct zts_ip_addr {
+	union {
+		zts_ip6_addr ip6;
+		zts_ip4_addr ip4;
+	} u_addr;
+	uint8_t type; // ZTS_IPADDR_TYPE_V4, ZTS_IPADDR_TYPE_V6
+} zts_ip_addr;
+
+/**
+ * Initialize one of the DNS servers.
+ *
+ * @param index the index of the DNS server to set must be < DNS_MAX_SERVERS
+ * @param addr IP address of the DNS server to set
+ */
+ZTS_API int ZTCALL zts_dns_set_server(uint8_t index, const zts_ip_addr *addr);
+
+/**
+ * Obtain one of the currently configured DNS server.
+ *
+ * @param index the index of the DNS server
+ * @return IP address of the indexed DNS server or "ip_addr_any" if the DNS
+ *         server has not been configured.
+ */
+ZTS_API const zts_ip_addr * ZTCALL zts_dns_get_server(uint8_t index);
+
+//////////////////////////////////////////////////////////////////////////////
+// Convenience functions pulled from lwIP                                   //
+//////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Convert numeric IP address (both versions) into ASCII representation.
+ * returns ptr to static buffer; not reentrant!
+ *
+ * @param addr ip address in network order to convert
+ * @return pointer to a global static (!) buffer that holds the ASCII
+ *         representation of addr
+ */
+char *zts_ipaddr_ntoa(const zts_ip_addr *addr);
+
+/**
+ * Convert IP address string (both versions) to numeric.
+ * The version is auto-detected from the string.
+ *
+ * @param cp IP address string to convert
+ * @param addr conversion result is stored here
+ * @return 1 on success, 0 on error
+ */
+int zts_ipaddr_aton(const char *cp, zts_ip_addr *addr);
 
 /**
  * Convert IPv4 and IPv6 address structures to human-readable text form.
@@ -1939,7 +2009,8 @@ ZTS_API int ZTCALL zts_del_dns_nameserver(struct zts_sockaddr *addr);
  * @param size Size of the destination buffer
  * @return On success, returns a non-null pointer to the destination character array
  */
-ZTS_API const char * ZTCALL zts_inet_ntop(int af, const void *src, char *dst, zts_socklen_t size);
+ZTS_API const char * ZTCALL zts_inet_ntop(
+	int af, const void *src, char *dst, zts_socklen_t size);
 
 /**
  * Convert C-string IPv4 and IPv6 addresses to binary form.

@@ -17,10 +17,19 @@
  * Custom signal handler
  */
 
-#include "ZeroTierSockets.h"
-#include "Signals.hpp"
+#ifdef ZTS_ENABLE_PYTHON
+	/**
+	* In some situations (Python comes to mind) a signal may not make its
+	* way to libzt, for this reason we make sure to define a custom signal
+	* handler that can at least process SIGTERMs
+	*/
+	#define ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS 1
+#endif
 
 #ifdef ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
+
+#include "ZeroTierSockets.h"
+#include "Signals.hpp"
 
 #include <signal.h>
 #include <execinfo.h>

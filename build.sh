@@ -508,7 +508,12 @@ clean()
 	# CMake's build system cache
 	rm -rf $BUILD_CACHE_DIR
 	# CMake test output
+	rm -rf bin
 	rm -rf Testing
+	rm -rf CMakeFiles
+	rm -rf *.cmake
+	rm -rf CMakeCache.txt
+	rm -rf Makefile
 	# Android AAR project binaries and sources (copied from src/bindings/java)
 	rm -rf $ANDROID_PKG_PROJ_DIR/app/build
 	rm -rf $ANDROID_PKG_PROJ_DIR/app/src/main/java/com/zerotier/libzt/*.java

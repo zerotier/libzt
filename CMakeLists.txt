@@ -720,7 +720,7 @@ endif()
 # -----------------------------------------------------------------------------
 
 if(BUILD_HOST_SELFTEST)
-	add_executable(selftest ${PROJ_DIR}/test/selftest.cpp)
+	add_executable(selftest ${PROJ_DIR}/test/selftest.c)
 	target_link_libraries(selftest ${STATIC_LIB_NAME})
 	project(TEST)
 	enable_testing()

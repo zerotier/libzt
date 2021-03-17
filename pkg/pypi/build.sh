@@ -7,6 +7,8 @@ ext()
 {
 	# Symbolic link to source tree so that sdist structure makes sense
 	ln -s ../../ native
+	# Re-build wrapper to export C symbols
+	swig -c++ -python -o native/src/bindings/python/zt_wrap.cpp -I./native/include native/src/bindings/python/zt.i
 	# Copy language bindings into module directory
 	cp -f native/src/bindings/python/*.py libzt/
 	cp -f native/LICENSE.txt LICENSE

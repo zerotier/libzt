@@ -351,7 +351,7 @@ class socket:
 
     def send(self, data, flags=0):
         """Write data to the socket"""
-        err = libzt.zts_py_send(self._fd, data, len(data), flags)
+        err = libzt.zts_py_send(self._fd, data, flags)
         if err < 0:
             handle_error(err)
         return err

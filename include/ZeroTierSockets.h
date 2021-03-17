@@ -870,7 +870,7 @@ int zts_py_connect(int fd, int family, int type, PyObject *addro);
 PyObject * zts_py_accept(int fd);
 int zts_py_listen(int fd, int backlog);
 PyObject * zts_py_recv(int fd, int len, int flags);
-int zts_py_send(int fd, PyObject *buf, int len, int flags);
+int zts_py_send(int fd, PyObject *buf, int flags);
 int zts_py_close(int fd);
 int zts_py_setblocking(int fd, int flag);
 int zts_py_getblocking(int fd);

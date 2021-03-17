@@ -484,8 +484,8 @@ def zts_py_listen(fd, backlog):
 def zts_py_recv(fd, len, flags):
     return _libzt.zts_py_recv(fd, len, flags)
 
-def zts_py_send(fd, buf, len, flags):
-    return _libzt.zts_py_send(fd, buf, len, flags)
+def zts_py_send(fd, buf, flags):
+    return _libzt.zts_py_send(fd, buf, flags)
 
 def zts_py_close(fd):
     return _libzt.zts_py_close(fd)

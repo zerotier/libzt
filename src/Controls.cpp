@@ -43,6 +43,10 @@ using namespace ZeroTier;
 WSADATA wsaData;
 #endif
 
+#ifdef ZTS_ENABLE_PYTHON
+	#define ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS 1
+#endif
+
 namespace ZeroTier
 {
 	extern NodeService *service;

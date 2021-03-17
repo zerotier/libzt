@@ -117,18 +117,14 @@ def main():
                 conn, addr = serv.accept()
                 print("Accepted connection from: ", addr)
                 while True:
-                    print("recv:")
                     data = conn.recv(4096)
                     if data:
-                        print("data = ", data)
-                        # print(type(b'what'))
-                        # exit(0)
+                        print("recv: ", data)
                     if not data:
                         break
-                    print("send:")
-                    # bytes(data, 'ascii')  + b'\x00'
-                    n_bytes = conn.send(data)  # echo back to the server
-                    print("sent " + str(n_bytes) + " byte(s)")
+                    print("send: ", data)
+                    sent_bytes = conn.send(data)  # echo back to the server
+                    print("sent: " + str(sent_bytes) + " byte(s)")
                 conn.close()
                 print("client disconnected")
         except Exception as ex:
@@ -144,11 +140,12 @@ def main():
         try:
             print("connecting...")
             client.connect((remote_ip, remote_port))
-            print("send:")
             data = "Hello, world!"
-            client.send(data)
+            print("send: ", data)
+            sent_bytes = client.send(data)
+            print("sent: " + str(sent_bytes) + " byte(s)")
             data = client.recv(1024)
-            print("Received", repr(data))
+            print("recv: ", repr(data))
         except Exception as ex:
             print(ex)
         print("errno=", libzt.errno())

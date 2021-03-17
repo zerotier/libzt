@@ -17,6 +17,8 @@
  * ZeroTier Socket API (Python)
  */
 
+#include <string.h>
+
 #include "lwip/sockets.h"
 #include "lwip/inet.h"
 
@@ -139,8 +141,9 @@ PyObject * zts_py_recv(int fd, int len, int flags)
 	int bytes_read;
 
 	buf = PyBytes_FromStringAndSize((char *) 0, len);
-	if (buf == NULL)
+	if (buf == NULL) {
 		return NULL;
+	}
 
 	bytes_read = zts_recv(fd, PyBytes_AS_STRING(buf), len, flags);
 	t = PyTuple_New(2);
@@ -163,16 +166,43 @@ PyObject * zts_py_recv(int fd, int len, int flags)
 	return t;
 }
 
-int zts_py_send(int fd, PyObject *buf, int len, int flags)
+int zts_py_send(int fd, PyObject *buf, int flags)
 {
-	int err = ZTS_ERR_OK;
-	PyObject *encodedStr = PyUnicode_AsEncodedString(buf, "UTF-8", "strict");
-	if (encodedStr) {
-	    char *bytes = PyBytes_AsString(encodedStr);
-	    err = zts_send(fd, bytes, len, flags);
-	    Py_DECREF(encodedStr);
+	int bytes_sent = ZTS_ERR_OK;
+	char *bytes = NULL;
+	PyObject *encodedStr = NULL;
+
+	// Check for various encodings, or lack thereof
+
+	if (PyByteArray_Check(buf)) {
+		bytes = PyByteArray_AsString(buf);
 	}
-	return err;
+
+	if (PyUnicode_Check(buf)) {
+		encodedStr = PyUnicode_AsEncodedString(buf, "UTF-8", "strict");
+		if (!encodedStr) {
+			return ZTS_ERR_ARG;
+		}
+		bytes = PyBytes_AsString(encodedStr);
+	}
+
+	if (!bytes) {
+		// No encoding detected
+		bytes = PyBytes_AsString(buf);
+	}
+
+	// If we still don't have a valid pointer to a C-string, fail
+	if (!bytes) {
+		bytes_sent = ZTS_ERR_ARG;
+	}
+	else {
+		bytes_sent = zts_send(fd, bytes, strlen(bytes), flags);
+	}
+
+	if (encodedStr) {
+		Py_DECREF(encodedStr);
+	}
+	return bytes_sent;
 }
 
 int zts_py_close(int fd)

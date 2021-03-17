@@ -20,10 +20,14 @@
 #ifndef SIGNALS_HPP
 #define SIGNALS_HPP
 
+#ifdef ZTS_ENABLE_PYTHON
+	#define ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS 1
+#endif
+
 #ifdef ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
 
 /**
- * 
+ *
  */
 void _signal_handler(int signal);
 

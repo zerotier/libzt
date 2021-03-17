@@ -7,14 +7,30 @@
 #include <string.h>
 #include <time.h>
 #include <stdlib.h>
+#include <limits.h>
+#include <math.h>
 
 #include <ZeroTierSockets.h>
 
 #pragma GCC diagnostic ignored "-Wunused-value"
 
+int random32() {
+	const int BITS_PER_RAND = (int)(log2(RAND_MAX/2 + 1) + 1.0);
+	int ret = 0;
+	for (int i = 0; i < sizeof(int) * CHAR_BIT; i += BITS_PER_RAND) {
+		ret <<= BITS_PER_RAND;
+		ret |= rand();
+	}
+	return ret;
+}
+
+uint64_t random64() {
+	return ((uint64_t)random32() << 32) | random32();
+}
+
 void api_value_arg_test(int8_t i8, int16_t i16, int32_t i32, int64_t i64, void* nullable)
 {
-	//fprintf(stderr, "%d, %d, %d, %d, %p\n", i8, i16, i32, i64, nullable);
+	//fprintf(stderr, "%d, %d, %d, %lld, %p\n", i8, i16, i32, i64, nullable);
 	int res = ZTS_ERR_OK;
 
 //------------------------------------------------------------------------------
@@ -141,8 +157,6 @@ void api_value_arg_test(int8_t i8, int16_t i16, int32_t i32, int64_t i64, void* 
 		res == ZTS_ERR_SERVICE));
 }
 
-#include <limits.h>
-
 int main()
 {
 	srand(time(NULL));
@@ -155,11 +169,11 @@ int main()
 	api_value_arg_test(0,0,0,0,NULL);
 
 	// Test wild values
-	for (int i=0; i<100; i++) {
-		int8_t   i8 = rand() % (SCHAR_MAX + 1 - SCHAR_MIN) + SCHAR_MIN;
-		int16_t i16 = rand() % ( SHRT_MAX + 1 -  SHRT_MIN) +  SHRT_MIN;
-		int32_t i32 = rand() % (  INT_MAX + 1 -   INT_MIN) +   INT_MIN;
-		int64_t i64 = rand() % ( LONG_MAX + 1 -  LONG_MIN) +  LONG_MIN;
+	for (int i=0; i<1024; i++) {
+		int8_t   i8 =  (uint8_t)random64();
+		int16_t i16 = (uint16_t)random64();
+		int32_t i32 = (uint32_t)random64();
+		int64_t i64 = (uint64_t)random64();
 		int x;
 		void* nullable = &x;
 		api_value_arg_test(i8,i16,i32,i64,nullable);

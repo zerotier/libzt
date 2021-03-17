@@ -135,15 +135,30 @@ int zts_py_connect(int fd, int family, int type, PyObject *addr_obj)
 
 PyObject * zts_py_recv(int fd, int len, int flags)
 {
-	PyObject *t;
-	char buf[4096];
-	int err = zts_recv(fd, buf, len, flags);
-	if (err < 0) {
+	PyObject *t, *buf;
+	int bytes_read;
+
+	buf = PyBytes_FromStringAndSize((char *) 0, len);
+	if (buf == NULL)
 		return NULL;
-	}
+
+	bytes_read = zts_recv(fd, PyBytes_AS_STRING(buf), len, flags);
 	t = PyTuple_New(2);
-	PyTuple_SetItem(t, 0, PyLong_FromLong(err));
-	PyTuple_SetItem(t, 1, PyUnicode_FromString(buf));
+	PyTuple_SetItem(t, 0, PyLong_FromLong(bytes_read));
+
+	if (bytes_read < 0) {
+		Py_DECREF(buf);
+		Py_INCREF(Py_None);
+		PyTuple_SetItem(t, 1, Py_None);
+		Py_INCREF(t);
+		return t;
+	}
+
+	if (bytes_read != len) {
+		 _PyBytes_Resize(&buf, bytes_read);
+	}
+
+	PyTuple_SetItem(t, 1, buf);
 	Py_INCREF(t);
 	return t;
 }

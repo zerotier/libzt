@@ -1,17 +1,27 @@
-name: Build New Wheels
+name: Build Wheels
+
 on: [workflow_dispatch]
+
 jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macOS-latest]
+        os: [ubuntu-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
+
+      - name: Install Swig (macos-latest)
+        if: matrix.os == 'macos-latest'
+        run: brew install swig
+
+      - name: Install Swig (ubuntu-latest)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get install swig
 
       - uses: actions/setup-python@v2
 
@@ -22,8 +32,13 @@ jobs:
         env:
           CIBW_ARCHS: auto
           CIBW_BUILD: cp35-* cp36-* cp37-* cp38-* cp39-*
-          CIBW_BEFORE_BUILD: ln -s $(pwd) pkg/pypi/native; cp -f src/bindings/python/*.py pkg/pypi/libzt/; cd pkg/pypi; python setup.py build_clib
+          CIBW_BEFORE_BUILD: >
+            ln -s $(pwd) pkg/pypi/native;
+            cp -f src/bindings/python/*.py pkg/pypi/libzt/;
+            cd pkg/pypi;
+            python setup.py build_clib
         run: |
+          swig -c++ -python -o src/bindings/python/zt_wrap.cpp -Iinclude src/bindings/python/zt.i
           python -m cibuildwheel pkg/pypi --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v2

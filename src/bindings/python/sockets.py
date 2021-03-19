@@ -236,7 +236,11 @@ class socket:
         raise NotImplementedError("if_indextoname(): libzt does not name interfaces.")
 
     def accept(self):
-        """Accept connection on the socket"""
+        """accept() -> (socket, address_info)
+
+        Wait for incoming connection and return a tuple of socket object and
+        client address info.  This address info may be a tuple of host address
+        and port."""
         new_conn_fd, addr, port = libzt.zts_py_accept(self._fd)
         if new_conn_fd < 0:
             handle_error(new_conn_fd)
@@ -244,25 +248,33 @@ class socket:
         return socket(self._family, self._type, self._proto, new_conn_fd), addr
 
     def bind(self, local_address):
-        """Bind the socket to a local interface address"""
+        """bind(address)
+
+        Bind the socket to a local interface address"""
         err = libzt.zts_py_bind(self._fd, self._family, self._type, local_address)
         if err < 0:
             handle_error(err)
 
     def close(self):
-        """Close the socket"""
+        """close()
+
+        Close the socket"""
         err = libzt.zts_py_close(self._fd)
         if err < 0:
             handle_error(err)
 
     def connect(self, remote_address):
-        """Connect the socket to a remote address"""
+        """connect(address)
+
+        Connect the socket to a remote address"""
         err = libzt.zts_py_connect(self._fd, self._family, self._type, remote_address)
         if err < 0:
             handle_error(err)
 
     def connect_ex(self, remote_address):
-        """Connect to remote host but return low-level result code, and errno on failure
+        """connect_ex(address) -> errno
+
+        Connect to remote host but return low-level result code, and errno on failure
         This uses a non-thread-safe implementation of errno
         """
         err = libzt.zts_py_connect(self._fd, self._family, self._type, remote_address)
@@ -287,6 +299,12 @@ class socket:
         """libzt does not support this (yet)"""
         raise NotImplementedError("libzt does not support this (yet?)")
 
+    def getblocking(self):
+        """getblocking()
+
+        Return True if the socket is in blocking mode, False if it is non-blocking"""
+        return libzt.zts_py_getblocking(self._fd)
+
     def getpeername(self):
         """libzt does not support this (yet)"""
         raise NotImplementedError("libzt does not support this (yet?)")
@@ -299,10 +317,6 @@ class socket:
         """libzt does not support this (yet)"""
         raise NotImplementedError("libzt does not support this (yet?)")
 
-    def getblocking(self):
-        """Get whether this socket is in blocking or non-blocking mode"""
-        return libzt.zts_py_getblocking(self._fd)
-
     def gettimeout(self):
         """libzt does not support this (yet)"""
         raise NotImplementedError("libzt does not support this (yet?)")
@@ -311,8 +325,19 @@ class socket:
         """libzt does not support this (yet)"""
         raise NotImplementedError("libzt does not support this (yet?)")
 
-    def listen(self, backlog):
-        """Put the socket in a listening state (with an optional backlog argument)"""
+    def listen(self, backlog=None):
+        """listen([backlog])
+
+        Put the socket in a listening state.  Backlog specifies the number of
+        outstanding connections the OS will queue without being accepted.  If
+        less than 0, it is set to 0.  If not specified, a reasonable default
+        will be used."""
+
+        if backlog is not None and backlog < 0:
+            backlog = 0
+        if backlog is None:
+            backlog = -1      # Lower-level code picks default
+
         err = libzt.zts_py_listen(self._fd, backlog)
         if err < 0:
             handle_error(err)
@@ -322,7 +347,16 @@ class socket:
         raise NotImplementedError("libzt does not support this (yet?)")
 
     def recv(self, n_bytes, flags=0):
-        """Read data from the socket"""
+        """recv(buffersize[, flags]) -> data
+
+        Read up to buffersize bytes from remote.  Wait until at least one byte
+        is read, or remote is closed.  If all data is read and remote is closed,
+        returns empty string.  Flags may be:
+
+          - ZTS_MSG_PEEK - Peeks at an incoming message.
+          - ZTS_MSG_DONTWAIT - Nonblocking I/O for this operation only.
+          - ZTS_MSG_MORE - Wait for more than one message.
+        """
         err, data = libzt.zts_py_recv(self._fd, n_bytes, flags)
         if err < 0:
             handle_error(err)
@@ -350,7 +384,16 @@ class socket:
         raise NotImplementedError("libzt does not support this (yet?)")
 
     def send(self, data, flags=0):
-        """Write data to the socket"""
+        """send(data[, flags]) -> count
+
+        Write data to the socket.  Returns the number of bytes sent, which
+        may be less than the full data size if the network is busy.
+        Optional flags may be:
+
+          - ZTS_MSG_PEEK - Peeks at an incoming message.
+          - ZTS_MSG_DONTWAIT - Nonblocking I/O for this operation only.
+          - ZTS_MSG_MORE - Sender will send more.
+        """
         err = libzt.zts_py_send(self._fd, data, flags)
         if err < 0:
             handle_error(err)
@@ -389,8 +432,10 @@ class socket:
         raise NotImplementedError("libzt does not support this (yet?)")
 
     def setblocking(self, flag):
-        """Set whether this socket is in blocking or non-blocking mode"""
-        libzt.zts_py_setblocking(self._fd, flag)
+        """setblocking(flag)
+
+        Sets the socket to blocking mode if flag=True, non-blocking if flag=False."""
+        libzt.zts_py_setblocking(self._fd, block)
 
     def settimeout(self, value):
         """libzt does not support this (yet)"""
@@ -404,5 +449,12 @@ class socket:
         raise NotImplementedError("libzt does not support this (yet?)")
 
     def shutdown(self, how):
-        """Shut down one or more aspects (rx/tx) of the socket"""
+        """shutdown(how)
+
+        Shut down one or more aspects (rx/tx) of the socket depending on how:
+
+          - ZTS_SHUT_RD - Shut down reading side of socket.
+          - ZTS_SHUT_WR - Shut down writing side of socket.
+          - ZTS_SHUT_RDWR - Both ends of the socket.
+        """
         libzt.zts_shutdown(self._fd, how)

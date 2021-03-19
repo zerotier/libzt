@@ -435,7 +435,7 @@ class socket:
         """setblocking(flag)
 
         Sets the socket to blocking mode if flag=True, non-blocking if flag=False."""
-        libzt.zts_py_setblocking(self._fd, block)
+        libzt.zts_py_setblocking(self._fd, flag)
 
     def settimeout(self, value):
         """libzt does not support this (yet)"""

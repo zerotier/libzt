@@ -28,24 +28,24 @@
 
 int zts_py_setblocking(int fd, int block)
 {
-	int new_flags, flags, err = 0;
+	int new_flags, cur_flags, err = 0;
 
 	Py_BEGIN_ALLOW_THREADS
-  flags = zts_fcntl(fd, F_GETFL, 0);
+  cur_flags = zts_fcntl(fd, F_GETFL, 0);
 
-	if (flags < 0) {
+	if (cur_flags < 0) {
 		err = ZTS_ERR_SOCKET;
     goto done;
 	}
 
-  if (block) {
+  if (!block) {
     new_flags |= ZTS_O_NONBLOCK;
   } else {
     new_flags &= ~ZTS_O_NONBLOCK;
   }
 
-  if (new_flags != flags) {
-	  err = zts_fcntl(fd, F_SETFL, flags);
+  if (new_flags != cur_flags) {
+	  err = zts_fcntl(fd, F_SETFL, new_flags);
   }
 
 done:

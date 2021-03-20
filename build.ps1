@@ -131,10 +131,18 @@ function BuildNuGetPackage([string]$BuildType, [string]$Arch, [string]$Version)
 	#md pkg\nuget\ZeroTier.Sockets\runtimes\win10-arm\native -Force
 
 	# Build wrapper library for C# ZeroTier.Sockets abstraction
-	csc -target:library -debug:pdbonly `
-		-pdb:pkg\nuget\ZeroTier.Sockets\bin\ZeroTier.Sockets.pdb `
-		-out:pkg\nuget\ZeroTier.Sockets\bin\ZeroTier.Sockets.dll `
-		.\src\bindings\csharp\*.cs
+	#csc -target:library -debug:pdbonly `
+	#	-pdb:pkg\nuget\ZeroTier.Sockets\bin\ZeroTier.Sockets.pdb `
+	#	-out:pkg\nuget\ZeroTier.Sockets\bin\ZeroTier.Sockets.dll `
+	#	.\src\bindings\csharp\*.cs
+
+	# Copy sources into bindings library project
+	cp .\src\bindings\csharp\*.cs .\pkg\nuget\bindings\ZeroTier.Sockets\
+
+	# Build bindings library
+	pushd ./pkg/nuget/bindings/
+	dotnet build --configuration Release
+	popd
 
 	# Build unmanaged native libzt.dll with exported P/INVOKE symbols
 	Build-Library -BuildType $BuildType -Arch $Arch -LangBinding "csharp"
@@ -145,7 +153,6 @@ function BuildNuGetPackage([string]$BuildType, [string]$Arch, [string]$Version)
 
 	# .NET Framework
 	md pkg\nuget\ZeroTier.Sockets\lib\net40 -Force
-	md pkg\nuget\ZeroTier.Sockets\lib\net403 -Force
 	md pkg\nuget\ZeroTier.Sockets\lib\net45 -Force
 	md pkg\nuget\ZeroTier.Sockets\lib\net451 -Force
 	md pkg\nuget\ZeroTier.Sockets\lib\net452 -Force
@@ -156,6 +163,19 @@ function BuildNuGetPackage([string]$BuildType, [string]$Arch, [string]$Version)
 	md pkg\nuget\ZeroTier.Sockets\lib\net471 -Force
 	md pkg\nuget\ZeroTier.Sockets\lib\net472 -Force
 	md pkg\nuget\ZeroTier.Sockets\lib\net48 -Force
+	md pkg\nuget\ZeroTier.Sockets\lib\netstandard1.3 -Force
+	md pkg\nuget\ZeroTier.Sockets\lib\netstandard1.4 -Force
+	md pkg\nuget\ZeroTier.Sockets\lib\netstandard1.5 -Force
+	md pkg\nuget\ZeroTier.Sockets\lib\netstandard1.6 -Force
+	md pkg\nuget\ZeroTier.Sockets\lib\netstandard2.0 -Force
+	md pkg\nuget\ZeroTier.Sockets\lib\netstandard2.1 -Force
+	md pkg\nuget\ZeroTier.Sockets\lib\netcoreapp1.0 -Force
+	md pkg\nuget\ZeroTier.Sockets\lib\netcoreapp1.1 -Force
+	md pkg\nuget\ZeroTier.Sockets\lib\netcoreapp2.0 -Force
+	md pkg\nuget\ZeroTier.Sockets\lib\netcoreapp2.1 -Force
+	md pkg\nuget\ZeroTier.Sockets\lib\netcoreapp2.2 -Force
+	md pkg\nuget\ZeroTier.Sockets\lib\netcoreapp3.0 -Force
+	md pkg\nuget\ZeroTier.Sockets\lib\netcoreapp3.1 -Force
 
 	# .NET "Core" 5.0 (moniker missing from microsoft documentation?)
 	md pkg\nuget\ZeroTier.Sockets\lib\net5.0 -Force
@@ -164,6 +184,13 @@ function BuildNuGetPackage([string]$BuildType, [string]$Arch, [string]$Version)
 	$folders = Get-ChildItem pkg\nuget\ZeroTier.Sockets\lib\
 	foreach ($folder in $folders.name){
 		cp -Path "pkg\nuget\ZeroTier.Sockets\bin\*.*" `
+			-Destination "pkg\nuget\ZeroTier.Sockets\lib\$folder" -Recurse
+	}
+
+	# Copy bindings library "ZeroTier.Sockets.dll"
+	$folders = Get-ChildItem .\pkg\nuget\bindings\ZeroTier.Sockets\bin\Release
+	foreach ($folder in $folders.name){
+		cp -Path ".\pkg\nuget\bindings\ZeroTier.Sockets\bin\Release\$folder\*.dll" `
 			-Destination "pkg\nuget\ZeroTier.Sockets\lib\$folder" -Recurse
 	}
 

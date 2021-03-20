@@ -292,7 +292,7 @@ namespace ZeroTier.Sockets
 			in4 = (zts_sockaddr_in)Marshal.PtrToStructure(remoteAddrPtr, typeof(zts_sockaddr_in));
 			// Convert sockaddr contents to IPEndPoint
 			IPAddress ipAddress = new IPAddress(in4.sin_addr);
-			IPEndPoint clientEndPoint = new IPEndPoint(ipAddress, IPAddress.NetworkToHostOrder(((ushort)in4.sin_port));
+			IPEndPoint clientEndPoint = new IPEndPoint(ipAddress, IPAddress.NetworkToHostOrder(((ushort)in4.sin_port)));
 			// Create new socket by providing file descriptor returned from zts_accept call.
 			Socket clientSocket = new Socket(
 				err, _socketFamily, _socketType, _socketProtocol, _localEndPoint, clientEndPoint);

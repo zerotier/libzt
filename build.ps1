@@ -75,9 +75,9 @@ function Build-Library([string]$BuildType, [string]$Arch, [string]$LangBinding)
 	cmake --build . --config $BuildType
 	popd
 	md $env:OutputDir\lib\ -ErrorAction:'silentlycontinue'
-	#cp $env:BuildDir\$BuildType\zt.lib $env:OutputDir\lib\libzt.lib
-	cp $env:BuildDir\$BuildType\zt-shared.dll $env:OutputDir\lib\libzt.dll
-	cp $env:BuildDir\$BuildType\zt-shared.pdb $env:OutputDir\lib\libzt.pdb -ErrorAction:'silentlycontinue'
+	#cp $env:BuildDir\lib\$BuildType\zt.lib $env:OutputDir\lib\libzt.lib
+	cp $env:BuildDir\lib\$BuildType\zt-shared.dll $env:OutputDir\lib\libzt.dll
+	cp $env:BuildDir\lib\$BuildType\zt-shared.pdb $env:OutputDir\lib\libzt.pdb -ErrorAction:'silentlycontinue'
 }
 
 function Build-All
@@ -102,7 +102,7 @@ function BuildNuGetPackages([string]$Version)
 	BuildNuGetPackage-Sockets -BuildType "Debug" -Arch "Win32" -Version $Version
 }
 
-function BuildNuGetPackage-Sockets([string]$BuildType, [string]$Arch, [string]$Version)
+function BuildNuGetPackage([string]$BuildType, [string]$Arch, [string]$Version)
 {
 	$archAlias = $Arch
 	if ($Arch -eq "Win32") {

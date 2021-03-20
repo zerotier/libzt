@@ -1,0 +1,23 @@
+name: Build NuGet Package
+
+on: [workflow_dispatch]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Checkout submodules
+      run: git submodule update --init
+
+    - name: Build Package
+      run: . .\build.ps1; BuildNuGetPackage -BuildType "Release" -Arch "x64" -Version "$(cat .\pkg\nuget\version.in)"
+
+    - uses: actions/upload-artifact@v2
+      with:
+        path: dist

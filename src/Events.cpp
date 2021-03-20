@@ -40,9 +40,6 @@
 #define ROUTE_EVENT_TYPE(code) code >= ZTS_EVENT_ROUTE_ADDED && code <= ZTS_EVENT_ROUTE_REMOVED
 #define ADDR_EVENT_TYPE(code) code >= ZTS_EVENT_ADDR_ADDED_IP4 && code <= ZTS_EVENT_ADDR_REMOVED_IP6
 
-#include <execinfo.h>
-#include <signal.h>
-
 #ifdef ZTS_ENABLE_PYTHON
 	#include "Python.h"
 	PythonDirectorCallbackClass *_userEventCallback = NULL;

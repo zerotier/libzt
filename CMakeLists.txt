@@ -720,11 +720,11 @@ endif()
 # -----------------------------------------------------------------------------
 
 if(BUILD_HOST_SELFTEST)
-	add_executable(selftest ${PROJ_DIR}/test/selftest.c)
-	target_link_libraries(selftest ${STATIC_LIB_NAME})
+	add_executable(selftest-c-api ${PROJ_DIR}/test/selftest-c-api.c)
+	target_link_libraries(selftest-c-api ${STATIC_LIB_NAME})
 	project(TEST)
 	enable_testing()
-	add_test(NAME selftest COMMAND selftest)
+	add_test(NAME selftest-c-api COMMAND selftest-c-api)
 endif()
 
 # -----------------------------------------------------------------------------

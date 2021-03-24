@@ -59,10 +59,31 @@ int zts_connect(int fd, const struct zts_sockaddr *addr, zts_socklen_t addrlen)
 	if (!addr) {
 		return ZTS_ERR_ARG;
 	}
-	if (addrlen > (int)sizeof(struct zts_sockaddr_storage) || addrlen < (int)sizeof(struct zts_sockaddr_in)) {
+	if (addrlen > (int)sizeof(struct zts_sockaddr_storage)
+		|| addrlen < (int)sizeof(struct zts_sockaddr_in)) {
 		return ZTS_ERR_ARG;
 	}
 	return lwip_connect(fd, (sockaddr*)addr, addrlen);
+}
+
+int zts_connect_easy(int fd, int family, char *ipstr, int port) {
+	if (family == ZTS_AF_INET) {
+		struct zts_sockaddr_in in4;
+		zts_socklen_t addrlen = sizeof(in4);
+		ipstr2sockaddr(
+			family, ipstr, port, (struct zts_sockaddr *)&in4, &addrlen);
+		struct zts_sockaddr *sa = (struct zts_sockaddr *)&in4;
+		return zts_connect(fd, sa, addrlen);
+	}
+	if (family == ZTS_AF_INET6) {
+		struct zts_sockaddr_in6 in6;
+		zts_socklen_t addrlen = sizeof(in6);
+		ipstr2sockaddr(
+			family, ipstr, port, (struct zts_sockaddr *)&in6, &addrlen);
+		struct zts_sockaddr *sa = (struct zts_sockaddr *)&in6;
+		return zts_connect(fd, sa, addrlen);
+	}
+	return ZTS_ERR_ARG;
 }
 
 int zts_bind(int fd, const struct zts_sockaddr *addr, zts_socklen_t addrlen)
@@ -73,10 +94,31 @@ int zts_bind(int fd, const struct zts_sockaddr *addr, zts_socklen_t addrlen)
 	if (!addr) {
 		return ZTS_ERR_ARG;
 	}
-	if (addrlen > (int)sizeof(struct zts_sockaddr_storage) || addrlen < (int)sizeof(struct zts_sockaddr_in)) {
+	if (addrlen > (int)sizeof(struct zts_sockaddr_storage)
+		|| addrlen < (int)sizeof(struct zts_sockaddr_in)) {
 		return ZTS_ERR_ARG;
 	}
 	return lwip_bind(fd, (sockaddr*)addr, addrlen);
+}
+
+int zts_bind_easy(int fd, int family, char *ipstr, int port) {
+	if (family == ZTS_AF_INET) {
+		struct zts_sockaddr_in in4;
+		zts_socklen_t addrlen = sizeof(in4);
+		ipstr2sockaddr(
+			family, ipstr, port, (struct zts_sockaddr *)&in4, &addrlen);
+		struct zts_sockaddr *sa = (struct zts_sockaddr *)&in4;
+		return zts_bind(fd, sa, addrlen);
+	}
+	if (family == ZTS_AF_INET6) {
+		struct zts_sockaddr_in6 in6;
+		zts_socklen_t addrlen = sizeof(in6);
+		ipstr2sockaddr(
+			family, ipstr, port, (struct zts_sockaddr *)&in6, &addrlen);
+		struct zts_sockaddr *sa = (struct zts_sockaddr *)&in6;
+		return zts_bind(fd, sa, addrlen);
+	}
+	return ZTS_ERR_ARG;
 }
 
 int zts_listen(int fd, int backlog)
@@ -95,7 +137,8 @@ int zts_accept(int fd, struct zts_sockaddr *addr, zts_socklen_t *addrlen)
 	return lwip_accept(fd, (sockaddr*)addr, (socklen_t*)addrlen);
 }
 
-int zts_setsockopt(int fd, int level, int optname, const void *optval,zts_socklen_t optlen)
+int zts_setsockopt(
+	int fd, int level, int optname, const void *optval,zts_socklen_t optlen)
 {
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
@@ -103,7 +146,8 @@ int zts_setsockopt(int fd, int level, int optname, const void *optval,zts_sockle
 	return lwip_setsockopt(fd, level, optname, optval, optlen);
 }
 
-int zts_getsockopt(int fd, int level, int optname, void *optval, zts_socklen_t *optlen)
+int zts_getsockopt(
+	int fd, int level, int optname, void *optval, zts_socklen_t *optlen)
 {
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
@@ -119,7 +163,8 @@ int zts_getsockname(int fd, struct zts_sockaddr *addr, zts_socklen_t *addrlen)
 	if (!addr) {
 		return ZTS_ERR_ARG;
 	}
-	if (*addrlen > (int)sizeof(struct zts_sockaddr_storage) || *addrlen < (int)sizeof(struct zts_sockaddr_in)) {
+	if (*addrlen > (int)sizeof(struct zts_sockaddr_storage)
+		|| *addrlen < (int)sizeof(struct zts_sockaddr_in)) {
 		return ZTS_ERR_ARG;
 	}
 	return lwip_getsockname(fd, (sockaddr*)addr, (socklen_t*)addrlen);
@@ -133,7 +178,8 @@ int zts_getpeername(int fd, struct zts_sockaddr *addr, zts_socklen_t *addrlen)
 	if (!addr) {
 		return ZTS_ERR_ARG;
 	}
-	if (*addrlen > (int)sizeof(struct zts_sockaddr_storage) || *addrlen < (int)sizeof(struct zts_sockaddr_in)) {
+	if (*addrlen > (int)sizeof(struct zts_sockaddr_storage)
+		|| *addrlen < (int)sizeof(struct zts_sockaddr_in)) {
 		return ZTS_ERR_ARG;
 	}
 	return lwip_getpeername(fd, (sockaddr*)addr, (socklen_t*)addrlen);
@@ -147,13 +193,15 @@ int zts_close(int fd)
 	return lwip_close(fd);
 }
 
-int zts_select(int nfds, zts_fd_set *readfds, zts_fd_set *writefds, zts_fd_set *exceptfds,
+int zts_select(
+	int nfds, zts_fd_set *readfds, zts_fd_set *writefds, zts_fd_set *exceptfds,
 	struct zts_timeval *timeout)
 {
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
 	}
-	return lwip_select(nfds, (fd_set*)readfds, (fd_set*)writefds, (fd_set*)exceptfds, (timeval*)timeout);
+	return lwip_select(
+		nfds, (fd_set*)readfds, (fd_set*)writefds, (fd_set*)exceptfds, (timeval*)timeout);
 }
 
 int zts_fcntl(int fd, int cmd, int flags)
@@ -203,7 +251,8 @@ ssize_t zts_sendto(int fd, const void *buf, size_t len, int flags,
 	if (!addr || !buf) {
 		return ZTS_ERR_ARG;
 	}
-	if (addrlen > (int)sizeof(struct zts_sockaddr_storage) || addrlen < (int)sizeof(struct zts_sockaddr_in)) {
+	if (addrlen > (int)sizeof(struct zts_sockaddr_storage)
+		|| addrlen < (int)sizeof(struct zts_sockaddr_in)) {
 		return ZTS_ERR_ARG;
 	}
 	return lwip_sendto(fd, buf, len, flags, (sockaddr*)addr, addrlen);
@@ -214,6 +263,7 @@ ssize_t zts_sendmsg(int fd, const struct zts_msghdr *msg, int flags)
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
 	}
+
 	return lwip_sendmsg(fd, (const struct msghdr *)msg, flags);
 }
 
@@ -237,7 +287,8 @@ ssize_t zts_recvfrom(int fd, void *buf, size_t len, int flags,
 	if (!buf) {
 		return ZTS_ERR_ARG;
 	}
-	return lwip_recvfrom(fd, buf, len, flags, (sockaddr*)addr, (socklen_t*)addrlen);
+	return lwip_recvfrom(
+		fd, buf, len, flags, (sockaddr*)addr, (socklen_t*)addrlen);
 }
 
 ssize_t zts_recvmsg(int fd, struct zts_msghdr *msg, int flags)
@@ -262,12 +313,13 @@ ssize_t zts_read(int fd, void *buf, size_t len)
 	return lwip_read(fd, buf, len);
 }
 
-ssize_t zts_readv(int s, const struct zts_iovec *iov, int iovcnt)
+ssize_t zts_readv(int fd, const struct zts_iovec *iov, int iovcnt)
 {
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
 	}
-	return lwip_readv(s, (iovec*)iov, iovcnt);
+
+	return lwip_readv(fd, (iovec*)iov, iovcnt);
 }
 
 ssize_t zts_write(int fd, const void *buf, size_t len)
@@ -275,6 +327,7 @@ ssize_t zts_write(int fd, const void *buf, size_t len)
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
 	}
+
 	if (!buf) {
 		return ZTS_ERR_ARG;
 	}
@@ -286,6 +339,7 @@ ssize_t zts_writev(int fd, const struct zts_iovec *iov, int iovcnt)
 	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
 		return ZTS_ERR_SERVICE;
 	}
+
 	return lwip_writev(fd, (iovec*)iov, iovcnt);
 }
 
@@ -344,19 +398,356 @@ int zts_ipaddr_aton(const char *cp, zts_ip_addr *addr)
 	return ipaddr_aton(cp, (ip_addr_t *)addr);
 }
 
-const char *zts_inet_ntop(int af, const void *src, char *dst, zts_socklen_t size)
+const char *zts_inet_ntop(
+	int family, const void *src, char *dst, zts_socklen_t size)
 {
-	return lwip_inet_ntop(af,src,dst,size);
+	return lwip_inet_ntop(family,src,dst,size);
 }
 
-int zts_inet_pton(int af, const char *src, void *dst)
+int zts_inet_pton(int family, const char *src, void *dst)
 {
-	return lwip_inet_pton(af,src,dst);
+	return lwip_inet_pton(family,src,dst);
 }
 
-//////////////////////////////////////////////////////////////////////////////
-// Statistics                                                               //
-//////////////////////////////////////////////////////////////////////////////
+int ipstr2sockaddr(
+	int family, char *src_ipstr, int port, struct zts_sockaddr *dest_addr, zts_socklen_t *addrlen) {
+	if (family == ZTS_AF_INET) {
+		struct zts_sockaddr_in in4;
+		in4.sin_port = htons(port);
+		in4.sin_family = family;
+#if defined(_WIN32)
+		zts_inet_pton(family, src_ipstr, &(in4.sin_addr.S_addr));
+#else
+		zts_inet_pton(family, src_ipstr, &(in4.sin_addr.s_addr));
+#endif
+		dest_addr = (struct zts_sockaddr *)&in4;
+		*addrlen = sizeof(in4);
+		return ZTS_ERR_OK;
+	}
+	if (family == ZTS_AF_INET6) {
+		struct zts_sockaddr_in6 in6;
+		in6.sin6_port = htons(port);
+		in6.sin6_family = family;
+#if defined(_WIN32)
+		zts_inet_pton(family, src_ipstr, &(in6.sin6_addr));
+#else
+		zts_inet_pton(family, src_ipstr, &(in6.sin6_addr));
+#endif
+		dest_addr = (struct zts_sockaddr *)&in6;
+		*addrlen = sizeof(in6);
+		return ZTS_ERR_OK;
+	}
+	return ZTS_ERR_ARG;
+}
+
+//----------------------------------------------------------------------------//
+// Convenience functions                                                      //
+//----------------------------------------------------------------------------//
+
+/**
+* Helper functions that simplify API wrapper generation and usage in other
+* non-C-like languages. Use simple integer types instead of bit flags, limit
+* the number of operations each function performs, prevent the user from
+* needing to manipulate the content of structures in a non-native language.
+*/
+
+int zts_set_no_delay(int fd, int enabled) {
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	if (enabled != 0 && enabled != 1) {
+		return ZTS_ERR_ARG;
+	}
+	return zts_setsockopt(
+		fd, ZTS_IPPROTO_TCP, ZTS_TCP_NODELAY, (void *)&enabled, sizeof(int));
+}
+
+int zts_get_no_delay(int fd)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	int err, optval = 0;
+	zts_socklen_t len = sizeof(optval);
+	if ((err = zts_getsockopt(
+		fd, ZTS_IPPROTO_TCP, ZTS_TCP_NODELAY, (void *)&optval, &len)) < 0) {
+		return err;
+	}
+	return optval != 0;
+}
+
+int zts_set_linger(int fd, int enabled, int value) {
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	if (enabled != 0 && enabled != 1) {
+		return ZTS_ERR_ARG;
+	}
+	if (value < 0) {
+		return ZTS_ERR_ARG;
+	}
+	struct zts_linger linger;
+	linger.l_onoff = enabled;
+	linger.l_linger = value;
+	return zts_setsockopt(
+		fd, ZTS_SOL_SOCKET, ZTS_SO_LINGER, (void *)&linger, sizeof(linger));
+}
+
+int zts_get_linger_enabled(int fd)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	int err;
+	struct zts_linger linger;
+	zts_socklen_t len = sizeof(linger);
+	if ((err = zts_getsockopt(
+		fd, ZTS_SOL_SOCKET, ZTS_SO_LINGER, (void *)&linger, &len)) < 0) {
+		return err;
+	}
+	return linger.l_onoff;
+}
+
+int zts_get_linger_value(int fd)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	int err;
+	struct zts_linger linger;
+	zts_socklen_t len = sizeof(linger);
+	if ((err = zts_getsockopt(
+		fd, ZTS_SOL_SOCKET, ZTS_SO_LINGER, (void *)&linger, &len)) < 0) {
+		return err;
+	}
+	return linger.l_linger;
+}
+
+int zts_set_reuse_addr(int fd, int enabled)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	if (enabled != 0 && enabled != 1) {
+		return ZTS_ERR_ARG;
+	}
+	return zts_setsockopt(
+		fd, ZTS_SOL_SOCKET, ZTS_SO_REUSEADDR, (void *)&enabled, sizeof(enabled));
+}
+
+int zts_get_reuse_addr(int fd)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	int err;
+	int optval = 0;
+	zts_socklen_t optlen = sizeof(optval);
+	if ((err = zts_getsockopt(
+		fd, ZTS_SOL_SOCKET, ZTS_SO_REUSEADDR, (void *)&optval, &optlen)) < 0) {
+		return err;
+	}
+	return optval != 0;
+}
+
+int zts_set_recv_timeout(int fd, int seconds, int microseconds)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	if (seconds < 0 || microseconds < 0) {
+		return ZTS_ERR_ARG;
+	}
+	struct timeval tv;
+	tv.tv_sec = seconds;
+	tv.tv_usec = microseconds;
+	return zts_setsockopt(
+		fd, SOL_SOCKET, SO_RCVTIMEO, (void *)&tv, sizeof(tv));
+}
+
+int zts_get_recv_timeout(int fd)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	struct timeval tv;
+	zts_socklen_t optlen = sizeof(tv);
+	int err;
+	if ((err = zts_getsockopt(
+		fd, SOL_SOCKET, SO_RCVTIMEO, (void *)&tv, &optlen)) < 0) {
+		return err;
+	}
+	return tv.tv_sec; // TODO microseconds
+}
+
+int zts_set_send_timeout(int fd, int seconds, int microseconds)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	if (seconds < 0 || microseconds < 0) {
+		return ZTS_ERR_ARG;
+	}
+	struct timeval tv;
+	tv.tv_sec = seconds;
+	tv.tv_usec = microseconds;
+	return zts_setsockopt(
+		fd, SOL_SOCKET, SO_SNDTIMEO, (void *)&tv, sizeof(tv));
+}
+
+int zts_get_send_timeout(int fd)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	struct zts_timeval tv;
+	zts_socklen_t optlen = sizeof(tv);
+	int err;
+	if ((err = zts_getsockopt(
+		fd, SOL_SOCKET, SO_SNDTIMEO, (void *)&tv, &optlen)) < 0) {
+		return err;
+	}
+	return tv.tv_sec; // TODO microseconds
+}
+
+int zts_set_send_buf_size(int fd, int size)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	if (size < 0) {
+		return ZTS_ERR_ARG;
+	}
+	return zts_setsockopt(
+		fd, SOL_SOCKET, SO_SNDBUF, (void *)&size, sizeof(int));
+}
+
+int zts_get_send_buf_size(int fd)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	int err, optval = 0;
+	zts_socklen_t optlen = sizeof(optval);
+	if ((err = zts_getsockopt(
+		fd, SOL_SOCKET, SO_SNDBUF, (char *)&optval, &optlen)) < 0) {
+		return err;
+	}
+	return optval;
+}
+
+int zts_set_recv_buf_size(int fd, int size)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	if (size < 0) {
+		return ZTS_ERR_ARG;
+	}
+	return zts_setsockopt(
+		fd, SOL_SOCKET, SO_RCVBUF, (void *)&size, sizeof(int));
+}
+
+int zts_get_recv_buf_size(int fd)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	int err, optval = 0;
+	zts_socklen_t optlen = sizeof(optval);
+	if ((err = zts_getsockopt(
+		fd, SOL_SOCKET, SO_RCVBUF, (char *)&optval, &optlen)) < 0) {
+		return err;
+	}
+	return optval;
+}
+
+int zts_set_ttl(int fd, int ttl)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	if (ttl < 0 || ttl > 255) {
+		return ZTS_ERR_ARG;
+	}
+	return zts_setsockopt(fd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
+}
+
+int zts_get_ttl(int fd)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	int err, ttl = 0;
+	zts_socklen_t optlen = sizeof(ttl);
+	if ((err = zts_getsockopt(fd, IPPROTO_IP, IP_TTL, &ttl, &optlen)) < 0) {
+		return err;
+	}
+	return ttl;
+}
+
+int zts_set_blocking(int fd, int enabled)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	if (enabled != 0 && enabled != 1) {
+		return ZTS_ERR_ARG;
+	}
+	int flags = zts_fcntl(fd, ZTS_F_GETFL, 0);
+	if (!enabled) {
+		return zts_fcntl(fd, ZTS_F_SETFL, flags | ZTS_O_NONBLOCK);
+	}
+	else {
+		// Default
+		return zts_fcntl(fd, ZTS_F_SETFL, flags & (~ZTS_O_NONBLOCK));
+	}
+}
+
+int zts_get_blocking(int fd)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	int flags = zts_fcntl(fd, ZTS_F_GETFL, 0);
+	if (flags < 0) {
+		return flags;
+	}
+	return !(flags & ZTS_O_NONBLOCK);
+}
+
+int zts_set_keepalive(int fd, int enabled)
+{
+	//
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	if (enabled != 0 && enabled != 1) {
+		return ZTS_ERR_ARG;
+	}
+	int keepalive = enabled;
+	return zts_setsockopt(
+		fd, ZTS_SOL_SOCKET, ZTS_SO_KEEPALIVE, &keepalive , sizeof(keepalive));
+}
+
+int zts_get_keepalive(int fd)
+{
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
+	int err;
+	int optval = 0;
+	zts_socklen_t optlen = sizeof(optval);
+	if ((err = zts_getsockopt(
+		fd, ZTS_SOL_SOCKET, ZTS_SO_KEEPALIVE, (void *)&optval, &optlen)) < 0) {
+		return err;
+	}
+	return optval != 0;
+}
+
+//----------------------------------------------------------------------------//
+// Statistics                                                                 //
+//----------------------------------------------------------------------------//
 
 #ifdef ZTS_ENABLE_STATS
 

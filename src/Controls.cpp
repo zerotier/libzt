@@ -70,6 +70,7 @@ namespace ZeroTier
 	jobject objRef = NULL;
 	jmethodID _userCallbackMethodRef = NULL;
 #endif
+	extern uint8_t _serviceStateFlags;
 }
 
 #ifdef __cplusplus
@@ -421,6 +422,9 @@ JNIEXPORT void JNICALL Java_com_zerotier_libzt_ZeroTier_restart(
 
 int zts_free()
 {
+	if (!(_serviceStateFlags & ZTS_STATE_NET_SERVICE_RUNNING)) {
+		return ZTS_ERR_SERVICE;
+	}
 	if (_getState(ZTS_STATE_FREE_CALLED)) {
 		return ZTS_ERR_SERVICE;
 	}

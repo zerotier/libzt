@@ -71,7 +71,7 @@ DEFAULT_HOST_LIB_OUTPUT_DIR=$BUILD_OUTPUT_DIR/$HOST_PLATFORM-$HOST_MACHINE_TYPE
 DEFAULT_HOST_BIN_OUTPUT_DIR=$BUILD_OUTPUT_DIR/$HOST_PLATFORM-$HOST_MACHINE_TYPE
 # Default location for (host) packages
 DEFAULT_HOST_PKG_OUTPUT_DIR=$BUILD_OUTPUT_DIR/$HOST_PLATFORM-$HOST_MACHINE_TYPE
-# Defaultlocation for CMake's caches (when building for host)
+# Default location for CMake's caches (when building for host)
 DEFAULT_HOST_BUILD_CACHE_DIR=$BUILD_CACHE_DIR/$HOST_PLATFORM-$HOST_MACHINE_TYPE
 
 gethosttype()
@@ -89,8 +89,8 @@ gethosttype()
 #
 # Example output:
 #
-#	 - Cache        : /Volumes/$USER/zt/libzt/libzt-dev/cache/apple-xcframework-debug
-#	 - Build output : /Volumes/$USER/zt/libzt/libzt-dev/dist
+#	 - Cache        : libzt/cache/apple-xcframework-debug
+#	 - Build output : libzt/dist
 #
 # apple-xcframework-debug
 # └── pkg
@@ -146,10 +146,10 @@ xcframework()
 #
 # Example output:
 #
-#	 - Cache        : /Volumes/$USER/zt/libzt/libzt-dev/cache/iphonesimulator-x64-framework-debug
-#	 - Build output : /Volumes/$USER/zt/libzt/libzt-dev/dist
+#	 - Cache        : libzt/cache/iphonesimulator-x64-framework-debug
+#	 - Build output : libzt/dist
 #
-# /Volumes/$USER/zt/libzt/libzt-dev/dist/iphonesimulator-x64-framework-debug
+# libzt/dist/iphonesimulator-x64-framework-debug
 # └── pkg
 #     └── zt.framework
 #         ├── Headers
@@ -195,10 +195,10 @@ iphonesimulator-framework()
 #
 # Example output:
 #
-#	 - Cache        : /Volumes/$USER/zt/libzt/libzt-dev/cache/macos-x64-framework-debug
-#	 - Build output : /Volumes/$USER/zt/libzt/libzt-dev/dist
+#	 - Cache        : libzt/cache/macos-x64-framework-debug
+#	 - Build output : libzt/dist
 #
-# /Volumes/$USER/zt/libzt/libzt-dev/dist/macos-x64-framework-debug
+# libzt/dist/macos-x64-framework-debug
 # └── pkg
 #     └── zt.framework
 #         ├── Headers
@@ -241,10 +241,10 @@ macos-framework()
 #
 # Example output:
 #
-#	 - Cache        : /Volumes/$USER/zt/libzt/libzt-dev/cache/iphoneos-arm64-framework-debug
-#	 - Build output : /Volumes/$USER/zt/libzt/libzt-dev/dist
+#	 - Cache        : libzt/cache/iphoneos-arm64-framework-debug
+#	 - Build output : libzt/dist
 #
-# /Volumes/$USER/zt/libzt/libzt-dev/dist/iphoneos-arm64-framework-debug
+# libzt/dist/iphoneos-arm64-framework-debug
 # └── pkg
 #     └── zt.framework
 #         ├── Headers
@@ -291,8 +291,8 @@ iphoneos-framework()
 #
 # Example output:
 #
-#	 - Cache        : /Volumes/$USER/zt/libzt/libzt-dev/cache/linux-x64-host-release
-#	 - Build output : /Volumes/$USER/zt/libzt/libzt-dev/dist
+#	 - Cache        : libzt/cache/linux-x64-host-release
+#	 - Build output : libzt/dist
 #
 # linux-x64-host-release
 # ├── bin
@@ -307,6 +307,11 @@ host()
 	ARTIFACT="host"
 	# Default to release
 	BUILD_TYPE=${1:-release}
+	if [[ $1 = *"docs"* ]]; then
+		# Generate documentation
+		cd docs/c && doxygen
+		exit 0
+	fi
 	# -DZTS_ENABLE_CENTRAL_API=0
 	VARIANT="-DBUILD_HOST=True"
 	CACHE_DIR=$DEFAULT_HOST_BUILD_CACHE_DIR-$ARTIFACT-$BUILD_TYPE
@@ -336,6 +341,29 @@ host-uninstall()
 	cd -
 }
 
+# Build C extension module (*.so), python module, package both into wheel
+#
+# ./build.sh host-python-wheel "release"
+#
+# Example output:
+#
+# libzt/dist/macos-x64-python-debug
+# └── pkg
+#     └── libzt-1.3.4b1-cp39-cp39-macosx_11_0_x86_64.whl
+#
+host-python-wheel()
+{
+	ARTIFACT="python"
+	# Default to release
+	BUILD_TYPE=${1:-release}
+	CACHE_DIR=$DEFAULT_HOST_BUILD_CACHE_DIR-$ARTIFACT-$BUILD_TYPE
+	TARGET_BUILD_DIR=$DEFAULT_HOST_BIN_OUTPUT_DIR-$ARTIFACT-$BUILD_TYPE
+	PKG_OUTPUT_DIR=$TARGET_BUILD_DIR/pkg
+	mkdir -p $PKG_OUTPUT_DIR
+	# Requires setuptools, etc
+	cd pkg/pypi && ./build.sh wheel && cp -f dist/*.whl $PKG_OUTPUT_DIR
+}
+
 # Build shared library with python wrapper symbols exported
 host-python()
 {
@@ -345,9 +373,8 @@ host-python()
 	VARIANT="-DZTS_ENABLE_PYTHON=True"
 	CACHE_DIR=$DEFAULT_HOST_BUILD_CACHE_DIR-$ARTIFACT-$BUILD_TYPE
 	TARGET_BUILD_DIR=$DEFAULT_HOST_BIN_OUTPUT_DIR-$ARTIFACT-$BUILD_TYPE
-	rm -rf $TARGET_BUILD_DIR
 	LIB_OUTPUT_DIR=$TARGET_BUILD_DIR/lib
-	BIN_OUTPUT_DIR=$TARGET_BUILD_DIR/bin
+	rm -rf $LIB_OUTPUT_DIR
 	mkdir -p $LIB_OUTPUT_DIR
 	# Optional step to generate new SWIG wrapper
 	swig -c++ -python -o src/bindings/python/zt_wrap.cpp -Iinclude src/bindings/python/zt.i
@@ -384,6 +411,11 @@ host-jar()
 	ARTIFACT="jar"
 	# Default to release
 	BUILD_TYPE=${1:-release}
+	if [[ $1 = *"docs"* ]]; then
+		# Generate documentation
+		javadoc src/bindings/java/*.java -d docs/java
+		exit 0
+	fi
 	VARIANT="-DZTS_ENABLE_JAVA=True"
 	CACHE_DIR=$DEFAULT_HOST_BUILD_CACHE_DIR-$ARTIFACT-$BUILD_TYPE
 	TARGET_BUILD_DIR=$DEFAULT_HOST_BIN_OUTPUT_DIR-$ARTIFACT-$BUILD_TYPE
@@ -402,7 +434,7 @@ host-jar()
 	cp -f $CACHE_DIR/lib/libzt.* $JAVA_JAR_DIR
 	cd $JAVA_JAR_DIR
 	export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
-	javac com/zerotier/libzt/*.java
+	javac -Xlint:deprecation com/zerotier/libzt/*.java
 	jar cf libzt-"$(git describe --abbrev=0)".jar $SHARED_LIB_NAME com/zerotier/libzt/*.class
 	rm -rf com $SHARED_LIB_NAME
 	cd -
@@ -441,8 +473,8 @@ fi
 #
 # Example output:
 #
-#	 - Cache        : /Volumes/$USER/zt/libzt/libzt-dev/cache/android-any-android-release
-#	 - Build output : /Volumes/$USER/zt/libzt/libzt-dev/dist
+#	 - Cache        : libzt/cache/android-any-android-release
+#	 - Build output : libzt/dist
 #
 # android-any-android-release
 # └── libzt-release.aar
@@ -496,8 +528,32 @@ test()
 	$TREE $TARGET_BUILD_DIR
 	# Test
 	cd $CACHE_DIR
-	ctest -C release
+	#ctest -C release
 	cd -
+}
+
+# Test C API
+test-c()
+{
+	if [[ -z "${alice_path}" ]]; then
+		echo "Please set necessary environment variables for test"
+		exit 0
+	fi
+	ARTIFACT="test"
+	# Default to debug so asserts aren't optimized out
+	BUILD_TYPE=${1:-debug}
+	TARGET_BUILD_DIR=$DEFAULT_HOST_BIN_OUTPUT_DIR-$ARTIFACT-$BUILD_TYPE
+	BIN_OUTPUT_DIR=$TARGET_BUILD_DIR/bin
+	rm -rf $TARGET_BUILD_DIR
+	# Build selftest
+	test $1
+	# Ports can be anything we want since they aren't system ports
+	port4=8080
+	port6=8081
+	# Start Alice as server
+	"$BIN_OUTPUT_DIR/selftest-c-api" $alice_path $testnet $port4 $port6 &
+	# Start Bob as client
+	"$BIN_OUTPUT_DIR/selftest-c-api" $bob_path $testnet $port4 $alice_ip4 $port6 $alice_ip6 &
 }
 
 # Recursive deep clean

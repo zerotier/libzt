@@ -48,6 +48,8 @@ namespace ZeroTier.Sockets
 		bool _isBound;
 		bool _isConnected;
 
+		int _connectTimeout = 30000;
+
 		AddressFamily _socketFamily;
 		SocketType _socketType;
 		ProtocolType _socketProtocol;
@@ -140,50 +142,26 @@ namespace ZeroTier.Sockets
 				throw new ArgumentNullException("remoteEndPoint");
 			}
 			int err = Constants.ERR_OK;
-			int addrlen = 0;
-			IntPtr remoteAddrPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(zts_sockaddr)));
-			if (remoteEndPoint.AddressFamily == AddressFamily.InterNetwork)
-			{
-				zts_sockaddr_in sa = new zts_sockaddr_in();
-				addrlen = Marshal.SizeOf(typeof(zts_sockaddr_in));
-				switch (remoteEndPoint.AddressFamily)
-				{
-					case AddressFamily.InterNetwork:
-						sa.sin_family = (byte)Constants.AF_INET;
-						break;
-					case AddressFamily.InterNetworkV6:
-						sa.sin_family = (byte)Constants.AF_INET6;
-						break;
-					case AddressFamily.Unknown:
-						sa.sin_family = (byte)Constants.AF_UNSPEC;
-						break;
-				}
-				sa.sin_port = (short)IPAddress.HostToNetworkOrder((ushort)remoteEndPoint.Port);
-				sa.sin_addr = remoteEndPoint.Address.GetAddressBytes();
-				sa.sin_len = (byte)addrlen; // lwIP-specific
-
-				Marshal.StructureToPtr(sa, remoteAddrPtr, false);
-				//zts_sockaddr sAddr = (zts_sockaddr)Marshal.PtrToStructure(remoteAddrPtr, typeof(zts_sockaddr));
-				err = zts_connect(_fd, remoteAddrPtr, (byte)addrlen);
-
+			if (remoteEndPoint.AddressFamily == AddressFamily.InterNetwork) {
+				err = zts_connect_easy(
+					_fd,
+					Constants.AF_INET,
+					remoteEndPoint.Address.ToString(),
+					(ushort)remoteEndPoint.Port,
+					_connectTimeout);
 			}
-			if (remoteEndPoint.AddressFamily == AddressFamily.InterNetworkV6)
-			{
-				/*
-				socketAddress.iSockaddrLength = Marshal.SizeOf(typeof(sockaddr_in6));
-				socketAddress.lpSockAddr = CriticalAllocHandle.FromSize(socketAddress.iSockaddrLength);
-				sockaddr_in6 sa = new sockaddr_in6();
-				sa.sin6_family = (short)AddressFamily.InterNetworkV6;
-				sa.sin6_port = (ushort)endpoint.Port;
-				sa.sin6_addr = endpoint.Address.GetAddressBytes();
-				sa.sin6_scope_id = (uint)endpoint.Address.ScopeId;
-				Marshal.StructureToPtr(sa, (IntPtr)socketAddress.lpSockAddr, false);
-				*/
+			if (remoteEndPoint.AddressFamily == AddressFamily.InterNetworkV6) {
+				Console.WriteLine("going to connect to: " + remoteEndPoint.ToString());
+				err = zts_connect_easy(
+					_fd,
+					Constants.AF_INET6,
+					remoteEndPoint.Address.ToString(),
+					(ushort)remoteEndPoint.Port,
+					_connectTimeout);
 			}
 			if (err < 0) {
 				throw new ZeroTier.Sockets.SocketException(err, ZeroTier.Core.Node.ErrNo);
 			}
-			Marshal.FreeHGlobal(remoteAddrPtr);
 			_remoteEndPoint = remoteEndPoint;
 			_isConnected = true;
 		}
@@ -201,48 +179,24 @@ namespace ZeroTier.Sockets
 				throw new ArgumentNullException("localEndPoint");
 			}
 			int err = Constants.ERR_OK;
-			int addrlen = 0;
-			IntPtr localAddrPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(zts_sockaddr)));
-			if (localEndPoint.AddressFamily == AddressFamily.InterNetwork)
-			{
-				zts_sockaddr_in sa = new zts_sockaddr_in();
-				addrlen = Marshal.SizeOf(typeof(zts_sockaddr_in));
-				switch (localEndPoint.AddressFamily)
-				{
-					case AddressFamily.InterNetwork:
-						sa.sin_family = (byte)Constants.AF_INET;
-						break;
-					case AddressFamily.InterNetworkV6:
-						sa.sin_family = (byte)Constants.AF_INET6;
-						break;
-					case AddressFamily.Unknown:
-						sa.sin_family = (byte)Constants.AF_UNSPEC;
-						break;
-				}
-				sa.sin_port = (short)IPAddress.HostToNetworkOrder((ushort)localEndPoint.Port);
-				sa.sin_addr = localEndPoint.Address.GetAddressBytes();
-				sa.sin_len = (byte)addrlen; // lwIP-specific
-
-				Marshal.StructureToPtr(sa, localAddrPtr, false);
-				err = zts_bind(_fd, localAddrPtr, (byte)addrlen);
+			if (localEndPoint.AddressFamily == AddressFamily.InterNetwork) {
+				err = zts_bind_easy(
+					_fd,
+					Constants.AF_INET,
+					"0.0.0.0",
+					(ushort)localEndPoint.Port);
 			}
-			if (localEndPoint.AddressFamily == AddressFamily.InterNetworkV6)
-			{
-				/*
-				socketAddress.iSockaddrLength = Marshal.SizeOf(typeof(sockaddr_in6));
-				socketAddress.lpSockAddr = CriticalAllocHandle.FromSize(socketAddress.iSockaddrLength);
-				sockaddr_in6 sa = new sockaddr_in6();
-				sa.sin6_family = (short)AddressFamily.InterNetworkV6;
-				sa.sin6_port = (ushort)endpoint.Port;
-				sa.sin6_addr = endpoint.Address.GetAddressBytes();
-				sa.sin6_scope_id = (uint)endpoint.Address.ScopeId;
-				Marshal.StructureToPtr(sa, (IntPtr)socketAddress.lpSockAddr, false);
-				*/
+			if (localEndPoint.AddressFamily == AddressFamily.InterNetworkV6) {
+				// Todo: detect IPAddress.IPv6Any
+				err = zts_bind_easy(
+					_fd,
+					Constants.AF_INET6,
+					"::",
+					(ushort)localEndPoint.Port);
 			}
 			if (err < 0) {
 				throw new ZeroTier.Sockets.SocketException((int)err);
 			}
-			Marshal.FreeHGlobal(localAddrPtr);
 			_localEndPoint = localEndPoint;
 			_isBound = true;
 		}
@@ -274,29 +228,22 @@ namespace ZeroTier.Sockets
 				throw new ZeroTier.Sockets.SocketException((int)Constants.ERR_SOCKET);
 			}
 			if (_isListening == false) {
-				throw new InvalidOperationException("Socket is not in a listening state. Call Listen() first");
+				throw new InvalidOperationException(
+					"Socket is not in a listening state. Call Listen() first");
 			}
-			// TODO: Rewrite -- Check for memory leaks
-			// Inform zts_accept of the size of the available address buffer
-			int addrlen = Marshal.SizeOf(typeof(zts_sockaddr_in));
-			IntPtr addrlenPtr = GCHandle.Alloc(addrlen, GCHandleType.Pinned).AddrOfPinnedObject();
-			// Allocate space for address buffer and provide pointer to zts_accept
-			zts_sockaddr_in in4 = new zts_sockaddr_in();
-			IntPtr remoteAddrPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(zts_sockaddr_in)));
-			Marshal.StructureToPtr(in4, remoteAddrPtr, false);
-
-			int err = zts_accept(_fd, remoteAddrPtr, addrlenPtr);
-			if (err < 0) {
-				throw new ZeroTier.Sockets.SocketException(err, ZeroTier.Core.Node.ErrNo);
-			}
-			in4 = (zts_sockaddr_in)Marshal.PtrToStructure(remoteAddrPtr, typeof(zts_sockaddr_in));
-			// Convert sockaddr contents to IPEndPoint
-			IPAddress ipAddress = new IPAddress(in4.sin_addr);
-			IPEndPoint clientEndPoint = new IPEndPoint(ipAddress, IPAddress.NetworkToHostOrder(((ushort)in4.sin_port)));
+			IntPtr lpBuffer = Marshal.AllocHGlobal(ZeroTier.Constants.INET6_ADDRSTRLEN);
+			int port = 0;
+			int accepted_fd = zts_accept_easy(
+				_fd, lpBuffer, ZeroTier.Constants.INET6_ADDRSTRLEN, ref port);
+			// Convert buffer to managed string
+			string str = Marshal.PtrToStringAnsi(lpBuffer);
+			Marshal.FreeHGlobal(lpBuffer);
+			lpBuffer = IntPtr.Zero;
+			IPEndPoint clientEndPoint = new IPEndPoint(IPAddress.Parse(str), port);
+			Console.WriteLine("clientEndPoint = " + clientEndPoint.ToString());
 			// Create new socket by providing file descriptor returned from zts_accept call.
 			Socket clientSocket = new Socket(
-				err, _socketFamily, _socketType, _socketProtocol, _localEndPoint, clientEndPoint);
-			Marshal.FreeHGlobal(remoteAddrPtr);
+				accepted_fd, _socketFamily, _socketType, _socketProtocol, _localEndPoint, clientEndPoint);
 			return clientSocket;
 		}
 
@@ -332,28 +279,8 @@ namespace ZeroTier.Sockets
 
 		public bool Blocking
 		{
-			get {
-				return _isBlocking;
-			}
-			set {
-				if (_isClosed) {
-					throw new ObjectDisposedException("Socket has been closed");
-				}
-				int opts = 0;
-				if ((opts = zts_fcntl(_fd, (int)(ZeroTier.Constants.F_GETFL), 0)) < 0) {
-					throw new ZeroTier.Sockets.SocketException(opts, ZeroTier.Core.Node.ErrNo);
-				}
-				if (value) { // Blocking
-					opts = opts & (~(ZeroTier.Constants.O_NONBLOCK));
-				}
-				if (!value) { // Non-Blocking
-					opts = opts | (int)(ZeroTier.Constants.O_NONBLOCK);
-				}
-				if ((opts = zts_fcntl(_fd, ZeroTier.Constants.F_SETFL, (int)opts)) < 0) {
-					throw new ZeroTier.Sockets.SocketException(opts, ZeroTier.Core.Node.ErrNo);
-				}
-				_isBlocking = value;
-			}
+			get { return Convert.ToBoolean(zts_get_blocking(_fd)); }
+			set { zts_set_blocking(_fd, Convert.ToInt32(value)); }
 		}
 
 		public bool Poll(int microSeconds, System.Net.Sockets.SelectMode mode)
@@ -384,13 +311,16 @@ namespace ZeroTier.Sockets
 			poll_set = (zts_pollfd)Marshal.PtrToStructure(poll_fd_ptr, typeof(zts_pollfd));
 			if (result != 0) {
 				if (mode == SelectMode.SelectRead) {
-					result = Convert.ToInt32(((byte)poll_set.revents & (byte)ZeroTier.Constants.POLLIN) != 0);
+					result = Convert.ToInt32(((byte)poll_set.revents
+						& (byte)ZeroTier.Constants.POLLIN) != 0);
 				}
 				if (mode == SelectMode.SelectWrite) {
-					result = Convert.ToInt32(((byte)poll_set.revents & (byte)ZeroTier.Constants.POLLOUT) != 0);
+					result = Convert.ToInt32(((byte)poll_set.revents
+						& (byte)ZeroTier.Constants.POLLOUT) != 0);
 				}
 				if (mode == SelectMode.SelectError) {
-					result = Convert.ToInt32(((poll_set.revents & (byte)ZeroTier.Constants.POLLERR) != 0) ||
+					result = Convert.ToInt32(((poll_set.revents
+						& (byte)ZeroTier.Constants.POLLERR) != 0) ||
 					((poll_set.revents & (byte)ZeroTier.Constants.POLLNVAL) != 0));
 				}
 			}
@@ -430,66 +360,67 @@ namespace ZeroTier.Sockets
 			return zts_recv(_fd, bufferPtr, (uint)Buffer.ByteLength(buffer), (int)flags);
 		}
 
-		private void _set_timeout(int timeout_ms, int optname)
-		{
-			zts_timeval tv = new zts_timeval();
-			// Convert milliseconds to timeval struct
-			tv.tv_sec = timeout_ms / 1000;
-			tv.tv_usec = (timeout_ms % 1000) * 1000;
-			IntPtr tv_ptr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(zts_timeval)));
-			Marshal.StructureToPtr(tv, tv_ptr, false);
-			ushort option_size = (ushort)Marshal.SizeOf(typeof(zts_sockaddr_in));
-			int err = 0;
-			if ((err = zts_setsockopt(_fd, ZeroTier.Constants.SOL_SOCKET,
-				ZeroTier.Constants.SO_RCVTIMEO, tv_ptr, option_size)) < 0) {
-				throw new ZeroTier.Sockets.SocketException(err, ZeroTier.Core.Node.ErrNo);
-			}
-			Marshal.FreeHGlobal(tv_ptr);
-		}
-
-		private int _get_timeout(int optname)
-		{
-			zts_timeval tv = new zts_timeval();
-			IntPtr tv_ptr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(zts_timeval)));
-			Marshal.StructureToPtr(tv, tv_ptr, false);
-			ushort optlen = (ushort)Marshal.SizeOf(typeof(zts_timeval));
-			GCHandle optlen_gc_handle = GCHandle.Alloc(optlen, GCHandleType.Pinned);
-			IntPtr optlen_ptr = optlen_gc_handle.AddrOfPinnedObject();
-			int err = 0;
-			if ((err = zts_getsockopt(_fd, ZeroTier.Constants.SOL_SOCKET,
-				ZeroTier.Constants.SO_RCVTIMEO, tv_ptr, optlen_ptr)) < 0) {
-				throw new ZeroTier.Sockets.SocketException(err, ZeroTier.Core.Node.ErrNo);
-			}
-			tv = (zts_timeval)Marshal.PtrToStructure(tv_ptr, typeof(zts_timeval));
-			optlen_gc_handle.Free();
-			Marshal.FreeHGlobal(tv_ptr);
-			// Convert timeval struct to milliseconds
-			return (int)((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
-		}
-
 		public int ReceiveTimeout
 		{
-			get { return _get_timeout(ZeroTier.Constants.SO_RCVTIMEO); }
-			set { _set_timeout(value, ZeroTier.Constants.SO_RCVTIMEO); }
+			get { return zts_get_recv_timeout(_fd); }
+			// TODO: microseconds
+			set { zts_set_recv_timeout(_fd, value, 0); }
 		}
 
 		public int SendTimeout
 		{
-			get { return _get_timeout(ZeroTier.Constants.SO_SNDTIMEO); }
-			set { _set_timeout(value, ZeroTier.Constants.SO_SNDTIMEO); }
+			get { return zts_get_send_timeout(_fd); }
+			// TODO: microseconds
+			set { zts_set_send_timeout(_fd, value, 0); }
 		}
 
-		/* TODO
-		public int ReceiveBufferSize { get; set; }
+		public int ConnectTimeout
+		{
+			get { return _connectTimeout; }
+			set { _connectTimeout = value;}
+		}
 
-		public int SendBufferSize { get; set; }
+		public int ReceiveBufferSize
+		{
+			get { return zts_get_recv_buf_size(_fd); }
+			set { zts_set_recv_buf_size(_fd, value); }
+		}
 
-		public short Ttl { get; set; }
+		public int SendBufferSize
+		{
+			get { return zts_get_send_buf_size(_fd); }
+			set { zts_set_send_buf_size(_fd, value); }
+		}
 
-		public LingerOption LingerState { get; set; }
+		public short Ttl
+		{
+			get { return Convert.ToInt16(zts_get_ttl(_fd)); }
+			set { zts_set_ttl(_fd, value); }
+		}
 
-		public bool NoDelay { get; set;  }
-		*/
+		public LingerOption LingerState
+		{
+			get {
+				LingerOption lo = new LingerOption(
+					Convert.ToBoolean(zts_get_linger_enabled(_fd)), zts_get_linger_value(_fd));
+				return lo;
+			}
+			set {
+				zts_set_linger(_fd, Convert.ToInt32(value.Enabled), value.LingerTime);
+			}
+		}
+
+		public bool NoDelay
+		{
+			get { return Convert.ToBoolean(zts_get_no_delay(_fd)); }
+			set { zts_set_no_delay(_fd, Convert.ToInt32(value)); }
+		}
+
+		public bool KeepAlive
+		{
+			get { return Convert.ToBoolean(zts_get_keepalive(_fd)); }
+			set { zts_set_keepalive(_fd, Convert.ToInt32(value)); }
+		}
 
 		public bool Connected { get { return _isConnected; } }
 
@@ -526,14 +457,23 @@ namespace ZeroTier.Sockets
 		[DllImport("libzt", EntryPoint="CSharp_zts_connect")]
 		static extern int zts_connect(int arg1, IntPtr arg2, ushort arg3);
 
+		[DllImport("libzt", CharSet=CharSet.Ansi, EntryPoint="CSharp_zts_connect_easy")]
+		static extern int zts_connect_easy(int arg1, int arg2, string arg3, ushort arg4, int arg5);
+
 		[DllImport("libzt", EntryPoint="CSharp_zts_bind")]
 		static extern int zts_bind(int arg1, IntPtr arg2, ushort arg3);
+
+		[DllImport("libzt", CharSet=CharSet.Ansi, EntryPoint="CSharp_zts_bind_easy")]
+		static extern int zts_bind_easy(int arg1, int arg2, string arg3, ushort arg4);
 
 		[DllImport("libzt", EntryPoint="CSharp_zts_listen")]
 		static extern int zts_listen(int arg1, int arg2);
 
 		[DllImport("libzt", EntryPoint="CSharp_zts_accept")]
 		static extern int zts_accept(int arg1, IntPtr arg2, IntPtr arg3);
+
+		[DllImport("libzt", CharSet=CharSet.Ansi, EntryPoint="CSharp_zts_accept_easy")]
+		static extern int zts_accept_easy(int arg1, IntPtr remoteAddrStr, int arg2, ref int arg3);
 
 		[DllImport("libzt", EntryPoint="CSharp_zts_setsockopt")]
 		static extern int zts_setsockopt(int arg1, int arg2, int arg3, IntPtr arg4, ushort arg5);
@@ -591,6 +531,69 @@ namespace ZeroTier.Sockets
 
 		[DllImport("libzt", EntryPoint="CSharp_zts_shutdown")]
 		static extern int zts_shutdown(int arg1, int arg2);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_set_no_delay")]
+		static extern int zts_set_no_delay(int fd, int enabled);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_get_no_delay")]
+		static extern int zts_get_no_delay(int fd);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_set_linger")]
+		static extern int zts_set_linger(int fd, int enabled, int value);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_get_linger_enabled")]
+		static extern int zts_get_linger_enabled(int fd);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_get_linger_value")]
+		static extern int zts_get_linger_value(int fd);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_set_reuse_addr")]
+		static extern int zts_set_reuse_addr(int fd, int enabled);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_get_reuse_addr")]
+		static extern int zts_get_reuse_addr(int fd);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_set_recv_timeout")]
+		static extern int zts_set_recv_timeout(int fd, int seconds, int microseconds);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_get_recv_timeout")]
+		static extern int zts_get_recv_timeout(int fd);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_set_send_timeout")]
+		static extern int zts_set_send_timeout(int fd, int seconds, int microseconds);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_get_send_timeout")]
+		static extern int zts_get_send_timeout(int fd);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_set_send_buf_size")]
+		static extern int zts_set_send_buf_size(int fd, int size);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_get_send_buf_size")]
+		static extern int zts_get_send_buf_size(int fd);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_set_recv_buf_size")]
+		static extern int zts_set_recv_buf_size(int fd, int size);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_get_recv_buf_size")]
+		static extern int zts_get_recv_buf_size(int fd);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_set_ttl")]
+		static extern int zts_set_ttl(int fd, int ttl);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_get_ttl")]
+		static extern int zts_get_ttl(int fd);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_set_blocking")]
+		static extern int zts_set_blocking(int fd, int enabled);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_get_blocking")]
+		static extern int zts_get_blocking(int fd);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_set_keepalive")]
+		static extern int zts_set_keepalive(int fd, int enabled);
+
+		[DllImport("libzt", EntryPoint="CSharp_zts_get_keepalive")]
+		static extern int zts_get_keepalive(int fd);
 
 		[DllImport("libzt", EntryPoint="CSharp_zts_add_dns_nameserver")]
 		static extern int zts_add_dns_nameserver(IntPtr arg1);

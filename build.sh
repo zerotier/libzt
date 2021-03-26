@@ -310,6 +310,7 @@ host()
 	if [[ $1 = *"docs"* ]]; then
 		# Generate documentation
 		cd docs/c && doxygen
+		cp -f *.png html/
 		exit 0
 	fi
 	# -DZTS_ENABLE_CENTRAL_API=0
@@ -547,13 +548,40 @@ test-c()
 	rm -rf $TARGET_BUILD_DIR
 	# Build selftest
 	test $1
-	# Ports can be anything we want since they aren't system ports
-	port4=8080
-	port6=8081
 	# Start Alice as server
 	"$BIN_OUTPUT_DIR/selftest-c-api" $alice_path $testnet $port4 $port6 &
 	# Start Bob as client
 	"$BIN_OUTPUT_DIR/selftest-c-api" $bob_path $testnet $port4 $alice_ip4 $port6 $alice_ip6 &
+}
+
+# Test C# API
+test-cs()
+{
+	if [[ -z "${alice_path}" ]]; then
+		echo "Please set necessary environment variables for test"
+		exit 0
+	fi
+	ARTIFACT="pinvoke"
+	# Default to debug so asserts aren't optimized out
+	BUILD_TYPE=${1:-debug}
+	TARGET_BUILD_DIR=$DEFAULT_HOST_BIN_OUTPUT_DIR-$ARTIFACT-$BUILD_TYPE
+	LIB_OUTPUT_DIR=$TARGET_BUILD_DIR/lib
+	BIN_OUTPUT_DIR=$TARGET_BUILD_DIR/bin
+	rm -rf $TARGET_BUILD_DIR
+	# Build C shared library exporting C# symbols
+	host-pinvoke $1
+	# TODO: This should eventually be converted to a proper dotnet project
+	# Build C# managed API library
+	csc -target:library -out:$LIB_OUTPUT_DIR/ZeroTier.Sockets.dll src/bindings/csharp/*.cs
+	# Build selftest
+	mkdir -p $BIN_OUTPUT_DIR
+	csc -out:$BIN_OUTPUT_DIR/selftest.exe -reference:$LIB_OUTPUT_DIR/ZeroTier.Sockets.dll test/selftest.cs
+	# Copy shared libraries into bin directory so they can be discovered by dlopen
+	cp $LIB_OUTPUT_DIR/* $BIN_OUTPUT_DIR
+	# Start Alice as server
+	mono --debug "$BIN_OUTPUT_DIR/selftest.exe" $alice_path $testnet $port4 $port6 &
+	# Start Bob as client
+	mono --debug "$BIN_OUTPUT_DIR/selftest.exe" $bob_path $testnet $port4 $alice_ip4 $port6 $alice_ip6 &
 }
 
 # Recursive deep clean

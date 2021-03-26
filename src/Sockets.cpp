@@ -66,22 +66,44 @@ int zts_connect(int fd, const struct zts_sockaddr *addr, zts_socklen_t addrlen)
 	return lwip_connect(fd, (sockaddr*)addr, addrlen);
 }
 
-int zts_connect_easy(int fd, int family, char *ipstr, int port) {
+int zts_connect_easy(int fd, int family, char *ipstr, int port, int timeout_ms) {
+	if (timeout_ms < 0) {
+		return ZTS_ERR_ARG;
+	}
+	if (timeout_ms == 0) {
+		timeout_ms = 30000; // Default
+	}
+	int div = 4; // Must be > 0, Four connection attempts per second
+	int n_tries = (timeout_ms / 1000) * div;
+	int connect_delay = 1000 / div;
+	int err = ZTS_ERR_SOCKET;
+
+	zts_socklen_t addrlen = 0;
+	struct zts_sockaddr_storage ss;
+	struct zts_sockaddr *sa = NULL;
+
 	if (family == ZTS_AF_INET) {
-		struct zts_sockaddr_in in4;
-		zts_socklen_t addrlen = sizeof(in4);
+		addrlen = sizeof(ss);
 		ipstr2sockaddr(
-			family, ipstr, port, (struct zts_sockaddr *)&in4, &addrlen);
-		struct zts_sockaddr *sa = (struct zts_sockaddr *)&in4;
-		return zts_connect(fd, sa, addrlen);
+			family, ipstr, port, (struct zts_sockaddr *)&ss, &addrlen);
+		sa = (struct zts_sockaddr *)&ss;
 	}
 	if (family == ZTS_AF_INET6) {
-		struct zts_sockaddr_in6 in6;
-		zts_socklen_t addrlen = sizeof(in6);
+		addrlen = sizeof(ss);
 		ipstr2sockaddr(
-			family, ipstr, port, (struct zts_sockaddr *)&in6, &addrlen);
-		struct zts_sockaddr *sa = (struct zts_sockaddr *)&in6;
-		return zts_connect(fd, sa, addrlen);
+			family, ipstr, port, (struct zts_sockaddr *)&ss, &addrlen);
+		sa = (struct zts_sockaddr *)&ss;
+	}
+	if (addrlen > 0 && sa != NULL) {
+		if (zts_get_blocking(fd)) {
+			do {
+				err = zts_connect(fd, sa, addrlen);
+				zts_delay_ms(connect_delay);
+				n_tries--;
+			}
+			while ((err < 0) && (zts_errno != 0) && (n_tries > 0));
+		}
+		return err;
 	}
 	return ZTS_ERR_ARG;
 }
@@ -135,6 +157,34 @@ int zts_accept(int fd, struct zts_sockaddr *addr, zts_socklen_t *addrlen)
 		return ZTS_ERR_SERVICE;
 	}
 	return lwip_accept(fd, (sockaddr*)addr, (socklen_t*)addrlen);
+}
+
+int zts_accept_easy(int fd, char *remoteIpStr, int len, int *port)
+{
+	if (len != ZTS_INET6_ADDRSTRLEN) {
+		return ZTS_ERR_ARG;
+	}
+	char ipstr[ZTS_INET6_ADDRSTRLEN];
+	memset(ipstr, 0, ZTS_INET6_ADDRSTRLEN);
+
+	zts_sockaddr_storage ss;
+	zts_socklen_t addrlen = sizeof(ss);
+
+	int acc_fd = zts_accept(fd, (zts_sockaddr*)&ss, (zts_socklen_t*)&addrlen);
+	struct zts_sockaddr *sa = (struct zts_sockaddr *)&ss;
+	if (sa->sa_family == ZTS_AF_INET) {
+		struct zts_sockaddr_in *in4 = (struct zts_sockaddr_in*)sa;
+		zts_inet_ntop(ZTS_AF_INET, &(in4->sin_addr),
+			remoteIpStr, ZTS_INET_ADDRSTRLEN);
+		*port = ntohs(in4->sin_port);
+	}
+	if (sa->sa_family == ZTS_AF_INET6) {
+		struct zts_sockaddr_in6 *in6 = (struct zts_sockaddr_in6*)sa;
+		zts_inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr),
+			remoteIpStr, ZTS_INET6_ADDRSTRLEN);
+		*port = ntohs(in6->sin6_port);
+	}
+	return acc_fd;
 }
 
 int zts_setsockopt(

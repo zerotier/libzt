@@ -230,4 +230,14 @@ function Clean
 {
 	rm cache -Recurse -Force -Confirm:$false -ErrorAction:'silentlycontinue'
 	rm dist -Recurse -Force -Confirm:$false -ErrorAction:'silentlycontinue'
+	#rm pkg\nuget\bindings\ZeroTier.Sockets\*.cs -Force -Confirm:$false -ErrorAction:'silentlycontinue'
+	#rm pkg\nuget\bindings\ZeroTier.Sockets\bin -Recurse -Force -Confirm:$false -ErrorAction:'silentlycontinue'
+	#rm pkg\nuget\bindings\ZeroTier.Sockets\obj -Recurse -Force -Confirm:$false -ErrorAction:'silentlycontinue'
+	#rm pkg\nuget\ZeroTier.Sockets\contentFiles -Recurse -Force -Confirm:$false -ErrorAction:'silentlycontinue'
+	rm pkg\nuget\ZeroTier.Sockets\lib -Recurse -Force -Confirm:$false -ErrorAction:'silentlycontinue'
+	rm pkg\nuget\ZeroTier.Sockets\bin -Recurse -Force -Confirm:$false -ErrorAction:'silentlycontinue'
+	rm 'pkg\nuget\*' -Recurse -Include *.pdb
+	rm 'pkg\nuget\*' -Recurse -Include *.cs
+	rm 'pkg\nuget\*' -Recurse -Include *.dll
+	rm 'pkg\nuget\*' -Recurse -Include LICENSE.*
 }

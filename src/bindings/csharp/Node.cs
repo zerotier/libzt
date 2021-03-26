@@ -35,6 +35,8 @@ namespace ZeroTier.Core
 		static ulong _nodeId = 0x0;
 		static bool _isOnline = false;
 		static bool _joinedAtLeastOneNetwork = false;
+		static bool _has_ipv4_routes = false;
+		static bool _has_ipv6_routes = false;
 		static bool _hasBeenFreed = false;
 		string _configFilePath;
 		ushort _servicePort;
@@ -94,12 +96,22 @@ namespace ZeroTier.Core
 				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETWORK_ACCESS_DENIED");
 			}
 			if (msg.eventCode == Constants.EVENT_NETWORK_READY_IP4) {
-				_joinedAtLeastOneNetwork = true;
+				zts_network_details unmanagedDetails =
+					(zts_network_details)Marshal.PtrToStructure(msg.network, typeof(zts_network_details));
 				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETWORK_READY_IP4");
+				newEvent.networkDetails = new NetworkDetails();
+				newEvent.networkDetails.networkId = unmanagedDetails.nwid;
+				_joinedAtLeastOneNetwork = true;
+				_has_ipv4_routes = true;
 			}
 			if (msg.eventCode == Constants.EVENT_NETWORK_READY_IP6) {
-				_joinedAtLeastOneNetwork = true;
+				zts_network_details unmanagedDetails =
+					(zts_network_details)Marshal.PtrToStructure(msg.network, typeof(zts_network_details));
 				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETWORK_READY_IP6");
+				newEvent.networkDetails = new NetworkDetails();
+				newEvent.networkDetails.networkId = unmanagedDetails.nwid;
+				_joinedAtLeastOneNetwork = true;
+				_has_ipv6_routes = true;
 			}
 			if (msg.eventCode == Constants.EVENT_NETWORK_DOWN) {
 				newEvent = new ZeroTier.Core.Event(msg.eventCode,"EVENT_NETWORK_DOWN");
@@ -261,7 +273,7 @@ namespace ZeroTier.Core
 			_nodeId = 0x0;
 			return zts_restart();
 		}
-		
+
 		/// <summary>
 		/// Requests to join a ZeroTier network. Remember to authorize your node/device.
 		/// </summary>
@@ -298,6 +310,17 @@ namespace ZeroTier.Core
 		public bool HasRoutes()
 		{
 			return _joinedAtLeastOneNetwork;
+		}
+
+
+		public bool HasIPv4Routes
+		{
+			get { return _has_ipv4_routes; }
+		}
+
+		public bool HasIPv6Routes
+		{
+			get { return _has_ipv6_routes; }
 		}
 
 		public ulong NodeId

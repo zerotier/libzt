@@ -139,7 +139,8 @@ public class ExampleApp {
 					}
 					catch (ZeroTier.Sockets.SocketException e)
 					{
-						Console.WriteLine("ServiveErrorCode={0} SocketErrorCode={1}", e.ServiceErrorCode, e.SocketErrorCode);
+						Console.WriteLine("ServiceErrorCode={0} SocketErrorCode={1}",
+							e.ServiceErrorCode, e.SocketErrorCode);
 					}
 					if (bytesRec > 0) {
 						Console.WriteLine("Bytes received: {0}", bytesRec);
@@ -163,7 +164,8 @@ public class ExampleApp {
 
 		} catch (ZeroTier.Sockets.SocketException e) {
 			Console.WriteLine(e);
-			Console.WriteLine("ServiveErrorCode={0} SocketErrorCode={1}", e.ServiceErrorCode, e.SocketErrorCode);
+			Console.WriteLine("ServiceErrorCode={0} SocketErrorCode={1}",
+				e.ServiceErrorCode, e.SocketErrorCode);
 		}
 
 		Console.WriteLine("\nPress ENTER to continue...");
@@ -212,7 +214,7 @@ public class ExampleApp {
 				Console.WriteLine("ArgumentNullException : {0}",ane.ToString());
 			} catch (ZeroTier.Sockets.SocketException e) {
 				Console.WriteLine(e);
-				Console.WriteLine("ServiveErrorCode={0} SocketErrorCode={1}", e.ServiceErrorCode, e.SocketErrorCode);
+				Console.WriteLine("ServiceErrorCode={0} SocketErrorCode={1}", e.ServiceErrorCode, e.SocketErrorCode);
 			}
 		} catch (Exception e) {
 			Console.WriteLine( e.ToString());

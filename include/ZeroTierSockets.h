@@ -1519,14 +1519,29 @@ ZTS_API int ZTCALL zts_connect(
 /**
  * @brief Connect a socket to a remote host
  *
+ * This convenience function exists because ZeroTier uses transport-triggered
+ * links. This means that links between peers do not exist until peers try to
+ * talk to each other. This can be a problem during connection procedures since
+ * some of the initial packets are lost. To alleviate the need to try
+ * `zts_connect` many times, this function will keep re-trying for you, even if
+ * no known routes exist. However, if the socket is set to `non-blocking` mode
+ * it will behave identically to `zts_connect` and return immediately upon
+ * failure.
+ *
  * @param fd Socket file descriptor
  * @param family Address family: `ZTS_AF_INET` or `ZTS_AF_INET6`
  * @param ipstr Human-readable IP string
  * @param port Port
- * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ * @param timeout_ms (Approximate) amount of time in milliseconds before
+ *     connection attempt is aborted. Will block for `30 seconds` if timeout is
+ *     set to `0`.
+ *
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SOCKET` if the function times
+ *     out with no connection made, `ZTS_ERR_SERVICE` if the node experiences a
+ *     problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_connect_easy(int fd, int family, char *ipstr, int port);
+ZTS_API int ZTCALL zts_connect_easy(
+	int fd, int family, char *ipstr, int port, int timeout_ms);
 
 /**
  * @brief Bind a socket to a local address
@@ -1573,6 +1588,19 @@ ZTS_API int ZTCALL zts_listen(int fd, int backlog);
  */
 ZTS_API int ZTCALL zts_accept(
 	int fd, struct zts_sockaddr *addr, zts_socklen_t *addrlen);
+
+/**
+ * @brief Accept an incoming connection
+ *
+ * @param fd Socket file descriptor
+ * @param remoteIpStr Buffer that will receive remote host IP string
+ * @param len Size of buffer that will receive remote host IP string
+ *     Must be set to `ZTS_INET6_ADDRSTRLEN`
+ * @param port Port number of the newly connected remote host (value-result)
+ * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ */
+ZTS_API int ZTCALL zts_accept_easy(int fd, char *remoteIpStr, int len, int *port);
 
 // Socket level option number
 #define ZTS_SOL_SOCKET      0x0fff

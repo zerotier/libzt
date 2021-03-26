@@ -427,16 +427,6 @@ void test_service()
 	assert(res == 0);
 
 //----------------------------------------------------------------------------//
-// Test *_easy API                                                            //
-//----------------------------------------------------------------------------//
-
-	//zts_connect_easy(0, ZTS_AF_INET, "192.168.7.9", 7878);
-	//zts_connect_easy(0, ZTS_AF_INET6, "FCC5:205E:4FF5:5311:DFF0::1", 7878);
-	//res = zts_bind_easy(0, ZTS_AF_INET6, "::", 8080);
-	//fprintf(stderr, "res=%d, zts_errno=%d\n", res, zts_errno);
-	//zts_delay_ms(60000);
-
-//----------------------------------------------------------------------------//
 // Test DNS client functionality                                              //
 //----------------------------------------------------------------------------//
 
@@ -486,7 +476,8 @@ void test_service()
 // Server                                                                     //
 //----------------------------------------------------------------------------//
 
-#define MAX_CONNECT_TIME 60
+#define MAX_CONNECT_TIME 60 // outer re-attempt loop
+#define CONNECT_TIMEOUT 30 // zts_connect_easy, ms
 #define BUFLEN 128
 char *msg = "welcome to the machine";
 
@@ -549,6 +540,13 @@ void start_server_app(uint16_t port4, uint16_t port6)
 	zts_close(acc4);
 	assert(err == ZTS_ERR_OK && zts_errno == 0);
 
+	assert(bytes_sent == bytes_read);
+	if (bytes_sent == bytes_read) {
+		fprintf(stderr, "server4: Test OK\n");
+	} else {
+		fprintf(stderr, "server4: Test FAIL\n");
+	}
+
 	//
 	// IPv6 test
 	//
@@ -600,6 +598,13 @@ void start_server_app(uint16_t port4, uint16_t port6)
 	assert(err == ZTS_ERR_OK && zts_errno == 0);
 	int s = zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
 	assert(("s != ZTS_ERR_SERVICE, not shut down", s == ZTS_ERR_SERVICE));
+
+	assert(bytes_sent == bytes_read);
+	if (bytes_sent == bytes_read) {
+		fprintf(stderr, "server6: Test OK\n");
+	} else {
+		fprintf(stderr, "server6: Test FAIL\n");
+	}
 }
 
 //----------------------------------------------------------------------------//
@@ -633,7 +638,7 @@ void start_client_app(char *ip4, uint16_t port4, char *ip6, uint16_t port6)
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	do {
 		fprintf(stderr, "client4: connecting to: %s:%d\n", ip4, port4);
-		err = zts_connect_easy(s4, ZTS_AF_INET, ip4, port4);
+		err = zts_connect_easy(s4, ZTS_AF_INET, ip4, port4, CONNECT_TIMEOUT);
 		zts_delay_ms(500);
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		time_diff = (now.tv_sec - start.tv_sec);
@@ -657,6 +662,13 @@ void start_client_app(char *ip4, uint16_t port4, char *ip6, uint16_t port6)
 	zts_close(s4);
 	assert(err == ZTS_ERR_OK && zts_errno == 0);
 
+	assert(bytes_sent == bytes_read);
+	if (bytes_sent == bytes_read) {
+		fprintf(stderr, "client4: Test OK\n");
+	} else {
+		fprintf(stderr, "client4: Test FAIL\n");
+	}
+
 	//
 	// IPv6 test
 	//
@@ -671,7 +683,7 @@ void start_client_app(char *ip4, uint16_t port4, char *ip6, uint16_t port6)
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	do {
 		fprintf(stderr, "client6: connecting to: %s:%d\n", ip6, port6);
-		err = zts_connect_easy(s6, ZTS_AF_INET6, ip6, port6);
+		err = zts_connect_easy(s6, ZTS_AF_INET6, ip6, port6, CONNECT_TIMEOUT);
 		zts_delay_ms(500);
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		time_diff = (now.tv_sec - start.tv_sec);
@@ -699,6 +711,13 @@ void start_client_app(char *ip4, uint16_t port4, char *ip6, uint16_t port6)
 	assert(err == ZTS_ERR_OK && zts_errno == 0);
 	int s = zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
 	assert(("s != ZTS_ERR_SERVICE, not shut down", s == ZTS_ERR_SERVICE));
+
+	assert(bytes_sent == bytes_read);
+	if (bytes_sent == bytes_read) {
+		fprintf(stderr, "client6: Test OK\n");
+	} else {
+		fprintf(stderr, "client6: Test FAIL\n");
+	}
 }
 
 //----------------------------------------------------------------------------//

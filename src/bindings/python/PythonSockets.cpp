@@ -193,40 +193,16 @@ PyObject * zts_py_recv(int fd, int len, int flags)
 
 int zts_py_send(int fd, PyObject *buf, int flags)
 {
-	int bytes_sent = ZTS_ERR_OK;
-	char *bytes = NULL;
-	PyObject *encodedStr = NULL;
+	Py_buffer output;
+	int bytes_sent;
 
-	// Check for various encodings, or lack thereof
-
-	if (PyByteArray_Check(buf)) {
-		bytes = PyByteArray_AsString(buf);
+	if (PyObject_GetBuffer(buf, &output, PyBUF_SIMPLE) != 0) {
+		return 0;
 	}
 
-	if (PyUnicode_Check(buf)) {
-		encodedStr = PyUnicode_AsEncodedString(buf, "UTF-8", "strict");
-		if (!encodedStr) {
-			return ZTS_ERR_ARG;
-		}
-		bytes = PyBytes_AsString(encodedStr);
-	}
+	bytes_sent = zts_send(fd, output.buf, output.len, flags);
+	PyBuffer_Release(&output);
 
-	if (!bytes) {
-		// No encoding detected
-		bytes = PyBytes_AsString(buf);
-	}
-
-	// If we still don't have a valid pointer to a C-string, fail
-	if (!bytes) {
-		bytes_sent = ZTS_ERR_ARG;
-	}
-	else {
-		bytes_sent = zts_send(fd, bytes, strlen(bytes), flags);
-	}
-
-	if (encodedStr) {
-		Py_DECREF(encodedStr);
-	}
 	return bytes_sent;
 }
 

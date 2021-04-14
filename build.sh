@@ -4,6 +4,14 @@
 # | SYSTEM DISCOVERY AND CONFIGURATION                                        |
 # -----------------------------------------------------------------------------
 
+# Git refresh
+git submodule update --init
+
+# Environment Variables
+[ -z "$ANDROID_HOME" ] && [ -d ~/Android/Sdk ] && export ANDROID_HOME=~/Android/Sdk && echo 'export ANDROID_HOME=~/Android/Sdk' >> ~/.profile && echo 'export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin' >> ~/.profile
+[ -z "$ANDROID_SDK_ROOT" ] && [ -d ~/Android/Sdk ] && export ANDROID_SDK_ROOT=~/Android/Sdk && echo 'export ANDROID_SDK_ROOT=~/Android/Sdk' >> ~/.profile
+[ -z "$ANDROID_AVD_HOME" ] && [ -d ~/.android/avd ] && export ANDROID_AVD_HOME=~/.android/avd && echo 'export ANDROID_AVD_HOME=~/.android/avd' >> ~/.profile
+
 # Find and set cmake
 CMAKE=cmake3
 if [[ $(which $CMAKE) = "" ]];
@@ -73,6 +81,9 @@ DEFAULT_HOST_BIN_OUTPUT_DIR=$BUILD_OUTPUT_DIR/$HOST_PLATFORM-$HOST_MACHINE_TYPE
 DEFAULT_HOST_PKG_OUTPUT_DIR=$BUILD_OUTPUT_DIR/$HOST_PLATFORM-$HOST_MACHINE_TYPE
 # Defaultlocation for CMake's caches (when building for host)
 DEFAULT_HOST_BUILD_CACHE_DIR=$BUILD_CACHE_DIR/$HOST_PLATFORM-$HOST_MACHINE_TYPE
+# Headers
+[ ! -f /usr/lib/jvm/java-8-openjdk-amd64/include/jni_md.h ] && [ -f /usr/lib/jvm/java-8-openjdk-amd64/include/linux/jni_md.h ] && sudo ln -s /usr/lib/jvm/java-8-openjdk-amd64/include/linux/jni_md.h /usr/lib/jvm/java-8-openjdk-amd64/include/jni_md.h
+[ ! -f /usr/lib/jvm/java-11-openjdk-amd64/include/jni_md.h ] && [ -f /usr/lib/jvm/java-11-openjdk-amd64/include/linux/jni_md.h ] && sudo ln -s /usr/lib/jvm/java-11-openjdk-amd64/include/linux/jni_md.h /usr/lib/jvm/java-11-openjdk-amd64/include/jni_md.h
 
 gethosttype()
 {
@@ -97,11 +108,11 @@ gethosttype()
 #     └── zt.xcframework
 #         ├── Info.plist
 #         ├── ios-arm64
-#         │   └── zt.framework
-#         │       └── ...
+#         │   └── zt.framework
+#         │       └── ...
 #         ├── ios-arm64_x86_64-simulator
-#         │   └── zt.framework
-#         │       └── ...
+#         │   └── zt.framework
+#         │       └── ...
 #         └── macos-arm64_x86_64
 #             └── zt.framework
 #                 └── ...
@@ -153,10 +164,10 @@ xcframework()
 # └── pkg
 #     └── zt.framework
 #         ├── Headers
-#         │   └── ZeroTierSockets.h
+#         │   └── ZeroTierSockets.h
 #         ├── Info.plist
 #         ├── Modules
-#         │   └── module.modulemap
+#         │   └── module.modulemap
 #         └── zt
 #
 iphonesimulator-framework()
@@ -202,10 +213,10 @@ iphonesimulator-framework()
 # └── pkg
 #     └── zt.framework
 #         ├── Headers
-#         │   └── ZeroTierSockets.h
+#         │   └── ZeroTierSockets.h
 #         ├── Info.plist
 #         ├── Modules
-#         │   └── module.modulemap
+#         │   └── module.modulemap
 #         └── zt
 #
 macos-framework()
@@ -248,10 +259,10 @@ macos-framework()
 # └── pkg
 #     └── zt.framework
 #         ├── Headers
-#         │   └── ZeroTierSockets.h
+#         │   └── ZeroTierSockets.h
 #         ├── Info.plist
 #         ├── Modules
-#         │   └── module.modulemap
+#         │   └── module.modulemap
 #         └── zt
 #
 iphoneos-framework()
@@ -295,12 +306,12 @@ iphoneos-framework()
 #	 - Build output : /Volumes/$USER/zt/libzt/libzt-dev/dist
 #
 # linux-x64-host-release
-# ├── bin
-# │   ├── client
-# │   └── server
-# └── lib
-#     ├── libzt.a
-#     └── libzt.so # .dylib, .dll
+# ├── bin
+# │   ├── client
+# │   └── server
+# └── lib
+#     ├── libzt.a
+#     └── libzt.so # .dylib, .dll
 #
 host()
 {
@@ -394,7 +405,7 @@ host-jar()
 	JAVA_JAR_DIR=$CACHE_DIR/pkg/jar
 	JAVA_JAR_SOURCE_TREE_DIR=$JAVA_JAR_DIR/com/zerotier/libzt/
 	mkdir -p $JAVA_JAR_SOURCE_TREE_DIR
-	cp -f src/bindings/java/*.java $JAVA_JAR_SOURCE_TREE_DIR
+	cp -f ext/ZeroTierOne/java/src/com/zerotier/sdk/*.java $JAVA_JAR_SOURCE_TREE_DIR
 	# Build
 	$CMAKE $VARIANT -H. -B$CACHE_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 	$CMAKE --build $CACHE_DIR $BUILD_CONCURRENCY
@@ -447,6 +458,8 @@ fi
 # android-any-android-release
 # └── libzt-release.aar
 #
+# Dependency: sudo apt install ninja-build
+#
 android-aar()
 {
 	ARTIFACT="android"
@@ -462,7 +475,7 @@ android-aar()
 	rm -rf ext/ZeroTierOne/ext/miniupnpc/VERSION
 	export PATH=$ANDROID_HOME/cmdline-tools/tools/bin:$PATH
 	# Copy source files into project
-	cp -f src/bindings/java/*.java ${ANDROID_PKG_PROJ_DIR}/app/src/main/java/com/zerotier/libzt
+	cp -f ext/ZeroTierOne/java/src/com/zerotier/sdk/*.java ${ANDROID_PKG_PROJ_DIR}/app/src/main/java/com/zerotier/libzt
 	# Build
 	UPPERCASE_BUILD_TYPE="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
 	CMAKE_FLAGS="-D${CMAKE_SWITCH}=1 -D${CMAKE_SWITCH}=ON"
@@ -514,7 +527,7 @@ clean()
 	rm -rf *.cmake
 	rm -rf CMakeCache.txt
 	rm -rf Makefile
-	# Android AAR project binaries and sources (copied from src/bindings/java)
+	# Android AAR project binaries and sources (copied from ext/ZeroTierOne/java)
 	rm -rf $ANDROID_PKG_PROJ_DIR/app/build
 	rm -rf $ANDROID_PKG_PROJ_DIR/app/src/main/java/com/zerotier/libzt/*.java
 	rm -rf $ANDROID_PKG_PROJ_DIR/app/.externalNativeBuild

@@ -1,5 +1,6 @@
 # Project
 # Intermediate 
+pkg/android/app/src/main/java/com/zerotier/libzt/*.java
 ports/android/app/src/main/java/com/zerotier/libzt/*.java
 ports/java/com/zerotier/libzt/*.java
 ports/xcode_ios-arm64/

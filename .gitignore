@@ -40,6 +40,7 @@ zerotier-one.port
 *.bin
 *.framework
 *.jar
+!gradle-wrapper.jar
 bin/
 gen/
 

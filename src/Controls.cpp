@@ -160,7 +160,7 @@ int zts_start_with_identity(const char *key_pair_str, uint16_t key_buf_len,
 
 	serviceParameters *params = new serviceParameters();
 	params->port = port;
-	params->path = "";
+	params->path.clear();
 
 	Identity id;
 	if ((strlen(key_pair_str) > 32) && (key_pair_str[10] == ':')) {
@@ -284,6 +284,7 @@ int zts_start(const char *path, void (*callback)(void *), uint16_t port)
 	params->path = std::string(path);
 
 	if (params->path.length() == 0) {
+		delete params;
 		return ZTS_ERR_ARG;
 	}
 	int err;

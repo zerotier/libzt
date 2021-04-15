@@ -44,6 +44,7 @@ zerotier-one.port
 !gradle-wrapper.jar
 bin/
 gen/
+*.plist
 
 # Keyfiles, etc
 *.keystore

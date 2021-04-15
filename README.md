@@ -34,7 +34,7 @@ Peer-to-peer and cross-platform encrypted connections built right into your app 
 | Node.js  | See [examples/nodejs](./examples/nodejs) |<img src="https://img.shields.io/badge/-help--wanted-green"/>|[Node.js](./examples/nodejs)  |
 | Linux  | [Build from source](#build-from-source) | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/></a>| [C/C++](./examples/cpp)  |
 | macOS  | `brew install libzt`|<a href="https://formulae.brew.sh/formula/libzt#default"><img src="https://img.shields.io/homebrew/v/libzt?label=Homebrew"/></a> | [C/C++](./examples/cpp), [Objective-C](./examples/objective-c)  |
-| iOS / iPadOS  | `./build.sh ios-framework` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>| [Objective-C](./examples/objective-c), [Swift](./examples/swift)  |
+| iOS / iPadOS  | `./build.sh xcframework` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>| [Objective-C](./examples/objective-c), [Swift](./examples/swift)  |
 | Android  |`./build.sh android-aar` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> | [Java](./examples/java)  |
 
 <br>
@@ -75,9 +75,9 @@ Example output:
 ```
 ~/libzt/dist/macos-x64-host-release
 ├── bin
-│   ├── client
-│   ├── server
-│   └── ...
+│   ├── client
+│   ├── server
+│   └── ...
 └── lib
     ├── libzt.a
     └── libzt.dylib

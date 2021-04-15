@@ -180,8 +180,8 @@ bool VirtualTap::addIp(const InetAddress &ip)
 bool VirtualTap::removeIp(const InetAddress &ip)
 {
 	Mutex::Lock _l(_ips_m);
-	std::vector<InetAddress>::iterator i(std::find(_ips.begin(),_ips.end(),ip));
 	if (std::find(_ips.begin(),_ips.end(),ip) != _ips.end()) {
+		std::vector<InetAddress>::iterator i(std::find(_ips.begin(), _ips.end(), ip));
 		_lwip_remove_address_from_netif((void*)this, ip);
 		_ips.erase(i);
 	}

@@ -394,9 +394,10 @@ public:
 						}
 					}
 					for(std::vector< std::pair< uint64_t,std::pair< std::vector<MulticastGroup>,std::vector<MulticastGroup> > > >::iterator c(mgChanges.begin());c!=mgChanges.end();++c) {
-						for(std::vector<MulticastGroup>::iterator m(c->second.first.begin());m!=c->second.first.end();++m)
+						auto mgpair = c->second;
+						for(std::vector<MulticastGroup>::iterator m(mgpair.first.begin());m!= mgpair.first.end();++m)
 							_node->multicastSubscribe((void *)0,c->first,m->mac().toInt(),m->adi());
-						for(std::vector<MulticastGroup>::iterator m(c->second.second.begin());m!=c->second.second.end();++m)
+						for(std::vector<MulticastGroup>::iterator m(mgpair.second.begin());m!= mgpair.second.end();++m)
 							_node->multicastUnsubscribe(c->first,m->mac().toInt(),m->adi());
 					}
 				}
@@ -823,39 +824,40 @@ public:
 		// Generate messages to be dequeued by the callback message thread
 		Mutex::Lock _l(_nets_m);
 		for(std::map<uint64_t,NetworkState>::iterator n(_nets.begin());n!=_nets.end();++n) {
-			int mostRecentStatus = n->second.config.status;
-			VirtualTap *tap = n->second.tap;
+			auto netState = n->second;
+			int mostRecentStatus = netState.config.status;
+			VirtualTap *tap = netState.tap;
 			// uint64_t nwid = n->first;
-			if (n->second.tap->_networkStatus == mostRecentStatus) {
+			if (netState.tap->_networkStatus == mostRecentStatus) {
 				continue; // No state change
 			}
 			switch (mostRecentStatus) {
 				case ZT_NETWORK_STATUS_NOT_FOUND:
-					_enqueueEvent(ZTS_EVENT_NETWORK_NOT_FOUND, (void*)prepare_network_details_msg(n->second));
+					_enqueueEvent(ZTS_EVENT_NETWORK_NOT_FOUND, (void*)prepare_network_details_msg(netState));
 					break;
 				case ZT_NETWORK_STATUS_CLIENT_TOO_OLD:
-					_enqueueEvent(ZTS_EVENT_NETWORK_CLIENT_TOO_OLD, (void*)prepare_network_details_msg(n->second));
+					_enqueueEvent(ZTS_EVENT_NETWORK_CLIENT_TOO_OLD, (void*)prepare_network_details_msg(netState));
 					break;
 				case ZT_NETWORK_STATUS_REQUESTING_CONFIGURATION:
-					_enqueueEvent(ZTS_EVENT_NETWORK_REQ_CONFIG, (void*)prepare_network_details_msg(n->second));
+					_enqueueEvent(ZTS_EVENT_NETWORK_REQ_CONFIG, (void*)prepare_network_details_msg(netState));
 					break;
 				case ZT_NETWORK_STATUS_OK:
 					if (tap->hasIpv4Addr() && _lwip_is_netif_up(tap->netif4)) {
-						_enqueueEvent(ZTS_EVENT_NETWORK_READY_IP4, (void*)prepare_network_details_msg(n->second));
+						_enqueueEvent(ZTS_EVENT_NETWORK_READY_IP4, (void*)prepare_network_details_msg(netState));
 					}
 					if (tap->hasIpv6Addr() && _lwip_is_netif_up(tap->netif6)) {
-						_enqueueEvent(ZTS_EVENT_NETWORK_READY_IP6, (void*)prepare_network_details_msg(n->second));
+						_enqueueEvent(ZTS_EVENT_NETWORK_READY_IP6, (void*)prepare_network_details_msg(netState));
 					}
 					// In addition to the READY messages, send one OK message
-					_enqueueEvent(ZTS_EVENT_NETWORK_OK, (void*)prepare_network_details_msg(n->second));
+					_enqueueEvent(ZTS_EVENT_NETWORK_OK, (void*)prepare_network_details_msg(netState));
 					break;
 				case ZT_NETWORK_STATUS_ACCESS_DENIED:
-					_enqueueEvent(ZTS_EVENT_NETWORK_ACCESS_DENIED, (void*)prepare_network_details_msg(n->second));
+					_enqueueEvent(ZTS_EVENT_NETWORK_ACCESS_DENIED, (void*)prepare_network_details_msg(netState));
 					break;
 				default:
 					break;
 			}
-			n->second.tap->_networkStatus = mostRecentStatus;
+			netState.tap->_networkStatus = mostRecentStatus;
 		}
 		bool bShouldCopyPeerInfo = false;
 		int eventCode = 0;
@@ -1395,7 +1397,7 @@ void *_runNodeService(void *arg)
 			service = NodeService::newInstance(params->path.c_str(),params->port);
 			service->_userProvidedPort = params->port;
 			service->_userProvidedPath = params->path;
-			if (strlen(params->publicIdentityStr) > 0 && strlen(params->secretIdentityStr) > 0 && params->path.length() == 0) {
+			if (params->publicIdentityStr[0] != '\0' && params->secretIdentityStr[0] != '\0' && params->path.length() == 0) {
 				memcpy(service->_userProvidedPublicIdentity, params->publicIdentityStr, strlen(params->publicIdentityStr));
 				memcpy(service->_userProvidedSecretIdentity, params->secretIdentityStr, strlen(params->secretIdentityStr));
 			}

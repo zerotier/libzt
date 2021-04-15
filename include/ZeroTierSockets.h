@@ -548,11 +548,6 @@ struct zts_virtual_network_route
 #define ZTS_MAX_NETWORK_SHORT_NAME_LENGTH 127
 
 /**
- * Maximum number of pushed routes on a network
- */
-#define ZTS_MAX_NETWORK_ROUTES 32
-
-/**
  * Maximum number of statically assigned IP addresses per network endpoint using ZT address management (not DHCP)
  */
 #define ZTS_MAX_ZT_ASSIGNED_ADDRESSES 16

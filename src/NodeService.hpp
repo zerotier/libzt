@@ -20,27 +20,27 @@
 #ifndef ZT_NODE_SERVICE_HPP
 #define ZT_NODE_SERVICE_HPP
 
+#include "Constants.hpp"
+#include "InetAddress.hpp"
+#include "Mutex.hpp"
+#include "Node.hpp"
+#include "ZeroTierSockets.h"
+
 #include <string>
 #include <vector>
 
-#include "Constants.hpp"
-#include "Node.hpp"
-#include "InetAddress.hpp"
-#include "Mutex.hpp"
-#include "ZeroTierSockets.h"
-
-#define ZTS_SERVICE_THREAD_NAME           "ZTServiceThread"
-#define ZTS_EVENT_CALLBACK_THREAD_NAME    "ZTEventCallbackThread"
+#define ZTS_SERVICE_THREAD_NAME        "ZTServiceThread"
+#define ZTS_EVENT_CALLBACK_THREAD_NAME "ZTEventCallbackThread"
 // Interface metric for ZeroTier taps -- this ensures that if we are on WiFi and also
 // bridged via ZeroTier to the same LAN traffic will (if the OS is sane) prefer WiFi.
-#define ZT_IF_METRIC                      5000
+#define ZT_IF_METRIC 5000
 // How often to check for new multicast subscriptions on a tap device
-#define ZT_TAP_CHECK_MULTICAST_INTERVAL   5000
+#define ZT_TAP_CHECK_MULTICAST_INTERVAL 5000
 // How often to check for local interface addresses
 #define ZT_LOCAL_INTERFACE_CHECK_INTERVAL 60000
 
 #ifdef __WINDOWS__
-#include <Windows.h>
+	#include <Windows.h>
 #endif
 
 namespace ZeroTier {
@@ -48,10 +48,8 @@ namespace ZeroTier {
 /**
  * Local service for ZeroTier One as system VPN/NFV provider
  */
-class NodeService
-{
-public:
-
+class NodeService {
+  public:
 	uint16_t _userProvidedPort;
 	std::string _userProvidedPath;
 	char _userProvidedPublicIdentity[ZT_IDENTITY_STRING_BUFFER_LENGTH];
@@ -60,8 +58,7 @@ public:
 	/**
 	 * Returned by node main if/when it terminates
 	 */
-	enum ReasonForTermination
-	{
+	enum ReasonForTermination {
 		/**
 		 * Instance is still running
 		 */
@@ -86,8 +83,7 @@ public:
 	/**
 	 * Local settings for each network
 	 */
-	struct NetworkSettings
-	{
+	struct NetworkSettings {
 		/**
 		 * Allow this network to configure IP addresses and routes?
 		 */
@@ -128,7 +124,7 @@ public:
 	 * @param hp Home path
 	 * @param port TCP and UDP port for packets and HTTP control (if 0, pick random port)
 	 */
-	static NodeService *newInstance(const char *hp,unsigned int port);
+	static NodeService* newInstance(const char* hp, unsigned int port);
 
 	virtual ~NodeService();
 
@@ -152,7 +148,8 @@ public:
 	virtual std::string fatalErrorMessage() const = 0;
 
 	/**
-	 * @return System device name corresponding with a given ZeroTier network ID or empty string if not opened yet or network ID not found
+	 * @return System device name corresponding with a given ZeroTier network ID or empty string if
+	 * not opened yet or network ID not found
 	 */
 	virtual std::string portDeviceName(uint64_t nwid) const = 0;
 
@@ -164,16 +161,16 @@ public:
 	/**
 	 * @return Reference to the Node
 	 */
-	virtual Node * getNode() = 0;
+	virtual Node* getNode() = 0;
 
 	/**
 	 * Fills out a structure with network-specific route information
 	 */
-	virtual void getRoutes(uint64_t nwid, void *routeArray, unsigned int *numRoutes) = 0;
+	virtual void getRoutes(uint64_t nwid, void* routeArray, unsigned int* numRoutes) = 0;
 
 	virtual void join(uint64_t nwid) = 0;
 	virtual void leave(uint64_t nwid) = 0;
-	virtual void getIdentity(char *key_pair_str, uint16_t *key_buf_len) = 0;
+	virtual void getIdentity(char* key_pair_str, uint16_t* key_buf_len) = 0;
 
 	/**
 	 * Terminate background service (can be called from other threads)
@@ -187,23 +184,32 @@ public:
 	 * @param settings Buffer to fill with local network settings
 	 * @return True if network was found and settings is filled
 	 */
-	virtual bool getNetworkSettings(const uint64_t nwid,NetworkSettings &settings) const = 0;
+	virtual bool getNetworkSettings(const uint64_t nwid, NetworkSettings& settings) const = 0;
 
 	/**
 	 * @return True if service is still running
 	 */
-	inline bool isRunning() const { return (this->reasonForTermination() == ONE_STILL_RUNNING); }
+	inline bool isRunning() const
+	{
+		return (this->reasonForTermination() == ONE_STILL_RUNNING);
+	}
 
-protected:
-	NodeService() {}
+  protected:
+	NodeService()
+	{
+	}
 
-private:
-	NodeService(const NodeService &one) {}
-	inline NodeService &operator=(const NodeService &one) { return *this; }
+  private:
+	NodeService(const NodeService& one)
+	{
+	}
+	inline NodeService& operator=(const NodeService& one)
+	{
+		return *this;
+	}
 };
 
-struct serviceParameters
-{
+struct serviceParameters {
 	int port;
 	std::string path;
 	char publicIdentityStr[ZT_IDENTITY_STRING_BUFFER_LENGTH];
@@ -216,9 +222,9 @@ DWORD WINAPI _runNodeService(LPVOID arg);
 /**
  * NodeService thread
  */
-void *_runNodeService(void *arg);
+void* _runNodeService(void* arg);
 #endif
 
-} // namespace ZeroTier
+}   // namespace ZeroTier
 
 #endif

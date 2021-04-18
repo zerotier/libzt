@@ -86,14 +86,15 @@
  *
  */
 
+#include "ZeroTierSockets.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "ZeroTierSockets.h"
-
-struct Node
-{
-	Node() : online(false), joinedAtLeastOneNetwork(false), id(0) {}
+struct Node {
+	Node() : online(false), joinedAtLeastOneNetwork(false), id(0)
+	{
+	}
 	bool online;
 	bool joinedAtLeastOneNetwork;
 	uint64_t id;
@@ -104,9 +105,9 @@ struct Node
 to ensure timely receipt of future events. You should not call libzt API functions from
 this function unless it's something trivial like zts_inet_ntop() or similar that has
 no state-change implications. */
-void on_zts_event(void *msgPtr)
+void on_zts_event(void* msgPtr)
 {
-	struct zts_callback_msg *msg = (struct zts_callback_msg *)msgPtr;
+	struct zts_callback_msg* msg = (struct zts_callback_msg*)msgPtr;
 
 	// Node events
 	if (msg->eventCode == ZTS_EVENT_NODE_ONLINE) {
@@ -115,25 +116,34 @@ void on_zts_event(void *msgPtr)
 		myNode.online = true;
 	}
 	if (msg->eventCode == ZTS_EVENT_NODE_OFFLINE) {
-		printf("ZTS_EVENT_NODE_OFFLINE --- Check your physical Internet connection, router, firewall, etc. What ports are you blocking?\n");
+		printf("ZTS_EVENT_NODE_OFFLINE --- Check your physical Internet connection, router, "
+		       "firewall, etc. What ports are you blocking?\n");
 		myNode.online = false;
 	}
 
 	// Virtual network events
 	if (msg->eventCode == ZTS_EVENT_NETWORK_NOT_FOUND) {
-		printf("ZTS_EVENT_NETWORK_NOT_FOUND --- Are you sure %llx is a valid network?\n",
-			msg->network->nwid);
+		printf(
+		    "ZTS_EVENT_NETWORK_NOT_FOUND --- Are you sure %llx is a valid network?\n",
+		    msg->network->nwid);
 	}
 	if (msg->eventCode == ZTS_EVENT_NETWORK_REQ_CONFIG) {
-		printf("ZTS_EVENT_NETWORK_REQ_CONFIG --- Requesting config for network %llx, please wait a few seconds...\n", msg->network->nwid);
+		printf(
+		    "ZTS_EVENT_NETWORK_REQ_CONFIG --- Requesting config for network %llx, please wait a "
+		    "few seconds...\n",
+		    msg->network->nwid);
 	}
 	if (msg->eventCode == ZTS_EVENT_NETWORK_ACCESS_DENIED) {
-		printf("ZTS_EVENT_NETWORK_ACCESS_DENIED --- Access to virtual network %llx has been denied. Did you authorize the node yet?\n",
-			msg->network->nwid);
+		printf(
+		    "ZTS_EVENT_NETWORK_ACCESS_DENIED --- Access to virtual network %llx has been denied. "
+		    "Did you authorize the node yet?\n",
+		    msg->network->nwid);
 	}
 	if (msg->eventCode == ZTS_EVENT_NETWORK_READY_IP6) {
-		printf("ZTS_EVENT_NETWORK_READY_IP6 --- Network config received. IPv6 traffic can now be sent over network %llx\n",
-			msg->network->nwid);
+		printf(
+		    "ZTS_EVENT_NETWORK_READY_IP6 --- Network config received. IPv6 traffic can now be sent "
+		    "over network %llx\n",
+		    msg->network->nwid);
 		myNode.joinedAtLeastOneNetwork = true;
 	}
 	if (msg->eventCode == ZTS_EVENT_NETWORK_DOWN) {
@@ -142,24 +152,25 @@ void on_zts_event(void *msgPtr)
 
 	// Network stack events
 	if (msg->eventCode == ZTS_EVENT_NETIF_UP) {
-		printf("ZTS_EVENT_NETIF_UP --- network=%llx, mac=%llx, mtu=%d\n",
-			msg->netif->nwid,
-			msg->netif->mac,
-			msg->netif->mtu);
+		printf(
+		    "ZTS_EVENT_NETIF_UP --- network=%llx, mac=%llx, mtu=%d\n",
+		    msg->netif->nwid,
+		    msg->netif->mac,
+		    msg->netif->mtu);
 	}
 	if (msg->eventCode == ZTS_EVENT_NETIF_DOWN) {
-		printf("ZTS_EVENT_NETIF_DOWN --- network=%llx, mac=%llx\n",
-			msg->netif->nwid,
-			msg->netif->mac);
+		printf(
+		    "ZTS_EVENT_NETIF_DOWN --- network=%llx, mac=%llx\n",
+		    msg->netif->nwid,
+		    msg->netif->mac);
 	}
 
 	// Address events
 	if (msg->eventCode == ZTS_EVENT_ADDR_ADDED_IP6) {
 		char ipstr[ZTS_INET6_ADDRSTRLEN];
-		struct zts_sockaddr_in6 *in6 = (struct zts_sockaddr_in6*)&(msg->addr->addr);
+		struct zts_sockaddr_in6* in6 = (struct zts_sockaddr_in6*)&(msg->addr->addr);
 		zts_inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), ipstr, ZTS_INET6_ADDRSTRLEN);
-		printf("ZTS_EVENT_ADDR_NEW_IP6 --- Join %llx and ping me at %s\n",
-			msg->addr->nwid, ipstr);
+		printf("ZTS_EVENT_ADDR_NEW_IP6 --- Join %llx and ping me at %s\n", msg->addr->nwid, ipstr);
 	}
 
 	// Peer events
@@ -170,19 +181,23 @@ void on_zts_event(void *msgPtr)
 			return;
 		}
 		if (msg->eventCode == ZTS_EVENT_PEER_DIRECT) {
-			printf("ZTS_EVENT_PEER_DIRECT --- A direct path is known for node=%llx\n",
-				msg->peer->address);
+			printf(
+			    "ZTS_EVENT_PEER_DIRECT --- A direct path is known for node=%llx\n",
+			    msg->peer->address);
 		}
 		if (msg->eventCode == ZTS_EVENT_PEER_RELAY) {
 			printf("ZTS_EVENT_PEER_RELAY --- No direct path to node=%llx\n", msg->peer->address);
 		}
 		if (msg->eventCode == ZTS_EVENT_PEER_PATH_DISCOVERED) {
-			printf("ZTS_EVENT_PEER_PATH_DISCOVERED --- A new direct path was discovered for node=%llx\n",
-				msg->peer->address);
+			printf(
+			    "ZTS_EVENT_PEER_PATH_DISCOVERED --- A new direct path was discovered for "
+			    "node=%llx\n",
+			    msg->peer->address);
 		}
 		if (msg->eventCode == ZTS_EVENT_PEER_PATH_DEAD) {
-			printf("ZTS_EVENT_PEER_PATH_DEAD --- A direct path has died for node=%llx\n",
-				msg->peer->address);
+			printf(
+			    "ZTS_EVENT_PEER_PATH_DEAD --- A direct path has died for node=%llx\n",
+			    msg->peer->address);
 		}
 	}
 }
@@ -212,46 +227,55 @@ be taken to avoid exposing vulnerable services or sharing unwanted files or othe
 
 */
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
 	if (argc != 5) {
 		printf("\nlibzt example\n");
 		printf("adhoc <config_file_path> <adhocStartPort> <adhocEndPort> <ztServicePort>\n");
 		exit(0);
 	}
-	int adhocStartPort = atoi(argv[2]); // Start of port range your application will use
-	int adhocEndPort = atoi(argv[3]); // End of port range your application will use
-	int ztServicePort = atoi(argv[4]); // Port ZT uses to send encrypted UDP packets to peers (try something like 9994)
+	int adhocStartPort = atoi(argv[2]);   // Start of port range your application will use
+	int adhocEndPort = atoi(argv[3]);     // End of port range your application will use
+	int ztServicePort = atoi(
+	    argv[4]);   // Port ZT uses to send encrypted UDP packets to peers (try something like 9994)
 
 	uint64_t adhoc_nwid = zts_generate_adhoc_nwid_from_range(adhocStartPort, adhocEndPort);
 	int err = ZTS_ERR_OK;
 
-	// If disabled: (network) details will NOT be written to or read from (networks.d/). It may take slightly longer to start the node
+	// If disabled: (network) details will NOT be written to or read from (networks.d/). It may take
+	// slightly longer to start the node
 	zts_allow_network_caching(1);
-	// If disabled: (peer) details will NOT be written to or read from (peers.d/). It may take slightly longer to contact a remote peer
+	// If disabled: (peer) details will NOT be written to or read from (peers.d/). It may take
+	// slightly longer to contact a remote peer
 	zts_allow_peer_caching(1);
 	// If disabled: Settings will NOT be read from local.conf
 	zts_allow_local_conf(1);
 
-	if((err = zts_start(argv[1], &on_zts_event, ztServicePort)) != ZTS_ERR_OK) {
+	if ((err = zts_start(argv[1], &on_zts_event, ztServicePort)) != ZTS_ERR_OK) {
 		printf("Unable to start service, error = %d. Exiting.\n", err);
 		exit(1);
 	}
 	printf("Waiting for node to come online...\n");
-	while (!myNode.online) { zts_delay_ms(50); }
+	while (! myNode.online) {
+		zts_delay_ms(50);
+	}
 	printf("This node's identity is stored in %s\n", argv[1]);
 
-	if((err = zts_join(adhoc_nwid)) != ZTS_ERR_OK) {
+	if ((err = zts_join(adhoc_nwid)) != ZTS_ERR_OK) {
 		printf("Unable to join network, error = %d. Exiting.\n", err);
 		exit(1);
 	}
 	printf("Joining network %llx\n", adhoc_nwid);
-	while (!myNode.joinedAtLeastOneNetwork) { zts_delay_ms(50); }
+	while (! myNode.joinedAtLeastOneNetwork) {
+		zts_delay_ms(50);
+	}
 
 	// Idle and just show callback events, stack statistics, etc
 
 	printf("Node will now idle...\n");
-	while (true) { zts_delay_ms(1000); }
+	while (true) {
+		zts_delay_ms(1000);
+	}
 
 	// Shut down service and stack threads
 

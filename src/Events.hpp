@@ -20,13 +20,13 @@
 #ifndef ZT_EVENTS_HPP
 #define ZT_EVENTS_HPP
 
-#include <string>
-
 #include "Constants.hpp"
 #include "ZeroTierSockets.h"
 
+#include <string>
+
 #ifdef __WINDOWS__
-#include <BaseTsd.h>
+	#include <BaseTsd.h>
 #endif
 
 #ifdef ZTS_ENABLE_JAVA
@@ -34,17 +34,17 @@
 #endif
 namespace ZeroTier {
 
-#define ZTS_STATE_NODE_RUNNING              0x01
-#define ZTS_STATE_STACK_RUNNING             0x02
-#define ZTS_STATE_NET_SERVICE_RUNNING       0x04
-#define ZTS_STATE_CALLBACKS_RUNNING         0x08
-#define ZTS_STATE_FREE_CALLED               0x10
+#define ZTS_STATE_NODE_RUNNING        0x01
+#define ZTS_STATE_STACK_RUNNING       0x02
+#define ZTS_STATE_NET_SERVICE_RUNNING 0x04
+#define ZTS_STATE_CALLBACKS_RUNNING   0x08
+#define ZTS_STATE_FREE_CALLED         0x10
 
 #ifdef ZTS_ENABLE_JAVA
-	// References to JNI objects and VM kept for future callbacks
-	extern JavaVM *jvm;
-	extern jobject objRef;
-	extern jmethodID _userCallbackMethodRef;
+// References to JNI objects and VM kept for future callbacks
+extern JavaVM* jvm;
+extern jobject objRef;
+extern jmethodID _userCallbackMethodRef;
 #endif
 
 /**
@@ -55,17 +55,17 @@ namespace ZeroTier {
 /**
  * Enqueue an event to be sent to the user application
  */
-void _enqueueEvent(int16_t eventCode, void *arg);
+void _enqueueEvent(int16_t eventCode, void* arg);
 
 /**
  * Send callback message to user application
  */
-void _passDequeuedEventToUser(struct ::zts_callback_msg *msg);
+void _passDequeuedEventToUser(struct ::zts_callback_msg* msg);
 
 /**
  * Free memory occupied by callback structures
  */
-void _freeEvent(struct ::zts_callback_msg *msg);
+void _freeEvent(struct ::zts_callback_msg* msg);
 
 /**
  * Return whether a callback method has been set
@@ -103,9 +103,9 @@ DWORD WINAPI _runCallbacks(LPVOID thread_id);
 /**
  * Event callback thread
  */
-void *_runCallbacks(void *thread_id);
+void* _runCallbacks(void* thread_id);
 #endif
 
-} // namespace ZeroTier
+}   // namespace ZeroTier
 
-#endif // _H
+#endif   // _H

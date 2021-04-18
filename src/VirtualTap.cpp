@@ -18,30 +18,30 @@
  */
 
 #include "Constants.hpp"
-#include "MAC.hpp"
-#include "Mutex.hpp"
 #include "InetAddress.hpp"
+#include "MAC.hpp"
 #include "MulticastGroup.hpp"
-
-#include "lwip/netif.h"
+#include "Mutex.hpp"
 #include "lwip/etharp.h"
-#include "lwip/sys.h"
 #include "lwip/ethip6.h"
+#include "lwip/netif.h"
+#include "lwip/sys.h"
 #include "lwip/tcpip.h"
 #include "netif/ethernet.h"
 
 #ifdef LWIP_STATS
-#include "lwip/stats.h"
+	#include "lwip/stats.h"
 #endif
 
+#include "Debug.hpp"
+#include "Events.hpp"
 #include "VirtualTap.hpp"
 #include "ZeroTierSockets.h"
-#include "Events.hpp"
-#include "Debug.hpp"
 
 #if defined(__WINDOWS__)
-#include <time.h>
-#include "Synchapi.h"
+	#include "Synchapi.h"
+
+	#include <time.h>
 #endif
 
 #define ZTS_TAP_THREAD_POLLING_INTERVAL 50
@@ -49,33 +49,41 @@
 
 namespace ZeroTier {
 
-extern void _enqueueEvent(int16_t eventCode, void *arg = NULL);
+extern void _enqueueEvent(int16_t eventCode, void* arg = NULL);
 
 /**
  * A virtual tap device. The ZeroTier core service creates one of these for each
  * virtual network joined. It will be destroyed upon leave().
  */
 VirtualTap::VirtualTap(
-	const char *homePath,
-	const MAC &mac,
-	unsigned int mtu,
-	unsigned int metric,
-	uint64_t nwid,
-	const char *friendlyName,
-	void (*handler)(void *,void*,uint64_t,const MAC &,const MAC &,
-		unsigned int,unsigned int,const void *,unsigned int),
-	void *arg) :
-		_handler(handler),
-		_homePath(homePath),
-		_arg(arg),
-		_initialized(false),
-		_enabled(true),
-		_run(true),
-		_mac(mac),
-		_mtu(mtu),
-		_nwid(nwid),
-		_unixListenSocket((PhySocket *)0),
-		_phy(this,false,true)
+    const char* homePath,
+    const MAC& mac,
+    unsigned int mtu,
+    unsigned int metric,
+    uint64_t nwid,
+    const char* friendlyName,
+    void (*handler)(
+        void*,
+        void*,
+        uint64_t,
+        const MAC&,
+        const MAC&,
+        unsigned int,
+        unsigned int,
+        const void*,
+        unsigned int),
+    void* arg)
+    : _handler(handler)
+    , _homePath(homePath)
+    , _arg(arg)
+    , _initialized(false)
+    , _enabled(true)
+    , _run(true)
+    , _mac(mac)
+    , _mtu(mtu)
+    , _nwid(nwid)
+    , _unixListenSocket((PhySocket*)0)
+    , _phy(this, false, true)
 {
 	memset(vtap_full_name, 0, sizeof(vtap_full_name));
 	snprintf(vtap_full_name, sizeof(vtap_full_name), "libzt%llx", (unsigned long long)_nwid);
@@ -89,11 +97,11 @@ VirtualTap::VirtualTap(
 
 VirtualTap::~VirtualTap()
 {
-	struct zts_network_details *nd = new zts_network_details;
+	struct zts_network_details* nd = new zts_network_details;
 	nd->nwid = _nwid;
 	_run = false;
 #ifndef __WINDOWS__
-	::write(_shutdownSignalPipe[1],"\0",1);
+	::write(_shutdownSignalPipe[1], "\0", 1);
 #endif
 	_phy.whack();
 	_lwip_remove_netif(netif4);
@@ -128,7 +136,9 @@ bool VirtualTap::hasIpv4Addr()
 	Mutex::Lock _l(_ips_m);
 	std::vector<InetAddress>::iterator it(_ips.begin());
 	while (it != _ips.end()) {
-		if ((*it).isV4()) { return true; }
+		if ((*it).isV4()) {
+			return true;
+		}
 		++it;
 	}
 	return false;
@@ -139,17 +149,19 @@ bool VirtualTap::hasIpv6Addr()
 	Mutex::Lock _l(_ips_m);
 	std::vector<InetAddress>::iterator it(_ips.begin());
 	while (it != _ips.end()) {
-		if ((*it).isV6()) { return true; }
+		if ((*it).isV6()) {
+			return true;
+		}
 		++it;
 	}
 	return false;
 }
 
-bool VirtualTap::addIp(const InetAddress &ip)
+bool VirtualTap::addIp(const InetAddress& ip)
 {
 	char ipbuf[128];
-	//ip.toString(ipbuf);
-	//DEBUG_INFO("addr=%s", ipbuf);
+	// ip.toString(ipbuf);
+	// DEBUG_INFO("addr=%s", ipbuf);
 
 	/* Limit address assignments to one per type.
 	This limitation can be removed if some changes
@@ -169,18 +181,18 @@ bool VirtualTap::addIp(const InetAddress &ip)
 	if (_ips.size() >= ZT_MAX_ZT_ASSIGNED_ADDRESSES) {
 		return false;
 	}
-	if (std::find(_ips.begin(),_ips.end(),ip) == _ips.end()) {
+	if (std::find(_ips.begin(), _ips.end(), ip) == _ips.end()) {
 		_lwip_init_interface((void*)this, ip);
 		_ips.push_back(ip);
-		std::sort(_ips.begin(),_ips.end());
+		std::sort(_ips.begin(), _ips.end());
 	}
 	return true;
 }
 
-bool VirtualTap::removeIp(const InetAddress &ip)
+bool VirtualTap::removeIp(const InetAddress& ip)
 {
 	Mutex::Lock _l(_ips_m);
-	if (std::find(_ips.begin(),_ips.end(),ip) != _ips.end()) {
+	if (std::find(_ips.begin(), _ips.end(), ip) != _ips.end()) {
 		std::vector<InetAddress>::iterator i(std::find(_ips.begin(), _ips.end(), ip));
 		_lwip_remove_address_from_netif((void*)this, ip);
 		_ips.erase(i);
@@ -194,8 +206,12 @@ std::vector<InetAddress> VirtualTap::ips() const
 	return _ips;
 }
 
-void VirtualTap::put(const MAC &from,const MAC &to,unsigned int etherType,
-	const void *data,unsigned int len)
+void VirtualTap::put(
+    const MAC& from,
+    const MAC& to,
+    unsigned int etherType,
+    const void* data,
+    unsigned int len)
 {
 	if (len && _enabled) {
 		_lwip_eth_rx(this, from, to, etherType, data, len);
@@ -207,29 +223,32 @@ std::string VirtualTap::deviceName() const
 	return _dev;
 }
 
-void VirtualTap::setFriendlyName(const char *friendlyName)
+void VirtualTap::setFriendlyName(const char* friendlyName)
 {
 	DEBUG_INFO("%s", friendlyName);
 }
 
-void VirtualTap::scanMulticastGroups(std::vector<MulticastGroup> &added,
-	std::vector<MulticastGroup> &removed)
+void VirtualTap::scanMulticastGroups(
+    std::vector<MulticastGroup>& added,
+    std::vector<MulticastGroup>& removed)
 {
 	std::vector<MulticastGroup> newGroups;
 	Mutex::Lock _l(_multicastGroups_m);
 	// TODO: get multicast subscriptions
 	std::vector<InetAddress> allIps(ips());
-	for (std::vector<InetAddress>::iterator ip(allIps.begin());ip!=allIps.end();++ip)
+	for (std::vector<InetAddress>::iterator ip(allIps.begin()); ip != allIps.end(); ++ip)
 		newGroups.push_back(MulticastGroup::deriveMulticastGroupForAddressResolution(*ip));
 
-	std::sort(newGroups.begin(),newGroups.end());
+	std::sort(newGroups.begin(), newGroups.end());
 
-	for (std::vector<MulticastGroup>::iterator m(newGroups.begin());m!=newGroups.end();++m) {
-		if (!std::binary_search(_multicastGroups.begin(),_multicastGroups.end(),*m))
+	for (std::vector<MulticastGroup>::iterator m(newGroups.begin()); m != newGroups.end(); ++m) {
+		if (! std::binary_search(_multicastGroups.begin(), _multicastGroups.end(), *m))
 			added.push_back(*m);
 	}
-	for (std::vector<MulticastGroup>::iterator m(_multicastGroups.begin());m!=_multicastGroups.end();++m) {
-		if (!std::binary_search(newGroups.begin(),newGroups.end(),*m))
+	for (std::vector<MulticastGroup>::iterator m(_multicastGroups.begin());
+	     m != _multicastGroups.end();
+	     ++m) {
+		if (! std::binary_search(newGroups.begin(), newGroups.end(), *m))
 			removed.push_back(*m);
 	}
 	_multicastGroups.swap(newGroups);
@@ -240,16 +259,15 @@ void VirtualTap::setMtu(unsigned int mtu)
 	_mtu = mtu;
 }
 
-void VirtualTap::threadMain()
-	throw()
+void VirtualTap::threadMain() throw()
 {
-	fd_set readfds,nullfds;
+	fd_set readfds, nullfds;
 	struct timeval tv;
 	tv.tv_sec = 0;
 	tv.tv_usec = 0;
 	FD_ZERO(&readfds);
 	FD_ZERO(&nullfds);
-	int nfds = (int)std::max(_shutdownSignalPipe[0],0) + 1;
+	int nfds = (int)std::max(_shutdownSignalPipe[0], 0) + 1;
 #if defined(__linux__)
 	pthread_setname_np(pthread_self(), vtap_full_name);
 #endif
@@ -257,31 +275,54 @@ void VirtualTap::threadMain()
 	pthread_setname_np(vtap_full_name);
 #endif
 	while (true) {
-		FD_SET(_shutdownSignalPipe[0],&readfds);
-		select(nfds,&readfds,&nullfds,&nullfds,&tv);
+		FD_SET(_shutdownSignalPipe[0], &readfds);
+		select(nfds, &readfds, &nullfds, &nullfds, &tv);
 		// writes to shutdown pipe terminate thread
-		if (FD_ISSET(_shutdownSignalPipe[0],&readfds)) {
+		if (FD_ISSET(_shutdownSignalPipe[0], &readfds)) {
 			break;
 		}
 #if defined(__WINDOWS__)
 		Sleep(ZTS_TAP_THREAD_POLLING_INTERVAL);
 #else
-		struct timespec sleepValue = {0};
+		struct timespec sleepValue = { 0 };
 		sleepValue.tv_nsec = ZTS_TAP_THREAD_POLLING_INTERVAL * 500000;
 		nanosleep(&sleepValue, NULL);
 #endif
 	}
 }
 
-void VirtualTap::phyOnDatagram(PhySocket *sock,void **uptr,const struct sockaddr *local_address,
-	const struct sockaddr *from,void *data,unsigned long len) {}
-void VirtualTap::phyOnTcpConnect(PhySocket *sock,void **uptr,bool success) {}
-void VirtualTap::phyOnTcpAccept(PhySocket *sockL,PhySocket *sockN,void **uptrL,void **uptrN,
-	const struct sockaddr *from) {}
-void VirtualTap::phyOnTcpClose(PhySocket *sock,void **uptr) {}
-void VirtualTap::phyOnTcpData(PhySocket *sock,void **uptr,void *data,unsigned long len) {}
-void VirtualTap::phyOnTcpWritable(PhySocket *sock,void **uptr) {}
-void VirtualTap::phyOnUnixClose(PhySocket *sock,void **uptr) {}
+void VirtualTap::phyOnDatagram(
+    PhySocket* sock,
+    void** uptr,
+    const struct sockaddr* local_address,
+    const struct sockaddr* from,
+    void* data,
+    unsigned long len)
+{
+}
+void VirtualTap::phyOnTcpConnect(PhySocket* sock, void** uptr, bool success)
+{
+}
+void VirtualTap::phyOnTcpAccept(
+    PhySocket* sockL,
+    PhySocket* sockN,
+    void** uptrL,
+    void** uptrN,
+    const struct sockaddr* from)
+{
+}
+void VirtualTap::phyOnTcpClose(PhySocket* sock, void** uptr)
+{
+}
+void VirtualTap::phyOnTcpData(PhySocket* sock, void** uptr, void* data, unsigned long len)
+{
+}
+void VirtualTap::phyOnTcpWritable(PhySocket* sock, void** uptr)
+{
+}
+void VirtualTap::phyOnUnixClose(PhySocket* sock, void** uptr)
+{
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // Netif driver code for lwIP network stack                                 //
@@ -297,17 +338,17 @@ int netifCount = 0;
 Mutex stackLock;
 
 // Callback for when the TCPIP thread has been successfully started
-static void _tcpip_init_done(void *arg)
+static void _tcpip_init_done(void* arg)
 {
-	sys_sem_t *sem;
-	sem = (sys_sem_t *)arg;
+	sys_sem_t* sem;
+	sem = (sys_sem_t*)arg;
 	_setState(ZTS_STATE_STACK_RUNNING);
 	_has_started = true;
 	_enqueueEvent(ZTS_EVENT_STACK_UP);
 	sys_sem_signal(sem);
 }
 
-static void _main_lwip_driver_loop(void *arg)
+static void _main_lwip_driver_loop(void* arg)
 {
 #if defined(__linux__)
 	pthread_setname_np(pthread_self(), ZTS_LWIP_DRIVER_THREAD_NAME);
@@ -323,7 +364,7 @@ static void _main_lwip_driver_loop(void *arg)
 	tcpip_init(_tcpip_init_done, &sem);
 	sys_sem_wait(&sem);
 	// Main loop
-	while(_getState(ZTS_STATE_STACK_RUNNING)) {
+	while (_getState(ZTS_STATE_STACK_RUNNING)) {
 		zts_delay_ms(LWIP_DRIVER_LOOP_INTERVAL);
 	}
 	_has_exited = true;
@@ -346,10 +387,14 @@ void _lwip_driver_init()
 	}
 	Mutex::Lock _l(stackLock);
 #if defined(__WINDOWS__)
-	sys_init(); // Required for win32 init of critical sections
+	sys_init();   // Required for win32 init of critical sections
 #endif
-	sys_thread_new(ZTS_LWIP_DRIVER_THREAD_NAME, _main_lwip_driver_loop,
-		NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
+	sys_thread_new(
+	    ZTS_LWIP_DRIVER_THREAD_NAME,
+	    _main_lwip_driver_loop,
+	    NULL,
+	    DEFAULT_THREAD_STACKSIZE,
+	    DEFAULT_THREAD_PRIO);
 }
 
 void _lwip_driver_shutdown()
@@ -362,16 +407,18 @@ void _lwip_driver_shutdown()
 	_clrState(ZTS_STATE_STACK_RUNNING);
 	// Wait until the main lwIP thread has exited
 	if (_has_started) {
-		while (!_has_exited) { zts_delay_ms(LWIP_DRIVER_LOOP_INTERVAL); }
+		while (! _has_exited) {
+			zts_delay_ms(LWIP_DRIVER_LOOP_INTERVAL);
+		}
 	}
 }
 
-void _lwip_remove_netif(void *netif)
+void _lwip_remove_netif(void* netif)
 {
-	if (!netif) {
+	if (! netif) {
 		return;
 	}
-	struct netif *n = (struct netif*)netif;
+	struct netif* n = (struct netif*)netif;
 	LOCK_TCPIP_CORE();
 	netif_remove(n);
 	netif_set_down(n);
@@ -379,32 +426,32 @@ void _lwip_remove_netif(void *netif)
 	UNLOCK_TCPIP_CORE();
 }
 
-err_t _lwip_eth_tx(struct netif *n, struct pbuf *p)
+err_t _lwip_eth_tx(struct netif* n, struct pbuf* p)
 {
-	if (!n) {
+	if (! n) {
 		return ERR_IF;
 	}
-	struct pbuf *q;
-	char buf[ZT_MAX_MTU+32];
-	char *bufptr;
+	struct pbuf* q;
+	char buf[ZT_MAX_MTU + 32];
+	char* bufptr;
 	int totalLength = 0;
 
-	VirtualTap *tap = (VirtualTap*)n->state;
+	VirtualTap* tap = (VirtualTap*)n->state;
 	bufptr = buf;
 	for (q = p; q != NULL; q = q->next) {
 		memcpy(bufptr, q->payload, q->len);
 		bufptr += q->len;
 		totalLength += q->len;
 	}
-	struct eth_hdr *ethhdr;
-	ethhdr = (struct eth_hdr *)buf;
+	struct eth_hdr* ethhdr;
+	ethhdr = (struct eth_hdr*)buf;
 
 	MAC src_mac;
 	MAC dest_mac;
 	src_mac.setTo(ethhdr->src.addr, 6);
 	dest_mac.setTo(ethhdr->dest.addr, 6);
 
-	char *data = buf + sizeof(struct eth_hdr);
+	char* data = buf + sizeof(struct eth_hdr);
 	int len = totalLength - sizeof(struct eth_hdr);
 	int proto = Utils::ntoh((uint16_t)ethhdr->type);
 	tap->_handler(tap->_arg, NULL, tap->_nwid, src_mac, dest_mac, proto, 0, data, len);
@@ -412,30 +459,42 @@ err_t _lwip_eth_tx(struct netif *n, struct pbuf *p)
 		char flagbuf[32];
 		memset(&flagbuf, 0, 32);
 		char macBuf[ZTS_MAC_ADDRSTRLEN], nodeBuf[16];
-		snprintf(macBuf, ZTS_MAC_ADDRSTRLEN, "%02x:%02x:%02x:%02x:%02x:%02x",
-			ethhdr->dest.addr[0], ethhdr->dest.addr[1], ethhdr->dest.addr[2],
-			ethhdr->dest.addr[3], ethhdr->dest.addr[4], ethhdr->dest.addr[5]);
+		snprintf(
+		    macBuf,
+		    ZTS_MAC_ADDRSTRLEN,
+		    "%02x:%02x:%02x:%02x:%02x:%02x",
+		    ethhdr->dest.addr[0],
+		    ethhdr->dest.addr[1],
+		    ethhdr->dest.addr[2],
+		    ethhdr->dest.addr[3],
+		    ethhdr->dest.addr[4],
+		    ethhdr->dest.addr[5]);
 		MAC mac;
 		mac.setTo(ethhdr->dest.addr, 6);
 		mac.toAddress(tap->_nwid).toString(nodeBuf);
 		/*
-		DEBUG_TRANS("len=%5d dst=%s [%s TX <-- %s] ethertype=0x%04x %s", totalLength, macBuf, nodeBuf, tap->nodeId().c_str(),
-			Utils::ntoh(ethhdr->type), flagbuf);
+		DEBUG_TRANS("len=%5d dst=%s [%s TX <-- %s] ethertype=0x%04x %s", totalLength, macBuf,
+		nodeBuf, tap->nodeId().c_str(), Utils::ntoh(ethhdr->type), flagbuf);
 		*/
 	}
 	return ERR_OK;
 }
 
-void _lwip_eth_rx(VirtualTap *tap, const MAC &from, const MAC &to, unsigned int etherType,
-	const void *data, unsigned int len)
+void _lwip_eth_rx(
+    VirtualTap* tap,
+    const MAC& from,
+    const MAC& to,
+    unsigned int etherType,
+    const void* data,
+    unsigned int len)
 {
 #ifdef LWIP_STATS
 	stats_display();
 #endif
-	if (!_getState(ZTS_STATE_STACK_RUNNING)) {
+	if (! _getState(ZTS_STATE_STACK_RUNNING)) {
 		return;
 	}
-	struct pbuf *p,*q;
+	struct pbuf *p, *q;
 	struct eth_hdr ethhdr;
 	from.copyTo(ethhdr.src.addr, 6);
 	to.copyTo(ethhdr.dest.addr, 6);
@@ -445,20 +504,27 @@ void _lwip_eth_rx(VirtualTap *tap, const MAC &from, const MAC &to, unsigned int 
 		char flagbuf[32];
 		memset(&flagbuf, 0, 32);
 		char macBuf[ZTS_MAC_ADDRSTRLEN], nodeBuf[16];
-		snprintf(macBuf, ZTS_MAC_ADDRSTRLEN, "%02x:%02x:%02x:%02x:%02x:%02x",
-			ethhdr.dest.addr[0], ethhdr.dest.addr[1], ethhdr.dest.addr[2],
-			ethhdr.dest.addr[3], ethhdr.dest.addr[4], ethhdr.dest.addr[5]);
+		snprintf(
+		    macBuf,
+		    ZTS_MAC_ADDRSTRLEN,
+		    "%02x:%02x:%02x:%02x:%02x:%02x",
+		    ethhdr.dest.addr[0],
+		    ethhdr.dest.addr[1],
+		    ethhdr.dest.addr[2],
+		    ethhdr.dest.addr[3],
+		    ethhdr.dest.addr[4],
+		    ethhdr.dest.addr[5]);
 		MAC mac;
 		mac.setTo(ethhdr.src.addr, 6);
 		mac.toAddress(tap->_nwid).toString(nodeBuf);
 		/*
-		DEBUG_TRANS("len=%5d dst=%s [%s RX --> %s] ethertype=0x%04x %s", len, macBuf, nodeBuf, tap->nodeId().c_str(),
-			Utils::ntoh(ethhdr.type), flagbuf);
+		DEBUG_TRANS("len=%5d dst=%s [%s RX --> %s] ethertype=0x%04x %s", len, macBuf, nodeBuf,
+		tap->nodeId().c_str(), Utils::ntoh(ethhdr.type), flagbuf);
 		*/
 	}
 
-	p = pbuf_alloc(PBUF_RAW, (uint16_t)len+sizeof(struct eth_hdr), PBUF_RAM);
-	if (!p) {
+	p = pbuf_alloc(PBUF_RAW, (uint16_t)len + sizeof(struct eth_hdr), PBUF_RAM);
+	if (! p) {
 		DEBUG_ERROR("dropped packet: unable to allocate memory for pbuf");
 		return;
 	}
@@ -471,14 +537,14 @@ void _lwip_eth_rx(VirtualTap *tap, const MAC &from, const MAC &to, unsigned int 
 		return;
 	}
 	// Copy frame data into pbuf
-	const char *dataptr = reinterpret_cast<const char *>(data);
-	memcpy(q->payload,&ethhdr,sizeof(ethhdr));
+	const char* dataptr = reinterpret_cast<const char*>(data);
+	memcpy(q->payload, &ethhdr, sizeof(ethhdr));
 	int remainingPayloadSpace = q->len - sizeof(ethhdr);
-	memcpy((char*)q->payload + sizeof(ethhdr),dataptr,remainingPayloadSpace);
+	memcpy((char*)q->payload + sizeof(ethhdr), dataptr, remainingPayloadSpace);
 	dataptr += remainingPayloadSpace;
 	// Remaining pbufs (if any) get rest of data
 	while ((q = q->next)) {
-		memcpy(q->payload,dataptr,q->len);
+		memcpy(q->payload, dataptr, q->len);
 		dataptr += q->len;
 	}
 	// Feed packet into stack
@@ -486,7 +552,8 @@ void _lwip_eth_rx(VirtualTap *tap, const MAC &from, const MAC &to, unsigned int 
 
 	if (Utils::ntoh(ethhdr.type) == 0x800 || Utils::ntoh(ethhdr.type) == 0x806) {
 		if (tap->netif4) {
-			if ((err = ((struct netif *)tap->netif4)->input(p, (struct netif *)tap->netif4)) != ERR_OK) {
+			if ((err = ((struct netif*)tap->netif4)->input(p, (struct netif*)tap->netif4))
+			    != ERR_OK) {
 				DEBUG_ERROR("packet input error (%d)", err);
 				pbuf_free(p);
 			}
@@ -494,7 +561,8 @@ void _lwip_eth_rx(VirtualTap *tap, const MAC &from, const MAC &to, unsigned int 
 	}
 	if (Utils::ntoh(ethhdr.type) == 0x86DD) {
 		if (tap->netif6) {
-			if ((err = ((struct netif *)tap->netif6)->input(p, (struct netif *)tap->netif6)) != ERR_OK) {
+			if ((err = ((struct netif*)tap->netif6)->input(p, (struct netif*)tap->netif6))
+			    != ERR_OK) {
 				DEBUG_ERROR("packet input error (%d)", err);
 				pbuf_free(p);
 			}
@@ -502,9 +570,9 @@ void _lwip_eth_rx(VirtualTap *tap, const MAC &from, const MAC &to, unsigned int 
 	}
 }
 
-bool _lwip_is_netif_up(void *n)
+bool _lwip_is_netif_up(void* n)
 {
-	if (!n) {
+	if (! n) {
 		return false;
 	}
 	LOCK_TCPIP_CORE();
@@ -516,112 +584,102 @@ bool _lwip_is_netif_up(void *n)
 /*
 static struct zts_netif_details *_lwip_prepare_netif_status_msg(struct netif *n)
 {
-	if (!n || !n->state) {
-		return NULL;
-	}
-	VirtualTap *tap = (VirtualTap *)n->state;
-	struct zts_netif_details *details = new zts_netif_details();
-	details->nwid = tap->_nwid;
-	memcpy(&(details->mac), n->hwaddr, n->hwaddr_len);
-	details->mtu = n->mtu;
-	return details;
+    if (!n || !n->state) {
+        return NULL;
+    }
+    VirtualTap *tap = (VirtualTap *)n->state;
+    struct zts_netif_details *details = new zts_netif_details();
+    details->nwid = tap->_nwid;
+    memcpy(&(details->mac), n->hwaddr, n->hwaddr_len);
+    details->mtu = n->mtu;
+    return details;
 }
 
 static void _netif_remove_callback(struct netif *n)
 {
-	// Called from core, no need to lock
-	if (!n || !n->state) {
-		return;
-	}
-	VirtualTap *tap = (VirtualTap *)n->state;
-	struct zts_netif_details *details = new zts_netif_details();
-	details->nwid = tap->_nwid;
-	details->mac = 0;
-	details->mtu = 0;
-	_enqueueEvent(ZTS_EVENT_NETIF_REMOVED, (void*)details);
+    // Called from core, no need to lock
+    if (!n || !n->state) {
+        return;
+    }
+    VirtualTap *tap = (VirtualTap *)n->state;
+    struct zts_netif_details *details = new zts_netif_details();
+    details->nwid = tap->_nwid;
+    details->mac = 0;
+    details->mtu = 0;
+    _enqueueEvent(ZTS_EVENT_NETIF_REMOVED, (void*)details);
 }
 
 static void _netif_status_callback(struct netif *n)
 {
-	// Called from core, no need to lock
-	if (!n) {
-		return;
-	} if (netif_is_up(n)) {
-		_enqueueEvent(ZTS_EVENT_NETIF_UP, (void*)_lwip_prepare_netif_status_msg(n));
-	} else {
-		_enqueueEvent(ZTS_EVENT_NETIF_DOWN, (void*)_lwip_prepare_netif_status_msg(n));
-	}
+    // Called from core, no need to lock
+    if (!n) {
+        return;
+    } if (netif_is_up(n)) {
+        _enqueueEvent(ZTS_EVENT_NETIF_UP, (void*)_lwip_prepare_netif_status_msg(n));
+    } else {
+        _enqueueEvent(ZTS_EVENT_NETIF_DOWN, (void*)_lwip_prepare_netif_status_msg(n));
+    }
 }
 
 static void _netif_link_callback(struct netif *n)
 {
-	// Called from core, no need to lock
-	if (!n) {
-		return;
-	} if (netif_is_link_up(n)) {
-		_enqueueEvent(ZTS_EVENT_NETIF_LINK_UP, (void*)_lwip_prepare_netif_status_msg(n));
-	} else {
-		_enqueueEvent(ZTS_EVENT_NETIF_LINK_DOWN, (void*)_lwip_prepare_netif_status_msg(n));
-	}
+    // Called from core, no need to lock
+    if (!n) {
+        return;
+    } if (netif_is_link_up(n)) {
+        _enqueueEvent(ZTS_EVENT_NETIF_LINK_UP, (void*)_lwip_prepare_netif_status_msg(n));
+    } else {
+        _enqueueEvent(ZTS_EVENT_NETIF_LINK_DOWN, (void*)_lwip_prepare_netif_status_msg(n));
+    }
 }
 */
 
-static err_t _netif_init4(struct netif *n)
+static err_t _netif_init4(struct netif* n)
 {
-	if (!n || !n->state) {
+	if (! n || ! n->state) {
 		return ERR_IF;
 	}
 	// Called from core, no need to lock
-	VirtualTap *tap = (VirtualTap*)(n->state);
+	VirtualTap* tap = (VirtualTap*)(n->state);
 	n->hwaddr_len = 6;
-	n->name[0]    = '4';
-	n->name[1]    = 'a'+netifCount;
+	n->name[0] = '4';
+	n->name[1] = 'a' + netifCount;
 	n->linkoutput = _lwip_eth_tx;
-	n->output     = etharp_output;
-	n->mtu        = std::min(LWIP_MTU,(int)tap->_mtu);
-	n->flags      = NETIF_FLAG_BROADCAST
-		| NETIF_FLAG_ETHARP
-		| NETIF_FLAG_ETHERNET
-		| NETIF_FLAG_IGMP
-		| NETIF_FLAG_MLD6
-		| NETIF_FLAG_LINK_UP
-		| NETIF_FLAG_UP;
+	n->output = etharp_output;
+	n->mtu = std::min(LWIP_MTU, (int)tap->_mtu);
+	n->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP
+	           | NETIF_FLAG_MLD6 | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 	n->hwaddr_len = sizeof(n->hwaddr);
 	tap->_mac.copyTo(n->hwaddr, n->hwaddr_len);
 	return ERR_OK;
 }
 
-static err_t _netif_init6(struct netif *n)
+static err_t _netif_init6(struct netif* n)
 {
-	if (!n || !n->state) {
+	if (! n || ! n->state) {
 		return ERR_IF;
 	}
 	n->hwaddr_len = sizeof(n->hwaddr);
-	VirtualTap *tap = (VirtualTap*)(n->state);
+	VirtualTap* tap = (VirtualTap*)(n->state);
 	tap->_mac.copyTo(n->hwaddr, n->hwaddr_len);
 	// Called from core, no need to lock
 	n->hwaddr_len = 6;
-	n->name[0]    = '6';
-	n->name[1]    = 'a'+netifCount;
+	n->name[0] = '6';
+	n->name[1] = 'a' + netifCount;
 	n->linkoutput = _lwip_eth_tx;
 	n->output_ip6 = ethip6_output;
-	n->mtu        = std::min(LWIP_MTU,(int)tap->_mtu);
-	n->flags      = NETIF_FLAG_BROADCAST
-	    | NETIF_FLAG_ETHARP
-		| NETIF_FLAG_ETHERNET
-		| NETIF_FLAG_IGMP
-		| NETIF_FLAG_MLD6
-		| NETIF_FLAG_LINK_UP
-		| NETIF_FLAG_UP;
+	n->mtu = std::min(LWIP_MTU, (int)tap->_mtu);
+	n->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP
+	           | NETIF_FLAG_MLD6 | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 	return ERR_OK;
 }
 
-void _lwip_init_interface(void *tapref, const InetAddress &ip)
+void _lwip_init_interface(void* tapref, const InetAddress& ip)
 {
 	char macbuf[ZTS_MAC_ADDRSTRLEN];
 
-	VirtualTap *vtap = (VirtualTap*)tapref;
-	struct netif *n = NULL;
+	VirtualTap* vtap = (VirtualTap*)tapref;
+	struct netif* n = NULL;
 	bool isNewNetif = false;
 
 	if (ip.isV4()) {
@@ -639,21 +697,28 @@ void _lwip_init_interface(void *tapref, const InetAddress &ip)
 		netif_set_link_callback(n, _netif_link_callback);
 		*/
 		static ip4_addr_t ip4, netmask, gw;
-		IP4_ADDR(&gw,127,0,0,1);
-		ip4.addr = *((u32_t *)ip.rawIpData());
-		netmask.addr = *((u32_t *)ip.netmask().rawIpData());
+		IP4_ADDR(&gw, 127, 0, 0, 1);
+		ip4.addr = *((u32_t*)ip.rawIpData());
+		netmask.addr = *((u32_t*)ip.netmask().rawIpData());
 		LOCK_TCPIP_CORE();
 		netif_add(n, &ip4, &netmask, &gw, (void*)vtap, _netif_init4, tcpip_input);
 		vtap->netif4 = (void*)n;
 		UNLOCK_TCPIP_CORE();
-		snprintf(macbuf, ZTS_MAC_ADDRSTRLEN, "%02x:%02x:%02x:%02x:%02x:%02x",
-			n->hwaddr[0], n->hwaddr[1], n->hwaddr[2],
-			n->hwaddr[3], n->hwaddr[4], n->hwaddr[5]);
+		snprintf(
+		    macbuf,
+		    ZTS_MAC_ADDRSTRLEN,
+		    "%02x:%02x:%02x:%02x:%02x:%02x",
+		    n->hwaddr[0],
+		    n->hwaddr[1],
+		    n->hwaddr[2],
+		    n->hwaddr[3],
+		    n->hwaddr[4],
+		    n->hwaddr[5]);
 		/*
 		char nmbuf[INET6_ADDRSTRLEN];
 		char ipbuf[INET6_ADDRSTRLEN];
 		DEBUG_INFO("initialized netif=%p as [mac=%s, addr=%s, nm=%s, tap=%p]",n,
-			macbuf, ip.toString(ipbuf), ip.netmask().toString(nmbuf), vtap);
+		    macbuf, ip.toString(ipbuf), ip.netmask().toString(nmbuf), vtap);
 		*/
 	}
 	if (ip.isV6()) {
@@ -664,11 +729,11 @@ void _lwip_init_interface(void *tapref, const InetAddress &ip)
 			n = new struct netif;
 			isNewNetif = true;
 			netifCount++;
-		}/*
-		netif_set_status_callback(n, _netif_status_callback);
-		netif_set_remove_callback(n, _netif_remove_callback);
-		netif_set_link_callback(n, _netif_link_callback);
-		*/
+		} /*
+		 netif_set_status_callback(n, _netif_status_callback);
+		 netif_set_remove_callback(n, _netif_remove_callback);
+		 netif_set_link_callback(n, _netif_link_callback);
+		 */
 		static ip6_addr_t ip6;
 		memcpy(&(ip6.addr), ip.rawIpData(), sizeof(ip6.addr));
 		LOCK_TCPIP_CORE();
@@ -682,26 +747,33 @@ void _lwip_init_interface(void *tapref, const InetAddress &ip)
 			netif_set_up(n);
 			netif_set_default(n);
 		}
-		netif_add_ip6_address(n,&ip6,NULL);
+		netif_add_ip6_address(n, &ip6, NULL);
 		n->output_ip6 = ethip6_output;
 		UNLOCK_TCPIP_CORE();
-		snprintf(macbuf, ZTS_MAC_ADDRSTRLEN, "%02x:%02x:%02x:%02x:%02x:%02x",
-			n->hwaddr[0], n->hwaddr[1], n->hwaddr[2],
-			n->hwaddr[3], n->hwaddr[4], n->hwaddr[5]);
+		snprintf(
+		    macbuf,
+		    ZTS_MAC_ADDRSTRLEN,
+		    "%02x:%02x:%02x:%02x:%02x:%02x",
+		    n->hwaddr[0],
+		    n->hwaddr[1],
+		    n->hwaddr[2],
+		    n->hwaddr[3],
+		    n->hwaddr[4],
+		    n->hwaddr[5]);
 		/*
 		DEBUG_INFO("initialized netif=%p as [mac=%s, addr=%s, tap=%p]", n,
-			macbuf, ip.toString(ipbuf), vtap);
+		    macbuf, ip.toString(ipbuf), vtap);
 		*/
 	}
 }
 
-void _lwip_remove_address_from_netif(void *tapref, const InetAddress &ip)
+void _lwip_remove_address_from_netif(void* tapref, const InetAddress& ip)
 {
-	if (!tapref) {
+	if (! tapref) {
 		return;
 	}
-	VirtualTap *vtap = (VirtualTap*)tapref;
-	struct netif *n = NULL;
+	VirtualTap* vtap = (VirtualTap*)tapref;
+	struct netif* n = NULL;
 	/* When true multi-homing is implemented this will need to
 	be a bit more sophisticated */
 	if (ip.isV4()) {
@@ -714,10 +786,10 @@ void _lwip_remove_address_from_netif(void *tapref, const InetAddress &ip)
 			n = (struct netif*)vtap->netif6;
 		}
 	}
-	if (!n) {
+	if (! n) {
 		return;
 	}
 	_lwip_remove_netif(n);
 }
 
-} // namespace ZeroTier
+}   // namespace ZeroTier

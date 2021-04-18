@@ -24,31 +24,33 @@
 #endif
 
 #include "Constants.hpp"
-#include "Node.hpp"
-#include "OSUtils.hpp"
-
 #include "Debug.hpp"
 #include "Events.hpp"
-#include "ZeroTierSockets.h"
+#include "Node.hpp"
 #include "NodeService.hpp"
+#include "OSUtils.hpp"
+#include "ZeroTierSockets.h"
 
-#define NODE_EVENT_TYPE(code) code >= ZTS_EVENT_NODE_UP && code <= ZTS_EVENT_NODE_NORMAL_TERMINATION
-#define NETWORK_EVENT_TYPE(code) code >= ZTS_EVENT_NETWORK_NOT_FOUND && code <= ZTS_EVENT_NETWORK_UPDATE
-#define STACK_EVENT_TYPE(code) code >= ZTS_EVENT_STACK_UP && code <= ZTS_EVENT_STACK_DOWN
-#define NETIF_EVENT_TYPE(code) code >= ZTS_EVENT_NETIF_UP && code <= ZTS_EVENT_NETIF_LINK_DOWN
-#define PEER_EVENT_TYPE(code) code >= ZTS_EVENT_PEER_DIRECT && code <= ZTS_EVENT_PEER_PATH_DEAD
-#define ROUTE_EVENT_TYPE(code) code >= ZTS_EVENT_ROUTE_ADDED && code <= ZTS_EVENT_ROUTE_REMOVED
-#define ADDR_EVENT_TYPE(code) code >= ZTS_EVENT_ADDR_ADDED_IP4 && code <= ZTS_EVENT_ADDR_REMOVED_IP6
+#define NODE_EVENT_TYPE(code) code >= ZTS_EVENT_NODE_UP&& code <= ZTS_EVENT_NODE_NORMAL_TERMINATION
+#define NETWORK_EVENT_TYPE(code)                                                                   \
+	code >= ZTS_EVENT_NETWORK_NOT_FOUND&& code <= ZTS_EVENT_NETWORK_UPDATE
+#define STACK_EVENT_TYPE(code) code >= ZTS_EVENT_STACK_UP&& code <= ZTS_EVENT_STACK_DOWN
+#define NETIF_EVENT_TYPE(code) code >= ZTS_EVENT_NETIF_UP&& code <= ZTS_EVENT_NETIF_LINK_DOWN
+#define PEER_EVENT_TYPE(code)  code >= ZTS_EVENT_PEER_DIRECT&& code <= ZTS_EVENT_PEER_PATH_DEAD
+#define ROUTE_EVENT_TYPE(code) code >= ZTS_EVENT_ROUTE_ADDED&& code <= ZTS_EVENT_ROUTE_REMOVED
+#define ADDR_EVENT_TYPE(code)  code >= ZTS_EVENT_ADDR_ADDED_IP4&& code <= ZTS_EVENT_ADDR_REMOVED_IP6
 
 #ifdef ZTS_ENABLE_PYTHON
 	#include "Python.h"
-	PythonDirectorCallbackClass *_userEventCallback = NULL;
-	void PythonDirectorCallbackClass::on_zerotier_event(struct zts_callback_msg *msg) { }
+PythonDirectorCallbackClass* _userEventCallback = NULL;
+void PythonDirectorCallbackClass::on_zerotier_event(struct zts_callback_msg* msg)
+{
+}
 #endif
 
 namespace ZeroTier {
 
-extern NodeService *service;
+extern NodeService* service;
 
 // Global state variable shared between Socket, Control, Event and NodeService logic.
 uint8_t _serviceStateFlags;
@@ -57,32 +59,38 @@ uint8_t _serviceStateFlags;
 Mutex _callbackLock;
 
 #ifdef ZTS_ENABLE_PINVOKE
-	void (*_userEventCallback)(void *);
+void (*_userEventCallback)(void*);
 #endif
 #ifdef ZTS_C_API_ONLY
-	void (*_userEventCallback)(void *);
+void (*_userEventCallback)(void*);
 #endif
 
 moodycamel::ConcurrentQueue<struct zts_callback_msg*> _callbackMsgQueue;
 
-void _enqueueEvent(int16_t eventCode, void *arg)
+void _enqueueEvent(int16_t eventCode, void* arg)
 {
-	struct zts_callback_msg *msg = new zts_callback_msg();
+	struct zts_callback_msg* msg = new zts_callback_msg();
 	msg->eventCode = eventCode;
 
 	if (NODE_EVENT_TYPE(eventCode)) {
 		msg->node = (struct zts_node_details*)arg;
-	} if (NETWORK_EVENT_TYPE(eventCode)) {
+	}
+	if (NETWORK_EVENT_TYPE(eventCode)) {
 		msg->network = (struct zts_network_details*)arg;
-	} if (STACK_EVENT_TYPE(eventCode)) {
+	}
+	if (STACK_EVENT_TYPE(eventCode)) {
 		/* nothing to convey to user */
-	} if (NETIF_EVENT_TYPE(eventCode)) {
+	}
+	if (NETIF_EVENT_TYPE(eventCode)) {
 		msg->netif = (struct zts_netif_details*)arg;
-	} if (ROUTE_EVENT_TYPE(eventCode)) {
+	}
+	if (ROUTE_EVENT_TYPE(eventCode)) {
 		msg->route = (struct zts_virtual_network_route*)arg;
-	} if (PEER_EVENT_TYPE(eventCode)) {
+	}
+	if (PEER_EVENT_TYPE(eventCode)) {
 		msg->peer = (struct zts_peer_details*)arg;
-	} if (ADDR_EVENT_TYPE(eventCode)) {
+	}
+	if (ADDR_EVENT_TYPE(eventCode)) {
 		msg->addr = (struct zts_addr_details*)arg;
 	}
 
@@ -95,20 +103,32 @@ void _enqueueEvent(int16_t eventCode, void *arg)
 	}
 }
 
-void _freeEvent(struct zts_callback_msg *msg)
+void _freeEvent(struct zts_callback_msg* msg)
 {
-	if (!msg) {
+	if (! msg) {
 		return;
 	}
-	if (msg->node) { delete msg->node; }
-	if (msg->network) { delete msg->network; }
-	if (msg->netif) { delete msg->netif; }
-	if (msg->route) { delete msg->route; }
-	if (msg->peer) { delete msg->peer; }
-	if (msg->addr) { delete msg->addr; }
+	if (msg->node) {
+		delete msg->node;
+	}
+	if (msg->network) {
+		delete msg->network;
+	}
+	if (msg->netif) {
+		delete msg->netif;
+	}
+	if (msg->route) {
+		delete msg->route;
+	}
+	if (msg->peer) {
+		delete msg->peer;
+	}
+	if (msg->addr) {
+		delete msg->addr;
+	}
 }
 
-void _passDequeuedEventToUser(struct zts_callback_msg *msg)
+void _passDequeuedEventToUser(struct zts_callback_msg* msg)
 {
 	bool bShouldStopCallbackThread = (msg->eventCode == ZTS_EVENT_STACK_DOWN);
 #ifdef ZTS_ENABLE_PYTHON
@@ -117,14 +137,14 @@ void _passDequeuedEventToUser(struct zts_callback_msg *msg)
 	PyGILState_Release(state);
 #endif
 #ifdef ZTS_ENABLE_JAVA
-	if(_userCallbackMethodRef) {
-		JNIEnv *env;
+	if (_userCallbackMethodRef) {
+		JNIEnv* env;
 	#if defined(__ANDROID__)
 		jint rs = jvm->AttachCurrentThread(&env, NULL);
 	#else
-		jint rs = jvm->AttachCurrentThread((void **)&env, NULL);
+		jint rs = jvm->AttachCurrentThread((void**)&env, NULL);
 	#endif
-		assert (rs == JNI_OK);
+		assert(rs == JNI_OK);
 		uint64_t arg = 0;
 		uint64_t id = 0;
 		if (NODE_EVENT_TYPE(msg->eventCode)) {
@@ -138,7 +158,7 @@ void _passDequeuedEventToUser(struct zts_callback_msg *msg)
 		}
 		env->CallVoidMethod(objRef, _userCallbackMethodRef, id, msg->eventCode);
 	}
-#endif // ZTS_ENABLE_JAVA
+#endif   // ZTS_ENABLE_JAVA
 #ifdef ZTS_ENABLE_PINVOKE
 	if (_userEventCallback) {
 		_userEventCallback(msg);
@@ -175,7 +195,7 @@ void _clearRegisteredCallback()
 	_callbackLock.lock();
 #ifdef ZTS_ENABLE_JAVA
 	objRef = NULL;
-    _userCallbackMethodRef = NULL;
+	_userCallbackMethodRef = NULL;
 #else
 	_userEventCallback = NULL;
 #endif
@@ -184,28 +204,23 @@ void _clearRegisteredCallback()
 
 int _canPerformServiceOperation()
 {
-	return service
-		&& service->isRunning()
-		&& service->getNode()
-		&& service->getNode()->online()
-		&& !_getState(ZTS_STATE_FREE_CALLED);
+	return service && service->isRunning() && service->getNode() && service->getNode()->online()
+	       && ! _getState(ZTS_STATE_FREE_CALLED);
 }
 
-#define RESET_FLAGS( )   _serviceStateFlags  =  0;
-#define   SET_FLAGS(f)   _serviceStateFlags |=  f;
-#define   CLR_FLAGS(f)   _serviceStateFlags &= ~f;
-#define   GET_FLAGS(f) ((_serviceStateFlags &   f) > 0)
+#define RESET_FLAGS() _serviceStateFlags = 0;
+#define SET_FLAGS(f)  _serviceStateFlags |= f;
+#define CLR_FLAGS(f)  _serviceStateFlags &= ~f;
+#define GET_FLAGS(f)  ((_serviceStateFlags & f) > 0)
 
 void _setState(uint8_t newFlags)
 {
 	if ((newFlags ^ _serviceStateFlags) & ZTS_STATE_NET_SERVICE_RUNNING) {
-		return; // No effect. Not allowed to set this flag manually
+		return;   // No effect. Not allowed to set this flag manually
 	}
 	SET_FLAGS(newFlags);
-	if (   GET_FLAGS(ZTS_STATE_NODE_RUNNING)
-      &&   GET_FLAGS(ZTS_STATE_STACK_RUNNING)
-      && !(GET_FLAGS(ZTS_STATE_FREE_CALLED)))
-	{
+	if (GET_FLAGS(ZTS_STATE_NODE_RUNNING) && GET_FLAGS(ZTS_STATE_STACK_RUNNING)
+	    && ! (GET_FLAGS(ZTS_STATE_FREE_CALLED))) {
 		SET_FLAGS(ZTS_STATE_NET_SERVICE_RUNNING);
 	}
 	else {
@@ -216,13 +231,11 @@ void _setState(uint8_t newFlags)
 void _clrState(uint8_t newFlags)
 {
 	if (newFlags & ZTS_STATE_NET_SERVICE_RUNNING) {
-		return; // No effect. Not allowed to set this flag manually
+		return;   // No effect. Not allowed to set this flag manually
 	}
 	CLR_FLAGS(newFlags);
-	if (   GET_FLAGS(ZTS_STATE_NODE_RUNNING)
-      &&   GET_FLAGS(ZTS_STATE_STACK_RUNNING)
-      && !(GET_FLAGS(ZTS_STATE_FREE_CALLED)))
-	{
+	if (GET_FLAGS(ZTS_STATE_NODE_RUNNING) && GET_FLAGS(ZTS_STATE_STACK_RUNNING)
+	    && ! (GET_FLAGS(ZTS_STATE_FREE_CALLED))) {
 		SET_FLAGS(ZTS_STATE_NET_SERVICE_RUNNING);
 	}
 	else {
@@ -238,15 +251,14 @@ bool _getState(uint8_t testFlags)
 #if defined(__WINDOWS__)
 DWORD WINAPI _runCallbacks(LPVOID thread_id)
 #else
-void *_runCallbacks(void *thread_id)
+void* _runCallbacks(void* thread_id)
 #endif
 {
 #if defined(__APPLE__)
 	pthread_setname_np(ZTS_EVENT_CALLBACK_THREAD_NAME);
 #endif
-	while (_getState(ZTS_STATE_CALLBACKS_RUNNING) || _callbackMsgQueue.size_approx() > 0)
-    {
-        struct zts_callback_msg *msg;
+	while (_getState(ZTS_STATE_CALLBACKS_RUNNING) || _callbackMsgQueue.size_approx() > 0) {
+		struct zts_callback_msg* msg;
 		size_t sz = _callbackMsgQueue.size_approx();
 		for (size_t j = 0; j < sz; j++) {
 			if (_callbackMsgQueue.try_dequeue(msg)) {
@@ -256,14 +268,14 @@ void *_runCallbacks(void *thread_id)
 				delete msg;
 			}
 		}
-        zts_delay_ms(ZTS_CALLBACK_PROCESSING_INTERVAL);
-    }
+		zts_delay_ms(ZTS_CALLBACK_PROCESSING_INTERVAL);
+	}
 #if ZTS_ENABLE_JAVA
-	JNIEnv *env;
+	JNIEnv* env;
 	jint rs = jvm->DetachCurrentThread();
-    pthread_exit(0);
+	pthread_exit(0);
 #endif
 	return NULL;
 }
 
-} // namespace ZeroTier
+}   // namespace ZeroTier

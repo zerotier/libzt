@@ -1,17 +1,16 @@
+#include "ZeroTierSockets.h"
+
+#include <iomanip>
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <string>
-#include <iomanip>
-#include <iostream>
-
-#include "ZeroTierSockets.h"
 
 // For optional JSON parsing
 #include "../ext/ZeroTierOne/ext/json/json.hpp"
 
-void process_response(char *response, int http_response_code)
+void process_response(char* response, int http_response_code)
 {
 	if (http_response_code == 0) {
 		// Request failed at library level, do nothing. There would be no HTTP code at this point.
@@ -23,22 +22,22 @@ void process_response(char *response, int http_response_code)
 		return;
 	}
 	nlohmann::json res = nlohmann::json::parse(response);
-	if (!res.is_object()) {
+	if (! res.is_object()) {
 		fprintf(stderr, "Unable to parse (root element is not a JSON object)");
 	}
 	// Pretty print JSON blob
 	std::cout << std::setw(4) << res << std::endl;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
 	if (argc != 3) {
 		printf("\nlibzt example central API client\n");
 		printf("centralapi <central_url> <api_token>\n");
 		exit(0);
 	}
-	std::string central_url = argv[1]; // API endpoint
-	std::string api_token = argv[2]; // User token (generate at my.zerotier.com)
+	std::string central_url = argv[1];   // API endpoint
+	std::string api_token = argv[2];     // User token (generate at my.zerotier.com)
 
 	/**
 	 * This example demonstrates how to use the ZeroTier Central API to:
@@ -67,12 +66,17 @@ int main(int argc, char **argv)
 
 	// Provide URL to Central API server and user API token generated at https://my.zerotier.com
 	printf("Initializing Central API client...\n");
-	if ((err = zts_central_init(central_url.c_str(), api_token.c_str(), rbuf, ZTS_CENTRAL_RESP_BUF_DEFAULT_SZ)) != ZTS_ERR_OK) {
+	if ((err = zts_central_init(
+	         central_url.c_str(),
+	         api_token.c_str(),
+	         rbuf,
+	         ZTS_CENTRAL_RESP_BUF_DEFAULT_SZ))
+	    != ZTS_ERR_OK) {
 		fprintf(stderr, "Error while initializing client's Central API parameters\n");
 		return 0;
 	}
 
-	zts_central_set_verbose(false); // (optiona) Turn on reporting from libcurl
+	zts_central_set_verbose(false);   // (optiona) Turn on reporting from libcurl
 	zts_central_set_access_mode(ZTS_CENTRAL_READ | ZTS_CENTRAL_WRITE);
 
 	int http_res_code = 0;
@@ -81,7 +85,8 @@ int main(int argc, char **argv)
 	printf("Requesting Central API server status (/api/status):\n");
 	if ((err = zts_central_get_status(&http_res_code)) != ZTS_ERR_OK) {
 		fprintf(stderr, "Error (%d) making the request.\n", err);
-	} else {
+	}
+	else {
 		process_response(rbuf, http_res_code);
 	}
 	// Get network config
@@ -89,15 +94,18 @@ int main(int argc, char **argv)
 	printf("Requesting network config: /api/network/%llx\n", nwid);
 	if ((err = zts_central_get_network(&http_res_code, nwid)) != ZTS_ERR_OK) {
 		fprintf(stderr, "Error (%d) making the request.\n", err);
-	} else {
+	}
+	else {
 		process_response(rbuf, http_res_code);
 	}
 	// Authorize a node on a network
 	int64_t nodeid = 0x9934343434;
 	printf("Authorizing: /api/network/%llx/member/%llx\n", nwid, nodeid);
-	if ((err = zts_central_set_node_auth(&http_res_code, nwid, nodeid, ZTS_CENTRAL_NODE_AUTH_TRUE)) != ZTS_ERR_OK) {
+	if ((err = zts_central_set_node_auth(&http_res_code, nwid, nodeid, ZTS_CENTRAL_NODE_AUTH_TRUE))
+	    != ZTS_ERR_OK) {
 		fprintf(stderr, "Error (%d) making the request.\n", err);
-	} else {
+	}
+	else {
 		process_response(rbuf, http_res_code);
 	}
 

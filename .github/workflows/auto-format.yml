@@ -1,0 +1,24 @@
+name: Code style compliance check
+on: push
+
+jobs:
+  run:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Install clang-format
+        run: sudo apt-get install clang-format
+
+      - name: Format code
+        run: ./build.sh format-code
+
+      - name: Commit changes
+        uses: joseph-henry/add-and-commit@v7
+        with:
+          author_name: github-actions
+          author_email: 41898282+github-actions[bot]@users.noreply.github.com
+          message: 'Force code style compliance'
+          add: '.'

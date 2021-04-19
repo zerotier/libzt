@@ -32,7 +32,7 @@ Cpp11BracedListStyle: 'false'
 FixNamespaceComments: 'true'
 IncludeBlocks: Regroup
 IndentCaseLabels: 'true'
-IndentPPDirectives: BeforeHash
+IndentPPDirectives: None
 IndentWrappedFunctionNames: 'false'
 KeepEmptyLinesAtTheStartOfBlocks: 'false'
 MaxEmptyLinesToKeep: '1'

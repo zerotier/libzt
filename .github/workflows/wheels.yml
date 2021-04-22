@@ -38,7 +38,7 @@ jobs:
             cd pkg/pypi;
             python setup.py build_clib
         run: |
-          swig -c++ -python -o src/bindings/python/zt_wrap.cpp -Iinclude src/bindings/python/zt.i
+          swig -c++ -python -o src/bindings/python/zt_wrap.cxx -Iinclude src/bindings/python/zt.i
           python -m cibuildwheel pkg/pypi --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v2

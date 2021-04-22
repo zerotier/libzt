@@ -11,31 +11,19 @@
  */
 /****/
 
-/**
- * @file
- *
- * Custom signal handler
- */
+#ifndef ZTS_UTILITIES_HPP
+#define ZTS_UTILITIES_HPP
 
-#ifndef ZTS_SIGNALS_HPP
-#define ZTS_SIGNALS_HPP
+#include "ZeroTierSockets.h"
 
-#ifdef ZTS_ENABLE_PYTHON
-#define ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS 1
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#ifdef ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
+void native_ss_to_zts_ss(struct zts_sockaddr_storage* ss_out, const struct sockaddr_storage* ss_in);
 
-/**
- *
- */
-void _signal_handler(int signal);
+#ifdef __cplusplus
+}
+#endif
 
-/**
- *
- */
-void _install_signal_handlers();
-
-#endif   // ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
-
-#endif   // _H
+#endif   // ZTS_UTILITIES_HPP

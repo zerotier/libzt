@@ -4,7 +4,7 @@
  * Use of this software is governed by the Business Source License included
  * in the LICENSE.TXT file in the project's root directory.
  *
- * Change Date: 2025-01-01
+ * Change Date: 2026-01-01
  *
  * On the date above, in accordance with the Business Source License, use
  * of this software will be governed by version 2.0 of the Apache License.
@@ -17,8 +17,8 @@
  * This defines the external C API for ZeroTier Sockets
  */
 
-#ifndef ZT_SOCKETS_H
-#define ZT_SOCKETS_H
+#ifndef ZTS_SOCKETS_H
+#define ZTS_SOCKETS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,12 +29,12 @@ extern "C" {
 //----------------------------------------------------------------------------//
 
 /** Common error return values */
-enum zts_error {
+typedef enum {
 	/** No error */
 	ZTS_ERR_OK = 0,
 	/** Socket error, see `zts_errno` */
 	ZTS_ERR_SOCKET = -1,
-	/** The node service experienced a problem. Did you start the service? */
+	/** This operation is not allowed at this time. Or possibly the node hasn't been started */
 	ZTS_ERR_SERVICE = -2,
 	/** Invalid argument */
 	ZTS_ERR_ARG = -3,
@@ -42,34 +42,81 @@ enum zts_error {
 	ZTS_ERR_NO_RESULT = -4,
 	/** Consider filing a bug report */
 	ZTS_ERR_GENERAL = -5
-};
+} zts_error_t;
 
 //----------------------------------------------------------------------------//
 // Event codes                                                                //
 //----------------------------------------------------------------------------//
 
-/** Event codes used by the callback API */
-enum zts_event {
-	/** The node service started successfully (no action needed) */
+/** Event codes used by the (optional) callback API */
+typedef enum {
+	/**
+	 * Node has been initialized
+	 *
+	 * This is the first event generated, and is always sent. It may occur
+	 * before node's constructor returns.
+	 *
+	 */
 	ZTS_EVENT_NODE_UP = 200,
-	/** The node can reach the Internet */
+
+	/**
+	 * Node is online -- at least one upstream node appears reachable
+	 *
+	 */
 	ZTS_EVENT_NODE_ONLINE = 201,
-	/** The node cannot reach the Internet */
+
+	/**
+	 * Node is offline -- network does not seem to be reachable by any available
+	 * strategy
+	 *
+	 */
 	ZTS_EVENT_NODE_OFFLINE = 202,
-	/** The node service has stopped */
+
+	/**
+	 * Node is shutting down
+	 *
+	 * This is generated within Node's destructor when it is being shut down.
+	 * It's done for convenience, since cleaning up other state in the event
+	 * handler may appear more idiomatic.
+	 *
+	 */
 	ZTS_EVENT_NODE_DOWN = 203,
-	/** Multiple identities in use (undefined behavior) */
-	ZTS_EVENT_NODE_IDENTITY_COLLISION = 204,
-	/** Something went horribly wrong */
-	ZTS_EVENT_NODE_UNRECOVERABLE_ERROR = 205,
-	/** The node has been terminated */
-	ZTS_EVENT_NODE_NORMAL_TERMINATION = 206,
 
-	ZTS_EVENT_NODE_WHAT = 207,
+	/**
+	 * A fatal error has occurred. One possible reason is:
+	 *
+	 * Your identity has collided with another node's ZeroTier address
+	 *
+	 * This happens if two different public keys both hash (via the algorithm
+	 * in Identity::generate()) to the same 40-bit ZeroTier address.
+	 *
+	 * This is something you should "never" see, where "never" is defined as
+	 * once per 2^39 new node initializations / identity creations. If you do
+	 * see it, you're going to see it very soon after a node is first
+	 * initialized.
+	 *
+	 * This is reported as an event rather than a return code since it's
+	 * detected asynchronously via error messages from authoritative nodes.
+	 *
+	 * If this occurs, you must shut down and delete the node, delete the
+	 * identity.secret record/file from the data store, and restart to generate
+	 * a new identity. If you don't do this, you will not be able to communicate
+	 * with other nodes.
+	 *
+	 * We'd automate this process, but we don't think silently deleting
+	 * private keys or changing our address without telling the calling code
+	 * is good form. It violates the principle of least surprise.
+	 *
+	 * You can technically get away with not handling this, but we recommend
+	 * doing so in a mature reliable application. Besides, handling this
+	 * condition is a good way to make sure it never arises. It's like how
+	 * umbrellas prevent rain and smoke detectors prevent fires. They do, right?
+	 *
+	 * Meta-data: none
+	 */
+	ZTS_EVENT_NODE_FATAL_ERROR = 204,
 
-	// Network events
-
-	/** The network ID does not correspond to a known network */
+	/** Network ID does not correspond to a known network */
 	ZTS_EVENT_NETWORK_NOT_FOUND = 210,
 	/** The version of ZeroTier inside libzt is too old */
 	ZTS_EVENT_NETWORK_CLIENT_TOO_OLD = 211,
@@ -90,14 +137,10 @@ enum zts_event {
 	/** Network change received from controller */
 	ZTS_EVENT_NETWORK_UPDATE = 219,
 
-	// Network Stack events
-
-	/** TCP/IP stack (lwIP) is up */
+	/** TCP/IP stack (lwIP) is up (for debug purposes) */
 	ZTS_EVENT_STACK_UP = 220,
-	/** TCP/IP stack (lwIP) id down */
+	/** TCP/IP stack (lwIP) id down (for debug purposes) */
 	ZTS_EVENT_STACK_DOWN = 221,
-
-	// lwIP netif events
 
 	/** lwIP netif up (for debug purposes) */
 	ZTS_EVENT_NETIF_UP = 230,
@@ -110,8 +153,6 @@ enum zts_event {
 	/** lwIP netif link down (for debug purposes) */
 	ZTS_EVENT_NETIF_LINK_DOWN = 234,
 
-	// Peer events
-
 	/** A direct P2P path to peer is known */
 	ZTS_EVENT_PEER_DIRECT = 240,
 	/** A direct P2P path to peer is NOT known. Traffic is now relayed  */
@@ -123,14 +164,10 @@ enum zts_event {
 	/** A known path to a peer is now considered dead */
 	ZTS_EVENT_PEER_PATH_DEAD = 244,
 
-	// Route events
-
 	/** A new managed network route was added */
 	ZTS_EVENT_ROUTE_ADDED = 250,
 	/** A managed network route was removed */
 	ZTS_EVENT_ROUTE_REMOVED = 251,
-
-	// Address events
 
 	/** A new managed IPv4 address was assigned to this peer */
 	ZTS_EVENT_ADDR_ADDED_IP4 = 260,
@@ -139,162 +176,195 @@ enum zts_event {
 	/** A new managed IPv4 address was assigned to this peer  */
 	ZTS_EVENT_ADDR_ADDED_IP6 = 262,
 	/** A managed IPv6 address assignment was removed from this peer  */
-	ZTS_EVENT_ADDR_REMOVED_IP6 = 263
-};
+	ZTS_EVENT_ADDR_REMOVED_IP6 = 263,
+
+	/** The node's secret key (identity) */
+	ZTS_EVENT_STORE_IDENTITY_SECRET = 270,
+	/** The node's public key (identity) */
+	ZTS_EVENT_STORE_IDENTITY_PUBLIC = 271,
+	/** The node has received an updated planet config */
+	ZTS_EVENT_STORE_PLANET = 272,
+	/** New reachability hints and peer configuration */
+	ZTS_EVENT_STORE_PEER = 273,
+	/** New network config */
+	ZTS_EVENT_STORE_NETWORK = 274
+} zts_event_t;
 
 //----------------------------------------------------------------------------//
 // zts_errno Error codes                                                      //
 //----------------------------------------------------------------------------//
 
-/** Error variable set after each `zts_*` call. Provides additional information. */
+/**
+ * Error variable set after each `zts_*` socket call. Provides additional error context.
+ */
 extern int zts_errno;
 
-#define ZTS_EPERM           1          /* Operation not permitted */
-#define ZTS_ENOENT          2          /* No such file or directory */
-#define ZTS_ESRCH           3          /* No such process */
-#define ZTS_EINTR           4          /* Interrupted system call */
-#define ZTS_EIO             5          /* I/O error */
-#define ZTS_ENXIO           6          /* No such device or address */
-#define ZTS_E2BIG           7          /* Arg list too long */
-#define ZTS_ENOEXEC         8          /* Exec format error */
-#define ZTS_EBADF           9          /* Bad file number */
-#define ZTS_ECHILD          10         /* No child processes */
-#define ZTS_EAGAIN          11         /* Try again */
-#define ZTS_ENOMEM          12         /* Out of memory */
-#define ZTS_EACCES          13         /* Permission denied */
-#define ZTS_EFAULT          14         /* Bad address */
-#define ZTS_ENOTBLK         15         /* Block device required */
-#define ZTS_EBUSY           16         /* Device or resource busy */
-#define ZTS_EEXIST          17         /* File exists */
-#define ZTS_EXDEV           18         /* Cross-device link */
-#define ZTS_ENODEV          19         /* No such device */
-#define ZTS_ENOTDIR         20         /* Not a directory */
-#define ZTS_EISDIR          21         /* Is a directory */
-#define ZTS_EINVAL          22         /* Invalid argument */
-#define ZTS_ENFILE          23         /* File table overflow */
-#define ZTS_EMFILE          24         /* Too many open files */
-#define ZTS_ENOTTY          25         /* Not a typewriter */
-#define ZTS_ETXTBSY         26         /* Text file busy */
-#define ZTS_EFBIG           27         /* File too large */
-#define ZTS_ENOSPC          28         /* No space left on device */
-#define ZTS_ESPIPE          29         /* Illegal seek */
-#define ZTS_EROFS           30         /* Read-only file system */
-#define ZTS_EMLINK          31         /* Too many links */
-#define ZTS_EPIPE           32         /* Broken pipe */
-#define ZTS_EDOM            33         /* Math argument out of domain of func */
-#define ZTS_ERANGE          34         /* Math result not representable */
-#define ZTS_EDEADLK         35         /* Resource deadlock would occur */
-#define ZTS_ENAMETOOLONG    36         /* File name too long */
-#define ZTS_ENOLCK          37         /* No record locks available */
-#define ZTS_ENOSYS          38         /* Function not implemented */
-#define ZTS_ENOTEMPTY       39         /* Directory not empty */
-#define ZTS_ELOOP           40         /* Too many symbolic links encountered */
-#define ZTS_EWOULDBLOCK     ZTS_EAGAIN /* Operation would block */
-#define ZTS_ENOMSG          42         /* No message of desired type */
-#define ZTS_EIDRM           43         /* Identifier removed */
-#define ZTS_ECHRNG          44         /* Channel number out of range */
-#define ZTS_EL2NSYNC        45         /* Level 2 not synchronized */
-#define ZTS_EL3HLT          46         /* Level 3 halted */
-#define ZTS_EL3RST          47         /* Level 3 reset */
-#define ZTS_ELNRNG          48         /* Link number out of range */
-#define ZTS_EUNATCH         49         /* Protocol driver not attached */
-#define ZTS_ENOCSI          50         /* No CSI structure available */
-#define ZTS_EL2HLT          51         /* Level 2 halted */
-#define ZTS_EBADE           52         /* Invalid exchange */
-#define ZTS_EBADR           53         /* Invalid request descriptor */
-#define ZTS_EXFULL          54         /* Exchange full */
-#define ZTS_ENOANO          55         /* No anode */
-#define ZTS_EBADRQC         56         /* Invalid request code */
-#define ZTS_EBADSLT         57         /* Invalid slot */
-#define ZTS_EDEADLOCK       ZTS_EDEADLK
-#define ZTS_EBFONT          59  /* Bad font file format */
-#define ZTS_ENOSTR          60  /* Device not a stream */
-#define ZTS_ENODATA         61  /* No data available */
-#define ZTS_ETIME           62  /* Timer expired */
-#define ZTS_ENOSR           63  /* Out of streams resources */
-#define ZTS_ENONET          64  /* Machine is not on the network */
-#define ZTS_ENOPKG          65  /* Package not installed */
-#define ZTS_EREMOTE         66  /* Object is remote */
-#define ZTS_ENOLINK         67  /* Link has been severed */
-#define ZTS_EADV            68  /* Advertise error */
-#define ZTS_ESRMNT          69  /* Srmount error */
-#define ZTS_ECOMM           70  /* Communication error on send */
-#define ZTS_EPROTO          71  /* Protocol error */
-#define ZTS_EMULTIHOP       72  /* Multihop attempted */
-#define ZTS_EDOTDOT         73  /* RFS specific error */
-#define ZTS_EBADMSG         74  /* Not a data message */
-#define ZTS_EOVERFLOW       75  /* Value too large for defined data type */
-#define ZTS_ENOTUNIQ        76  /* Name not unique on network */
-#define ZTS_EBADFD          77  /* File descriptor in bad state */
-#define ZTS_EREMCHG         78  /* Remote address changed */
-#define ZTS_ELIBACC         79  /* Can not access a needed shared library */
-#define ZTS_ELIBBAD         80  /* Accessing a corrupted shared library */
-#define ZTS_ELIBSCN         81  /* .lib section in a.out corrupted */
-#define ZTS_ELIBMAX         82  /* Attempting to link in too many shared libraries */
-#define ZTS_ELIBEXEC        83  /* Cannot exec a shared library directly */
-#define ZTS_EILSEQ          84  /* Illegal byte sequence */
-#define ZTS_ERESTART        85  /* Interrupted system call should be restarted */
-#define ZTS_ESTRPIPE        86  /* Streams pipe error */
-#define ZTS_EUSERS          87  /* Too many users */
-#define ZTS_ENOTSOCK        88  /* Socket operation on non-socket */
-#define ZTS_EDESTADDRREQ    89  /* Destination address required */
-#define ZTS_EMSGSIZE        90  /* Message too long */
-#define ZTS_EPROTOTYPE      91  /* Protocol wrong type for socket */
-#define ZTS_ENOPROTOOPT     92  /* Protocol not available */
-#define ZTS_EPROTONOSUPPORT 93  /* Protocol not supported */
-#define ZTS_ESOCKTNOSUPPORT 94  /* Socket type not supported */
-#define ZTS_EOPNOTSUPP      95  /* Operation not supported on transport endpoint */
-#define ZTS_EPFNOSUPPORT    96  /* Protocol family not supported */
-#define ZTS_EAFNOSUPPORT    97  /* Address family not supported by protocol */
-#define ZTS_EADDRINUSE      98  /* Address already in use */
-#define ZTS_EADDRNOTAVAIL   99  /* Cannot assign requested address */
-#define ZTS_ENETDOWN        100 /* Network is down */
-#define ZTS_ENETUNREACH     101 /* Network is unreachable */
-#define ZTS_ENETRESET       102 /* Network dropped connection because of reset */
-#define ZTS_ECONNABORTED    103 /* Software caused connection abort */
-#define ZTS_ECONNRESET      104 /* Connection reset by peer */
-#define ZTS_ENOBUFS         105 /* No buffer space available */
-#define ZTS_EISCONN         106 /* Transport endpoint is already connected */
-#define ZTS_ENOTCONN        107 /* Transport endpoint is not connected */
-#define ZTS_ESHUTDOWN       108 /* Cannot send after transport endpoint shutdown */
-#define ZTS_ETOOMANYREFS    109 /* Too many references: cannot splice */
-#define ZTS_ETIMEDOUT       110 /* Connection timed out */
-#define ZTS_ECONNREFUSED    111 /* Connection refused */
-#define ZTS_EHOSTDOWN       112 /* Host is down */
-#define ZTS_EHOSTUNREACH    113 /* No route to host */
-#define ZTS_EALREADY        114 /* Operation already in progress */
-#define ZTS_EINPROGRESS     115 /* Operation now in progress */
-#define ZTS_ESTALE          116 /* Stale NFS file handle */
-#define ZTS_EUCLEAN         117 /* Structure needs cleaning */
-#define ZTS_ENOTNAM         118 /* Not a XENIX named type file */
-#define ZTS_ENAVAIL         119 /* No XENIX semaphores available */
-#define ZTS_EISNAM          120 /* Is a named type file */
-#define ZTS_EREMOTEIO       121 /* Remote I/O error */
-#define ZTS_EDQUOT          122 /* Quota exceeded */
-#define ZTS_ENOMEDIUM       123 /* No medium found */
-#define ZTS_EMEDIUMTYPE     124 /* Wrong medium type */
+typedef enum {
+	/** Operation not permitted (`zts_errno` value) */
+	ZTS_EPERM = 1,
+	/** No such file or directory */
+	ZTS_ENOENT = 2,
+	/** No such process */
+	ZTS_ESRCH = 3,
+	/** Interrupted system call */
+	ZTS_EINTR = 4,
+	/** I/O error */
+	ZTS_EIO = 5,
+	/** No such device or address */
+	ZTS_ENXIO = 6,
+	/** Bad file number */
+	ZTS_EBADF = 9,
+	/** Try again */
+	ZTS_EAGAIN = 11,
+	/** Operation would block */
+	ZTS_EWOULDBLOCK = ZTS_EAGAIN,
+	/** Out of memory */
+	ZTS_ENOMEM = 12,
+	/** Permission denied */
+	ZTS_EACCES = 13,
+	/** Bad address */
+	ZTS_EFAULT = 14,
+	/** Device or resource busy */
+	ZTS_EBUSY = 16,
+	/** File exists */
+	ZTS_EEXIST = 17,
+	/** No such device */
+	ZTS_ENODEV = 19,
+	/** Invalid argument */
+	ZTS_EINVAL = 22,
+	/** File table overflow */
+	ZTS_ENFILE = 23,
+	/** Too many open files */
+	ZTS_EMFILE = 24,
+	/** Function not implemented */
+	ZTS_ENOSYS = 38,
+	/** Socket operation on non-socket */
+	ZTS_ENOTSOCK = 88,
+	/** Destination address required */
+	ZTS_EDESTADDRREQ = 89,
+	/** Message too long */
+	ZTS_EMSGSIZE = 90,
+	/** Protocol wrong type for socket */
+	ZTS_EPROTOTYPE = 91,
+	/** Protocol not available */
+	ZTS_ENOPROTOOPT = 92,
+	/** Protocol not supported */
+	ZTS_EPROTONOSUPPORT = 93,
+	/** Socket type not supported */
+	ZTS_ESOCKTNOSUPPORT = 94,
+	/** Operation not supported on transport endpoint */
+	ZTS_EOPNOTSUPP = 95,
+	/** Protocol family not supported */
+	ZTS_EPFNOSUPPORT = 96,
+	/** Address family not supported by protocol */
+	ZTS_EAFNOSUPPORT = 97,
+	/** Address already in use */
+	ZTS_EADDRINUSE = 98,
+	/** Cannot assign requested address */
+	ZTS_EADDRNOTAVAIL = 99,
+	/** Network is down */
+	ZTS_ENETDOWN = 100,
+	/** Network is unreachable */
+	ZTS_ENETUNREACH = 101,
+	/** Software caused connection abort */
+	ZTS_ECONNABORTED = 103,
+	/** Connection reset by peer */
+	ZTS_ECONNRESET = 104,
+	/** No buffer space available */
+	ZTS_ENOBUFS = 105,
+	/** Transport endpoint is already connected */
+	ZTS_EISCONN = 106,
+	/** Transport endpoint is not connected */
+	ZTS_ENOTCONN = 107,
+	/** Connection timed out */
+	ZTS_ETIMEDOUT = 110,
+	/** No route to host */
+	ZTS_EHOSTUNREACH = 113,
+	/** Operation already in progress */
+	ZTS_EALREADY = 114,
+	/** Operation now in progress */
+	ZTS_EINPROGRESS = 115
+} zts_errno_t;
+
+//----------------------------------------------------------------------------//
+// Misc definitions                                                           //
+//----------------------------------------------------------------------------//
+
+/**
+ * Length of human-readable MAC address string
+ */
+#define ZTS_MAC_ADDRSTRLEN 18
+
+/**
+ * Max length of human-readable IPv4 string
+ */
+#define ZTS_INET_ADDRSTRLEN 16
+
+/**
+ * Max length of human-readable IPv6 string
+ */
+#define ZTS_INET6_ADDRSTRLEN 46
+
+/**
+ * Maximum (and required) length of string buffers used to receive
+ * string-format IP addresses from the API. This is set to `ZTS_INET6_ADDRSTRLEN`
+ * to handle all cases: `ZTS_AF_INET` and `ZTS_AF_INET6`
+ */
+#define ZTS_IP_MAX_STR_LEN ZTS_INET6_ADDRSTRLEN
+
+/**
+ * Required buffer length to safely receive data store items
+ */
+#define ZTS_STORE_DATA_LEN 4096
+
+/**
+ * Maximum length of network short name
+ */
+#define ZTS_MAX_NETWORK_SHORT_NAME_LENGTH 127
+
+/**
+ * Maximum number of pushed routes on a network
+ */
+#define ZTS_MAX_NETWORK_ROUTES 32
+
+/**
+ * Maximum number of statically assigned IP addresses per network endpoint
+ * using ZT address management (not DHCP)
+ */
+#define ZTS_MAX_ASSIGNED_ADDRESSES 16
+
+/**
+ * Maximum number of direct network paths to a given peer
+ */
+#define ZTS_MAX_PEER_NETWORK_PATHS 16
+
+/**
+ * Maximum number of multicast groups a device / network interface can be
+ * subscribed to at once
+ */
+#define ZTS_MAX_MULTICAST_SUBSCRIPTIONS 1024
 
 //----------------------------------------------------------------------------//
 // Misc                                                                       //
 //----------------------------------------------------------------------------//
 
 #if ! defined(ZTS_ENABLE_PYTHON) && ! defined(ZTS_ENABLE_PINVOKE)
-	#define ZTS_C_API_ONLY 1
+#define ZTS_C_API_ONLY 1
 #endif
 
 #if ! ZTS_NO_STDINT_H
-	#include <stdint.h>
+#include <stdint.h>
 #endif
 
 #if defined(_MSC_VER)
-	#ifndef ssize_t
+#ifndef ssize_t
 // TODO: Should be SSIZE_T, would require lwIP patch
 // #include <BaseTsd.h>
 // typedef SSIZE_T ssize_t;
 typedef int ssize_t;
-	#endif
+#endif
 #else
-	#include <unistd.h>
+#include <unistd.h>
 #endif
 
 #ifdef ZTS_ENABLE_PINVOKE
@@ -317,8 +387,8 @@ typedef void (*CppCallback)(void* msg);
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
@@ -330,28 +400,20 @@ typedef void (*CppCallback)(void* msg);
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
- * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
- * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
- * OF SUCH DAMAGE.
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+ * EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * This file is part of the lwIP TCP/IP stack.
  *
  * Author: Adam Dunkels <adam@sics.se>
  *
  */
-
-/**
- * Length of human-readable MAC address string
- */
-#define ZTS_MAC_ADDRSTRLEN 18
-
-#define ZTS_INET_ADDRSTRLEN  16
-#define ZTS_INET6_ADDRSTRLEN 46
 
 /** 255.255.255.255 */
 #define ZTS_IPADDR_NONE ((uint32_t)0xffffffffUL)
@@ -439,6 +501,9 @@ struct zts_in6_addr {
 	//#define s6_addr  un.u8_addr
 };
 
+/**
+ * Address structure to specify an IPv4 endpoint
+ */
 struct zts_sockaddr_in {
 	uint8_t sin_len;
 	zts_sa_family_t sin_family;
@@ -448,6 +513,9 @@ struct zts_sockaddr_in {
 	char sin_zero[SIN_ZERO_LEN];
 };
 
+/**
+ * Address structure to specify an IPv6 endpoint
+ */
 struct zts_sockaddr_in6 {
 	uint8_t sin6_len;                // length of this structure
 	zts_sa_family_t sin6_family;     // ZTS_AF_INET6
@@ -457,12 +525,18 @@ struct zts_sockaddr_in6 {
 	uint32_t sin6_scope_id;          // Set of interfaces for scope
 };
 
+/**
+ * Pointers to socket address structures are often cast to this type
+ */
 struct zts_sockaddr {
 	uint8_t sa_len;
 	zts_sa_family_t sa_family;
 	char sa_data[14];
 };
 
+/**
+ * Address structure large enough to hold IPv4 and IPv6 addresses
+ */
 struct zts_sockaddr_storage {
 	uint8_t s2_len;
 	zts_sa_family_t ss_family;
@@ -472,153 +546,61 @@ struct zts_sockaddr_storage {
 };
 
 //----------------------------------------------------------------------------//
-// Structures used to convey details during various callback events           //
+// Callback Structures                                                        //
 //----------------------------------------------------------------------------//
 
 /**
- * Maximum address assignments per network
+ * Runtime details about the current node
  */
-#define ZTS_MAX_ASSIGNED_ADDRESSES 16
-
-/**
- * Maximum routes per network
- */
-#define ZTS_MAX_NETWORK_ROUTES 32
-
-/**
- * Maximum number of direct network paths to a given peer
- */
-#define ZTS_MAX_PEER_NETWORK_PATHS 16
-
-/**
- * What trust hierarchy role does this peer have?
- */
-enum zts_peer_role {
-	ZTS_PEER_ROLE_LEAF = 0,    // ordinary node
-	ZTS_PEER_ROLE_MOON = 1,    // moon root
-	ZTS_PEER_ROLE_PLANET = 2   // planetary root
-};
-
-/**
- * A structure used to convey details about the current node
- * to the user application
- */
-struct zts_node_details {
+typedef struct {
 	/**
-	 * The node ID
+	 * Node ID
 	 */
-	uint64_t address;
+	uint64_t node_id;
 
 	/**
-	 * The port used by the service to send and receive
-	 * all encapsulated traffic
+	 * Port used by ZeroTier to send and receive traffic
 	 */
-	uint16_t primaryPort;
-	uint16_t secondaryPort;
-	uint16_t tertiaryPort;
+	uint16_t port_primary;
 
 	/**
-	 * ZT version
+	 * Port used by ZeroTier to send and receive traffic
 	 */
-	uint8_t versionMajor;
-	uint8_t versionMinor;
-	uint8_t versionRev;
-};
+	uint16_t port_secondary;
+
+	/**
+	 * Port used by ZeroTier to send and receive traffic
+	 */
+	uint16_t port_tertiary;
+
+	/**
+	 * ZT Major version
+	 */
+	uint8_t ver_major;
+
+	/**
+	 * ZT Minor version
+	 */
+	uint8_t ver_minor;
+
+	/**
+	 * ZT Patch revision
+	 */
+	uint8_t ver_rev;
+} zts_node_info_t;
 
 /**
- * A structure used to convey information to a user application via
- * a callback function.
+ * Details about an assigned address that was added or removed
  */
-struct zts_callback_msg {
-	/**
-	 * Event identifier
-	 */
-	int16_t eventCode;
-
-	struct zts_node_details* node;
-	struct zts_network_details* network;
-	struct zts_netif_details* netif;
-	struct zts_virtual_network_route* route;
-	struct zts_peer_details* peer;
-	struct zts_addr_details* addr;
-};
-
-struct zts_addr_details {
-	uint64_t nwid;
+typedef struct {
+	uint64_t net_id;
 	struct zts_sockaddr_storage addr;
-};
-
-/**
- * A structure used to convey information about a virtual network
- * interface (netif) to a user application.
- */
-struct zts_netif_details {
-	/**
-	 * The virtual network that this interface was commissioned for.
-	 */
-	uint64_t nwid;
-
-	/**
-	 * The hardware address assigned to this interface
-	 */
-	uint64_t mac;
-
-	/**
-	 * The MTU for this interface
-	 */
-	int mtu;
-};
-
-/**
- * A structure used to represent a virtual network route
- */
-struct zts_virtual_network_route {
-	/**
-	 * Target network / netmask bits (in port field) or NULL or 0.0.0.0/0 for default
-	 */
-	struct zts_sockaddr_storage target;
-
-	/**
-	 * Gateway IP address (port ignored) or NULL (family == 0) for LAN-local (no gateway)
-	 */
-	struct zts_sockaddr_storage via;
-
-	/**
-	 * Route flags
-	 */
-	uint16_t flags;
-
-	/**
-	 * Route metric (not currently used)
-	 */
-	uint16_t metric;
-};
-
-/**
- * Maximum length of network short name
- */
-#define ZTS_MAX_NETWORK_SHORT_NAME_LENGTH 127
-
-/**
- * Maximum number of pushed routes on a network
- */
-#define ZTS_MAX_NETWORK_ROUTES 32
-
-/**
- * Maximum number of statically assigned IP addresses per network endpoint using ZT address
- * management (not DHCP)
- */
-#define ZTS_MAX_ZT_ASSIGNED_ADDRESSES 16
-
-/**
- * Maximum number of multicast groups a device / network interface can be subscribed to at once
- */
-#define ZTS_MAX_MULTICAST_SUBSCRIPTIONS 1024
+} zts_addr_info_t;
 
 /**
  * Virtual network status codes
  */
-enum ZTS_VirtualNetworkStatus {
+typedef enum {
 	/**
 	 * Waiting for network configuration (also means revision == 0)
 	 */
@@ -648,12 +630,12 @@ enum ZTS_VirtualNetworkStatus {
 	 * ZeroTier core version too old
 	 */
 	ZTS_NETWORK_STATUS_CLIENT_TOO_OLD = 5
-};
+} zts_network_status_t;
 
 /**
  * Virtual network type codes
  */
-enum ZTS_VirtualNetworkType {
+typedef enum {
 	/**
 	 * Private networks are authorized via certificates of membership
 	 */
@@ -663,19 +645,21 @@ enum ZTS_VirtualNetworkType {
 	 * Public networks have no access control -- they'll always be AUTHORIZED
 	 */
 	ZTS_NETWORK_TYPE_PUBLIC = 1
-};
+} zts_net_info_type_t;
 
 /**
  * A route to be pushed on a virtual network
  */
 typedef struct {
 	/**
-	 * Target network / netmask bits (in port field) or NULL or 0.0.0.0/0 for default
+	 * Target network / netmask bits (in port field) or NULL or 0.0.0.0/0
+	 * for default
 	 */
 	struct zts_sockaddr_storage target;
 
 	/**
-	 * Gateway IP address (port ignored) or NULL (family == 0) for LAN-local (no gateway)
+	 * Gateway IP address (port ignored) or NULL (family == 0) for LAN-local
+	 * (no gateway)
 	 */
 	struct zts_sockaddr_storage via;
 
@@ -688,16 +672,49 @@ typedef struct {
 	 * Route metric (not currently used)
 	 */
 	uint16_t metric;
-} ZTS_VirtualNetworkRoute;
+} zts_route_info_t;
+
+/**
+ * An Ethernet multicast group
+ */
+typedef struct {
+	/**
+	 * MAC address (least significant 48 bits)
+	 */
+	uint64_t mac;
+
+	/**
+	 * Additional distinguishing information (usually zero)
+	 */
+	unsigned long adi;
+} zts_multicast_group_t;
+
+/**
+ * The peer's trust hierarchy role
+ */
+typedef enum {
+	/**
+	 * Ordinary node
+	 */
+	ZTS_PEER_ROLE_LEAF = 0,
+	/**
+	 * Moon root
+	 */
+	ZTS_PEER_ROLE_MOON = 1,
+	/**
+	 * Planetary root
+	 */
+	ZTS_PEER_ROLE_PLANET = 2
+} zts_peer_role_t;
 
 /**
  * Virtual network configuration
  */
-struct zts_network_details {
+typedef struct {
 	/**
 	 * 64-bit ZeroTier network ID
 	 */
-	uint64_t nwid;
+	uint64_t net_id;
 
 	/**
 	 * Ethernet MAC (48 bits) that should be assigned to port
@@ -712,12 +729,12 @@ struct zts_network_details {
 	/**
 	 * Network configuration request status
 	 */
-	enum ZTS_VirtualNetworkStatus status;
+	zts_network_status_t status;
 
 	/**
 	 * Network type
 	 */
-	enum ZTS_VirtualNetworkType type;
+	zts_net_info_type_t type;
 
 	/**
 	 * Maximum interface MTU
@@ -742,25 +759,27 @@ struct zts_network_details {
 	int bridge;
 
 	/**
-	 * If nonzero, this network supports and allows broadcast (ff:ff:ff:ff:ff:ff) traffic
+	 * If nonzero, this network supports and allows broadcast
+	 * (ff:ff:ff:ff:ff:ff) traffic
 	 */
-	int broadcastEnabled;
+	int broadcast_enabled;
 
 	/**
-	 * If the network is in PORT_ERROR state, this is the (negative) error code most recently
-	 * reported
+	 * If the network is in PORT_ERROR state, this is the (negative) error code
+	 * most recently reported
 	 */
-	int portError;
+	int port_error;
 
 	/**
-	 * Revision number as reported by controller or 0 if still waiting for config
+	 * Revision number as reported by controller or 0 if still waiting for
+	 * config
 	 */
-	unsigned long netconfRevision;
+	unsigned long netconf_rev;
 
 	/**
 	 * Number of assigned addresses
 	 */
-	unsigned int assignedAddressCount;
+	unsigned int assigned_addr_count;
 
 	/**
 	 * ZeroTier-assigned addresses (in sockaddr_storage structures)
@@ -772,37 +791,37 @@ struct zts_network_details {
 	 * This is only used for ZeroTier-managed address assignments sent by the
 	 * virtual network's configuration master.
 	 */
-	struct zts_sockaddr_storage assignedAddresses[ZTS_MAX_ZT_ASSIGNED_ADDRESSES];
+	struct zts_sockaddr_storage assigned_addrs[ZTS_MAX_ASSIGNED_ADDRESSES];
 
 	/**
 	 * Number of ZT-pushed routes
 	 */
-	unsigned int routeCount;
+	unsigned int route_count;
 
 	/**
 	 * Routes (excluding those implied by assigned addresses and their masks)
 	 */
-	ZTS_VirtualNetworkRoute routes[ZTS_MAX_NETWORK_ROUTES];
+	zts_route_info_t routes[ZTS_MAX_NETWORK_ROUTES];
 
 	/**
 	 * Number of multicast groups subscribed
 	 */
-	unsigned int multicastSubscriptionCount;
+	unsigned int multicast_sub_count;
 
 	/**
 	 * Multicast groups to which this network's device is subscribed
 	 */
 	struct {
 		uint64_t mac; /* MAC in lower 48 bits */
-		uint32_t adi; /* Additional distinguishing information, usually zero except for IPv4 ARP
-		                 groups */
-	} multicastSubscriptions[ZTS_MAX_MULTICAST_SUBSCRIPTIONS];
-};
+		uint32_t adi; /* Additional distinguishing information, usually zero
+		                 except for IPv4 ARP groups */
+	} multicast_subs[ZTS_MAX_MULTICAST_SUBSCRIPTIONS];
+} zts_net_info_t;
 
 /**
  * Physical network path to a peer
  */
-struct zts_physical_path {
+typedef struct {
 	/**
 	 * Address of endpoint
 	 */
@@ -811,17 +830,36 @@ struct zts_physical_path {
 	/**
 	 * Time of last send in milliseconds or 0 for never
 	 */
-	uint64_t lastSend;
+	uint64_t last_tx;
 
 	/**
 	 * Time of last receive in milliseconds or 0 for never
 	 */
-	uint64_t lastReceive;
+	uint64_t last_rx;
 
 	/**
 	 * Is this a trusted path? If so this will be its nonzero ID.
 	 */
-	uint64_t trustedPathId;
+	uint64_t trusted_path_id;
+
+	/**
+	 * One-way latency
+	 */
+	float latency;
+
+	float unused_0;
+	float unused_1;
+	float unused_2;
+	float unused_3;
+	float unused_4;
+	uint64_t unused_5;
+	uint64_t unused_6;
+	float unused_7;
+
+	/**
+	 * Name of physical interface (for monitoring)
+	 */
+	char* ifname;
 
 	/**
 	 * Is path expired?
@@ -832,12 +870,12 @@ struct zts_physical_path {
 	 * Is path preferred?
 	 */
 	int preferred;
-};
+} zts_path_t;
 
 /**
  * Peer status result buffer
  */
-struct zts_peer_details {
+typedef struct {
 	/**
 	 * ZeroTier address (40 bits)
 	 */
@@ -846,17 +884,17 @@ struct zts_peer_details {
 	/**
 	 * Remote major version or -1 if not known
 	 */
-	int versionMajor;
+	int ver_major;
 
 	/**
 	 * Remote minor version or -1 if not known
 	 */
-	int versionMinor;
+	int ver_minor;
 
 	/**
 	 * Remote revision or -1 if not known
 	 */
-	int versionRev;
+	int ver_rev;
 
 	/**
 	 * Last measured latency in milliseconds or -1 if unknown
@@ -866,34 +904,93 @@ struct zts_peer_details {
 	/**
 	 * What trust hierarchy role does this device have?
 	 */
-	enum zts_peer_role role;
+	zts_peer_role_t role;
 
 	/**
 	 * Number of paths (size of paths[])
 	 */
-	unsigned int pathCount;
+	unsigned int path_count;
+
+	/**
+	 * Whether this peer was ever reachable via an aggregate link
+	 */
+	int unused_0;
 
 	/**
 	 * Known network paths to peer
 	 */
-	struct zts_physical_path paths[ZTS_MAX_PEER_NETWORK_PATHS];
-};
+	zts_path_t paths[ZTS_MAX_PEER_NETWORK_PATHS];
+} zts_peer_info_t;
 
 /**
- * List of peers
+ * A structure used to convey information about a virtual network
+ * interface (netif) to a user application.
  */
-struct zts_peer_list {
-	struct zts_peer_details* peers;
-	unsigned long peerCount;
-};
+typedef struct {
+	/**
+	 * The virtual network that this interface was created for
+	 */
+	uint64_t net_id;
+
+	/**
+	 * The hardware address assigned to this interface
+	 */
+	uint64_t mac;
+
+	/**
+	 * The MTU for this interface
+	 */
+	int mtu;
+} zts_netif_info_t;
+
+/**
+ * Callback message
+ */
+typedef struct {
+	/**
+	 * Event identifier
+	 */
+	int16_t event_code;
+	/**
+	 * Node status
+	 */
+	zts_node_info_t* node;
+	/**
+	 * Network information
+	 */
+	zts_net_info_t* network;
+	/**
+	 * Netif status
+	 */
+	zts_netif_info_t* netif;
+	/**
+	 * Managed routes
+	 */
+	zts_route_info_t* route;
+	/**
+	 * Peer info
+	 */
+	zts_peer_info_t* peer;
+	/**
+	 * Assigned address
+	 */
+	zts_addr_info_t* addr;
+	/**
+	 * Binary data (identities, planets, network configs, peer hints, etc)
+	 */
+	void* cache;
+	/**
+	 * Length of data message or structure
+	 */
+	int len;
+} zts_event_msg_t;
 
 //----------------------------------------------------------------------------//
-// Python Bindings (Subset of regular socket API)                              //
+// Python Bindings (Subset of regular socket API)                             //
 //----------------------------------------------------------------------------//
 
 #ifdef ZTS_ENABLE_PYTHON
-
-	#include "Python.h"
+#include "Python.h"
 
 /**
  * Abstract class used as a director. Pointer to an instance of this class
@@ -904,20 +1001,28 @@ class PythonDirectorCallbackClass {
 	/**
 	 * Called by native code on event. Implemented in Python
 	 */
-	virtual void on_zerotier_event(struct zts_callback_msg* msg);
+	virtual void on_zerotier_event(zts_event_msg_t* msg);
 	virtual ~PythonDirectorCallbackClass() {};
 };
 
 extern PythonDirectorCallbackClass* _userEventCallback;
 
 int zts_py_bind(int fd, int family, int type, PyObject* addro);
+
 int zts_py_connect(int fd, int family, int type, PyObject* addro);
+
 PyObject* zts_py_accept(int fd);
+
 int zts_py_listen(int fd, int backlog);
+
 PyObject* zts_py_recv(int fd, int len, int flags);
+
 int zts_py_send(int fd, PyObject* buf, int flags);
+
 int zts_py_close(int fd);
+
 int zts_py_setblocking(int fd, int flag);
+
 int zts_py_getblocking(int fd);
 
 #endif   // ZTS_ENABLE_PYTHON
@@ -927,63 +1032,69 @@ int zts_py_getblocking(int fd);
 //----------------------------------------------------------------------------//
 
 #if defined(_WIN32)
-	#ifdef ADD_EXPORTS
-		#define ZTS_API __declspec(dllexport)
-	#else
-		#define ZTS_API __declspec(dllimport)
-	#endif
-	#define ZTCALL __cdecl
+#ifdef ADD_EXPORTS
+#define ZTS_API __declspec(dllexport)
 #else
-	#define ZTS_API
-	#define ZTCALL
+#define ZTS_API __declspec(dllimport)
+#endif
+#define ZTCALL __cdecl
+#else
+#define ZTS_API
+#define ZTCALL
 #endif
 
 //----------------------------------------------------------------------------//
 // Central API                                                                //
 //----------------------------------------------------------------------------//
 
-#ifdef ZTS_ENABLE_CENTRAL_API
+#ifndef ZTS_DISABLE_CENTRAL_API
 
-	#define ZTS_CENTRAL_DEFAULT_URL         "https://my.zerotier.com"
-	#define ZTS_CENRTAL_MAX_URL_LEN         128
-	#define ZTS_CENTRAL_TOKEN_LEN           32
-	#define ZTS_CENTRAL_RESP_BUF_DEFAULT_SZ (128 * 1024)
+#define ZTS_CENTRAL_DEFAULT_URL         "https://my.zerotier.com"
+#define ZTS_CENRTAL_MAX_URL_LEN         128
+#define ZTS_CENTRAL_TOKEN_LEN           32
+#define ZTS_CENTRAL_RESP_BUF_DEFAULT_SZ (128 * 1024)
 
-	#define ZTS_HTTP_GET    0
-	#define ZTS_HTTP_POST   1
-	#define ZTS_HTTP_DELETE 2
+#define ZTS_HTTP_GET    0
+#define ZTS_HTTP_POST   1
+#define ZTS_HTTP_DELETE 2
 
-	#define ZTS_CENTRAL_NODE_AUTH_FALSE 0
-	#define ZTS_CENTRAL_NODE_AUTH_TRUE  1
+#define ZTS_CENTRAL_NODE_AUTH_FALSE 0
+#define ZTS_CENTRAL_NODE_AUTH_TRUE  1
 
-	#define ZTS_CENTRAL_READ  1
-	#define ZTS_CENTRAL_WRITE 2
+#define ZTS_CENTRAL_READ  1
+#define ZTS_CENTRAL_WRITE 2
 
 /**
- * @brief Enables read/write capability. Default before calling this is
+ * @brief Enable read/write capability. Default before calling this is
  * read-only: `ZTS_CENTRAL_READ`
  *
- * @param modes Whether the API allows read, write, or both
+ * @param modes `ZTS_CENTRAL_READ` and/or `ZTS_CENTRAL_WRITE`. Whether the API allows read, write,
+ * or both
+ *
+ * @return `ZTS_ERR_OK` if successful. `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API void ZTCALL zts_central_set_access_mode(int8_t modes);
+ZTS_API int ZTCALL zts_central_set_access_mode(int8_t modes);
 
 /**
- * @brief Enables or disables libcurl verbosity
+ * @brief Enable or disable libcurl verbosity
  *
- * @param is_verbose Whether debug information is desired
+ * @param is_verbose `[1, 0]`, Whether debug information is desired
+ *
+ * @return `ZTS_ERR_OK` if successful. `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API void ZTCALL zts_central_set_verbose(int8_t is_verbose);
+ZTS_API int ZTCALL zts_central_set_verbose(int8_t is_verbose);
 
 ZTS_API void ZTCALL zts_central_clear_resp_buf();
 
 /**
- * @brief Set the Central API URL and user API token.
+ * @brief Set the Central API `URL` and user API token.
  *
  * @param url_str The URL to the Central API server
  * @param token_str User API token
- * @param resp_buf Destination buffer for raw JSON output
- * @param buf_len Size of buffer for server response (specify `0` for default size)
- * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_ARG` if invalid arg.
+ * @param resp_buf Destination buffer for raw `JSON` output
+ * @param buf_len Size of buffer for server response (specify `0` for default
+ * size)
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_ARG` if invalid argument.
  */
 ZTS_API int ZTCALL
 zts_central_init(const char* url_str, const char* token_str, char* resp_buf, uint32_t buf_len);
@@ -991,48 +1102,48 @@ zts_central_init(const char* url_str, const char* token_str, char* resp_buf, uin
 ZTS_API void ZTCALL zts_central_cleanup();
 
 /**
- * @brief Copies the JSON-formatted string buffer from the last request into
+ * @brief Copies the `JSON`-formatted string buffer from the last request into
  *        a user-provided buffer.
  *
- * @param dest_buffer User-provided destination buffer
- * @param dest_buf_len Length of aforementioned buffer
+ * @param dst User-provided destination buffer
+ * @param len Length of aforementioned buffer
  * @return `ZTS_ERR_OK` if all contents were copied successfully.
  *     `ZTS_ERR_ARG` if provided buffer was too small.
  */
-ZTS_API int ZTCALL zts_central_get_last_response_buf(char* dest_buffer, int dest_buf_len);
+ZTS_API int ZTCALL zts_central_get_last_resp_buf(char* dst, int len);
 
 /**
  * @brief Get the status of the Central API server.
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_get_status(int* http_response_code);
+ZTS_API int ZTCALL zts_central_status_get(int* http_resp_code);
 
 /**
- * @brief Get the currently authenticated user’s user record.
+ * @brief Get the currently authenticated user’s record.
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_get_self(int* http_response_code);
+ZTS_API int ZTCALL zts_central_self_get(int* http_resp_code);
 
 /**
- * @brief Retrieve a Network.
+ * @brief Retrieve a `Network`.
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_get_network(int* http_response_code, uint64_t nwid);
+ZTS_API int ZTCALL zts_central_net_get(int* http_resp_code, uint64_t net_id);
 
 /**
- * @brief Update or create a Network.
+ * @brief Update or create a `Network`.
  *
  * Only fields marked as [rw] can be directly modified. If other fields are
  * present in the posted request they are ignored. New networks can be
- * created by POSTing to /api/network with no networkId parameter. The server
+ * created by POSTing to /api/network with no net_id parameter. The server
  * will create a random unused network ID and return the new network record.
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_update_network(int* http_response_code, uint64_t nwid);
+ZTS_API int ZTCALL zts_central_net_update(int* http_resp_code, uint64_t net_id);
 
 /**
  * @brief Delete a Network.
@@ -1042,7 +1153,7 @@ ZTS_API int ZTCALL zts_central_update_network(int* http_response_code, uint64_t 
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_delete_network(int* http_response_code, uint64_t nwid);
+ZTS_API int ZTCALL zts_central_net_delete(int* http_resp_code, uint64_t net_id);
 
 /**
  * @brief Get All Viewable Networks.
@@ -1051,13 +1162,13 @@ ZTS_API int ZTCALL zts_central_delete_network(int* http_response_code, uint64_t 
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_get_networks(int* http_response_code);
+ZTS_API int ZTCALL zts_central_net_get_all(int* http_resp_code);
 /**
  * @brief Retrieve a Member.
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_get_member(int* http_response_code, uint64_t nwid, uint64_t nodeid);
+ZTS_API int ZTCALL zts_central_member_get(int* http_resp_code, uint64_t net_id, uint64_t node_id);
 
 /**
  * @brief Update or add a Member.
@@ -1067,22 +1178,19 @@ ZTS_API int ZTCALL zts_central_get_member(int* http_response_code, uint64_t nwid
  * @return Standard HTTP response codes.
  */
 ZTS_API int ZTCALL
-zts_central_update_member(int* http_response_code, uint64_t nwid, uint64_t nodeid, char* post_data);
+zts_central_member_update(int* http_resp_code, uint64_t net_id, uint64_t node_id, char* post_data);
 
 /**
  * @brief Authorize or (De)authorize a node on a network. This operation
  * is idempotent.
  *
- * @param nwid The network ID
- * @param nodeid The node ID
+ * @param net_id Network ID
+ * @param node_id Node ID
  * @param is_authed Boolean value for whether this node should be authorized
- * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_ARG` if invalid arg.
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API int ZTCALL zts_central_set_node_auth(
-    int* http_response_code,
-    uint64_t nwid,
-    uint64_t nodeid,
-    uint8_t is_authed);
+ZTS_API int ZTCALL
+zts_central_node_auth(int* http_resp_code, uint64_t net_id, uint64_t node_id, uint8_t is_authed);
 
 /**
  * @brief Get All Members of a Network.
@@ -1091,251 +1199,272 @@ ZTS_API int ZTCALL zts_central_set_node_auth(
  *
  * @return Standard HTTP response codes.
  */
-ZTS_API int ZTCALL zts_central_get_members_of_network(int* http_response_code, uint64_t nwid);
+ZTS_API int ZTCALL zts_central_net_get_members(int* http_resp_code, uint64_t net_id);
 
-#endif   // NO_CENTRAL_API
+#endif   // ZTS_DISABLE_CENTRAL_API
 
 //----------------------------------------------------------------------------//
 // Identity Management                                                        //
 //----------------------------------------------------------------------------//
 
 /**
- * @brief Generates a node identity (public/secret key-pair) and stores it in a user-provided
- * buffer.
- *
- * @param key_pair_str User-provided destination buffer
- * @param key_buf_len Length of user-provided destination buffer. Will be set to number of bytes
- * copied.
- * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_ARG` if invalid arg.
+ * The length of a human-friendly identity key pair string
  */
-ZTS_API int ZTCALL zts_generate_orphan_identity(char* key_pair_str, uint16_t* key_buf_len);
+#define ZTS_ID_STR_BUF_LEN 384
 
 /**
- * @brief Verifies that a key-pair is valid for use.
+ * @brief Generates a node identity (public/secret key-pair) and stores it in a
+ *     user-provided buffer.
  *
- * @param key_pair_str Buffer containing key-pair
- * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_ARG` if invalid arg.
+ * @param key User-provided destination buffer
+ * @param key_buf_len Length of user-provided destination buffer. Will be set
+ *     to the number of bytes copied.
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API int ZTCALL zts_verify_identity(const char* key_pair_str);
+ZTS_API int ZTCALL zts_id_new(char* key, uint16_t* key_buf_len);
 
 /**
- * @brief Copies the current node's identity into a buffer
+ * @brief Verifies that a key-pair is valid. Checks formatting and pairing of
+ *    key to address.
  *
- * @param key_pair_str User-provided destination buffer
- * @param key_buf_len Length of user-provided destination buffer. Will be set to number of bytes
- * copied.
+ * @param key Buffer containing key-pair
+ * @param len Length of key-pair buffer
+ * @return `1` if true, `0` if false.
+ */
+ZTS_API int ZTCALL zts_id_pair_is_valid(const char* key, int len);
+
+/**
+ * @brief Instruct ZeroTier to look for node identity files at the given location. This is an
+ * initialization function that can only be called before `zts_node_start()`.
+ *
+ * Note that calling this function is not mandatory and if it is not called the node's keys will be
+ * kept in memory and retrievable via `zts_node_get_id_pair()`.
+ *
+ * See also: `zts_init_from_memory()`
+ *
+ * @param port Path Null-terminated file-system path string
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg.
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API int ZTCALL zts_get_node_identity(char* key_pair_str, uint16_t* key_buf_len);
+ZTS_API int ZTCALL zts_init_from_storage(const char* path);
 
 /**
- * @brief Starts the ZeroTier service and notifies user application of events via callback. This
- * variant will assign a user-provided identity to the node.
+ * @brief Instruct ZeroTier to use the identity provided in `key`. This is an initialization
+ * function that can only be called before `zts_node_start()`.
  *
- * @param path path directory where configuration files are stored
- * @param callback User-specified callback for `ZTS_EVENT_*` events
- * @param port Port that the library should use for talking to other ZeroTier nodes
+ * Note that calling this function is not mandatory and if it is not called the node's keys will be
+ * kept in memory and retrievable via `zts_node_get_id_pair()`.
+ *
+ * See also: `zts_init_from_storage()`
+ *
+ * @param key Path Null-terminated file-system path string
+ * @param len Length of `key` buffer
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg.
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
+ */
+ZTS_API int ZTCALL zts_init_from_memory(const char* key, uint16_t len);
+
+/**
+ * @brief Set the event handler function. This is an initialization function that can only be called
+ * before `zts_node_start()`.
+ *
+ * @param callback A function pointer to the event handler function
+ * @param family `ZTS_AF_INET`, or `ZTS_AF_INET6`
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
 #ifdef ZTS_ENABLE_PYTHON
-int zts_start_with_identity(
-    const char* key_pair_str,
-    uint16_t key_buf_len,
-    PythonDirectorCallbackClass* callback,
-    uint16_t port);
+ZTS_API int ZTCALL zts_init_set_event_handler(PythonDirectorCallbackClass* callback);
 #endif
 #ifdef ZTS_ENABLE_PINVOKE
-int zts_start_with_identity(
-    const char* key_pair_str,
-    uint16_t key_buf_len,
-    CppCallback callback,
-    uint16_t port);
+ZTS_API int ZTCALL zts_init_set_event_handler(CppCallback callback);
 #endif
 #ifdef ZTS_C_API_ONLY
-int zts_start_with_identity(
-    const char* key_pair_str,
-    uint16_t key_buf_len,
-    void (*callback)(void*),
-    uint16_t port);
+ZTS_API int ZTCALL zts_init_set_event_handler(void (*callback)(void*));
 #endif
 
 /**
- * @brief Enable or disable whether the service will cache network details (enabled by default)
+ * @brief Blacklist an interface prefix (or name). This prevents ZeroTier from
+ * sending traffic over matching interfaces. This is an initialization function that can
+ * only be called before `zts_node_start()`.
  *
- * This can potentially shorten (startup) times. This allows the service to nearly instantly
- * inform the network stack of an address to use for this peer so that it can
- * create an interface. This can be disabled for cases where one may not want network
- * config details to be written to storage. This is especially useful for situations where
- * address assignments do not change often.
+ * @param prefix Null-terminated interface prefix string
+ * @param len Length of prefix string
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
+ */
+ZTS_API int ZTCALL zts_init_blacklist_if(const char* prefix, int len);
+
+/**
+ * @brief Present a planet definition for ZeroTier to use instead of the default.
+ * This is an initialization function that can only be called before `zts_node_start()`.
  *
- * Should be called before `zts_start()` if you intend on changing its state.
+ * @param planet_data Array of planet definition data (binary)
+ * @param len Length of binary data
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
+ */
+ZTS_API int ZTCALL zts_init_set_planet(const char* planet_data, int len);
+
+/**
+ * @brief Set the port to which the node should bind. This is an initialization function that can
+ * only be called before `zts_node_start()`.
+ *
+ * @param port Port number
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
+ */
+ZTS_API int ZTCALL zts_init_set_port(unsigned short port);
+
+/**
+ * @brief Enable or disable whether the node will cache network details
+ * (enabled by default when `zts_init_from_storage()` is used.) Must be called before
+ * `zts_node_start()`.
+ *
+ * This can potentially shorten (startup) times between node restarts. This allows the service to
+ * nearly instantly inform the network stack of an address to use for this peer
+ * so that it can create a transport service. This can be disabled for cases where one
+ * may not want network config details to be written to storage. This is
+ * especially useful for situations where address assignments do not change
+ * often.
+ *
+ * See also: `zts_init_allow_peer_cache()`
  *
  * @param enabled Whether or not this feature is enabled
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg.
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API int ZTCALL zts_allow_network_caching(uint8_t allowed);
+ZTS_API int ZTCALL zts_init_allow_net_cache(int allowed);
 
 /**
- * @brief Enable or disable whether the service will cache peer details (enabled by default)
+ * @brief Enable or disable whether the node will cache peer details (enabled
+ * by default when `zts_init_from_storage()` is used.) Must be called before `zts_node_start()`.
  *
- * This can potentially shorten (connection) times. This allows the service to
- * re-use previously discovered paths to a peer, this prevents the service from having
- * to go through the entire transport-triggered link provisioning process. This is especially
- * useful for situations where paths to peers do not change often. This is enabled by default
- * and can be disabled for cases where one may not want peer details to be written to storage.
+ * This can potentially shorten (connection) times between node restarts. This allows the service to
+ * re-use previously discovered paths to a peer, this prevents the service from
+ * having to go through the entire transport-triggered link provisioning
+ * process. This is especially useful for situations where paths to peers do not
+ * change often. This is enabled by default and can be disabled for cases where
+ * one may not want peer details to be written to storage.
  *
- * Should be called before `zts_start()` if you intend on changing its state.
+ * See also: `zts_init_allow_net_cache()`
  *
  * @param enabled Whether or not this feature is enabled
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg.
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API int ZTCALL zts_allow_peer_caching(uint8_t allowed);
+ZTS_API int ZTCALL zts_init_allow_peer_cache(int allowed);
 
 /**
- * @brief Enable or disable whether the service will read node configuration settings from a
- * local.conf
+ * @brief Clear all initialization settings. This is an initialization function that can
+ * only be called before `zts_node_start()` or after `zts_node_stop()`.
  *
- * Should be called before `zts_start()` if you intend on changing its state.
- *
- * @param enabled Whether or not this feature is enabled
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg.
+ *     experiences a problem.
  */
-ZTS_API int ZTCALL zts_allow_local_conf(uint8_t allowed);
+ZTS_API int ZTCALL zts_init_clear();
 
 /**
- * @brief Enable or disable whether the service will read or write config data to local storage
+ * @brief Return whether an address of the given family has been assigned by the network
  *
- * Should be called before zts_start() if you intend on changing its state.
- *
- * @param enabled Whether or not this feature is enabled
- * @return ZTS_ERR_OK on success. ZTS_ERR_SERVICE on failure.
+ * @param net_id Network ID
+ * @param family `ZTS_AF_INET`, or `ZTS_AF_INET6`
+ * @return `1` if true, `0` if false.
  */
-ZTS_API int ZTCALL zts_disable_local_storage(uint8_t disabled);
+ZTS_API int ZTCALL zts_addr_is_assigned(uint64_t net_id, int family);
 
 /**
- * @brief Starts the ZeroTier service and notifies user application of events via callback
+ * @brief Get the first-assigned IP on the given network.
  *
- * @param path path directory where configuration files are stored
- * @param callback User-specified callback for ZTS_EVENT_* events
- * @param port Port that the library should use for talking to other ZeroTier nodes
+ * To get *all* assigned addresses on a given network, use `zts_addr_get_all()`.
+ *
+ * @param net_id Network ID
+ * @param family `ZTS_AF_INET`, or `ZTS_AF_INET6`
+ * @param addr Destination buffer to hold address
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg.
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
-#ifdef ZTS_ENABLE_PYTHON
-ZTS_API int ZTCALL
-zts_start(const char* path, PythonDirectorCallbackClass* callback, uint16_t port);
-#endif
-#ifdef ZTS_ENABLE_PINVOKE
-ZTS_API int ZTCALL zts_start(const char* path, CppCallback callback, uint16_t port);
-#endif
-#ifdef ZTS_C_API_ONLY
-ZTS_API int ZTCALL zts_start(const char* path, void (*callback)(void*), uint16_t port);
-#endif
+ZTS_API int ZTCALL zts_addr_get(uint64_t net_id, int family, struct zts_sockaddr_storage* addr);
 
 /**
- * @brief Stops the ZeroTier service and brings down all virtual network interfaces
+ * @brief Get the first-assigned IP on the given network as a null-terminated human-readable string
  *
- * While the ZeroTier service will stop, the stack driver (with associated timers)
- * will remain active in case future traffic processing is required. To stop all activity
- * and free all resources use `zts_free()` instead.
+ * To get *all* assigned addresses on a given network, use `zts_addr_get_all()`.
+ *
+ * @param net_id Network ID
+ * @param family `ZTS_AF_INET`, or `ZTS_AF_INET6`
+ * @param dst Destination buffer
+ * @param len Length of destination buffer (must be exactly `ZTS_IP_MAX_STR_LEN`)
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API int ZTCALL zts_stop();
+ZTS_API int ZTCALL zts_addr_get_str(uint64_t net_id, int family, char* dst, int len);
 
 /**
- * @brief Restart the ZeroTier service.
+ * @brief Get all IP addresses assigned to this node by the given network
  *
- * This call will block until the service has been brought offline. Then
- * it will return and the user application can then watch for the appropriate
- * startup callback events.
+ * @param net_id Network ID
+ * @param addr Destination buffer to hold address
+ * @param count Number of addresses returned
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API int ZTCALL zts_restart();
-
-/**
- * @brief Stop all background services, bring down all interfaces, free all resources. After
- * calling this function an application restart will be required before the library can be
- * used again.
- *
- * This should be called at the end of your program or when you do not anticipate
- *        communicating over ZeroTier
- * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem. Sets `zts_errno`
- */
-ZTS_API int ZTCALL zts_free();
-
-/**
- * @brief Join a network
- *
- * @param networkId A `16-digit hexadecimal` virtual network ID
- * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg.
- */
-ZTS_API int ZTCALL zts_join(const uint64_t networkId);
-
-/**
- * @brief Leave a network
- *
- * @param networkId A `16-digit hexadecimal` virtual network ID
- * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg.
- */
-ZTS_API int ZTCALL zts_leave(const uint64_t networkId);
-
-/**
- * @brief Orbit a given moon (user-defined root server)
- *
- * @param moonWorldId A `16-digit hexadecimal` world ID
- * @param moonSeed A `16-digit hexadecimal` seed ID
- * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg.
- */
-ZTS_API int ZTCALL zts_orbit(uint64_t moonWorldId, uint64_t moonSeed);
-
-/**
- * @brief De-orbit a given moon (user-defined root server)
- *
- * @param moonWorldId A `16-digit` world ID
- * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg.
- */
-ZTS_API int ZTCALL zts_deorbit(uint64_t moonWorldId);
+ZTS_API int ZTCALL zts_addr_get_all(uint64_t net_id, struct zts_sockaddr_storage* addr, int* count);
 
 /**
  * @brief Compute a `6PLANE` IPv6 address for the given Network ID and Node ID
  *
+ * @param net_id Network ID
+ * @param node_id Node ID
  * @param addr Destination structure for address
- * @param networkId Network ID
- * @param nodeId Node ID
- * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_ARG` if invalid arg.
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API int ZTCALL zts_get_6plane_addr(
-    struct zts_sockaddr_storage* addr,
-    const uint64_t networkId,
-    const uint64_t nodeId);
+ZTS_API int ZTCALL zts_addr_compute_6plane(
+    const uint64_t net_id,
+    const uint64_t node_id,
+    struct zts_sockaddr_storage* addr);
 
 /**
- * @brief Compute a `RFC4193` IPv6 address for the given Network ID and Node ID
+ * @brief Compute `RFC4193` IPv6 address for the given Network ID and Node ID
  *
+ * @param net_id Network ID
+ * @param node_id Node ID
  * @param addr Destination structure for address
- * @param networkId Network ID
- * @param nodeId Node ID
- * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_ARG` if invalid arg.
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API int ZTCALL zts_get_rfc4193_addr(
-    struct zts_sockaddr_storage* addr,
-    const uint64_t networkId,
-    const uint64_t nodeId);
+ZTS_API int ZTCALL zts_addr_compute_rfc4193(
+    const uint64_t net_id,
+    const uint64_t node_id,
+    struct zts_sockaddr_storage* addr);
 
 /**
- * @brief Compute a `RFC4193` IPv6 address for the given Network ID and Node ID
+ * @brief Compute `RFC4193` IPv6 address for the given Network ID and Node ID and copy its
+ * null-terminated human-readable string representation into destination buffer.
+ *
+ * @param net_id Network ID
+ * @param node_id Node ID
+ * @param dst Destination string buffer
+ * @param len Length of destination string buffer (must be exactly `ZTS_IP_MAX_STR_LEN`)
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_ARG` if invalid argument.
+ */
+ZTS_API int ZTCALL
+zts_addr_compute_rfc4193_str(uint64_t net_id, uint64_t node_id, char* dst, int len);
+
+/**
+ * @brief Compute `6PLANE` IPv6 address for the given Network ID and Node ID and copy its
+ * null-terminated human-readable string representation into destination buffer.
+ *
+ * @param net_id Network ID
+ * @param node_id Node ID
+ * @param dst Destination string buffer
+ * @param len Length of destination string buffer (must be exactly `ZTS_IP_MAX_STR_LEN`)
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_ARG` if invalid argument.
+ */
+ZTS_API int ZTCALL
+zts_addr_compute_6plane_str(uint64_t net_id, uint64_t node_id, char* dst, int len);
+
+/**
+ * @brief Compute `RFC4193` IPv6 address for the given Network ID and Node ID
  *
  * Ad-hoc Network:
  * ```
@@ -1346,148 +1475,341 @@ ZTS_API int ZTCALL zts_get_rfc4193_addr(
  * | Start of port range (hex)
  * Reserved ZeroTier address prefix indicating a controller-less network.
  * ```
- * Ad-hoc networks are public (no access control) networks that have no network controller. Instead
- * their configuration and other credentials are generated locally. Ad-hoc networks permit only IPv6
- * UDP and TCP unicast traffic (no multicast or broadcast) using 6plane format NDP-emulated IPv6
- * addresses. In addition an ad-hoc network ID encodes an IP port range. UDP packets and TCP SYN
- * (connection open) packets are only allowed to destination ports within the encoded range.
+ * Ad-hoc networks are public (no access control) networks that have no network
+ * controller. Instead their configuration and other credentials are generated
+ * locally. Ad-hoc networks permit only IPv6 UDP and TCP unicast traffic
+ * (no multicast or broadcast) using 6plane format NDP-emulated IPv6 addresses.
+ * In addition an ad-hoc network ID encodes an IP port range. UDP packets and
+ * TCP SYN (connection open) packets are only allowed to destination ports
+ * within the encoded range.
  *
- * For example `ff00160016000000` is an ad-hoc network allowing only SSH, while `ff0000ffff000000`
- * is an ad-hoc network allowing any UDP or TCP port.
+ * For example `ff00160016000000` is an ad-hoc network allowing only SSH,
+ * while `ff0000ffff000000` is an ad-hoc network allowing any UDP or TCP port.
  *
- * Keep in mind that these networks are public and anyone in the entire world can join them. Care
- * must be taken to avoid exposing vulnerable services or sharing unwanted files or other resources.
+ * Keep in mind that these networks are public and anyone in the entire world
+ * can join them. Care must be taken to avoid exposing vulnerable services or
+ * sharing unwanted files or other resources.
  *
  *
- * @param startPortOfRange Start of port allowed port range
- * @param endPortOfRange End of allowed port range
+ * @param start_port Start of port allowed port range
+ * @param end_port End of allowed port range
  * @return An Ad-hoc network ID
  */
-ZTS_API uint64_t ZTCALL
-zts_generate_adhoc_nwid_from_range(uint16_t startPortOfRange, uint16_t endPortOfRange);
+ZTS_API uint64_t ZTCALL zts_net_compute_adhoc_id(uint16_t start_port, uint16_t end_port);
 
 /**
- * @brief Platform-agnostic delay (provided for convenience)
+ * @brief Join a network
  *
- * @param interval_ms Number of milliseconds to delay
+ * @param net_id Network ID
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API void ZTCALL zts_delay_ms(long interval_ms);
+ZTS_API int ZTCALL zts_net_join(uint64_t net_id);
+
+/**
+ * @brief Leave a network
+ *
+ * @param net_id Network ID
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
+ */
+ZTS_API int ZTCALL zts_net_leave(uint64_t net_id);
+
+/**
+ * @brief Return number of joined networks
+ *
+ * @return Number of joined networks
+ */
+ZTS_API int ZTCALL zts_net_count();
+
+/**
+ * @brief Get the MAC Address for this node on the given network
+ *
+ * @param net_id Network ID
+ *
+ * @return MAC address in numerical format
+ */
+ZTS_API uint64_t ZTCALL zts_net_get_mac(uint64_t net_id);
+
+/**
+ * @brief Get the MAC Address for this node on the given network
+ *
+ * @param net_id Network ID
+ * @param dst Destination string buffer
+ * @param len Length of destination string buffer. Must be exactly `ZTS_MAC_ADDRSTRLEN`
+ *
+ * @return MAC address in string format
+ */
+ZTS_API int ZTCALL zts_net_get_mac_str(uint64_t net_id, char* dst, int len);
+
+/**
+ * @brief Return whether broadcast is enabled on this network
+ *
+ * @param net_id Network ID
+ *
+ * @return `1` if true, `0` if false.
+ */
+ZTS_API int ZTCALL zts_net_get_broadcast(uint64_t net_id);
+
+/**
+ * @brief Get the MTU of the given network
+ *
+ * @param net_id Network ID
+ *
+ * @return MTU
+ */
+ZTS_API int ZTCALL zts_net_get_mtu(uint64_t net_id);
+
+/**
+ * @brief Get the nickname of the network
+ *
+ * @param net_id Network ID
+ * @param dst Destination string buffer
+ * @param len Length of destination string buffer
+ *
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
+ */
+ZTS_API int ZTCALL zts_net_get_name(uint64_t net_id, char* dst, int len);
+
+/**
+ * @brief Get the status of the network
+ *
+ * @param net_id Network ID
+ *
+ * @return Status
+ */
+ZTS_API int ZTCALL zts_net_get_status(uint64_t net_id);
+
+/**
+ * @brief Get the type of network (public or private.)
+ *
+ * @param net_id Network ID
+ *
+ * @return Type
+ */
+ZTS_API int ZTCALL zts_net_get_type(uint64_t net_id);
+
+/**
+ * @brief Return whether a managed route of the given address family has been assigned by the
+ * network
+ *
+ * @param net_id Network ID
+ * @param family `ZTS_AF_INET`, or `ZTS_AF_INET6`
+ * @return `1` if true, `0` if false.
+ */
+ZTS_API int ZTCALL zts_route_is_assigned(uint64_t net_id, int family);
+
+/**
+ * @brief Start the ZeroTier node. Should be called after calling the relevant
+ *    `zts_init_*` functions for your application. To enable storage call
+ *    `zts_init_from_storage()` before this function. To enable event callbacks
+ *     call `zts_init_set_event_handler()` before this function.
+ *
+ * Note: If neither `zts_init_from_storage()` or `zts_init_from_memory()` are
+ * called a new identity will be generated and will be retrievable via
+ * `zts_node_get_id_pair()` *after* the node has started.
+ *
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem.
+ */
+ZTS_API int ZTCALL zts_node_start();
+
+/**
+ * @brief Return whether the node is online (Can reach the Internet)
+ *
+ * @return `1` if true, `0` if false.
+ */
+ZTS_API int ZTCALL zts_node_is_online();
+
+/**
+ * @brief Get the public node identity (aka `node_id`). Callable only after the node has been
+ * started.
+ *
+ * @return Identity in numerical form
+ */
+ZTS_API uint64_t ZTCALL zts_node_get_id();
+
+/**
+ * @brief Copy the current node's public (and secret!) identity into a buffer.
+ *
+ * `WARNING`: This function exports your secret key and should be used carefully.
+ *
+ * @param key User-provided destination buffer
+ * @param key_buf_len Length of user-provided destination buffer. Will be set to
+ * number of bytes copied.
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
+ */
+ZTS_API int ZTCALL zts_node_get_id_pair(char* key, uint16_t* key_buf_len);
+
+/**
+ * @brief Get the primary port to which the node is bound. Callable only after the node has been
+ * started.
+ *
+ * @return Port number
+ */
+ZTS_API int ZTCALL zts_node_get_port();
+
+/**
+ * @brief Stop the ZeroTier node and bring down all virtual network
+ *     transport services. Callable only after the node has been started.
+ *
+ * While the ZeroTier will stop, the stack driver (with associated
+ * timers) will remain active in case future traffic processing is required.
+ * To stop all activity and free all resources use `zts_free()` instead.
+ *
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem.
+ */
+ZTS_API int ZTCALL zts_node_stop();
+
+/**
+ * @brief Restart the ZeroTier node. Callable only after the node has been started.
+ *
+ * This call will block until the node has been brought offline. Then
+ * it will return and the user application can then watch for the appropriate
+ * startup callback events.
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem.
+ */
+ZTS_API int ZTCALL zts_node_restart();
+
+/**
+ * @brief Stop all background threads, bring down all transport services, free all
+ *     resources. After calling this function an application restart will be
+ *     required before the library can be used again. Callable only after the node
+ *     has been started.
+ *
+ * This should be called at the end of your program or when you do not
+ * anticipate communicating over ZeroTier again.
+ *
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem.
+ */
+ZTS_API int ZTCALL zts_node_free();
+
+/**
+ * @brief Orbit a given moon (user-defined root server)
+ *
+ * @param moon_world_id World ID
+ * @param moon_seed Seed ID
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
+ */
+ZTS_API int ZTCALL zts_moon_orbit(uint64_t moon_world_id, uint64_t moon_seed);
+
+/**
+ * @brief De-orbit a given moon (user-defined root server)
+ *
+ * @param moon_world_id World ID
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
+ */
+ZTS_API int ZTCALL zts_moon_deorbit(uint64_t moon_world_id);
 
 //----------------------------------------------------------------------------//
 // Statistics                                                                 //
 //----------------------------------------------------------------------------//
 
-#ifdef ZTS_ENABLE_STATS
+/**
+ * Structure containing counters for various protocol statistics
+ */
+typedef struct {
+	/** Number of link packets transmitted */
+	uint32_t link_tx;
+	/** Number of link packets received */
+	uint32_t link_rx;
+	/** Number of link packets dropped */
+	uint32_t link_drop;
+	/** Aggregate number of link-level errors */
+	uint32_t link_err;
 
-	#define ZTS_STATS_PROTOCOL_LINK     0
-	#define ZTS_STATS_PROTOCOL_ETHARP   1
-	#define ZTS_STATS_PROTOCOL_IP       2
-	#define ZTS_STATS_PROTOCOL_UDP      3
-	#define ZTS_STATS_PROTOCOL_TCP      4
-	#define ZTS_STATS_PROTOCOL_ICMP     5
-	#define ZTS_STATS_PROTOCOL_IP_FRAG  6
-	#define ZTS_STATS_PROTOCOL_IP6      7
-	#define ZTS_STATS_PROTOCOL_ICMP6    8
-	#define ZTS_STATS_PROTOCOL_IP6_FRAG 9
+	/** Number of etharp packets transmitted */
+	uint32_t etharp_tx;
+	/** Number of etharp packets received */
+	uint32_t etharp_rx;
+	/** Number of etharp packets dropped */
+	uint32_t etharp_drop;
+	/** Aggregate number of etharp errors */
+	uint32_t etharp_err;
 
-/** Protocol related stats */
-struct zts_stats_proto {
-	uint32_t xmit;    /* Transmitted packets.  */
-	uint32_t recv;    /* Received packets.     */
-	uint32_t fw;      /* Forwarded packets.    */
-	uint32_t drop;    /* Dropped packets.      */
-	uint32_t chkerr;  /* Checksum error.       */
-	uint32_t lenerr;  /* Invalid length error. */
-	uint32_t memerr;  /* Out of memory error.  */
-	uint32_t rterr;   /* Routing error.        */
-	uint32_t proterr; /* Protocol error.       */
-	uint32_t opterr;  /* Error in options.     */
-	uint32_t err;     /* Misc error.           */
-	uint32_t cachehit;
-};
+	/** Number of IPv4 packets transmitted */
+	uint32_t ip4_tx;
+	/** Number of IPv4 packets received */
+	uint32_t ip4_rx;
+	/** Number of IPv4 packets dropped */
+	uint32_t ip4_drop;
+	/** Aggregate number of IPv4 errors */
+	uint32_t ip4_err;
 
-/** IGMP stats */
-struct zts_stats_igmp {
-	uint32_t xmit;       /* Transmitted packets.             */
-	uint32_t recv;       /* Received packets.                */
-	uint32_t drop;       /* Dropped packets.                 */
-	uint32_t chkerr;     /* Checksum error.                  */
-	uint32_t lenerr;     /* Invalid length error.            */
-	uint32_t memerr;     /* Out of memory error.             */
-	uint32_t proterr;    /* Protocol error.                  */
-	uint32_t rx_v1;      /* Received v1 frames.              */
-	uint32_t rx_group;   /* Received group-specific queries. */
-	uint32_t rx_general; /* Received general queries.        */
-	uint32_t rx_report;  /* Received reports.                */
-	uint32_t tx_join;    /* Sent joins.                      */
-	uint32_t tx_leave;   /* Sent leaves.                     */
-	uint32_t tx_report;  /* Sent reports.                    */
-};
+	/** Number of IPv6 packets transmitted */
+	uint32_t ip6_tx;
+	/** Number of IPv6 packets received */
+	uint32_t ip6_rx;
+	/** Number of IPv6 packets dropped */
+	uint32_t ip6_drop;
+	/** Aggregate number of IPv6 errors */
+	uint32_t ip6_err;
 
-/** System element stats */
-struct zts_stats_syselem {
-	uint32_t used;
-	uint32_t max;
-	uint32_t err;
-};
+	/** Number of ICMPv4 packets transmitted */
+	uint32_t icmp4_tx;
+	/** Number of ICMPv4 packets received */
+	uint32_t icmp4_rx;
+	/** Number of ICMPv4 packets dropped */
+	uint32_t icmp4_drop;
+	/** Aggregate number of ICMPv4 errors */
+	uint32_t icmp4_err;
 
-/** System stats */
-struct zts_stats_sys {
-	struct zts_stats_syselem sem;
-	struct zts_stats_syselem mutex;
-	struct zts_stats_syselem mbox;
-};
+	/** Number of ICMPv6 packets transmitted */
+	uint32_t icmp6_tx;
+	/** Number of ICMPv6 packets received */
+	uint32_t icmp6_rx;
+	/** Number of ICMPv6 packets dropped */
+	uint32_t icmp6_drop;
+	/** Aggregate number of ICMPv6 errors */
+	uint32_t icmp6_err;
 
-/** lwIP stats container */
-struct zts_stats {
-	/** Link level */
-	struct zts_stats_proto link;
-	/** ARP */
-	struct zts_stats_proto etharp;
-	/** Fragmentation */
-	struct zts_stats_proto ip_frag;
-	/** IP */
-	struct zts_stats_proto ip;
-	/** ICMP */
-	struct zts_stats_proto icmp;
-	/** IGMP */
-	struct zts_stats_igmp igmp;
-	/** UDP */
-	struct zts_stats_proto udp;
-	/** TCP */
-	struct zts_stats_proto tcp;
-	/** System */
-	struct zts_stats_sys sys;
-	/** IPv6 */
-	struct zts_stats_proto ip6;
-	/** ICMP6 */
-	struct zts_stats_proto icmp6;
-	/** IPv6 fragmentation */
-	struct zts_stats_proto ip6_frag;
-	/** Multicast listener discovery */
-	struct zts_stats_igmp mld6;
-	/** Neighbor discovery */
-	struct zts_stats_proto nd6;
-};
+	/** Number of UDP packets transmitted */
+	uint32_t udp_tx;
+	/** Number of UDP packets received */
+	uint32_t udp_rx;
+	/** Number of UDP packets dropped */
+	uint32_t udp_drop;
+	/** Aggregate number of UDP errors */
+	uint32_t udp_err;
+
+	/** Number of TCP packets transmitted */
+	uint32_t tcp_tx;
+	/** Number of TCP packets received */
+	uint32_t tcp_rx;
+	/** Number of TCP packets dropped */
+	uint32_t tcp_drop;
+	/** Aggregate number of TCP errors */
+	uint32_t tcp_err;
+
+	/** Number of ND6 packets transmitted */
+	uint32_t nd6_tx;
+	/** Number of ND6 packets received */
+	uint32_t nd6_rx;
+	/** Number of ND6 packets dropped */
+	uint32_t nd6_drop;
+	/** Aggregate number of ND6 errors */
+	uint32_t nd6_err;
+} zts_stats_counter_t;
 
 /**
- * @brief Return all statistical counters for all protocols (inefficient)
+ * @brief Get all statistical counters for all protocols and levels, where
+ * *all* means *most*. If you need anything more detailed you should inspect
+ * what is available in `lwip/stats.h`.
  *
  * This function can only be used in debug builds.
- * @return ZTS_ERR_OK on success. ZTS_ERR_ARG or ZTS_ERR_NO_RESULT on failure.
- */
-ZTS_API int ZTCALL zts_get_all_stats(struct zts_stats* statsDest);
-
-/**
- * @brief Populate the given structure with the requested protocol's
- * statistical counters (from network stack)
  *
- * This function can only be used in debug builds.
+ * @param dst Pointer to structure that will be populated with statistics
+ *
  * @return ZTS_ERR_OK on success. ZTS_ERR_ARG or ZTS_ERR_NO_RESULT on failure.
  */
-ZTS_API int ZTCALL zts_get_protocol_stats(int protocolType, void* protoStatsDest);
-
-#endif   // ZTS_ENABLE_STATS
+ZTS_API int ZTCALL zts_stats_get_all(zts_stats_counter_t* dst);
 
 //----------------------------------------------------------------------------//
 // Socket API                                                                 //
@@ -1496,13 +1818,13 @@ ZTS_API int ZTCALL zts_get_protocol_stats(int protocolType, void* protoStatsDest
 /**
  * @brief Create a socket
  *
- * @param socket_family Address family (ZTS_AF_INET, ZTS_AF_INET6)
- * @param socket_type Type of socket (ZTS_SOCK_STREAM, ZTS_SOCK_DGRAM, ZTS_SOCK_RAW)
+ * @param family `ZTS_AF_INET` or `ZTS_AF_INET6`
+ * @param type `ZTS_SOCK_STREAM` or `ZTS_SOCK_DGRAM`
  * @param protocol Protocols supported on this socket
  * @return Numbered file descriptor on success, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_socket(const int socket_family, const int socket_type, const int protocol);
+ZTS_API int ZTCALL zts_socket(int family, int type, int protocol);
 
 /**
  * @brief Connect a socket to a remote host
@@ -1511,7 +1833,7 @@ ZTS_API int ZTCALL zts_socket(const int socket_family, const int socket_type, co
  * @param addr Remote host address to connect to
  * @param addrlen Length of address
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API int ZTCALL zts_connect(int fd, const struct zts_sockaddr* addr, zts_socklen_t addrlen);
 
@@ -1528,7 +1850,6 @@ ZTS_API int ZTCALL zts_connect(int fd, const struct zts_sockaddr* addr, zts_sock
  * failure.
  *
  * @param fd Socket file descriptor
- * @param family Address family: `ZTS_AF_INET` or `ZTS_AF_INET6`
  * @param ipstr Human-readable IP string
  * @param port Port
  * @param timeout_ms (Approximate) amount of time in milliseconds before
@@ -1537,9 +1858,9 @@ ZTS_API int ZTCALL zts_connect(int fd, const struct zts_sockaddr* addr, zts_sock
  *
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SOCKET` if the function times
  *     out with no connection made, `ZTS_ERR_SERVICE` if the node experiences a
- *     problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_connect_easy(int fd, int family, char* ipstr, int port, int timeout_ms);
+ZTS_API int ZTCALL zts_simple_connect(int fd, const char* ipstr, int port, int timeout_ms);
 
 /**
  * @brief Bind a socket to a local address
@@ -1548,7 +1869,7 @@ ZTS_API int ZTCALL zts_connect_easy(int fd, int family, char* ipstr, int port, i
  * @param addr Local interface address to bind to
  * @param addrlen Length of address
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API int ZTCALL zts_bind(int fd, const struct zts_sockaddr* addr, zts_socklen_t addrlen);
 
@@ -1556,13 +1877,12 @@ ZTS_API int ZTCALL zts_bind(int fd, const struct zts_sockaddr* addr, zts_socklen
  * @brief Bind a socket to a local address
  *
  * @param fd Socket file descriptor
- * @param family Address family: `ZTS_AF_INET` or `ZTS_AF_INET6`
  * @param ipstr Human-readable IP string
  * @param port Port
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_bind_easy(int fd, int family, char* ipstr, int port);
+ZTS_API int ZTCALL zts_simple_bind(int fd, const char* ipstr, int port);
 
 /**
  * @brief Listen for incoming connections on socket
@@ -1570,7 +1890,7 @@ ZTS_API int ZTCALL zts_bind_easy(int fd, int family, char* ipstr, int port);
  * @param fd Socket file descriptor
  * @param backlog Number of backlogged connections allowed
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API int ZTCALL zts_listen(int fd, int backlog);
 
@@ -1581,7 +1901,7 @@ ZTS_API int ZTCALL zts_listen(int fd, int backlog);
  * @param addr Address of remote host for accepted connection
  * @param addrlen Length of address
  * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API int ZTCALL zts_accept(int fd, struct zts_sockaddr* addr, zts_socklen_t* addrlen);
 
@@ -1589,14 +1909,70 @@ ZTS_API int ZTCALL zts_accept(int fd, struct zts_sockaddr* addr, zts_socklen_t* 
  * @brief Accept an incoming connection
  *
  * @param fd Socket file descriptor
- * @param remoteIpStr Buffer that will receive remote host IP string
+ * @param remote_addr Buffer that will receive remote host IP string
  * @param len Size of buffer that will receive remote host IP string
- *     Must be set to `ZTS_INET6_ADDRSTRLEN`
+ *     (must be exactly `ZTS_IP_MAX_STR_LEN`)
  * @param port Port number of the newly connected remote host (value-result)
  * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_accept_easy(int fd, char* remoteIpStr, int len, int* port);
+ZTS_API int ZTCALL zts_simple_accept(int fd, char* remote_addr, int len, int* port);
+
+/**
+ * @brief A convenience function that takes a remote address IP string and creates
+ * the appropriate type of socket, and uses it to connect to a remote host.
+ *
+ * @param remote_ipstr Remote address string. IPv4 or IPv6
+ * @param remote_port Port to
+ *
+ * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
+ */
+ZTS_API int ZTCALL zts_simple_tcp_client(const char* remote_ipstr, int remote_port);
+
+/**
+ * @brief A convenience function that takes a remote address IP string and creates
+ * the appropriate type of socket, binds, listens, and then accepts on it.
+ *
+ * @param local_ipstr Local address to bind
+ * @param local_port Local port to bind
+ * @param remote_ipstr String-format IP address of newly connected remote host
+ * @param len Length of `remote_ipstr`
+ * @param remote_port Port of remote host
+ *
+ * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
+ */
+ZTS_API int ZTCALL zts_simple_tcp_server(
+    const char* local_ipstr,
+    int local_port,
+    char* remote_ipstr,
+    int len,
+    int* remote_port);
+
+/**
+ * @brief A convenience function that takes a remote address IP string and creates
+ * the appropriate type of socket, and binds to it.
+ *
+ * @param local_ipstr Local address to bind
+ * @param local_port Local port to bind
+ *
+ * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
+ */
+ZTS_API int ZTCALL zts_simple_udp_server(const char* local_ipstr, int local_port);
+
+/**
+ * @brief This function doesn't really do anything other than be a namespace
+ * counterpart to `zts_simple_udp_server`. All this function does is create a
+ * `ZTS_SOCK_DGRAM` socket and return its file descriptor.
+ *
+ * @param remote_ipstr Remote address string. IPv4 or IPv6
+ *
+ * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
+ */
+ZTS_API int ZTCALL zts_simple_udp_client(const char* remote_ipstr);
 
 // Socket level option number
 #define ZTS_SOL_SOCKET 0x0fff
@@ -1644,10 +2020,11 @@ struct zts_linger {
 #define ZTS_TCP_KEEPCNT   0x0005
 // IPPROTO_IPV6 options
 #define ZTS_IPV6_CHECKSUM                                                                          \
-	0x0007 /* RFC3542: calculate and insert the ICMPv6 checksum for raw sockets. */
+	0x0007 /* RFC3542: calculate and insert the ICMPv6 checksum for raw                            \
+	          sockets. */
 #define ZTS_IPV6_V6ONLY                                                                            \
-	0x001b /* RFC3493: boolean control to restrict ZTS_AF_INET6 sockets to IPv6 communications     \
-	          only. */
+	0x001b /* RFC3493: boolean control to restrict ZTS_AF_INET6 sockets to                         \
+	          IPv6 communications only. */
 // UDPLITE options
 #define ZTS_UDPLITE_SEND_CSCOV 0x01 /* sender checksum coverage */
 #define ZTS_UDPLITE_RECV_CSCOV 0x02 /* minimal receiver checksum coverage */
@@ -1725,7 +2102,7 @@ typedef struct zts_ipv6_mreq {
 #define ZTS_IPTOS_PREC_ROUTINE         0x00
 
 /**
- * @brief Set socket options
+ * @brief Set socket options.
  *
  * @param fd Socket file descriptor
  * @param level Protocol level to which option name should apply
@@ -1733,13 +2110,13 @@ typedef struct zts_ipv6_mreq {
  * @param optval Source of option value to set
  * @param optlen Length of option value
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API int ZTCALL
 zts_setsockopt(int fd, int level, int optname, const void* optval, zts_socklen_t optlen);
 
 /**
- * @brief Get socket options
+ * @brief Get socket options.
  *
  * @param fd Socket file descriptor
  * @param level Protocol level to which option name should apply
@@ -1747,39 +2124,39 @@ zts_setsockopt(int fd, int level, int optname, const void* optval, zts_socklen_t
  * @param optval Where option value will be stored
  * @param optlen Length of value
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API int ZTCALL
 zts_getsockopt(int fd, int level, int optname, void* optval, zts_socklen_t* optlen);
 
 /**
- * @brief Get socket name
+ * @brief Get socket name.
  *
  * @param fd Socket file descriptor
  * @param addr Name associated with this socket
  * @param addrlen Length of name
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API int ZTCALL zts_getsockname(int fd, struct zts_sockaddr* addr, zts_socklen_t* addrlen);
 
 /**
- * @brief Get the peer name for the remote end of a connected socket
+ * @brief Get the peer name for the remote end of a connected socket.
  *
  * @param fd Socket file descriptor
  * @param addr Name associated with remote end of this socket
  * @param addrlen Length of name
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API int ZTCALL zts_getpeername(int fd, struct zts_sockaddr* addr, zts_socklen_t* addrlen);
 
 /**
- * @brief Close a socket
+ * @brief Close socket.
  *
  * @param fd Socket file descriptor
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API int ZTCALL zts_close(int fd);
 
@@ -1789,58 +2166,59 @@ ZTS_API int ZTCALL zts_close(int fd);
 #define MEMP_NUM_NETCONN   1024
 
 #ifndef ZTS_FD_SET
-	#undef ZTS_FD_SETSIZE
-	// Make FD_SETSIZE match NUM_SOCKETS in socket.c
-	#define ZTS_FD_SETSIZE MEMP_NUM_NETCONN
-	#define ZTS_FDSETSAFESET(n, code)                                                              \
-		do {                                                                                       \
-			if (((n)-LWIP_SOCKET_OFFSET < MEMP_NUM_NETCONN)                                        \
-			    && (((int)(n)-LWIP_SOCKET_OFFSET) >= 0)) {                                         \
-				code;                                                                              \
-			}                                                                                      \
-		} while (0)
-	#define ZTS_FDSETSAFEGET(n, code)                                                              \
-		(((n)-LWIP_SOCKET_OFFSET < MEMP_NUM_NETCONN) && (((int)(n)-LWIP_SOCKET_OFFSET) >= 0)       \
-		     ? (code)                                                                              \
-		     : 0)
-	#define ZTS_FD_SET(n, p)                                                                       \
-		ZTS_FDSETSAFESET(                                                                          \
-		    n,                                                                                     \
-		    (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET) / 8] |= (1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
-	#define ZTS_FD_CLR(n, p)                                                                       \
-		ZTS_FDSETSAFESET(                                                                          \
-		    n,                                                                                     \
-		    (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET) / 8] &= ~(1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
-	#define ZTS_FD_ISSET(n, p)                                                                     \
-		ZTS_FDSETSAFEGET(                                                                          \
-		    n,                                                                                     \
-		    (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET) / 8] & (1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
-	#define ZTS_FD_ZERO(p) memset((void*)(p), 0, sizeof(*(p)))
+#undef ZTS_FD_SETSIZE
+// Make FD_SETSIZE match NUM_SOCKETS in socket.c
+#define ZTS_FD_SETSIZE MEMP_NUM_NETCONN
+#define ZTS_FDSETSAFESET(n, code)                                                                  \
+	do {                                                                                           \
+		if (((n)-LWIP_SOCKET_OFFSET < MEMP_NUM_NETCONN) && (((int)(n)-LWIP_SOCKET_OFFSET) >= 0)) { \
+			code;                                                                                  \
+		}                                                                                          \
+	} while (0)
+#define ZTS_FDSETSAFEGET(n, code)                                                                  \
+	(((n)-LWIP_SOCKET_OFFSET < MEMP_NUM_NETCONN) && (((int)(n)-LWIP_SOCKET_OFFSET) >= 0) ? (code)  \
+	                                                                                     : 0)
+#define ZTS_FD_SET(n, p)                                                                           \
+	ZTS_FDSETSAFESET(                                                                              \
+	    n,                                                                                         \
+	    (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET) / 8] |= (1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
+#define ZTS_FD_CLR(n, p)                                                                           \
+	ZTS_FDSETSAFESET(                                                                              \
+	    n,                                                                                         \
+	    (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET) / 8] &= ~(1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
+#define ZTS_FD_ISSET(n, p)                                                                         \
+	ZTS_FDSETSAFEGET(                                                                              \
+	    n,                                                                                         \
+	    (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET) / 8] & (1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
+#define ZTS_FD_ZERO(p) memset((void*)(p), 0, sizeof(*(p)))
 
 #elif LWIP_SOCKET_OFFSET
-	#error LWIP_SOCKET_OFFSET does not work with external FD_SET!
+#error LWIP_SOCKET_OFFSET does not work with external FD_SET!
 #elif ZTS_FD_SETSIZE < MEMP_NUM_NETCONN
-	#error "external ZTS_FD_SETSIZE too small for number of sockets"
+#error "external ZTS_FD_SETSIZE too small for number of sockets"
 #endif   // FD_SET
 
 typedef struct zts_fd_set {
 	unsigned char fd_bits[(ZTS_FD_SETSIZE + 7) / 8];
 } zts_fd_set;
 
-struct zts_timeval {
+typedef struct zts_timeval {
 	long tv_sec;  /* seconds */
 	long tv_usec; /* and microseconds */
-};
+} zts_timeval;
 
 /**
  * @brief Monitor multiple file descriptors for "readiness"
  *
- * @param nfds Set to the highest numbered file descriptor in any of the given sets
+ * @param nfds Set to the highest numbered file descriptor in any of the given
+ * sets
  * @param readfds Set of file descriptors to monitor for READ readiness
  * @param writefds Set of file descriptors to monitor for WRITE readiness
- * @param exceptfds Set of file descriptors to monitor for exceptional conditions
+ * @param exceptfds Set of file descriptors to monitor for exceptional
+ * conditions
  * @param timeout How long this call should block
- * @return Number of ready file descriptors on success. ZTS_ERR_SOCKET, ZTS_ERR_SERVICE on failure.
+ * @return Number of ready file descriptors on success. `ZTS_ERR_SOCKET`,
+ * `ZTS_ERR_SERVICE` on failure. Sets `zts_errno`
  */
 ZTS_API int ZTCALL zts_select(
     int nfds,
@@ -1863,9 +2241,9 @@ ZTS_API int ZTCALL zts_select(
 /**
  * @brief Issue file control commands on a socket
  *
- * @param fd File descriptor
- * @param cmd
- * @param flags
+ * @param fd Socket file descriptor
+ * @param cmd Operation to be performed
+ * @param flags Flags
  * @return
  */
 ZTS_API int ZTCALL zts_fcntl(int fd, int cmd, int flags);
@@ -1896,8 +2274,9 @@ struct zts_pollfd {
  * @param fds Set of file descriptors to monitor
  * @param nfds Number of elements in the fds array
  * @param timeout How long this call should block
- * @return Number of ready file descriptors if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ * @return Number of ready file descriptors if successful, `ZTS_ERR_SERVICE` if
+ * the node experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets
+ * `zts_errno`
  */
 ZTS_API int ZTCALL zts_poll(struct zts_pollfd* fds, zts_nfds_t nfds, int timeout);
 
@@ -1905,10 +2284,10 @@ ZTS_API int ZTCALL zts_poll(struct zts_pollfd* fds, zts_nfds_t nfds, int timeout
  * @brief Control a device
  *
  * @param fd Socket file descriptor
- * @param request
- * @param argp
+ * @param request Selects the control function to be performed
+ * @param argp Additional information
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API int ZTCALL zts_ioctl(int fd, unsigned long request, void* argp);
 
@@ -1920,7 +2299,7 @@ ZTS_API int ZTCALL zts_ioctl(int fd, unsigned long request, void* argp);
  * @param len Length of data to write
  * @param flags (e.g. `ZTS_MSG_DONTWAIT`, `ZTS_MSG_MORE`)
  * @return Number of bytes sent if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API ssize_t ZTCALL zts_send(int fd, const void* buf, size_t len, int flags);
 
@@ -1930,11 +2309,11 @@ ZTS_API ssize_t ZTCALL zts_send(int fd, const void* buf, size_t len, int flags);
  * @param fd Socket file descriptor
  * @param buf Pointer to data buffer
  * @param len Length of data to write
- * @param flags
+ * @param flags Specifies type of message transmission
  * @param addr Destination address
  * @param addrlen Length of destination address
  * @return Number of bytes sent if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API ssize_t ZTCALL zts_sendto(
     int fd,
@@ -1968,10 +2347,10 @@ struct zts_msghdr {
  * @brief Send message to remote host
  *
  * @param fd Socket file descriptor
- * @param msg
- * @param flags
+ * @param msg Message to send
+ * @param flags Specifies type of message transmission
  * @return Number of bytes sent if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API ssize_t ZTCALL zts_sendmsg(int fd, const struct zts_msghdr* msg, int flags);
 
@@ -1981,9 +2360,9 @@ ZTS_API ssize_t ZTCALL zts_sendmsg(int fd, const struct zts_msghdr* msg, int fla
  * @param fd Socket file descriptor
  * @param buf Pointer to data buffer
  * @param len Length of data buffer
- * @param flags
+ * @param flags Specifies the type of message receipt
  * @return Number of bytes received if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API ssize_t ZTCALL zts_recv(int fd, void* buf, size_t len, int flags);
 
@@ -1993,11 +2372,11 @@ ZTS_API ssize_t ZTCALL zts_recv(int fd, void* buf, size_t len, int flags);
  * @param fd Socket file descriptor
  * @param buf Pointer to data buffer
  * @param len Length of data buffer
- * @param flags
- * @param addr
- * @param addrlen
+ * @param flags Specifies the type of message receipt
+ * @param addr Destination address buffer
+ * @param addrlen Length of destination address buffer
  * @return Number of bytes received if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API ssize_t ZTCALL zts_recvfrom(
     int fd,
@@ -2011,43 +2390,43 @@ ZTS_API ssize_t ZTCALL zts_recvfrom(
  * @brief Receive a message from remote host
  *
  * @param fd Socket file descriptor
- * @param msg
- * @param flags
+ * @param msg Message that was received
+ * @param flags Specifies the type of message receipt
  * @return Number of bytes received if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API ssize_t ZTCALL zts_recvmsg(int fd, struct zts_msghdr* msg, int flags);
 
 /**
- * @brief Read bytes from socket onto buffer
+ * @brief Read data from socket onto buffer
  *
  * @param fd Socket file descriptor
  * @param buf Pointer to data buffer
  * @param len Length of data buffer to receive data
  * @return Number of bytes read if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API ssize_t ZTCALL zts_read(int fd, void* buf, size_t len);
 
 /**
- * @brief Read bytes from socket into multiple buffers
+ * @brief Read data from socket into multiple buffers
  *
  * @param fd Socket file descriptor
  * @param iov Array of destination buffers
  * @param iovcnt Number of buffers to read into
  * @return Number of bytes read if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API ssize_t ZTCALL zts_readv(int fd, const struct zts_iovec* iov, int iovcnt);
 
 /**
- * @brief Write bytes from buffer to socket
+ * @brief Write data from buffer to socket
  *
  * @param fd Socket file descriptor
  * @param buf Pointer to data buffer
  * @param len Length of buffer to write
  * @return Number of bytes written if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API ssize_t ZTCALL zts_write(int fd, const void* buf, size_t len);
 
@@ -2058,7 +2437,7 @@ ZTS_API ssize_t ZTCALL zts_write(int fd, const void* buf, size_t len);
  * @param iov Array of source buffers
  * @param iovcnt Number of buffers to read from
  * @return Number of bytes written if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API ssize_t ZTCALL zts_writev(int fd, const struct zts_iovec* iov, int iovcnt);
 
@@ -2070,9 +2449,10 @@ ZTS_API ssize_t ZTCALL zts_writev(int fd, const struct zts_iovec* iov, int iovcn
  * @brief Shut down some aspect of a socket
  *
  * @param fd Socket file descriptor
- * @param how Which aspects of the socket should be shut down
+ * @param how Which aspects of the socket should be shut down. Options are `ZTS_SHUT_RD`,
+ * `ZTS_SHUT_WR`, or `ZTS_SHUT_RDWR`.
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API int ZTCALL zts_shutdown(int fd, int how);
 
@@ -2081,31 +2461,24 @@ ZTS_API int ZTCALL zts_shutdown(int fd, int how);
 //----------------------------------------------------------------------------//
 
 /**
- * Helper functions that simplify API wrapper generation and usage in other
- * non-C-like languages. Use simple integer types instead of bit flags, limit
- * the number of operations each function performs, prevent the user from
- * needing to manipulate the content of structures in a non-native language.
- */
-
-/**
  * @brief Enable or disable `TCP_NODELAY`. Enabling this is equivalent to
  *     turning off Nagle's algorithm
  *
  * @param fd Socket file descriptor
  * @param enabled `[0, 1]` integer value
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_set_no_delay(int fd, int enabled);
+ZTS_API int ZTCALL zts_simple_set_no_delay(int fd, int enabled);
 
 /**
  * @brief Return whether `TCP_NODELAY` is enabled
  *
  * @param fd Socket file descriptor
  * @return `1` if enabled, `0` if disabled, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_get_no_delay(int fd);
+ZTS_API int ZTCALL zts_simple_get_no_delay(int fd);
 
 /**
  * @brief Enable or disable `SO_LINGER` while also setting its value
@@ -2114,27 +2487,27 @@ ZTS_API int ZTCALL zts_get_no_delay(int fd);
  * @param enabled `[0, 1]` integer value
  * @param value How long socket should linger
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_set_linger(int fd, int enabled, int value);
+ZTS_API int ZTCALL zts_simple_set_linger(int fd, int enabled, int value);
 
 /**
  * @brief Return whether `SO_LINGER` is enabled
  *
  * @param fd Socket file descriptor
  * @return `1` if enabled, `0` if disabled, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_get_linger_enabled(int fd);
+ZTS_API int ZTCALL zts_simple_get_linger_enabled(int fd);
 
 /**
  * @brief Return the value of `SO_LINGER`
  *
  * @param fd Socket file descriptor
  * @return Value of `SO_LINGER` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_get_linger_value(int fd);
+ZTS_API int ZTCALL zts_simple_get_linger_value(int fd);
 
 /**
  * @brief Enable or disable `SO_REUSEADDR`
@@ -2142,56 +2515,58 @@ ZTS_API int ZTCALL zts_get_linger_value(int fd);
  * @param fd Socket file descriptor
  * @param enabled `[0, 1]` integer value
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_set_reuse_addr(int fd, int enabled);
+ZTS_API int ZTCALL zts_simple_set_reuse_addr(int fd, int enabled);
 
 /**
  * @brief Return whether `SO_REUSEADDR` is enabled
  *
  * @param fd Socket file descriptor
  * @return `1` if enabled, `0` if disabled, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_get_reuse_addr(int fd);
+ZTS_API int ZTCALL zts_simple_get_reuse_addr(int fd);
 
 /**
  * @brief Set the value of `SO_RCVTIMEO`
  *
  * @param fd Socket file descriptor
- * @param something
+ * @param seconds Number of seconds for timeout
+ * @param microseconds Number of microseconds for timeout
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_set_recv_timeout(int fd, int seconds, int microseconds);
+ZTS_API int ZTCALL zts_simple_set_recv_timeout(int fd, int seconds, int microseconds);
 
 /**
  * @brief Return the value of `SO_RCVTIMEO`
  *
  * @param fd Socket file descriptor
  * @return Value of `SO_RCVTIMEO` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_get_recv_timeout(int fd);
+ZTS_API int ZTCALL zts_simple_get_recv_timeout(int fd);
 
 /**
  * @brief Set the value of `SO_SNDTIMEO`
  *
  * @param fd Socket file descriptor
- * @param something
+ * @param seconds Number of seconds for timeout
+ * @param microseconds Number of microseconds for timeout
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_set_send_timeout(int fd, int seconds, int microseconds);
+ZTS_API int ZTCALL zts_simple_set_send_timeout(int fd, int seconds, int microseconds);
 
 /**
  * @brief Return the value of `SO_SNDTIMEO`
  *
  * @param fd Socket file descriptor
  * @return Value of `SO_SNDTIMEO` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_get_send_timeout(int fd);
+ZTS_API int ZTCALL zts_simple_get_send_timeout(int fd);
 
 /**
  * @brief Set the value of `SO_SNDBUF`
@@ -2199,18 +2574,18 @@ ZTS_API int ZTCALL zts_get_send_timeout(int fd);
  * @param fd Socket file descriptor
  * @param size Size of buffer
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_set_send_buf_size(int fd, int size);
+ZTS_API int ZTCALL zts_simple_set_send_buf_size(int fd, int size);
 
 /**
  * @brief Return the value of `SO_SNDBUF`
  *
  * @param fd Socket file descriptor
  * @return Value of `SO_SNDBUF` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_get_send_buf_size(int fd);
+ZTS_API int ZTCALL zts_simple_get_send_buf_size(int fd);
 
 /**
  * @brief Set the value of `SO_RCVBUF`
@@ -2218,18 +2593,18 @@ ZTS_API int ZTCALL zts_get_send_buf_size(int fd);
  * @param fd Socket file descriptor
  * @param size Size of buffer
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_set_recv_buf_size(int fd, int size);
+ZTS_API int ZTCALL zts_simple_set_recv_buf_size(int fd, int size);
 
 /**
  * @brief Return the value of `SO_RCVBUF`
  *
  * @param fd Socket file descriptor
  * @return Value of `SO_RCVBUF` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_get_recv_buf_size(int fd);
+ZTS_API int ZTCALL zts_simple_get_recv_buf_size(int fd);
 
 /**
  * @brief Set the value of `IP_TTL`
@@ -2237,18 +2612,18 @@ ZTS_API int ZTCALL zts_get_recv_buf_size(int fd);
  * @param fd Socket file descriptor
  * @param ttl Value of `IP_TTL`
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_set_ttl(int fd, int ttl);
+ZTS_API int ZTCALL zts_simple_set_ttl(int fd, int ttl);
 
 /**
  * @brief Return the value of `IP_TTL`
  *
  * @param fd Socket file descriptor
- * @return Value of `IP_TTL` `[0,255]` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ * @return Value of `IP_TTL` `[0,255]` if successful, `ZTS_ERR_SERVICE` if the
+ * node experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_get_ttl(int fd);
+ZTS_API int ZTCALL zts_simple_get_ttl(int fd);
 
 /**
  * @brief Change blocking behavior `O_NONBLOCK`
@@ -2257,18 +2632,18 @@ ZTS_API int ZTCALL zts_get_ttl(int fd);
  * @param enabled `[0, 1]` integer value, `1` maintains default behavior,
  *     `0` sets to non-blocking mode
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_set_blocking(int fd, int enabled);
+ZTS_API int ZTCALL zts_simple_set_blocking(int fd, int enabled);
 
 /**
  * @brief Return whether blocking mode `O_NONBLOCK` is enabled
  *
  * @param fd Socket file descriptor
  * @return `1` if enabled, `0` if disabled, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_get_blocking(int fd);
+ZTS_API int ZTCALL zts_simple_get_blocking(int fd);
 
 /**
  * @brief Enable or disable `SO_KEEPALIVE`
@@ -2276,18 +2651,18 @@ ZTS_API int ZTCALL zts_get_blocking(int fd);
  * @param fd Socket file descriptor
  * @param enabled `[0, 1]` integer value
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_set_keepalive(int fd, int enabled);
+ZTS_API int ZTCALL zts_simple_set_keepalive(int fd, int enabled);
 
 /**
  * @brief Return whether `SO_KEEPALIVE` is enabled
  *
  * @param fd Socket file descriptor
  * @return `1` if enabled, `0` if disabled, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid arg. Sets `zts_errno`
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
-ZTS_API int ZTCALL zts_get_keepalive(int fd);
+ZTS_API int ZTCALL zts_simple_get_keepalive(int fd);
 
 //----------------------------------------------------------------------------//
 // DNS                                                                        //
@@ -2295,12 +2670,13 @@ ZTS_API int ZTCALL zts_get_keepalive(int fd);
 
 struct zts_hostent {
 	char* h_name;             /* Official name of the host. */
-	char** h_aliases;         /* A pointer to an array of pointers to alternative host names,
-	                             terminated by a null pointer. */
+	char** h_aliases;         /* A pointer to an array of pointers to alternative host
+	                             names,   terminated by a null pointer. */
 	int h_addrtype;           /* Address type. */
 	int h_length;             /* The length, in bytes, of the address. */
-	char** h_addr_list;       /* A pointer to an array of pointers to network addresses (in
-	                             network byte order) for the host, terminated by a null pointer. */
+	char** h_addr_list;       /* A pointer to an array of pointers to network
+	                             addresses (in network byte order) for the host,
+	                             terminated by a null pointer. */
 #define h_addr h_addr_list[0] /* for backward compatibility */
 };
 
@@ -2311,12 +2687,6 @@ struct zts_hostent {
  * @return Pointer to struct zts_hostent if successful, NULL otherwise
  */
 struct zts_hostent* zts_gethostbyname(const char* name);
-
-enum zts_ip_addr_type {
-	ZTS_IPADDR_TYPE_V4 = 0U,
-	ZTS_IPADDR_TYPE_V6 = 6U,
-	ZTS_IPADDR_TYPE_ANY = 46U   // Dual stack
-};
 
 struct zts_ip4_addr {
 	uint32_t addr;
@@ -2346,7 +2716,7 @@ typedef struct zts_ip_addr {
 /**
  * Initialize one of the DNS servers.
  *
- * @param index the index of the DNS server to set must be < DNS_MAX_SERVERS
+ * @param index the index of the DNS server to set must be `< DNS_MAX_SERVERS`
  * @param addr IP address of the DNS server to set
  */
 ZTS_API int ZTCALL zts_dns_set_server(uint8_t index, const zts_ip_addr* addr);
@@ -2355,7 +2725,7 @@ ZTS_API int ZTCALL zts_dns_set_server(uint8_t index, const zts_ip_addr* addr);
  * Obtain one of the currently configured DNS server.
  *
  * @param index the index of the DNS server
- * @return IP address of the indexed DNS server or "ip_addr_any" if the DNS
+ * @return IP address of the indexed DNS server or `ip_addr_any` if the DNS
  *         server has not been configured.
  */
 ZTS_API const zts_ip_addr* ZTCALL zts_dns_get_server(uint8_t index);
@@ -2363,12 +2733,13 @@ ZTS_API const zts_ip_addr* ZTCALL zts_dns_get_server(uint8_t index);
 //----------------------------------------------------------------------------//
 // Convenience functions pulled from lwIP                                     //
 //----------------------------------------------------------------------------//
+
 /**
- * Convert numeric IP address (both versions) into ASCII representation.
- * returns ptr to static buffer; not reentrant!
+ * Convert numeric IP address (both versions) into `ASCII` representation.
+ * returns ptr to static buffer. Not reentrant.
  *
  * @param addr IP address in network order to convert
- * @return pointer to a global static (!) buffer that holds the ASCII
+ * @return Pointer to a global static (!) buffer that holds the `ASCII`
  *         representation of addr
  */
 char* zts_ipaddr_ntoa(const zts_ip_addr* addr);
@@ -2390,7 +2761,8 @@ int zts_ipaddr_aton(const char* cp, zts_ip_addr* addr);
  * @param src Pointer to source address structure
  * @param dst Pointer to destination character array
  * @param size Size of the destination buffer
- * @return On success, returns a non-null pointer to the destination character array
+ * @return On success, returns a non-null pointer to the destination character
+ * array
  */
 ZTS_API const char* ZTCALL
 zts_inet_ntop(int family, const void* src, char* dst, zts_socklen_t size);
@@ -2401,26 +2773,45 @@ zts_inet_ntop(int family, const void* src, char* dst, zts_socklen_t size);
  * @param family Address family: `ZTS_AF_INET` or `ZTS_AF_INET6`
  * @param src Pointer to source character array
  * @param dst Pointer to destination address structure
- * @return return `1` on success. `0` or `-1` on failure. (Does not follow `zts_*` conventions)
+ * @return return `1` on success. `0` or `-1` on failure. (Does not follow regular
+ * `zts_*` conventions)
  */
 ZTS_API int ZTCALL zts_inet_pton(int family, const char* src, void* dst);
+
+//----------------------------------------------------------------------------//
+// Utilities                                                                  //
+//----------------------------------------------------------------------------//
+
+/**
+ * @brief Platform-agnostic delay (provided for convenience)
+ *
+ * @param interval_ms Number of milliseconds to delay
+ */
+ZTS_API void ZTCALL zts_util_delay(long interval_ms);
+
+/**
+ * @brief Return the family type of the IP string
+ *
+ * @param ipstr Either IPv4 or IPv6 string
+ * @return Either `ZTS_AF_INET` or `ZTS_AF_INET6`
+ */
+ZTS_API int ZTCALL zts_util_get_ip_family(const char* ipstr);
 
 /**
  * Convert human-friendly IP string to `zts_sockaddr_in` or `zts_sockaddr_in6`.
  *
- * @param family Address family: `ZTS_AF_INET` or `ZTS_AF_INET6`
  * @param src_ipstr Source IP string
  * @param port Port
- * @param dest_addr Pointer to destination structure `zts_sockaddr_in` or `zts_sockaddr_in6`
- * @param addrlen Size of destination structure. Value-result: Will be set to actual size of data
- * available
+ * @param dstaddr Pointer to destination structure `zts_sockaddr_in` or
+ * `zts_sockaddr_in6`
+ * @param addrlen Size of destination structure. Value-result: Will be set to
+ * actual size of data available
  * @return return `ZTS_ERR_OK` on success, `ZTS_ERR_ARG` if invalid argument
  */
-int ipstr2sockaddr(
-    int family,
-    char* src_ipstr,
+int zts_util_ipstr_to_saddr(
+    const char* src_ipstr,
     int port,
-    struct zts_sockaddr* dest_addr,
+    struct zts_sockaddr* dstaddr,
     zts_socklen_t* addrlen);
 
 #ifdef __cplusplus

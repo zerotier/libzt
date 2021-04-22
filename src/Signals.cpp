@@ -4,7 +4,7 @@
  * Use of this software is governed by the Business Source License included
  * in the LICENSE.TXT file in the project's root directory.
  *
- * Change Date: 2025-01-01
+ * Change Date: 2026-01-01
  *
  * On the date above, in accordance with the Business Source License, use
  * of this software will be governed by version 2.0 of the Apache License.
@@ -18,23 +18,23 @@
  */
 
 #ifdef ZTS_ENABLE_PYTHON
-    /**
-     * In some situations (Python comes to mind) a signal may not make its
-     * way to libzt, for this reason we make sure to define a custom signal
-     * handler that can at least process SIGTERMs
-     */
-	#define ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS 1
+/**
+ * In some situations (Python comes to mind) a signal may not make its
+ * way to libzt, for this reason we make sure to define a custom signal
+ * handler that can at least process SIGTERMs
+ */
+#define ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS 1
 #endif
 
 #ifdef ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
 
-	#include "Signals.hpp"
+#include "Signals.hpp"
 
-	#include "ZeroTierSockets.h"
+#include "ZeroTierSockets.h"
 
-	#include <cstdlib>
-	#include <execinfo.h>
-	#include <signal.h>
+#include <cstdlib>
+#include <execinfo.h>
+#include <signal.h>
 
 void _signal_handler(int signal)
 {

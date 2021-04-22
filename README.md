@@ -1,7 +1,7 @@
 <div align="center">
 
 <h1>ZeroTier SDK</h1>
-<img alt="zts_socket()" src="https://i.imgur.com/BwSHwE3.png"> </img>
+<img alt="zts_socket()" src="https://i.imgur.com/BwSHwE3.png" class="doxyhidden"> </img>
 
 Peer-to-peer and cross-platform encrypted connections built right into your app or service. No drivers, no root, and no host configuration.
 

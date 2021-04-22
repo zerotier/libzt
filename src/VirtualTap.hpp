@@ -4,7 +4,7 @@
  * Use of this software is governed by the Business Source License included
  * in the LICENSE.TXT file in the project's root directory.
  *
- * Change Date: 2025-01-01
+ * Change Date: 2026-01-01
  *
  * On the date above, in accordance with the Business Source License, use
  * of this software will be governed by version 2.0 of the Apache License.
@@ -14,16 +14,18 @@
 /**
  * @file
  *
- * Header for virtual ethernet tap device and combined network stack driver
+ * Header for virtual Ethernet tap device and combined network stack driver
  */
 
-#ifndef ZT_VIRTUAL_TAP_HPP
-#define ZT_VIRTUAL_TAP_HPP
+#ifndef ZTS_VIRTUAL_TAP_HPP
+#define ZTS_VIRTUAL_TAP_HPP
 
 #include "lwip/err.h"
 
-#define ZTS_LWIP_DRIVER_THREAD_NAME "ZTNetworkStackThread"
+#define ZTS_LWIP_THREAD_NAME "ZTNetworkStackThread"
+#define VTAP_NAME_LEN        64
 
+#include "Events.hpp"
 #include "MAC.hpp"
 #include "Phy.hpp"
 #include "Thread.hpp"
@@ -36,8 +38,8 @@ class MulticastGroup;
 struct InetAddress;
 
 /**
- * A virtual tap device. The ZeroTier Node Service will create one per
- * joined network. It will be destroyed upon leave().
+ * Virtual tap device. ZeroTier will create one per joined network. It will
+ * then be destroyed upon leaving the network.
  */
 class VirtualTap {
 	friend class Phy<VirtualTap*>;
@@ -48,7 +50,7 @@ class VirtualTap {
 	    const MAC& mac,
 	    unsigned int mtu,
 	    unsigned int metric,
-	    uint64_t nwid,
+	    uint64_t net_id,
 	    const char* friendlyName,
 	    void (*handler)(
 	        void*,
@@ -68,9 +70,17 @@ class VirtualTap {
 	bool enabled() const;
 
 	/**
+	 * System to ingest events from this class and emit them to the user
+	 */
+	Events* _events;
+
+	/**
 	 * Mutex for protecting IP address container for this tap.
 	 */
-	Mutex _ips_m;   // Public because we want it accessible by the driver layer
+	Mutex _ips_m;   // Public because we want it accessible by the driver
+	                // layer
+
+	void setUserEventSystem(Events* events);
 
 	/**
 	 * Return whether this tap has been assigned an IPv4 address.
@@ -83,13 +93,15 @@ class VirtualTap {
 	bool hasIpv6Addr();
 
 	/**
-	 * Adds an address to the user-space stack interface associated with this VirtualTap
+	 * Adds an address to the user-space stack interface associated with
+	 * this VirtualTap
 	 * - Starts VirtualTap main thread ONLY if successful
 	 */
 	bool addIp(const InetAddress& ip);
 
 	/**
-	 * Removes an address from the user-space stack interface associated with this VirtualTap
+	 * Removes an address from the user-space stack interface associated
+	 * with this VirtualTap
 	 */
 	bool removeIp(const InetAddress& ip);
 
@@ -98,16 +110,6 @@ class VirtualTap {
 	 */
 	void
 	put(const MAC& from, const MAC& to, unsigned int etherType, const void* data, unsigned int len);
-
-	/**
-	 * Get VirtualTap device name (e.g. 'libzt17d72843bc2c5760')
-	 */
-	std::string deviceName() const;
-
-	/**
-	 * Set friendly name
-	 */
-	void setFriendlyName(const char* friendlyName);
 
 	/**
 	 * Scan multicast groups
@@ -142,16 +144,15 @@ class VirtualTap {
 	void* netif4 = NULL;
 	void* netif6 = NULL;
 
-	/**
-	 * The last time that this virtual tap received a network config update from the core
-	 */
+	// The last time that this virtual tap received a network config update
+	// from the core
 	uint64_t _lastConfigUpdateTime = 0;
 
 	void lastConfigUpdate(uint64_t lastConfigUpdateTime);
 
 	int _networkStatus = 0;
 
-	char vtap_full_name[64];
+	char vtap_full_name[VTAP_NAME_LEN] = { 0 };
 
 	std::vector<InetAddress> ips() const;
 	std::vector<InetAddress> _ips;
@@ -163,22 +164,20 @@ class VirtualTap {
 	volatile bool _run;
 	MAC _mac;
 	unsigned int _mtu;
-	uint64_t _nwid;
+	uint64_t _net_id;
 	PhySocket* _unixListenSocket;
 	Phy<VirtualTap*> _phy;
 
 	Thread _thread;
 
-	int _shutdownSignalPipe[2];
-
-	std::string _dev;   // path to Unix domain socket
+	int _shutdownSignalPipe[2] = { 0 };
 
 	std::vector<MulticastGroup> _multicastGroups;
 	Mutex _multicastGroups_m;
 
-	//////////////////////////////////////////////////////////////////////////////
-	// Not used in this implementation                                          //
-	//////////////////////////////////////////////////////////////////////////////
+	//----------------------------------------------------------------------------//
+	// Not used in this implementation //
+	//----------------------------------------------------------------------------//
 
 	void phyOnDatagram(
 	    PhySocket* sock,
@@ -210,7 +209,8 @@ bool _lwip_is_netif_up(void* netif);
 /**
  * @brief Increase the delay multiplier for the main driver loop
  *
- * @usage This should be called when we know the stack won't be used by any virtual taps
+ * @usage This should be called when we know the stack won't be used by any
+ * virtual taps
  */
 void _lwip_hibernate_driver();
 
@@ -229,17 +229,19 @@ bool _lwip_is_up();
 /**
  * @brief Initialize network stack semaphores, threads, and timers.
  *
- * @usage This is called during the initial setup of each VirtualTap but is only allowed to execute
- * once
+ * @usage This is called during the initial setup of each VirtualTap but is
+ * only allowed to execute once
  */
 void _lwip_driver_init();
 
 /**
- * @brief Shutdown the stack as completely as possible (not officially supported by lwIP)
+ * @brief Shutdown the stack as completely as possible (not officially
+ * supported by lwIP)
  *
- * @usage This is to be called after it is determined that no further network activity will take
- * place. The tcpip thread will be stopped, all interfaces will be brought down and all resources
- * will be deallocated. A full application restart will be required to bring the stack back online.
+ * @usage This is to be called after it is determined that no further
+ * network activity will take place. The tcpip thread will be stopped, all
+ * interfaces will be brought down and all resources will be deallocated. A
+ * full application restart will be required to bring the stack back online.
  */
 void _lwip_driver_shutdown();
 
@@ -280,7 +282,8 @@ static void _netif_link_callback(struct netif* netif);
 /**
  * @brief Set up an interface in the network stack for the VirtualTap.
  *
- * @param tapref Reference to VirtualTap that will be responsible for sending and receiving data
+ * @param tapref Reference to VirtualTap that will be responsible for
+ * sending and receiving data
  * @param ip Virtual IP address for this ZeroTier VirtualTap interface
  */
 void _lwip_init_interface(void* tapref, const InetAddress& ip);
@@ -294,12 +297,13 @@ void _lwip_init_interface(void* tapref, const InetAddress& ip);
 void _lwip_remove_address_from_netif(void* tapref, const InetAddress& ip);
 
 /**
- * @brief Called from the stack, outbound ethernet frames from the network stack enter the ZeroTier
- * virtual wire here.
+ * @brief Called from the stack, outbound Ethernet frames from the network
+ * stack enter the ZeroTier virtual wire here.
  *
- * @usage This shall only be called from the stack or the stack driver. Not the application thread.
- * @param netif Transmits an outgoing Ethernet fram from the network stack onto the ZeroTier virtual
- * wire
+ * @usage This shall only be called from the stack or the stack driver. Not
+ * the application thread.
+ * @param netif Transmits an outgoing Ethernet frame from the network stack
+ * onto the ZeroTier virtual wire
  * @param p A pointer to the beginning of a chain pf struct pbufs
  * @return
  */
@@ -308,10 +312,12 @@ err_t _lwip_eth_tx(struct netif* netif, struct pbuf* p);
 /**
  * @brief Receives incoming Ethernet frames from the ZeroTier virtual wire
  *
- * @usage This shall be called from the VirtualTap's I/O thread (via VirtualTap::put())
+ * @usage This shall be called from the VirtualTap's I/O thread (via
+ * VirtualTap::put())
  * @param tap Pointer to VirtualTap from which this data comes
  * @param from Origin address (virtual ZeroTier hardware address)
- * @param to Intended destination address (virtual ZeroTier hardware address)
+ * @param to Intended destination address (virtual ZeroTier hardware
+ * address)
  * @param etherType Protocol type
  * @param data Pointer to Ethernet frame
  * @param len Length of Ethernet frame

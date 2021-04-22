@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.0)
 project(zt)
 find_package(Threads)
 
-# -----------------------------------------------------------------------------
-# |                             PLATFORM DETECTION                            |
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# |                             PLATFORM DETECTION                             |
+# ------------------------------------------------------------------------------
 
 # Apple
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -42,9 +42,9 @@ endif()
 # Linux
 # if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-# -----------------------------------------------------------------------------
-# |                             SOURCE DIRECTORIES                            |
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# |                             SOURCE DIRECTORIES                             |
+# ------------------------------------------------------------------------------
 
 set(PROJ_DIR ${PROJECT_SOURCE_DIR})
 set(LWIP_SRC_DIR "${PROJ_DIR}/ext/lwip/src")
@@ -62,9 +62,9 @@ if(BUILD_WIN)
 	set(LWIP_PORT_DIR ${PROJ_DIR}/ext/lwip-contrib/ports/win32)
 endif()
 
-# -----------------------------------------------------------------------------
-# |                             INCLUDE DIRECTORIES                           |
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# |                             INCLUDE DIRECTORIES                            |
+# ------------------------------------------------------------------------------
 
 # ZeroTier
 include_directories(${ZTO_SRC_DIR})
@@ -82,9 +82,9 @@ include_directories(${PROJ_DIR}/ext/concurrentqueue)
 include_directories(${LWIP_SRC_DIR}/include)
 include_directories(${LWIP_PORT_DIR}/include)
 
-# -----------------------------------------------------------------------------
-# |                        TARGET AND VARIANT SELECTION                       |
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# |                        TARGET AND VARIANT SELECTION                        |
+# ------------------------------------------------------------------------------
 
 # Defaults
 set(ALLOW_INSTALL_TARGET        TRUE)
@@ -143,7 +143,6 @@ if(BUILD_HOST)
 	set(ALLOW_INSTALL_TARGET    TRUE)
 	set(BUILD_HOST_SELFTEST    FALSE)
 	set(ZTS_ENABLE_STATS        TRUE)
-	set(ZTS_ENABLE_CENTRAL_API FALSE)
 endif()
 
 # CI
@@ -172,7 +171,6 @@ if(BUILD_MACOS_FRAMEWORK)
 	set(BUILD_HOST_SELFTEST    FALSE)
 	set(BUILD_EXAMPLES         FALSE)
 	set(ALLOW_INSTALL_TARGET   FALSE)
-	set(ZTS_ENABLE_CENTRAL_API FALSE)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOMIT_JSON_SUPPORT=1")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DOMIT_JSON_SUPPORT=1")
 	set(CMAKE_XCODE_ATTRIBUTE_ARCHS "$(ARCHS_STANDARD)")
@@ -187,7 +185,6 @@ if(BUILD_IOS_FRAMEWORK)
 	set(BUILD_HOST_SELFTEST    FALSE)
 	set(BUILD_EXAMPLES         FALSE)
 	set(ALLOW_INSTALL_TARGET   FALSE)
-	set(ZTS_ENABLE_CENTRAL_API FALSE)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOMIT_JSON_SUPPORT=1")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DOMIT_JSON_SUPPORT=1")
 	set(DEVROOT
@@ -209,13 +206,12 @@ if(BUILD_IOS_FRAMEWORK)
 	endif()
 endif()
 
-# -----------------------------------------------------------------------------
-# |                    TESTING (and) FEATURE FLAGS                            |
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# |                      TESTING (and) FEATURE FLAGS                           |
+# ------------------------------------------------------------------------------
 
 if(BUILD_HOST_SELFTEST)
 	set(ZTS_ENABLE_STATS TRUE)
-	set(ZTS_ENABLE_CENTRAL_API TRUE)
 endif()
 
 # Enable specific features (eventually these will be enabled by default)
@@ -223,13 +219,13 @@ if(ZTS_ENABLE_STATS)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_ENABLE_STATS=1")
 endif()
 
-if(ZTS_ENABLE_CENTRAL_API)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_ENABLE_CENTRAL_API=1")
+if(ZTS_DISABLE_CENTRAL_API)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_DISABLE_CENTRAL_API=1")
 endif()
 
-# -----------------------------------------------------------------------------
-# |                    HACKS TO GET THIS TO WORK ON WINDOWS                   |
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# |                    HACKS TO GET THIS TO WORK ON WINDOWS                    |
+# ------------------------------------------------------------------------------
 
 if(BUILD_WIN)
 	# Possibly a CMake limitation? -- Can't share target output names
@@ -244,9 +240,9 @@ else()
 	set(DYNAMIC_LIB_OUTPUT_NAME ${PROJECT_NAME})
 endif()
 
-# -----------------------------------------------------------------------------
-# |                                BUILD TYPES                                |
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# |                                BUILD TYPES                                 |
+# ------------------------------------------------------------------------------
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "debug")
 	set(BUILD_DEBUG ON)
@@ -261,57 +257,67 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "release")
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wno-everything -w")
 endif()
 
-# -----------------------------------------------------------------------------
-# |                                 EXAMPLES                                  |
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+# |                                 EXAMPLES                                    |
+# -------------------------------------------------------------------------------
 
 if(BUILD_HOST_EXAMPLES)
-	add_executable(nonblockingclient
-		${PROJ_DIR}/examples/cpp/nonblockingclient.cpp)
-	target_link_libraries(nonblockingclient ${STATIC_LIB_NAME})
+	add_executable(pingable-node
+		${PROJ_DIR}/examples/c/pingable-node.c)
+	target_link_libraries(pingable-node ${STATIC_LIB_NAME})
 
-	add_executable(nonblockingserver
-		${PROJ_DIR}/examples/cpp/nonblockingserver.cpp)
-	target_link_libraries(nonblockingserver ${STATIC_LIB_NAME})
-
-	add_executable(earthtest
-		${PROJ_DIR}/examples/cpp/earthtest.cpp)
-	target_link_libraries(earthtest ${STATIC_LIB_NAME})
+	add_executable(statistics
+		${PROJ_DIR}/examples/c/statistics.c)
+	target_link_libraries(statistics ${STATIC_LIB_NAME})
 
 	add_executable(adhoc
-		${PROJ_DIR}/examples/cpp/adhoc.cpp)
+		${PROJ_DIR}/examples/c/adhoc.c)
 	target_link_libraries(adhoc ${STATIC_LIB_NAME})
 
-	add_executable(comprehensive
-		${PROJ_DIR}/examples/cpp/comprehensive.cpp)
-	target_link_libraries(comprehensive ${STATIC_LIB_NAME})
+	add_executable(centralapi
+		${PROJ_DIR}/examples/c/centralapi.cpp)
+	target_link_libraries(centralapi ${STATIC_LIB_NAME})
+
+	add_executable(callbackapi
+		${PROJ_DIR}/examples/c/callbackapi.c)
+	target_link_libraries(callbackapi ${STATIC_LIB_NAME})
+
+	add_executable(nostorage
+		${PROJ_DIR}/examples/c/nostorage.c)
+	target_link_libraries(nostorage ${STATIC_LIB_NAME})
 
 	add_executable(client
-		${PROJ_DIR}/examples/cpp/client.cpp)
+		${PROJ_DIR}/examples/c/client.c)
 	target_link_libraries(client ${STATIC_LIB_NAME})
 
 	add_executable(server
-		${PROJ_DIR}/examples/cpp/server.cpp)
+		${PROJ_DIR}/examples/c/server.c)
 	target_link_libraries(server ${STATIC_LIB_NAME})
 
-	add_executable(keymanagement
-		${PROJ_DIR}/examples/cpp/keymanagement.cpp)
-	target_link_libraries(keymanagement ${STATIC_LIB_NAME})
+	add_executable(nonblockingclient
+		${PROJ_DIR}/examples/c/nonblockingclient.c)
+	target_link_libraries(nonblockingclient ${STATIC_LIB_NAME})
 
-	if(ZTS_ENABLE_CENTRAL_API)
-		add_executable(centralapi ${PROJ_DIR}/examples/cpp/centralapi.cpp)
-		target_link_libraries(centralapi ${STATIC_LIB_NAME})
-	endif()
+	add_executable(nonblockingserver
+		${PROJ_DIR}/examples/c/nonblockingserver.c)
+	target_link_libraries(nonblockingserver ${STATIC_LIB_NAME})
 endif()
 
-# -----------------------------------------------------------------------------
-# |                                    FLAGS                                  |
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# |                                    FLAGS                                   |
+# ------------------------------------------------------------------------------
+
+set(SILENCE "-Wno-missing-field-initializers \
+	-Wno-macro-redefined \
+	-Wno-tautological-overlap-compare \
+	-Wno-unused-function \
+	-Wno-unused-parameter \
+	-Wno-macro-redefined \
+	-Wno-tautological-constant-out-of-range-compare \
+	-Wno-parentheses-equality")
 
 set(ZT_FLAGS "${ZT_FLAGS} -DZT_USE_MINIUPNPC=1")
-set(ZT_FLAGS "${ZT_FLAGS} -DZT_SOFTWARE_UPDATE_DEFAULT=0")
 set(ZT_FLAGS "${ZT_FLAGS} -D_USING_LWIP_DEFINITIONS_=0")
-set(ZT_FLAGS "${ZT_FLAGS} -DZT_SDK=1")
 
 if(BUILD_DEBUG)
 	set(LWIP_FLAGS "${LWIP_FLAGS} -DLWIP_DBG_TYPES_ON=128")
@@ -389,15 +395,14 @@ if(BUILD_WIN)
 	message(STATUS "WS2_32=${ws2_32_LIBRARY_PATH}")
 	message(STATUS "ShLwApi=${shlwapi_LIBRARY_PATH}")
 	message(STATUS "liphlpapi=${iphlpapi_LIBRARY_PATH}")
-	add_definitions(-DZT_SDK=1)
 	add_definitions(-DADD_EXPORTS=1)
 endif()
 
-# -----------------------------------------------------------------------------
-# |                              OPTIONAL FEATURES                            |
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# |                              OPTIONAL FEATURES                             |
+# ------------------------------------------------------------------------------
 
-if(ZTS_ENABLE_CENTRAL_API)
+if(NOT ZTS_DISABLE_CENTRAL_API)
 	set(requiredlibs)
 	find_package(CURL)
 	if(CURL_FOUND)
@@ -409,9 +414,9 @@ if(ZTS_ENABLE_CENTRAL_API)
 	endif(CURL_FOUND)
 endif()
 
-# -----------------------------------------------------------------------------
-# |                                      JNI                                  |
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# |                                      JNI                                   |
+# ------------------------------------------------------------------------------
 
 if(ZTS_ENABLE_JAVA OR BUILD_ANDROID)
 	message(STATUS "Looking for JNI")
@@ -454,13 +459,12 @@ if(ZTS_ENABLE_JAVA OR BUILD_ANDROID)
 	endif()
 endif() # ZTS_ENABLE_JAVA
 
-# -----------------------------------------------------------------------------
-# |                                   SOURCES                                 |
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# |                                   SOURCES                                  |
+# ------------------------------------------------------------------------------
 
 file(GLOB ztcoreSrcGlob ${ZTO_SRC_DIR}/node/*.cpp
-		 ${ZTO_SRC_DIR}/osdep/OSUtils.cpp ${ZTO_SRC_DIR}/osdep/PortMapper.cpp
-		 ${ZTO_SRC_DIR}/osdep/ManagedRoute.cpp)
+		 ${ZTO_SRC_DIR}/osdep/OSUtils.cpp ${ZTO_SRC_DIR}/osdep/PortMapper.cpp)
 
 file(GLOB libnatpmpSrcGlob ${ZTO_SRC_DIR}/ext/libnatpmp/natpmp.c
 	${ZTO_SRC_DIR}/ext/libnatpmp/wingettimeofday.c
@@ -504,9 +508,9 @@ file(GLOB frameworkPublicHeaderGlob include/ZeroTierSockets.h)
 file(GLOB frameworkHeaderGlob ${frameworkPublicHeaderGlob}
 		 ${frameworkPrivateHeaderGlob})
 
-# -----------------------------------------------------------------------------
-# |                     OBJECT LIBRARIES (INTERMEDIATE)                       |
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# |                     OBJECT LIBRARIES (INTERMEDIATE)                        |
+# ------------------------------------------------------------------------------
 
 if(BUILD_STATIC_LIB)
 	# zto_obj
@@ -596,9 +600,9 @@ set_target_properties(zt_pic PROPERTIES COMPILE_FLAGS "${ZT_FLAGS}"
 #    PROPERTY STATIC_LIBRARY_FLAGS "-no_warning_for_no_symbols"
 #)
 
-# -----------------------------------------------------------------------------
-# |                                STATIC LIB                                 |
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# |                                STATIC LIB                                  |
+# ------------------------------------------------------------------------------
 
 if(BUILD_STATIC_LIB)
 	# libztcore.a
@@ -625,7 +629,7 @@ if(BUILD_STATIC_LIB)
 		target_link_libraries(${STATIC_LIB_NAME} ${ws2_32_LIBRARY_PATH}
 			${shlwapi_LIBRARY_PATH} ${iphlpapi_LIBRARY_PATH})
 	endif()
-	if(ZTS_ENABLE_CENTRAL_API)
+	if(NOT ZTS_DISABLE_CENTRAL_API)
 		target_link_libraries(${STATIC_LIB_NAME} ${CURL_LIBRARIES})
 	endif()
 endif() # BUILD_STATIC_LIB
@@ -634,9 +638,9 @@ endif() # BUILD_STATIC_LIB
 
 
 
-# -----------------------------------------------------------------------------
-# |                                SHARED LIB                                 |
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# |                                SHARED LIB                                  |
+# ------------------------------------------------------------------------------
 
 if(BUILD_SHARED_LIB)
 	# libzt.so/dylib/dll
@@ -661,17 +665,12 @@ if(BUILD_SHARED_LIB)
 		zto_pic
 		natpmp_pic
 		miniupnpc_pic)
-
-	if(ZTS_ENABLE_CENTRAL_API)
-		target_link_libraries(${DYNAMIC_LIB_NAME} ${CURL_LIBRARIES})
-	endif()
-
 	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 	if(BUILD_ANDROID)
 		target_link_libraries(${DYNAMIC_LIB_NAME} android log)
 	endif()
-	if(ZTS_ENABLE_CENTRAL_API)
+	if(NOT ZTS_DISABLE_CENTRAL_API)
 		target_link_libraries(${DYNAMIC_LIB_NAME} ${CURL_LIBRARIES})
 	endif()
 endif() # BUILD_SHARED_LIB
@@ -715,21 +714,22 @@ if(IN_XCODE)
 			XCODE_ATTRIBUTE_CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES YES)
 endif()
 
-# -----------------------------------------------------------------------------
-# |                                  SELFTEST                                 |
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# |                                  SELFTEST                                  |
+# ------------------------------------------------------------------------------
 
 if(BUILD_HOST_SELFTEST)
-	add_executable(selftest-c-api ${PROJ_DIR}/test/selftest-c-api.c)
-	target_link_libraries(selftest-c-api ${STATIC_LIB_NAME})
+	add_executable(selftest-c
+		${PROJ_DIR}/test/selftest.c)
+	target_link_libraries(selftest-c ${STATIC_LIB_NAME})
 	project(TEST)
 	enable_testing()
-	add_test(NAME selftest-c-api COMMAND selftest-c-api)
+	add_test(NAME selftest-c COMMAND selftest-c)
 endif()
 
-# -----------------------------------------------------------------------------
-# |                                  INSTALL                                  |
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# |                                  INSTALL                                   |
+# ------------------------------------------------------------------------------
 
 if (ALLOW_INSTALL_TARGET)
 	set(PUBLIC_ZT_HEADERS ${PROJECT_SOURCE_DIR}/include/ZeroTierSockets.h)

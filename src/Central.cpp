@@ -4,27 +4,27 @@
  * Use of this software is governed by the Business Source License included
  * in the LICENSE.TXT file in the project's root directory.
  *
- * Change Date: 2025-01-01
+ * Change Date: 2026-01-01
  *
  * On the date above, in accordance with the Business Source License, use
  * of this software will be governed by version 2.0 of the Apache License.
  */
 /****/
 
-#ifndef ZT_CENTRAL_H
-#define ZT_CENTRAL_H
+#ifndef ZTS_DISABLE_CENTRAL_API
 
-#ifdef ZTS_ENABLE_CENTRAL_API
+#include "Debug.hpp"
+#include "Mutex.hpp"
+#include "OSUtils.hpp"
+#include "ZeroTierSockets.h"
 
-	#include "Debug.hpp"
-	#include "Mutex.hpp"
-	#include "ZeroTierSockets.h"
+#include <curl/curl.h>
+#include <iomanip>
+#include <iostream>
+#include <stdio.h>
+#include <string.h>
 
-	#include <curl/curl.h>
-	#include <iomanip>
-	#include <iostream>
-	#include <stdio.h>
-	#include <string.h>
+#define REQ_LEN 64
 
 char api_url[ZTS_CENRTAL_MAX_URL_LEN];
 char api_token[ZTS_CENTRAL_TOKEN_LEN + 1];
@@ -41,31 +41,40 @@ using namespace ZeroTier;
 
 Mutex _responseBuffer_m;
 
-	#ifdef __cplusplus
+#ifdef __cplusplus
 extern "C" {
-	#endif
+#endif
 
 size_t on_data(void* buffer, size_t size, size_t nmemb, void* userp)
 {
 	DEBUG_INFO("buf=%p,size=%zu,nmemb=%zu,userp=%p", buffer, size, nmemb, userp);
 	int byte_count = (size * nmemb);
 	if (_resp_buf_offset + byte_count >= _resp_buf_len) {
-		DEBUG_ERROR("Out of buffer space. Cannot store response from server");
-		return 0;   // Signal to libcurl that our buffer is full (triggers a write error.)
+		DEBUG_INFO("Out of buffer space. Cannot store response from server");
+		return 0;   // Signal to libcurl that our buffer is full (triggers a
+		            // write error.)
 	}
 	memcpy(_resp_buf + _resp_buf_offset, buffer, byte_count);
 	_resp_buf_offset += byte_count;
 	return byte_count;
 }
 
-void zts_central_set_access_mode(int8_t modes)
+int zts_central_set_access_mode(int8_t modes)
 {
+	if (! (modes & ZTS_CENTRAL_READ) && ! (modes & ZTS_CENTRAL_WRITE)) {
+		return ZTS_ERR_ARG;
+	}
 	_access_modes = modes;
+	return ZTS_ERR_OK;
 }
 
-void zts_central_set_verbose(int8_t is_verbose)
+int zts_central_set_verbose(int8_t is_verbose)
 {
+	if (is_verbose != 1 && is_verbose != 0) {
+		return ZTS_ERR_ARG;
+	}
 	_bIsVerbose = is_verbose;
+	return ZTS_ERR_OK;
 }
 
 void zts_central_clear_resp_buf()
@@ -81,7 +90,7 @@ int zts_central_init(
     char* resp_buf,
     uint32_t resp_buf_len)
 {
-	_access_modes = ZTS_CENTRAL_READ;   // Defauly read-only
+	_access_modes = ZTS_CENTRAL_READ;   // Default read-only
 	_bIsVerbose = 0;                    // Default disable libcurl verbose output
 	Mutex::Lock _l(_responseBuffer_m);
 	if (resp_buf_len == 0) {
@@ -99,7 +108,7 @@ int zts_central_init(
 	}
 	else {
 		memset(api_url, 0, ZTS_CENRTAL_MAX_URL_LEN);
-		memcpy(api_url, url_str, url_len);
+		strncpy(api_url, url_str, url_len);
 	}
 	int token_len = strlen(token_str);
 	if (token_len != ZTS_CENTRAL_TOKEN_LEN) {
@@ -107,7 +116,7 @@ int zts_central_init(
 	}
 	else {
 		memset(api_token, 0, ZTS_CENTRAL_TOKEN_LEN);
-		memcpy(api_token, token_str, token_len);
+		strncpy(api_token, token_str, token_len);
 	}
 	_bInit = true;
 	return ZTS_ERR_OK;
@@ -118,7 +127,7 @@ void zts_central_cleanup()
 	curl_global_cleanup();
 }
 
-int _central_req(
+int central_req(
     int request_type,
     char* central_str,
     char* api_route_str,
@@ -128,15 +137,17 @@ int _central_req(
 {
 	int err = ZTS_ERR_OK;
 	if (! _bInit) {
-		DEBUG_ERROR("Error: Central API must be initialized first. Call zts_central_init()");
+		DEBUG_INFO("Error: Central API must be initialized first. Call "
+		           "zts_central_init()");
 		return ZTS_ERR_SERVICE;
 	}
 	if (request_type == ZTS_HTTP_GET && ! (_access_modes & ZTS_CENTRAL_READ)) {
-		DEBUG_ERROR("Error: Incorrect access mode. Need (ZTS_CENTRAL_READ) permission");
+		DEBUG_INFO("Error: Incorrect access mode. Need (ZTS_CENTRAL_READ) permission");
 		return ZTS_ERR_SERVICE;
 	}
 	if (request_type == ZTS_HTTP_POST && ! (_access_modes & ZTS_CENTRAL_WRITE)) {
-		DEBUG_ERROR("Error: Incorrect access mode. Need (ZTS_CENTRAL_WRITE) permission");
+		DEBUG_INFO("Error: Incorrect access mode. Need (ZTS_CENTRAL_WRITE) "
+		           "permission");
 		return ZTS_ERR_SERVICE;
 	}
 	zts_central_clear_resp_buf();
@@ -150,9 +161,9 @@ int _central_req(
 	if (url_len > ZTS_CENRTAL_MAX_URL_LEN) {
 		return ZTS_ERR_ARG;
 	}
-	char req_url[ZTS_CENRTAL_MAX_URL_LEN];
-	strcpy(req_url, central_str);
-	strcat(req_url, api_route_str);
+	char req_url[ZTS_CENRTAL_MAX_URL_LEN] = { 0 };
+	strncpy(req_url, central_str, ZTS_CENRTAL_MAX_URL_LEN);
+	strncat(req_url, api_route_str, ZTS_CENRTAL_MAX_URL_LEN);
 
 	CURL* curl;
 	CURLcode res;
@@ -162,10 +173,13 @@ int _central_req(
 	}
 
 	struct curl_slist* hs = NULL;
-	char auth_str[ZTS_CENTRAL_TOKEN_LEN + 32];
+	char auth_str[ZTS_CENTRAL_TOKEN_LEN + 32] = { 0 };   // + Authorization: Bearer
 	if (token_strlen == ZTS_CENTRAL_TOKEN_LEN) {
-		memset(auth_str, 0, ZTS_CENTRAL_TOKEN_LEN + 32);
-		sprintf(auth_str, "Authorization: Bearer %s", token_str);
+		OSUtils::ztsnprintf(
+		    auth_str,
+		    ZTS_CENTRAL_TOKEN_LEN + 32,
+		    "Authorization: Bearer %s",
+		    token_str);
 	}
 
 	hs = curl_slist_append(hs, auth_str);
@@ -194,7 +208,8 @@ int _central_req(
 	if (request_type == ZTS_HTTP_DELETE) {
 		curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
 	}
-	// curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L); // Consider 400-500 series code as failures
+	// curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L); // Consider 400-500
+	// series code as failures
 	// Perform request
 	res = curl_easy_perform(curl);
 	if (res == CURLE_OK) {
@@ -208,7 +223,7 @@ int _central_req(
 		// curl_easy_getinfo(curl, CURLINFO_EFFECTIVE_URL, &url);
 	}
 	else {
-		DEBUG_ERROR("%s", curl_easy_strerror(res));
+		DEBUG_INFO("%s", curl_easy_strerror(res));
 		err = ZTS_ERR_SERVICE;
 	}
 	curl_easy_cleanup(curl);
@@ -225,87 +240,86 @@ int zts_get_last_resp_buf(char* dest_buffer, int dest_buf_len)
 	return ZTS_ERR_OK;
 }
 
-int zts_central_get_status(int* resp_code)
+int zts_central_status_get(int* resp_code)
 {
-	return _central_req(ZTS_HTTP_GET, api_url, (char*)"/api/status", api_token, resp_code, NULL);
+	return central_req(ZTS_HTTP_GET, api_url, (char*)"/api/status", api_token, resp_code, NULL);
 }
 
-int zts_central_get_self(int* resp_code)
+int zts_central_self_get(int* resp_code)
 {
-	return _central_req(ZTS_HTTP_GET, api_url, (char*)"/api/self", api_token, resp_code, NULL);
+	return central_req(ZTS_HTTP_GET, api_url, (char*)"/api/self", api_token, resp_code, NULL);
 }
 
-int zts_central_get_network(int* resp_code, uint64_t nwid)
+int zts_central_net_get(int* resp_code, uint64_t net_id)
 {
-	char req[64];
-	sprintf(req, "/api/network/%llx", nwid);
-	return _central_req(ZTS_HTTP_GET, api_url, req, api_token, resp_code, NULL);
+	char req[REQ_LEN] = { 0 };
+	OSUtils::ztsnprintf(req, REQ_LEN, "/api/network/%llx", net_id);
+	return central_req(ZTS_HTTP_GET, api_url, req, api_token, resp_code, NULL);
 }
 
-int zts_central_update_network(int* resp_code, uint64_t nwid)
+int zts_central_net_update(int* resp_code, uint64_t net_id)
 {
-	char req[64];
-	sprintf(req, "/api/network/%llx", nwid);
-	return _central_req(ZTS_HTTP_POST, api_url, req, api_token, resp_code, NULL);
+	char req[REQ_LEN] = { 0 };
+	OSUtils::ztsnprintf(req, REQ_LEN, "/api/network/%llx", net_id);
+	return central_req(ZTS_HTTP_POST, api_url, req, api_token, resp_code, NULL);
 }
 
-int zts_central_delete_network(int* resp_code, uint64_t nwid)
+int zts_central_net_delete(int* resp_code, uint64_t net_id)
 {
-	char req[64];
-	sprintf(req, "/api/network/%llx", nwid);
-	return _central_req(ZTS_HTTP_DELETE, api_url, req, api_token, resp_code, NULL);
+	char req[REQ_LEN] = { 0 };
+	OSUtils::ztsnprintf(req, REQ_LEN, "/api/network/%llx", net_id);
+	return central_req(ZTS_HTTP_DELETE, api_url, req, api_token, resp_code, NULL);
 }
 
-int zts_central_get_networks(int* resp_code)
+int zts_central_net_get_all(int* resp_code)
 {
-	return _central_req(ZTS_HTTP_GET, api_url, (char*)"/api/network", api_token, resp_code, NULL);
+	return central_req(ZTS_HTTP_GET, api_url, (char*)"/api/network", api_token, resp_code, NULL);
 }
 
-int zts_central_get_member(int* resp_code, uint64_t nwid, uint64_t nodeid)
+int zts_central_member_get(int* resp_code, uint64_t net_id, uint64_t node_id)
 {
-	if (nwid == 0 || nodeid == 0) {
+	if (net_id == 0 || node_id == 0) {
 		return ZTS_ERR_ARG;
 	}
-	char req[64];
-	sprintf(req, "/api/network/%llx/member/%llx", nwid, nodeid);
-	return _central_req(ZTS_HTTP_GET, api_url, req, api_token, resp_code, NULL);
+	char req[REQ_LEN] = { 0 };
+	OSUtils::ztsnprintf(req, REQ_LEN, "/api/network/%llx/member/%llx", net_id, node_id);
+	return central_req(ZTS_HTTP_GET, api_url, req, api_token, resp_code, NULL);
 }
 
-int zts_central_update_member(int* resp_code, uint64_t nwid, uint64_t nodeid, char* post_data)
+int zts_central_member_update(int* resp_code, uint64_t net_id, uint64_t node_id, char* post_data)
 {
-	if (nwid == 0 || nodeid == 0 || post_data == NULL) {
+	if (net_id == 0 || node_id == 0 || post_data == NULL) {
 		return ZTS_ERR_ARG;
 	}
-	char req[64];
-	sprintf(req, "/api/network/%llx/member/%llx", nwid, nodeid);
-	return _central_req(ZTS_HTTP_POST, api_url, req, api_token, resp_code, post_data);
+	char req[REQ_LEN] = { 0 };
+	OSUtils::ztsnprintf(req, REQ_LEN, "/api/network/%llx/member/%llx", net_id, node_id);
+	return central_req(ZTS_HTTP_POST, api_url, req, api_token, resp_code, post_data);
 }
 
-int zts_central_set_node_auth(int* resp_code, uint64_t nwid, uint64_t nodeid, uint8_t is_authed)
+int zts_central_node_auth(int* resp_code, uint64_t net_id, uint64_t node_id, uint8_t is_authed)
 {
 	if (is_authed != 0 && is_authed != 1) {
 		return ZTS_ERR_ARG;
 	}
-	char config_data[64];
+	char config_data[REQ_LEN] = { 0 };
 	if (is_authed == ZTS_CENTRAL_NODE_AUTH_TRUE) {
-		sprintf(config_data, "{\"config\": {\"authorized\": true} }");
+		OSUtils::ztsnprintf(config_data, REQ_LEN, "{\"config\": {\"authorized\": true} }");
 	}
 	if (is_authed == ZTS_CENTRAL_NODE_AUTH_FALSE) {
-		sprintf(config_data, "{\"config\": {\"authorized\": false} }");
+		OSUtils::ztsnprintf(config_data, REQ_LEN, "{\"config\": {\"authorized\": false} }");
 	}
-	return zts_central_update_member(resp_code, nwid, nodeid, config_data);
+	return zts_central_member_update(resp_code, net_id, node_id, config_data);
 }
 
-int zts_central_get_members_of_network(int* resp_code, uint64_t nwid)
+int zts_central_net_get_members(int* resp_code, uint64_t net_id)
 {
-	char req[64];
-	sprintf(req, "/api/network/%llx/member", nwid);
-	return _central_req(ZTS_HTTP_GET, api_url, req, api_token, resp_code, NULL);
+	char req[REQ_LEN] = { 0 };
+	OSUtils::ztsnprintf(req, REQ_LEN, "/api/network/%llx/member", net_id);
+	return central_req(ZTS_HTTP_GET, api_url, req, api_token, resp_code, NULL);
 }
 
-	#ifdef __cplusplus
+#ifdef __cplusplus
 }   // extern "C"
-	#endif
+#endif
 
-#endif   // ZTS_ENABLE_CENTRAL_API
-#endif   // _H
+#endif   // ZTS_DISABLE_CENTRAL_API

@@ -307,13 +307,6 @@ host()
 	ARTIFACT="host"
 	# Default to release
 	BUILD_TYPE=${1:-release}
-	if [[ $1 = *"docs"* ]]; then
-		# Generate documentation
-		cd docs/c && doxygen
-		cp -f *.png html/
-		exit 0
-	fi
-	# -DZTS_ENABLE_CENTRAL_API=0
 	VARIANT="-DBUILD_HOST=True"
 	CACHE_DIR=$DEFAULT_HOST_BUILD_CACHE_DIR-$ARTIFACT-$BUILD_TYPE
 	TARGET_BUILD_DIR=$DEFAULT_HOST_BIN_OUTPUT_DIR-$ARTIFACT-$BUILD_TYPE
@@ -378,7 +371,7 @@ host-python()
 	rm -rf $LIB_OUTPUT_DIR
 	mkdir -p $LIB_OUTPUT_DIR
 	# Optional step to generate new SWIG wrapper
-	swig -c++ -python -o src/bindings/python/zt_wrap.cpp -Iinclude src/bindings/python/zt.i
+	swig -c++ -python -o src/bindings/python/zt_wrap.cxx -Iinclude src/bindings/python/zt.i
 	$CMAKE $VARIANT -H. -B$CACHE_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 	$CMAKE --build $CACHE_DIR $BUILD_CONCURRENCY
 	cp -f $CACHE_DIR/lib/$SHARED_LIB_NAME $LIB_OUTPUT_DIR/_libzt.so
@@ -533,25 +526,41 @@ test()
 	cd -
 }
 
+format-code()
+{
+	if [[ ! $(which clang-format) = "" ]];
+	then
+		# Eventually: find . -path ./ext -prune -false -o -type f \( -iname \*.c -o -iname \*.h -o -iname \*.cpp -o -iname \*.hpp \) -exec clang-format -i {} \;
+		clang-format -i include/*.h               \
+						src/*.c                   \
+						src/*.cpp                 \
+						src/*.hpp                 \
+						examples/c/*.c            \
+						test/*.c
+		return 0
+	else
+		echo "Please install clang-format."
+	fi
+}
+
 # Test C API
 test-c()
 {
+	format-code
 	if [[ -z "${alice_path}" ]]; then
 		echo "Please set necessary environment variables for test"
 		exit 0
 	fi
-	ARTIFACT="test"
-	# Default to debug so asserts aren't optimized out
 	BUILD_TYPE=${1:-debug}
-	TARGET_BUILD_DIR=$DEFAULT_HOST_BIN_OUTPUT_DIR-$ARTIFACT-$BUILD_TYPE
-	BIN_OUTPUT_DIR=$TARGET_BUILD_DIR/bin
-	rm -rf $TARGET_BUILD_DIR
+	host $BUILD_TYPE
 	# Build selftest
-	test $1
+	#test $BUILD_TYPE
+	# Clear logs
+	rm -rf test/*.txt
 	# Start Alice as server
-	"$BIN_OUTPUT_DIR/selftest-c-api" $alice_path $testnet $port4 $port6 &
+	"$BIN_OUTPUT_DIR/selftest-c" $alice_path $testnet $port4 $port6 &
 	# Start Bob as client
-	"$BIN_OUTPUT_DIR/selftest-c-api" $bob_path $testnet $port4 $alice_ip4 $port6 $alice_ip6 &
+	"$BIN_OUTPUT_DIR/selftest-c" $bob_path $testnet $port4 $alice_ip4 $port6 $alice_ip6 &
 }
 
 # Test C# API
@@ -572,7 +581,7 @@ test-cs()
 	host-pinvoke $1
 	# TODO: This should eventually be converted to a proper dotnet project
 	# Build C# managed API library
-	csc -target:library -out:$LIB_OUTPUT_DIR/ZeroTier.Sockets.dll src/bindings/csharp/*.cs
+	csc -target:library -doc:$LIB_OUTPUT_DIR/ZeroTier.Sockets.xml -out:$LIB_OUTPUT_DIR/ZeroTier.Sockets.dll src/bindings/csharp/*.cs
 	# Build selftest
 	mkdir -p $BIN_OUTPUT_DIR
 	csc -out:$BIN_OUTPUT_DIR/selftest.exe -reference:$LIB_OUTPUT_DIR/ZeroTier.Sockets.dll test/selftest.cs
@@ -580,6 +589,7 @@ test-cs()
 	cp $LIB_OUTPUT_DIR/* $BIN_OUTPUT_DIR
 	# Start Alice as server
 	mono --debug "$BIN_OUTPUT_DIR/selftest.exe" $alice_path $testnet $port4 $port6 &
+	sleep 10
 	# Start Bob as client
 	mono --debug "$BIN_OUTPUT_DIR/selftest.exe" $bob_path $testnet $port4 $alice_ip4 $port6 $alice_ip6 &
 }

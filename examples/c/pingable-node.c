@@ -16,7 +16,7 @@ int main(int argc, char** argv)
 		printf("pingable-node <net_id>\n");
 		exit(0);
 	}
-	uint64_t net_id = strtoull(argv[1], NULL, 16);
+	long long int net_id = strtoull(argv[1], NULL, 16);   // At least 64 bits
 
 	printf("Starting node...\n");
 	zts_node_start();
@@ -26,9 +26,9 @@ int main(int argc, char** argv)
 		zts_util_delay(50);
 	}
 
-	printf("My public identity (node ID) is %llx\n", zts_node_get_id());
+	printf("My public identity (node ID) is %llx\n", (long long int)zts_node_get_id());
 	char keypair[ZTS_ID_STR_BUF_LEN] = { 0 };
-	uint16_t len = ZTS_ID_STR_BUF_LEN;
+	unsigned int len = ZTS_ID_STR_BUF_LEN;
 	if (zts_node_get_id_pair(keypair, &len) != ZTS_ERR_OK) {
 		printf("Error getting identity keypair. Exiting.\n");
 	}
@@ -41,7 +41,7 @@ int main(int argc, char** argv)
 	}
 
 	printf("Waiting for join to complete\n");
-	while (zts_net_count() < 1) {
+	while (! zts_net_transport_is_ready(net_id)) {
 		zts_util_delay(50);
 	}
 

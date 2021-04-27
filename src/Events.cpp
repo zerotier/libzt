@@ -38,16 +38,14 @@ void PythonDirectorCallbackClass::on_zerotier_event(zts_event_msg_t* msg)
 }
 #endif
 
-#define ZTS_NODE_EVENT(code) code >= ZTS_EVENT_NODE_UP&& code <= ZTS_EVENT_NODE_FATAL_ERROR
-#define ZTS_NETWORK_EVENT(code)                                                                    \
-	code >= ZTS_EVENT_NETWORK_NOT_FOUND&& code <= ZTS_EVENT_NETWORK_UPDATE
-#define ZTS_STACK_EVENT(code) code >= ZTS_EVENT_STACK_UP&& code <= ZTS_EVENT_STACK_DOWN
-#define ZTS_NETIF_EVENT(code) code >= ZTS_EVENT_NETIF_UP&& code <= ZTS_EVENT_NETIF_LINK_DOWN
-#define ZTS_PEER_EVENT(code)  code >= ZTS_EVENT_PEER_DIRECT&& code <= ZTS_EVENT_PEER_PATH_DEAD
-#define ZTS_ROUTE_EVENT(code) code >= ZTS_EVENT_ROUTE_ADDED&& code <= ZTS_EVENT_ROUTE_REMOVED
-#define ZTS_ADDR_EVENT(code)  code >= ZTS_EVENT_ADDR_ADDED_IP4&& code <= ZTS_EVENT_ADDR_REMOVED_IP6
-#define ZTS_STORE_EVENT(code)                                                                      \
-	code >= ZTS_EVENT_STORE_IDENTITY_SECRET&& code <= ZTS_EVENT_STORE_NETWORK
+#define ZTS_NODE_EVENT(code)    code >= ZTS_EVENT_NODE_UP&& code <= ZTS_EVENT_NODE_FATAL_ERROR
+#define ZTS_NETWORK_EVENT(code) code >= ZTS_EVENT_NETWORK_NOT_FOUND&& code <= ZTS_EVENT_NETWORK_UPDATE
+#define ZTS_STACK_EVENT(code)   code >= ZTS_EVENT_STACK_UP&& code <= ZTS_EVENT_STACK_DOWN
+#define ZTS_NETIF_EVENT(code)   code >= ZTS_EVENT_NETIF_UP&& code <= ZTS_EVENT_NETIF_LINK_DOWN
+#define ZTS_PEER_EVENT(code)    code >= ZTS_EVENT_PEER_DIRECT&& code <= ZTS_EVENT_PEER_PATH_DEAD
+#define ZTS_ROUTE_EVENT(code)   code >= ZTS_EVENT_ROUTE_ADDED&& code <= ZTS_EVENT_ROUTE_REMOVED
+#define ZTS_ADDR_EVENT(code)    code >= ZTS_EVENT_ADDR_ADDED_IP4&& code <= ZTS_EVENT_ADDR_REMOVED_IP6
+#define ZTS_STORE_EVENT(code)   code >= ZTS_EVENT_STORE_IDENTITY_SECRET&& code <= ZTS_EVENT_STORE_NETWORK
 
 namespace ZeroTier {
 
@@ -85,14 +83,13 @@ void Events::run()
 				events_m.lock();
 				sendToUser(msg);
 				events_m.unlock();
-				delete msg;
 			}
 		}
 		zts_util_delay(ZTS_CALLBACK_PROCESSING_INTERVAL);
 	}
 }
 
-void Events::enqueue(int16_t event_code, const void* arg, int len)
+void Events::enqueue(unsigned int event_code, const void* arg, int len)
 {
 	if (! _enabled) {
 		return;
@@ -132,7 +129,9 @@ void Events::enqueue(int16_t event_code, const void* arg, int len)
 		msg->len = len;
 	}
 	if (msg && _callbackMsgQueue.size_approx() > 1024) {
-		// Rate-limit number of events
+		/* Rate-limit number of events. This value should only grow if the
+		user application isn't returning from the event handler in a timely manner.
+		For most applications it should hover around 1 to 2 */
 		destroy(msg);
 	}
 	else {
@@ -163,6 +162,8 @@ void Events::destroy(zts_event_msg_t* msg)
 	if (msg->addr) {
 		delete msg->addr;
 	}
+	delete msg;
+	msg = NULL;
 }
 
 void Events::sendToUser(zts_event_msg_t* msg)
@@ -181,7 +182,6 @@ void Events::sendToUser(zts_event_msg_t* msg)
 #else
 		jint rs = jvm->AttachCurrentThread((void**)&env, NULL);
 #endif
-		assert(rs == JNI_OK);
 		uint64_t arg = 0;
 		uint64_t id = 0;
 		if (ZTS_NODE_EVENT(msg->event_code)) {

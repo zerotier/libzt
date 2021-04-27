@@ -23,9 +23,7 @@ void on_zts_event(void* msgPtr)
 	}
 	// Virtual network events
 	if (msg->event_code == ZTS_EVENT_NETWORK_NOT_FOUND) {
-		printf(
-		    "ZTS_EVENT_NETWORK_NOT_FOUND --- Are you sure %llx is a valid network?\n",
-		    msg->network->net_id);
+		printf("ZTS_EVENT_NETWORK_NOT_FOUND --- Are you sure %llx is a valid network?\n", msg->network->net_id);
 	}
 	if (msg->event_code == ZTS_EVENT_NETWORK_ACCESS_DENIED) {
 		printf(
@@ -44,10 +42,7 @@ void on_zts_event(void* msgPtr)
 		char ipstr[ZTS_INET6_ADDRSTRLEN] = { 0 };
 		struct zts_sockaddr_in6* in6 = (struct zts_sockaddr_in6*)&(msg->addr->addr);
 		zts_inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), ipstr, ZTS_INET6_ADDRSTRLEN);
-		printf(
-		    "ZTS_EVENT_ADDR_NEW_IP6 --- Join %llx and ping me at %s\n",
-		    msg->addr->net_id,
-		    ipstr);
+		printf("ZTS_EVENT_ADDR_NEW_IP6 --- Join %llx and ping me at %s\n", msg->addr->net_id, ipstr);
 	}
 
 	// To see more exhaustive examples look at test/selftest.c
@@ -60,7 +55,7 @@ int main(int argc, char** argv)
 		printf("pingable-node <net_id>\n");
 		exit(0);
 	}
-	uint64_t net_id = strtoull(argv[1], NULL, 16);
+	long long int net_id = strtoull(argv[1], NULL, 16);   // At least 64 bits
 
 	zts_init_set_event_handler(&on_zts_event);
 
@@ -87,7 +82,7 @@ int main(int argc, char** argv)
 	}
 
 	printf("Waiting for join to complete\n");
-	while (zts_net_count() < 1) {
+	while (! zts_net_transport_is_ready(net_id)) {
 		zts_util_delay(50);
 	}
 

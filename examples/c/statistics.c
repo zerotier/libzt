@@ -17,7 +17,7 @@ int main(int argc, char** argv)
 		printf("pingable-node <net_id>\n");
 		exit(0);
 	}
-	uint64_t net_id = strtoull(argv[1], NULL, 16);
+	long long int net_id = strtoull(argv[1], NULL, 16);   // At least 64 bits
 
 	printf("Starting node...\n");
 	zts_node_start();
@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 	}
 
 	printf("Waiting for join to complete\n");
-	while (zts_net_count() < 1) {
+	while (! zts_net_transport_is_ready(net_id)) {
 		zts_util_delay(50);
 	}
 

@@ -44,7 +44,7 @@ int main(int argc, char** argv)
 
 	uint16_t adhocStartPort = atoi(argv[1]);   // Start of port range your application will use
 	uint16_t adhocEndPort = atoi(argv[2]);     // End of port range your application will use
-	uint64_t net_id = zts_net_compute_adhoc_id(adhocStartPort, adhocEndPort);
+	long long int net_id = zts_net_compute_adhoc_id(adhocStartPort, adhocEndPort);   // At least 64 bits
 
 	// Start node and get identity
 
@@ -71,15 +71,14 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 	printf("Waiting for join to complete\n");
-	while (zts_net_count() < 1) {
+	while (! zts_net_transport_is_ready(net_id)) {
 		zts_util_delay(50);
 	}
 
 	// Get address
 
 	char ipstr[ZTS_IP_MAX_STR_LEN] = { 0 };
-	if ((err = zts_addr_compute_rfc4193_str(net_id, node_id, ipstr, ZTS_IP_MAX_STR_LEN))
-	    != ZTS_ERR_OK) {
+	if ((err = zts_addr_compute_rfc4193_str(net_id, node_id, ipstr, ZTS_IP_MAX_STR_LEN)) != ZTS_ERR_OK) {
 		printf("Unable to compute address (error = %d). Exiting.\n", err);
 		exit(1);
 	}

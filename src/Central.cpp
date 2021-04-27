@@ -84,11 +84,7 @@ void zts_central_clear_resp_buf()
 	_resp_buf_offset = 0;
 }
 
-int zts_central_init(
-    const char* url_str,
-    const char* token_str,
-    char* resp_buf,
-    uint32_t resp_buf_len)
+int zts_central_init(const char* url_str, const char* token_str, char* resp_buf, uint32_t resp_buf_len)
 {
 	_access_modes = ZTS_CENTRAL_READ;   // Default read-only
 	_bIsVerbose = 0;                    // Default disable libcurl verbose output
@@ -175,11 +171,7 @@ int central_req(
 	struct curl_slist* hs = NULL;
 	char auth_str[ZTS_CENTRAL_TOKEN_LEN + 32] = { 0 };   // + Authorization: Bearer
 	if (token_strlen == ZTS_CENTRAL_TOKEN_LEN) {
-		OSUtils::ztsnprintf(
-		    auth_str,
-		    ZTS_CENTRAL_TOKEN_LEN + 32,
-		    "Authorization: Bearer %s",
-		    token_str);
+		OSUtils::ztsnprintf(auth_str, ZTS_CENTRAL_TOKEN_LEN + 32, "Authorization: Bearer %s", token_str);
 	}
 
 	hs = curl_slist_append(hs, auth_str);
@@ -230,7 +222,7 @@ int central_req(
 	return err;
 }
 
-int zts_get_last_resp_buf(char* dest_buffer, int dest_buf_len)
+int zts_central_get_last_resp_buf(char* dest_buffer, int dest_buf_len)
 {
 	if (dest_buf_len <= _resp_buf_offset) {
 		return ZTS_ERR_ARG;

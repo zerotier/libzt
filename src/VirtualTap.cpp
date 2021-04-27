@@ -61,7 +61,6 @@ VirtualTap::VirtualTap(
     unsigned int mtu,
     unsigned int metric,
     uint64_t net_id,
-    const char* friendlyName,
     void (*handler)(
         void*,
         void*,
@@ -95,8 +94,6 @@ VirtualTap::VirtualTap(
 
 VirtualTap::~VirtualTap()
 {
-	zts_net_info_t* nd = new zts_net_info_t;
-	nd->net_id = _net_id;
 	_run = false;
 #ifndef __WINDOWS__
 	::write(_shutdownSignalPipe[1], "\0", 1);
@@ -106,7 +103,6 @@ VirtualTap::~VirtualTap()
 	netif4 = NULL;
 	_lwip_remove_netif(netif6);
 	netif6 = NULL;
-	_events->enqueue(ZTS_EVENT_NETWORK_DOWN, (void*)nd);
 	Thread::join(_thread);
 #ifndef __WINDOWS__
 	::close(_shutdownSignalPipe[0]);
@@ -209,21 +205,14 @@ std::vector<InetAddress> VirtualTap::ips() const
 	return _ips;
 }
 
-void VirtualTap::put(
-    const MAC& from,
-    const MAC& to,
-    unsigned int etherType,
-    const void* data,
-    unsigned int len)
+void VirtualTap::put(const MAC& from, const MAC& to, unsigned int etherType, const void* data, unsigned int len)
 {
 	if (len && _enabled) {
 		_lwip_eth_rx(this, from, to, etherType, data, len);
 	}
 }
 
-void VirtualTap::scanMulticastGroups(
-    std::vector<MulticastGroup>& added,
-    std::vector<MulticastGroup>& removed)
+void VirtualTap::scanMulticastGroups(std::vector<MulticastGroup>& added, std::vector<MulticastGroup>& removed)
 {
 	std::vector<MulticastGroup> newGroups;
 	Mutex::Lock _l(_multicastGroups_m);
@@ -238,9 +227,7 @@ void VirtualTap::scanMulticastGroups(
 		if (! std::binary_search(_multicastGroups.begin(), _multicastGroups.end(), *m))
 			added.push_back(*m);
 	}
-	for (std::vector<MulticastGroup>::iterator m(_multicastGroups.begin());
-	     m != _multicastGroups.end();
-	     ++m) {
+	for (std::vector<MulticastGroup>::iterator m(_multicastGroups.begin()); m != _multicastGroups.end(); ++m) {
 		if (! std::binary_search(newGroups.begin(), newGroups.end(), *m))
 			removed.push_back(*m);
 	}
@@ -389,12 +376,7 @@ void _lwip_driver_init()
 #if defined(__WINDOWS__)
 	sys_init();   // Required for win32 init of critical sections
 #endif
-	sys_thread_new(
-	    ZTS_LWIP_THREAD_NAME,
-	    _main_lwip_driver_loop,
-	    NULL,
-	    DEFAULT_THREAD_STACKSIZE,
-	    DEFAULT_THREAD_PRIO);
+	sys_thread_new(ZTS_LWIP_THREAD_NAME, _main_lwip_driver_loop, NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
 }
 
 void _lwip_driver_shutdown()
@@ -510,8 +492,7 @@ void _lwip_eth_rx(
 
 	if (Utils::ntoh(ethhdr.type) == 0x800 || Utils::ntoh(ethhdr.type) == 0x806) {
 		if (tap->netif4) {
-			if ((err = ((struct netif*)tap->netif4)->input(p, (struct netif*)tap->netif4))
-			    != ERR_OK) {
+			if ((err = ((struct netif*)tap->netif4)->input(p, (struct netif*)tap->netif4)) != ERR_OK) {
 				// DEBUG_ERROR("packet input error (%d)", err);
 				pbuf_free(p);
 			}
@@ -519,8 +500,7 @@ void _lwip_eth_rx(
 	}
 	if (Utils::ntoh(ethhdr.type) == 0x86DD) {
 		if (tap->netif6) {
-			if ((err = ((struct netif*)tap->netif6)->input(p, (struct netif*)tap->netif6))
-			    != ERR_OK) {
+			if ((err = ((struct netif*)tap->netif6)->input(p, (struct netif*)tap->netif6)) != ERR_OK) {
 				// DEBUG_ERROR("packet input error (%d)", err);
 				pbuf_free(p);
 			}
@@ -552,8 +532,8 @@ static err_t _netif_init4(struct netif* n)
 	n->linkoutput = _lwip_eth_tx;
 	n->output = etharp_output;
 	n->mtu = std::min(LWIP_MTU, (int)tap->_mtu);
-	n->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP
-	           | NETIF_FLAG_MLD6 | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
+	n->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP | NETIF_FLAG_MLD6
+	           | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 	n->hwaddr_len = sizeof(n->hwaddr);
 	tap->_mac.copyTo(n->hwaddr, n->hwaddr_len);
 	return ERR_OK;
@@ -574,8 +554,8 @@ static err_t _netif_init6(struct netif* n)
 	n->linkoutput = _lwip_eth_tx;
 	n->output_ip6 = ethip6_output;
 	n->mtu = std::min(LWIP_MTU, (int)tap->_mtu);
-	n->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP
-	           | NETIF_FLAG_MLD6 | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
+	n->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP | NETIF_FLAG_MLD6
+	           | NETIF_FLAG_LINK_UP | NETIF_FLAG_UP;
 	return ERR_OK;
 }
 

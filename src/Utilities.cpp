@@ -15,8 +15,20 @@
 
 #include "ZeroTierSockets.h"
 
+#include <algorithm>
 #include <netinet/in.h>
+#include <node/C25519.hpp>
+#include <node/Constants.hpp>
+#include <node/Identity.hpp>
+#include <node/InetAddress.hpp>
+#include <node/World.hpp>
+#include <osdep/OSUtils.hpp>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <string>
+#include <vector>
 
 #ifdef __WINDOWS__
 #include <windows.h>
@@ -25,6 +37,8 @@
 #else
 #include <unistd.h>   // for usleep
 #endif
+
+namespace ZeroTier {
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,7 +61,7 @@ int zts_util_get_ip_family(const char* ipstr)
 	return family;
 }
 
-void zts_util_delay(long milliseconds)
+void zts_util_delay(unsigned long milliseconds)
 {
 #ifdef __WINDOWS__
 	Sleep(milliseconds);
@@ -59,6 +73,84 @@ void zts_util_delay(long milliseconds)
 #else
 	usleep(milliseconds * 1000);
 #endif
+}
+
+int zts_util_world_new(
+    char* world_out,
+    unsigned int* world_len,
+    char* prev_key,
+    unsigned int* prev_key_len,
+    char* curr_key,
+    unsigned int* curr_key_len,
+    uint64_t id,
+    uint64_t ts,
+    zts_world_t* world_spec)
+{
+	if (! world_spec || ! prev_key || ! curr_key || ! prev_key_len || ! curr_key_len) {
+		return ZTS_ERR_ARG;
+	}
+	// Generate signing keys
+	std::string previous, current;
+	if ((! OSUtils::readFile("previous.c25519", previous)) || (! OSUtils::readFile("current.c25519", current))) {
+		C25519::Pair np(C25519::generate());
+		previous = std::string();
+		previous.append((const char*)np.pub.data, ZT_C25519_PUBLIC_KEY_LEN);
+		previous.append((const char*)np.priv.data, ZT_C25519_PRIVATE_KEY_LEN);
+		current = previous;
+	}
+	if ((previous.length() != (ZT_C25519_PUBLIC_KEY_LEN + ZT_C25519_PRIVATE_KEY_LEN))
+	    || (current.length() != (ZT_C25519_PUBLIC_KEY_LEN + ZT_C25519_PRIVATE_KEY_LEN))) {
+		// Previous.c25519 or current.c25519 empty or invalid
+		return ZTS_ERR_ARG;
+	}
+	C25519::Pair previousKP;
+	memcpy(previousKP.pub.data, previous.data(), ZT_C25519_PUBLIC_KEY_LEN);
+	memcpy(previousKP.priv.data, previous.data() + ZT_C25519_PUBLIC_KEY_LEN, ZT_C25519_PRIVATE_KEY_LEN);
+	C25519::Pair currentKP;
+	memcpy(currentKP.pub.data, current.data(), ZT_C25519_PUBLIC_KEY_LEN);
+	memcpy(currentKP.priv.data, current.data() + ZT_C25519_PUBLIC_KEY_LEN, ZT_C25519_PRIVATE_KEY_LEN);
+
+	// Set up world definition
+	std::vector<World::Root> roots;
+	for (int i = 0; i < ZTS_MAX_NUM_ROOTS; i++) {
+		if (! world_spec->public_id_str[i]) {
+			break;
+		}
+		if (strlen(world_spec->public_id_str[i])) {
+			// printf("id = %s\n", world_spec->public_id_str[i]);
+			roots.push_back(World::Root());
+			roots.back().identity = Identity(world_spec->public_id_str[i]);
+			for (int j = 0; j < ZTS_MAX_ENDPOINTS_PER_ROOT; j++) {
+				if (! world_spec->endpoint_ip_str[i][j]) {
+					break;
+				}
+				if (strlen(world_spec->endpoint_ip_str[i][j])) {
+					roots.back().stableEndpoints.push_back(InetAddress(world_spec->endpoint_ip_str[i][j]));
+					// printf(" ep = %s\n", world_spec->endpoint_ip_str[i][j]);
+				}
+			}
+		}
+	}
+
+	// Generate
+	World nw = World::make(World::TYPE_PLANET, id, ts, currentKP.pub, roots, previousKP);
+	// Test
+	Buffer<ZT_WORLD_MAX_SERIALIZED_LENGTH> outtmp;
+	nw.serialize(outtmp, false);
+	World testw;
+	testw.deserialize(outtmp, 0);
+	if (testw != nw) {
+		// Serialization test failed
+		return ZTS_ERR_GENERAL;
+	}
+	// Write output
+	memcpy(world_out, (char*)outtmp.data(), outtmp.size());
+	*world_len = outtmp.size();
+	memcpy(prev_key, previous.data(), previous.length());
+	*prev_key_len = ZT_C25519_PRIVATE_KEY_LEN + ZT_C25519_PUBLIC_KEY_LEN;
+	memcpy(curr_key, current.data(), current.length());
+	*curr_key_len = ZT_C25519_PRIVATE_KEY_LEN + ZT_C25519_PUBLIC_KEY_LEN;
+	return ZTS_ERR_OK;
 }
 
 void native_ss_to_zts_ss(struct zts_sockaddr_storage* ss_out, const struct sockaddr_storage* ss_in)
@@ -90,3 +182,5 @@ void native_ss_to_zts_ss(struct zts_sockaddr_storage* ss_out, const struct socka
 #ifdef __cplusplus
 }
 #endif
+
+}   // namespace ZeroTier

@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.0)
 project(zt)
 find_package(Threads)
 
+set (CMAKE_BUILD_PARALLEL_LEVEL 8)
+
 # ------------------------------------------------------------------------------
 # |                             PLATFORM DETECTION                             |
 # ------------------------------------------------------------------------------
@@ -101,7 +103,7 @@ if (ZTS_ENABLE_PINVOKE)
 	set(ALLOW_INSTALL_TARGET   FALSE)
 	set(BUILD_HOST_SELFTEST    FALSE)
 	# Sources and libraries
-	set(LANG_WRAPPER_FILE ${LIBZT_SRC_DIR}/bindings/csharp/*.cpp)
+	set(LANG_WRAPPER_FILE ${LIBZT_SRC_DIR}/bindings/csharp/*.cxx)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_ENABLE_PINVOKE=1")
 endif()
 
@@ -119,7 +121,7 @@ if (ZTS_ENABLE_PYTHON)
 	# Sources and libraries
 	find_package(PythonLibs REQUIRED)
 	include_directories(${PYTHON_INCLUDE_DIRS})
-	set(LANG_WRAPPER_FILE ${LIBZT_SRC_DIR}/bindings/python/*.cpp)
+	set(LANG_WRAPPER_FILE ${LIBZT_SRC_DIR}/bindings/python/*.cxx)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_ENABLE_PYTHON=1")
 endif()
 
@@ -131,7 +133,7 @@ if (ZTS_ENABLE_JAVA)
 	set(ALLOW_INSTALL_TARGET   FALSE)
 	set(BUILD_HOST_SELFTEST    FALSE)
 	set(ZTS_ENABLE_STATS       FALSE)
-	set(LANG_WRAPPER_FILE ${LIBZT_SRC_DIR}/bindings/java/*.cpp)
+	set(LANG_WRAPPER_FILE ${LIBZT_SRC_DIR}/bindings/java/*.cxx)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_ENABLE_JAVA=1")
 endif()
 
@@ -286,6 +288,10 @@ if(BUILD_HOST_EXAMPLES)
 		${PROJ_DIR}/examples/c/nostorage.c)
 	target_link_libraries(nostorage ${STATIC_LIB_NAME})
 
+	add_executable(customroots
+		${PROJ_DIR}/examples/c/customroots.c)
+	target_link_libraries(customroots ${STATIC_LIB_NAME})
+
 	add_executable(client
 		${PROJ_DIR}/examples/c/client.c)
 	target_link_libraries(client ${STATIC_LIB_NAME})
@@ -316,6 +322,7 @@ set(SILENCE "-Wno-missing-field-initializers \
 	-Wno-tautological-constant-out-of-range-compare \
 	-Wno-parentheses-equality")
 
+#set(ZT_FLAGS "${ZT_FLAGS} -DNO_GETADDRINFO=1")
 set(ZT_FLAGS "${ZT_FLAGS} -DZT_USE_MINIUPNPC=1")
 set(ZT_FLAGS "${ZT_FLAGS} -D_USING_LWIP_DEFINITIONS_=0")
 

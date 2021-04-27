@@ -69,15 +69,15 @@ Mutex service_m;
  */
 int init_subsystems()
 {
+	if (! zts_events) {
+		zts_events = new Events();
+	}
 	if (zts_events->getState(ZTS_STATE_FREE_CALLED)) {
 		return ZTS_ERR_SERVICE;
 	}
 #ifdef ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
 	_install_signal_handlers();
 #endif   // ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
-	if (! zts_events) {
-		zts_events = new Events();
-	}
 	if (! zts_service) {
 		zts_service = new NodeService();
 		zts_service->setUserEventSystem(zts_events);
@@ -96,20 +96,20 @@ int zts_init_from_storage(const char* path)
 	return ZTS_ERR_OK;
 }
 
-int zts_init_from_memory(const char* keypair, uint16_t len)
+int zts_init_from_memory(const char* keypair, unsigned int len)
 {
 	ACQUIRE_SERVICE_OFFLINE();
 	return zts_service->setIdentity(keypair, len);
 }
 
 #ifdef ZTS_ENABLE_PYTHON
-int zts_init_set_event_handler(PythonDirectorCallbackClass* callback);
+int zts_init_set_event_handler(PythonDirectorCallbackClass* callback)
 #endif
 #ifdef ZTS_ENABLE_PINVOKE
-int zts_init_set_event_handler(CppCallback callback);
+    int zts_init_set_event_handler(CppCallback callback)
 #endif
 #ifdef ZTS_C_API_ONLY
-int zts_init_set_event_handler(void (*callback)(void*))
+        int zts_init_set_event_handler(void (*callback)(void*))
 #endif
 {
 	ACQUIRE_SERVICE_OFFLINE();
@@ -117,19 +117,20 @@ int zts_init_set_event_handler(void (*callback)(void*))
 		return ZTS_ERR_ARG;
 	}
 	_userEventCallback = callback;
+	zts_service->enableEvents();
 	return ZTS_ERR_OK;
 }
 
-int zts_init_blacklist_if(const char* prefix, int len)
+int zts_init_blacklist_if(const char* prefix, unsigned int len)
 {
 	ACQUIRE_SERVICE_OFFLINE();
 	return zts_service->addInterfacePrefixToBlacklist(prefix, len);
 }
 
-int zts_init_set_planet(const char* planet_data, int len)
+int zts_init_set_world(const void* world_data, unsigned int len)
 {
 	ACQUIRE_SERVICE_OFFLINE();
-	return zts_service->setPlanet(planet_data, len);
+	return zts_service->setWorld(world_data, len);
 }
 
 int zts_init_set_port(unsigned short port)
@@ -139,31 +140,31 @@ int zts_init_set_port(unsigned short port)
 	return ZTS_ERR_OK;
 }
 
-int zts_init_allow_peer_cache(int allowed)
+int zts_init_allow_peer_cache(unsigned int allowed)
 {
 	ACQUIRE_SERVICE_OFFLINE();
 	return zts_service->allowPeerCaching(allowed);
 }
 
-int zts_init_allow_net_cache(int allowed)
+int zts_init_allow_net_cache(unsigned int allowed)
 {
 	ACQUIRE_SERVICE_OFFLINE();
 	return zts_service->allowNetworkCaching(allowed);
 }
 
-int zts_init_clear()
+int zts_init_allow_world_cache(unsigned int allowed)
 {
 	ACQUIRE_SERVICE_OFFLINE();
-	ACQUIRE_EVENTS();
-	_userEventCallback = NULL;
-	zts_service->uninitialize();
-	return ZTS_ERR_OK;
+	return zts_service->allowWorldCaching(allowed);
 }
 
-int zts_addr_compute_6plane(
-    const uint64_t net_id,
-    const uint64_t node_id,
-    struct zts_sockaddr_storage* addr)
+int zts_init_allow_id_cache(unsigned int allowed)
+{
+	ACQUIRE_SERVICE_OFFLINE();
+	return zts_service->allowIdentityCaching(allowed);
+}
+
+int zts_addr_compute_6plane(const uint64_t net_id, const uint64_t node_id, struct zts_sockaddr_storage* addr)
 {
 	if (! addr || ! net_id || ! node_id) {
 		return ZTS_ERR_ARG;
@@ -174,10 +175,7 @@ int zts_addr_compute_6plane(
 	return ZTS_ERR_OK;
 }
 
-int zts_addr_compute_rfc4193(
-    const uint64_t net_id,
-    const uint64_t node_id,
-    struct zts_sockaddr_storage* addr)
+int zts_addr_compute_rfc4193(const uint64_t net_id, const uint64_t node_id, struct zts_sockaddr_storage* addr)
 {
 	if (! addr || ! net_id || ! node_id) {
 		return ZTS_ERR_ARG;
@@ -188,7 +186,7 @@ int zts_addr_compute_rfc4193(
 	return ZTS_ERR_OK;
 }
 
-int zts_addr_compute_rfc4193_str(uint64_t net_id, uint64_t node_id, char* dst, int len)
+int zts_addr_compute_rfc4193_str(uint64_t net_id, uint64_t node_id, char* dst, unsigned int len)
 {
 	if (! net_id || ! node_id || ! dst || len != ZTS_IP_MAX_STR_LEN) {
 		return ZTS_ERR_ARG;
@@ -203,7 +201,7 @@ int zts_addr_compute_rfc4193_str(uint64_t net_id, uint64_t node_id, char* dst, i
 	return ZTS_ERR_OK;
 }
 
-int zts_addr_compute_6plane_str(uint64_t net_id, uint64_t node_id, char* dst, int len)
+int zts_addr_compute_6plane_str(uint64_t net_id, uint64_t node_id, char* dst, unsigned int len)
 {
 	if (! net_id || ! node_id || ! dst || len != ZTS_IP_MAX_STR_LEN) {
 		return ZTS_ERR_ARG;
@@ -225,7 +223,7 @@ uint64_t zts_net_compute_adhoc_id(uint16_t start_port, uint16_t end_port)
 	return strtoull(net_id_str, NULL, 16);
 }
 
-int zts_id_new(char* key, uint16_t* dst_len)
+int zts_id_new(char* key, unsigned int* dst_len)
 {
 	if (key == NULL || *dst_len != ZT_IDENTITY_STRING_BUFFER_LENGTH) {
 		return ZTS_ERR_ARG;
@@ -234,7 +232,7 @@ int zts_id_new(char* key, uint16_t* dst_len)
 	id.generate();
 	char idtmp[1024] = { 0 };
 	std::string idser = id.toString(true, idtmp);
-	uint16_t key_pair_len = idser.length();
+	unsigned int key_pair_len = idser.length();
 	if (key_pair_len > *dst_len) {
 		return ZTS_ERR_ARG;
 	}
@@ -243,7 +241,7 @@ int zts_id_new(char* key, uint16_t* dst_len)
 	return ZTS_ERR_OK;
 }
 
-int zts_id_pair_is_valid(const char* key, int len)
+int zts_id_pair_is_valid(const char* key, unsigned int len)
 {
 	if (key == NULL || len != ZT_IDENTITY_STRING_BUFFER_LENGTH) {
 		return false;
@@ -257,7 +255,7 @@ int zts_id_pair_is_valid(const char* key, int len)
 	return false;
 }
 
-int zts_node_get_id_pair(char* key, uint16_t* dst_len)
+int zts_node_get_id_pair(char* key, unsigned int* dst_len)
 {
 	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
 	zts_service->getIdentity(key, dst_len);
@@ -281,19 +279,19 @@ void* cbRun(void* arg)
 	return NULL;
 }
 
-int zts_addr_is_assigned(uint64_t net_id, int family)
+int zts_addr_is_assigned(uint64_t net_id, unsigned int family)
 {
 	ACQUIRE_SERVICE(0);
 	return zts_service->addrIsAssigned(net_id, family);
 }
 
-int zts_addr_get(uint64_t net_id, int family, struct zts_sockaddr_storage* addr)
+int zts_addr_get(uint64_t net_id, unsigned int family, struct zts_sockaddr_storage* addr)
 {
 	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
 	return zts_service->getFirstAssignedAddr(net_id, family, addr);
 }
 
-int zts_addr_get_str(uint64_t net_id, int family, char* dst, int len)
+int zts_addr_get_str(uint64_t net_id, unsigned int family, char* dst, unsigned int len)
 {
 	// No service lock required since zts_addr_get will lock it
 	if (net_id == 0) {
@@ -324,10 +322,77 @@ int zts_addr_get_str(uint64_t net_id, int family, char* dst, int len)
 	return ZTS_ERR_OK;
 }
 
-int zts_addr_get_all(uint64_t net_id, struct zts_sockaddr_storage* addr, int* count)
+int zts_addr_get_all(uint64_t net_id, struct zts_sockaddr_storage* addr, unsigned int* count)
 {
 	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
 	return zts_service->getAllAssignedAddr(net_id, addr, count);
+}
+
+int zts_core_lock_obtain()
+{
+	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
+	zts_service->obtainLock();
+	return ZTS_ERR_OK;
+}
+
+int zts_core_lock_release()
+{
+	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
+	zts_service->releaseLock();
+	return ZTS_ERR_OK;
+}
+
+int zts_core_query_addr_count(uint64_t net_id)
+{
+	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
+	return zts_service->addressCount(net_id);
+}
+
+int zts_core_query_addr(uint64_t net_id, unsigned int idx, char* addr, unsigned int len)
+{
+	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
+	return zts_service->getAddrAtIdx(net_id, idx, addr, len);
+}
+
+int zts_core_query_route_count(uint64_t net_id)
+{
+	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
+	return zts_service->routeCount(net_id);
+}
+
+int zts_core_query_route(
+    uint64_t net_id,
+    unsigned int idx,
+    char* target,
+    char* via,
+    unsigned int len,
+    uint16_t* flags,
+    uint16_t* metric)
+{
+	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
+	return zts_service->getRouteAtIdx(net_id, idx, target, via, len, flags, metric);
+}
+
+int zts_core_query_path_count(uint64_t peer_id)
+{
+	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
+	return zts_service->pathCount(peer_id);
+}
+int zts_core_query_path(uint64_t peer_id, unsigned int idx, char* path, unsigned int len)
+{
+	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
+	return zts_service->getPathAtIdx(peer_id, idx, path, len);
+}
+
+int zts_core_query_mc_count(uint64_t net_id)
+{
+	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
+	return zts_service->multicastSubCount(net_id);
+}
+int zts_core_query_mc(uint64_t net_id, unsigned int idx, uint64_t* mac, uint32_t* adi)
+{
+	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
+	return zts_service->getMulticastSubAtIdx(net_id, idx, mac, adi);
 }
 
 int zts_net_join(const uint64_t net_id)
@@ -342,10 +407,10 @@ int zts_net_leave(const uint64_t net_id)
 	return zts_service->leave(net_id);
 }
 
-int zts_net_count()
+int zts_net_transport_is_ready(const uint64_t net_id)
 {
 	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
-	return zts_service->networkCount();
+	return zts_service->networkIsReady(net_id);
 }
 
 uint64_t zts_net_get_mac(uint64_t net_id)
@@ -354,7 +419,7 @@ uint64_t zts_net_get_mac(uint64_t net_id)
 	return zts_service->getMACAddress(net_id);
 }
 
-ZTS_API int ZTCALL zts_net_get_mac_str(uint64_t net_id, char* dst, int len)
+ZTS_API int ZTCALL zts_net_get_mac_str(uint64_t net_id, char* dst, unsigned int len)
 {
 	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
 	if (! dst || len < ZTS_MAC_ADDRSTRLEN) {
@@ -386,7 +451,7 @@ int zts_net_get_mtu(uint64_t net_id)
 	return zts_service->getNetworkMTU(net_id);
 }
 
-int zts_net_get_name(uint64_t net_id, char* dst, int len)
+int zts_net_get_name(uint64_t net_id, char* dst, unsigned int len)
 {
 	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
 	return zts_service->getNetworkName(net_id, dst, len);
@@ -404,7 +469,7 @@ int zts_net_get_type(uint64_t net_id)
 	return zts_service->getNetworkType(net_id);
 }
 
-int zts_route_is_assigned(uint64_t net_id, int family)
+int zts_route_is_assigned(uint64_t net_id, unsigned int family)
 {
 	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
 	return zts_service->networkHasRoute(net_id, family);
@@ -421,41 +486,24 @@ void* _runNodeService(void* arg)
 	pthread_setname_np(ZTS_SERVICE_THREAD_NAME);
 #endif
 	try {
-		for (;;) {
-			switch (zts_service->run()) {
-				case NodeService::ONE_STILL_RUNNING:
-				case NodeService::ONE_NORMAL_TERMINATION:
-					// zts_events->enqueue(ZTS_EVENT_NODE_NORMAL_TERMINATION, NULL);
-					break;
-				case NodeService::ONE_UNRECOVERABLE_ERROR:
-					// DEBUG_ERROR("fatal error: %s",
-					// zts_service->fatalErrorMessage().c_str());
-					// zts_events->enqueue(ZTS_EVENT_NODE_UNRECOVERABLE_ERROR, NULL);
-					break;
-				case NodeService::ONE_IDENTITY_COLLISION: {
-					delete zts_service;
-					zts_service = (NodeService*)0;
-					// zts_events->enqueue(ZTS_EVENT_NODE_IDENTITY_COLLISION, NULL);
-				}
-					continue;   // restart!
-			}
-			break;   // terminate loop -- normally we don't keep restarting
-		}
+		zts_service->run();
+		// Begin shutdown
 		service_m.lock();
 		zts_events->clrState(ZTS_STATE_NODE_RUNNING);
 		delete zts_service;
 		zts_service = (NodeService*)0;
 		service_m.unlock();
-		// zts_events->enqueue(ZTS_EVENT_NODE_DOWN, NULL);
 		events_m.lock();
-		delete zts_events;
-		zts_events = NULL;
+		zts_util_delay(ZTS_CALLBACK_PROCESSING_INTERVAL * 2);
+		if (zts_events) {
+			zts_events->disable();
+			delete zts_events;
+			zts_events = (Events*)0;
+		}
 		events_m.unlock();
 	}
 	catch (...) {
-		// DEBUG_ERROR("unexpected exception starting ZeroTier");
 	}
-	zts_util_delay(ZTS_CALLBACK_PROCESSING_INTERVAL * 2);
 #ifndef __WINDOWS__
 	pthread_exit(0);
 #endif
@@ -472,6 +520,7 @@ int zts_node_start()
 	if (zts_events->hasCallback()) {
 #if defined(__WINDOWS__)
 		HANDLE callbackThread = CreateThread(NULL, 0, cbRun, NULL, 0, NULL);
+		// TODO: Check success
 #else
 		pthread_t cbThread;
 		if ((res = pthread_create(&cbThread, NULL, cbRun, NULL)) != 0) {}
@@ -489,6 +538,7 @@ int zts_node_start()
 #if defined(__WINDOWS__)
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
 	HANDLE serviceThread = CreateThread(NULL, 0, _runNodeService, (void*)NULL, 0, NULL);
+	// TODO: Check success
 #else
 	pthread_t service_thread;
 	if ((res = pthread_create(&service_thread, NULL, _runNodeService, (void*)NULL)) != 0) {}
@@ -530,23 +580,6 @@ int zts_node_stop()
 	WSACleanup();
 #endif
 	return ZTS_ERR_OK;
-}
-
-int zts_node_restart()
-{
-	ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
-	// Stop
-	zts_events->clrState(ZTS_STATE_NODE_RUNNING);
-	zts_service->terminate();
-#if defined(__WINDOWS__)
-	WSACleanup();
-#endif
-	RELEASE_SERVICE();
-	// Start
-	while (zts_service) {
-		zts_util_delay(ZTS_CALLBACK_PROCESSING_INTERVAL);
-	}
-	return zts_node_start();
 }
 
 int zts_node_free()
@@ -596,61 +629,59 @@ int zts_stats_get_all(zts_stats_counter_t* dst)
 	dst->link_tx = lws.link.xmit;
 	dst->link_rx = lws.link.recv;
 	dst->link_drop = lws.link.drop;
-	dst->link_err = lws.link.chkerr + lws.link.lenerr + lws.link.memerr + lws.link.rterr
-	                + lws.link.proterr + lws.link.opterr + lws.link.err;
+	dst->link_err = lws.link.chkerr + lws.link.lenerr + lws.link.memerr + lws.link.rterr + lws.link.proterr
+	                + lws.link.opterr + lws.link.err;
 	// etharp
 	dst->etharp_tx = lws.etharp.xmit;
 	dst->etharp_rx = lws.etharp.recv;
 	dst->etharp_drop = lws.etharp.drop;
-	dst->etharp_err = lws.etharp.chkerr + lws.etharp.lenerr + lws.etharp.memerr + lws.etharp.rterr
-	                  + lws.etharp.proterr + lws.etharp.opterr + lws.etharp.err;
+	dst->etharp_err = lws.etharp.chkerr + lws.etharp.lenerr + lws.etharp.memerr + lws.etharp.rterr + lws.etharp.proterr
+	                  + lws.etharp.opterr + lws.etharp.err;
 	// ip4
 	dst->ip4_tx = lws.ip.xmit;
 	dst->ip4_rx = lws.ip.recv;
 	dst->ip4_drop = lws.ip.drop;
-	dst->ip4_err = lws.ip.chkerr + lws.ip.lenerr + lws.ip.memerr + lws.ip.rterr + lws.ip.proterr
-	               + lws.ip.opterr + lws.ip.err + lws.ip_frag.chkerr + lws.ip_frag.lenerr
-	               + lws.ip_frag.memerr + lws.ip_frag.rterr + lws.ip_frag.proterr
-	               + lws.ip_frag.opterr + lws.ip_frag.err;
+	dst->ip4_err = lws.ip.chkerr + lws.ip.lenerr + lws.ip.memerr + lws.ip.rterr + lws.ip.proterr + lws.ip.opterr
+	               + lws.ip.err + lws.ip_frag.chkerr + lws.ip_frag.lenerr + lws.ip_frag.memerr + lws.ip_frag.rterr
+	               + lws.ip_frag.proterr + lws.ip_frag.opterr + lws.ip_frag.err;
 	// ip6
 	dst->ip6_tx = lws.ip6.xmit;
 	dst->ip6_rx = lws.ip6.recv;
 	dst->ip6_drop = lws.ip6.drop;
-	dst->ip6_err = lws.ip6.chkerr + lws.ip6.lenerr + lws.ip6.memerr + lws.ip6.rterr
-	               + lws.ip6.proterr + lws.ip6.opterr + lws.ip6.err + lws.ip6_frag.chkerr
-	               + lws.ip6_frag.lenerr + lws.ip6_frag.memerr + lws.ip6_frag.rterr
+	dst->ip6_err = lws.ip6.chkerr + lws.ip6.lenerr + lws.ip6.memerr + lws.ip6.rterr + lws.ip6.proterr + lws.ip6.opterr
+	               + lws.ip6.err + lws.ip6_frag.chkerr + lws.ip6_frag.lenerr + lws.ip6_frag.memerr + lws.ip6_frag.rterr
 	               + lws.ip6_frag.proterr + lws.ip6_frag.opterr + lws.ip6_frag.err;
 
 	// icmp4
 	dst->icmp4_tx = lws.icmp.xmit;
 	dst->icmp4_rx = lws.icmp.recv;
 	dst->icmp4_drop = lws.icmp.drop;
-	dst->icmp4_err = lws.icmp.chkerr + lws.icmp.lenerr + lws.icmp.memerr + lws.icmp.rterr
-	                 + lws.icmp.proterr + lws.icmp.opterr + lws.icmp.err;
+	dst->icmp4_err = lws.icmp.chkerr + lws.icmp.lenerr + lws.icmp.memerr + lws.icmp.rterr + lws.icmp.proterr
+	                 + lws.icmp.opterr + lws.icmp.err;
 	// icmp6
 	dst->icmp6_tx = lws.icmp6.xmit;
 	dst->icmp6_rx = lws.icmp6.recv;
 	dst->icmp6_drop = lws.icmp6.drop;
-	dst->icmp6_err = lws.icmp6.chkerr + lws.icmp6.lenerr + lws.icmp6.memerr + lws.icmp6.rterr
-	                 + lws.icmp6.proterr + lws.icmp6.opterr + lws.icmp6.err;
+	dst->icmp6_err = lws.icmp6.chkerr + lws.icmp6.lenerr + lws.icmp6.memerr + lws.icmp6.rterr + lws.icmp6.proterr
+	                 + lws.icmp6.opterr + lws.icmp6.err;
 	// udp
 	dst->udp_tx = lws.udp.xmit;
 	dst->udp_rx = lws.udp.recv;
 	dst->udp_drop = lws.udp.drop;
-	dst->udp_err = lws.udp.chkerr + lws.udp.lenerr + lws.udp.memerr + lws.udp.rterr
-	               + lws.udp.proterr + lws.udp.opterr + lws.udp.err;
+	dst->udp_err = lws.udp.chkerr + lws.udp.lenerr + lws.udp.memerr + lws.udp.rterr + lws.udp.proterr + lws.udp.opterr
+	               + lws.udp.err;
 	// tcp
 	dst->tcp_tx = lws.tcp.xmit;
 	dst->tcp_rx = lws.tcp.recv;
 	dst->tcp_drop = lws.tcp.drop;
-	dst->tcp_err = lws.tcp.chkerr + lws.tcp.lenerr + lws.tcp.memerr + lws.tcp.rterr
-	               + lws.tcp.proterr + lws.tcp.opterr + lws.tcp.err;
+	dst->tcp_err = lws.tcp.chkerr + lws.tcp.lenerr + lws.tcp.memerr + lws.tcp.rterr + lws.tcp.proterr + lws.tcp.opterr
+	               + lws.tcp.err;
 	// nd6
 	dst->nd6_tx = lws.nd6.xmit;
 	dst->nd6_rx = lws.nd6.recv;
 	dst->nd6_drop = lws.nd6.drop;
-	dst->nd6_err = lws.nd6.chkerr + lws.nd6.lenerr + lws.nd6.memerr + lws.nd6.rterr
-	               + lws.nd6.proterr + lws.nd6.opterr + lws.nd6.err;
+	dst->nd6_err = lws.nd6.chkerr + lws.nd6.lenerr + lws.nd6.memerr + lws.nd6.rterr + lws.nd6.proterr + lws.nd6.opterr
+	               + lws.nd6.err;
 
 	// TODO: Add mem and sys stats
 

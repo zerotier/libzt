@@ -18,7 +18,7 @@ int main(int argc, char** argv)
 		exit(0);
 	}
 	char* storage_path = argv[1];
-	uint64_t net_id = strtoull(argv[2], NULL, 16);
+	long long int net_id = strtoull(argv[2], NULL, 16);   // At least 64 bits
 	char* local_addr = argv[3];
 	int local_port = atoi(argv[4]);
 	int fd, accfd;
@@ -53,7 +53,7 @@ int main(int argc, char** argv)
 
 	printf("Don't forget to authorize this device in my.zerotier.com or the web API!\n");
 	printf("Waiting for join to complete\n");
-	while (zts_net_count() < 1) {
+	while (! zts_net_transport_is_ready(net_id)) {
 		zts_util_delay(50);
 	}
 

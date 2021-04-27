@@ -33,33 +33,33 @@
  * frequency socket calls use a unguarded state flags */
 
 // Lock service and check that it is running
-#define ACQUIRE_SERVICE(x)                                                                         \
-	Mutex::Lock _ls(service_m);                                                                    \
-	if (! zts_service || ! zts_service->isRunning()) {                                             \
-		return x;                                                                                  \
+#define ACQUIRE_SERVICE(x)                                                                                             \
+	Mutex::Lock _ls(service_m);                                                                                        \
+	if (! zts_service || ! zts_service->isRunning()) {                                                                 \
+		return x;                                                                                                      \
 	}
 // Lock service and check that it is not currently running
-#define ACQUIRE_SERVICE_OFFLINE()                                                                  \
-	Mutex::Lock _ls(service_m);                                                                    \
-	if (zts_service && zts_service->isRunning()) {                                                 \
-		return ZTS_ERR_SERVICE;                                                                    \
-	}                                                                                              \
-	if (! zts_service) {                                                                           \
-		init_subsystems();                                                                         \
+#define ACQUIRE_SERVICE_OFFLINE()                                                                                      \
+	Mutex::Lock _ls(service_m);                                                                                        \
+	if (zts_service && zts_service->isRunning()) {                                                                     \
+		return ZTS_ERR_SERVICE;                                                                                        \
+	}                                                                                                                  \
+	if (! zts_service) {                                                                                               \
+		init_subsystems();                                                                                             \
 	}
 // Unlock service
 #define RELEASE_SERVICE() service_m.unlock();
 // Lock service, ensure node is online
-#define ACQUIRE_ONLINE_NODE()                                                                      \
-	ACQUIRE_SERVICE() if (! zts_service->nodeIsOnline())                                           \
-	{                                                                                              \
-		return ZTS_ERR_SERVICE;                                                                    \
+#define ACQUIRE_ONLINE_NODE()                                                                                          \
+	ACQUIRE_SERVICE() if (! zts_service->nodeIsOnline())                                                               \
+	{                                                                                                                  \
+		return ZTS_ERR_SERVICE;                                                                                        \
 	}
 // Lock event callback
-#define ACQUIRE_EVENTS()                                                                           \
-	Mutex::Lock _lc(events_m);                                                                     \
-	if (! zts_events) {                                                                            \
-		return ZTS_ERR_SERVICE;                                                                    \
+#define ACQUIRE_EVENTS()                                                                                               \
+	Mutex::Lock _lc(events_m);                                                                                         \
+	if (! zts_events) {                                                                                                \
+		return ZTS_ERR_SERVICE;                                                                                        \
 	}
 
 namespace ZeroTier {
@@ -96,7 +96,7 @@ class Events {
 	bool _enabled;
 
   public:
-	Events() : _enabled(true)
+	Events() : _enabled(false)
 	{
 	}
 
@@ -118,7 +118,7 @@ class Events {
 	/**
 	 * Enqueue an event to be sent to the user application
 	 */
-	void enqueue(int16_t event_code, const void* arg, int len = 0);
+	void enqueue(unsigned int event_code, const void* arg, int len = 0);
 
 	/**
 	 * Send callback message to user application

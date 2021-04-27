@@ -31,9 +31,8 @@
 #if defined(__APPLE__)
 #include "TargetConditionals.h"
 #endif
-#if defined(ZT_COLOR) && ! defined(_WIN32) && ! defined(__ANDROID__)                               \
-    && ! defined(TARGET_OS_IPHONE) && ! defined(TARGET_IPHONE_SIMULATOR)                           \
-    && ! defined(__APP_FRAMEWORK__)
+#if defined(ZT_COLOR) && ! defined(_WIN32) && ! defined(__ANDROID__) && ! defined(TARGET_OS_IPHONE)                    \
+    && ! defined(TARGET_IPHONE_SIMULATOR) && ! defined(__APP_FRAMEWORK__)
 #define ZT_RED   "\x1B[31m"
 #define ZT_GRN   "\x1B[32m"
 #define ZT_YEL   "\x1B[33m"
@@ -62,33 +61,21 @@
 
 #if defined(LIBZT_DEBUG)
 #if defined(__ANDROID__)
-#define DEBUG_INFO(fmt, args...)                                                                   \
-	((void)__android_log_print(                                                                    \
-	    ANDROID_LOG_VERBOSE,                                                                       \
-	    ZT_LOG_TAG,                                                                                \
-	    "%17s:%5d:%20s: " fmt "\n",                                                                \
-	    ZT_FILENAME,                                                                               \
-	    __LINE__,                                                                                  \
-	    __FUNCTION__,                                                                              \
+#define DEBUG_INFO(fmt, args...)                                                                                       \
+	((void)__android_log_print(                                                                                        \
+	    ANDROID_LOG_VERBOSE,                                                                                           \
+	    ZT_LOG_TAG,                                                                                                    \
+	    "%17s:%5d:%20s: " fmt "\n",                                                                                    \
+	    ZT_FILENAME,                                                                                                   \
+	    __LINE__,                                                                                                      \
+	    __FUNCTION__,                                                                                                  \
 	    ##args))
 #elif defined(_WIN32)
-#define DEBUG_INFO(fmt, ...)                                                                       \
-	fprintf(                                                                                       \
-	    stderr,                                                                                    \
-	    ZT_WHT "%17s:%5d:%25s: " fmt "\n" ZT_RESET,                                                \
-	    ZT_FILENAME,                                                                               \
-	    __LINE__,                                                                                  \
-	    __FUNCTION__,                                                                              \
-	    __VA_ARGS__)
+#define DEBUG_INFO(fmt, ...)                                                                                           \
+	fprintf(stderr, ZT_WHT "%17s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_FILENAME, __LINE__, __FUNCTION__, __VA_ARGS__)
 #else
-#define DEBUG_INFO(fmt, args...)                                                                   \
-	fprintf(                                                                                       \
-	    stderr,                                                                                    \
-	    ZT_WHT "%17s:%5d:%25s: " fmt "\n" ZT_RESET,                                                \
-	    ZT_FILENAME,                                                                               \
-	    __LINE__,                                                                                  \
-	    __FUNCTION__,                                                                              \
-	    ##args)
+#define DEBUG_INFO(fmt, args...)                                                                                       \
+	fprintf(stderr, ZT_WHT "%17s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 #endif
 #else   // !LIBZT_DEBUG
 #if defined(_WIN32)

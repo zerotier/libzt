@@ -108,8 +108,7 @@ int zts_bind(int fd, const struct zts_sockaddr* addr, zts_socklen_t addrlen)
 	if (! addr) {
 		return ZTS_ERR_ARG;
 	}
-	if (addrlen > (int)sizeof(struct zts_sockaddr_storage)
-	    || addrlen < (int)sizeof(struct zts_sockaddr_in)) {
+	if (addrlen > (int)sizeof(struct zts_sockaddr_storage) || addrlen < (int)sizeof(struct zts_sockaddr_in)) {
 		return ZTS_ERR_ARG;
 	}
 	return lwip_bind(fd, (sockaddr*)addr, addrlen);
@@ -188,12 +187,7 @@ int zts_simple_tcp_client(const char* remote_ipstr, int remote_port)
 	return fd;
 }
 
-int zts_simple_tcp_server(
-    const char* local_ipstr,
-    int local_port,
-    char* remote_ipstr,
-    int len,
-    int* remote_port)
+int zts_simple_tcp_server(const char* local_ipstr, int local_port, char* remote_ipstr, int len, int* remote_port)
 {
 	int listen_fd, family = zts_util_get_ip_family(local_ipstr);
 	if ((listen_fd = zts_socket(family, ZTS_SOCK_STREAM, 0)) < 0) {
@@ -260,8 +254,7 @@ int zts_getsockname(int fd, struct zts_sockaddr* addr, zts_socklen_t* addrlen)
 	if (! addr) {
 		return ZTS_ERR_ARG;
 	}
-	if (*addrlen > (int)sizeof(struct zts_sockaddr_storage)
-	    || *addrlen < (int)sizeof(struct zts_sockaddr_in)) {
+	if (*addrlen > (int)sizeof(struct zts_sockaddr_storage) || *addrlen < (int)sizeof(struct zts_sockaddr_in)) {
 		return ZTS_ERR_ARG;
 	}
 	return lwip_getsockname(fd, (sockaddr*)addr, (socklen_t*)addrlen);
@@ -275,8 +268,7 @@ int zts_getpeername(int fd, struct zts_sockaddr* addr, zts_socklen_t* addrlen)
 	if (! addr) {
 		return ZTS_ERR_ARG;
 	}
-	if (*addrlen > (int)sizeof(struct zts_sockaddr_storage)
-	    || *addrlen < (int)sizeof(struct zts_sockaddr_in)) {
+	if (*addrlen > (int)sizeof(struct zts_sockaddr_storage) || *addrlen < (int)sizeof(struct zts_sockaddr_in)) {
 		return ZTS_ERR_ARG;
 	}
 	return lwip_getpeername(fd, (sockaddr*)addr, (socklen_t*)addrlen);
@@ -290,22 +282,12 @@ int zts_close(int fd)
 	return lwip_close(fd);
 }
 
-int zts_select(
-    int nfds,
-    zts_fd_set* readfds,
-    zts_fd_set* writefds,
-    zts_fd_set* exceptfds,
-    struct zts_timeval* timeout)
+int zts_select(int nfds, zts_fd_set* readfds, zts_fd_set* writefds, zts_fd_set* exceptfds, struct zts_timeval* timeout)
 {
 	if (! transport_ok()) {
 		return ZTS_ERR_SERVICE;
 	}
-	return lwip_select(
-	    nfds,
-	    (fd_set*)readfds,
-	    (fd_set*)writefds,
-	    (fd_set*)exceptfds,
-	    (timeval*)timeout);
+	return lwip_select(nfds, (fd_set*)readfds, (fd_set*)writefds, (fd_set*)exceptfds, (timeval*)timeout);
 }
 
 int zts_fcntl(int fd, int cmd, int flags)
@@ -346,13 +328,8 @@ ssize_t zts_send(int fd, const void* buf, size_t len, int flags)
 	return lwip_send(fd, buf, len, flags);
 }
 
-ssize_t zts_sendto(
-    int fd,
-    const void* buf,
-    size_t len,
-    int flags,
-    const struct zts_sockaddr* addr,
-    zts_socklen_t addrlen)
+ssize_t
+zts_sendto(int fd, const void* buf, size_t len, int flags, const struct zts_sockaddr* addr, zts_socklen_t addrlen)
 {
 	if (! transport_ok()) {
 		return ZTS_ERR_SERVICE;
@@ -360,8 +337,7 @@ ssize_t zts_sendto(
 	if (! addr || ! buf) {
 		return ZTS_ERR_ARG;
 	}
-	if (addrlen > (int)sizeof(struct zts_sockaddr_storage)
-	    || addrlen < (int)sizeof(struct zts_sockaddr_in)) {
+	if (addrlen > (int)sizeof(struct zts_sockaddr_storage) || addrlen < (int)sizeof(struct zts_sockaddr_in)) {
 		return ZTS_ERR_ARG;
 	}
 	return lwip_sendto(fd, buf, len, flags, (sockaddr*)addr, addrlen);
@@ -386,13 +362,7 @@ ssize_t zts_recv(int fd, void* buf, size_t len, int flags)
 	return lwip_recv(fd, buf, len, flags);
 }
 
-ssize_t zts_recvfrom(
-    int fd,
-    void* buf,
-    size_t len,
-    int flags,
-    struct zts_sockaddr* addr,
-    zts_socklen_t* addrlen)
+ssize_t zts_recvfrom(int fd, void* buf, size_t len, int flags, struct zts_sockaddr* addr, zts_socklen_t* addrlen)
 {
 	if (! transport_ok()) {
 		return ZTS_ERR_SERVICE;
@@ -519,7 +489,7 @@ int zts_inet_pton(int family, const char* src, void* dst)
 
 int zts_util_ipstr_to_saddr(
     const char* src_ipstr,
-    int port,
+    unsigned int port,
     struct zts_sockaddr* dest_addr,
     zts_socklen_t* addrlen)
 {

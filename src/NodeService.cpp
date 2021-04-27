@@ -31,6 +31,7 @@
 #include "Utils.hpp"
 #include "ZeroTierSockets.h"
 
+#include <arpa/inet.h>
 #include <iostream>
 
 #if defined(__WINDOWS__)
@@ -60,6 +61,12 @@ NodeService::NodeService()
 #endif
     , _allowNetworkCaching(true)
     , _allowPeerCaching(true)
+    , _allowIdentityCaching(true)
+    , _allowWorldCaching(true)
+    , _userDefinedWorld(false)
+    , _nodeIsOnline(false)
+    , _eventsEnabled(false)
+    , _events(NULL)
     , _homePath("")
 {
 }
@@ -79,8 +86,7 @@ NodeService::ReasonForTermination NodeService::run()
 		// Create home path (if necessary)
 		// By default, _homePath is empty and nothing is written to storage
 		if (_homePath.length() > 0) {
-			std::vector<std::string> hpsp(
-			    OSUtils::split(_homePath.c_str(), ZT_PATH_SEPARATOR_S, "", ""));
+			std::vector<std::string> hpsp(OSUtils::split(_homePath.c_str(), ZT_PATH_SEPARATOR_S, "", ""));
 			std::string ptmp;
 			if (_homePath[0] == ZT_PATH_SEPARATOR) {
 				ptmp.push_back(ZT_PATH_SEPARATOR);
@@ -144,8 +150,7 @@ NodeService::ReasonForTermination NodeService::run()
 		// fail if more than one device behind the same NAT tries to use the
 		// same internal private address port number. Buggy NATs are a
 		// running theme.
-		_ports[1] = (_secondaryPort == 0) ? 20000 + ((unsigned int)_node->address() % 45500)
-		                                  : _secondaryPort;
+		_ports[1] = (_secondaryPort == 0) ? 20000 + ((unsigned int)_node->address() % 45500) : _secondaryPort;
 		for (int i = 0;; ++i) {
 			if (i > 1000) {
 				_ports[1] = 0;
@@ -195,9 +200,7 @@ NodeService::ReasonForTermination NodeService::run()
 		if (_allowNetworkCaching) {
 			std::vector<std::string> networksDotD(
 			    OSUtils::listDirectory((_homePath + ZT_PATH_SEPARATOR_S "networks.d").c_str()));
-			for (std::vector<std::string>::iterator f(networksDotD.begin());
-			     f != networksDotD.end();
-			     ++f) {
+			for (std::vector<std::string>::iterator f(networksDotD.begin()); f != networksDotD.end(); ++f) {
 				std::size_t dot = f->find_last_of('.');
 				if ((dot == 16) && (f->substr(16) == ".conf")) {
 					_node->join(Utils::hexStrToU64(f->substr(0, dot).c_str()), (void*)0, (void*)0);
@@ -212,9 +215,8 @@ NodeService::ReasonForTermination NodeService::run()
 		int64_t lastBindRefresh = 0;
 		int64_t lastCleanedPeersDb = 0;
 		int64_t lastLocalInterfaceAddressCheck =
-		    (clockShouldBe - ZT_LOCAL_INTERFACE_CHECK_INTERVAL)
-		    + 15000;   // do this in 15s to give portmapper time to
-		               // configure and other things time to settle
+		    (clockShouldBe - ZT_LOCAL_INTERFACE_CHECK_INTERVAL) + 15000;   // do this in 15s to give portmapper time to
+		                                                                   // configure and other things time to settle
 		for (;;) {
 			_run_m.lock();
 			if (! _run) {
@@ -266,46 +268,33 @@ NodeService::ReasonForTermination NodeService::run()
 			// Sync multicast group memberships
 			if ((now - lastTapMulticastGroupCheck) >= ZT_TAP_CHECK_MULTICAST_INTERVAL) {
 				lastTapMulticastGroupCheck = now;
-				std::vector<std::pair<
-				    uint64_t,
-				    std::pair<std::vector<MulticastGroup>, std::vector<MulticastGroup> > > >
+				std::vector<std::pair<uint64_t, std::pair<std::vector<MulticastGroup>, std::vector<MulticastGroup> > > >
 				    mgChanges;
 				{
 					Mutex::Lock _l(_nets_m);
 					mgChanges.reserve(_nets.size() + 1);
-					for (std::map<uint64_t, NetworkState>::const_iterator n(_nets.begin());
-					     n != _nets.end();
-					     ++n) {
+					for (std::map<uint64_t, NetworkState>::const_iterator n(_nets.begin()); n != _nets.end(); ++n) {
 						if (n->second.tap) {
 							mgChanges.push_back(std::pair<
 							                    uint64_t,
-							                    std::pair<
-							                        std::vector<MulticastGroup>,
-							                        std::vector<MulticastGroup> > >(
+							                    std::pair<std::vector<MulticastGroup>, std::vector<MulticastGroup> > >(
 							    n->first,
-							    std::pair<
-							        std::vector<MulticastGroup>,
-							        std::vector<MulticastGroup> >()));
+							    std::pair<std::vector<MulticastGroup>, std::vector<MulticastGroup> >()));
 							n->second.tap->scanMulticastGroups(
 							    mgChanges.back().second.first,
 							    mgChanges.back().second.second);
 						}
 					}
 				}
-				for (std::vector<std::pair<
-				         uint64_t,
-				         std::pair<std::vector<MulticastGroup>, std::vector<MulticastGroup> > > >::
+				for (std::vector<
+				         std::pair<uint64_t, std::pair<std::vector<MulticastGroup>, std::vector<MulticastGroup> > > >::
 				         iterator c(mgChanges.begin());
 				     c != mgChanges.end();
 				     ++c) {
 					auto mgpair = c->second;
-					for (std::vector<MulticastGroup>::iterator m(mgpair.first.begin());
-					     m != mgpair.first.end();
-					     ++m)
+					for (std::vector<MulticastGroup>::iterator m(mgpair.first.begin()); m != mgpair.first.end(); ++m)
 						_node->multicastSubscribe((void*)0, c->first, m->mac().toInt(), m->adi());
-					for (std::vector<MulticastGroup>::iterator m(mgpair.second.begin());
-					     m != mgpair.second.end();
-					     ++m)
+					for (std::vector<MulticastGroup>::iterator m(mgpair.second.begin()); m != mgpair.second.end(); ++m)
 						_node->multicastUnsubscribe(c->first, m->mac().toInt(), m->adi());
 				}
 			}
@@ -322,17 +311,13 @@ NodeService::ReasonForTermination NodeService::run()
 					for (std::vector<InetAddress>::const_iterator ext(mappedAddresses.begin());
 					     ext != mappedAddresses.end();
 					     ++ext)
-						_node->addLocalInterfaceAddress(
-						    reinterpret_cast<const struct sockaddr_storage*>(&(*ext)));
+						_node->addLocalInterfaceAddress(reinterpret_cast<const struct sockaddr_storage*>(&(*ext)));
 				}
 #endif
 
 				std::vector<InetAddress> boundAddrs(_binder.allBoundLocalInterfaceAddresses());
-				for (std::vector<InetAddress>::const_iterator i(boundAddrs.begin());
-				     i != boundAddrs.end();
-				     ++i)
-					_node->addLocalInterfaceAddress(
-					    reinterpret_cast<const struct sockaddr_storage*>(&(*i)));
+				for (std::vector<InetAddress>::const_iterator i(boundAddrs.begin()); i != boundAddrs.end(); ++i)
+					_node->addLocalInterfaceAddress(reinterpret_cast<const struct sockaddr_storage*>(&(*i)));
 			}
 
 			// Clean peers.d periodically
@@ -393,86 +378,24 @@ std::string NodeService::fatalErrorMessage() const
 	return _fatalErrorMessage;
 }
 
-void NodeService::getRoutes(uint64_t net_id, void* routeArray, unsigned int* numRoutes)
-{
-	Mutex::Lock _l(_nets_m);
-	NetworkState& n = _nets[net_id];
-	*numRoutes = *numRoutes < n.config.routeCount ? *numRoutes : n.config.routeCount;
-	for (unsigned int i = 0; i < *numRoutes; i++) {
-		ZT_VirtualNetworkRoute* vnr = (ZT_VirtualNetworkRoute*)routeArray;
-		memcpy(&vnr[i], &(n.config.routes[i]), sizeof(ZT_VirtualNetworkRoute));
-	}
-}
-
 void NodeService::terminate()
 {
 	_run_m.lock();
 	_run = false;
 	_run_m.unlock();
+	_primaryPort = 0;
+	_homePath.clear();
+	_allowNetworkCaching = true;
+	_allowPeerCaching = true;
+	_allowIdentityCaching = true;
+	_allowWorldCaching = true;
+	memset(_publicIdStr, 0, ZT_IDENTITY_STRING_BUFFER_LENGTH);
+	memset(_secretIdStr, 0, ZT_IDENTITY_STRING_BUFFER_LENGTH);
+	_interfacePrefixBlacklist.clear();
+	_events->disable();
 	_phy.whack();
 }
 
-void NodeService::uninitialize()
-{
-	// Reset port
-	_primaryPort = 0;
-	// Reset storage location
-	_homePath.clear();
-	// Reset cache settings
-	_allowNetworkCaching = true;
-	_allowPeerCaching = true;
-	// Reset identities
-	memset(_publicIdStr, 0, ZT_IDENTITY_STRING_BUFFER_LENGTH);
-	memset(_secretIdStr, 0, ZT_IDENTITY_STRING_BUFFER_LENGTH);
-	// Reset blacklist
-	_interfacePrefixBlacklist.clear();
-}
-
-int NodeService::getNetworkSettings(const uint64_t net_id, NetworkSettings& settings) const
-{
-	Mutex::Lock _l(_nets_m);
-	std::map<uint64_t, NetworkState>::const_iterator n(_nets.find(net_id));
-	if (n == _nets.end()) {
-		return false;
-	}
-	settings = n->second.settings;
-	return true;
-}
-
-// Checks if a managed IP or route target is allowed
-int NodeService::checkIfManagedIsAllowed(const NetworkState& n, const InetAddress& target)
-{
-	if (! n.settings.allowManaged) {
-		return false;
-	}
-	if (n.settings.allowManagedWhitelist.size() > 0) {
-		bool allowed = false;
-		for (InetAddress addr : n.settings.allowManagedWhitelist) {
-			if (addr.containsAddress(target) && addr.netmaskBits() <= target.netmaskBits()) {
-				allowed = true;
-				break;
-			}
-		}
-		if (! allowed)
-			return false;
-	}
-	if (target.isDefaultRoute())
-		return n.settings.allowDefault;
-	switch (target.ipScope()) {
-		case InetAddress::IP_SCOPE_NONE:
-		case InetAddress::IP_SCOPE_MULTICAST:
-		case InetAddress::IP_SCOPE_LOOPBACK:
-		case InetAddress::IP_SCOPE_LINK_LOCAL:
-			return false;
-		case InetAddress::IP_SCOPE_GLOBAL:
-			return n.settings.allowGlobal;
-		default:
-			return true;
-	}
-}
-
-// Apply or update managed IPs for a configured network (be sure n.tap
-// exists)
 void NodeService::syncManagedStuff(NetworkState& n)
 {
 	char ipbuf[64] = { 0 };
@@ -480,24 +403,15 @@ void NodeService::syncManagedStuff(NetworkState& n)
 	std::vector<InetAddress> newManagedIps;
 	newManagedIps.reserve(n.config.assignedAddressCount);
 	for (unsigned int i = 0; i < n.config.assignedAddressCount; ++i) {
-		const InetAddress* ii =
-		    reinterpret_cast<const InetAddress*>(&(n.config.assignedAddresses[i]));
-		if (checkIfManagedIsAllowed(n, *ii)) {
-			newManagedIps.push_back(*ii);
-		}
+		const InetAddress* ii = reinterpret_cast<const InetAddress*>(&(n.config.assignedAddresses[i]));
+		newManagedIps.push_back(*ii);
 	}
 	std::sort(newManagedIps.begin(), newManagedIps.end());
-	newManagedIps.erase(
-	    std::unique(newManagedIps.begin(), newManagedIps.end()),
-	    newManagedIps.end());
-	for (std::vector<InetAddress>::iterator ip(n.managedIps.begin()); ip != n.managedIps.end();
-	     ++ip) {
+	newManagedIps.erase(std::unique(newManagedIps.begin(), newManagedIps.end()), newManagedIps.end());
+	for (std::vector<InetAddress>::iterator ip(n.managedIps.begin()); ip != n.managedIps.end(); ++ip) {
 		if (std::find(newManagedIps.begin(), newManagedIps.end(), *ip) == newManagedIps.end()) {
 			if (! n.tap->removeIp(*ip)) {
-				fprintf(
-				    stderr,
-				    "ERROR: unable to remove ip address %s" ZT_EOL_S,
-				    ip->toString(ipbuf));
+				fprintf(stderr, "ERROR: unable to remove ip address %s" ZT_EOL_S, ip->toString(ipbuf));
 			}
 			else {
 				zts_addr_info_t* ad = new zts_addr_info_t();
@@ -506,19 +420,18 @@ void NodeService::syncManagedStuff(NetworkState& n)
 					struct sockaddr_in* in4 = (struct sockaddr_in*)&(ad->addr);
 					memcpy(&(in4->sin_addr.s_addr), (*ip).rawIpData(), 4);
 					in4->sin_family = ZTS_AF_INET;
-					_events->enqueue(ZTS_EVENT_ADDR_REMOVED_IP4, (void*)ad);
+					sendEventToUser(ZTS_EVENT_ADDR_REMOVED_IP4, (void*)ad);
 				}
 				if ((*ip).isV6()) {
 					struct sockaddr_in6* in6 = (struct sockaddr_in6*)&(ad->addr);
 					memcpy(&(in6->sin6_addr.s6_addr), (*ip).rawIpData(), 16);
 					in6->sin6_family = ZTS_AF_INET6;
-					_events->enqueue(ZTS_EVENT_ADDR_REMOVED_IP6, (void*)ad);
+					sendEventToUser(ZTS_EVENT_ADDR_REMOVED_IP6, (void*)ad);
 				}
 			}
 		}
 	}
-	for (std::vector<InetAddress>::iterator ip(newManagedIps.begin()); ip != newManagedIps.end();
-	     ++ip) {
+	for (std::vector<InetAddress>::iterator ip(newManagedIps.begin()); ip != newManagedIps.end(); ++ip) {
 		if (std::find(n.managedIps.begin(), n.managedIps.end(), *ip) == n.managedIps.end()) {
 			if (! n.tap->addIp(*ip)) {
 				fprintf(stderr, "ERROR: unable to add ip address %s" ZT_EOL_S, ip->toString(ipbuf));
@@ -530,13 +443,13 @@ void NodeService::syncManagedStuff(NetworkState& n)
 					struct sockaddr_in* in4 = (struct sockaddr_in*)&(ad->addr);
 					memcpy(&(in4->sin_addr.s_addr), (*ip).rawIpData(), 4);
 					in4->sin_family = ZTS_AF_INET;
-					_events->enqueue(ZTS_EVENT_ADDR_ADDED_IP4, (void*)ad);
+					sendEventToUser(ZTS_EVENT_ADDR_ADDED_IP4, (void*)ad);
 				}
 				if ((*ip).isV6()) {
 					struct sockaddr_in6* in6 = (struct sockaddr_in6*)&(ad->addr);
 					memcpy(&(in6->sin6_addr.s6_addr), (*ip).rawIpData(), 16);
 					in6->sin6_family = ZTS_AF_INET6;
-					_events->enqueue(ZTS_EVENT_ADDR_ADDED_IP6, (void*)ad);
+					sendEventToUser(ZTS_EVENT_ADDR_ADDED_IP6, (void*)ad);
 				}
 			}
 		}
@@ -552,8 +465,7 @@ void NodeService::phyOnDatagram(
     void* data,
     unsigned long len)
 {
-	if ((len >= 16)
-	    && (reinterpret_cast<const InetAddress*>(from)->ipScope() == InetAddress::IP_SCOPE_GLOBAL))
+	if ((len >= 16) && (reinterpret_cast<const InetAddress*>(from)->ipScope() == InetAddress::IP_SCOPE_GLOBAL))
 		_lastDirectReceiveFromGlobal = OSUtils::now();
 	const ZT_ResultCode rc = _node->processWirePacket(
 	    (void*)0,
@@ -566,11 +478,7 @@ void NodeService::phyOnDatagram(
 	    &_nextBackgroundTaskDeadline);
 	if (ZT_ResultCode_isFatal(rc)) {
 		char tmp[256] = { 0 };
-		OSUtils::ztsnprintf(
-		    tmp,
-		    sizeof(tmp),
-		    "fatal error code from processWirePacket: %d",
-		    (int)rc);
+		OSUtils::ztsnprintf(tmp, sizeof(tmp), "fatal error code from processWirePacket: %d", (int)rc);
 		Mutex::Lock _l(_termReason_m);
 		_termReason = ONE_UNRECOVERABLE_ERROR;
 		_fatalErrorMessage = tmp;
@@ -590,20 +498,12 @@ int NodeService::nodeVirtualNetworkConfigFunction(
 	switch (op) {
 		case ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_UP:
 			if (! n.tap) {
-				char friendlyName[128] = { 0 };
-				OSUtils::ztsnprintf(
-				    friendlyName,
-				    sizeof(friendlyName),
-				    "ZeroTier One [%.16llx]",
-				    net_id);
-
 				n.tap = new VirtualTap(
 				    _homePath.c_str(),
 				    MAC(nwc->mac),
 				    nwc->mtu,
 				    (unsigned int)ZT_IF_METRIC,
 				    net_id,
-				    friendlyName,
 				    StapFrameHandler,
 				    (void*)this);
 				*nuptr = (void*)&n;
@@ -611,7 +511,6 @@ int NodeService::nodeVirtualNetworkConfigFunction(
 			}
 			// After setting up tap, fall through to CONFIG_UPDATE since we
 			// also want to do this...
-
 		case ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_CONFIG_UPDATE:
 			memcpy(&(n.config), nwc, sizeof(ZT_VirtualNetworkConfig));
 			if (n.tap) {   // sanity check
@@ -623,12 +522,12 @@ int NodeService::nodeVirtualNetworkConfigFunction(
 				return -999;   // tap init failed
 			}
 			if (op == ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_CONFIG_UPDATE) {
-				_events->enqueue(ZTS_EVENT_NETWORK_UPDATE, (void*)prepare_network_details_msg(n));
+				sendEventToUser(ZTS_EVENT_NETWORK_UPDATE, (void*)prepare_network_details_msg(n));
 			}
 			break;
-
 		case ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_DOWN:
 		case ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_DESTROY:
+			sendEventToUser(ZTS_EVENT_NETWORK_DOWN, (void*)prepare_network_details_msg(n));
 			if (n.tap) {   // sanity check
 				*nuptr = (void*)0;
 				delete n.tap;
@@ -639,8 +538,7 @@ int NodeService::nodeVirtualNetworkConfigFunction(
 						OSUtils::ztsnprintf(
 						    nlcpath,
 						    sizeof(nlcpath),
-						    "%s" ZT_PATH_SEPARATOR_S "networks.d" ZT_PATH_SEPARATOR_S
-						    "%.16llx.local.conf",
+						    "%s" ZT_PATH_SEPARATOR_S "networks.d" ZT_PATH_SEPARATOR_S "%.16llx.local.conf",
 						    _homePath.c_str(),
 						    net_id);
 						OSUtils::rm(nlcpath);
@@ -692,17 +590,16 @@ void NodeService::nodeEventCallback(enum ZT_Event event, const void* metaData)
 			break;
 	}
 	if (event_code) {
-		_events->enqueue(event_code, (void*)nd);
+		sendEventToUser(event_code, (void*)nd);
 	}
 }
 
 zts_net_info_t* NodeService::prepare_network_details_msg(const NetworkState& n)
 {
 	zts_net_info_t* nd = new zts_net_info_t();
-
 	nd->net_id = n.config.nwid;
 	nd->mac = n.config.mac;
-	memcpy(nd->name, n.config.name, sizeof(n.config.name));
+	strncpy(nd->name, n.config.name, sizeof(n.config.name));
 	nd->status = (zts_network_status_t)n.config.status;
 	nd->type = (zts_net_info_type_t)n.config.type;
 	nd->mtu = n.config.mtu;
@@ -711,13 +608,11 @@ zts_net_info_t* NodeService::prepare_network_details_msg(const NetworkState& n)
 	nd->broadcast_enabled = n.config.broadcastEnabled;
 	nd->port_error = n.config.portError;
 	nd->netconf_rev = n.config.netconfRevision;
-
 	// Copy and convert address structures
 	nd->assigned_addr_count = n.config.assignedAddressCount;
 	for (unsigned int i = 0; i < n.config.assignedAddressCount; i++) {
 		native_ss_to_zts_ss(&(nd->assigned_addrs[i]), &(n.config.assignedAddresses[i]));
 	}
-
 	nd->route_count = n.config.routeCount;
 	for (unsigned int i = 0; i < n.config.routeCount; i++) {
 		native_ss_to_zts_ss(&(nd->routes[i].target), &(n.config.routes[i].target));
@@ -725,13 +620,8 @@ zts_net_info_t* NodeService::prepare_network_details_msg(const NetworkState& n)
 		nd->routes[i].flags = n.config.routes[i].flags;
 		nd->routes[i].metric = n.config.routes[i].metric;
 	}
-
 	nd->multicast_sub_count = n.config.multicastSubscriptionCount;
-	memcpy(
-	    nd->multicast_subs,
-	    &(n.config.multicastSubscriptions),
-	    sizeof(n.config.multicastSubscriptions));
-
+	memcpy(nd->multicast_subs, &(n.config.multicastSubscriptions), sizeof(n.config.multicastSubscriptions));
 	return nd;
 }
 
@@ -754,40 +644,26 @@ void NodeService::generateEventMsgs()
 		}
 		switch (mostRecentStatus) {
 			case ZT_NETWORK_STATUS_NOT_FOUND:
-				_events->enqueue(
-				    ZTS_EVENT_NETWORK_NOT_FOUND,
-				    (void*)prepare_network_details_msg(netState));
+				sendEventToUser(ZTS_EVENT_NETWORK_NOT_FOUND, (void*)prepare_network_details_msg(netState));
 				break;
 			case ZT_NETWORK_STATUS_CLIENT_TOO_OLD:
-				_events->enqueue(
-				    ZTS_EVENT_NETWORK_CLIENT_TOO_OLD,
-				    (void*)prepare_network_details_msg(netState));
+				sendEventToUser(ZTS_EVENT_NETWORK_CLIENT_TOO_OLD, (void*)prepare_network_details_msg(netState));
 				break;
 			case ZT_NETWORK_STATUS_REQUESTING_CONFIGURATION:
-				_events->enqueue(
-				    ZTS_EVENT_NETWORK_REQ_CONFIG,
-				    (void*)prepare_network_details_msg(netState));
+				sendEventToUser(ZTS_EVENT_NETWORK_REQ_CONFIG, (void*)prepare_network_details_msg(netState));
 				break;
 			case ZT_NETWORK_STATUS_OK:
 				if (tap->hasIpv4Addr() && _lwip_is_netif_up(tap->netif4)) {
-					_events->enqueue(
-					    ZTS_EVENT_NETWORK_READY_IP4,
-					    (void*)prepare_network_details_msg(netState));
+					sendEventToUser(ZTS_EVENT_NETWORK_READY_IP4, (void*)prepare_network_details_msg(netState));
 				}
 				if (tap->hasIpv6Addr() && _lwip_is_netif_up(tap->netif6)) {
-					_events->enqueue(
-					    ZTS_EVENT_NETWORK_READY_IP6,
-					    (void*)prepare_network_details_msg(netState));
+					sendEventToUser(ZTS_EVENT_NETWORK_READY_IP6, (void*)prepare_network_details_msg(netState));
 				}
 				// In addition to the READY messages, send one OK message
-				_events->enqueue(
-				    ZTS_EVENT_NETWORK_OK,
-				    (void*)prepare_network_details_msg(netState));
+				sendEventToUser(ZTS_EVENT_NETWORK_OK, (void*)prepare_network_details_msg(netState));
 				break;
 			case ZT_NETWORK_STATUS_ACCESS_DENIED:
-				_events->enqueue(
-				    ZTS_EVENT_NETWORK_ACCESS_DENIED,
-				    (void*)prepare_network_details_msg(netState));
+				sendEventToUser(ZTS_EVENT_NETWORK_ACCESS_DENIED, (void*)prepare_network_details_msg(netState));
 				break;
 			default:
 				break;
@@ -836,7 +712,7 @@ void NodeService::generateEventMsgs()
 				for (unsigned int j = 0; j < pl->peers[i].pathCount; j++) {
 					native_ss_to_zts_ss(&(pd->paths[j].address), &(pl->peers[i].paths[j].address));
 				}
-				_events->enqueue(event_code, (void*)pd);
+				sendEventToUser(event_code, (void*)pd);
 				bShouldCopyPeerInfo = false;
 			}
 			// Update our cache with most recently observed path count
@@ -864,18 +740,160 @@ int NodeService::leave(uint64_t net_id)
 	return ZTS_ERR_OK;
 }
 
-int NodeService::networkCount()
+void NodeService::obtainLock() const
 {
-	Mutex::Lock _l(_nets_m);
-	return _nets.size();
+	_nets_m.lock();
 }
 
-int NodeService::getFirstAssignedAddr(
-    uint64_t net_id,
-    int family,
-    struct zts_sockaddr_storage* addr)
+void NodeService::releaseLock() const
 {
-	if (net_id == 0 || family < 0 || ! addr) {
+	_nets_m.unlock();
+}
+
+bool NodeService::networkIsReady(uint64_t net_id) const
+{
+	if (! net_id) {
+		return ZTS_ERR_ARG;
+	}
+	Mutex::Lock _l(_nets_m);
+	std::map<uint64_t, NetworkState>::const_iterator n(_nets.find(net_id));
+	if (n == _nets.end()) {
+		return false;
+	}
+	auto netState = n->second;
+	if (netState.config.assignedAddressCount == 0) {
+		return ZTS_ERR_NO_RESULT;
+	}
+}
+
+int NodeService::addressCount(uint64_t net_id) const
+{
+	std::map<uint64_t, NetworkState>::const_iterator n(_nets.find(net_id));
+	if (n == _nets.end()) {
+		return ZTS_ERR_NO_RESULT;
+	}
+	return n->second.config.assignedAddressCount;
+}
+
+int NodeService::routeCount(uint64_t net_id) const
+{
+	std::map<uint64_t, NetworkState>::const_iterator n(_nets.find(net_id));
+	if (n == _nets.end()) {
+		return ZTS_ERR_NO_RESULT;
+	}
+	return n->second.config.routeCount;
+}
+
+int NodeService::multicastSubCount(uint64_t net_id) const
+{
+	std::map<uint64_t, NetworkState>::const_iterator n(_nets.find(net_id));
+	if (n == _nets.end()) {
+		return ZTS_ERR_NO_RESULT;
+	}
+	return n->second.config.multicastSubscriptionCount;
+}
+
+int NodeService::pathCount(uint64_t peer_id) const
+{
+	return ZTS_ERR_NO_RESULT;   // TODO
+}
+
+int NodeService::getAddrAtIdx(uint64_t net_id, unsigned int idx, char* dst, unsigned int len)
+{
+	std::map<uint64_t, NetworkState>::const_iterator n(_nets.find(net_id));
+	if (n == _nets.end()) {
+		return 0;
+	}
+	auto netState = n->second;
+	if (idx >= netState.config.assignedAddressCount) {
+		return ZTS_ERR_ARG;
+	}
+	struct sockaddr* sa = (struct sockaddr*)&(netState.config.assignedAddresses[idx]);
+
+	if (sa->sa_family == AF_INET) {
+		struct sockaddr_in* in4 = (struct sockaddr_in*)sa;
+		inet_ntop(AF_INET, &(in4->sin_addr), dst, ZTS_INET6_ADDRSTRLEN);
+	}
+	if (sa->sa_family == AF_INET6) {
+		struct sockaddr_in6* in6 = (struct sockaddr_in6*)sa;
+		inet_ntop(AF_INET6, &(in6->sin6_addr), dst, ZTS_INET6_ADDRSTRLEN);
+	}
+	return ZTS_ERR_OK;
+}
+
+int NodeService::getRouteAtIdx(
+    uint64_t net_id,
+    unsigned int idx,
+    char* target,
+    char* via,
+    unsigned int len,
+    uint16_t* flags,
+    uint16_t* metric)
+{
+	// We want to use strlen later so let's ensure there's no junk first.
+	memset(target, 0, len);
+	memset(via, 0, len);
+	std::map<uint64_t, NetworkState>::const_iterator n(_nets.find(net_id));
+	if (n == _nets.end()) {
+		return 0;
+	}
+	auto netState = n->second;
+	if (idx >= netState.config.routeCount) {
+		return ZTS_ERR_ARG;
+	}
+	// target
+	const char* err = NULL;
+	struct sockaddr* sa = (struct sockaddr*)&(netState.config.routes[idx].target);
+	if (sa->sa_family == AF_INET) {
+		struct sockaddr_in* in4 = (struct sockaddr_in*)sa;
+		err = inet_ntop(AF_INET, &(in4->sin_addr), target, ZTS_INET6_ADDRSTRLEN);
+	}
+	if (sa->sa_family == AF_INET6) {
+		struct sockaddr_in6* in6 = (struct sockaddr_in6*)sa;
+		err = inet_ntop(AF_INET6, &(in6->sin6_addr), target, ZTS_INET6_ADDRSTRLEN);
+	}
+	// via
+	struct sockaddr* sa_via = (struct sockaddr*)&(netState.config.routes[idx].via);
+	if (sa_via->sa_family == AF_INET) {
+		struct sockaddr_in* in4 = (struct sockaddr_in*)sa_via;
+		err = inet_ntop(AF_INET, &(in4->sin_addr), via, ZTS_INET6_ADDRSTRLEN);
+	}
+	if (sa_via->sa_family == AF_INET6) {
+		struct sockaddr_in6* in6 = (struct sockaddr_in6*)sa_via;
+		err = inet_ntop(AF_INET6, &(in6->sin6_addr), via, ZTS_INET6_ADDRSTRLEN);
+	}
+	if (strlen(via) == 0) {
+		strncpy(via, "0.0.0.0", 7);
+		// TODO: Double check
+	}
+	*flags = netState.config.routes[idx].flags;
+	*metric = netState.config.routes[idx].metric;
+	return ZTS_ERR_OK;
+}
+
+int NodeService::getMulticastSubAtIdx(uint64_t net_id, unsigned int idx, uint64_t* mac, uint32_t* adi)
+{
+	std::map<uint64_t, NetworkState>::const_iterator n(_nets.find(net_id));
+	if (n == _nets.end()) {
+		return 0;
+	}
+	auto netState = n->second;
+	if (idx >= netState.config.multicastSubscriptionCount) {
+		return ZTS_ERR_ARG;
+	}
+	*mac = netState.config.multicastSubscriptions[idx].mac;
+	*adi = netState.config.multicastSubscriptions[idx].adi;
+	return ZTS_ERR_OK;
+}
+
+int NodeService::getPathAtIdx(uint64_t peer_id, unsigned int idx, char* path, unsigned int len)
+{
+	return ZTS_ERR_NO_RESULT;   // TODO
+}
+
+int NodeService::getFirstAssignedAddr(uint64_t net_id, unsigned int family, struct zts_sockaddr_storage* addr)
+{
+	if (net_id == 0 || ((family != ZTS_AF_INET) && (family != ZTS_AF_INET6)) || ! addr) {
 		return ZTS_ERR_ARG;
 	}
 	Mutex::Lock _l(_nets_m);
@@ -902,7 +920,7 @@ int NodeService::getFirstAssignedAddr(
 	return ZTS_ERR_NO_RESULT;
 }
 
-int NodeService::getAllAssignedAddr(uint64_t net_id, struct zts_sockaddr_storage* addr, int* count)
+int NodeService::getAllAssignedAddr(uint64_t net_id, struct zts_sockaddr_storage* addr, unsigned int* count)
 {
 	if (net_id == 0 || ! addr || ! count || *count != ZTS_MAX_ASSIGNED_ADDRESSES) {
 		return ZTS_ERR_ARG;
@@ -924,7 +942,7 @@ int NodeService::getAllAssignedAddr(uint64_t net_id, struct zts_sockaddr_storage
 	return ZTS_ERR_OK;
 }
 
-int NodeService::addrIsAssigned(uint64_t net_id, int family)
+int NodeService::addrIsAssigned(uint64_t net_id, unsigned int family)
 {
 	if (net_id == 0) {
 		return ZTS_ERR_ARG;
@@ -933,7 +951,7 @@ int NodeService::addrIsAssigned(uint64_t net_id, int family)
 	return getFirstAssignedAddr(net_id, family, &addr) != ZTS_ERR_NO_RESULT;
 }
 
-int NodeService::networkHasRoute(uint64_t net_id, int family)
+int NodeService::networkHasRoute(uint64_t net_id, unsigned int family)
 {
 	Mutex::Lock _l(_nets_m);
 	std::map<uint64_t, NetworkState>::const_iterator n(_nets.find(net_id));
@@ -986,7 +1004,7 @@ uint64_t NodeService::getNodeId()
 	return _node ? _node->address() : 0x0;
 }
 
-int NodeService::setIdentity(const char* keypair, uint16_t len)
+int NodeService::setIdentity(const char* keypair, unsigned int len)
 {
 	if (keypair == NULL || len < ZT_IDENTITY_STRING_BUFFER_LENGTH) {
 		return ZTS_ERR_ARG;
@@ -1007,7 +1025,7 @@ int NodeService::setIdentity(const char* keypair, uint16_t len)
 	return ZTS_ERR_OK;
 }
 
-int NodeService::getIdentity(char* keypair, uint16_t* len)
+int NodeService::getIdentity(char* keypair, unsigned int* len)
 {
 	if (keypair == NULL || *len < ZT_IDENTITY_STRING_BUFFER_LENGTH) {
 		return ZTS_ERR_ARG;
@@ -1018,11 +1036,19 @@ int NodeService::getIdentity(char* keypair, uint16_t* len)
 	return ZTS_ERR_OK;
 }
 
+void NodeService::sendEventToUser(unsigned int event_code, const void* arg, unsigned int len)
+{
+	if (! _events) {
+		return;
+	}
+	_events->enqueue(event_code, arg, len);
+}
+
 void NodeService::nodeStatePutFunction(
     enum ZT_StateObjectType type,
     const uint64_t id[2],
     const void* data,
-    int len)
+    unsigned int len)
 {
 	char p[1024] = { 0 };
 	FILE* f;
@@ -1034,28 +1060,20 @@ void NodeService::nodeStatePutFunction(
 
 	switch (type) {
 		case ZT_STATE_OBJECT_IDENTITY_PUBLIC:
-			_events->enqueue(ZTS_EVENT_STORE_IDENTITY_PUBLIC, data, len);
+			sendEventToUser(ZTS_EVENT_STORE_IDENTITY_PUBLIC, data, len);
 			memcpy(_publicIdStr, data, len);
-			if (_homePath.length() > 0) {
-				OSUtils::ztsnprintf(
-				    p,
-				    sizeof(p),
-				    "%s" ZT_PATH_SEPARATOR_S "identity.public",
-				    _homePath.c_str());
+			if (_homePath.length() > 0 && _allowIdentityCaching) {
+				OSUtils::ztsnprintf(p, sizeof(p), "%s" ZT_PATH_SEPARATOR_S "identity.public", _homePath.c_str());
 			}
 			else {
 				return;
 			}
 			break;
 		case ZT_STATE_OBJECT_IDENTITY_SECRET:
-			_events->enqueue(ZTS_EVENT_STORE_IDENTITY_SECRET, data, len);
+			sendEventToUser(ZTS_EVENT_STORE_IDENTITY_SECRET, data, len);
 			memcpy(_secretIdStr, data, len);
-			if (_homePath.length() > 0) {
-				OSUtils::ztsnprintf(
-				    p,
-				    sizeof(p),
-				    "%s" ZT_PATH_SEPARATOR_S "identity.secret",
-				    _homePath.c_str());
+			if (_homePath.length() > 0 && _allowIdentityCaching) {
+				OSUtils::ztsnprintf(p, sizeof(p), "%s" ZT_PATH_SEPARATOR_S "identity.secret", _homePath.c_str());
 				secure = true;
 			}
 			else {
@@ -1063,14 +1081,10 @@ void NodeService::nodeStatePutFunction(
 			}
 			break;
 		case ZT_STATE_OBJECT_PLANET:
-			_events->enqueue(ZTS_EVENT_STORE_PLANET, data, len);
-			memcpy(_planetData, data, len);
-			if (_homePath.length() > 0) {
-				OSUtils::ztsnprintf(
-				    p,
-				    sizeof(p),
-				    "%s" ZT_PATH_SEPARATOR_S "planet",
-				    _homePath.c_str());
+			sendEventToUser(ZTS_EVENT_STORE_PLANET, data, len);
+			memcpy(_worldData, data, len);
+			if (_homePath.length() > 0 && _allowWorldCaching) {
+				OSUtils::ztsnprintf(p, sizeof(p), "%s" ZT_PATH_SEPARATOR_S "world", _homePath.c_str());
 			}
 			else {
 				return;
@@ -1078,11 +1092,7 @@ void NodeService::nodeStatePutFunction(
 			break;
 		case ZT_STATE_OBJECT_NETWORK_CONFIG:
 			if (_homePath.length() > 0 && _allowNetworkCaching) {
-				OSUtils::ztsnprintf(
-				    dirname,
-				    sizeof(dirname),
-				    "%s" ZT_PATH_SEPARATOR_S "networks.d",
-				    _homePath.c_str());
+				OSUtils::ztsnprintf(dirname, sizeof(dirname), "%s" ZT_PATH_SEPARATOR_S "networks.d", _homePath.c_str());
 				OSUtils::ztsnprintf(
 				    p,
 				    sizeof(p),
@@ -1097,11 +1107,7 @@ void NodeService::nodeStatePutFunction(
 			break;
 		case ZT_STATE_OBJECT_PEER:
 			if (_homePath.length() > 0 && _allowPeerCaching) {
-				OSUtils::ztsnprintf(
-				    dirname,
-				    sizeof(dirname),
-				    "%s" ZT_PATH_SEPARATOR_S "peers.d",
-				    _homePath.c_str());
+				OSUtils::ztsnprintf(dirname, sizeof(dirname), "%s" ZT_PATH_SEPARATOR_S "peers.d", _homePath.c_str());
 				OSUtils::ztsnprintf(
 				    p,
 				    sizeof(p),
@@ -1177,17 +1183,8 @@ int NodeService::nodeStateGetFunction(
 				return keylen;
 			}
 			if (_homePath.length() > 0) {
-				OSUtils::ztsnprintf(
-				    p,
-				    sizeof(p),
-				    "%s" ZT_PATH_SEPARATOR_S "identity.public",
-				    _homePath.c_str());
+				OSUtils::ztsnprintf(p, sizeof(p), "%s" ZT_PATH_SEPARATOR_S "identity.public", _homePath.c_str());
 			}
-			/*
-			if (_shouldGenerateNewId) {
-
-			}
-			*/
 			break;
 		case ZT_STATE_OBJECT_IDENTITY_SECRET:
 			keylen = strlen(_secretIdStr);
@@ -1196,15 +1193,15 @@ int NodeService::nodeStateGetFunction(
 				return keylen;
 			}
 			if (_homePath.length() > 0) {
-				OSUtils::ztsnprintf(
-				    p,
-				    sizeof(p),
-				    "%s" ZT_PATH_SEPARATOR_S "identity.secret",
-				    _homePath.c_str());
+				OSUtils::ztsnprintf(p, sizeof(p), "%s" ZT_PATH_SEPARATOR_S "identity.secret", _homePath.c_str());
 			}
 			break;
 		case ZT_STATE_OBJECT_PLANET:
-			OSUtils::ztsnprintf(p, sizeof(p), "%s" ZT_PATH_SEPARATOR_S "planet", _homePath.c_str());
+			if (_userDefinedWorld) {
+				memcpy(data, _worldData, _worldDataLen);
+				return _worldDataLen;
+			}
+			OSUtils::ztsnprintf(p, sizeof(p), "%s" ZT_PATH_SEPARATOR_S "world", _homePath.c_str());
 			break;
 		case ZT_STATE_OBJECT_NETWORK_CONFIG:
 			OSUtils::ztsnprintf(
@@ -1247,15 +1244,10 @@ int NodeService::nodeWirePacketSendFunction(
 	// working we can instantly "fail forward" to it and stop using TCP
 	// proxy fallback, which is slow.
 
-	if ((localSocket != -1) && (localSocket != 0)
-	    && (_binder.isUdpSocketValid((PhySocket*)((uintptr_t)localSocket)))) {
+	if ((localSocket != -1) && (localSocket != 0) && (_binder.isUdpSocketValid((PhySocket*)((uintptr_t)localSocket)))) {
 		if ((ttl) && (addr->ss_family == AF_INET))
 			_phy.setIp4UdpTtl((PhySocket*)((uintptr_t)localSocket), ttl);
-		const bool r = _phy.udpSend(
-		    (PhySocket*)((uintptr_t)localSocket),
-		    (const struct sockaddr*)addr,
-		    data,
-		    len);
+		const bool r = _phy.udpSend((PhySocket*)((uintptr_t)localSocket), (const struct sockaddr*)addr, data, len);
 		if ((ttl) && (addr->ss_family == AF_INET))
 			_phy.setIp4UdpTtl((PhySocket*)((uintptr_t)localSocket), 255);
 		return ((r) ? 0 : -1);
@@ -1290,8 +1282,7 @@ int NodeService::nodePathCheckFunction(
 	// Make sure we're not trying to do ZeroTier-over-ZeroTier
 	{
 		Mutex::Lock _l(_nets_m);
-		for (std::map<uint64_t, NetworkState>::const_iterator n(_nets.begin()); n != _nets.end();
-		     ++n) {
+		for (std::map<uint64_t, NetworkState>::const_iterator n(_nets.begin()); n != _nets.end(); ++n) {
 			if (n->second.tap) {
 				std::vector<InetAddress> ips(n->second.tap->ips());
 				for (std::vector<InetAddress>::const_iterator i(ips.begin()); i != ips.end(); ++i) {
@@ -1334,20 +1325,17 @@ int NodeService::nodePathCheckFunction(
 	}
 	if (gbl) {
 		for (std::vector<InetAddress>::const_iterator a(gbl->begin()); a != gbl->end(); ++a) {
-			if (a->containsAddress(*reinterpret_cast<const InetAddress*>(remoteAddr)))
+			if (a->containsAddress(*reinterpret_cast<const InetAddress*>(remoteAddr))) {
 				return 0;
+			}
 		}
 	}
 	return 1;
 }
 
-int NodeService::nodePathLookupFunction(
-    uint64_t ztaddr,
-    int family,
-    struct sockaddr_storage* result)
+int NodeService::nodePathLookupFunction(uint64_t ztaddr, unsigned int family, struct sockaddr_storage* result)
 {
-	const Hashtable<uint64_t, std::vector<InetAddress> >* lh =
-	    (const Hashtable<uint64_t, std::vector<InetAddress> >*)0;
+	const Hashtable<uint64_t, std::vector<InetAddress> >* lh = (const Hashtable<uint64_t, std::vector<InetAddress> >*)0;
 	if (family < 0) {
 		lh = (_node->prng() & 1) ? &_v4Hints : &_v6Hints;
 	}
@@ -1362,10 +1350,7 @@ int NodeService::nodePathLookupFunction(
 	}
 	const std::vector<InetAddress>* l = lh->get(ztaddr);
 	if ((l) && (l->size() > 0)) {
-		memcpy(
-		    result,
-		    &((*l)[(unsigned long)_node->prng() % l->size()]),
-		    sizeof(struct sockaddr_storage));
+		memcpy(result, &((*l)[(unsigned long)_node->prng() % l->size()]), sizeof(struct sockaddr_storage));
 		return 1;
 	}
 	else {
@@ -1463,8 +1448,7 @@ int NodeService::shouldBindInterface(const char* ifname, const InetAddress& ifad
 	}
 	{
 		Mutex::Lock _l(_nets_m);
-		for (std::map<uint64_t, NetworkState>::const_iterator n(_nets.begin()); n != _nets.end();
-		     ++n) {
+		for (std::map<uint64_t, NetworkState>::const_iterator n(_nets.begin()); n != _nets.end(); ++n) {
 			if (n->second.tap) {
 				std::vector<InetAddress> ips(n->second.tap->ips());
 				for (std::vector<InetAddress>::const_iterator i(ips.begin()); i != ips.end(); ++i) {
@@ -1504,12 +1488,12 @@ int NodeService::_trialBind(unsigned int port)
 	return false;
 }
 
-int NodeService::isRunning()
+int NodeService::isRunning() const
 {
 	return _run;
 }
 
-int NodeService::nodeIsOnline()
+int NodeService::nodeIsOnline() const
 {
 	return _nodeIsOnline;
 }
@@ -1537,7 +1521,7 @@ int NodeService::setPrimaryPort(unsigned short primaryPort)
 	return ZTS_ERR_OK;
 }
 
-unsigned short NodeService::getPrimaryPort()
+unsigned short NodeService::getPrimaryPort() const
 {
 	return _primaryPort;
 }
@@ -1552,9 +1536,18 @@ int NodeService::setUserEventSystem(Events* events)
 	return ZTS_ERR_OK;
 }
 
-int NodeService::setPlanet(const char* planetData, int len)
+void NodeService::enableEvents()
 {
-	if (! planetData || len <= 0 || len > ZTS_STORE_DATA_LEN) {
+	Mutex::Lock _lr(_run_m);
+	if (! _events) {
+		return;
+	}
+	_events->enable();
+}
+
+int NodeService::setWorld(const void* worldData, unsigned int len)
+{
+	if (! worldData || len <= 0 || len > ZTS_STORE_DATA_LEN) {
 		return ZTS_ERR_ARG;
 	}
 	Mutex::Lock _lr(_run_m);
@@ -1562,11 +1555,13 @@ int NodeService::setPlanet(const char* planetData, int len)
 		return ZTS_ERR_SERVICE;
 	}
 	Mutex::Lock _ls(_store_m);
-	memcpy(_planetData, planetData, len);
+	memcpy(_worldData, worldData, len);
+	_worldDataLen = len;
+	_userDefinedWorld = true;
 	return ZTS_ERR_OK;
 }
 
-int NodeService::addInterfacePrefixToBlacklist(const char* prefix, int len)
+int NodeService::addInterfacePrefixToBlacklist(const char* prefix, unsigned int len)
 {
 	if (! prefix || len == 0 || len > 15) {
 		return ZTS_ERR_ARG;
@@ -1580,7 +1575,7 @@ int NodeService::addInterfacePrefixToBlacklist(const char* prefix, int len)
 	return ZTS_ERR_OK;
 }
 
-uint64_t NodeService::getMACAddress(uint64_t net_id)
+uint64_t NodeService::getMACAddress(uint64_t net_id) const
 {
 	if (net_id == 0) {
 		return ZTS_ERR_ARG;
@@ -1597,7 +1592,7 @@ uint64_t NodeService::getMACAddress(uint64_t net_id)
 	return n->second.config.mac;
 }
 
-int NodeService::getNetworkName(uint64_t net_id, char* dst, int len)
+int NodeService::getNetworkName(uint64_t net_id, char* dst, unsigned int len) const
 {
 	if (net_id == 0 || ! dst || len != ZTS_MAX_NETWORK_SHORT_NAME_LENGTH) {
 		return ZTS_ERR_ARG;
@@ -1619,7 +1614,7 @@ int NodeService::getNetworkName(uint64_t net_id, char* dst, int len)
 	return ZTS_ERR_OK;
 }
 
-int NodeService::allowPeerCaching(int allowed)
+int NodeService::allowPeerCaching(unsigned int allowed)
 {
 	Mutex::Lock _lr(_run_m);
 	if (_run) {
@@ -1629,7 +1624,7 @@ int NodeService::allowPeerCaching(int allowed)
 	return ZTS_ERR_OK;
 }
 
-int NodeService::allowNetworkCaching(int allowed)
+int NodeService::allowNetworkCaching(unsigned int allowed)
 {
 	Mutex::Lock _lr(_run_m);
 	if (_run) {
@@ -1639,6 +1634,25 @@ int NodeService::allowNetworkCaching(int allowed)
 	return ZTS_ERR_OK;
 }
 
+int NodeService::allowIdentityCaching(unsigned int allowed)
+{
+	Mutex::Lock _lr(_run_m);
+	if (_run) {
+		return ZTS_ERR_SERVICE;
+	}
+	_allowIdentityCaching = allowed;
+	return ZTS_ERR_OK;
+}
+
+int NodeService::allowWorldCaching(unsigned int allowed)
+{
+	Mutex::Lock _lr(_run_m);
+	if (_run) {
+		return ZTS_ERR_SERVICE;
+	}
+	_allowWorldCaching = allowed;
+	return ZTS_ERR_OK;
+}
 int NodeService::getNetworkBroadcast(uint64_t net_id)
 {
 	if (net_id == 0) {

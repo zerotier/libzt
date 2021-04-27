@@ -51,7 +51,6 @@ class VirtualTap {
 	    unsigned int mtu,
 	    unsigned int metric,
 	    uint64_t net_id,
-	    const char* friendlyName,
 	    void (*handler)(
 	        void*,
 	        void*,
@@ -108,14 +107,12 @@ class VirtualTap {
 	/**
 	 * Presents data to the user-space stack
 	 */
-	void
-	put(const MAC& from, const MAC& to, unsigned int etherType, const void* data, unsigned int len);
+	void put(const MAC& from, const MAC& to, unsigned int etherType, const void* data, unsigned int len);
 
 	/**
 	 * Scan multicast groups
 	 */
-	void
-	scanMulticastGroups(std::vector<MulticastGroup>& added, std::vector<MulticastGroup>& removed);
+	void scanMulticastGroups(std::vector<MulticastGroup>& added, std::vector<MulticastGroup>& removed);
 
 	/**
 	 * Set MTU
@@ -187,12 +184,7 @@ class VirtualTap {
 	    void* data,
 	    unsigned long len);
 	void phyOnTcpConnect(PhySocket* sock, void** uptr, bool success);
-	void phyOnTcpAccept(
-	    PhySocket* sockL,
-	    PhySocket* sockN,
-	    void** uptrL,
-	    void** uptrN,
-	    const struct sockaddr* from);
+	void phyOnTcpAccept(PhySocket* sockL, PhySocket* sockN, void** uptrL, void** uptrN, const struct sockaddr* from);
 	void phyOnTcpClose(PhySocket* sock, void** uptr);
 	void phyOnTcpData(PhySocket* sock, void** uptr, void* data, unsigned long len);
 	void phyOnTcpWritable(PhySocket* sock, void** uptr);

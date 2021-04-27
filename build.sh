@@ -53,7 +53,18 @@ fi
 
 # How many processor cores CMake should use during builds,
 # comment out the below line out if you don't want parallelism:
-BUILD_CONCURRENCY="-j $N_PROCESSORS"
+CMAKE_VERSION=$(cmake --version | head -n 1 | sed 's/[^0-9]*//')
+function ver()
+# Description: use for comparisons of version strings.
+# $1  : a version string of form 1.2.3.4
+# use: (( $(ver 1.2.3.4) >= $(ver 1.2.3.3) )) && echo "yes" || echo "no"
+# Clever solution from https://stackoverflow.com/users/10682202/christopher
+{
+    printf "%02d%02d%02d%02d" ${1//./ }
+}
+if [[ (( $(ver $CMAKE_VERSION) > $(ver "3.12") )) ]]; then
+	BUILD_CONCURRENCY="-j $N_PROCESSORS"
+fi
 
 # -----------------------------------------------------------------------------
 # | PATHS                                                                     |
@@ -536,7 +547,10 @@ format-code()
 						src/*.cpp                 \
 						src/*.hpp                 \
 						examples/c/*.c            \
-						test/*.c
+						test/*.c                  \
+						src/bindings/csharp/*.cs  \
+						src/bindings/csharp/*.cxx \
+						examples/csharp/*.cs
 		return 0
 	else
 		echo "Please install clang-format."
@@ -546,21 +560,20 @@ format-code()
 # Test C API
 test-c()
 {
-	format-code
 	if [[ -z "${alice_path}" ]]; then
 		echo "Please set necessary environment variables for test"
-		exit 0
+		#exit 0
 	fi
 	BUILD_TYPE=${1:-debug}
-	host $BUILD_TYPE
+	test $BUILD_TYPE
 	# Build selftest
 	#test $BUILD_TYPE
 	# Clear logs
 	rm -rf test/*.txt
 	# Start Alice as server
-	"$BIN_OUTPUT_DIR/selftest-c" $alice_path $testnet $port4 $port6 &
+	echo "$BIN_OUTPUT_DIR/selftest-c" $alice_path $testnet $port4 $port6 &
 	# Start Bob as client
-	"$BIN_OUTPUT_DIR/selftest-c" $bob_path $testnet $port4 $alice_ip4 $port6 $alice_ip6 &
+	echo "$BIN_OUTPUT_DIR/selftest-c" $bob_path $testnet $port4 $alice_ip4 $port6 $alice_ip6 &
 }
 
 # Test C# API

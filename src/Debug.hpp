@@ -62,20 +62,20 @@
 #if defined(LIBZT_DEBUG)
 #if defined(__ANDROID__)
 #define DEBUG_INFO(fmt, args...)                                                                                       \
-	((void)__android_log_print(                                                                                        \
-	    ANDROID_LOG_VERBOSE,                                                                                           \
-	    ZT_LOG_TAG,                                                                                                    \
-	    "%17s:%5d:%20s: " fmt "\n",                                                                                    \
-	    ZT_FILENAME,                                                                                                   \
-	    __LINE__,                                                                                                      \
-	    __FUNCTION__,                                                                                                  \
-	    ##args))
+    ((void)__android_log_print(                                                                                        \
+        ANDROID_LOG_VERBOSE,                                                                                           \
+        ZT_LOG_TAG,                                                                                                    \
+        "%17s:%5d:%20s: " fmt "\n",                                                                                    \
+        ZT_FILENAME,                                                                                                   \
+        __LINE__,                                                                                                      \
+        __FUNCTION__,                                                                                                  \
+        ##args))
 #elif defined(_WIN32)
 #define DEBUG_INFO(fmt, ...)                                                                                           \
-	fprintf(stderr, ZT_WHT "%17s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_FILENAME, __LINE__, __FUNCTION__, __VA_ARGS__)
+    fprintf(stderr, ZT_WHT "%17s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_FILENAME, __LINE__, __FUNCTION__, __VA_ARGS__)
 #else
 #define DEBUG_INFO(fmt, args...)                                                                                       \
-	fprintf(stderr, ZT_WHT "%17s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
+    fprintf(stderr, ZT_WHT "%17s:%5d:%25s: " fmt "\n" ZT_RESET, ZT_FILENAME, __LINE__, __FUNCTION__, ##args)
 #endif
 #else   // !LIBZT_DEBUG
 #if defined(_WIN32)

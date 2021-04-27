@@ -30,18 +30,18 @@ extern "C" {
 
 /** Common error return values */
 typedef enum {
-	/** No error */
-	ZTS_ERR_OK = 0,
-	/** Socket error, see `zts_errno` */
-	ZTS_ERR_SOCKET = -1,
-	/** This operation is not allowed at this time. Or possibly the node hasn't been started */
-	ZTS_ERR_SERVICE = -2,
-	/** Invalid argument */
-	ZTS_ERR_ARG = -3,
-	/** No result (not necessarily an error) */
-	ZTS_ERR_NO_RESULT = -4,
-	/** Consider filing a bug report */
-	ZTS_ERR_GENERAL = -5
+    /** No error */
+    ZTS_ERR_OK = 0,
+    /** Socket error, see `zts_errno` */
+    ZTS_ERR_SOCKET = -1,
+    /** This operation is not allowed at this time. Or possibly the node hasn't been started */
+    ZTS_ERR_SERVICE = -2,
+    /** Invalid argument */
+    ZTS_ERR_ARG = -3,
+    /** No result (not necessarily an error) */
+    ZTS_ERR_NO_RESULT = -4,
+    /** Consider filing a bug report */
+    ZTS_ERR_GENERAL = -5
 } zts_error_t;
 
 //----------------------------------------------------------------------------//
@@ -50,144 +50,144 @@ typedef enum {
 
 /** Event codes used by the (optional) callback API */
 typedef enum {
-	/**
-	 * Node has been initialized
-	 *
-	 * This is the first event generated, and is always sent. It may occur
-	 * before node's constructor returns.
-	 *
-	 */
-	ZTS_EVENT_NODE_UP = 200,
+    /**
+     * Node has been initialized
+     *
+     * This is the first event generated, and is always sent. It may occur
+     * before node's constructor returns.
+     *
+     */
+    ZTS_EVENT_NODE_UP = 200,
 
-	/**
-	 * Node is online -- at least one upstream node appears reachable
-	 *
-	 */
-	ZTS_EVENT_NODE_ONLINE = 201,
+    /**
+     * Node is online -- at least one upstream node appears reachable
+     *
+     */
+    ZTS_EVENT_NODE_ONLINE = 201,
 
-	/**
-	 * Node is offline -- network does not seem to be reachable by any available
-	 * strategy
-	 *
-	 */
-	ZTS_EVENT_NODE_OFFLINE = 202,
+    /**
+     * Node is offline -- network does not seem to be reachable by any available
+     * strategy
+     *
+     */
+    ZTS_EVENT_NODE_OFFLINE = 202,
 
-	/**
-	 * Node is shutting down
-	 *
-	 * This is generated within Node's destructor when it is being shut down.
-	 * It's done for convenience, since cleaning up other state in the event
-	 * handler may appear more idiomatic.
-	 *
-	 */
-	ZTS_EVENT_NODE_DOWN = 203,
+    /**
+     * Node is shutting down
+     *
+     * This is generated within Node's destructor when it is being shut down.
+     * It's done for convenience, since cleaning up other state in the event
+     * handler may appear more idiomatic.
+     *
+     */
+    ZTS_EVENT_NODE_DOWN = 203,
 
-	/**
-	 * A fatal error has occurred. One possible reason is:
-	 *
-	 * Your identity has collided with another node's ZeroTier address
-	 *
-	 * This happens if two different public keys both hash (via the algorithm
-	 * in Identity::generate()) to the same 40-bit ZeroTier address.
-	 *
-	 * This is something you should "never" see, where "never" is defined as
-	 * once per 2^39 new node initializations / identity creations. If you do
-	 * see it, you're going to see it very soon after a node is first
-	 * initialized.
-	 *
-	 * This is reported as an event rather than a return code since it's
-	 * detected asynchronously via error messages from authoritative nodes.
-	 *
-	 * If this occurs, you must shut down and delete the node, delete the
-	 * identity.secret record/file from the data store, and restart to generate
-	 * a new identity. If you don't do this, you will not be able to communicate
-	 * with other nodes.
-	 *
-	 * We'd automate this process, but we don't think silently deleting
-	 * private keys or changing our address without telling the calling code
-	 * is good form. It violates the principle of least surprise.
-	 *
-	 * You can technically get away with not handling this, but we recommend
-	 * doing so in a mature reliable application. Besides, handling this
-	 * condition is a good way to make sure it never arises. It's like how
-	 * umbrellas prevent rain and smoke detectors prevent fires. They do, right?
-	 *
-	 * Meta-data: none
-	 */
-	ZTS_EVENT_NODE_FATAL_ERROR = 204,
+    /**
+     * A fatal error has occurred. One possible reason is:
+     *
+     * Your identity has collided with another node's ZeroTier address
+     *
+     * This happens if two different public keys both hash (via the algorithm
+     * in Identity::generate()) to the same 40-bit ZeroTier address.
+     *
+     * This is something you should "never" see, where "never" is defined as
+     * once per 2^39 new node initializations / identity creations. If you do
+     * see it, you're going to see it very soon after a node is first
+     * initialized.
+     *
+     * This is reported as an event rather than a return code since it's
+     * detected asynchronously via error messages from authoritative nodes.
+     *
+     * If this occurs, you must shut down and delete the node, delete the
+     * identity.secret record/file from the data store, and restart to generate
+     * a new identity. If you don't do this, you will not be able to communicate
+     * with other nodes.
+     *
+     * We'd automate this process, but we don't think silently deleting
+     * private keys or changing our address without telling the calling code
+     * is good form. It violates the principle of least surprise.
+     *
+     * You can technically get away with not handling this, but we recommend
+     * doing so in a mature reliable application. Besides, handling this
+     * condition is a good way to make sure it never arises. It's like how
+     * umbrellas prevent rain and smoke detectors prevent fires. They do, right?
+     *
+     * Meta-data: none
+     */
+    ZTS_EVENT_NODE_FATAL_ERROR = 204,
 
-	/** Network ID does not correspond to a known network */
-	ZTS_EVENT_NETWORK_NOT_FOUND = 210,
-	/** The version of ZeroTier inside libzt is too old */
-	ZTS_EVENT_NETWORK_CLIENT_TOO_OLD = 211,
-	/** The configuration for a network has been requested (no action needed) */
-	ZTS_EVENT_NETWORK_REQ_CONFIG = 212,
-	/** The node joined the network successfully (no action needed) */
-	ZTS_EVENT_NETWORK_OK = 213,
-	/** The node is not allowed to join the network (you must authorize node) */
-	ZTS_EVENT_NETWORK_ACCESS_DENIED = 214,
-	/** The node has received an IPv4 address from the network controller */
-	ZTS_EVENT_NETWORK_READY_IP4 = 215,
-	/** The node has received an IPv6 address from the network controller */
-	ZTS_EVENT_NETWORK_READY_IP6 = 216,
-	/** Deprecated */
-	ZTS_EVENT_NETWORK_READY_IP4_IP6 = 217,
-	/** Network controller is unreachable */
-	ZTS_EVENT_NETWORK_DOWN = 218,
-	/** Network change received from controller */
-	ZTS_EVENT_NETWORK_UPDATE = 219,
+    /** Network ID does not correspond to a known network */
+    ZTS_EVENT_NETWORK_NOT_FOUND = 210,
+    /** The version of ZeroTier inside libzt is too old */
+    ZTS_EVENT_NETWORK_CLIENT_TOO_OLD = 211,
+    /** The configuration for a network has been requested (no action needed) */
+    ZTS_EVENT_NETWORK_REQ_CONFIG = 212,
+    /** The node joined the network successfully (no action needed) */
+    ZTS_EVENT_NETWORK_OK = 213,
+    /** The node is not allowed to join the network (you must authorize node) */
+    ZTS_EVENT_NETWORK_ACCESS_DENIED = 214,
+    /** The node has received an IPv4 address from the network controller */
+    ZTS_EVENT_NETWORK_READY_IP4 = 215,
+    /** The node has received an IPv6 address from the network controller */
+    ZTS_EVENT_NETWORK_READY_IP6 = 216,
+    /** Deprecated */
+    ZTS_EVENT_NETWORK_READY_IP4_IP6 = 217,
+    /** Network controller is unreachable */
+    ZTS_EVENT_NETWORK_DOWN = 218,
+    /** Network change received from controller */
+    ZTS_EVENT_NETWORK_UPDATE = 219,
 
-	/** TCP/IP stack (lwIP) is up (for debug purposes) */
-	ZTS_EVENT_STACK_UP = 220,
-	/** TCP/IP stack (lwIP) id down (for debug purposes) */
-	ZTS_EVENT_STACK_DOWN = 221,
+    /** TCP/IP stack (lwIP) is up (for debug purposes) */
+    ZTS_EVENT_STACK_UP = 220,
+    /** TCP/IP stack (lwIP) id down (for debug purposes) */
+    ZTS_EVENT_STACK_DOWN = 221,
 
-	/** lwIP netif up (for debug purposes) */
-	ZTS_EVENT_NETIF_UP = 230,
-	/** lwIP netif down (for debug purposes) */
-	ZTS_EVENT_NETIF_DOWN = 231,
-	/** lwIP netif removed (for debug purposes) */
-	ZTS_EVENT_NETIF_REMOVED = 232,
-	/** lwIP netif link up (for debug purposes) */
-	ZTS_EVENT_NETIF_LINK_UP = 233,
-	/** lwIP netif link down (for debug purposes) */
-	ZTS_EVENT_NETIF_LINK_DOWN = 234,
+    /** lwIP netif up (for debug purposes) */
+    ZTS_EVENT_NETIF_UP = 230,
+    /** lwIP netif down (for debug purposes) */
+    ZTS_EVENT_NETIF_DOWN = 231,
+    /** lwIP netif removed (for debug purposes) */
+    ZTS_EVENT_NETIF_REMOVED = 232,
+    /** lwIP netif link up (for debug purposes) */
+    ZTS_EVENT_NETIF_LINK_UP = 233,
+    /** lwIP netif link down (for debug purposes) */
+    ZTS_EVENT_NETIF_LINK_DOWN = 234,
 
-	/** A direct P2P path to peer is known */
-	ZTS_EVENT_PEER_DIRECT = 240,
-	/** A direct P2P path to peer is NOT known. Traffic is now relayed  */
-	ZTS_EVENT_PEER_RELAY = 241,
-	/** A peer is unreachable. Check NAT/Firewall settings */
-	ZTS_EVENT_PEER_UNREACHABLE = 242,
-	/** A new path to a peer was discovered */
-	ZTS_EVENT_PEER_PATH_DISCOVERED = 243,
-	/** A known path to a peer is now considered dead */
-	ZTS_EVENT_PEER_PATH_DEAD = 244,
+    /** A direct P2P path to peer is known */
+    ZTS_EVENT_PEER_DIRECT = 240,
+    /** A direct P2P path to peer is NOT known. Traffic is now relayed  */
+    ZTS_EVENT_PEER_RELAY = 241,
+    /** A peer is unreachable. Check NAT/Firewall settings */
+    ZTS_EVENT_PEER_UNREACHABLE = 242,
+    /** A new path to a peer was discovered */
+    ZTS_EVENT_PEER_PATH_DISCOVERED = 243,
+    /** A known path to a peer is now considered dead */
+    ZTS_EVENT_PEER_PATH_DEAD = 244,
 
-	/** A new managed network route was added */
-	ZTS_EVENT_ROUTE_ADDED = 250,
-	/** A managed network route was removed */
-	ZTS_EVENT_ROUTE_REMOVED = 251,
+    /** A new managed network route was added */
+    ZTS_EVENT_ROUTE_ADDED = 250,
+    /** A managed network route was removed */
+    ZTS_EVENT_ROUTE_REMOVED = 251,
 
-	/** A new managed IPv4 address was assigned to this peer */
-	ZTS_EVENT_ADDR_ADDED_IP4 = 260,
-	/** A managed IPv4 address assignment was removed from this peer  */
-	ZTS_EVENT_ADDR_REMOVED_IP4 = 261,
-	/** A new managed IPv4 address was assigned to this peer  */
-	ZTS_EVENT_ADDR_ADDED_IP6 = 262,
-	/** A managed IPv6 address assignment was removed from this peer  */
-	ZTS_EVENT_ADDR_REMOVED_IP6 = 263,
+    /** A new managed IPv4 address was assigned to this peer */
+    ZTS_EVENT_ADDR_ADDED_IP4 = 260,
+    /** A managed IPv4 address assignment was removed from this peer  */
+    ZTS_EVENT_ADDR_REMOVED_IP4 = 261,
+    /** A new managed IPv4 address was assigned to this peer  */
+    ZTS_EVENT_ADDR_ADDED_IP6 = 262,
+    /** A managed IPv6 address assignment was removed from this peer  */
+    ZTS_EVENT_ADDR_REMOVED_IP6 = 263,
 
-	/** The node's secret key (identity) */
-	ZTS_EVENT_STORE_IDENTITY_SECRET = 270,
-	/** The node's public key (identity) */
-	ZTS_EVENT_STORE_IDENTITY_PUBLIC = 271,
-	/** The node has received an updated planet config */
-	ZTS_EVENT_STORE_PLANET = 272,
-	/** New reachability hints and peer configuration */
-	ZTS_EVENT_STORE_PEER = 273,
-	/** New network config */
-	ZTS_EVENT_STORE_NETWORK = 274
+    /** The node's secret key (identity) */
+    ZTS_EVENT_STORE_IDENTITY_SECRET = 270,
+    /** The node's public key (identity) */
+    ZTS_EVENT_STORE_IDENTITY_PUBLIC = 271,
+    /** The node has received an updated planet config */
+    ZTS_EVENT_STORE_PLANET = 272,
+    /** New reachability hints and peer configuration */
+    ZTS_EVENT_STORE_PEER = 273,
+    /** New network config */
+    ZTS_EVENT_STORE_NETWORK = 274
 } zts_event_t;
 
 //----------------------------------------------------------------------------//
@@ -200,90 +200,90 @@ typedef enum {
 extern int zts_errno;
 
 typedef enum {
-	/** Operation not permitted (`zts_errno` value) */
-	ZTS_EPERM = 1,
-	/** No such file or directory */
-	ZTS_ENOENT = 2,
-	/** No such process */
-	ZTS_ESRCH = 3,
-	/** Interrupted system call */
-	ZTS_EINTR = 4,
-	/** I/O error */
-	ZTS_EIO = 5,
-	/** No such device or address */
-	ZTS_ENXIO = 6,
-	/** Bad file number */
-	ZTS_EBADF = 9,
-	/** Try again */
-	ZTS_EAGAIN = 11,
-	/** Operation would block */
-	ZTS_EWOULDBLOCK = ZTS_EAGAIN,
-	/** Out of memory */
-	ZTS_ENOMEM = 12,
-	/** Permission denied */
-	ZTS_EACCES = 13,
-	/** Bad address */
-	ZTS_EFAULT = 14,
-	/** Device or resource busy */
-	ZTS_EBUSY = 16,
-	/** File exists */
-	ZTS_EEXIST = 17,
-	/** No such device */
-	ZTS_ENODEV = 19,
-	/** Invalid argument */
-	ZTS_EINVAL = 22,
-	/** File table overflow */
-	ZTS_ENFILE = 23,
-	/** Too many open files */
-	ZTS_EMFILE = 24,
-	/** Function not implemented */
-	ZTS_ENOSYS = 38,
-	/** Socket operation on non-socket */
-	ZTS_ENOTSOCK = 88,
-	/** Destination address required */
-	ZTS_EDESTADDRREQ = 89,
-	/** Message too long */
-	ZTS_EMSGSIZE = 90,
-	/** Protocol wrong type for socket */
-	ZTS_EPROTOTYPE = 91,
-	/** Protocol not available */
-	ZTS_ENOPROTOOPT = 92,
-	/** Protocol not supported */
-	ZTS_EPROTONOSUPPORT = 93,
-	/** Socket type not supported */
-	ZTS_ESOCKTNOSUPPORT = 94,
-	/** Operation not supported on transport endpoint */
-	ZTS_EOPNOTSUPP = 95,
-	/** Protocol family not supported */
-	ZTS_EPFNOSUPPORT = 96,
-	/** Address family not supported by protocol */
-	ZTS_EAFNOSUPPORT = 97,
-	/** Address already in use */
-	ZTS_EADDRINUSE = 98,
-	/** Cannot assign requested address */
-	ZTS_EADDRNOTAVAIL = 99,
-	/** Network is down */
-	ZTS_ENETDOWN = 100,
-	/** Network is unreachable */
-	ZTS_ENETUNREACH = 101,
-	/** Software caused connection abort */
-	ZTS_ECONNABORTED = 103,
-	/** Connection reset by peer */
-	ZTS_ECONNRESET = 104,
-	/** No buffer space available */
-	ZTS_ENOBUFS = 105,
-	/** Transport endpoint is already connected */
-	ZTS_EISCONN = 106,
-	/** Transport endpoint is not connected */
-	ZTS_ENOTCONN = 107,
-	/** Connection timed out */
-	ZTS_ETIMEDOUT = 110,
-	/** No route to host */
-	ZTS_EHOSTUNREACH = 113,
-	/** Operation already in progress */
-	ZTS_EALREADY = 114,
-	/** Operation now in progress */
-	ZTS_EINPROGRESS = 115
+    /** Operation not permitted (`zts_errno` value) */
+    ZTS_EPERM = 1,
+    /** No such file or directory */
+    ZTS_ENOENT = 2,
+    /** No such process */
+    ZTS_ESRCH = 3,
+    /** Interrupted system call */
+    ZTS_EINTR = 4,
+    /** I/O error */
+    ZTS_EIO = 5,
+    /** No such device or address */
+    ZTS_ENXIO = 6,
+    /** Bad file number */
+    ZTS_EBADF = 9,
+    /** Try again */
+    ZTS_EAGAIN = 11,
+    /** Operation would block */
+    ZTS_EWOULDBLOCK = ZTS_EAGAIN,
+    /** Out of memory */
+    ZTS_ENOMEM = 12,
+    /** Permission denied */
+    ZTS_EACCES = 13,
+    /** Bad address */
+    ZTS_EFAULT = 14,
+    /** Device or resource busy */
+    ZTS_EBUSY = 16,
+    /** File exists */
+    ZTS_EEXIST = 17,
+    /** No such device */
+    ZTS_ENODEV = 19,
+    /** Invalid argument */
+    ZTS_EINVAL = 22,
+    /** File table overflow */
+    ZTS_ENFILE = 23,
+    /** Too many open files */
+    ZTS_EMFILE = 24,
+    /** Function not implemented */
+    ZTS_ENOSYS = 38,
+    /** Socket operation on non-socket */
+    ZTS_ENOTSOCK = 88,
+    /** Destination address required */
+    ZTS_EDESTADDRREQ = 89,
+    /** Message too long */
+    ZTS_EMSGSIZE = 90,
+    /** Protocol wrong type for socket */
+    ZTS_EPROTOTYPE = 91,
+    /** Protocol not available */
+    ZTS_ENOPROTOOPT = 92,
+    /** Protocol not supported */
+    ZTS_EPROTONOSUPPORT = 93,
+    /** Socket type not supported */
+    ZTS_ESOCKTNOSUPPORT = 94,
+    /** Operation not supported on transport endpoint */
+    ZTS_EOPNOTSUPP = 95,
+    /** Protocol family not supported */
+    ZTS_EPFNOSUPPORT = 96,
+    /** Address family not supported by protocol */
+    ZTS_EAFNOSUPPORT = 97,
+    /** Address already in use */
+    ZTS_EADDRINUSE = 98,
+    /** Cannot assign requested address */
+    ZTS_EADDRNOTAVAIL = 99,
+    /** Network is down */
+    ZTS_ENETDOWN = 100,
+    /** Network is unreachable */
+    ZTS_ENETUNREACH = 101,
+    /** Software caused connection abort */
+    ZTS_ECONNABORTED = 103,
+    /** Connection reset by peer */
+    ZTS_ECONNRESET = 104,
+    /** No buffer space available */
+    ZTS_ENOBUFS = 105,
+    /** Transport endpoint is already connected */
+    ZTS_EISCONN = 106,
+    /** Transport endpoint is not connected */
+    ZTS_ENOTCONN = 107,
+    /** Connection timed out */
+    ZTS_ETIMEDOUT = 110,
+    /** No route to host */
+    ZTS_EHOSTUNREACH = 113,
+    /** Operation already in progress */
+    ZTS_EALREADY = 114,
+    /** Operation now in progress */
+    ZTS_EINPROGRESS = 115
 } zts_errno_t;
 
 //----------------------------------------------------------------------------//
@@ -484,63 +484,63 @@ typedef uint8_t zts_sa_family_t;
 
 struct zts_in_addr {
 #if defined(_WIN32)
-	zts_in_addr_t S_addr;
+    zts_in_addr_t S_addr;
 #else
-	// A definition in winsock may conflict with s_addr
-	zts_in_addr_t s_addr;
+    // A definition in winsock may conflict with s_addr
+    zts_in_addr_t s_addr;
 #endif
 };
 
 struct zts_in6_addr {
-	union un {
-		uint32_t u32_addr[4];
-		uint8_t u8_addr[16];
-	} un;
-	//#define s6_addr  un.u8_addr
+    union un {
+        uint32_t u32_addr[4];
+        uint8_t u8_addr[16];
+    } un;
+    //#define s6_addr  un.u8_addr
 };
 
 /**
  * Address structure to specify an IPv4 endpoint
  */
 struct zts_sockaddr_in {
-	uint8_t sin_len;
-	zts_sa_family_t sin_family;
-	zts_in_port_t sin_port;
-	struct zts_in_addr sin_addr;
+    uint8_t sin_len;
+    zts_sa_family_t sin_family;
+    zts_in_port_t sin_port;
+    struct zts_in_addr sin_addr;
 #define SIN_ZERO_LEN 8
-	char sin_zero[SIN_ZERO_LEN];
+    char sin_zero[SIN_ZERO_LEN];
 };
 
 /**
  * Address structure to specify an IPv6 endpoint
  */
 struct zts_sockaddr_in6 {
-	uint8_t sin6_len;                // length of this structure
-	zts_sa_family_t sin6_family;     // ZTS_AF_INET6
-	zts_in_port_t sin6_port;         // Transport layer port #
-	uint32_t sin6_flowinfo;          // IPv6 flow information
-	struct zts_in6_addr sin6_addr;   // IPv6 address
-	uint32_t sin6_scope_id;          // Set of interfaces for scope
+    uint8_t sin6_len;                // length of this structure
+    zts_sa_family_t sin6_family;     // ZTS_AF_INET6
+    zts_in_port_t sin6_port;         // Transport layer port #
+    uint32_t sin6_flowinfo;          // IPv6 flow information
+    struct zts_in6_addr sin6_addr;   // IPv6 address
+    uint32_t sin6_scope_id;          // Set of interfaces for scope
 };
 
 /**
  * Pointers to socket address structures are often cast to this type
  */
 struct zts_sockaddr {
-	uint8_t sa_len;
-	zts_sa_family_t sa_family;
-	char sa_data[14];
+    uint8_t sa_len;
+    zts_sa_family_t sa_family;
+    char sa_data[14];
 };
 
 /**
  * Address structure large enough to hold IPv4 and IPv6 addresses
  */
 struct zts_sockaddr_storage {
-	uint8_t s2_len;
-	zts_sa_family_t ss_family;
-	char s2_data1[2];
-	uint32_t s2_data2[3];
-	uint32_t s2_data3[3];
+    uint8_t s2_len;
+    zts_sa_family_t ss_family;
+    char s2_data1[2];
+    uint32_t s2_data2[3];
+    uint32_t s2_data3[3];
 };
 
 //----------------------------------------------------------------------------//
@@ -551,373 +551,373 @@ struct zts_sockaddr_storage {
  * Runtime details about the current node
  */
 typedef struct {
-	/**
-	 * Node ID
-	 */
-	uint64_t node_id;
+    /**
+     * Node ID
+     */
+    uint64_t node_id;
 
-	/**
-	 * Port used by ZeroTier to send and receive traffic
-	 */
-	uint16_t port_primary;
+    /**
+     * Port used by ZeroTier to send and receive traffic
+     */
+    uint16_t port_primary;
 
-	/**
-	 * Port used by ZeroTier to send and receive traffic
-	 */
-	uint16_t port_secondary;
+    /**
+     * Port used by ZeroTier to send and receive traffic
+     */
+    uint16_t port_secondary;
 
-	/**
-	 * Port used by ZeroTier to send and receive traffic
-	 */
-	uint16_t port_tertiary;
+    /**
+     * Port used by ZeroTier to send and receive traffic
+     */
+    uint16_t port_tertiary;
 
-	/**
-	 * ZT Major version
-	 */
-	uint8_t ver_major;
+    /**
+     * ZT Major version
+     */
+    uint8_t ver_major;
 
-	/**
-	 * ZT Minor version
-	 */
-	uint8_t ver_minor;
+    /**
+     * ZT Minor version
+     */
+    uint8_t ver_minor;
 
-	/**
-	 * ZT Patch revision
-	 */
-	uint8_t ver_rev;
+    /**
+     * ZT Patch revision
+     */
+    uint8_t ver_rev;
 } zts_node_info_t;
 
 /**
  * Details about an assigned address that was added or removed
  */
 typedef struct {
-	uint64_t net_id;
-	struct zts_sockaddr_storage addr;
+    uint64_t net_id;
+    struct zts_sockaddr_storage addr;
 } zts_addr_info_t;
 
 /**
  * Virtual network status codes
  */
 typedef enum {
-	/**
-	 * Waiting for network configuration (also means revision == 0)
-	 */
-	ZTS_NETWORK_STATUS_REQUESTING_CONFIGURATION = 0,
+    /**
+     * Waiting for network configuration (also means revision == 0)
+     */
+    ZTS_NETWORK_STATUS_REQUESTING_CONFIGURATION = 0,
 
-	/**
-	 * Configuration received and we are authorized
-	 */
-	ZTS_NETWORK_STATUS_OK = 1,
+    /**
+     * Configuration received and we are authorized
+     */
+    ZTS_NETWORK_STATUS_OK = 1,
 
-	/**
-	 * Netconf master told us 'nope'
-	 */
-	ZTS_NETWORK_STATUS_ACCESS_DENIED = 2,
+    /**
+     * Netconf master told us 'nope'
+     */
+    ZTS_NETWORK_STATUS_ACCESS_DENIED = 2,
 
-	/**
-	 * Netconf master exists, but this virtual network does not
-	 */
-	ZTS_NETWORK_STATUS_NOT_FOUND = 3,
+    /**
+     * Netconf master exists, but this virtual network does not
+     */
+    ZTS_NETWORK_STATUS_NOT_FOUND = 3,
 
-	/**
-	 * Initialization of network failed or other internal error
-	 */
-	ZTS_NETWORK_STATUS_PORT_ERROR = 4,
+    /**
+     * Initialization of network failed or other internal error
+     */
+    ZTS_NETWORK_STATUS_PORT_ERROR = 4,
 
-	/**
-	 * ZeroTier core version too old
-	 */
-	ZTS_NETWORK_STATUS_CLIENT_TOO_OLD = 5
+    /**
+     * ZeroTier core version too old
+     */
+    ZTS_NETWORK_STATUS_CLIENT_TOO_OLD = 5
 } zts_network_status_t;
 
 /**
  * Virtual network type codes
  */
 typedef enum {
-	/**
-	 * Private networks are authorized via certificates of membership
-	 */
-	ZTS_NETWORK_TYPE_PRIVATE = 0,
+    /**
+     * Private networks are authorized via certificates of membership
+     */
+    ZTS_NETWORK_TYPE_PRIVATE = 0,
 
-	/**
-	 * Public networks have no access control -- they'll always be AUTHORIZED
-	 */
-	ZTS_NETWORK_TYPE_PUBLIC = 1
+    /**
+     * Public networks have no access control -- they'll always be AUTHORIZED
+     */
+    ZTS_NETWORK_TYPE_PUBLIC = 1
 } zts_net_info_type_t;
 
 /**
  * A route to be pushed on a virtual network
  */
 typedef struct {
-	/**
-	 * Target network / netmask bits (in port field) or NULL or 0.0.0.0/0
-	 * for default
-	 */
-	struct zts_sockaddr_storage target;
+    /**
+     * Target network / netmask bits (in port field) or NULL or 0.0.0.0/0
+     * for default
+     */
+    struct zts_sockaddr_storage target;
 
-	/**
-	 * Gateway IP address (port ignored) or NULL (family == 0) for LAN-local
-	 * (no gateway)
-	 */
-	struct zts_sockaddr_storage via;
+    /**
+     * Gateway IP address (port ignored) or NULL (family == 0) for LAN-local
+     * (no gateway)
+     */
+    struct zts_sockaddr_storage via;
 
-	/**
-	 * Route flags
-	 */
-	uint16_t flags;
+    /**
+     * Route flags
+     */
+    uint16_t flags;
 
-	/**
-	 * Route metric (not currently used)
-	 */
-	uint16_t metric;
+    /**
+     * Route metric (not currently used)
+     */
+    uint16_t metric;
 } zts_route_info_t;
 
 /**
  * An Ethernet multicast group
  */
 typedef struct {
-	/**
-	 * MAC address (least significant 48 bits)
-	 */
-	uint64_t mac;
+    /**
+     * MAC address (least significant 48 bits)
+     */
+    uint64_t mac;
 
-	/**
-	 * Additional distinguishing information (usually zero)
-	 */
-	unsigned long adi;
+    /**
+     * Additional distinguishing information (usually zero)
+     */
+    unsigned long adi;
 } zts_multicast_group_t;
 
 /**
  * The peer's trust hierarchy role
  */
 typedef enum {
-	/**
-	 * Ordinary node
-	 */
-	ZTS_PEER_ROLE_LEAF = 0,
-	/**
-	 * Moon root
-	 */
-	ZTS_PEER_ROLE_MOON = 1,
-	/**
-	 * Planetary root
-	 */
-	ZTS_PEER_ROLE_PLANET = 2
+    /**
+     * Ordinary node
+     */
+    ZTS_PEER_ROLE_LEAF = 0,
+    /**
+     * Moon root
+     */
+    ZTS_PEER_ROLE_MOON = 1,
+    /**
+     * Planetary root
+     */
+    ZTS_PEER_ROLE_PLANET = 2
 } zts_peer_role_t;
 
 /**
  * Virtual network configuration
  */
 typedef struct {
-	/**
-	 * 64-bit ZeroTier network ID
-	 */
-	uint64_t net_id;
+    /**
+     * 64-bit ZeroTier network ID
+     */
+    uint64_t net_id;
 
-	/**
-	 * Ethernet MAC (48 bits) that should be assigned to port
-	 */
-	uint64_t mac;
+    /**
+     * Ethernet MAC (48 bits) that should be assigned to port
+     */
+    uint64_t mac;
 
-	/**
-	 * Network name (from network configuration master)
-	 */
-	char name[ZTS_MAX_NETWORK_SHORT_NAME_LENGTH + 1];
+    /**
+     * Network name (from network configuration master)
+     */
+    char name[ZTS_MAX_NETWORK_SHORT_NAME_LENGTH + 1];
 
-	/**
-	 * Network configuration request status
-	 */
-	zts_network_status_t status;
+    /**
+     * Network configuration request status
+     */
+    zts_network_status_t status;
 
-	/**
-	 * Network type
-	 */
-	zts_net_info_type_t type;
+    /**
+     * Network type
+     */
+    zts_net_info_type_t type;
 
-	/**
-	 * Maximum interface MTU
-	 */
-	unsigned int mtu;
+    /**
+     * Maximum interface MTU
+     */
+    unsigned int mtu;
 
-	/**
-	 * If nonzero, the network this port belongs to indicates DHCP availability
-	 *
-	 * This is a suggestion. The underlying implementation is free to ignore it
-	 * for security or other reasons. This is simply a netconf parameter that
-	 * means 'DHCP is available on this network.'
-	 */
-	int dhcp;
+    /**
+     * If nonzero, the network this port belongs to indicates DHCP availability
+     *
+     * This is a suggestion. The underlying implementation is free to ignore it
+     * for security or other reasons. This is simply a netconf parameter that
+     * means 'DHCP is available on this network.'
+     */
+    int dhcp;
 
-	/**
-	 * If nonzero, this port is allowed to bridge to other networks
-	 *
-	 * This is informational. If this is false (0), bridged packets will simply
-	 * be dropped and bridging won't work.
-	 */
-	int bridge;
+    /**
+     * If nonzero, this port is allowed to bridge to other networks
+     *
+     * This is informational. If this is false (0), bridged packets will simply
+     * be dropped and bridging won't work.
+     */
+    int bridge;
 
-	/**
-	 * If nonzero, this network supports and allows broadcast
-	 * (ff:ff:ff:ff:ff:ff) traffic
-	 */
-	int broadcast_enabled;
+    /**
+     * If nonzero, this network supports and allows broadcast
+     * (ff:ff:ff:ff:ff:ff) traffic
+     */
+    int broadcast_enabled;
 
-	/**
-	 * If the network is in PORT_ERROR state, this is the (negative) error code
-	 * most recently reported
-	 */
-	int port_error;
+    /**
+     * If the network is in PORT_ERROR state, this is the (negative) error code
+     * most recently reported
+     */
+    int port_error;
 
-	/**
-	 * Revision number as reported by controller or 0 if still waiting for
-	 * config
-	 */
-	unsigned long netconf_rev;
+    /**
+     * Revision number as reported by controller or 0 if still waiting for
+     * config
+     */
+    unsigned long netconf_rev;
 
-	/**
-	 * Number of assigned addresses
-	 */
-	unsigned int assigned_addr_count;
+    /**
+     * Number of assigned addresses
+     */
+    unsigned int assigned_addr_count;
 
-	/**
-	 * ZeroTier-assigned addresses (in sockaddr_storage structures)
-	 *
-	 * For IP, the port number of the sockaddr_XX structure contains the number
-	 * of bits in the address netmask. Only the IP address and port are used.
-	 * Other fields like interface number can be ignored.
-	 *
-	 * This is only used for ZeroTier-managed address assignments sent by the
-	 * virtual network's configuration master.
-	 */
-	struct zts_sockaddr_storage assigned_addrs[ZTS_MAX_ASSIGNED_ADDRESSES];
+    /**
+     * ZeroTier-assigned addresses (in sockaddr_storage structures)
+     *
+     * For IP, the port number of the sockaddr_XX structure contains the number
+     * of bits in the address netmask. Only the IP address and port are used.
+     * Other fields like interface number can be ignored.
+     *
+     * This is only used for ZeroTier-managed address assignments sent by the
+     * virtual network's configuration master.
+     */
+    struct zts_sockaddr_storage assigned_addrs[ZTS_MAX_ASSIGNED_ADDRESSES];
 
-	/**
-	 * Number of ZT-pushed routes
-	 */
-	unsigned int route_count;
+    /**
+     * Number of ZT-pushed routes
+     */
+    unsigned int route_count;
 
-	/**
-	 * Routes (excluding those implied by assigned addresses and their masks)
-	 */
-	zts_route_info_t routes[ZTS_MAX_NETWORK_ROUTES];
+    /**
+     * Routes (excluding those implied by assigned addresses and their masks)
+     */
+    zts_route_info_t routes[ZTS_MAX_NETWORK_ROUTES];
 
-	/**
-	 * Number of multicast groups subscribed
-	 */
-	unsigned int multicast_sub_count;
+    /**
+     * Number of multicast groups subscribed
+     */
+    unsigned int multicast_sub_count;
 
-	/**
-	 * Multicast groups to which this network's device is subscribed
-	 */
-	struct {
-		uint64_t mac; /* MAC in lower 48 bits */
-		uint32_t adi; /* Additional distinguishing information, usually zero
-		                 except for IPv4 ARP groups */
-	} multicast_subs[ZTS_MAX_MULTICAST_SUBSCRIPTIONS];
+    /**
+     * Multicast groups to which this network's device is subscribed
+     */
+    struct {
+        uint64_t mac; /* MAC in lower 48 bits */
+        uint32_t adi; /* Additional distinguishing information, usually zero
+                         except for IPv4 ARP groups */
+    } multicast_subs[ZTS_MAX_MULTICAST_SUBSCRIPTIONS];
 } zts_net_info_t;
 
 /**
  * Physical network path to a peer
  */
 typedef struct {
-	/**
-	 * Address of endpoint
-	 */
-	struct zts_sockaddr_storage address;
+    /**
+     * Address of endpoint
+     */
+    struct zts_sockaddr_storage address;
 
-	/**
-	 * Time of last send in milliseconds or 0 for never
-	 */
-	uint64_t last_tx;
+    /**
+     * Time of last send in milliseconds or 0 for never
+     */
+    uint64_t last_tx;
 
-	/**
-	 * Time of last receive in milliseconds or 0 for never
-	 */
-	uint64_t last_rx;
+    /**
+     * Time of last receive in milliseconds or 0 for never
+     */
+    uint64_t last_rx;
 
-	/**
-	 * Is this a trusted path? If so this will be its nonzero ID.
-	 */
-	uint64_t trusted_path_id;
+    /**
+     * Is this a trusted path? If so this will be its nonzero ID.
+     */
+    uint64_t trusted_path_id;
 
-	/**
-	 * One-way latency
-	 */
-	float latency;
+    /**
+     * One-way latency
+     */
+    float latency;
 
-	float unused_0;
-	float unused_1;
-	float unused_2;
-	float unused_3;
-	float unused_4;
-	uint64_t unused_5;
-	uint64_t unused_6;
-	float unused_7;
+    float unused_0;
+    float unused_1;
+    float unused_2;
+    float unused_3;
+    float unused_4;
+    uint64_t unused_5;
+    uint64_t unused_6;
+    float unused_7;
 
-	/**
-	 * Name of physical interface (for monitoring)
-	 */
-	char* ifname;
+    /**
+     * Name of physical interface (for monitoring)
+     */
+    char* ifname;
 
-	/**
-	 * Is path expired?
-	 */
-	int expired;
+    /**
+     * Is path expired?
+     */
+    int expired;
 
-	/**
-	 * Is path preferred?
-	 */
-	int preferred;
+    /**
+     * Is path preferred?
+     */
+    int preferred;
 } zts_path_t;
 
 /**
  * Peer status result buffer
  */
 typedef struct {
-	/**
-	 * ZeroTier address (40 bits)
-	 */
-	uint64_t address;
+    /**
+     * ZeroTier address (40 bits)
+     */
+    uint64_t address;
 
-	/**
-	 * Remote major version or -1 if not known
-	 */
-	int ver_major;
+    /**
+     * Remote major version or -1 if not known
+     */
+    int ver_major;
 
-	/**
-	 * Remote minor version or -1 if not known
-	 */
-	int ver_minor;
+    /**
+     * Remote minor version or -1 if not known
+     */
+    int ver_minor;
 
-	/**
-	 * Remote revision or -1 if not known
-	 */
-	int ver_rev;
+    /**
+     * Remote revision or -1 if not known
+     */
+    int ver_rev;
 
-	/**
-	 * Last measured latency in milliseconds or -1 if unknown
-	 */
-	int latency;
+    /**
+     * Last measured latency in milliseconds or -1 if unknown
+     */
+    int latency;
 
-	/**
-	 * What trust hierarchy role does this device have?
-	 */
-	zts_peer_role_t role;
+    /**
+     * What trust hierarchy role does this device have?
+     */
+    zts_peer_role_t role;
 
-	/**
-	 * Number of paths (size of paths[])
-	 */
-	unsigned int path_count;
+    /**
+     * Number of paths (size of paths[])
+     */
+    unsigned int path_count;
 
-	/**
-	 * Whether this peer was ever reachable via an aggregate link
-	 */
-	int unused_0;
+    /**
+     * Whether this peer was ever reachable via an aggregate link
+     */
+    int unused_0;
 
-	/**
-	 * Known network paths to peer
-	 */
-	zts_path_t paths[ZTS_MAX_PEER_NETWORK_PATHS];
+    /**
+     * Known network paths to peer
+     */
+    zts_path_t paths[ZTS_MAX_PEER_NETWORK_PATHS];
 } zts_peer_info_t;
 
 #define ZTS_MAX_NUM_ROOTS          16
@@ -927,8 +927,8 @@ typedef struct {
  * Structure used to specify a root topology (aka a world)
  */
 typedef struct {
-	char* public_id_str[ZTS_MAX_NUM_ROOTS];
-	char* endpoint_ip_str[ZTS_MAX_NUM_ROOTS][ZTS_MAX_ENDPOINTS_PER_ROOT];
+    char* public_id_str[ZTS_MAX_NUM_ROOTS];
+    char* endpoint_ip_str[ZTS_MAX_NUM_ROOTS][ZTS_MAX_ENDPOINTS_PER_ROOT];
 } zts_world_t;
 
 /**
@@ -936,62 +936,62 @@ typedef struct {
  * interface (netif) to a user application.
  */
 typedef struct {
-	/**
-	 * The virtual network that this interface was created for
-	 */
-	uint64_t net_id;
+    /**
+     * The virtual network that this interface was created for
+     */
+    uint64_t net_id;
 
-	/**
-	 * The hardware address assigned to this interface
-	 */
-	uint64_t mac;
+    /**
+     * The hardware address assigned to this interface
+     */
+    uint64_t mac;
 
-	/**
-	 * The MTU for this interface
-	 */
-	int mtu;
+    /**
+     * The MTU for this interface
+     */
+    int mtu;
 } zts_netif_info_t;
 
 /**
  * Callback message
  */
 typedef struct {
-	/**
-	 * Event identifier
-	 */
-	int16_t event_code;
-	/**
-	 * Node status
-	 */
-	zts_node_info_t* node;
-	/**
-	 * Network information
-	 */
-	zts_net_info_t* network;
-	/**
-	 * Netif status
-	 */
-	zts_netif_info_t* netif;
-	/**
-	 * Managed routes
-	 */
-	zts_route_info_t* route;
-	/**
-	 * Peer info
-	 */
-	zts_peer_info_t* peer;
-	/**
-	 * Assigned address
-	 */
-	zts_addr_info_t* addr;
-	/**
-	 * Binary data (identities, planets, network configs, peer hints, etc)
-	 */
-	void* cache;
-	/**
-	 * Length of data message or structure
-	 */
-	int len;
+    /**
+     * Event identifier
+     */
+    int16_t event_code;
+    /**
+     * Node status
+     */
+    zts_node_info_t* node;
+    /**
+     * Network information
+     */
+    zts_net_info_t* network;
+    /**
+     * Netif status
+     */
+    zts_netif_info_t* netif;
+    /**
+     * Managed routes
+     */
+    zts_route_info_t* route;
+    /**
+     * Peer info
+     */
+    zts_peer_info_t* peer;
+    /**
+     * Assigned address
+     */
+    zts_addr_info_t* addr;
+    /**
+     * Binary data (identities, planets, network configs, peer hints, etc)
+     */
+    void* cache;
+    /**
+     * Length of data message or structure
+     */
+    int len;
 } zts_event_msg_t;
 
 //----------------------------------------------------------------------------//
@@ -1007,11 +1007,11 @@ typedef struct {
  */
 class PythonDirectorCallbackClass {
   public:
-	/**
-	 * Called by native code on event. Implemented in Python
-	 */
-	virtual void on_zerotier_event(zts_event_msg_t* msg);
-	virtual ~PythonDirectorCallbackClass() {};
+    /**
+     * Called by native code on event. Implemented in Python
+     */
+    virtual void on_zerotier_event(zts_event_msg_t* msg);
+    virtual ~PythonDirectorCallbackClass() {};
 };
 
 extern PythonDirectorCallbackClass* _userEventCallback;
@@ -1716,86 +1716,86 @@ ZTS_API int ZTCALL zts_moon_deorbit(uint64_t moon_world_id);
  * Structure containing counters for various protocol statistics
  */
 typedef struct {
-	/** Number of link packets transmitted */
-	uint32_t link_tx;
-	/** Number of link packets received */
-	uint32_t link_rx;
-	/** Number of link packets dropped */
-	uint32_t link_drop;
-	/** Aggregate number of link-level errors */
-	uint32_t link_err;
+    /** Number of link packets transmitted */
+    uint32_t link_tx;
+    /** Number of link packets received */
+    uint32_t link_rx;
+    /** Number of link packets dropped */
+    uint32_t link_drop;
+    /** Aggregate number of link-level errors */
+    uint32_t link_err;
 
-	/** Number of etharp packets transmitted */
-	uint32_t etharp_tx;
-	/** Number of etharp packets received */
-	uint32_t etharp_rx;
-	/** Number of etharp packets dropped */
-	uint32_t etharp_drop;
-	/** Aggregate number of etharp errors */
-	uint32_t etharp_err;
+    /** Number of etharp packets transmitted */
+    uint32_t etharp_tx;
+    /** Number of etharp packets received */
+    uint32_t etharp_rx;
+    /** Number of etharp packets dropped */
+    uint32_t etharp_drop;
+    /** Aggregate number of etharp errors */
+    uint32_t etharp_err;
 
-	/** Number of IPv4 packets transmitted */
-	uint32_t ip4_tx;
-	/** Number of IPv4 packets received */
-	uint32_t ip4_rx;
-	/** Number of IPv4 packets dropped */
-	uint32_t ip4_drop;
-	/** Aggregate number of IPv4 errors */
-	uint32_t ip4_err;
+    /** Number of IPv4 packets transmitted */
+    uint32_t ip4_tx;
+    /** Number of IPv4 packets received */
+    uint32_t ip4_rx;
+    /** Number of IPv4 packets dropped */
+    uint32_t ip4_drop;
+    /** Aggregate number of IPv4 errors */
+    uint32_t ip4_err;
 
-	/** Number of IPv6 packets transmitted */
-	uint32_t ip6_tx;
-	/** Number of IPv6 packets received */
-	uint32_t ip6_rx;
-	/** Number of IPv6 packets dropped */
-	uint32_t ip6_drop;
-	/** Aggregate number of IPv6 errors */
-	uint32_t ip6_err;
+    /** Number of IPv6 packets transmitted */
+    uint32_t ip6_tx;
+    /** Number of IPv6 packets received */
+    uint32_t ip6_rx;
+    /** Number of IPv6 packets dropped */
+    uint32_t ip6_drop;
+    /** Aggregate number of IPv6 errors */
+    uint32_t ip6_err;
 
-	/** Number of ICMPv4 packets transmitted */
-	uint32_t icmp4_tx;
-	/** Number of ICMPv4 packets received */
-	uint32_t icmp4_rx;
-	/** Number of ICMPv4 packets dropped */
-	uint32_t icmp4_drop;
-	/** Aggregate number of ICMPv4 errors */
-	uint32_t icmp4_err;
+    /** Number of ICMPv4 packets transmitted */
+    uint32_t icmp4_tx;
+    /** Number of ICMPv4 packets received */
+    uint32_t icmp4_rx;
+    /** Number of ICMPv4 packets dropped */
+    uint32_t icmp4_drop;
+    /** Aggregate number of ICMPv4 errors */
+    uint32_t icmp4_err;
 
-	/** Number of ICMPv6 packets transmitted */
-	uint32_t icmp6_tx;
-	/** Number of ICMPv6 packets received */
-	uint32_t icmp6_rx;
-	/** Number of ICMPv6 packets dropped */
-	uint32_t icmp6_drop;
-	/** Aggregate number of ICMPv6 errors */
-	uint32_t icmp6_err;
+    /** Number of ICMPv6 packets transmitted */
+    uint32_t icmp6_tx;
+    /** Number of ICMPv6 packets received */
+    uint32_t icmp6_rx;
+    /** Number of ICMPv6 packets dropped */
+    uint32_t icmp6_drop;
+    /** Aggregate number of ICMPv6 errors */
+    uint32_t icmp6_err;
 
-	/** Number of UDP packets transmitted */
-	uint32_t udp_tx;
-	/** Number of UDP packets received */
-	uint32_t udp_rx;
-	/** Number of UDP packets dropped */
-	uint32_t udp_drop;
-	/** Aggregate number of UDP errors */
-	uint32_t udp_err;
+    /** Number of UDP packets transmitted */
+    uint32_t udp_tx;
+    /** Number of UDP packets received */
+    uint32_t udp_rx;
+    /** Number of UDP packets dropped */
+    uint32_t udp_drop;
+    /** Aggregate number of UDP errors */
+    uint32_t udp_err;
 
-	/** Number of TCP packets transmitted */
-	uint32_t tcp_tx;
-	/** Number of TCP packets received */
-	uint32_t tcp_rx;
-	/** Number of TCP packets dropped */
-	uint32_t tcp_drop;
-	/** Aggregate number of TCP errors */
-	uint32_t tcp_err;
+    /** Number of TCP packets transmitted */
+    uint32_t tcp_tx;
+    /** Number of TCP packets received */
+    uint32_t tcp_rx;
+    /** Number of TCP packets dropped */
+    uint32_t tcp_drop;
+    /** Aggregate number of TCP errors */
+    uint32_t tcp_err;
 
-	/** Number of ND6 packets transmitted */
-	uint32_t nd6_tx;
-	/** Number of ND6 packets received */
-	uint32_t nd6_rx;
-	/** Number of ND6 packets dropped */
-	uint32_t nd6_drop;
-	/** Aggregate number of ND6 errors */
-	uint32_t nd6_err;
+    /** Number of ND6 packets transmitted */
+    uint32_t nd6_tx;
+    /** Number of ND6 packets received */
+    uint32_t nd6_rx;
+    /** Number of ND6 packets dropped */
+    uint32_t nd6_drop;
+    /** Aggregate number of ND6 errors */
+    uint32_t nd6_err;
 } zts_stats_counter_t;
 
 /**
@@ -1986,8 +1986,8 @@ ZTS_API int ZTCALL zts_simple_udp_client(const char* remote_ipstr);
  * Structure used for manipulating linger option.
  */
 struct zts_linger {
-	int l_onoff;    // option on/off
-	int l_linger;   // linger time in seconds
+    int l_onoff;    // option on/off
+    int l_linger;   // linger time in seconds
 };
 
 #define ZTS_SO_DONTLINGER   ((int)(~ZTS_SO_LINGER))
@@ -2016,11 +2016,11 @@ struct zts_linger {
 #define ZTS_TCP_KEEPCNT   0x0005
 // IPPROTO_IPV6 options
 #define ZTS_IPV6_CHECKSUM                                                                                              \
-	0x0007 /* RFC3542: calculate and insert the ICMPv6 checksum for raw                                                \
-	          sockets. */
+    0x0007 /* RFC3542: calculate and insert the ICMPv6 checksum for raw                                                \
+              sockets. */
 #define ZTS_IPV6_V6ONLY                                                                                                \
-	0x001b /* RFC3493: boolean control to restrict ZTS_AF_INET6 sockets to                                             \
-	          IPv6 communications only. */
+    0x001b /* RFC3493: boolean control to restrict ZTS_AF_INET6 sockets to                                             \
+              IPv6 communications only. */
 // UDPLITE options
 #define ZTS_UDPLITE_SEND_CSCOV 0x01 /* sender checksum coverage */
 #define ZTS_UDPLITE_RECV_CSCOV 0x02 /* minimal receiver checksum coverage */
@@ -2034,13 +2034,13 @@ struct zts_linger {
 #define ZTS_IP_DROP_MEMBERSHIP 4
 
 typedef struct zts_ip_mreq {
-	struct zts_in_addr imr_multiaddr; /* IP multicast address of group */
-	struct zts_in_addr imr_interface; /* local IP address of interface */
+    struct zts_in_addr imr_multiaddr; /* IP multicast address of group */
+    struct zts_in_addr imr_interface; /* local IP address of interface */
 } zts_ip_mreq;
 
 struct zts_in_pktinfo {
-	unsigned int ipi_ifindex;    /* Interface index */
-	struct zts_in_addr ipi_addr; /* Destination (from header) address */
+    unsigned int ipi_ifindex;    /* Interface index */
+    struct zts_in_addr ipi_addr; /* Destination (from header) address */
 };
 
 #define ZTS_IPV6_JOIN_GROUP      12
@@ -2049,8 +2049,8 @@ struct zts_in_pktinfo {
 #define ZTS_IPV6_DROP_MEMBERSHIP ZTS_IPV6_LEAVE_GROUP
 
 typedef struct zts_ipv6_mreq {
-	struct zts_in6_addr ipv6mr_multiaddr; /*  IPv6 multicast addr */
-	unsigned int ipv6mr_interface;        /*  interface index, or 0 */
+    struct zts_in6_addr ipv6mr_multiaddr; /*  IPv6 multicast addr */
+    unsigned int ipv6mr_interface;        /*  interface index, or 0 */
 } zts_ipv6_mreq;
 
 /*
@@ -2164,19 +2164,19 @@ ZTS_API int ZTCALL zts_close(int fd);
 // Make FD_SETSIZE match NUM_SOCKETS in socket.c
 #define ZTS_FD_SETSIZE MEMP_NUM_NETCONN
 #define ZTS_FDSETSAFESET(n, code)                                                                                      \
-	do {                                                                                                               \
-		if (((n)-LWIP_SOCKET_OFFSET < MEMP_NUM_NETCONN) && (((int)(n)-LWIP_SOCKET_OFFSET) >= 0)) {                     \
-			code;                                                                                                      \
-		}                                                                                                              \
-	} while (0)
+    do {                                                                                                               \
+        if (((n)-LWIP_SOCKET_OFFSET < MEMP_NUM_NETCONN) && (((int)(n)-LWIP_SOCKET_OFFSET) >= 0)) {                     \
+            code;                                                                                                      \
+        }                                                                                                              \
+    } while (0)
 #define ZTS_FDSETSAFEGET(n, code)                                                                                      \
-	(((n)-LWIP_SOCKET_OFFSET < MEMP_NUM_NETCONN) && (((int)(n)-LWIP_SOCKET_OFFSET) >= 0) ? (code) : 0)
+    (((n)-LWIP_SOCKET_OFFSET < MEMP_NUM_NETCONN) && (((int)(n)-LWIP_SOCKET_OFFSET) >= 0) ? (code) : 0)
 #define ZTS_FD_SET(n, p)                                                                                               \
-	ZTS_FDSETSAFESET(n, (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET) / 8] |= (1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
+    ZTS_FDSETSAFESET(n, (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET) / 8] |= (1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
 #define ZTS_FD_CLR(n, p)                                                                                               \
-	ZTS_FDSETSAFESET(n, (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET) / 8] &= ~(1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
+    ZTS_FDSETSAFESET(n, (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET) / 8] &= ~(1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
 #define ZTS_FD_ISSET(n, p)                                                                                             \
-	ZTS_FDSETSAFEGET(n, (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET) / 8] & (1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
+    ZTS_FDSETSAFEGET(n, (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET) / 8] & (1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
 #define ZTS_FD_ZERO(p) memset((void*)(p), 0, sizeof(*(p)))
 
 #elif LWIP_SOCKET_OFFSET
@@ -2186,12 +2186,12 @@ ZTS_API int ZTCALL zts_close(int fd);
 #endif   // FD_SET
 
 typedef struct zts_fd_set {
-	unsigned char fd_bits[(ZTS_FD_SETSIZE + 7) / 8];
+    unsigned char fd_bits[(ZTS_FD_SETSIZE + 7) / 8];
 } zts_fd_set;
 
 typedef struct zts_timeval {
-	long tv_sec;  /* seconds */
-	long tv_usec; /* and microseconds */
+    long tv_sec;  /* seconds */
+    long tv_usec; /* and microseconds */
 } zts_timeval;
 
 /**
@@ -2246,9 +2246,9 @@ ZTS_API int ZTCALL zts_fcntl(int fd, int cmd, int flags);
 typedef unsigned int zts_nfds_t;
 
 struct zts_pollfd {
-	int fd;
-	short events;
-	short revents;
+    int fd;
+    short events;
+    short revents;
 };
 
 /**
@@ -2302,19 +2302,19 @@ ZTS_API ssize_t ZTCALL
 zts_sendto(int fd, const void* buf, size_t len, int flags, const struct zts_sockaddr* addr, zts_socklen_t addrlen);
 
 struct zts_iovec {
-	void* iov_base;
-	size_t iov_len;
+    void* iov_base;
+    size_t iov_len;
 };
 
 /* */
 struct zts_msghdr {
-	void* msg_name;
-	zts_socklen_t msg_namelen;
-	struct zts_iovec* msg_iov;
-	int msg_iovlen;
-	void* msg_control;
-	zts_socklen_t msg_controllen;
-	int msg_flags;
+    void* msg_name;
+    zts_socklen_t msg_namelen;
+    struct zts_iovec* msg_iov;
+    int msg_iovlen;
+    void* msg_control;
+    zts_socklen_t msg_controllen;
+    int msg_flags;
 };
 
 /* struct msghdr->msg_flags bit field values */
@@ -2642,14 +2642,14 @@ ZTS_API int ZTCALL zts_simple_get_keepalive(int fd);
 //----------------------------------------------------------------------------//
 
 struct zts_hostent {
-	char* h_name;             /* Official name of the host. */
-	char** h_aliases;         /* A pointer to an array of pointers to alternative host
-	                             names,   terminated by a null pointer. */
-	int h_addrtype;           /* Address type. */
-	int h_length;             /* The length, in bytes, of the address. */
-	char** h_addr_list;       /* A pointer to an array of pointers to network
-	                             addresses (in network byte order) for the host,
-	                             terminated by a null pointer. */
+    char* h_name;             /* Official name of the host. */
+    char** h_aliases;         /* A pointer to an array of pointers to alternative host
+                                 names,   terminated by a null pointer. */
+    int h_addrtype;           /* Address type. */
+    int h_length;             /* The length, in bytes, of the address. */
+    char** h_addr_list;       /* A pointer to an array of pointers to network
+                                 addresses (in network byte order) for the host,
+                                 terminated by a null pointer. */
 #define h_addr h_addr_list[0] /* for backward compatibility */
 };
 
@@ -2662,15 +2662,15 @@ struct zts_hostent {
 struct zts_hostent* zts_gethostbyname(const char* name);
 
 struct zts_ip4_addr {
-	uint32_t addr;
+    uint32_t addr;
 };
 
 /** This is the aligned version of ip6_addr_t,
     used as local variable, on the stack, etc. */
 struct zts_ip6_addr {
-	uint32_t addr[4];
+    uint32_t addr[4];
 #if LWIP_IPV6_SCOPES
-	uint8_t zone;
+    uint8_t zone;
 #endif /* LWIP_IPV6_SCOPES */
 };
 
@@ -2679,11 +2679,11 @@ struct zts_ip6_addr {
  * ATTENTION: watch out for its size when adding IPv6 address scope!
  */
 typedef struct zts_ip_addr {
-	union {
-		struct zts_ip6_addr ip6;
-		struct zts_ip4_addr ip4;
-	} u_addr;
-	uint8_t type;   // ZTS_IPADDR_TYPE_V4, ZTS_IPADDR_TYPE_V6
+    union {
+        struct zts_ip6_addr ip6;
+        struct zts_ip4_addr ip4;
+    } u_addr;
+    uint8_t type;   // ZTS_IPADDR_TYPE_V4, ZTS_IPADDR_TYPE_V6
 } zts_ip_addr;
 
 /**

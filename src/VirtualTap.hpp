@@ -42,153 +42,153 @@ struct InetAddress;
  * then be destroyed upon leaving the network.
  */
 class VirtualTap {
-	friend class Phy<VirtualTap*>;
+    friend class Phy<VirtualTap*>;
 
   public:
-	VirtualTap(
-	    const char* homePath,
-	    const MAC& mac,
-	    unsigned int mtu,
-	    unsigned int metric,
-	    uint64_t net_id,
-	    void (*handler)(
-	        void*,
-	        void*,
-	        uint64_t,
-	        const MAC&,
-	        const MAC&,
-	        unsigned int,
-	        unsigned int,
-	        const void*,
-	        unsigned int),
-	    void* arg);
+    VirtualTap(
+        const char* homePath,
+        const MAC& mac,
+        unsigned int mtu,
+        unsigned int metric,
+        uint64_t net_id,
+        void (*handler)(
+            void*,
+            void*,
+            uint64_t,
+            const MAC&,
+            const MAC&,
+            unsigned int,
+            unsigned int,
+            const void*,
+            unsigned int),
+        void* arg);
 
-	~VirtualTap();
+    ~VirtualTap();
 
-	void setEnabled(bool en);
-	bool enabled() const;
+    void setEnabled(bool en);
+    bool enabled() const;
 
-	/**
-	 * System to ingest events from this class and emit them to the user
-	 */
-	Events* _events;
+    /**
+     * System to ingest events from this class and emit them to the user
+     */
+    Events* _events;
 
-	/**
-	 * Mutex for protecting IP address container for this tap.
-	 */
-	Mutex _ips_m;   // Public because we want it accessible by the driver
-	                // layer
+    /**
+     * Mutex for protecting IP address container for this tap.
+     */
+    Mutex _ips_m;   // Public because we want it accessible by the driver
+                    // layer
 
-	void setUserEventSystem(Events* events);
+    void setUserEventSystem(Events* events);
 
-	/**
-	 * Return whether this tap has been assigned an IPv4 address.
-	 */
-	bool hasIpv4Addr();
+    /**
+     * Return whether this tap has been assigned an IPv4 address.
+     */
+    bool hasIpv4Addr();
 
-	/**
-	 * Return whether this tap has been assigned an IPv6 address.
-	 */
-	bool hasIpv6Addr();
+    /**
+     * Return whether this tap has been assigned an IPv6 address.
+     */
+    bool hasIpv6Addr();
 
-	/**
-	 * Adds an address to the user-space stack interface associated with
-	 * this VirtualTap
-	 * - Starts VirtualTap main thread ONLY if successful
-	 */
-	bool addIp(const InetAddress& ip);
+    /**
+     * Adds an address to the user-space stack interface associated with
+     * this VirtualTap
+     * - Starts VirtualTap main thread ONLY if successful
+     */
+    bool addIp(const InetAddress& ip);
 
-	/**
-	 * Removes an address from the user-space stack interface associated
-	 * with this VirtualTap
-	 */
-	bool removeIp(const InetAddress& ip);
+    /**
+     * Removes an address from the user-space stack interface associated
+     * with this VirtualTap
+     */
+    bool removeIp(const InetAddress& ip);
 
-	/**
-	 * Presents data to the user-space stack
-	 */
-	void put(const MAC& from, const MAC& to, unsigned int etherType, const void* data, unsigned int len);
+    /**
+     * Presents data to the user-space stack
+     */
+    void put(const MAC& from, const MAC& to, unsigned int etherType, const void* data, unsigned int len);
 
-	/**
-	 * Scan multicast groups
-	 */
-	void scanMulticastGroups(std::vector<MulticastGroup>& added, std::vector<MulticastGroup>& removed);
+    /**
+     * Scan multicast groups
+     */
+    void scanMulticastGroups(std::vector<MulticastGroup>& added, std::vector<MulticastGroup>& removed);
 
-	/**
-	 * Set MTU
-	 */
-	void setMtu(unsigned int mtu);
+    /**
+     * Set MTU
+     */
+    void setMtu(unsigned int mtu);
 
-	/**
-	 * Calls main network stack loops
-	 */
-	void threadMain() throw();
+    /**
+     * Calls main network stack loops
+     */
+    void threadMain() throw();
 
-	/**
-	 * For moving data onto the ZeroTier virtual wire
-	 */
-	void (*_handler)(
-	    void*,
-	    void*,
-	    uint64_t,
-	    const MAC&,
-	    const MAC&,
-	    unsigned int,
-	    unsigned int,
-	    const void*,
-	    unsigned int);
+    /**
+     * For moving data onto the ZeroTier virtual wire
+     */
+    void (*_handler)(
+        void*,
+        void*,
+        uint64_t,
+        const MAC&,
+        const MAC&,
+        unsigned int,
+        unsigned int,
+        const void*,
+        unsigned int);
 
-	void* netif4 = NULL;
-	void* netif6 = NULL;
+    void* netif4 = NULL;
+    void* netif6 = NULL;
 
-	// The last time that this virtual tap received a network config update
-	// from the core
-	uint64_t _lastConfigUpdateTime = 0;
+    // The last time that this virtual tap received a network config update
+    // from the core
+    uint64_t _lastConfigUpdateTime = 0;
 
-	void lastConfigUpdate(uint64_t lastConfigUpdateTime);
+    void lastConfigUpdate(uint64_t lastConfigUpdateTime);
 
-	int _networkStatus = 0;
+    int _networkStatus = 0;
 
-	char vtap_full_name[VTAP_NAME_LEN] = { 0 };
+    char vtap_full_name[VTAP_NAME_LEN] = { 0 };
 
-	std::vector<InetAddress> ips() const;
-	std::vector<InetAddress> _ips;
+    std::vector<InetAddress> ips() const;
+    std::vector<InetAddress> _ips;
 
-	std::string _homePath;
-	void* _arg;
-	volatile bool _initialized;
-	volatile bool _enabled;
-	volatile bool _run;
-	MAC _mac;
-	unsigned int _mtu;
-	uint64_t _net_id;
-	PhySocket* _unixListenSocket;
-	Phy<VirtualTap*> _phy;
+    std::string _homePath;
+    void* _arg;
+    volatile bool _initialized;
+    volatile bool _enabled;
+    volatile bool _run;
+    MAC _mac;
+    unsigned int _mtu;
+    uint64_t _net_id;
+    PhySocket* _unixListenSocket;
+    Phy<VirtualTap*> _phy;
 
-	Thread _thread;
+    Thread _thread;
 
-	int _shutdownSignalPipe[2] = { 0 };
+    int _shutdownSignalPipe[2] = { 0 };
 
-	std::vector<MulticastGroup> _multicastGroups;
-	Mutex _multicastGroups_m;
+    std::vector<MulticastGroup> _multicastGroups;
+    Mutex _multicastGroups_m;
 
-	//----------------------------------------------------------------------------//
-	// Not used in this implementation //
-	//----------------------------------------------------------------------------//
+    //----------------------------------------------------------------------------//
+    // Not used in this implementation //
+    //----------------------------------------------------------------------------//
 
-	void phyOnDatagram(
-	    PhySocket* sock,
-	    void** uptr,
-	    const struct sockaddr* local_address,
-	    const struct sockaddr* from,
-	    void* data,
-	    unsigned long len);
-	void phyOnTcpConnect(PhySocket* sock, void** uptr, bool success);
-	void phyOnTcpAccept(PhySocket* sockL, PhySocket* sockN, void** uptrL, void** uptrN, const struct sockaddr* from);
-	void phyOnTcpClose(PhySocket* sock, void** uptr);
-	void phyOnTcpData(PhySocket* sock, void** uptr, void* data, unsigned long len);
-	void phyOnTcpWritable(PhySocket* sock, void** uptr);
-	void phyOnUnixClose(PhySocket* sock, void** uptr);
+    void phyOnDatagram(
+        PhySocket* sock,
+        void** uptr,
+        const struct sockaddr* local_address,
+        const struct sockaddr* from,
+        void* data,
+        unsigned long len);
+    void phyOnTcpConnect(PhySocket* sock, void** uptr, bool success);
+    void phyOnTcpAccept(PhySocket* sockL, PhySocket* sockN, void** uptrL, void** uptrN, const struct sockaddr* from);
+    void phyOnTcpClose(PhySocket* sock, void** uptr);
+    void phyOnTcpData(PhySocket* sock, void** uptr, void* data, unsigned long len);
+    void phyOnTcpWritable(PhySocket* sock, void** uptr);
+    void phyOnUnixClose(PhySocket* sock, void** uptr);
 };
 
 /**

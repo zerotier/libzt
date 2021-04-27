@@ -75,218 +75,218 @@ moodycamel::ConcurrentQueue<zts_event_msg_t*> _callbackMsgQueue;
 
 void Events::run()
 {
-	while (getState(ZTS_STATE_CALLBACKS_RUNNING) || _callbackMsgQueue.size_approx() > 0) {
-		zts_event_msg_t* msg;
-		size_t sz = _callbackMsgQueue.size_approx();
-		for (size_t j = 0; j < sz; j++) {
-			if (_callbackMsgQueue.try_dequeue(msg)) {
-				events_m.lock();
-				sendToUser(msg);
-				events_m.unlock();
-			}
-		}
-		zts_util_delay(ZTS_CALLBACK_PROCESSING_INTERVAL);
-	}
+    while (getState(ZTS_STATE_CALLBACKS_RUNNING) || _callbackMsgQueue.size_approx() > 0) {
+        zts_event_msg_t* msg;
+        size_t sz = _callbackMsgQueue.size_approx();
+        for (size_t j = 0; j < sz; j++) {
+            if (_callbackMsgQueue.try_dequeue(msg)) {
+                events_m.lock();
+                sendToUser(msg);
+                events_m.unlock();
+            }
+        }
+        zts_util_delay(ZTS_CALLBACK_PROCESSING_INTERVAL);
+    }
 }
 
 void Events::enqueue(unsigned int event_code, const void* arg, int len)
 {
-	if (! _enabled) {
-		return;
-	}
-	zts_event_msg_t* msg = new zts_event_msg_t();
-	msg->event_code = event_code;
+    if (! _enabled) {
+        return;
+    }
+    zts_event_msg_t* msg = new zts_event_msg_t();
+    msg->event_code = event_code;
 
-	if (ZTS_NODE_EVENT(event_code)) {
-		msg->node = (zts_node_info_t*)arg;
-		msg->len = sizeof(zts_node_info_t);
-	}
-	if (ZTS_NETWORK_EVENT(event_code)) {
-		msg->network = (zts_net_info_t*)arg;
-		msg->len = sizeof(zts_net_info_t);
-	}
-	if (ZTS_STACK_EVENT(event_code)) {
-		/* nothing to convey to user */
-	}
-	if (ZTS_NETIF_EVENT(event_code)) {
-		msg->netif = (zts_netif_info_t*)arg;
-		msg->len = sizeof(zts_netif_info_t);
-	}
-	if (ZTS_ROUTE_EVENT(event_code)) {
-		msg->route = (zts_route_info_t*)arg;
-		msg->len = sizeof(zts_route_info_t);
-	}
-	if (ZTS_PEER_EVENT(event_code)) {
-		msg->peer = (zts_peer_info_t*)arg;
-		msg->len = sizeof(zts_peer_info_t);
-	}
-	if (ZTS_ADDR_EVENT(event_code)) {
-		msg->addr = (zts_addr_info_t*)arg;
-		msg->len = sizeof(zts_addr_info_t);
-	}
-	if (ZTS_STORE_EVENT(event_code)) {
-		msg->cache = (void*)arg;
-		msg->len = len;
-	}
-	if (msg && _callbackMsgQueue.size_approx() > 1024) {
-		/* Rate-limit number of events. This value should only grow if the
-		user application isn't returning from the event handler in a timely manner.
-		For most applications it should hover around 1 to 2 */
-		destroy(msg);
-	}
-	else {
-		_callbackMsgQueue.enqueue(msg);
-	}
+    if (ZTS_NODE_EVENT(event_code)) {
+        msg->node = (zts_node_info_t*)arg;
+        msg->len = sizeof(zts_node_info_t);
+    }
+    if (ZTS_NETWORK_EVENT(event_code)) {
+        msg->network = (zts_net_info_t*)arg;
+        msg->len = sizeof(zts_net_info_t);
+    }
+    if (ZTS_STACK_EVENT(event_code)) {
+        /* nothing to convey to user */
+    }
+    if (ZTS_NETIF_EVENT(event_code)) {
+        msg->netif = (zts_netif_info_t*)arg;
+        msg->len = sizeof(zts_netif_info_t);
+    }
+    if (ZTS_ROUTE_EVENT(event_code)) {
+        msg->route = (zts_route_info_t*)arg;
+        msg->len = sizeof(zts_route_info_t);
+    }
+    if (ZTS_PEER_EVENT(event_code)) {
+        msg->peer = (zts_peer_info_t*)arg;
+        msg->len = sizeof(zts_peer_info_t);
+    }
+    if (ZTS_ADDR_EVENT(event_code)) {
+        msg->addr = (zts_addr_info_t*)arg;
+        msg->len = sizeof(zts_addr_info_t);
+    }
+    if (ZTS_STORE_EVENT(event_code)) {
+        msg->cache = (void*)arg;
+        msg->len = len;
+    }
+    if (msg && _callbackMsgQueue.size_approx() > 1024) {
+        /* Rate-limit number of events. This value should only grow if the
+        user application isn't returning from the event handler in a timely manner.
+        For most applications it should hover around 1 to 2 */
+        destroy(msg);
+    }
+    else {
+        _callbackMsgQueue.enqueue(msg);
+    }
 }
 
 void Events::destroy(zts_event_msg_t* msg)
 {
-	if (! msg) {
-		return;
-	}
-	if (msg->node) {
-		delete msg->node;
-	}
-	if (msg->network) {
-		delete msg->network;
-	}
-	if (msg->netif) {
-		delete msg->netif;
-	}
-	if (msg->route) {
-		delete msg->route;
-	}
-	if (msg->peer) {
-		delete msg->peer;
-	}
-	if (msg->addr) {
-		delete msg->addr;
-	}
-	delete msg;
-	msg = NULL;
+    if (! msg) {
+        return;
+    }
+    if (msg->node) {
+        delete msg->node;
+    }
+    if (msg->network) {
+        delete msg->network;
+    }
+    if (msg->netif) {
+        delete msg->netif;
+    }
+    if (msg->route) {
+        delete msg->route;
+    }
+    if (msg->peer) {
+        delete msg->peer;
+    }
+    if (msg->addr) {
+        delete msg->addr;
+    }
+    delete msg;
+    msg = NULL;
 }
 
 void Events::sendToUser(zts_event_msg_t* msg)
 {
-	bool bShouldStopCallbackThread = (msg->event_code == ZTS_EVENT_STACK_DOWN);
+    bool bShouldStopCallbackThread = (msg->event_code == ZTS_EVENT_STACK_DOWN);
 #ifdef ZTS_ENABLE_PYTHON
-	PyGILState_STATE state = PyGILState_Ensure();
-	_userEventCallback->on_zerotier_event(msg);
-	PyGILState_Release(state);
+    PyGILState_STATE state = PyGILState_Ensure();
+    _userEventCallback->on_zerotier_event(msg);
+    PyGILState_Release(state);
 #endif
 #ifdef ZTS_ENABLE_JAVA
-	if (_userCallbackMethodRef) {
-		JNIEnv* env;
+    if (_userCallbackMethodRef) {
+        JNIEnv* env;
 #if defined(__ANDROID__)
-		jint rs = jvm->AttachCurrentThread(&env, NULL);
+        jint rs = jvm->AttachCurrentThread(&env, NULL);
 #else
-		jint rs = jvm->AttachCurrentThread((void**)&env, NULL);
+        jint rs = jvm->AttachCurrentThread((void**)&env, NULL);
 #endif
-		uint64_t arg = 0;
-		uint64_t id = 0;
-		if (ZTS_NODE_EVENT(msg->event_code)) {
-			id = msg->node ? msg->node->address : 0;
-		}
-		if (ZTS_NETWORK_EVENT(msg->event_code)) {
-			id = msg->network ? msg->network->nwid : 0;
-		}
-		if (ZTS_PEER_EVENT(msg->event_code)) {
-			id = msg->peer ? msg->peer->address : 0;
-		}
-		env->CallVoidMethod(objRef, _userCallbackMethodRef, id, msg->event_code);
-	}
+        uint64_t arg = 0;
+        uint64_t id = 0;
+        if (ZTS_NODE_EVENT(msg->event_code)) {
+            id = msg->node ? msg->node->address : 0;
+        }
+        if (ZTS_NETWORK_EVENT(msg->event_code)) {
+            id = msg->network ? msg->network->nwid : 0;
+        }
+        if (ZTS_PEER_EVENT(msg->event_code)) {
+            id = msg->peer ? msg->peer->address : 0;
+        }
+        env->CallVoidMethod(objRef, _userCallbackMethodRef, id, msg->event_code);
+    }
 #endif   // ZTS_ENABLE_JAVA
 #ifdef ZTS_ENABLE_PINVOKE
-	if (_userEventCallback) {
-		_userEventCallback(msg);
-	}
+    if (_userEventCallback) {
+        _userEventCallback(msg);
+    }
 #endif
 #ifdef ZTS_C_API_ONLY
-	if (_userEventCallback) {
-		_userEventCallback(msg);
-	}
+    if (_userEventCallback) {
+        _userEventCallback(msg);
+    }
 #endif
-	destroy(msg);
-	if (bShouldStopCallbackThread) {
-		/* Ensure last possible callback ZTS_EVENT_STACK_DOWN is
-		delivered before callback thread is finally stopped. */
-		clrState(ZTS_STATE_CALLBACKS_RUNNING);
-	}
+    destroy(msg);
+    if (bShouldStopCallbackThread) {
+        /* Ensure last possible callback ZTS_EVENT_STACK_DOWN is
+        delivered before callback thread is finally stopped. */
+        clrState(ZTS_STATE_CALLBACKS_RUNNING);
+    }
 }
 
 bool Events::hasCallback()
 {
-	events_m.lock();
-	bool retval = false;
+    events_m.lock();
+    bool retval = false;
 #ifdef ZTS_ENABLE_JAVA
-	retval = (jvm && objRef && _userCallbackMethodRef);
+    retval = (jvm && objRef && _userCallbackMethodRef);
 #else
-	retval = _userEventCallback;
+    retval = _userEventCallback;
 #endif
-	events_m.unlock();
-	return retval;
+    events_m.unlock();
+    return retval;
 }
 
 void Events::clrCallback()
 {
-	events_m.lock();
+    events_m.lock();
 #ifdef ZTS_ENABLE_JAVA
-	objRef = NULL;
-	_userCallbackMethodRef = NULL;
+    objRef = NULL;
+    _userCallbackMethodRef = NULL;
 #else
-	_userEventCallback = NULL;
+    _userEventCallback = NULL;
 #endif
-	events_m.unlock();
+    events_m.unlock();
 }
 
 int Events::canPerformServiceOperation()
 {
-	return zts_service && zts_service->isRunning() && ! getState(ZTS_STATE_FREE_CALLED);
+    return zts_service && zts_service->isRunning() && ! getState(ZTS_STATE_FREE_CALLED);
 }
 
 void Events::setState(uint8_t newFlags)
 {
-	if ((newFlags ^ service_state) & ZTS_STATE_NET_SERVICE_RUNNING) {
-		return;   // No effect. Not allowed to set this flag manually
-	}
-	SET_FLAGS(newFlags);
-	if (GET_FLAGS(ZTS_STATE_NODE_RUNNING) && GET_FLAGS(ZTS_STATE_STACK_RUNNING)
-	    && ! (GET_FLAGS(ZTS_STATE_FREE_CALLED))) {
-		SET_FLAGS(ZTS_STATE_NET_SERVICE_RUNNING);
-	}
-	else {
-		CLR_FLAGS(ZTS_STATE_NET_SERVICE_RUNNING);
-	}
+    if ((newFlags ^ service_state) & ZTS_STATE_NET_SERVICE_RUNNING) {
+        return;   // No effect. Not allowed to set this flag manually
+    }
+    SET_FLAGS(newFlags);
+    if (GET_FLAGS(ZTS_STATE_NODE_RUNNING) && GET_FLAGS(ZTS_STATE_STACK_RUNNING)
+        && ! (GET_FLAGS(ZTS_STATE_FREE_CALLED))) {
+        SET_FLAGS(ZTS_STATE_NET_SERVICE_RUNNING);
+    }
+    else {
+        CLR_FLAGS(ZTS_STATE_NET_SERVICE_RUNNING);
+    }
 }
 
 void Events::clrState(uint8_t newFlags)
 {
-	if (newFlags & ZTS_STATE_NET_SERVICE_RUNNING) {
-		return;   // No effect. Not allowed to set this flag manually
-	}
-	CLR_FLAGS(newFlags);
-	if (GET_FLAGS(ZTS_STATE_NODE_RUNNING) && GET_FLAGS(ZTS_STATE_STACK_RUNNING)
-	    && ! (GET_FLAGS(ZTS_STATE_FREE_CALLED))) {
-		SET_FLAGS(ZTS_STATE_NET_SERVICE_RUNNING);
-	}
-	else {
-		CLR_FLAGS(ZTS_STATE_NET_SERVICE_RUNNING);
-	}
+    if (newFlags & ZTS_STATE_NET_SERVICE_RUNNING) {
+        return;   // No effect. Not allowed to set this flag manually
+    }
+    CLR_FLAGS(newFlags);
+    if (GET_FLAGS(ZTS_STATE_NODE_RUNNING) && GET_FLAGS(ZTS_STATE_STACK_RUNNING)
+        && ! (GET_FLAGS(ZTS_STATE_FREE_CALLED))) {
+        SET_FLAGS(ZTS_STATE_NET_SERVICE_RUNNING);
+    }
+    else {
+        CLR_FLAGS(ZTS_STATE_NET_SERVICE_RUNNING);
+    }
 }
 
 bool Events::getState(uint8_t testFlags)
 {
-	return testFlags & service_state;
+    return testFlags & service_state;
 }
 
 void Events::enable()
 {
-	_enabled = true;
+    _enabled = true;
 }
 
 void Events::disable()
 {
-	_enabled = false;
+    _enabled = false;
 }
 
 }   // namespace ZeroTier

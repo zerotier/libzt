@@ -38,43 +38,43 @@
 
 void _signal_handler(int signal)
 {
-	/*
-	switch(signal)
-	{
-	case SIGINT:
-	    fprintf(stderr, "SIGINT\n");
-	    break;
-	case SIGABRT:
-	    fprintf(stderr, "SIGABRT\n");
-	    break;
-	case SIGILL:
-	    fprintf(stderr, "SIGILL\n");
-	    break;
-	case SIGSEGV:
-	    fprintf(stderr, "SIGSEGV\n");
-	    break;
-	case SIGFPE:
-	    fprintf(stderr, "SIGFPE\n");
-	    break;
-	case SIGTERM:
-	default:
-	    fprintf(stderr, "SIGTERM\n");
-	    break;
-	}
-	*/
-	exit(signal);
+    /*
+    switch(signal)
+    {
+    case SIGINT:
+        fprintf(stderr, "SIGINT\n");
+        break;
+    case SIGABRT:
+        fprintf(stderr, "SIGABRT\n");
+        break;
+    case SIGILL:
+        fprintf(stderr, "SIGILL\n");
+        break;
+    case SIGSEGV:
+        fprintf(stderr, "SIGSEGV\n");
+        break;
+    case SIGFPE:
+        fprintf(stderr, "SIGFPE\n");
+        break;
+    case SIGTERM:
+    default:
+        fprintf(stderr, "SIGTERM\n");
+        break;
+    }
+    */
+    exit(signal);
 }
 
 void _install_signal_handlers()
 {
-	signal(SIGINT, &_signal_handler);
-	/*
-	signal(SIGABRT, &_signal_handler);
-	signal(SIGFPE, &_signal_handler);
-	signal(SIGILL, &_signal_handler);
-	signal(SIGSEGV, &_signal_handler);
-	signal(SIGTERM, &_signal_handler);
-	*/
+    signal(SIGINT, &_signal_handler);
+    /*
+    signal(SIGABRT, &_signal_handler);
+    signal(SIGFPE, &_signal_handler);
+    signal(SIGILL, &_signal_handler);
+    signal(SIGSEGV, &_signal_handler);
+    signal(SIGTERM, &_signal_handler);
+    */
 }
 
 #endif

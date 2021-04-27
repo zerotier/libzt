@@ -34,33 +34,33 @@
 
 // Lock service and check that it is running
 #define ACQUIRE_SERVICE(x)                                                                                             \
-	Mutex::Lock _ls(service_m);                                                                                        \
-	if (! zts_service || ! zts_service->isRunning()) {                                                                 \
-		return x;                                                                                                      \
-	}
+    Mutex::Lock _ls(service_m);                                                                                        \
+    if (! zts_service || ! zts_service->isRunning()) {                                                                 \
+        return x;                                                                                                      \
+    }
 // Lock service and check that it is not currently running
 #define ACQUIRE_SERVICE_OFFLINE()                                                                                      \
-	Mutex::Lock _ls(service_m);                                                                                        \
-	if (zts_service && zts_service->isRunning()) {                                                                     \
-		return ZTS_ERR_SERVICE;                                                                                        \
-	}                                                                                                                  \
-	if (! zts_service) {                                                                                               \
-		init_subsystems();                                                                                             \
-	}
+    Mutex::Lock _ls(service_m);                                                                                        \
+    if (zts_service && zts_service->isRunning()) {                                                                     \
+        return ZTS_ERR_SERVICE;                                                                                        \
+    }                                                                                                                  \
+    if (! zts_service) {                                                                                               \
+        init_subsystems();                                                                                             \
+    }
 // Unlock service
 #define RELEASE_SERVICE() service_m.unlock();
 // Lock service, ensure node is online
 #define ACQUIRE_ONLINE_NODE()                                                                                          \
-	ACQUIRE_SERVICE() if (! zts_service->nodeIsOnline())                                                               \
-	{                                                                                                                  \
-		return ZTS_ERR_SERVICE;                                                                                        \
-	}
+    ACQUIRE_SERVICE() if (! zts_service->nodeIsOnline())                                                               \
+    {                                                                                                                  \
+        return ZTS_ERR_SERVICE;                                                                                        \
+    }
 // Lock event callback
 #define ACQUIRE_EVENTS()                                                                                               \
-	Mutex::Lock _lc(events_m);                                                                                         \
-	if (! zts_events) {                                                                                                \
-		return ZTS_ERR_SERVICE;                                                                                        \
-	}
+    Mutex::Lock _lc(events_m);                                                                                         \
+    if (! zts_events) {                                                                                                \
+        return ZTS_ERR_SERVICE;                                                                                        \
+    }
 
 namespace ZeroTier {
 
@@ -83,8 +83,8 @@ extern int last_state_check;
 
 inline int transport_ok()
 {
-	last_state_check = service_state & ZTS_STATE_NET_SERVICE_RUNNING;
-	return last_state_check;
+    last_state_check = service_state & ZTS_STATE_NET_SERVICE_RUNNING;
+    return last_state_check;
 }
 
 /**
@@ -93,72 +93,72 @@ inline int transport_ok()
 #define ZTS_CALLBACK_PROCESSING_INTERVAL 25
 
 class Events {
-	bool _enabled;
+    bool _enabled;
 
   public:
-	Events() : _enabled(false)
-	{
-	}
+    Events() : _enabled(false)
+    {
+    }
 
-	/**
-	 * Perform one iteration of callback processing
-	 */
-	void run();
+    /**
+     * Perform one iteration of callback processing
+     */
+    void run();
 
-	/**
-	 * Enable callback event processing
-	 */
-	void enable();
+    /**
+     * Enable callback event processing
+     */
+    void enable();
 
-	/**
-	 * Disable callback event processing
-	 */
-	void disable();
+    /**
+     * Disable callback event processing
+     */
+    void disable();
 
-	/**
-	 * Enqueue an event to be sent to the user application
-	 */
-	void enqueue(unsigned int event_code, const void* arg, int len = 0);
+    /**
+     * Enqueue an event to be sent to the user application
+     */
+    void enqueue(unsigned int event_code, const void* arg, int len = 0);
 
-	/**
-	 * Send callback message to user application
-	 */
-	void sendToUser(zts_event_msg_t* msg);
+    /**
+     * Send callback message to user application
+     */
+    void sendToUser(zts_event_msg_t* msg);
 
-	/**
-	 * Free memory occupied by callback structures
-	 */
-	void destroy(zts_event_msg_t* msg);
+    /**
+     * Free memory occupied by callback structures
+     */
+    void destroy(zts_event_msg_t* msg);
 
-	/**
-	 * Return whether a callback method has been set
-	 */
-	bool hasCallback();
+    /**
+     * Return whether a callback method has been set
+     */
+    bool hasCallback();
 
-	/**
-	 * Clear pointer reference to user-provided callback function
-	 */
-	void clrCallback();
+    /**
+     * Clear pointer reference to user-provided callback function
+     */
+    void clrCallback();
 
-	/**
-	 * Return whether service operation can be performed at this time
-	 */
-	int canPerformServiceOperation();
+    /**
+     * Return whether service operation can be performed at this time
+     */
+    int canPerformServiceOperation();
 
-	/**
-	 * Set internal state flags
-	 */
-	void setState(uint8_t newFlags);
+    /**
+     * Set internal state flags
+     */
+    void setState(uint8_t newFlags);
 
-	/**
-	 * Clear internal state flags
-	 */
-	void clrState(uint8_t newFlags);
+    /**
+     * Clear internal state flags
+     */
+    void clrState(uint8_t newFlags);
 
-	/**
-	 * Get internal state flags
-	 */
-	bool getState(uint8_t testFlags);
+    /**
+     * Get internal state flags
+     */
+    bool getState(uint8_t testFlags);
 };
 
 }   // namespace ZeroTier

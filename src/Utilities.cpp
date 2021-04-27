@@ -46,32 +46,32 @@ extern "C" {
 
 int zts_util_get_ip_family(const char* ipstr)
 {
-	if (! ipstr) {
-		return ZTS_ERR_ARG;
-	}
-	int family = -1;
-	struct zts_sockaddr_in sa4;
-	if (zts_inet_pton(ZTS_AF_INET, ipstr, &(sa4.sin_addr)) == 1) {
-		family = ZTS_AF_INET;
-	}
-	struct zts_sockaddr_in6 sa6;
-	if (zts_inet_pton(ZTS_AF_INET6, ipstr, &(sa6.sin6_addr)) == 1) {
-		family = ZTS_AF_INET6;
-	}
-	return family;
+    if (! ipstr) {
+        return ZTS_ERR_ARG;
+    }
+    int family = -1;
+    struct zts_sockaddr_in sa4;
+    if (zts_inet_pton(ZTS_AF_INET, ipstr, &(sa4.sin_addr)) == 1) {
+        family = ZTS_AF_INET;
+    }
+    struct zts_sockaddr_in6 sa6;
+    if (zts_inet_pton(ZTS_AF_INET6, ipstr, &(sa6.sin6_addr)) == 1) {
+        family = ZTS_AF_INET6;
+    }
+    return family;
 }
 
 void zts_util_delay(unsigned long milliseconds)
 {
 #ifdef __WINDOWS__
-	Sleep(milliseconds);
+    Sleep(milliseconds);
 #elif _POSIX_C_SOURCE >= 199309L
-	struct timespec ts;
-	ts.tv_sec = milliseconds / 1000;
-	ts.tv_nsec = (milliseconds % 1000) * 1000000;
-	nanosleep(&ts, NULL);
+    struct timespec ts;
+    ts.tv_sec = milliseconds / 1000;
+    ts.tv_nsec = (milliseconds % 1000) * 1000000;
+    nanosleep(&ts, NULL);
 #else
-	usleep(milliseconds * 1000);
+    usleep(milliseconds * 1000);
 #endif
 }
 
@@ -86,97 +86,97 @@ int zts_util_world_new(
     uint64_t ts,
     zts_world_t* world_spec)
 {
-	if (! world_spec || ! prev_key || ! curr_key || ! prev_key_len || ! curr_key_len) {
-		return ZTS_ERR_ARG;
-	}
-	// Generate signing keys
-	std::string previous, current;
-	if ((! OSUtils::readFile("previous.c25519", previous)) || (! OSUtils::readFile("current.c25519", current))) {
-		C25519::Pair np(C25519::generate());
-		previous = std::string();
-		previous.append((const char*)np.pub.data, ZT_C25519_PUBLIC_KEY_LEN);
-		previous.append((const char*)np.priv.data, ZT_C25519_PRIVATE_KEY_LEN);
-		current = previous;
-	}
-	if ((previous.length() != (ZT_C25519_PUBLIC_KEY_LEN + ZT_C25519_PRIVATE_KEY_LEN))
-	    || (current.length() != (ZT_C25519_PUBLIC_KEY_LEN + ZT_C25519_PRIVATE_KEY_LEN))) {
-		// Previous.c25519 or current.c25519 empty or invalid
-		return ZTS_ERR_ARG;
-	}
-	C25519::Pair previousKP;
-	memcpy(previousKP.pub.data, previous.data(), ZT_C25519_PUBLIC_KEY_LEN);
-	memcpy(previousKP.priv.data, previous.data() + ZT_C25519_PUBLIC_KEY_LEN, ZT_C25519_PRIVATE_KEY_LEN);
-	C25519::Pair currentKP;
-	memcpy(currentKP.pub.data, current.data(), ZT_C25519_PUBLIC_KEY_LEN);
-	memcpy(currentKP.priv.data, current.data() + ZT_C25519_PUBLIC_KEY_LEN, ZT_C25519_PRIVATE_KEY_LEN);
+    if (! world_spec || ! prev_key || ! curr_key || ! prev_key_len || ! curr_key_len) {
+        return ZTS_ERR_ARG;
+    }
+    // Generate signing keys
+    std::string previous, current;
+    if ((! OSUtils::readFile("previous.c25519", previous)) || (! OSUtils::readFile("current.c25519", current))) {
+        C25519::Pair np(C25519::generate());
+        previous = std::string();
+        previous.append((const char*)np.pub.data, ZT_C25519_PUBLIC_KEY_LEN);
+        previous.append((const char*)np.priv.data, ZT_C25519_PRIVATE_KEY_LEN);
+        current = previous;
+    }
+    if ((previous.length() != (ZT_C25519_PUBLIC_KEY_LEN + ZT_C25519_PRIVATE_KEY_LEN))
+        || (current.length() != (ZT_C25519_PUBLIC_KEY_LEN + ZT_C25519_PRIVATE_KEY_LEN))) {
+        // Previous.c25519 or current.c25519 empty or invalid
+        return ZTS_ERR_ARG;
+    }
+    C25519::Pair previousKP;
+    memcpy(previousKP.pub.data, previous.data(), ZT_C25519_PUBLIC_KEY_LEN);
+    memcpy(previousKP.priv.data, previous.data() + ZT_C25519_PUBLIC_KEY_LEN, ZT_C25519_PRIVATE_KEY_LEN);
+    C25519::Pair currentKP;
+    memcpy(currentKP.pub.data, current.data(), ZT_C25519_PUBLIC_KEY_LEN);
+    memcpy(currentKP.priv.data, current.data() + ZT_C25519_PUBLIC_KEY_LEN, ZT_C25519_PRIVATE_KEY_LEN);
 
-	// Set up world definition
-	std::vector<World::Root> roots;
-	for (int i = 0; i < ZTS_MAX_NUM_ROOTS; i++) {
-		if (! world_spec->public_id_str[i]) {
-			break;
-		}
-		if (strlen(world_spec->public_id_str[i])) {
-			// printf("id = %s\n", world_spec->public_id_str[i]);
-			roots.push_back(World::Root());
-			roots.back().identity = Identity(world_spec->public_id_str[i]);
-			for (int j = 0; j < ZTS_MAX_ENDPOINTS_PER_ROOT; j++) {
-				if (! world_spec->endpoint_ip_str[i][j]) {
-					break;
-				}
-				if (strlen(world_spec->endpoint_ip_str[i][j])) {
-					roots.back().stableEndpoints.push_back(InetAddress(world_spec->endpoint_ip_str[i][j]));
-					// printf(" ep = %s\n", world_spec->endpoint_ip_str[i][j]);
-				}
-			}
-		}
-	}
+    // Set up world definition
+    std::vector<World::Root> roots;
+    for (int i = 0; i < ZTS_MAX_NUM_ROOTS; i++) {
+        if (! world_spec->public_id_str[i]) {
+            break;
+        }
+        if (strlen(world_spec->public_id_str[i])) {
+            // printf("id = %s\n", world_spec->public_id_str[i]);
+            roots.push_back(World::Root());
+            roots.back().identity = Identity(world_spec->public_id_str[i]);
+            for (int j = 0; j < ZTS_MAX_ENDPOINTS_PER_ROOT; j++) {
+                if (! world_spec->endpoint_ip_str[i][j]) {
+                    break;
+                }
+                if (strlen(world_spec->endpoint_ip_str[i][j])) {
+                    roots.back().stableEndpoints.push_back(InetAddress(world_spec->endpoint_ip_str[i][j]));
+                    // printf(" ep = %s\n", world_spec->endpoint_ip_str[i][j]);
+                }
+            }
+        }
+    }
 
-	// Generate
-	World nw = World::make(World::TYPE_PLANET, id, ts, currentKP.pub, roots, previousKP);
-	// Test
-	Buffer<ZT_WORLD_MAX_SERIALIZED_LENGTH> outtmp;
-	nw.serialize(outtmp, false);
-	World testw;
-	testw.deserialize(outtmp, 0);
-	if (testw != nw) {
-		// Serialization test failed
-		return ZTS_ERR_GENERAL;
-	}
-	// Write output
-	memcpy(world_out, (char*)outtmp.data(), outtmp.size());
-	*world_len = outtmp.size();
-	memcpy(prev_key, previous.data(), previous.length());
-	*prev_key_len = ZT_C25519_PRIVATE_KEY_LEN + ZT_C25519_PUBLIC_KEY_LEN;
-	memcpy(curr_key, current.data(), current.length());
-	*curr_key_len = ZT_C25519_PRIVATE_KEY_LEN + ZT_C25519_PUBLIC_KEY_LEN;
-	return ZTS_ERR_OK;
+    // Generate
+    World nw = World::make(World::TYPE_PLANET, id, ts, currentKP.pub, roots, previousKP);
+    // Test
+    Buffer<ZT_WORLD_MAX_SERIALIZED_LENGTH> outtmp;
+    nw.serialize(outtmp, false);
+    World testw;
+    testw.deserialize(outtmp, 0);
+    if (testw != nw) {
+        // Serialization test failed
+        return ZTS_ERR_GENERAL;
+    }
+    // Write output
+    memcpy(world_out, (char*)outtmp.data(), outtmp.size());
+    *world_len = outtmp.size();
+    memcpy(prev_key, previous.data(), previous.length());
+    *prev_key_len = ZT_C25519_PRIVATE_KEY_LEN + ZT_C25519_PUBLIC_KEY_LEN;
+    memcpy(curr_key, current.data(), current.length());
+    *curr_key_len = ZT_C25519_PRIVATE_KEY_LEN + ZT_C25519_PUBLIC_KEY_LEN;
+    return ZTS_ERR_OK;
 }
 
 void native_ss_to_zts_ss(struct zts_sockaddr_storage* ss_out, const struct sockaddr_storage* ss_in)
 {
-	if (ss_in->ss_family == AF_INET) {
-		struct sockaddr_in* s_in4 = (struct sockaddr_in*)ss_in;
-		struct zts_sockaddr_in* d_in4 = (struct zts_sockaddr_in*)ss_out;
+    if (ss_in->ss_family == AF_INET) {
+        struct sockaddr_in* s_in4 = (struct sockaddr_in*)ss_in;
+        struct zts_sockaddr_in* d_in4 = (struct zts_sockaddr_in*)ss_out;
 #ifndef __WINDOWS__
-		d_in4->sin_len = 0;   // s_in4->sin_len;
+        d_in4->sin_len = 0;   // s_in4->sin_len;
 #endif
-		d_in4->sin_family = ZTS_AF_INET;
-		d_in4->sin_port = s_in4->sin_port;
-		memcpy(&(d_in4->sin_addr), &(s_in4->sin_addr), sizeof(s_in4->sin_addr));
-	}
-	if (ss_in->ss_family == AF_INET6) {
-		struct sockaddr_in6* s_in6 = (struct sockaddr_in6*)ss_in;
-		struct zts_sockaddr_in6* d_in6 = (struct zts_sockaddr_in6*)ss_out;
+        d_in4->sin_family = ZTS_AF_INET;
+        d_in4->sin_port = s_in4->sin_port;
+        memcpy(&(d_in4->sin_addr), &(s_in4->sin_addr), sizeof(s_in4->sin_addr));
+    }
+    if (ss_in->ss_family == AF_INET6) {
+        struct sockaddr_in6* s_in6 = (struct sockaddr_in6*)ss_in;
+        struct zts_sockaddr_in6* d_in6 = (struct zts_sockaddr_in6*)ss_out;
 #ifndef __WINDOWS__
-		d_in6->sin6_len = 0;   // s_in6->sin6_len;
+        d_in6->sin6_len = 0;   // s_in6->sin6_len;
 #endif
-		d_in6->sin6_family = ZTS_AF_INET6;
-		d_in6->sin6_port = s_in6->sin6_port;
-		d_in6->sin6_flowinfo = s_in6->sin6_flowinfo;
-		memcpy(&(d_in6->sin6_addr), &(s_in6->sin6_addr), sizeof(s_in6->sin6_addr));
-		d_in6->sin6_scope_id = s_in6->sin6_scope_id;
-	}
+        d_in6->sin6_family = ZTS_AF_INET6;
+        d_in6->sin6_port = s_in6->sin6_port;
+        d_in6->sin6_flowinfo = s_in6->sin6_flowinfo;
+        memcpy(&(d_in6->sin6_addr), &(s_in6->sin6_addr), sizeof(s_in6->sin6_addr));
+        d_in6->sin6_scope_id = s_in6->sin6_scope_id;
+    }
 }
 
 #ifdef __cplusplus

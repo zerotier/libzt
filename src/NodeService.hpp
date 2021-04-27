@@ -55,412 +55,412 @@ namespace ZeroTier {
  */
 class NodeService {
   public:
-	/**
-	 * Returned by node main if/when it terminates
-	 */
-	enum ReasonForTermination {
-		/**
-		 * Instance is still running
-		 */
-		ONE_STILL_RUNNING = 0,
+    /**
+     * Returned by node main if/when it terminates
+     */
+    enum ReasonForTermination {
+        /**
+         * Instance is still running
+         */
+        ONE_STILL_RUNNING = 0,
 
-		/**
-		 * Normal shutdown
-		 */
-		ONE_NORMAL_TERMINATION = 1,
+        /**
+         * Normal shutdown
+         */
+        ONE_NORMAL_TERMINATION = 1,
 
-		/**
-		 * A serious unrecoverable error has occurred
-		 */
-		ONE_UNRECOVERABLE_ERROR = 2,
+        /**
+         * A serious unrecoverable error has occurred
+         */
+        ONE_UNRECOVERABLE_ERROR = 2,
 
-		/**
-		 * Your identity has collided with another
-		 */
-		ONE_IDENTITY_COLLISION = 3
-	};
+        /**
+         * Your identity has collided with another
+         */
+        ONE_IDENTITY_COLLISION = 3
+    };
 
-	/**
-	 * Local settings for each network
-	 */
-	struct NetworkSettings {
-		/**
-		 * Allow this network to configure IP addresses and routes?
-		 */
-		bool allowManaged;
+    /**
+     * Local settings for each network
+     */
+    struct NetworkSettings {
+        /**
+         * Allow this network to configure IP addresses and routes?
+         */
+        bool allowManaged;
 
-		/**
-		 * Whitelist of addresses that can be configured by this network.
-		 * If empty and allowManaged is true, allow all
-		 * private/pseudoprivate addresses.
-		 */
-		std::vector<InetAddress> allowManagedWhitelist;
+        /**
+         * Whitelist of addresses that can be configured by this network.
+         * If empty and allowManaged is true, allow all
+         * private/pseudoprivate addresses.
+         */
+        std::vector<InetAddress> allowManagedWhitelist;
 
-		/**
-		 * Allow configuration of IPs and routes within global (Internet) IP
-		 * space?
-		 */
-		bool allowGlobal;
+        /**
+         * Allow configuration of IPs and routes within global (Internet) IP
+         * space?
+         */
+        bool allowGlobal;
 
-		/**
-		 * Allow overriding of system default routes for "full tunnel"
-		 * operation?
-		 */
-		bool allowDefault;
-	};
+        /**
+         * Allow overriding of system default routes for "full tunnel"
+         * operation?
+         */
+        bool allowDefault;
+    };
 
-	Phy<NodeService*> _phy;
-	Node* _node;
-	unsigned int _primaryPort = 0;
-	unsigned int _secondaryPort = 0;
-	unsigned int _tertiaryPort = 0;
-	volatile unsigned int _udpPortPickerCounter;
+    Phy<NodeService*> _phy;
+    Node* _node;
+    unsigned int _primaryPort = 0;
+    unsigned int _secondaryPort = 0;
+    unsigned int _tertiaryPort = 0;
+    volatile unsigned int _udpPortPickerCounter;
 
-	std::map<uint64_t, unsigned int> peerCache;
+    std::map<uint64_t, unsigned int> peerCache;
 
-	// Local configuration and memo-ized information from it
-	Hashtable<uint64_t, std::vector<InetAddress> > _v4Hints;
-	Hashtable<uint64_t, std::vector<InetAddress> > _v6Hints;
-	Hashtable<uint64_t, std::vector<InetAddress> > _v4Blacklists;
-	Hashtable<uint64_t, std::vector<InetAddress> > _v6Blacklists;
-	std::vector<InetAddress> _globalV4Blacklist;
-	std::vector<InetAddress> _globalV6Blacklist;
-	std::vector<InetAddress> _allowManagementFrom;
-	std::vector<std::string> _interfacePrefixBlacklist;
-	Mutex _localConfig_m;
+    // Local configuration and memo-ized information from it
+    Hashtable<uint64_t, std::vector<InetAddress> > _v4Hints;
+    Hashtable<uint64_t, std::vector<InetAddress> > _v6Hints;
+    Hashtable<uint64_t, std::vector<InetAddress> > _v4Blacklists;
+    Hashtable<uint64_t, std::vector<InetAddress> > _v6Blacklists;
+    std::vector<InetAddress> _globalV4Blacklist;
+    std::vector<InetAddress> _globalV6Blacklist;
+    std::vector<InetAddress> _allowManagementFrom;
+    std::vector<std::string> _interfacePrefixBlacklist;
+    Mutex _localConfig_m;
 
-	std::vector<InetAddress> explicitBind;
+    std::vector<InetAddress> explicitBind;
 
-	/*
-	 * To attempt to handle NAT/gateway craziness we use three local UDP
-	 * ports:
-	 *
-	 * [0] is the normal/default port, usually 9993
-	 * [1] is a port derived from our ZeroTier address
-	 * [2] is a port computed from the normal/default for use with
-	 * uPnP/NAT-PMP mappings
-	 *
-	 * [2] exists because on some gateways trying to do regular NAT-t
-	 * interferes destructively with uPnP port mapping behavior in very
-	 * weird buggy ways. It's only used if uPnP/NAT-PMP is enabled in this
-	 * build.
-	 */
-	unsigned int _ports[3] = { 0 };
-	Binder _binder;
+    /*
+     * To attempt to handle NAT/gateway craziness we use three local UDP
+     * ports:
+     *
+     * [0] is the normal/default port, usually 9993
+     * [1] is a port derived from our ZeroTier address
+     * [2] is a port computed from the normal/default for use with
+     * uPnP/NAT-PMP mappings
+     *
+     * [2] exists because on some gateways trying to do regular NAT-t
+     * interferes destructively with uPnP port mapping behavior in very
+     * weird buggy ways. It's only used if uPnP/NAT-PMP is enabled in this
+     * build.
+     */
+    unsigned int _ports[3] = { 0 };
+    Binder _binder;
 
-	// Time we last received a packet from a global address
-	uint64_t _lastDirectReceiveFromGlobal;
+    // Time we last received a packet from a global address
+    uint64_t _lastDirectReceiveFromGlobal;
 
-	// Last potential sleep/wake event
-	uint64_t _lastRestart;
+    // Last potential sleep/wake event
+    uint64_t _lastRestart;
 
-	// Deadline for the next background task service function
-	volatile int64_t _nextBackgroundTaskDeadline;
+    // Deadline for the next background task service function
+    volatile int64_t _nextBackgroundTaskDeadline;
 
-	// Configured networks
-	struct NetworkState {
-		NetworkState() : tap((VirtualTap*)0)
-		{
-			// Real defaults are in network 'up' code in network event
-			// handler
-			settings.allowManaged = true;
-			settings.allowGlobal = false;
-			settings.allowDefault = false;
-		}
+    // Configured networks
+    struct NetworkState {
+        NetworkState() : tap((VirtualTap*)0)
+        {
+            // Real defaults are in network 'up' code in network event
+            // handler
+            settings.allowManaged = true;
+            settings.allowGlobal = false;
+            settings.allowDefault = false;
+        }
 
-		VirtualTap* tap;
-		ZT_VirtualNetworkConfig config;   // memcpy() of raw config from core
-		std::vector<InetAddress> managedIps;
-		NetworkSettings settings;
-	};
-	std::map<uint64_t, NetworkState> _nets;
+        VirtualTap* tap;
+        ZT_VirtualNetworkConfig config;   // memcpy() of raw config from core
+        std::vector<InetAddress> managedIps;
+        NetworkSettings settings;
+    };
+    std::map<uint64_t, NetworkState> _nets;
 
-	/** Lock to control access to network configuration data */
-	Mutex _nets_m;
-	/** Lock to control access to storage data */
-	Mutex _store_m;
-	/** Lock to control access to service run state */
-	Mutex _run_m;
-	// Set to false to force service to stop
-	volatile bool _run;
-	/** Lock to control access to termination reason */
-	Mutex _termReason_m;
-	// Termination status information
-	ReasonForTermination _termReason;
+    /** Lock to control access to network configuration data */
+    Mutex _nets_m;
+    /** Lock to control access to storage data */
+    Mutex _store_m;
+    /** Lock to control access to service run state */
+    Mutex _run_m;
+    // Set to false to force service to stop
+    volatile bool _run;
+    /** Lock to control access to termination reason */
+    Mutex _termReason_m;
+    // Termination status information
+    ReasonForTermination _termReason;
 
-	std::string _fatalErrorMessage;
+    std::string _fatalErrorMessage;
 
-	// uPnP/NAT-PMP port mapper if enabled
-	bool _portMappingEnabled;   // local.conf settings
+    // uPnP/NAT-PMP port mapper if enabled
+    bool _portMappingEnabled;   // local.conf settings
 #ifdef ZT_USE_MINIUPNPC
-	PortMapper* _portMapper;
+    PortMapper* _portMapper;
 #endif
 
-	uint8_t _allowNetworkCaching;
-	uint8_t _allowPeerCaching;
-	uint8_t _allowIdentityCaching;
-	uint8_t _allowWorldCaching;
+    uint8_t _allowNetworkCaching;
+    uint8_t _allowPeerCaching;
+    uint8_t _allowIdentityCaching;
+    uint8_t _allowWorldCaching;
 
-	char _publicIdStr[ZT_IDENTITY_STRING_BUFFER_LENGTH] = { 0 };
-	char _secretIdStr[ZT_IDENTITY_STRING_BUFFER_LENGTH] = { 0 };
+    char _publicIdStr[ZT_IDENTITY_STRING_BUFFER_LENGTH] = { 0 };
+    char _secretIdStr[ZT_IDENTITY_STRING_BUFFER_LENGTH] = { 0 };
 
-	bool _userDefinedWorld;
-	char _worldData[ZTS_STORE_DATA_LEN] = { 0 };
-	int _worldDataLen = 0;
+    bool _userDefinedWorld;
+    char _worldData[ZTS_STORE_DATA_LEN] = { 0 };
+    int _worldDataLen = 0;
 
-	/** Whether the node has successfully come online */
-	bool _nodeIsOnline;
+    /** Whether the node has successfully come online */
+    bool _nodeIsOnline;
 
-	/** Whether we allow the NodeService to generate events for the user */
-	bool _eventsEnabled;
+    /** Whether we allow the NodeService to generate events for the user */
+    bool _eventsEnabled;
 
-	/** Storage path defined by the user */
-	std::string _homePath;
+    /** Storage path defined by the user */
+    std::string _homePath;
 
-	/** System to ingest events from this class and emit them to the user */
-	Events* _events;
+    /** System to ingest events from this class and emit them to the user */
+    Events* _events;
 
-	NodeService();
-	~NodeService();
+    NodeService();
+    ~NodeService();
 
-	/** Main service loop */
-	ReasonForTermination run();
+    /** Main service loop */
+    ReasonForTermination run();
 
-	ReasonForTermination reasonForTermination() const;
+    ReasonForTermination reasonForTermination() const;
 
-	std::string fatalErrorMessage() const;
+    std::string fatalErrorMessage() const;
 
-	/** Stop the node and service */
-	void terminate();
+    /** Stop the node and service */
+    void terminate();
 
-	/** Apply or update managed IPs for a configured network */
-	void syncManagedStuff(NetworkState& n);
+    /** Apply or update managed IPs for a configured network */
+    void syncManagedStuff(NetworkState& n);
 
-	void phyOnDatagram(
-	    PhySocket* sock,
-	    void** uptr,
-	    const struct sockaddr* localAddr,
-	    const struct sockaddr* from,
-	    void* data,
-	    unsigned long len);
+    void phyOnDatagram(
+        PhySocket* sock,
+        void** uptr,
+        const struct sockaddr* localAddr,
+        const struct sockaddr* from,
+        void* data,
+        unsigned long len);
 
-	int nodeVirtualNetworkConfigFunction(
-	    uint64_t net_id,
-	    void** nuptr,
-	    enum ZT_VirtualNetworkConfigOperation op,
-	    const ZT_VirtualNetworkConfig* nwc);
+    int nodeVirtualNetworkConfigFunction(
+        uint64_t net_id,
+        void** nuptr,
+        enum ZT_VirtualNetworkConfigOperation op,
+        const ZT_VirtualNetworkConfig* nwc);
 
-	void nodeEventCallback(enum ZT_Event event, const void* metaData);
+    void nodeEventCallback(enum ZT_Event event, const void* metaData);
 
-	zts_net_info_t* prepare_network_details_msg(const NetworkState& n);
+    zts_net_info_t* prepare_network_details_msg(const NetworkState& n);
 
-	void generateEventMsgs();
+    void generateEventMsgs();
 
-	void sendEventToUser(unsigned int event_code, const void* arg, unsigned int len = 0);
+    void sendEventToUser(unsigned int event_code, const void* arg, unsigned int len = 0);
 
-	/** Join a network */
-	int join(uint64_t net_id);
+    /** Join a network */
+    int join(uint64_t net_id);
 
-	/** Leave a network */
-	int leave(uint64_t net_id);
+    /** Leave a network */
+    int leave(uint64_t net_id);
 
-	/** Return whether the network is ready for transport services */
-	bool networkIsReady(uint64_t net_id) const;
+    /** Return whether the network is ready for transport services */
+    bool networkIsReady(uint64_t net_id) const;
 
-	/** Lock the service so we can perform queries */
-	void obtainLock() const;
+    /** Lock the service so we can perform queries */
+    void obtainLock() const;
 
-	/** Unlock the service */
-	void releaseLock() const;
+    /** Unlock the service */
+    void releaseLock() const;
 
-	/** Return number of assigned addresses on the network. Service must be locked. */
-	int addressCount(uint64_t net_id) const;
+    /** Return number of assigned addresses on the network. Service must be locked. */
+    int addressCount(uint64_t net_id) const;
 
-	/** Return number of managed routes on the network. Service must be locked. */
-	int routeCount(uint64_t net_id) const;
+    /** Return number of managed routes on the network. Service must be locked. */
+    int routeCount(uint64_t net_id) const;
 
-	/** Return number of multicast subscriptions on the network. Service must be locked. */
-	int multicastSubCount(uint64_t net_id) const;
+    /** Return number of multicast subscriptions on the network. Service must be locked. */
+    int multicastSubCount(uint64_t net_id) const;
 
-	/** Return number of known physical paths to the peer. Service must be locked. */
-	int pathCount(uint64_t peer_id) const;
+    /** Return number of known physical paths to the peer. Service must be locked. */
+    int pathCount(uint64_t peer_id) const;
 
-	int getAddrAtIdx(uint64_t net_id, unsigned int idx, char* dst, unsigned int len);
+    int getAddrAtIdx(uint64_t net_id, unsigned int idx, char* dst, unsigned int len);
 
-	int getRouteAtIdx(
-	    uint64_t net_id,
-	    unsigned int idx,
-	    char* target,
-	    char* via,
-	    unsigned int len,
-	    uint16_t* flags,
-	    uint16_t* metric);
+    int getRouteAtIdx(
+        uint64_t net_id,
+        unsigned int idx,
+        char* target,
+        char* via,
+        unsigned int len,
+        uint16_t* flags,
+        uint16_t* metric);
 
-	int getMulticastSubAtIdx(uint64_t net_id, unsigned int idx, uint64_t* mac, uint32_t* adi);
+    int getMulticastSubAtIdx(uint64_t net_id, unsigned int idx, uint64_t* mac, uint32_t* adi);
 
-	int getPathAtIdx(uint64_t peer_id, unsigned int idx, char* path, unsigned int len);
+    int getPathAtIdx(uint64_t peer_id, unsigned int idx, char* path, unsigned int len);
 
-	/** Orbit a moon */
-	int orbit(void* tptr, uint64_t moonWorldId, uint64_t moonSeed);
+    /** Orbit a moon */
+    int orbit(void* tptr, uint64_t moonWorldId, uint64_t moonSeed);
 
-	/** De-orbit a moon */
-	int deorbit(void* tptr, uint64_t moonWorldId);
+    /** De-orbit a moon */
+    int deorbit(void* tptr, uint64_t moonWorldId);
 
-	/** Return the integer-form of the node's identity */
-	uint64_t getNodeId();
+    /** Return the integer-form of the node's identity */
+    uint64_t getNodeId();
 
-	/** Gets the node's identity */
-	int getIdentity(char* keypair, unsigned int* len);
+    /** Gets the node's identity */
+    int getIdentity(char* keypair, unsigned int* len);
 
-	/** Set the node's identity */
-	int setIdentity(const char* keypair, unsigned int len);
+    /** Set the node's identity */
+    int setIdentity(const char* keypair, unsigned int len);
 
-	void nodeStatePutFunction(enum ZT_StateObjectType type, const uint64_t id[2], const void* data, unsigned int len);
+    void nodeStatePutFunction(enum ZT_StateObjectType type, const uint64_t id[2], const void* data, unsigned int len);
 
-	int nodeStateGetFunction(enum ZT_StateObjectType type, const uint64_t id[2], void* data, unsigned int maxlen);
+    int nodeStateGetFunction(enum ZT_StateObjectType type, const uint64_t id[2], void* data, unsigned int maxlen);
 
-	int nodeWirePacketSendFunction(
-	    const int64_t localSocket,
-	    const struct sockaddr_storage* addr,
-	    const void* data,
-	    unsigned int len,
-	    unsigned int ttl);
+    int nodeWirePacketSendFunction(
+        const int64_t localSocket,
+        const struct sockaddr_storage* addr,
+        const void* data,
+        unsigned int len,
+        unsigned int ttl);
 
-	void nodeVirtualNetworkFrameFunction(
-	    uint64_t net_id,
-	    void** nuptr,
-	    uint64_t sourceMac,
-	    uint64_t destMac,
-	    unsigned int etherType,
-	    unsigned int vlanId,
-	    const void* data,
-	    unsigned int len);
+    void nodeVirtualNetworkFrameFunction(
+        uint64_t net_id,
+        void** nuptr,
+        uint64_t sourceMac,
+        uint64_t destMac,
+        unsigned int etherType,
+        unsigned int vlanId,
+        const void* data,
+        unsigned int len);
 
-	int nodePathCheckFunction(uint64_t ztaddr, const int64_t localSocket, const struct sockaddr_storage* remoteAddr);
+    int nodePathCheckFunction(uint64_t ztaddr, const int64_t localSocket, const struct sockaddr_storage* remoteAddr);
 
-	int nodePathLookupFunction(uint64_t ztaddr, unsigned int family, struct sockaddr_storage* result);
+    int nodePathLookupFunction(uint64_t ztaddr, unsigned int family, struct sockaddr_storage* result);
 
-	void tapFrameHandler(
-	    uint64_t net_id,
-	    const MAC& from,
-	    const MAC& to,
-	    unsigned int etherType,
-	    unsigned int vlanId,
-	    const void* data,
-	    unsigned int len);
+    void tapFrameHandler(
+        uint64_t net_id,
+        const MAC& from,
+        const MAC& to,
+        unsigned int etherType,
+        unsigned int vlanId,
+        const void* data,
+        unsigned int len);
 
-	int shouldBindInterface(const char* ifname, const InetAddress& ifaddr);
+    int shouldBindInterface(const char* ifname, const InetAddress& ifaddr);
 
-	int _trialBind(unsigned int port);
+    int _trialBind(unsigned int port);
 
-	/** Return whether the NodeService is running */
-	int isRunning() const;
-
-	/** Return whether the node is online */
-	int nodeIsOnline() const;
-
-	/** Instruct the NodeService on where to look for identity files and caches */
-	int setHomePath(const char* homePath);
-
-	/** Set the NodeService's primary port */
-	int setPrimaryPort(unsigned short primaryPort);
-
-	/** Get the NodeService's primary port */
-	unsigned short getPrimaryPort() const;
-
-	/** Set the event system instance used to convey messages to the user */
-	int setUserEventSystem(Events* events);
-
-	void enableEvents();
-
-	/** Set the world definition */
-	int setWorld(const void* data, unsigned int len);
-
-	/** Add Interface prefix to blacklist (prevents ZeroTier from using that interface) */
-	int addInterfacePrefixToBlacklist(const char* prefix, unsigned int len);
-
-	/** Return the MAC Address of the node in the given network */
-	uint64_t getMACAddress(uint64_t net_id) const;
-
-	/** Get the string format name of a network */
-	int getNetworkName(uint64_t net_id, char* dst, unsigned int len) const;
-
-	/** Allow ZeroTier to cache peer hints to storage */
-	int allowPeerCaching(unsigned int allowed);
-
-	/** Allow ZeroTier to cache network info to storage */
-	int allowNetworkCaching(unsigned int allowed);
-
-	/** Allow ZeroTier to write identities to storage */
-	int allowIdentityCaching(unsigned int allowed);
-
-	/** Allow ZeroTier to cache world definitions to storage */
-	int allowWorldCaching(unsigned int allowed);
-
-	/** Return whether broadcast is enabled on the given network */
-	int getNetworkBroadcast(uint64_t net_id);
-
-	/** Return the MTU of the given network */
-	int getNetworkMTU(uint64_t net_id);
-
-	/** Return whether the network is public or private */
-	int getNetworkType(uint64_t net_id);
-
-	/** Return the status of the network join */
-	int getNetworkStatus(uint64_t net_id);
-
-	/** Get the first address assigned by the network */
-	int getFirstAssignedAddr(uint64_t net_id, unsigned int family, struct zts_sockaddr_storage* addr);
-
-	/** Get an array of assigned addresses for the given network */
-	int getAllAssignedAddr(uint64_t net_id, struct zts_sockaddr_storage* addr, unsigned int* count);
-
-	/** Return whether a managed route of the given family has been assigned by the network */
-	int networkHasRoute(uint64_t net_id, unsigned int family);
-
-	/** Return whether an address of the given family has been assigned by the network */
-	int addrIsAssigned(uint64_t net_id, unsigned int family);
-
-	void phyOnTcpConnect(PhySocket* sock, void** uptr, bool success)
-	{
-		// Intentionally left empty
-	}
-	void phyOnTcpAccept(PhySocket* sockL, PhySocket* sockN, void** uptrL, void** uptrN, const struct sockaddr* from)
-	{
-		// Intentionally left empty
-	}
-	void phyOnTcpClose(PhySocket* sock, void** uptr)
-	{
-		// Intentionally left empty
-	}
-	void phyOnTcpData(PhySocket* sock, void** uptr, void* data, unsigned long len)
-	{
-		// Intentionally left empty
-	}
-	void phyOnTcpWritable(PhySocket* sock, void** uptr)
-	{
-		// Intentionally left empty
-	}
-	void phyOnFileDescriptorActivity(PhySocket* sock, void** uptr, bool readable, bool writable)
-	{
-		// Intentionally left empty
-	}
-	void phyOnUnixAccept(PhySocket* sockL, PhySocket* sockN, void** uptrL, void** uptrN)
-	{
-		// Intentionally left empty
-	}
-	void phyOnUnixClose(PhySocket* sock, void** uptr)
-	{
-		// Intentionally left empty
-	}
-	void phyOnUnixData(PhySocket* sock, void** uptr, void* data, unsigned long len)
-	{
-		// Intentionally left empty
-	}
-	void phyOnUnixWritable(PhySocket* sock, void** uptr)
-	{
-		// Intentionally left empty
-	}
+    /** Return whether the NodeService is running */
+    int isRunning() const;
+
+    /** Return whether the node is online */
+    int nodeIsOnline() const;
+
+    /** Instruct the NodeService on where to look for identity files and caches */
+    int setHomePath(const char* homePath);
+
+    /** Set the NodeService's primary port */
+    int setPrimaryPort(unsigned short primaryPort);
+
+    /** Get the NodeService's primary port */
+    unsigned short getPrimaryPort() const;
+
+    /** Set the event system instance used to convey messages to the user */
+    int setUserEventSystem(Events* events);
+
+    void enableEvents();
+
+    /** Set the world definition */
+    int setWorld(const void* data, unsigned int len);
+
+    /** Add Interface prefix to blacklist (prevents ZeroTier from using that interface) */
+    int addInterfacePrefixToBlacklist(const char* prefix, unsigned int len);
+
+    /** Return the MAC Address of the node in the given network */
+    uint64_t getMACAddress(uint64_t net_id) const;
+
+    /** Get the string format name of a network */
+    int getNetworkName(uint64_t net_id, char* dst, unsigned int len) const;
+
+    /** Allow ZeroTier to cache peer hints to storage */
+    int allowPeerCaching(unsigned int allowed);
+
+    /** Allow ZeroTier to cache network info to storage */
+    int allowNetworkCaching(unsigned int allowed);
+
+    /** Allow ZeroTier to write identities to storage */
+    int allowIdentityCaching(unsigned int allowed);
+
+    /** Allow ZeroTier to cache world definitions to storage */
+    int allowWorldCaching(unsigned int allowed);
+
+    /** Return whether broadcast is enabled on the given network */
+    int getNetworkBroadcast(uint64_t net_id);
+
+    /** Return the MTU of the given network */
+    int getNetworkMTU(uint64_t net_id);
+
+    /** Return whether the network is public or private */
+    int getNetworkType(uint64_t net_id);
+
+    /** Return the status of the network join */
+    int getNetworkStatus(uint64_t net_id);
+
+    /** Get the first address assigned by the network */
+    int getFirstAssignedAddr(uint64_t net_id, unsigned int family, struct zts_sockaddr_storage* addr);
+
+    /** Get an array of assigned addresses for the given network */
+    int getAllAssignedAddr(uint64_t net_id, struct zts_sockaddr_storage* addr, unsigned int* count);
+
+    /** Return whether a managed route of the given family has been assigned by the network */
+    int networkHasRoute(uint64_t net_id, unsigned int family);
+
+    /** Return whether an address of the given family has been assigned by the network */
+    int addrIsAssigned(uint64_t net_id, unsigned int family);
+
+    void phyOnTcpConnect(PhySocket* sock, void** uptr, bool success)
+    {
+        // Intentionally left empty
+    }
+    void phyOnTcpAccept(PhySocket* sockL, PhySocket* sockN, void** uptrL, void** uptrN, const struct sockaddr* from)
+    {
+        // Intentionally left empty
+    }
+    void phyOnTcpClose(PhySocket* sock, void** uptr)
+    {
+        // Intentionally left empty
+    }
+    void phyOnTcpData(PhySocket* sock, void** uptr, void* data, unsigned long len)
+    {
+        // Intentionally left empty
+    }
+    void phyOnTcpWritable(PhySocket* sock, void** uptr)
+    {
+        // Intentionally left empty
+    }
+    void phyOnFileDescriptorActivity(PhySocket* sock, void** uptr, bool readable, bool writable)
+    {
+        // Intentionally left empty
+    }
+    void phyOnUnixAccept(PhySocket* sockL, PhySocket* sockN, void** uptrL, void** uptrN)
+    {
+        // Intentionally left empty
+    }
+    void phyOnUnixClose(PhySocket* sock, void** uptr)
+    {
+        // Intentionally left empty
+    }
+    void phyOnUnixData(PhySocket* sock, void** uptr, void* data, unsigned long len)
+    {
+        // Intentionally left empty
+    }
+    void phyOnUnixWritable(PhySocket* sock, void** uptr)
+    {
+        // Intentionally left empty
+    }
 };
 
 static int SnodeVirtualNetworkConfigFunction(
@@ -472,12 +472,12 @@ static int SnodeVirtualNetworkConfigFunction(
     enum ZT_VirtualNetworkConfigOperation op,
     const ZT_VirtualNetworkConfig* nwconf)
 {
-	return reinterpret_cast<NodeService*>(uptr)->nodeVirtualNetworkConfigFunction(net_id, nuptr, op, nwconf);
+    return reinterpret_cast<NodeService*>(uptr)->nodeVirtualNetworkConfigFunction(net_id, nuptr, op, nwconf);
 }
 
 static void SnodeEventCallback(ZT_Node* node, void* uptr, void* tptr, enum ZT_Event event, const void* metaData)
 {
-	reinterpret_cast<NodeService*>(uptr)->nodeEventCallback(event, metaData);
+    reinterpret_cast<NodeService*>(uptr)->nodeEventCallback(event, metaData);
 }
 
 static void SnodeStatePutFunction(
@@ -489,7 +489,7 @@ static void SnodeStatePutFunction(
     const void* data,
     int len)
 {
-	reinterpret_cast<NodeService*>(uptr)->nodeStatePutFunction(type, id, data, len);
+    reinterpret_cast<NodeService*>(uptr)->nodeStatePutFunction(type, id, data, len);
 }
 
 static int SnodeStateGetFunction(
@@ -501,7 +501,7 @@ static int SnodeStateGetFunction(
     void* data,
     unsigned int maxlen)
 {
-	return reinterpret_cast<NodeService*>(uptr)->nodeStateGetFunction(type, id, data, maxlen);
+    return reinterpret_cast<NodeService*>(uptr)->nodeStateGetFunction(type, id, data, maxlen);
 }
 
 static int SnodeWirePacketSendFunction(
@@ -514,7 +514,7 @@ static int SnodeWirePacketSendFunction(
     unsigned int len,
     unsigned int ttl)
 {
-	return reinterpret_cast<NodeService*>(uptr)->nodeWirePacketSendFunction(localSocket, addr, data, len, ttl);
+    return reinterpret_cast<NodeService*>(uptr)->nodeWirePacketSendFunction(localSocket, addr, data, len, ttl);
 }
 
 static void SnodeVirtualNetworkFrameFunction(
@@ -530,8 +530,8 @@ static void SnodeVirtualNetworkFrameFunction(
     const void* data,
     unsigned int len)
 {
-	reinterpret_cast<NodeService*>(uptr)
-	    ->nodeVirtualNetworkFrameFunction(net_id, nuptr, sourceMac, destMac, etherType, vlanId, data, len);
+    reinterpret_cast<NodeService*>(uptr)
+        ->nodeVirtualNetworkFrameFunction(net_id, nuptr, sourceMac, destMac, etherType, vlanId, data, len);
 }
 
 static int SnodePathCheckFunction(
@@ -542,7 +542,7 @@ static int SnodePathCheckFunction(
     int64_t localSocket,
     const struct sockaddr_storage* remoteAddr)
 {
-	return reinterpret_cast<NodeService*>(uptr)->nodePathCheckFunction(ztaddr, localSocket, remoteAddr);
+    return reinterpret_cast<NodeService*>(uptr)->nodePathCheckFunction(ztaddr, localSocket, remoteAddr);
 }
 
 static int SnodePathLookupFunction(
@@ -553,7 +553,7 @@ static int SnodePathLookupFunction(
     int family,
     struct sockaddr_storage* result)
 {
-	return reinterpret_cast<NodeService*>(uptr)->nodePathLookupFunction(ztaddr, family, result);
+    return reinterpret_cast<NodeService*>(uptr)->nodePathLookupFunction(ztaddr, family, result);
 }
 
 static void StapFrameHandler(
@@ -567,7 +567,7 @@ static void StapFrameHandler(
     const void* data,
     unsigned int len)
 {
-	reinterpret_cast<NodeService*>(uptr)->tapFrameHandler(net_id, from, to, etherType, vlanId, data, len);
+    reinterpret_cast<NodeService*>(uptr)->tapFrameHandler(net_id, from, to, etherType, vlanId, data, len);
 }
 
 }   // namespace ZeroTier

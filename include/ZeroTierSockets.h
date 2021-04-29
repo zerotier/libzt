@@ -344,11 +344,13 @@ typedef enum {
  */
 #define ZTS_MAX_MULTICAST_SUBSCRIPTIONS 1024
 
+#define ZTS_MAX_ENDPOINT_STR_LEN ZTS_INET6_ADDRSTRLEN + 6
+
 //----------------------------------------------------------------------------//
 // Misc                                                                       //
 //----------------------------------------------------------------------------//
 
-#if ! defined(ZTS_ENABLE_PYTHON) && ! defined(ZTS_ENABLE_PINVOKE)
+#if ! defined(ZTS_ENABLE_PYTHON) && ! defined(ZTS_ENABLE_PINVOKE) && ! defined(ZTS_ENABLE_JAVA)
 #define ZTS_C_API_ONLY 1
 #endif
 
@@ -877,7 +879,7 @@ typedef struct {
     /**
      * ZeroTier address (40 bits)
      */
-    uint64_t address;
+    uint64_t peer_id;
 
     /**
      * Remote major version or -1 if not known
@@ -929,7 +931,7 @@ typedef struct {
 typedef struct {
     char* public_id_str[ZTS_MAX_NUM_ROOTS];
     char* endpoint_ip_str[ZTS_MAX_NUM_ROOTS][ZTS_MAX_ENDPOINTS_PER_ROOT];
-} zts_world_t;
+} zts_root_set_t;
 
 /**
  * Structure used to convey information about a virtual network
@@ -1285,6 +1287,10 @@ ZTS_API int ZTCALL zts_init_set_event_handler(PythonDirectorCallbackClass* callb
 #ifdef ZTS_ENABLE_PINVOKE
 ZTS_API int ZTCALL zts_init_set_event_handler(CppCallback callback);
 #endif
+#ifdef ZTS_ENABLE_JAVA
+#include <jni.h>
+int zts_init_set_event_handler(jobject obj_ref, jmethodID id);
+#endif
 #ifdef ZTS_C_API_ONLY
 ZTS_API int ZTCALL zts_init_set_event_handler(void (*callback)(void*));
 #endif
@@ -1302,15 +1308,15 @@ ZTS_API int ZTCALL zts_init_set_event_handler(void (*callback)(void*));
 ZTS_API int ZTCALL zts_init_blacklist_if(const char* prefix, unsigned int len);
 
 /**
- * @brief Present a world definition for ZeroTier to use instead of the default.
+ * @brief Present a root set definition for ZeroTier to use instead of the default.
  * This is an initialization function that can only be called before `zts_node_start()`.
  *
- * @param world_data Array of world definition data (binary)
+ * @param roots_data Array of roots definition data (binary)
  * @param len Length of binary data
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API int ZTCALL zts_init_set_world(const void* world_data, unsigned int len);
+ZTS_API int ZTCALL zts_init_set_roots(const void* roots_data, unsigned int len);
 
 /**
  * @brief Set the port to which the node should bind. This is an initialization function that can
@@ -1362,14 +1368,14 @@ ZTS_API int ZTCALL zts_init_allow_net_cache(unsigned int allowed);
 ZTS_API int ZTCALL zts_init_allow_peer_cache(unsigned int allowed);
 
 /**
- * @brief Enable or disable whether the node will cache world definitions (enabled
+ * @brief Enable or disable whether the node will cache root definitions (enabled
  * by default when `zts_init_from_storage()` is used.) Must be called before `zts_node_start()`.
  *
  * @param enabled Whether or not this feature is enabled
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API int ZTCALL zts_init_allow_world_cache(unsigned int allowed);
+ZTS_API int ZTCALL zts_init_allow_roots_cache(unsigned int allowed);
 
 /**
  * @brief Enable or disable whether the node will cache identities (enabled
@@ -1647,12 +1653,12 @@ ZTS_API uint64_t ZTCALL zts_node_get_id();
  * `WARNING`: This function exports your secret key and should be used carefully.
  *
  * @param key User-provided destination buffer
- * @param key_buf_len Length of user-provided destination buffer. Will be set to
+ * @param key_dst_len Length of user-provided destination buffer. Will be set to
  * number of bytes copied.
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API int ZTCALL zts_node_get_id_pair(char* key, unsigned int* key_buf_len);
+ZTS_API int ZTCALL zts_node_get_id_pair(char* key, unsigned int* key_dst_len);
 
 /**
  * @brief Get the primary port to which the node is bound. Callable only after the node has been
@@ -1692,21 +1698,21 @@ ZTS_API int ZTCALL zts_node_free();
 /**
  * @brief Orbit a given moon (user-defined root server)
  *
- * @param moon_world_id World ID
+ * @param moon_roots_id World ID
  * @param moon_seed Seed ID
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API int ZTCALL zts_moon_orbit(uint64_t moon_world_id, uint64_t moon_seed);
+ZTS_API int ZTCALL zts_moon_orbit(uint64_t moon_roots_id, uint64_t moon_seed);
 
 /**
  * @brief De-orbit a given moon (user-defined root server)
  *
- * @param moon_world_id World ID
+ * @param moon_roots_id World ID
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
-ZTS_API int ZTCALL zts_moon_deorbit(uint64_t moon_world_id);
+ZTS_API int ZTCALL zts_moon_deorbit(uint64_t moon_roots_id);
 
 //----------------------------------------------------------------------------//
 // Statistics                                                                 //
@@ -1838,31 +1844,6 @@ ZTS_API int ZTCALL zts_socket(int family, int type, int protocol);
 ZTS_API int ZTCALL zts_connect(int fd, const struct zts_sockaddr* addr, zts_socklen_t addrlen);
 
 /**
- * @brief Connect a socket to a remote host
- *
- * This convenience function exists because ZeroTier uses transport-triggered
- * links. This means that links between peers do not exist until peers try to
- * talk to each other. This can be a problem during connection procedures since
- * some of the initial packets are lost. To alleviate the need to try
- * `zts_connect` many times, this function will keep re-trying for you, even if
- * no known routes exist. However, if the socket is set to `non-blocking` mode
- * it will behave identically to `zts_connect` and return immediately upon
- * failure.
- *
- * @param fd Socket file descriptor
- * @param ipstr Human-readable IP string
- * @param port Port
- * @param timeout_ms (Approximate) amount of time in milliseconds before
- *     connection attempt is aborted. Will block for `30 seconds` if timeout is
- *     set to `0`.
- *
- * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SOCKET` if the function times
- *     out with no connection made, `ZTS_ERR_SERVICE` if the node experiences a
- *     problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
- */
-ZTS_API int ZTCALL zts_simple_connect(int fd, const char* ipstr, int port, int timeout_ms);
-
-/**
  * @brief Bind a socket to a local address
  *
  * @param fd Socket file descriptor
@@ -1872,17 +1853,6 @@ ZTS_API int ZTCALL zts_simple_connect(int fd, const char* ipstr, int port, int t
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API int ZTCALL zts_bind(int fd, const struct zts_sockaddr* addr, zts_socklen_t addrlen);
-
-/**
- * @brief Bind a socket to a local address
- *
- * @param fd Socket file descriptor
- * @param ipstr Human-readable IP string
- * @param port Port
- * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
- */
-ZTS_API int ZTCALL zts_simple_bind(int fd, const char* ipstr, int port);
 
 /**
  * @brief Listen for incoming connections on socket
@@ -1904,71 +1874,6 @@ ZTS_API int ZTCALL zts_listen(int fd, int backlog);
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API int ZTCALL zts_accept(int fd, struct zts_sockaddr* addr, zts_socklen_t* addrlen);
-
-/**
- * @brief Accept an incoming connection
- *
- * @param fd Socket file descriptor
- * @param remote_addr Buffer that will receive remote host IP string
- * @param len Size of buffer that will receive remote host IP string
- *     (must be exactly `ZTS_IP_MAX_STR_LEN`)
- * @param port Port number of the newly connected remote host (value-result)
- * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
- */
-ZTS_API int ZTCALL zts_simple_accept(int fd, char* remote_addr, int len, int* port);
-
-/**
- * @brief A convenience function that takes a remote address IP string and creates
- * the appropriate type of socket, and uses it to connect to a remote host.
- *
- * @param remote_ipstr Remote address string. IPv4 or IPv6
- * @param remote_port Port to
- *
- * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
- */
-ZTS_API int ZTCALL zts_simple_tcp_client(const char* remote_ipstr, int remote_port);
-
-/**
- * @brief A convenience function that takes a remote address IP string and creates
- * the appropriate type of socket, binds, listens, and then accepts on it.
- *
- * @param local_ipstr Local address to bind
- * @param local_port Local port to bind
- * @param remote_ipstr String-format IP address of newly connected remote host
- * @param len Length of `remote_ipstr`
- * @param remote_port Port of remote host
- *
- * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
- */
-ZTS_API int ZTCALL
-zts_simple_tcp_server(const char* local_ipstr, int local_port, char* remote_ipstr, int len, int* remote_port);
-
-/**
- * @brief A convenience function that takes a remote address IP string and creates
- * the appropriate type of socket, and binds to it.
- *
- * @param local_ipstr Local address to bind
- * @param local_port Local port to bind
- *
- * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
- */
-ZTS_API int ZTCALL zts_simple_udp_server(const char* local_ipstr, int local_port);
-
-/**
- * @brief This function doesn't really do anything other than be a namespace
- * counterpart to `zts_simple_udp_server`. All this function does is create a
- * `ZTS_SOCK_DGRAM` socket and return its file descriptor.
- *
- * @param remote_ipstr Remote address string. IPv4 or IPv6
- *
- * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
- *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
- */
-ZTS_API int ZTCALL zts_simple_udp_client(const char* remote_ipstr);
 
 // Socket level option number
 #define ZTS_SOL_SOCKET 0x0fff
@@ -2124,7 +2029,7 @@ ZTS_API int ZTCALL zts_setsockopt(int fd, int level, int optname, const void* op
 ZTS_API int ZTCALL zts_getsockopt(int fd, int level, int optname, void* optval, zts_socklen_t* optlen);
 
 /**
- * @brief Get socket name.
+ * @brief Get the name (address) of the local end of the socket
  *
  * @param fd Socket file descriptor
  * @param addr Name associated with this socket
@@ -2135,7 +2040,7 @@ ZTS_API int ZTCALL zts_getsockopt(int fd, int level, int optname, void* optval, 
 ZTS_API int ZTCALL zts_getsockname(int fd, struct zts_sockaddr* addr, zts_socklen_t* addrlen);
 
 /**
- * @brief Get the peer name for the remote end of a connected socket.
+ * @brief Get the name (address) of the remote end of the socket
  *
  * @param fd Socket file descriptor
  * @param addr Name associated with remote end of this socket
@@ -2434,6 +2339,141 @@ ZTS_API int ZTCALL zts_shutdown(int fd, int how);
 //----------------------------------------------------------------------------//
 
 /**
+ * Helper functions that simplify API wrapper generation and usage in other
+ * non-C-like languages. Use simple integer types instead of bit flags,
+ * limit the number of operations each function performs, prevent the user
+ * from needing to manipulate the contents of structures in a non-native
+ * language.
+ */
+
+/**
+ * @brief Connect a socket to a remote host
+ *
+ * This convenience function exists because ZeroTier uses transport-triggered
+ * links. This means that links between peers do not exist until peers try to
+ * talk to each other. This can be a problem during connection procedures since
+ * some of the initial packets are lost. To alleviate the need to try
+ * `zts_connect` many times, this function will keep re-trying for you, even if
+ * no known routes exist. However, if the socket is set to `non-blocking` mode
+ * it will behave identically to `zts_connect` and return immediately upon
+ * failure.
+ *
+ * @param fd Socket file descriptor
+ * @param ipstr Human-readable IP string
+ * @param port Port
+ * @param timeout_ms (Approximate) amount of time in milliseconds before
+ *     connection attempt is aborted. Will block for `30 seconds` if timeout is
+ *     set to `0`.
+ *
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SOCKET` if the function times
+ *     out with no connection made, `ZTS_ERR_SERVICE` if the node experiences a
+ *     problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
+ */
+ZTS_API int ZTCALL zts_simple_connect(int fd, const char* ipstr, unsigned short port, int timeout_ms);
+
+/**
+ * @brief Bind a socket to a local address
+ *
+ * @param fd Socket file descriptor
+ * @param ipstr Human-readable IP string
+ * @param port Port
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
+ */
+ZTS_API int ZTCALL zts_simple_bind(int fd, const char* ipstr, unsigned short port);
+
+/**
+ * @brief Accept an incoming connection
+ *
+ * @param fd Socket file descriptor
+ * @param remote_addr Buffer that will receive remote host IP string
+ * @param len Size of buffer that will receive remote host IP string
+ *     (must be exactly `ZTS_IP_MAX_STR_LEN`)
+ * @param port Port number of the newly connected remote host (value-result)
+ * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
+ */
+ZTS_API int ZTCALL zts_simple_accept(int fd, char* remote_addr, int len, unsigned short* port);
+
+/**
+ * @brief Get the name (address) of the remote end of the socket
+ *
+ * @param fd Socket file descriptor
+ * @param remote_addr_str Destination buffer to contain name (address) of the remote end of the socket
+ * @param len Length of destination buffer
+ * @param port Value-result parameter that will contain resultant port number
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
+ */
+ZTS_API int ZTCALL zts_simple_getpeername(int fd, char* remote_addr_str, int len, unsigned short* port);
+
+/**
+ * @brief Get the name (address) of the local end of the socket
+ *
+ * @param fd Socket file descriptor
+ * @param local_addr_str Destination buffer to contain name (address) of the local end of the socket
+ * @param len Length of destination buffer
+ * @param port Value-result parameter that will contain resultant port number
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
+ */
+ZTS_API int ZTCALL zts_simple_getsockname(int fd, char* local_addr_str, int len, unsigned short* port);
+
+/**
+ * @brief A convenience function that takes a remote address IP string and creates
+ * the appropriate type of socket, and uses it to connect to a remote host.
+ *
+ * @param remote_ipstr Remote address string. IPv4 or IPv6
+ * @param remote_port Port to
+ *
+ * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
+ */
+ZTS_API int ZTCALL zts_simple_tcp_client(const char* remote_ipstr, unsigned short remote_port);
+
+/**
+ * @brief A convenience function that takes a remote address IP string and creates
+ * the appropriate type of socket, binds, listens, and then accepts on it.
+ *
+ * @param local_ipstr Local address to bind
+ * @param local_port Local port to bind
+ * @param remote_ipstr String-format IP address of newly connected remote host
+ * @param len Length of `remote_ipstr`
+ * @param remote_port Port of remote host
+ *
+ * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
+ */
+ZTS_API int ZTCALL zts_simple_tcp_server(
+    const char* local_ipstr,
+    unsigned short local_port,
+    char* remote_ipstr,
+    int len,
+    unsigned short* remote_port);
+
+/**
+ * @brief A convenience function that takes a remote address IP string and creates
+ * the appropriate type of socket, and binds to it.
+ *
+ * @param local_ipstr Local address to bind
+ * @param local_port Local port to bind
+ *
+ * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
+ */
+ZTS_API int ZTCALL zts_simple_udp_server(const char* local_ipstr, unsigned short local_port);
+
+/**
+ * @brief This function doesn't really do anything other than be a namespace
+ * counterpart to `zts_simple_udp_server`. All this function does is create a
+ * `ZTS_SOCK_DGRAM` socket and return its file descriptor.
+ *
+ * @param remote_ipstr Remote address string. IPv4 or IPv6
+ *
+ * @return New file descriptor if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
+ */
+ZTS_API int ZTCALL zts_simple_udp_client(const char* remote_ipstr);
+
+/**
  * @brief Enable or disable `TCP_NODELAY`. Enabling this is equivalent to
  *     turning off Nagle's algorithm
  *
@@ -2481,6 +2521,15 @@ ZTS_API int ZTCALL zts_simple_get_linger_enabled(int fd);
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
  */
 ZTS_API int ZTCALL zts_simple_get_linger_value(int fd);
+
+/**
+ * @brief Return the number of bytes available to read from the network buffer
+ *
+ * @param fd Socket file descriptor
+ * @return Number of bytes to read if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
+ */
+ZTS_API int ZTCALL zts_simple_get_pending_data_size(int fd);
 
 /**
  * @brief Enable or disable `SO_REUSEADDR`
@@ -2837,21 +2886,21 @@ ZTS_API int ZTCALL zts_core_query_mc(uint64_t net_id, unsigned int idx, uint64_t
 //----------------------------------------------------------------------------//
 
 /**
- * @brief Generates a new world definition
+ * @brief Generates a new root set definition
  *
- * @param world_id The desired World ID (arbitrary)
+ * @param roots_id The desired World ID (arbitrary)
  * @param ts Timestamp indicating when this generation took place
  */
-ZTS_API int ZTCALL zts_util_world_new(
-    char* world_out,
-    unsigned int* world_len,
+ZTS_API int ZTCALL zts_util_sign_root_set(
+    char* roots_out,
+    unsigned int* roots_len,
     char* prev_key,
     unsigned int* prev_key_len,
     char* curr_key,
     unsigned int* curr_key_len,
     uint64_t id,
     uint64_t ts,
-    zts_world_t* world_spec);
+    zts_root_set_t* roots_spec);
 
 /**
  * @brief Platform-agnostic delay
@@ -2881,9 +2930,24 @@ ZTS_API int ZTCALL zts_util_get_ip_family(const char* ipstr);
  */
 int zts_util_ipstr_to_saddr(
     const char* src_ipstr,
-    unsigned int port,
+    unsigned short port,
     struct zts_sockaddr* dstaddr,
     zts_socklen_t* addrlen);
+
+/**
+ * @brief Similar to `inet_ntop` but determines family automatically and returns
+ * port as a value result parameter.
+ *
+ * @param addr Pointer to address structure
+ * @param addrlen Length of address structure
+ * @param dst_str Destination buffer
+ * @param len Length of destination buffer
+ * @param port Value-result parameter that will contain resultant port number
+ *
+ * @return return `ZTS_ERR_OK` on success, `ZTS_ERR_ARG` if invalid argument
+ */
+ZTS_API int ZTCALL
+zts_util_ntop(struct zts_sockaddr* addr, zts_socklen_t addrlen, char* dst_str, int len, unsigned short* port);
 
 //----------------------------------------------------------------------------//
 // Convenience functions pulled from lwIP                                     //

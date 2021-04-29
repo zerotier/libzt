@@ -20,17 +20,11 @@
 #include "lwip/sockets.h"
 
 #include "Events.hpp"
-#include "Utilities.hpp"
 #include "ZeroTierSockets.h"
-#include "lwip/def.h"
 #include "lwip/dns.h"
-#include "lwip/inet.h"
-#include "lwip/ip_addr.h"
 #include "lwip/netdb.h"
 
-// errno-like reporting variable
 int zts_errno;
-extern int last_state_check;
 
 namespace ZeroTier {
 
@@ -61,7 +55,7 @@ int zts_connect(int fd, const struct zts_sockaddr* addr, zts_socklen_t addrlen)
     return lwip_connect(fd, (sockaddr*)addr, addrlen);
 }
 
-int zts_simple_connect(int fd, const char* ipstr, int port, int timeout_ms)
+int zts_simple_connect(int fd, const char* ipstr, unsigned short port, int timeout_ms)
 {
     if (! transport_ok()) {
         return ZTS_ERR_SERVICE;
@@ -114,20 +108,22 @@ int zts_bind(int fd, const struct zts_sockaddr* addr, zts_socklen_t addrlen)
     return lwip_bind(fd, (sockaddr*)addr, addrlen);
 }
 
-int zts_simple_bind(int fd, const char* ipstr, int port)
+int zts_simple_bind(int fd, const char* ipstr, unsigned short port)
 {
     if (! transport_ok()) {
         return ZTS_ERR_SERVICE;
     }
-
     zts_socklen_t addrlen = 0;
     struct zts_sockaddr_storage ss;
     struct zts_sockaddr* sa = NULL;
 
     addrlen = sizeof(ss);
-    zts_util_ipstr_to_saddr(ipstr, port, (struct zts_sockaddr*)&ss, &addrlen);
+    int err = ZTS_ERR_OK;
+    if ((err = zts_util_ipstr_to_saddr(ipstr, port, (struct zts_sockaddr*)&ss, &addrlen)) != ZTS_ERR_OK) {
+        printf("ERRRRRRR=%d\n", err);
+        return err;
+    }
     sa = (struct zts_sockaddr*)&ss;
-
     return zts_bind(fd, sa, addrlen);
 }
 
@@ -147,7 +143,7 @@ int zts_accept(int fd, struct zts_sockaddr* addr, zts_socklen_t* addrlen)
     return lwip_accept(fd, (sockaddr*)addr, (socklen_t*)addrlen);
 }
 
-int zts_simple_accept(int fd, char* remote_addr, int len, int* port)
+int zts_simple_accept(int fd, char* remote_addr, int len, unsigned short* port)
 {
     if (! transport_ok()) {
         return ZTS_ERR_SERVICE;
@@ -159,21 +155,50 @@ int zts_simple_accept(int fd, char* remote_addr, int len, int* port)
     zts_socklen_t addrlen = sizeof(ss);
 
     int acc_fd = zts_accept(fd, (zts_sockaddr*)&ss, (zts_socklen_t*)&addrlen);
-    struct zts_sockaddr* sa = (struct zts_sockaddr*)&ss;
-    if (sa->sa_family == ZTS_AF_INET) {
-        struct zts_sockaddr_in* in4 = (struct zts_sockaddr_in*)sa;
-        zts_inet_ntop(ZTS_AF_INET, &(in4->sin_addr), remote_addr, ZTS_INET_ADDRSTRLEN);
-        *port = ntohs(in4->sin_port);
-    }
-    if (sa->sa_family == ZTS_AF_INET6) {
-        struct zts_sockaddr_in6* in6 = (struct zts_sockaddr_in6*)sa;
-        zts_inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), remote_addr, ZTS_INET6_ADDRSTRLEN);
-        *port = ntohs(in6->sin6_port);
+    int err = ZTS_ERR_OK;
+    if ((err = zts_util_ntop((struct zts_sockaddr*)&ss, addrlen, remote_addr, len, port)) < ZTS_ERR_OK) {
+        return err;
     }
     return acc_fd;
 }
 
-int zts_simple_tcp_client(const char* remote_ipstr, int remote_port)
+int zts_simple_getpeername(int fd, char* remote_addr_str, int len, unsigned short* port)
+{
+    if (! transport_ok()) {
+        return ZTS_ERR_SERVICE;
+    }
+    if (len != ZTS_INET6_ADDRSTRLEN) {
+        return ZTS_ERR_ARG;
+    }
+    struct zts_sockaddr_storage ss;
+    struct zts_sockaddr* sa = (struct zts_sockaddr*)&ss;
+    int err = ZTS_ERR_OK;
+    zts_socklen_t addrlen = sizeof(ss);
+    if ((err = zts_getpeername(fd, sa, &addrlen)) < 0) {
+        return err;
+    }
+    return zts_util_ntop(sa, addrlen, remote_addr_str, len, port);
+}
+
+int zts_simple_getsockname(int fd, char* local_addr_str, int len, unsigned short* port)
+{
+    if (! transport_ok()) {
+        return ZTS_ERR_SERVICE;
+    }
+    if (len != ZTS_INET6_ADDRSTRLEN) {
+        return ZTS_ERR_ARG;
+    }
+    struct zts_sockaddr_storage ss;
+    struct zts_sockaddr* sa = (struct zts_sockaddr*)&ss;
+    int err = ZTS_ERR_OK;
+    zts_socklen_t addrlen = sizeof(ss);
+    if ((err = zts_getsockname(fd, sa, &addrlen)) < 0) {
+        return err;
+    }
+    return zts_util_ntop(sa, addrlen, local_addr_str, len, port);
+}
+
+int zts_simple_tcp_client(const char* remote_ipstr, unsigned short remote_port)
 {
     int fd, family = zts_util_get_ip_family(remote_ipstr);
     if ((fd = zts_socket(family, ZTS_SOCK_STREAM, 0)) < 0) {
@@ -187,7 +212,12 @@ int zts_simple_tcp_client(const char* remote_ipstr, int remote_port)
     return fd;
 }
 
-int zts_simple_tcp_server(const char* local_ipstr, int local_port, char* remote_ipstr, int len, int* remote_port)
+int zts_simple_tcp_server(
+    const char* local_ipstr,
+    unsigned short local_port,
+    char* remote_ipstr,
+    int len,
+    unsigned short* remote_port)
 {
     int listen_fd, family = zts_util_get_ip_family(local_ipstr);
     if ((listen_fd = zts_socket(family, ZTS_SOCK_STREAM, 0)) < 0) {
@@ -208,7 +238,7 @@ int zts_simple_tcp_server(const char* local_ipstr, int local_port, char* remote_
     return acc_fd;
 }
 
-int zts_simple_udp_server(const char* local_ipstr, int local_port)
+int zts_simple_udp_server(const char* local_ipstr, unsigned short local_port)
 {
     int fd, family = zts_util_get_ip_family(local_ipstr);
     if ((fd = zts_socket(family, ZTS_SOCK_DGRAM, 0)) < 0) {
@@ -489,7 +519,7 @@ int zts_inet_pton(int family, const char* src, void* dst)
 
 int zts_util_ipstr_to_saddr(
     const char* src_ipstr,
-    unsigned int port,
+    unsigned short port,
     struct zts_sockaddr* dest_addr,
     zts_socklen_t* addrlen)
 {
@@ -523,18 +553,6 @@ int zts_util_ipstr_to_saddr(
     }
     return ZTS_ERR_ARG;
 }
-
-//----------------------------------------------------------------------------//
-// Convenience functions                                                      //
-//----------------------------------------------------------------------------//
-
-/**
- * Helper functions that simplify API wrapper generation and usage in other
- * non-C-like languages. Use simple integer types instead of bit flags,
- * limit the number of operations each function performs, prevent the user
- * from needing to manipulate the content of structures in a non-native
- * language.
- */
 
 int zts_simple_set_no_delay(int fd, int enabled)
 {
@@ -603,6 +621,19 @@ int zts_simple_get_linger_value(int fd)
         return err;
     }
     return linger.l_linger;
+}
+
+int zts_simple_get_pending_data_size(int fd)
+{
+    if (! transport_ok()) {
+        return ZTS_ERR_SERVICE;
+    }
+    int bytes_available = 0;
+    int err = ZTS_ERR_OK;
+    if ((err = zts_ioctl(fd, ZTS_FIONREAD, &bytes_available)) < 0) {
+        return err;
+    }
+    return bytes_available;
 }
 
 int zts_simple_set_reuse_addr(int fd, int enabled)
@@ -810,6 +841,27 @@ int zts_simple_get_keepalive(int fd)
         return err;
     }
     return optval != 0;
+}
+
+int zts_util_ntop(struct zts_sockaddr* addr, zts_socklen_t addrlen, char* dst_str, int len, unsigned short* port)
+{
+    if (! addr || addrlen < sizeof(struct zts_sockaddr_in) || addrlen > sizeof(struct zts_sockaddr_storage) || ! dst_str
+        || len != ZTS_INET6_ADDRSTRLEN) {
+        return ZTS_ERR_ARG;
+    }
+    if (addr->sa_family == ZTS_AF_INET) {
+        struct zts_sockaddr_in* in4 = (struct zts_sockaddr_in*)addr;
+        zts_inet_ntop(ZTS_AF_INET, &(in4->sin_addr), dst_str, len);
+        *port = ntohs(in4->sin_port);
+        return ZTS_ERR_OK;
+    }
+    if (addr->sa_family == ZTS_AF_INET6) {
+        struct zts_sockaddr_in6* in6 = (struct zts_sockaddr_in6*)addr;
+        zts_inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), dst_str, len);
+        *port = ntohs(in6->sin6_port);
+        return ZTS_ERR_OK;
+    }
+    return ZTS_ERR_ARG;
 }
 
 #ifdef __cplusplus

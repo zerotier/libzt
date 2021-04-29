@@ -18,11 +18,9 @@
 #include "OSUtils.hpp"
 #include "ZeroTierSockets.h"
 
+#include <cstdint>
+#include <cstring>
 #include <curl/curl.h>
-#include <iomanip>
-#include <iostream>
-#include <stdio.h>
-#include <string.h>
 
 #define REQ_LEN 64
 
@@ -98,7 +96,7 @@ int zts_central_init(const char* url_str, const char* token_str, char* resp_buf,
     // Initialize all curl internal submodules
     curl_global_init(CURL_GLOBAL_ALL);
 
-    int url_len = strlen(url_str);
+    int url_len = strnlen(url_str, ZTS_CENRTAL_MAX_URL_LEN);
     if (url_len < 3 || url_len > ZTS_CENRTAL_MAX_URL_LEN) {
         return ZTS_ERR_ARG;
     }
@@ -106,7 +104,7 @@ int zts_central_init(const char* url_str, const char* token_str, char* resp_buf,
         memset(api_url, 0, ZTS_CENRTAL_MAX_URL_LEN);
         strncpy(api_url, url_str, url_len);
     }
-    int token_len = strlen(token_str);
+    int token_len = strnlen(token_str, ZTS_CENTRAL_TOKEN_LEN);
     if (token_len != ZTS_CENTRAL_TOKEN_LEN) {
         return ZTS_ERR_ARG;
     }
@@ -147,9 +145,9 @@ int central_req(
         return ZTS_ERR_SERVICE;
     }
     zts_central_clear_resp_buf();
-    int central_strlen = strlen(central_str);
-    int api_route_strlen = strlen(api_route_str);
-    int token_strlen = strlen(token_str);
+    int central_strlen = strnlen(central_str, ZTS_CENRTAL_MAX_URL_LEN);
+    int api_route_strlen = strnlen(api_route_str, ZTS_CENRTAL_MAX_URL_LEN);
+    int token_strlen = strnlen(token_str, ZTS_CENTRAL_TOKEN_LEN);
     int url_len = central_strlen + api_route_strlen;
     if (token_strlen > ZTS_CENTRAL_TOKEN_LEN) {
         return ZTS_ERR_ARG;

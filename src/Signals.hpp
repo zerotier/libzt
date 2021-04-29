@@ -26,14 +26,8 @@
 
 #ifdef ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
 
-/**
- *
- */
 void _signal_handler(int signal);
 
-/**
- *
- */
 void _install_signal_handlers();
 
 #endif   // ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS

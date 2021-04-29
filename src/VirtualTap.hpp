@@ -20,8 +20,6 @@
 #ifndef ZTS_VIRTUAL_TAP_HPP
 #define ZTS_VIRTUAL_TAP_HPP
 
-#include "lwip/err.h"
-
 #define ZTS_LWIP_THREAD_NAME "ZTNetworkStackThread"
 #define VTAP_NAME_LEN        64
 
@@ -32,9 +30,11 @@
 
 namespace ZeroTier {
 
+/* Forward declarations */
 class Mutex;
 class MAC;
 class MulticastGroup;
+class Events;
 struct InetAddress;
 
 /**
@@ -162,7 +162,6 @@ class VirtualTap {
     MAC _mac;
     unsigned int _mtu;
     uint64_t _net_id;
-    PhySocket* _unixListenSocket;
     Phy<VirtualTap*> _phy;
 
     Thread _thread;
@@ -172,23 +171,18 @@ class VirtualTap {
     std::vector<MulticastGroup> _multicastGroups;
     Mutex _multicastGroups_m;
 
-    //----------------------------------------------------------------------------//
-    // Not used in this implementation //
-    //----------------------------------------------------------------------------//
-
-    void phyOnDatagram(
-        PhySocket* sock,
-        void** uptr,
-        const struct sockaddr* local_address,
-        const struct sockaddr* from,
-        void* data,
-        unsigned long len);
-    void phyOnTcpConnect(PhySocket* sock, void** uptr, bool success);
-    void phyOnTcpAccept(PhySocket* sockL, PhySocket* sockN, void** uptrL, void** uptrN, const struct sockaddr* from);
-    void phyOnTcpClose(PhySocket* sock, void** uptr);
-    void phyOnTcpData(PhySocket* sock, void** uptr, void* data, unsigned long len);
-    void phyOnTcpWritable(PhySocket* sock, void** uptr);
-    void phyOnUnixClose(PhySocket* sock, void** uptr);
+    void phyOnTcpConnect(PhySocket* sock, void** uptr, bool success)
+    {
+    }
+    void phyOnTcpAccept(PhySocket* sockL, PhySocket* sockN, void** uptrL, void** uptrN, const struct sockaddr* from)
+    {
+    }
+    void phyOnTcpClose(PhySocket* sock, void** uptr)
+    {
+    }
+    void phyOnUnixClose(PhySocket* sock, void** uptr)
+    {
+    }
 };
 
 /**
@@ -196,7 +190,7 @@ class VirtualTap {
  *
  * @usage This is a convenience function to encapsulate a macro
  */
-bool _lwip_is_netif_up(void* netif);
+bool zts_lwip_is_netif_up(void* netif);
 
 /**
  * @brief Increase the delay multiplier for the main driver loop
@@ -204,19 +198,19 @@ bool _lwip_is_netif_up(void* netif);
  * @usage This should be called when we know the stack won't be used by any
  * virtual taps
  */
-void _lwip_hibernate_driver();
+void zts_lwip_hibernate_driver();
 
 /**
  * @brief Decrease the delay multiplier for the main driver loop
  *
  * @usage This should be called when at least one virtual tap is active
  */
-void _lwip_wake_driver();
+void zts_lwip_wake_driver();
 
 /**
  * Returns whether the lwIP network stack is up and ready to process traffic
  */
-bool _lwip_is_up();
+bool zts_lwip_is_up();
 
 /**
  * @brief Initialize network stack semaphores, threads, and timers.
@@ -224,7 +218,7 @@ bool _lwip_is_up();
  * @usage This is called during the initial setup of each VirtualTap but is
  * only allowed to execute once
  */
-void _lwip_driver_init();
+void zts_lwip_driver_init();
 
 /**
  * @brief Shutdown the stack as completely as possible (not officially
@@ -235,41 +229,17 @@ void _lwip_driver_init();
  * interfaces will be brought down and all resources will be deallocated. A
  * full application restart will be required to bring the stack back online.
  */
-void _lwip_driver_shutdown();
+void zts_lwip_driver_shutdown();
 
 /**
  * @brief Requests that a netif be brought down and removed.
  */
-void _lwip_remove_netif(void* netif);
+void zts_lwip_remove_netif(void* netif);
 
 /**
  * @brief Starts DHCP timers
  */
-void _lwip_start_dhcp(void* netif);
-
-/**
- * @brief Called when the status of a netif changes:
- *  - Interface is up/down (ZTS_EVENT_NETIF_UP, ZTS_EVENT_NETIF_DOWN)
- *  - Address changes while up (ZTS_EVENT_NETIF_NEW_ADDRESS)
- */
-#if LWIP_NETIF_STATUS_CALLBACK
-static void _netif_status_callback(struct netif* netif);
-#endif
-
-/**
- * @brief Called when a netif is removed (ZTS_EVENT_NETIF_INTERFACE_REMOVED)
- */
-#if LWIP_NETIF_REMOVE_CALLBACK
-static void _netif_remove_callback(struct netif* netif);
-#endif
-
-/**
- * @brief Called when a link is brought up or down (ZTS_EVENT_NETIF_LINK_UP,
- * ZTS_EVENT_NETIF_LINK_DOWN)
- */
-#if LWIP_NETIF_LINK_CALLBACK
-static void _netif_link_callback(struct netif* netif);
-#endif
+void zts_lwip_start_dhcp(void* netif);
 
 /**
  * @brief Set up an interface in the network stack for the VirtualTap.
@@ -278,7 +248,7 @@ static void _netif_link_callback(struct netif* netif);
  * sending and receiving data
  * @param ip Virtual IP address for this ZeroTier VirtualTap interface
  */
-void _lwip_init_interface(void* tapref, const InetAddress& ip);
+void zts_lwip_init_interface(void* tapref, const InetAddress& ip);
 
 /**
  * @brief Remove an assigned address from an lwIP netif
@@ -286,7 +256,7 @@ void _lwip_init_interface(void* tapref, const InetAddress& ip);
  * @param tapref Reference to VirtualTap
  * @param ip Virtual IP address to remove from this interface
  */
-void _lwip_remove_address_from_netif(void* tapref, const InetAddress& ip);
+void zts_lwip_remove_address_from_netif(void* tapref, const InetAddress& ip);
 
 /**
  * @brief Called from the stack, outbound Ethernet frames from the network
@@ -299,7 +269,7 @@ void _lwip_remove_address_from_netif(void* tapref, const InetAddress& ip);
  * @param p A pointer to the beginning of a chain pf struct pbufs
  * @return
  */
-err_t _lwip_eth_tx(struct netif* netif, struct pbuf* p);
+signed char zts_lwip_eth_tx(struct netif* netif, struct pbuf* p);
 
 /**
  * @brief Receives incoming Ethernet frames from the ZeroTier virtual wire
@@ -314,7 +284,7 @@ err_t _lwip_eth_tx(struct netif* netif, struct pbuf* p);
  * @param data Pointer to Ethernet frame
  * @param len Length of Ethernet frame
  */
-void _lwip_eth_rx(
+void zts_lwip_eth_rx(
     VirtualTap* tap,
     const MAC& from,
     const MAC& to,

@@ -19,11 +19,8 @@
 
 #include "Events.hpp"
 
-#include "Constants.hpp"
-#include "Node.hpp"
+#include "Mutex.hpp"
 #include "NodeService.hpp"
-#include "OSUtils.hpp"
-#include "ZeroTierSockets.h"
 #include "concurrentqueue.h"
 
 #ifdef ZTS_ENABLE_JAVA
@@ -48,6 +45,13 @@ void PythonDirectorCallbackClass::on_zerotier_event(zts_event_msg_t* msg)
 #define ZTS_STORE_EVENT(code)   code >= ZTS_EVENT_STORE_IDENTITY_SECRET&& code <= ZTS_EVENT_STORE_NETWORK
 
 namespace ZeroTier {
+
+#ifdef ZTS_ENABLE_JAVA
+// References to JNI objects and VM kept for future callbacks
+JavaVM* jvm;
+jobject javaCbObjRef = NULL;
+jmethodID javaCbMethodId = NULL;
+#endif
 
 extern NodeService* zts_service;
 
@@ -175,7 +179,7 @@ void Events::sendToUser(zts_event_msg_t* msg)
     PyGILState_Release(state);
 #endif
 #ifdef ZTS_ENABLE_JAVA
-    if (_userCallbackMethodRef) {
+    if (javaCbMethodId) {
         JNIEnv* env;
 #if defined(__ANDROID__)
         jint rs = jvm->AttachCurrentThread(&env, NULL);
@@ -185,15 +189,15 @@ void Events::sendToUser(zts_event_msg_t* msg)
         uint64_t arg = 0;
         uint64_t id = 0;
         if (ZTS_NODE_EVENT(msg->event_code)) {
-            id = msg->node ? msg->node->address : 0;
+            id = msg->node ? msg->node->node_id : 0;
         }
         if (ZTS_NETWORK_EVENT(msg->event_code)) {
-            id = msg->network ? msg->network->nwid : 0;
+            id = msg->network ? msg->network->net_id : 0;
         }
         if (ZTS_PEER_EVENT(msg->event_code)) {
-            id = msg->peer ? msg->peer->address : 0;
+            id = msg->peer ? msg->peer->peer_id : 0;
         }
-        env->CallVoidMethod(objRef, _userCallbackMethodRef, id, msg->event_code);
+        env->CallVoidMethod(javaCbObjRef, javaCbMethodId, id, msg->event_code);
     }
 #endif   // ZTS_ENABLE_JAVA
 #ifdef ZTS_ENABLE_PINVOKE
@@ -214,12 +218,19 @@ void Events::sendToUser(zts_event_msg_t* msg)
     }
 }
 
+#ifdef ZTS_ENABLE_JAVA
+void Events::setJavaCallback(jobject objRef, jmethodID methodId)
+{
+    javaCbObjRef = objRef;
+    javaCbMethodId = methodId;
+}
+#endif
 bool Events::hasCallback()
 {
     events_m.lock();
     bool retval = false;
 #ifdef ZTS_ENABLE_JAVA
-    retval = (jvm && objRef && _userCallbackMethodRef);
+    retval = (jvm && javaCbObjRef && javaCbMethodId);
 #else
     retval = _userEventCallback;
 #endif
@@ -231,8 +242,8 @@ void Events::clrCallback()
 {
     events_m.lock();
 #ifdef ZTS_ENABLE_JAVA
-    objRef = NULL;
-    _userCallbackMethodRef = NULL;
+    javaCbObjRef = NULL;
+    javaCbMethodId = NULL;
 #else
     _userEventCallback = NULL;
 #endif

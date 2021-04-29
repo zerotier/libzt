@@ -15,20 +15,9 @@
 
 #include "ZeroTierSockets.h"
 
-#include <algorithm>
-#include <netinet/in.h>
 #include <node/C25519.hpp>
-#include <node/Constants.hpp>
-#include <node/Identity.hpp>
-#include <node/InetAddress.hpp>
 #include <node/World.hpp>
 #include <osdep/OSUtils.hpp>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <vector>
 
 #ifdef __WINDOWS__
 #include <windows.h>
@@ -75,18 +64,18 @@ void zts_util_delay(unsigned long milliseconds)
 #endif
 }
 
-int zts_util_world_new(
-    char* world_out,
-    unsigned int* world_len,
+int zts_util_sign_root_set(
+    char* roots_out,
+    unsigned int* roots_len,
     char* prev_key,
     unsigned int* prev_key_len,
     char* curr_key,
     unsigned int* curr_key_len,
     uint64_t id,
     uint64_t ts,
-    zts_world_t* world_spec)
+    zts_root_set_t* roots_spec)
 {
-    if (! world_spec || ! prev_key || ! curr_key || ! prev_key_len || ! curr_key_len) {
+    if (! roots_spec || ! prev_key || ! curr_key || ! prev_key_len || ! curr_key_len) {
         return ZTS_ERR_ARG;
     }
     // Generate signing keys
@@ -110,23 +99,23 @@ int zts_util_world_new(
     memcpy(currentKP.pub.data, current.data(), ZT_C25519_PUBLIC_KEY_LEN);
     memcpy(currentKP.priv.data, current.data() + ZT_C25519_PUBLIC_KEY_LEN, ZT_C25519_PRIVATE_KEY_LEN);
 
-    // Set up world definition
+    // Set up roots definition
     std::vector<World::Root> roots;
     for (int i = 0; i < ZTS_MAX_NUM_ROOTS; i++) {
-        if (! world_spec->public_id_str[i]) {
+        if (! roots_spec->public_id_str[i]) {
             break;
         }
-        if (strlen(world_spec->public_id_str[i])) {
-            // printf("id = %s\n", world_spec->public_id_str[i]);
+        if (strnlen(roots_spec->public_id_str[i], ZT_IDENTITY_STRING_BUFFER_LENGTH)) {
+            // printf("id = %s\n", roots_spec->public_id_str[i]);
             roots.push_back(World::Root());
-            roots.back().identity = Identity(world_spec->public_id_str[i]);
+            roots.back().identity = Identity(roots_spec->public_id_str[i]);
             for (int j = 0; j < ZTS_MAX_ENDPOINTS_PER_ROOT; j++) {
-                if (! world_spec->endpoint_ip_str[i][j]) {
+                if (! roots_spec->endpoint_ip_str[i][j]) {
                     break;
                 }
-                if (strlen(world_spec->endpoint_ip_str[i][j])) {
-                    roots.back().stableEndpoints.push_back(InetAddress(world_spec->endpoint_ip_str[i][j]));
-                    // printf(" ep = %s\n", world_spec->endpoint_ip_str[i][j]);
+                if (strnlen(roots_spec->endpoint_ip_str[i][j], ZTS_MAX_ENDPOINT_STR_LEN)) {
+                    roots.back().stableEndpoints.push_back(InetAddress(roots_spec->endpoint_ip_str[i][j]));
+                    // printf(" ep = %s\n", roots_spec->endpoint_ip_str[i][j]);
                 }
             }
         }
@@ -144,8 +133,8 @@ int zts_util_world_new(
         return ZTS_ERR_GENERAL;
     }
     // Write output
-    memcpy(world_out, (char*)outtmp.data(), outtmp.size());
-    *world_len = outtmp.size();
+    memcpy(roots_out, (char*)outtmp.data(), outtmp.size());
+    *roots_len = outtmp.size();
     memcpy(prev_key, previous.data(), previous.length());
     *prev_key_len = ZT_C25519_PRIVATE_KEY_LEN + ZT_C25519_PUBLIC_KEY_LEN;
     memcpy(curr_key, current.data(), current.length());

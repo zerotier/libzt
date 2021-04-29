@@ -103,7 +103,7 @@ int main(int argc, char** argv)
 
     // Close
 
-    printf("Closing connection socket\n");
+    printf("Closing sockets\n");
     err = zts_close(accfd);
     err = zts_close(fd);
     return zts_node_stop();

@@ -14,7 +14,7 @@
 #ifndef ZTS_UTILITIES_HPP
 #define ZTS_UTILITIES_HPP
 
-#include "ZeroTierSockets.h"
+struct zts_sockaddr_storage;
 
 #ifdef __cplusplus
 extern "C" {

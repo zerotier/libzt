@@ -17,21 +17,11 @@
  * Node / Network control interface
  */
 
-#include "Constants.hpp"
 #include "Events.hpp"
-#include "Mutex.hpp"
-#include "Node.hpp"
 #include "NodeService.hpp"
-#include "OSUtils.hpp"
-#include "Signals.hpp"
-#include "Thread.hpp"
 #include "VirtualTap.hpp"
-#include "ZeroTierSockets.h"
-#include "lwip/stats.h"
 
-#include <inttypes.h>
-#include <sys/types.h>
-#include <thread>
+#include <string.h>
 
 using namespace ZeroTier;
 
@@ -63,12 +53,11 @@ Events* zts_events;
 extern Mutex events_m;
 Mutex service_m;
 
-/** Set up service and callback threads and tell them about one another.
- * A separate thread is used for callbacks so that if the user fails to return
- * control it won't affect the core service's operations.
- */
 int init_subsystems()
 {
+    /** Set up service and callback threads and tell them about one another.
+     * A separate thread is used for callbacks so that if the user fails to
+     * return control it won't affect the core service's operations. */
     if (! zts_events) {
         zts_events = new Events();
     }
@@ -108,15 +97,22 @@ int zts_init_set_event_handler(PythonDirectorCallbackClass* callback)
 #ifdef ZTS_ENABLE_PINVOKE
     int zts_init_set_event_handler(CppCallback callback)
 #endif
+#ifdef ZTS_ENABLE_JAVA
+        int zts_init_set_event_handler(jobject obj_ref, jmethodID id)
+#endif
 #ifdef ZTS_C_API_ONLY
-        int zts_init_set_event_handler(void (*callback)(void*))
+            int zts_init_set_event_handler(void (*callback)(void*))
 #endif
 {
     ACQUIRE_SERVICE_OFFLINE();
+#ifdef ZTS_ENABLE_JAVA
+    zts_events->setJavaCallback(obj_ref, id);
+#else
     if (! callback) {
         return ZTS_ERR_ARG;
     }
     _userEventCallback = callback;
+#endif
     zts_service->enableEvents();
     return ZTS_ERR_OK;
 }
@@ -127,10 +123,10 @@ int zts_init_blacklist_if(const char* prefix, unsigned int len)
     return zts_service->addInterfacePrefixToBlacklist(prefix, len);
 }
 
-int zts_init_set_world(const void* world_data, unsigned int len)
+int zts_init_set_roots(const void* roots_data, unsigned int len)
 {
     ACQUIRE_SERVICE_OFFLINE();
-    return zts_service->setWorld(world_data, len);
+    return zts_service->setWorld(roots_data, len);
 }
 
 int zts_init_set_port(unsigned short port)
@@ -152,7 +148,7 @@ int zts_init_allow_net_cache(unsigned int allowed)
     return zts_service->allowNetworkCaching(allowed);
 }
 
-int zts_init_allow_world_cache(unsigned int allowed)
+int zts_init_allow_roots_cache(unsigned int allowed)
 {
     ACQUIRE_SERVICE_OFFLINE();
     return zts_service->allowWorldCaching(allowed);
@@ -216,7 +212,7 @@ int zts_addr_compute_6plane_str(uint64_t net_id, uint64_t node_id, char* dst, un
     return ZTS_ERR_OK;
 }
 
-uint64_t zts_net_compute_adhoc_id(uint16_t start_port, uint16_t end_port)
+uint64_t zts_net_compute_adhoc_id(unsigned short start_port, unsigned short end_port)
 {
     char net_id_str[ZTS_INET6_ADDRSTRLEN] = { 0 };
     OSUtils::ztsnprintf(net_id_str, ZTS_INET6_ADDRSTRLEN, "ff%04x%04x000000", start_port, end_port);
@@ -247,7 +243,7 @@ int zts_id_pair_is_valid(const char* key, unsigned int len)
         return false;
     }
     Identity id;
-    if ((strlen(key) > 32) && (key[10] == ':')) {
+    if ((strnlen(key, len) > 32) && (key[10] == ':')) {
         if (id.fromString(key)) {
             return id.locallyValidate();
         }
@@ -255,11 +251,14 @@ int zts_id_pair_is_valid(const char* key, unsigned int len)
     return false;
 }
 
-int zts_node_get_id_pair(char* key, unsigned int* dst_len)
+int zts_node_get_id_pair(char* key, unsigned int* key_dst_len)
 {
     ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
-    zts_service->getIdentity(key, dst_len);
-    return *dst_len > 0 ? ZTS_ERR_OK : ZTS_ERR_GENERAL;
+    int err = ZTS_ERR_OK;
+    if ((err = zts_service->getIdentity(key, key_dst_len)) != ZTS_ERR_OK) {
+        return err;
+    }
+    return *key_dst_len > 0 ? ZTS_ERR_OK : ZTS_ERR_GENERAL;
 }
 
 #if defined(__WINDOWS__)
@@ -272,10 +271,10 @@ void* cbRun(void* arg)
     pthread_setname_np(ZTS_EVENT_CALLBACK_THREAD_NAME);
 #endif
     zts_events->run();
-#if ZTS_ENABLE_JAVA
-    _java_detach_from_thread();
+    //#if ZTS_ENABLE_JAVA
+    //    _java_detach_from_thread();
     // pthread_exit(0);
-#endif
+    //#endif
     return NULL;
 }
 
@@ -497,8 +496,6 @@ void* _runNodeService(void* arg)
         zts_util_delay(ZTS_CALLBACK_PROCESSING_INTERVAL * 2);
         if (zts_events) {
             zts_events->disable();
-            delete zts_events;
-            zts_events = (Events*)0;
         }
         events_m.unlock();
     }
@@ -514,7 +511,7 @@ int zts_node_start()
 {
     ACQUIRE_SERVICE_OFFLINE();
     // Start TCP/IP stack
-    _lwip_driver_init();
+    zts_lwip_driver_init();
     // Start callback thread
     int res = ZTS_ERR_OK;
     if (zts_events->hasCallback()) {
@@ -591,21 +588,23 @@ int zts_node_free()
 #if defined(__WINDOWS__)
     WSACleanup();
 #endif
-    _lwip_driver_shutdown();
+    zts_lwip_driver_shutdown();
+    delete zts_events;
+    zts_events = (Events*)0;
     return ZTS_ERR_OK;
 }
 
-int zts_moon_orbit(uint64_t moon_world_id, uint64_t moon_seed)
+int zts_moon_orbit(uint64_t moon_roots_id, uint64_t moon_seed)
 {
     ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
-    zts_service->orbit(NULL, moon_world_id, moon_seed);
+    zts_service->orbit(NULL, moon_roots_id, moon_seed);
     return ZTS_ERR_OK;
 }
 
-int zts_moon_deorbit(uint64_t moon_world_id)
+int zts_moon_deorbit(uint64_t moon_roots_id)
 {
     ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
-    zts_service->deorbit(NULL, moon_world_id);
+    zts_service->deorbit(NULL, moon_roots_id);
     return ZTS_ERR_OK;
 }
 
@@ -623,7 +622,7 @@ int zts_stats_get_all(zts_stats_counter_t* dst)
 
 #define lws lwip_stats
 
-    /* Here we summarize lwIP's statistics for simplicity at the expense of specificity */
+    /* Summarize lwIP's statistics for simplicity at the expense of specificity */
 
     // link
     dst->link_tx = lws.link.xmit;

@@ -20,9 +20,6 @@
 #ifndef ZTS_DEBUG_HPP
 #define ZTS_DEBUG_HPP
 
-#if defined(__linux__) || defined(__APPLE__)
-#include <unistd.h>
-#endif
 #include <string.h>
 
 #define ZT_COLOR true

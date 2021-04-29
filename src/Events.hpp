@@ -22,8 +22,6 @@
 
 #include "ZeroTierSockets.h"
 
-#include <string>
-
 #ifdef __WINDOWS__
 #include <BaseTsd.h>
 #endif
@@ -129,6 +127,10 @@ class Events {
      * Free memory occupied by callback structures
      */
     void destroy(zts_event_msg_t* msg);
+
+#ifdef ZTS_ENABLE_JAVA
+    void setJavaCallback(jobject objRef, jmethodID methodId);
+#endif
 
     /**
      * Return whether a callback method has been set

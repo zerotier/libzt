@@ -20,19 +20,12 @@
 #include "NodeService.hpp"
 
 #include "../version.h"
-#include "BlockingQueue.hpp"
-#include "Constants.hpp"
+#include "Events.hpp"
 #include "InetAddress.hpp"
-#include "MAC.hpp"
+#include "Mutex.hpp"
 #include "Node.hpp"
-#include "OSUtils.hpp"
-#include "Phy.hpp"
 #include "Utilities.hpp"
-#include "Utils.hpp"
-#include "ZeroTierSockets.h"
-
-#include <arpa/inet.h>
-#include <iostream>
+#include "VirtualTap.hpp"
 
 #if defined(__WINDOWS__)
 #include <ShlObj.h>
@@ -629,7 +622,7 @@ void NodeService::generateEventMsgs()
 {
     // Force the ordering of callback messages, these messages are
     // only useful if the node and stack are both up and running
-    if (! _node->online() || ! _lwip_is_up()) {
+    if (! _node->online() || ! zts_lwip_is_up()) {
         return;
     }
     // Generate messages to be dequeued by the callback message thread
@@ -653,10 +646,10 @@ void NodeService::generateEventMsgs()
                 sendEventToUser(ZTS_EVENT_NETWORK_REQ_CONFIG, (void*)prepare_network_details_msg(netState));
                 break;
             case ZT_NETWORK_STATUS_OK:
-                if (tap->hasIpv4Addr() && _lwip_is_netif_up(tap->netif4)) {
+                if (tap->hasIpv4Addr() && zts_lwip_is_netif_up(tap->netif4)) {
                     sendEventToUser(ZTS_EVENT_NETWORK_READY_IP4, (void*)prepare_network_details_msg(netState));
                 }
-                if (tap->hasIpv6Addr() && _lwip_is_netif_up(tap->netif6)) {
+                if (tap->hasIpv6Addr() && zts_lwip_is_netif_up(tap->netif6)) {
                     sendEventToUser(ZTS_EVENT_NETWORK_READY_IP6, (void*)prepare_network_details_msg(netState));
                 }
                 // In addition to the READY messages, send one OK message
@@ -971,28 +964,28 @@ int NodeService::networkHasRoute(uint64_t net_id, unsigned int family)
     return false;
 }
 
-int NodeService::orbit(void* tptr, uint64_t moon_world_id, uint64_t moon_seed)
+int NodeService::orbit(void* tptr, uint64_t moon_roots_id, uint64_t moon_seed)
 {
-    if (! moon_world_id || ! moon_seed) {
+    if (! moon_roots_id || ! moon_seed) {
         return ZTS_ERR_ARG;
     }
     Mutex::Lock _lr(_run_m);
     if (! _run) {
         return ZTS_ERR_SERVICE;
     }
-    return _node->orbit(NULL, moon_world_id, moon_seed);
+    return _node->orbit(NULL, moon_roots_id, moon_seed);
 }
 
-int NodeService::deorbit(void* tptr, uint64_t moon_world_id)
+int NodeService::deorbit(void* tptr, uint64_t moon_roots_id)
 {
-    if (! moon_world_id) {
+    if (! moon_roots_id) {
         return ZTS_ERR_ARG;
     }
     Mutex::Lock _lr(_run_m);
     if (! _run) {
         return ZTS_ERR_SERVICE;
     }
-    return _node->deorbit(NULL, moon_world_id);
+    return _node->deorbit(NULL, moon_roots_id);
 }
 
 uint64_t NodeService::getNodeId()
@@ -1033,6 +1026,10 @@ int NodeService::getIdentity(char* keypair, unsigned int* len)
     if (_node) {
         _node->identity().toString(true, keypair);
     }
+    else {
+        return ZTS_ERR_GENERAL;
+    }
+    *len = strnlen(keypair, ZT_IDENTITY_STRING_BUFFER_LENGTH);
     return ZTS_ERR_OK;
 }
 
@@ -1082,9 +1079,9 @@ void NodeService::nodeStatePutFunction(
             break;
         case ZT_STATE_OBJECT_PLANET:
             sendEventToUser(ZTS_EVENT_STORE_PLANET, data, len);
-            memcpy(_worldData, data, len);
+            memcpy(_rootsData, data, len);
             if (_homePath.length() > 0 && _allowWorldCaching) {
-                OSUtils::ztsnprintf(p, sizeof(p), "%s" ZT_PATH_SEPARATOR_S "world", _homePath.c_str());
+                OSUtils::ztsnprintf(p, sizeof(p), "%s" ZT_PATH_SEPARATOR_S "roots", _homePath.c_str());
             }
             else {
                 return;
@@ -1198,10 +1195,10 @@ int NodeService::nodeStateGetFunction(
             break;
         case ZT_STATE_OBJECT_PLANET:
             if (_userDefinedWorld) {
-                memcpy(data, _worldData, _worldDataLen);
-                return _worldDataLen;
+                memcpy(data, _rootsData, _rootsDataLen);
+                return _rootsDataLen;
             }
-            OSUtils::ztsnprintf(p, sizeof(p), "%s" ZT_PATH_SEPARATOR_S "world", _homePath.c_str());
+            OSUtils::ztsnprintf(p, sizeof(p), "%s" ZT_PATH_SEPARATOR_S "roots", _homePath.c_str());
             break;
         case ZT_STATE_OBJECT_NETWORK_CONFIG:
             OSUtils::ztsnprintf(
@@ -1545,9 +1542,9 @@ void NodeService::enableEvents()
     _events->enable();
 }
 
-int NodeService::setWorld(const void* worldData, unsigned int len)
+int NodeService::setWorld(const void* rootsData, unsigned int len)
 {
-    if (! worldData || len <= 0 || len > ZTS_STORE_DATA_LEN) {
+    if (! rootsData || len <= 0 || len > ZTS_STORE_DATA_LEN) {
         return ZTS_ERR_ARG;
     }
     Mutex::Lock _lr(_run_m);
@@ -1555,8 +1552,8 @@ int NodeService::setWorld(const void* worldData, unsigned int len)
         return ZTS_ERR_SERVICE;
     }
     Mutex::Lock _ls(_store_m);
-    memcpy(_worldData, worldData, len);
-    _worldDataLen = len;
+    memcpy(_rootsData, rootsData, len);
+    _rootsDataLen = len;
     _userDefinedWorld = true;
     return ZTS_ERR_OK;
 }
@@ -1610,7 +1607,7 @@ int NodeService::getNetworkName(uint64_t net_id, char* dst, unsigned int len) co
         return ZTS_ERR_NO_RESULT;
     }
     auto netState = n->second;
-    memcpy(dst, netState.config.name, sizeof(netState.config.name));
+    strncpy(dst, netState.config.name, ZTS_MAX_NETWORK_SHORT_NAME_LENGTH);
     return ZTS_ERR_OK;
 }
 

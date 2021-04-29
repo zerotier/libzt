@@ -21,13 +21,10 @@
 #define ZTS_NODE_SERVICE_HPP
 
 #include "Binder.hpp"
-#include "Constants.hpp"
-#include "Events.hpp"
-#include "InetAddress.hpp"
 #include "Mutex.hpp"
 #include "Node.hpp"
+#include "Phy.hpp"
 #include "PortMapper.hpp"
-#include "VirtualTap.hpp"
 #include "ZeroTierSockets.h"
 
 #include <string>
@@ -49,6 +46,11 @@
 #endif
 
 namespace ZeroTier {
+
+class InetAddress;
+class VirtualTap;
+class MAC;
+class Events;
 
 /**
  * ZeroTier node service
@@ -205,8 +207,8 @@ class NodeService {
     char _secretIdStr[ZT_IDENTITY_STRING_BUFFER_LENGTH] = { 0 };
 
     bool _userDefinedWorld;
-    char _worldData[ZTS_STORE_DATA_LEN] = { 0 };
-    int _worldDataLen = 0;
+    char _rootsData[ZTS_STORE_DATA_LEN] = { 0 };
+    int _rootsDataLen = 0;
 
     /** Whether the node has successfully come online */
     bool _nodeIsOnline;
@@ -373,7 +375,7 @@ class NodeService {
 
     void enableEvents();
 
-    /** Set the world definition */
+    /** Set the roots definition */
     int setWorld(const void* data, unsigned int len);
 
     /** Add Interface prefix to blacklist (prevents ZeroTier from using that interface) */
@@ -394,7 +396,7 @@ class NodeService {
     /** Allow ZeroTier to write identities to storage */
     int allowIdentityCaching(unsigned int allowed);
 
-    /** Allow ZeroTier to cache world definitions to storage */
+    /** Allow ZeroTier to cache root definitions to storage */
     int allowWorldCaching(unsigned int allowed);
 
     /** Return whether broadcast is enabled on the given network */

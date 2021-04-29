@@ -13,7 +13,7 @@
 void print_peer_details(const char* msg, zts_peer_info_t* d)
 {
     printf(" %s\n", msg);
-    printf("\t- peer       : %llx\n", d->address);
+    printf("\t- peer       : %llx\n", d->peer_id);
     printf("\t- role       : %d\n", d->role);
     printf("\t- latency    : %d\n", d->latency);
     printf("\t- version    : %d.%d.%d\n", d->ver_major, d->ver_minor, d->ver_rev);
@@ -61,49 +61,58 @@ int main()
 {
     // World generation
 
-    // Buffers that will be filled after generating the world
-    char world_data_out[4096] = { 0 };   // (binary) Your new world definition
-    unsigned int world_len = 0;
+    // Buffers that will be filled after generating the roots
+    char roots_data_out[4096] = { 0 };   // (binary) Your new custom roots definition
+    unsigned int roots_len = 0;
     unsigned int prev_key_len = 0;
     unsigned int curr_key_len = 0;
-    char prev_key[4096] = { 0 };   // (binary) (optional) For updating a world
+    char prev_key[4096] = { 0 };   // (binary) (optional) For updating roots
     char curr_key[4096] = { 0 };   // (binary) You should save this
 
     // Arbitrary World ID
     uint64_t id = 149604618;
 
-    // Timestamp indicating when this world was generated
+    // Timestamp indicating when this signed root blob was generated
     uint64_t ts = 1567191349589ULL;
 
     // struct containing public keys and stable IP endpoints for roots
-    zts_world_t world = { 0 };
+    zts_root_set_t roots = { 0 };
 
-    world.public_id_str[0] =
+    roots.public_id_str[0] =
         "992fcf1db7:0:"
         "206ed59350b31916f749a1f85dffb3a8787dcbf83b8c6e9448d4e3ea0e3369301be716c3609344a9d1533850fb4460c5"
         "0af43322bcfc8e13d3301a1f1003ceb6";
-    world.endpoint_ip_str[0][0] = "195.181.173.159/9993";
-    world.endpoint_ip_str[0][1] = "2a02:6ea0:c024::/9993";
+    roots.endpoint_ip_str[0][0] = "195.181.173.159/9993";
+    roots.endpoint_ip_str[0][1] = "2a02:6ea0:c024::/9993";
 
-    // Generate world
+    // Generate roots
 
-    zts_util_world_new(&world_data_out, &world_len, &prev_key, &prev_key_len, &curr_key, &curr_key_len, id, ts, &world);
+    zts_util_sign_root_set(
+        &roots_data_out,
+        &roots_len,
+        &prev_key,
+        &prev_key_len,
+        &curr_key,
+        &curr_key_len,
+        id,
+        ts,
+        &roots);
 
-    printf("world_data_out= ");
-    for (int i = 0; i < world_len; i++) {
+    printf("roots_data_out= ");
+    for (int i = 0; i < roots_len; i++) {
         if (i > 0) {
             printf(",");
         }
-        printf("0x%.2x", (unsigned char)world_data_out[i]);
+        printf("0x%.2x", (unsigned char)roots_data_out[i]);
     }
     printf("\n");
-    printf("world_len    = %d\n", world_len);
+    printf("roots_len    = %d\n", roots_len);
     printf("prev_key_len = %d\n", prev_key_len);
     printf("curr_key_len = %d\n", curr_key_len);
 
-    // Now, initialize node and use newly-generated world definition
+    // Now, initialize node and use newly-generated roots definition
 
-    zts_init_set_world(&world_data_out, world_len);
+    zts_init_set_roots(&roots_data_out, roots_len);
     zts_init_set_event_handler(&on_zts_event);
     zts_init_from_storage(".");
 

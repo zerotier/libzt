@@ -100,6 +100,7 @@ int main(int argc, char** argv)
 
     // Close
 
+    printf("Closing sockets\n");
     zts_close(fd);
     return zts_node_stop();
 }

@@ -33,12 +33,12 @@ void on_zts_event(void* msgPtr)
 
     if (msg->event_code == ZTS_EVENT_STORE_IDENTITY_PUBLIC) {
         printf("ZTS_EVENT_STORE_IDENTITY_PUBLIC (len=%d)\n", msg->len);
-        printf("identity.public = [ %.*s ]\n", len, msg->cache);
+        printf("identity.public = [ %.*s ]\n", len, (char*)msg->cache);
         memcpy(cache_data, msg->cache, len);
     }
     if (msg->event_code == ZTS_EVENT_STORE_IDENTITY_SECRET) {
         printf("ZTS_EVENT_STORE_IDENTITY_SECRET (len=%d)\n", msg->len);
-        printf("identity.secret = [ %.*s ]\n", len, msg->cache);
+        printf("identity.secret = [ %.*s ]\n", len, (char*)msg->cache);
         memcpy(cache_data, msg->cache, len);
         // Same data can be retrieved via: zts_node_get_id_pair()
     }

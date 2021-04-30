@@ -261,7 +261,7 @@ void VirtualTap::threadMain() throw()
 #if defined(__WINDOWS__)
         Sleep(ZTS_TAP_THREAD_POLLING_INTERVAL);
 #else
-        struct timespec sleepValue = { 0 };
+        struct timespec sleepValue = { 0, 0 };
         sleepValue.tv_nsec = ZTS_TAP_THREAD_POLLING_INTERVAL * 500000;
         nanosleep(&sleepValue, NULL);
 #endif

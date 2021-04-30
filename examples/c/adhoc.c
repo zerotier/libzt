@@ -57,7 +57,7 @@ int main(int argc, char** argv)
     uint64_t node_id = zts_node_get_id();
     printf("My public identity (node ID) is %llx\n", node_id);
     char keypair[ZTS_ID_STR_BUF_LEN] = { 0 };
-    uint16_t len = ZTS_ID_STR_BUF_LEN;
+    unsigned int len = ZTS_ID_STR_BUF_LEN;
     if (zts_node_get_id_pair(keypair, &len) != ZTS_ERR_OK) {
         printf("Error getting identity keypair. Exiting.\n");
     }

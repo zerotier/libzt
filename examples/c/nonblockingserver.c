@@ -20,7 +20,7 @@ int main(int argc, char** argv)
     char* storage_path = argv[1];
     long long int net_id = strtoull(argv[2], NULL, 16);   // At least 64 bits
     char* local_addr = argv[3];
-    int local_port = atoi(argv[4]);
+    unsigned short local_port = atoi(argv[4]);
     int fd, accfd;
     int err = ZTS_ERR_OK;
 
@@ -96,7 +96,7 @@ int main(int argc, char** argv)
         //   zts_accept(int fd, struct zts_sockaddr* addr, zts_socklen_t* addrlen)
 
         char ipstr[ZTS_INET6_ADDRSTRLEN] = { 0 };
-        int port = 0;
+        unsigned int port = 0;
         printf("Accepting on listening socket...\n");
         if ((accfd = zts_simple_accept(fd, ipstr, ZTS_INET6_ADDRSTRLEN, &port)) < 0) {
             printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, err, zts_errno);

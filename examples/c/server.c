@@ -20,7 +20,7 @@ int main(int argc, char** argv)
     char* storage_path = argv[1];
     long long int net_id = strtoull(argv[2], NULL, 16);   // At least 64 bits
     char* local_addr = argv[3];
-    int local_port = atoi(argv[4]);
+    unsigned int local_port = atoi(argv[4]);
     int fd, accfd;
     int err = ZTS_ERR_OK;
 

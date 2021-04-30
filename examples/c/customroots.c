@@ -88,11 +88,11 @@ int main()
     // Generate roots
 
     zts_util_sign_root_set(
-        &roots_data_out,
+        roots_data_out,
         &roots_len,
-        &prev_key,
+        prev_key,
         &prev_key_len,
-        &curr_key,
+        curr_key,
         &curr_key_len,
         id,
         ts,

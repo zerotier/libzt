@@ -754,9 +754,7 @@ bool NodeService::networkIsReady(uint64_t net_id) const
         return false;
     }
     auto netState = n->second;
-    if (netState.config.assignedAddressCount == 0) {
-        return ZTS_ERR_NO_RESULT;
-    }
+    return netState.config.assignedAddressCount > 0;
 }
 
 int NodeService::addressCount(uint64_t net_id) const

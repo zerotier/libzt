@@ -267,6 +267,7 @@ DWORD WINAPI cbRun(LPVOID arg)
 void* cbRun(void* arg)
 #endif
 {
+    ZTS_UNUSED_ARG(arg);
 #if defined(__APPLE__)
     pthread_setname_np(ZTS_EVENT_CALLBACK_THREAD_NAME);
 #endif
@@ -481,6 +482,7 @@ DWORD WINAPI _runNodeService(LPVOID arg)
 void* _runNodeService(void* arg)
 #endif
 {
+    ZTS_UNUSED_ARG(arg);
 #if defined(__APPLE__)
     pthread_setname_np(ZTS_SERVICE_THREAD_NAME);
 #endif
@@ -597,14 +599,14 @@ int zts_node_free()
 int zts_moon_orbit(uint64_t moon_roots_id, uint64_t moon_seed)
 {
     ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
-    zts_service->orbit(NULL, moon_roots_id, moon_seed);
+    zts_service->orbit(moon_roots_id, moon_seed);
     return ZTS_ERR_OK;
 }
 
 int zts_moon_deorbit(uint64_t moon_roots_id)
 {
     ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
-    zts_service->deorbit(NULL, moon_roots_id);
+    zts_service->deorbit(moon_roots_id);
     return ZTS_ERR_OK;
 }
 

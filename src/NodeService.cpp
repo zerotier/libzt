@@ -38,6 +38,130 @@
 
 namespace ZeroTier {
 
+static int SnodeVirtualNetworkConfigFunction(
+    ZT_Node* node,
+    void* uptr,
+    void* tptr,
+    uint64_t net_id,
+    void** nuptr,
+    enum ZT_VirtualNetworkConfigOperation op,
+    const ZT_VirtualNetworkConfig* nwconf)
+{
+    ZTS_UNUSED_ARG(node);
+    ZTS_UNUSED_ARG(tptr);
+    return reinterpret_cast<NodeService*>(uptr)->nodeVirtualNetworkConfigFunction(net_id, nuptr, op, nwconf);
+}
+
+static void SnodeEventCallback(ZT_Node* node, void* uptr, void* tptr, enum ZT_Event event, const void* metaData)
+{
+    ZTS_UNUSED_ARG(node);
+    ZTS_UNUSED_ARG(tptr);
+    reinterpret_cast<NodeService*>(uptr)->nodeEventCallback(event, metaData);
+}
+
+static void SnodeStatePutFunction(
+    ZT_Node* node,
+    void* uptr,
+    void* tptr,
+    enum ZT_StateObjectType type,
+    const uint64_t id[2],
+    const void* data,
+    int len)
+{
+    ZTS_UNUSED_ARG(node);
+    ZTS_UNUSED_ARG(tptr);
+    reinterpret_cast<NodeService*>(uptr)->nodeStatePutFunction(type, id, data, len);
+}
+
+static int SnodeStateGetFunction(
+    ZT_Node* node,
+    void* uptr,
+    void* tptr,
+    enum ZT_StateObjectType type,
+    const uint64_t id[2],
+    void* data,
+    unsigned int maxlen)
+{
+    ZTS_UNUSED_ARG(node);
+    ZTS_UNUSED_ARG(tptr);
+    return reinterpret_cast<NodeService*>(uptr)->nodeStateGetFunction(type, id, data, maxlen);
+}
+
+static int SnodeWirePacketSendFunction(
+    ZT_Node* node,
+    void* uptr,
+    void* tptr,
+    int64_t localSocket,
+    const struct sockaddr_storage* addr,
+    const void* data,
+    unsigned int len,
+    unsigned int ttl)
+{
+    ZTS_UNUSED_ARG(node);
+    ZTS_UNUSED_ARG(tptr);
+    return reinterpret_cast<NodeService*>(uptr)->nodeWirePacketSendFunction(localSocket, addr, data, len, ttl);
+}
+
+static void SnodeVirtualNetworkFrameFunction(
+    ZT_Node* node,
+    void* uptr,
+    void* tptr,
+    uint64_t net_id,
+    void** nuptr,
+    uint64_t sourceMac,
+    uint64_t destMac,
+    unsigned int etherType,
+    unsigned int vlanId,
+    const void* data,
+    unsigned int len)
+{
+    ZTS_UNUSED_ARG(node);
+    ZTS_UNUSED_ARG(tptr);
+    reinterpret_cast<NodeService*>(uptr)
+        ->nodeVirtualNetworkFrameFunction(net_id, nuptr, sourceMac, destMac, etherType, vlanId, data, len);
+}
+
+static int SnodePathCheckFunction(
+    ZT_Node* node,
+    void* uptr,
+    void* tptr,
+    uint64_t ztaddr,
+    int64_t localSocket,
+    const struct sockaddr_storage* remoteAddr)
+{
+    ZTS_UNUSED_ARG(node);
+    ZTS_UNUSED_ARG(tptr);
+    return reinterpret_cast<NodeService*>(uptr)->nodePathCheckFunction(ztaddr, localSocket, remoteAddr);
+}
+
+static int SnodePathLookupFunction(
+    ZT_Node* node,
+    void* uptr,
+    void* tptr,
+    uint64_t ztaddr,
+    int family,
+    struct sockaddr_storage* result)
+{
+    ZTS_UNUSED_ARG(node);
+    ZTS_UNUSED_ARG(tptr);
+    return reinterpret_cast<NodeService*>(uptr)->nodePathLookupFunction(ztaddr, family, result);
+}
+
+static void StapFrameHandler(
+    void* uptr,
+    void* tptr,
+    uint64_t net_id,
+    const MAC& from,
+    const MAC& to,
+    unsigned int etherType,
+    unsigned int vlanId,
+    const void* data,
+    unsigned int len)
+{
+    ZTS_UNUSED_ARG(tptr);
+    reinterpret_cast<NodeService*>(uptr)->tapFrameHandler(net_id, from, to, etherType, vlanId, data, len);
+}
+
 NodeService::NodeService()
     : _phy(this, false, true)
     , _node((Node*)0)
@@ -59,8 +183,8 @@ NodeService::NodeService()
     , _userDefinedWorld(false)
     , _nodeIsOnline(false)
     , _eventsEnabled(false)
-    , _events(NULL)
     , _homePath("")
+    , _events(NULL)
 {
 }
 
@@ -285,10 +409,13 @@ NodeService::ReasonForTermination NodeService::run()
                      c != mgChanges.end();
                      ++c) {
                     auto mgpair = c->second;
-                    for (std::vector<MulticastGroup>::iterator m(mgpair.first.begin()); m != mgpair.first.end(); ++m)
+                    for (std::vector<MulticastGroup>::iterator m(mgpair.first.begin()); m != mgpair.first.end(); ++m) {
                         _node->multicastSubscribe((void*)0, c->first, m->mac().toInt(), m->adi());
-                    for (std::vector<MulticastGroup>::iterator m(mgpair.second.begin()); m != mgpair.second.end(); ++m)
+                    }
+                    for (std::vector<MulticastGroup>::iterator m(mgpair.second.begin()); m != mgpair.second.end();
+                         ++m) {
                         _node->multicastUnsubscribe(c->first, m->mac().toInt(), m->adi());
+                    }
                 }
             }
 
@@ -339,8 +466,9 @@ NodeService::ReasonForTermination NodeService::run()
 
     {
         Mutex::Lock _l(_nets_m);
-        for (std::map<uint64_t, NetworkState>::iterator n(_nets.begin()); n != _nets.end(); ++n)
+        for (std::map<uint64_t, NetworkState>::iterator n(_nets.begin()); n != _nets.end(); ++n) {
             delete n->second.tap;
+        }
         _nets.clear();
     }
 
@@ -458,6 +586,8 @@ void NodeService::phyOnDatagram(
     void* data,
     unsigned long len)
 {
+    ZTS_UNUSED_ARG(uptr);
+    ZTS_UNUSED_ARG(localAddr);
     if ((len >= 16) && (reinterpret_cast<const InetAddress*>(from)->ipScope() == InetAddress::IP_SCOPE_GLOBAL))
         _lastDirectReceiveFromGlobal = OSUtils::now();
     const ZT_ResultCode rc = _node->processWirePacket(
@@ -548,6 +678,7 @@ int NodeService::nodeVirtualNetworkConfigFunction(
 
 void NodeService::nodeEventCallback(enum ZT_Event event, const void* metaData)
 {
+    ZTS_UNUSED_ARG(metaData);
     zts_node_info_t* nd = new zts_node_info_t;
     nd->node_id = _node ? _node->address() : 0x0;
     nd->ver_major = ZEROTIER_ONE_VERSION_MAJOR;
@@ -962,7 +1093,7 @@ int NodeService::networkHasRoute(uint64_t net_id, unsigned int family)
     return false;
 }
 
-int NodeService::orbit(void* tptr, uint64_t moon_roots_id, uint64_t moon_seed)
+int NodeService::orbit(uint64_t moon_roots_id, uint64_t moon_seed)
 {
     if (! moon_roots_id || ! moon_seed) {
         return ZTS_ERR_ARG;
@@ -974,7 +1105,7 @@ int NodeService::orbit(void* tptr, uint64_t moon_roots_id, uint64_t moon_seed)
     return _node->orbit(NULL, moon_roots_id, moon_seed);
 }
 
-int NodeService::deorbit(void* tptr, uint64_t moon_roots_id)
+int NodeService::deorbit(uint64_t moon_roots_id)
 {
     if (! moon_roots_id) {
         return ZTS_ERR_ARG;
@@ -1262,6 +1393,8 @@ void NodeService::nodeVirtualNetworkFrameFunction(
     const void* data,
     unsigned int len)
 {
+    ZTS_UNUSED_ARG(vlanId);
+    ZTS_UNUSED_ARG(net_id);
     NetworkState* n = reinterpret_cast<NetworkState*>(*nuptr);
     if ((! n) || (! n->tap)) {
         return;
@@ -1274,6 +1407,7 @@ int NodeService::nodePathCheckFunction(
     const int64_t localSocket,
     const struct sockaddr_storage* remoteAddr)
 {
+    ZTS_UNUSED_ARG(localSocket);
     // Make sure we're not trying to do ZeroTier-over-ZeroTier
     {
         Mutex::Lock _l(_nets_m);

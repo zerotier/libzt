@@ -20,6 +20,8 @@
 #ifndef ZTS_NODE_SERVICE_HPP
 #define ZTS_NODE_SERVICE_HPP
 
+#define ZTS_UNUSED_ARG(x) (void)x
+
 #include "Binder.hpp"
 #include "Mutex.hpp"
 #include "Node.hpp"
@@ -47,7 +49,7 @@
 
 namespace ZeroTier {
 
-class InetAddress;
+struct InetAddress;
 class VirtualTap;
 class MAC;
 class Events;
@@ -303,10 +305,10 @@ class NodeService {
     int getPathAtIdx(uint64_t peer_id, unsigned int idx, char* path, unsigned int len);
 
     /** Orbit a moon */
-    int orbit(void* tptr, uint64_t moonWorldId, uint64_t moonSeed);
+    int orbit(uint64_t moonWorldId, uint64_t moonSeed);
 
     /** De-orbit a moon */
-    int deorbit(void* tptr, uint64_t moonWorldId);
+    int deorbit(uint64_t moonWorldId);
 
     /** Return the integer-form of the node's identity */
     uint64_t getNodeId();
@@ -425,152 +427,68 @@ class NodeService {
 
     void phyOnTcpConnect(PhySocket* sock, void** uptr, bool success)
     {
-        // Intentionally left empty
+        ZTS_UNUSED_ARG(sock);
+        ZTS_UNUSED_ARG(uptr);
+        ZTS_UNUSED_ARG(success);
     }
     void phyOnTcpAccept(PhySocket* sockL, PhySocket* sockN, void** uptrL, void** uptrN, const struct sockaddr* from)
     {
-        // Intentionally left empty
+        ZTS_UNUSED_ARG(sockL);
+        ZTS_UNUSED_ARG(sockN);
+        ZTS_UNUSED_ARG(uptrL);
+        ZTS_UNUSED_ARG(uptrN);
+        ZTS_UNUSED_ARG(from);
     }
     void phyOnTcpClose(PhySocket* sock, void** uptr)
     {
-        // Intentionally left empty
+        ZTS_UNUSED_ARG(sock);
+        ZTS_UNUSED_ARG(uptr);
     }
     void phyOnTcpData(PhySocket* sock, void** uptr, void* data, unsigned long len)
     {
-        // Intentionally left empty
+        ZTS_UNUSED_ARG(sock);
+        ZTS_UNUSED_ARG(uptr);
+        ZTS_UNUSED_ARG(data);
+        ZTS_UNUSED_ARG(len);
     }
     void phyOnTcpWritable(PhySocket* sock, void** uptr)
     {
-        // Intentionally left empty
+        ZTS_UNUSED_ARG(sock);
+        ZTS_UNUSED_ARG(uptr);
     }
     void phyOnFileDescriptorActivity(PhySocket* sock, void** uptr, bool readable, bool writable)
     {
-        // Intentionally left empty
+        ZTS_UNUSED_ARG(sock);
+        ZTS_UNUSED_ARG(uptr);
+        ZTS_UNUSED_ARG(readable);
+        ZTS_UNUSED_ARG(writable);
     }
     void phyOnUnixAccept(PhySocket* sockL, PhySocket* sockN, void** uptrL, void** uptrN)
     {
-        // Intentionally left empty
+        ZTS_UNUSED_ARG(sockL);
+        ZTS_UNUSED_ARG(sockN);
+        ZTS_UNUSED_ARG(uptrL);
+        ZTS_UNUSED_ARG(uptrN);
     }
     void phyOnUnixClose(PhySocket* sock, void** uptr)
     {
-        // Intentionally left empty
+        ZTS_UNUSED_ARG(sock);
+        ZTS_UNUSED_ARG(uptr);
     }
     void phyOnUnixData(PhySocket* sock, void** uptr, void* data, unsigned long len)
     {
-        // Intentionally left empty
+        ZTS_UNUSED_ARG(sock);
+        ZTS_UNUSED_ARG(uptr);
+        ZTS_UNUSED_ARG(data);
+        ZTS_UNUSED_ARG(len);
     }
+
     void phyOnUnixWritable(PhySocket* sock, void** uptr)
     {
-        // Intentionally left empty
+        ZTS_UNUSED_ARG(sock);
+        ZTS_UNUSED_ARG(uptr);
     }
 };
-
-static int SnodeVirtualNetworkConfigFunction(
-    ZT_Node* node,
-    void* uptr,
-    void* tptr,
-    uint64_t net_id,
-    void** nuptr,
-    enum ZT_VirtualNetworkConfigOperation op,
-    const ZT_VirtualNetworkConfig* nwconf)
-{
-    return reinterpret_cast<NodeService*>(uptr)->nodeVirtualNetworkConfigFunction(net_id, nuptr, op, nwconf);
-}
-
-static void SnodeEventCallback(ZT_Node* node, void* uptr, void* tptr, enum ZT_Event event, const void* metaData)
-{
-    reinterpret_cast<NodeService*>(uptr)->nodeEventCallback(event, metaData);
-}
-
-static void SnodeStatePutFunction(
-    ZT_Node* node,
-    void* uptr,
-    void* tptr,
-    enum ZT_StateObjectType type,
-    const uint64_t id[2],
-    const void* data,
-    int len)
-{
-    reinterpret_cast<NodeService*>(uptr)->nodeStatePutFunction(type, id, data, len);
-}
-
-static int SnodeStateGetFunction(
-    ZT_Node* node,
-    void* uptr,
-    void* tptr,
-    enum ZT_StateObjectType type,
-    const uint64_t id[2],
-    void* data,
-    unsigned int maxlen)
-{
-    return reinterpret_cast<NodeService*>(uptr)->nodeStateGetFunction(type, id, data, maxlen);
-}
-
-static int SnodeWirePacketSendFunction(
-    ZT_Node* node,
-    void* uptr,
-    void* tptr,
-    int64_t localSocket,
-    const struct sockaddr_storage* addr,
-    const void* data,
-    unsigned int len,
-    unsigned int ttl)
-{
-    return reinterpret_cast<NodeService*>(uptr)->nodeWirePacketSendFunction(localSocket, addr, data, len, ttl);
-}
-
-static void SnodeVirtualNetworkFrameFunction(
-    ZT_Node* node,
-    void* uptr,
-    void* tptr,
-    uint64_t net_id,
-    void** nuptr,
-    uint64_t sourceMac,
-    uint64_t destMac,
-    unsigned int etherType,
-    unsigned int vlanId,
-    const void* data,
-    unsigned int len)
-{
-    reinterpret_cast<NodeService*>(uptr)
-        ->nodeVirtualNetworkFrameFunction(net_id, nuptr, sourceMac, destMac, etherType, vlanId, data, len);
-}
-
-static int SnodePathCheckFunction(
-    ZT_Node* node,
-    void* uptr,
-    void* tptr,
-    uint64_t ztaddr,
-    int64_t localSocket,
-    const struct sockaddr_storage* remoteAddr)
-{
-    return reinterpret_cast<NodeService*>(uptr)->nodePathCheckFunction(ztaddr, localSocket, remoteAddr);
-}
-
-static int SnodePathLookupFunction(
-    ZT_Node* node,
-    void* uptr,
-    void* tptr,
-    uint64_t ztaddr,
-    int family,
-    struct sockaddr_storage* result)
-{
-    return reinterpret_cast<NodeService*>(uptr)->nodePathLookupFunction(ztaddr, family, result);
-}
-
-static void StapFrameHandler(
-    void* uptr,
-    void* tptr,
-    uint64_t net_id,
-    const MAC& from,
-    const MAC& to,
-    unsigned int etherType,
-    unsigned int vlanId,
-    const void* data,
-    unsigned int len)
-{
-    reinterpret_cast<NodeService*>(uptr)->tapFrameHandler(net_id, from, to, etherType, vlanId, data, len);
-}
 
 }   // namespace ZeroTier
 

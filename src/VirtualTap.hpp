@@ -23,6 +23,8 @@
 #define ZTS_LWIP_THREAD_NAME "ZTNetworkStackThread"
 #define VTAP_NAME_LEN        64
 
+#define ZTS_UNUSED_ARG(x) (void)x
+
 #include "Events.hpp"
 #include "MAC.hpp"
 #include "Phy.hpp"
@@ -173,15 +175,27 @@ class VirtualTap {
 
     void phyOnTcpConnect(PhySocket* sock, void** uptr, bool success)
     {
+        ZTS_UNUSED_ARG(sock);
+        ZTS_UNUSED_ARG(uptr);
+        ZTS_UNUSED_ARG(success);
     }
     void phyOnTcpAccept(PhySocket* sockL, PhySocket* sockN, void** uptrL, void** uptrN, const struct sockaddr* from)
     {
+        ZTS_UNUSED_ARG(sockL);
+        ZTS_UNUSED_ARG(sockN);
+        ZTS_UNUSED_ARG(uptrL);
+        ZTS_UNUSED_ARG(uptrN);
+        ZTS_UNUSED_ARG(from);
     }
     void phyOnTcpClose(PhySocket* sock, void** uptr)
     {
+        ZTS_UNUSED_ARG(sock);
+        ZTS_UNUSED_ARG(uptr);
     }
     void phyOnUnixClose(PhySocket* sock, void** uptr)
     {
+        ZTS_UNUSED_ARG(sock);
+        ZTS_UNUSED_ARG(uptr);
     }
 };
 

@@ -408,6 +408,28 @@ host-pinvoke()
     cp -f $CACHE_DIR/lib/libzt.* $LIB_OUTPUT_DIR
     echo -e "\n - Build cache  : $CACHE_DIR\n - Build output : $BUILD_OUTPUT_DIR\n"
     $TREE $TARGET_BUILD_DIR
+
+    # Test C#
+    if [[ $2 = *"test"* ]]; then
+        if [[ -z "${alice_path}" ]]; then
+            echo "Please set necessary environment variables for test"
+            exit 0
+        fi
+        # TODO: This should eventually be converted to a proper dotnet project
+        # Build C# managed API library
+        # -doc:$LIB_OUTPUT_DIR/ZeroTier.Sockets.xml
+        csc -target:library -out:$LIB_OUTPUT_DIR/ZeroTier.Sockets.dll src/bindings/csharp/*.cs
+        # Build selftest
+        mkdir -p $BIN_OUTPUT_DIR
+        csc -out:$BIN_OUTPUT_DIR/selftest.exe -reference:$LIB_OUTPUT_DIR/ZeroTier.Sockets.dll test/selftest.cs
+        # Copy shared libraries into bin directory so they can be discovered by dlopen
+        cp $LIB_OUTPUT_DIR/* $BIN_OUTPUT_DIR
+        # Start Alice as server
+        MONO_THREADS_SUSPEND=preemptive; mono --debug "$BIN_OUTPUT_DIR/selftest.exe" server $alice_path $testnet $port4 &
+        sleep 5
+        # Start Bob as client
+        MONO_THREADS_SUSPEND=preemptive; mono --debug "$BIN_OUTPUT_DIR/selftest.exe" client $bob_path $testnet $alice_ip4 $port4 &
+    fi
 }
 
 # Build shared library with Java JNI wrapper symbols exported (.jar)
@@ -560,7 +582,7 @@ format-code()
     if [[ ! $(which clang-format) = "" ]];
     then
         # Eventually: find . -path ./ext -prune -false -o -type f \( -iname \*.c -o -iname \*.h -o -iname \*.cpp -o -iname \*.hpp \) -exec clang-format -i {} \;
-        clang-format -i include/*.h               \
+        clang-format-11 -i include/*.h            \
                         src/*.c                   \
                         src/*.cpp                 \
                         src/*.hpp                 \
@@ -595,37 +617,6 @@ test-c()
     "$BIN_OUTPUT_DIR/selftest-c" $alice_path $testnet $port4 $port6 &
     # Start Bob as client
     "$BIN_OUTPUT_DIR/selftest-c" $bob_path $testnet $port4 $alice_ip4 $port6 $alice_ip6 &
-}
-
-# Test C# API
-test-cs()
-{
-    if [[ -z "${alice_path}" ]]; then
-        echo "Please set necessary environment variables for test"
-        exit 0
-    fi
-    ARTIFACT="pinvoke"
-    # Default to debug so asserts aren't optimized out
-    BUILD_TYPE=${1:-debug}
-    TARGET_BUILD_DIR=$DEFAULT_HOST_BIN_OUTPUT_DIR-$ARTIFACT-$BUILD_TYPE
-    LIB_OUTPUT_DIR=$TARGET_BUILD_DIR/lib
-    BIN_OUTPUT_DIR=$TARGET_BUILD_DIR/bin
-    rm -rf $TARGET_BUILD_DIR
-    # Build C shared library exporting C# symbols
-    host-pinvoke $1
-    # TODO: This should eventually be converted to a proper dotnet project
-    # Build C# managed API library
-    csc -target:library -doc:$LIB_OUTPUT_DIR/ZeroTier.Sockets.xml -out:$LIB_OUTPUT_DIR/ZeroTier.Sockets.dll src/bindings/csharp/*.cs
-    # Build selftest
-    mkdir -p $BIN_OUTPUT_DIR
-    csc -out:$BIN_OUTPUT_DIR/selftest.exe -reference:$LIB_OUTPUT_DIR/ZeroTier.Sockets.dll test/selftest.cs
-    # Copy shared libraries into bin directory so they can be discovered by dlopen
-    cp $LIB_OUTPUT_DIR/* $BIN_OUTPUT_DIR
-    # Start Alice as server
-    mono --debug "$BIN_OUTPUT_DIR/selftest.exe" $alice_path $testnet $port4 $port6 &
-    sleep 10
-    # Start Bob as client
-    mono --debug "$BIN_OUTPUT_DIR/selftest.exe" $bob_path $testnet $port4 $alice_ip4 $port6 $alice_ip6 &
 }
 
 # Recursive deep clean

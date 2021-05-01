@@ -27,18 +27,18 @@
 %ignore zts_sockaddr_storage;
 %ignore zts_sockaddr_in6;
 
-%ignore zts_callback_msg;
-%ignore zts_node_details;
-%ignore zts_network_details;
-%ignore zts_netif_details;
-%ignore zts_virtual_network_route;
-%ignore zts_peer_details;
-%ignore zts_addr_details;
+%ignore zts_event_msg_t;
+%ignore zts_node_info_t;
+%ignore zts_net_info_t;
+%ignore zts_netif_info_t;
+%ignore zts_route_info_t;
+%ignore zts_peer_info_t;
+%ignore zts_addr_info_t;
 
-#define ZTS_CSHARP=1
+#define ZTS_ENABLE_PINVOKE 1
 
 %{
-#include "../../include/ZeroTierSockets.h"
+#include "../../../include/ZeroTierSockets.h"
 %}
 
 // Typemap for our event callback
@@ -52,4 +52,4 @@
 %enddef
 %cs_callback(CppCallback, CSharpCallbackWithStruct)
 
-%include "../../include/ZeroTierSockets.h"
+%include "../../../include/ZeroTierSockets.h"

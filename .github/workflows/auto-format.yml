@@ -9,9 +9,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v2
 
-      - name: Install clang-format
-        run: sudo apt-get install clang-format
-
       - name: Format code
         run: ./build.sh format-code
 

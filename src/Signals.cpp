@@ -36,7 +36,7 @@
 #include <execinfo.h>
 #include <signal.h>
 
-void _signal_handler(int signal)
+void zts_signal_handler(int signal)
 {
     /*
     switch(signal)
@@ -65,15 +65,15 @@ void _signal_handler(int signal)
     exit(signal);
 }
 
-void _install_signal_handlers()
+void zts_install_signal_handlers()
 {
-    signal(SIGINT, &_signal_handler);
+    signal(SIGINT, &zts_signal_handler);
     /*
-    signal(SIGABRT, &_signal_handler);
-    signal(SIGFPE, &_signal_handler);
-    signal(SIGILL, &_signal_handler);
-    signal(SIGSEGV, &_signal_handler);
-    signal(SIGTERM, &_signal_handler);
+    signal(SIGABRT, &zts_signal_handler);
+    signal(SIGFPE, &zts_signal_handler);
+    signal(SIGILL, &zts_signal_handler);
+    signal(SIGSEGV, &zts_signal_handler);
+    signal(SIGTERM, &zts_signal_handler);
     */
 }
 

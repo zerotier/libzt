@@ -9,8 +9,11 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v2
 
+      - name: Install black
+        run: pip3 install black
+
       - name: Format code
-        run: ./build.sh format-code
+        run: ./build.sh format-code "all"
 
       - name: Commit changes
         uses: joseph-henry/add-and-commit@v7

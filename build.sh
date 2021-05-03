@@ -4,6 +4,13 @@
 # | SYSTEM DISCOVERY AND CONFIGURATION                                        |
 # -----------------------------------------------------------------------------
 
+CLANG_FORMAT=clang-format-11
+
+PYTHON=python3
+PIP=pip3
+
+libzt=$(pwd)
+
 # Find and set cmake
 CMAKE=cmake3
 if [[ $(which $CMAKE) = "" ]];
@@ -356,7 +363,7 @@ host-uninstall()
 # └── pkg
 #     └── libzt-1.3.4b1-cp39-cp39-macosx_11_0_x86_64.whl
 #
-host-python-wheel()
+host-python()
 {
     ARTIFACT="python"
     # Default to release
@@ -365,30 +372,47 @@ host-python-wheel()
     TARGET_BUILD_DIR=$DEFAULT_HOST_BIN_OUTPUT_DIR-$ARTIFACT-$BUILD_TYPE
     PKG_OUTPUT_DIR=$TARGET_BUILD_DIR/pkg
     mkdir -p $PKG_OUTPUT_DIR
+    # Generate new wrapper
+    #swig -c++ -python -o src/bindings/python/zt_wrap.cxx -Iinclude src/bindings/python/zt.i
     # Requires setuptools, etc
     cd pkg/pypi && ./build.sh wheel && cp -f dist/*.whl $PKG_OUTPUT_DIR
+    echo -e "\nFinished wheel:\n"
+    echo $PKG_OUTPUT_DIR/*.whl
+
+    # Test Python wheel
+    if [[ $2 = *"test"* ]]; then
+        if [[ -z "${alice_path}" ]]; then
+            echo "Please set necessary environment variables for test"
+            exit 0
+        fi
+        pip3 uninstall -y libzt
+        pip3 install $PKG_OUTPUT_DIR/*.whl
+        cd $libzt
+        $PYTHON test/selftest.py server $alice_path $testnet $port4 &
+        $PYTHON test/selftest.py client $bob_path $testnet $alice_ip4 $port4 &
+    fi
 }
 
 # Build shared library with python wrapper symbols exported
-host-python()
-{
-    ARTIFACT="python"
-    # Default to release
-    BUILD_TYPE=${1:-release}
-    VARIANT="-DZTS_ENABLE_PYTHON=True"
-    CACHE_DIR=$DEFAULT_HOST_BUILD_CACHE_DIR-$ARTIFACT-$BUILD_TYPE
-    TARGET_BUILD_DIR=$DEFAULT_HOST_BIN_OUTPUT_DIR-$ARTIFACT-$BUILD_TYPE
-    LIB_OUTPUT_DIR=$TARGET_BUILD_DIR/lib
-    rm -rf $LIB_OUTPUT_DIR
-    mkdir -p $LIB_OUTPUT_DIR
-    # Optional step to generate new SWIG wrapper
-    swig -c++ -python -o src/bindings/python/zt_wrap.cxx -Iinclude src/bindings/python/zt.i
-    $CMAKE $VARIANT -H. -B$CACHE_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-    $CMAKE --build $CACHE_DIR $BUILD_CONCURRENCY
-    cp -f $CACHE_DIR/lib/$SHARED_LIB_NAME $LIB_OUTPUT_DIR/_libzt.so
-    echo -e "\n - Build cache  : $CACHE_DIR\n - Build output : $BUILD_OUTPUT_DIR\n"
-    $TREE $TARGET_BUILD_DIR
-}
+#host-python()
+#{
+#    ARTIFACT="python"
+#    # Default to release
+#    BUILD_TYPE=${1:-release}
+#    VARIANT="-DZTS_ENABLE_PYTHON=True"
+#    CACHE_DIR=$DEFAULT_HOST_BUILD_CACHE_DIR-$ARTIFACT-$BUILD_TYPE
+#    TARGET_BUILD_DIR=$DEFAULT_HOST_BIN_OUTPUT_DIR-$ARTIFACT-$BUILD_TYPE
+#    LIB_OUTPUT_DIR=$TARGET_BUILD_DIR/lib
+#    rm -rf $LIB_OUTPUT_DIR
+#    mkdir -p $LIB_OUTPUT_DIR
+#    # Optional step to generate new SWIG wrapper
+#    swig -c++ -python -o src/bindings/python/zt_wrap.cxx -Iinclude src/bindings/python/zt.i
+#    $CMAKE $VARIANT -H. -B$CACHE_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+#    $CMAKE --build $CACHE_DIR $BUILD_CONCURRENCY
+#    cp -f $CACHE_DIR/lib/$SHARED_LIB_NAME $LIB_OUTPUT_DIR/_libzt.so
+#    echo -e "\n - Build cache  : $CACHE_DIR\n - Build output : $BUILD_OUTPUT_DIR\n"
+#    $TREE $TARGET_BUILD_DIR
+#}
 
 # Build shared library with P/INVOKE wrapper symbols exported
 host-pinvoke()
@@ -579,26 +603,46 @@ test()
 
 format-code()
 {
-    if [[ ! $(which clang-format) = "" ]];
-    then
-        # Eventually: find . -path ./ext -prune -false -o -type f \( -iname \*.c -o -iname \*.h -o -iname \*.cpp -o -iname \*.hpp \) -exec clang-format -i {} \;
-        clang-format-11 -i include/*.h            \
-                        src/*.c                   \
-                        src/*.cpp                 \
-                        src/*.hpp                 \
-                        examples/c/*.c            \
-                        examples/csharp/*.cs      \
-                        examples/java/*.java      \
-                        test/*.c                  \
-                        test/*.cs                 \
-                        src/bindings/csharp/*.cs  \
-                        src/bindings/csharp/*.cxx \
-                        src/bindings/java/*.java  \
-                        src/bindings/java/*.cxx   \
-                        examples/csharp/*.cs
-        return 0
-    else
-        echo "Please install clang-format."
+    if [[ $1 = *"all"* ]]; then
+        format-code "clang"
+        format-code "python"
+    fi
+
+    # Clang-format
+    if [[ $1 = *"clang"* ]]; then
+        if [[ ! $(which $CLANG_FORMAT) = "" ]];
+        then
+            # Eventually: find . -path ./ext -prune -false -o -type f \( -iname \*.c -o -iname \*.h -o -iname \*.cpp -o -iname \*.hpp \) -exec clang-format -i {} \;
+            $CLANG_FORMAT -i include/*.h              \
+                            src/*.c                   \
+                            src/*.cpp                 \
+                            src/*.hpp                 \
+                            examples/c/*.c            \
+                            examples/csharp/*.cs      \
+                            examples/java/*.java      \
+                            test/*.c                  \
+                            test/*.cs                 \
+                            src/bindings/csharp/*.cs  \
+                            src/bindings/csharp/*.cxx \
+                            src/bindings/java/*.java  \
+                            src/bindings/java/*.cxx   \
+                            examples/csharp/*.cs      \
+                            src/bindings/python/*.cxx \
+                            src/bindings/python/*.h
+            return 0
+        else
+            echo "Please install clang-format"
+        fi
+    fi
+    # Python
+    if [[ $1 = *"python"* ]]; then
+        if [[ ! $($PIP list | grep black) = "" ]];
+        then
+            $PYTHON -m black src/bindings/python/*.py
+            $PYTHON -m black examples/python/*.py
+        else
+            echo "Please install python module (black)"
+        fi
     fi
 }
 
@@ -637,6 +681,8 @@ clean()
     rm -rf $ANDROID_PKG_PROJ_DIR/app/build
     rm -rf $ANDROID_PKG_PROJ_DIR/app/src/main/java/com/zerotier/libzt/*.java
     rm -rf $ANDROID_PKG_PROJ_DIR/app/.externalNativeBuild
+    # Python pkg
+    cd pkg/pypi && ./build.sh clean
     # Remove whatever remains
     find . \
         \( -name '*.dylib' \

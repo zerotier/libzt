@@ -19,6 +19,27 @@ class BinaryDistribution(Distribution):
 	def is_pure(self):
 		return False
 
+# monkey-patch for parallel compilation
+# Copied from: https://stackoverflow.com/a/13176803
+def parallelCCompile(self, sources, output_dir=None, macros=None, include_dirs=None, debug=0, extra_preargs=None, extra_postargs=None, depends=None):
+    # those lines are copied from distutils.ccompiler.CCompiler directly
+    macros, objects, extra_postargs, pp_opts, build = self._setup_compile(output_dir, macros, include_dirs, sources, depends, extra_postargs)
+    cc_args = self._get_cc_args(pp_opts, debug, extra_preargs)
+    # parallel code
+    N=16 # number of parallel compilations
+    import multiprocessing.pool
+    def _single_compile(obj):
+        try: src, ext = build[obj]
+        except KeyError: return
+        self._compile(obj, src, ext, cc_args, extra_postargs, pp_opts)
+    # convert to list, imap is evaluated on-demand
+    list(multiprocessing.pool.ThreadPool(N).imap(_single_compile,objects))
+    return objects
+import distutils.ccompiler
+distutils.ccompiler.CCompiler.compile=parallelCCompile
+
+# Build
+
 cpp_glob = []
 c_glob = []
 
@@ -30,7 +51,7 @@ if os.name == 'nt':
 
 # Everything else
 else:
-	cpp_glob.extend(list(glob.glob('native/src/bindings/python/*.cpp')))
+	cpp_glob.extend(list(glob.glob('native/src/bindings/python/*.cxx')))
 	cpp_glob.extend(list(glob.glob('native/src/*.cpp')))
 	cpp_glob.extend(list(glob.glob('native/ext/ZeroTierOne/node/*.cpp')))
 	cpp_glob.extend(list(glob.glob('native/ext/ZeroTierOne/osdep/OSUtils.cpp')))
@@ -44,13 +65,14 @@ else:
 			'native/ext/lwip/src/include',
 			'native/ext/lwip-contrib/ports/unix/port/include',
 			'native/ext/ZeroTierOne/include',
+			'native/ext/ZeroTierOne',
 			'native/ext/ZeroTierOne/node',
 			'native/ext/ZeroTierOne/service',
 			'native/ext/ZeroTierOne/osdep',
 			'native/ext/ZeroTierOne/controller']
 
 	libzt_module = Extension('libzt._libzt',
-		extra_compile_args=['-std=c++11', '-DZTS_ENABLE_PYTHON=1', '-DZT_SDK'],
+		extra_compile_args=['-std=c++11', '-DZTS_ENABLE_PYTHON=1', '-DZT_SDK', '-Wno-parentheses-equality', '-Wno-macro-redefined', '-Wno-tautological-overlap-compare', '-Wno-tautological-constant-out-of-range-compare'],
 		sources=cpp_glob, include_dirs=my_include_dirs)
 
 	# Separate C library, this is needed since C++ compiler flags are applied

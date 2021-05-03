@@ -11,12 +11,13 @@
  */
 /****/
 
+#include "ZeroTierSockets.h"
+
 #ifndef ZTS_DISABLE_CENTRAL_API
 
 #include "Debug.hpp"
 #include "Mutex.hpp"
 #include "OSUtils.hpp"
-#include "ZeroTierSockets.h"
 
 #include <cstdint>
 #include <cstring>

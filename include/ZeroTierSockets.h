@@ -1058,6 +1058,10 @@ int zts_py_getblocking(int fd);
 // Central API                                                                //
 //----------------------------------------------------------------------------//
 
+#ifdef ZTS_ENABLE_PYTHON
+#define ZTS_DISABLE_CENTRAL_API 1
+#endif
+
 #ifndef ZTS_DISABLE_CENTRAL_API
 
 #define ZTS_CENTRAL_DEFAULT_URL         "https://my.zerotier.com"

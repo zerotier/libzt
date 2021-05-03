@@ -19,6 +19,7 @@
 
 #include "Events.hpp"
 #include "NodeService.hpp"
+#include "Signals.hpp"
 #include "VirtualTap.hpp"
 
 #include <string.h>
@@ -65,7 +66,7 @@ int init_subsystems()
         return ZTS_ERR_SERVICE;
     }
 #ifdef ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
-    _install_signal_handlers();
+    zts_install_signal_handlers();
 #endif   // ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
     if (! zts_service) {
         zts_service = new NodeService();

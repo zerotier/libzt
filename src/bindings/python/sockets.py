@@ -2,9 +2,6 @@
 
 import libzt
 
-class EventCallbackClass(libzt.PythonDirectorCallbackClass):
-    """ZeroTier event callback class"""
-    pass
 
 def handle_error(err):
     """Convert libzt error code to exception"""
@@ -20,6 +17,7 @@ def handle_error(err):
     if err == libzt.ZTS_ERR_GENERAL:
         raise Exception("ZTS_ERR_GENERAL (" + str(err) + ")")
 
+
 # This implementation of errno is NOT thread safe
 # That is, this value is shared among all lower-level socket calls
 # and may change for any reason at any time if you have multiple
@@ -28,41 +26,10 @@ def errno():
     """Return errno value of low-level socket layer"""
     return libzt.cvar.zts_errno
 
-def start(path, callback, port):
-    """Start the ZeroTier service"""
-    libzt.zts_start(path, callback, port)
-
-def stop():
-    """Stop the ZeroTier service"""
-    libzt.zts_stop()
-
-def restart():
-    """[debug] Restarts the ZeroTier service and network stack"""
-    libzt.zts_restart()
-
-def free():
-    """Permenantly shuts down the network stack"""
-    libzt.zts_free()
-
-def join(network_id):
-    """Join a ZeroTier network"""
-    libzt.zts_join(network_id)
-
-def leave(network_id):
-    """Leave a ZeroTier network"""
-    libzt.zts_leave(network_id)
-
-def zts_orbit(moon_world_id, moon_seed):
-    """Orbit a moon"""
-    return libzt.zts_orbit(moon_world_id, moon_seed)
-
-def zts_deorbit(moon_world_id):
-    """De-orbit a moon"""
-    return libzt.zts_deorbit(moon_world_id)
-
 
 class socket:
     """Pythonic class that wraps low-level sockets"""
+
     _fd = -1  # native layer file descriptor
     _family = -1
     _type = -1
@@ -131,7 +98,9 @@ class socket:
         """libzt does not support this (yet)"""
         raise NotImplementedError("libzt does not support this (yet?)")
 
-    def getaddrinfo(self, host, port, sock_family=0, sock_type=0, sock_proto=0, flags=0):
+    def getaddrinfo(
+        self, host, port, sock_family=0, sock_type=0, sock_proto=0, flags=0
+    ):
         """libzt does not support this (yet)"""
         raise NotImplementedError("libzt does not support this (yet?)")
 
@@ -285,7 +254,8 @@ class socket:
     def detach(self):
         """libzt does not support this"""
         raise NotImplementedError(
-            "detach(): Not supported. OS File descriptors aren't used in libzt.")
+            "detach(): Not supported. OS File descriptors aren't used in libzt."
+        )
 
     def dup(self):
         """libzt does not support this"""
@@ -336,7 +306,7 @@ class socket:
         if backlog is not None and backlog < 0:
             backlog = 0
         if backlog is None:
-            backlog = -1      # Lower-level code picks default
+            backlog = -1  # Lower-level code picks default
 
         err = libzt.zts_py_listen(self._fd, backlog)
         if err < 0:

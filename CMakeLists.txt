@@ -72,7 +72,7 @@ include_directories(${ZTO_SRC_DIR}/include)
 include_directories(${ZTO_SRC_DIR}/node)
 include_directories(${ZTO_SRC_DIR}/osdep)
 # ZeroTier (ext)
-include_directories(${ZTO_SRC_DIR}/ext/miniupnpc)
+#include_directories(${ZTO_SRC_DIR}/ext/miniupnpc)
 include_directories(${ZTO_SRC_DIR}/ext/libnatpmp)
 # libzt
 include_directories(${PROJ_DIR}/src)
@@ -180,6 +180,7 @@ if(BUILD_MACOS_FRAMEWORK)
 endif()
 
 if(BUILD_IOS_FRAMEWORK)
+    set(ZTS_DISABLE_CENTRAL_API TRUE)
     set(BUILD_STATIC_LIB        TRUE)
     set(BUILD_SHARED_LIB        TRUE)
     set(BUILD_HOST_SELFTEST    FALSE)
@@ -668,9 +669,9 @@ endif() # BUILD_SHARED_LIB
 if(IN_XCODE)
 
     # stdint.h is needed for API definitions but can cause conflicts in certain
-    # projects where integers may already be defined. Thus this flag is used to
+    # projects where integer types may already be defined. Thus this flag is used to
     # exclude their definition in ZeroTierSockets.h
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_NO_STDINT_H=1")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_NO_STDINT_H=0")
 
     include_directories(${frameworkHeaderGlob})
 

@@ -647,154 +647,154 @@ void api_value_arg_test(int tid, uint8_t num, int8_t i8, int16_t i16, int32_t i3
         //	break;
         // Socket
         case 120:
-            assert(zts_socket(i32, i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_socket(i32, i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 121:
-            assert(zts_connect(i32, null_addr, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_connect(i32, null_addr, i32) == ZTS_ERR_SERVICE);
             break;
         case 122:
-            assert(zts_simple_connect(i32, NULL, i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_connect(i32, NULL, i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 123:
-            assert(zts_bind(i32, null_addr, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_bind(i32, null_addr, i32) == ZTS_ERR_SERVICE);
             break;
         case 124:
-            assert(zts_simple_bind(i32, NULL, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bind(i32, NULL, i32) == ZTS_ERR_SERVICE);
             break;
         case 125:
-            assert(zts_listen(i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_listen(i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 126:
-            assert(zts_accept(i32, null_addr, NULL) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_accept(i32, null_addr, NULL) == ZTS_ERR_SERVICE);
             break;
         case 127:
-            assert(zts_simple_accept(i32, NULL, i32, NULL) == ZTS_ERR_SERVICE);
+            assert(zts_accept(i32, NULL, i32, NULL) == ZTS_ERR_SERVICE);
             break;
         case 128:
-            assert(zts_setsockopt(i32, i32, i32, NULL, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_setsockopt(i32, i32, i32, NULL, i32) == ZTS_ERR_SERVICE);
             break;
         case 129:
-            assert(zts_getsockopt(i32, i32, i32, NULL, NULL) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_getsockopt(i32, i32, i32, NULL, NULL) == ZTS_ERR_SERVICE);
             break;
         case 130:
-            assert(zts_getsockname(i32, null_addr, NULL) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_getsockname(i32, null_addr, NULL) == ZTS_ERR_SERVICE);
             break;
         case 131:
-            assert(zts_getpeername(i32, null_addr, NULL) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_getpeername(i32, null_addr, NULL) == ZTS_ERR_SERVICE);
             break;
         case 132:
-            assert(zts_close(i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_close(i32) == ZTS_ERR_SERVICE);
             break;
         case 133:
-            assert(zts_select(i32, NULL, NULL, NULL, NULL) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_select(i32, NULL, NULL, NULL, NULL) == ZTS_ERR_SERVICE);
             break;
         case 134:
-            assert(zts_fcntl(i32, i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_fcntl(i32, i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 135:
-            assert(zts_poll(NULL, (zts_nfds_t)NULL, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_poll(NULL, (zts_nfds_t)NULL, i32) == ZTS_ERR_SERVICE);
             break;
         case 136:
-            assert(zts_ioctl(i32, i64, NULL) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_ioctl(i32, i64, NULL) == ZTS_ERR_SERVICE);
             break;
         case 137:
-            assert(zts_send(i32, NULL, i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_send(i32, NULL, i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 138:
-            assert(zts_sendto(i32, NULL, i32, i32, null_addr, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_sendto(i32, NULL, i32, i32, null_addr, i32) == ZTS_ERR_SERVICE);
             break;
         case 139:
-            assert(zts_sendmsg(i32, NULL, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_sendmsg(i32, NULL, i32) == ZTS_ERR_SERVICE);
             break;
         case 140:
-            assert(zts_recv(i32, NULL, i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_recv(i32, NULL, i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 141:
-            assert(zts_recvfrom(i32, NULL, i32, i32, null_addr, NULL) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_recvfrom(i32, NULL, i32, i32, null_addr, NULL) == ZTS_ERR_SERVICE);
             break;
         case 142:
-            assert(zts_recvmsg(i32, NULL, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_recvmsg(i32, NULL, i32) == ZTS_ERR_SERVICE);
             break;
         case 143:
-            assert(zts_read(i32, NULL, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_read(i32, NULL, i32) == ZTS_ERR_SERVICE);
             break;
         case 144:
-            assert(zts_readv(i32, NULL, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_readv(i32, NULL, i32) == ZTS_ERR_SERVICE);
             break;
         case 145:
-            assert(zts_write(i32, NULL, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_write(i32, NULL, i32) == ZTS_ERR_SERVICE);
             break;
         case 146:
-            assert(zts_writev(i32, nullable, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_writev(i32, nullable, i32) == ZTS_ERR_SERVICE);
             break;
         case 147:
-            assert(zts_shutdown(i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_bsd_shutdown(i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 148:
-            assert(zts_simple_set_no_delay(i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_set_no_delay(i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 149:
-            assert(zts_simple_get_no_delay(i32) == ZTS_ERR_SERVICE);
+            assert(zts_get_no_delay(i32) == ZTS_ERR_SERVICE);
             break;
         case 150:
-            assert(zts_simple_set_linger(i32, i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_set_linger(i32, i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 151:
-            assert(zts_simple_get_linger_value(i32) == ZTS_ERR_SERVICE);
+            assert(zts_get_linger_value(i32) == ZTS_ERR_SERVICE);
             break;
         case 152:
-            assert(zts_simple_get_linger_value(i32) == ZTS_ERR_SERVICE);
+            assert(zts_get_linger_value(i32) == ZTS_ERR_SERVICE);
             break;
         case 153:
-            assert(zts_simple_set_reuse_addr(i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_set_reuse_addr(i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 154:
-            assert(zts_simple_get_reuse_addr(i32) == ZTS_ERR_SERVICE);
+            assert(zts_get_reuse_addr(i32) == ZTS_ERR_SERVICE);
             break;
         case 155:
-            assert(zts_simple_set_recv_timeout(i32, i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_set_recv_timeout(i32, i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 156:
-            assert(zts_simple_get_recv_timeout(i32) == ZTS_ERR_SERVICE);
+            assert(zts_get_recv_timeout(i32) == ZTS_ERR_SERVICE);
             break;
         case 157:
-            assert(zts_simple_set_send_timeout(i32, i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_set_send_timeout(i32, i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 158:
-            assert(zts_simple_get_send_timeout(i32) == ZTS_ERR_SERVICE);
+            assert(zts_get_send_timeout(i32) == ZTS_ERR_SERVICE);
             break;
         case 159:
-            assert(zts_simple_set_send_buf_size(i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_set_send_buf_size(i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 160:
-            assert(zts_simple_get_send_buf_size(i32) == ZTS_ERR_SERVICE);
+            assert(zts_get_send_buf_size(i32) == ZTS_ERR_SERVICE);
             break;
         case 161:
-            assert(zts_simple_set_recv_buf_size(i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_set_recv_buf_size(i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 162:
-            assert(zts_simple_get_recv_buf_size(i32) == ZTS_ERR_SERVICE);
+            assert(zts_get_recv_buf_size(i32) == ZTS_ERR_SERVICE);
             break;
         case 163:
-            assert(zts_simple_set_ttl(i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_set_ttl(i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 164:
-            assert(zts_simple_get_ttl(i32) == ZTS_ERR_SERVICE);
+            assert(zts_get_ttl(i32) == ZTS_ERR_SERVICE);
             break;
         case 165:
-            assert(zts_simple_set_blocking(i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_set_blocking(i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 166:
-            assert(zts_simple_get_blocking(i32) == ZTS_ERR_SERVICE);
+            assert(zts_get_blocking(i32) == ZTS_ERR_SERVICE);
             break;
         case 167:
-            assert(zts_simple_set_keepalive(i32, i32) == ZTS_ERR_SERVICE);
+            assert(zts_set_keepalive(i32, i32) == ZTS_ERR_SERVICE);
             break;
         case 168:
-            assert(zts_simple_get_keepalive(i32) == ZTS_ERR_SERVICE);
+            assert(zts_get_keepalive(i32) == ZTS_ERR_SERVICE);
             break;
         case 169:
-            assert(zts_gethostbyname(NULL) == NULL);
+            assert(zts_bsd_gethostbyname(NULL) == NULL);
             break;
         case 170:
             assert(zts_dns_set_server(i8, null_addr) == ZTS_ERR_SERVICE);
@@ -922,133 +922,133 @@ void test_sockets()
 
     // Test simplified API, proxy for setsockopt/getsockopt/ioctl etc.
 
-    int s4 = zts_socket(ZTS_AF_INET6, ZTS_SOCK_STREAM, 0);
+    int s4 = zts_bsd_socket(ZTS_AF_INET6, ZTS_SOCK_STREAM, 0);
     assert(s4 >= 0);
 
     // TCP_NODELAY
 
     // Check value before doing anything
-    assert(zts_simple_get_no_delay(s4) == 0);
+    assert(zts_get_no_delay(s4) == 0);
     // Turn on
-    assert(zts_simple_set_no_delay(s4, 1) == ZTS_ERR_OK);
+    assert(zts_set_no_delay(s4, 1) == ZTS_ERR_OK);
     // Should return value instead of error code
-    assert(zts_simple_get_no_delay(s4) == 1);
+    assert(zts_get_no_delay(s4) == 1);
     // Turn off
-    assert(zts_simple_set_no_delay(s4, 0) == ZTS_ERR_OK);
-    assert(zts_simple_get_no_delay(s4) == ZTS_ERR_OK);
+    assert(zts_set_no_delay(s4, 0) == ZTS_ERR_OK);
+    assert(zts_get_no_delay(s4) == ZTS_ERR_OK);
 
     // SO_LINGER
 
     // Check value before doing anything
-    assert(zts_simple_get_linger_enabled(s4) == 0);
-    assert(zts_simple_get_linger_value(s4) == 0);
+    assert(zts_get_linger_enabled(s4) == 0);
+    assert(zts_get_linger_value(s4) == 0);
     // Turn on, set to 7 seconds
-    assert(zts_simple_set_linger(s4, 1, 7) == ZTS_ERR_OK);
-    assert(zts_simple_get_linger_enabled(s4) == 1);
-    assert(zts_simple_get_linger_value(s4) == 7);
-    assert(zts_simple_set_linger(s4, 0, 0) == ZTS_ERR_OK);
+    assert(zts_set_linger(s4, 1, 7) == ZTS_ERR_OK);
+    assert(zts_get_linger_enabled(s4) == 1);
+    assert(zts_get_linger_value(s4) == 7);
+    assert(zts_set_linger(s4, 0, 0) == ZTS_ERR_OK);
     // Turn off
-    assert(zts_simple_get_linger_enabled(s4) == 0);
-    assert(zts_simple_get_linger_value(s4) == 0);
+    assert(zts_get_linger_enabled(s4) == 0);
+    assert(zts_get_linger_value(s4) == 0);
 
     // SO_REUSEADDR
 
     // Check value before doing anything
-    assert(zts_simple_get_reuse_addr(s4) == 0);
+    assert(zts_get_reuse_addr(s4) == 0);
     // Turn on
-    assert(zts_simple_set_reuse_addr(s4, 1) == ZTS_ERR_OK);
+    assert(zts_set_reuse_addr(s4, 1) == ZTS_ERR_OK);
     // Should return value instead of error code
-    assert(zts_simple_get_reuse_addr(s4) == 1);
+    assert(zts_get_reuse_addr(s4) == 1);
     // Turn off
-    assert(zts_simple_set_reuse_addr(s4, 0) == ZTS_ERR_OK);
-    assert(zts_simple_get_reuse_addr(s4) == ZTS_ERR_OK);
+    assert(zts_set_reuse_addr(s4, 0) == ZTS_ERR_OK);
+    assert(zts_get_reuse_addr(s4) == ZTS_ERR_OK);
 
     // SO_RCVTIMEO
 
     // Check value before doing anything
-    assert(zts_simple_get_recv_timeout(s4) == 0);
+    assert(zts_get_recv_timeout(s4) == 0);
     // Set to value
-    assert(zts_simple_set_recv_timeout(s4, 3, 0) == ZTS_ERR_OK);
-    assert(zts_simple_get_recv_timeout(s4) == 3);
-    assert(zts_simple_set_recv_timeout(s4, 0, 0) == ZTS_ERR_OK);
+    assert(zts_set_recv_timeout(s4, 3, 0) == ZTS_ERR_OK);
+    assert(zts_get_recv_timeout(s4) == 3);
+    assert(zts_set_recv_timeout(s4, 0, 0) == ZTS_ERR_OK);
     // Set to zero
-    assert(zts_simple_get_recv_timeout(s4) == 0);
+    assert(zts_get_recv_timeout(s4) == 0);
 
     // SO_SNDTIMEO
 
     // Check value before doing anything
-    assert(zts_simple_get_send_timeout(s4) == 0);
+    assert(zts_get_send_timeout(s4) == 0);
     // Set to value
-    assert(zts_simple_set_send_timeout(s4, 4, 0) == ZTS_ERR_OK);
-    assert(zts_simple_get_send_timeout(s4) == 4);
-    assert(zts_simple_set_send_timeout(s4, 0, 0) == ZTS_ERR_OK);
+    assert(zts_set_send_timeout(s4, 4, 0) == ZTS_ERR_OK);
+    assert(zts_get_send_timeout(s4) == 4);
+    assert(zts_set_send_timeout(s4, 0, 0) == ZTS_ERR_OK);
     // Set to zero
-    assert(zts_simple_get_send_timeout(s4) == 0);
+    assert(zts_get_send_timeout(s4) == 0);
 
     // SO_SNDBUF
 
     // Check value before doing anything
-    assert(zts_simple_get_send_buf_size(s4) == -1);   // Unimplemented
+    assert(zts_get_send_buf_size(s4) == -1);   // Unimplemented
     // Set to 7 seconds
-    assert(zts_simple_set_send_buf_size(s4, 1024) == ZTS_ERR_OK);
-    assert(zts_simple_get_send_buf_size(s4) == -1);   // Unimplemented
-    assert(zts_simple_set_send_buf_size(s4, 0) == ZTS_ERR_OK);
+    assert(zts_set_send_buf_size(s4, 1024) == ZTS_ERR_OK);
+    assert(zts_get_send_buf_size(s4) == -1);   // Unimplemented
+    assert(zts_set_send_buf_size(s4, 0) == ZTS_ERR_OK);
     // Set to zero
-    assert(zts_simple_get_send_buf_size(s4) == -1);   // Unimplemented
+    assert(zts_get_send_buf_size(s4) == -1);   // Unimplemented
 
     // SO_RCVBUF
 
     // Check value before doing anything
-    assert(zts_simple_get_recv_buf_size(s4) > 0);
+    assert(zts_get_recv_buf_size(s4) > 0);
     // Set to value
-    assert(zts_simple_set_recv_buf_size(s4, 1024) == ZTS_ERR_OK);
-    assert(zts_simple_get_recv_buf_size(s4) == 1024);
-    assert(zts_simple_set_recv_buf_size(s4, 0) == ZTS_ERR_OK);
+    assert(zts_set_recv_buf_size(s4, 1024) == ZTS_ERR_OK);
+    assert(zts_get_recv_buf_size(s4) == 1024);
+    assert(zts_set_recv_buf_size(s4, 0) == ZTS_ERR_OK);
     // Set to zero
-    assert(zts_simple_get_recv_buf_size(s4) == 0);
+    assert(zts_get_recv_buf_size(s4) == 0);
 
     // IP_TTL
 
     // Check value before doing anything
-    assert(zts_simple_get_ttl(s4) == 255);   // Defaults to max
+    assert(zts_get_ttl(s4) == 255);   // Defaults to max
     // Set to value
-    assert(zts_simple_set_ttl(s4, 128) == ZTS_ERR_OK);
-    assert(zts_simple_get_ttl(s4) == 128);
-    assert(zts_simple_set_ttl(s4, 0) == ZTS_ERR_OK);
+    assert(zts_set_ttl(s4, 128) == ZTS_ERR_OK);
+    assert(zts_get_ttl(s4) == 128);
+    assert(zts_set_ttl(s4, 0) == ZTS_ERR_OK);
     // Set to zero
-    assert(zts_simple_get_ttl(s4) == 0);
+    assert(zts_get_ttl(s4) == 0);
 
     // O_NONBLOCK
 
     // Check value before doing anything
-    assert(zts_simple_get_blocking(s4) == 1);
+    assert(zts_get_blocking(s4) == 1);
     // Turn off (non-blocking)
-    assert(zts_simple_set_blocking(s4, 0) == ZTS_ERR_OK);
+    assert(zts_set_blocking(s4, 0) == ZTS_ERR_OK);
     // Should return value instead of error code
-    assert(zts_simple_get_blocking(s4) == 0);
+    assert(zts_get_blocking(s4) == 0);
     // Turn off
-    assert(zts_simple_set_blocking(s4, 1) == ZTS_ERR_OK);
-    assert(zts_simple_get_blocking(s4) == 1);
+    assert(zts_set_blocking(s4, 1) == ZTS_ERR_OK);
+    assert(zts_get_blocking(s4) == 1);
 
     // SO_KEEPALIVE
 
     // Check value before doing anything
-    assert(zts_simple_get_keepalive(s4) == 0);
+    assert(zts_get_keepalive(s4) == 0);
     // Turn on
-    assert(zts_simple_set_keepalive(s4, 1) == ZTS_ERR_OK);
+    assert(zts_set_keepalive(s4, 1) == ZTS_ERR_OK);
     // Should return value instead of error code
-    assert(zts_simple_get_keepalive(s4) == 1);
+    assert(zts_get_keepalive(s4) == 1);
     // Turn off
-    assert(zts_simple_set_keepalive(s4, 0) == ZTS_ERR_OK);
-    assert(zts_simple_get_keepalive(s4) == ZTS_ERR_OK);
+    assert(zts_set_keepalive(s4, 0) == ZTS_ERR_OK);
+    assert(zts_get_keepalive(s4) == ZTS_ERR_OK);
 
     // TODO
 
     // char peername[ZTS_INET6_ADDRSTRLEN] = { 0 };
     // int port = 0;
-    // int res = zts_simple_getpeername(accfd, peername, ZTS_INET6_ADDRSTRLEN, &port);
+    // int res = zts_getpeername(accfd, peername, ZTS_INET6_ADDRSTRLEN, &port);
     // printf("getpeername = %s : %d (%d)\n", peername, port, res);
-    // res = zts_simple_getsockname(accfd, peername, ZTS_INET6_ADDRSTRLEN, &port);
+    // res = zts_getsockname(accfd, peername, ZTS_INET6_ADDRSTRLEN, &port);
     // printf("getsockname = %s : %d (%d)\n", peername, port, res);
 
     // Test DNS client functionality
@@ -1090,7 +1090,7 @@ void test_sockets()
     // Test shutting down the service
 
     zts_node_stop();
-    s4 = zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
+    s4 = zts_bsd_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
     assert(s4 == ZTS_ERR_SERVICE);
 }
 
@@ -1099,7 +1099,7 @@ void test_sockets()
 //----------------------------------------------------------------------------//
 
 #define MAX_CONNECT_TIME 60   // outer re-attempt loop
-#define CONNECT_TIMEOUT  30   // zts_simple_connect, ms
+#define CONNECT_TIMEOUT  30   // zts_connect, ms
 #define BUFLEN           128
 char* msg = "welcome to the machine";
 
@@ -1119,13 +1119,13 @@ void test_server_socket_usage(uint16_t port4, uint16_t port6)
     // IPv4 test
 
     DEBUG_INFO("server4: will listen on: 0.0.0.0:%d", port4);
-    int s4 = zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
+    int s4 = zts_bsd_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
     assert(s4 == 0 && zts_errno == 0);
 
-    err = zts_simple_bind(s4, "0.0.0.0", port4);
+    err = zts_bind(s4, "0.0.0.0", port4);
     assert(err == ZTS_ERR_OK && zts_errno == 0);
 
-    err = zts_listen(s4, 1);
+    err = zts_bsd_listen(s4, 1);
     assert(err == ZTS_ERR_OK && zts_errno == 0);
 
     struct zts_sockaddr_in in4;
@@ -1135,7 +1135,7 @@ void test_server_socket_usage(uint16_t port4, uint16_t port6)
     clock_gettime(CLOCK_MONOTONIC, &start);
     do {
         DEBUG_INFO("server4: accepting...");
-        acc4 = zts_accept(s4, &in4, &addrlen4);
+        acc4 = zts_bsd_accept(s4, &in4, &addrlen4);
         zts_util_delay(250);
         clock_gettime(CLOCK_MONOTONIC, &now);
         time_diff = (now.tv_sec - start.tv_sec);
@@ -1146,20 +1146,20 @@ void test_server_socket_usage(uint16_t port4, uint16_t port6)
     // Read message
 
     memset(dstbuf, 0, buflen);
-    bytes_read = zts_read(acc4, dstbuf, buflen);
+    bytes_read = zts_bsd_read(acc4, dstbuf, buflen);
     DEBUG_INFO("server4: read (%d) bytes", bytes_read);
     assert(bytes_read == msglen && zts_errno == 0);
 
     // Send message
 
-    bytes_sent = zts_write(acc4, msg, msglen);
+    bytes_sent = zts_bsd_write(acc4, msg, msglen);
     DEBUG_INFO("server4: wrote (%d) bytes", bytes_sent);
     assert(bytes_sent == msglen && zts_errno == 0);
 
-    zts_close(s4);
+    zts_bsd_close(s4);
     assert(err == ZTS_ERR_OK && zts_errno == 0);
 
-    zts_close(acc4);
+    zts_bsd_close(acc4);
     assert(err == ZTS_ERR_OK && zts_errno == 0);
 
     assert(bytes_sent == bytes_read);
@@ -1173,13 +1173,13 @@ void test_server_socket_usage(uint16_t port4, uint16_t port6)
     // IPv6 test
 
     DEBUG_INFO("server6: will listen on: [::]:%d", port6);
-    int s6 = zts_socket(ZTS_AF_INET6, ZTS_SOCK_STREAM, 0);
+    int s6 = zts_bsd_socket(ZTS_AF_INET6, ZTS_SOCK_STREAM, 0);
     assert(s6 == 0 && zts_errno == 0);
 
-    err = zts_simple_bind(s6, "::", port6);
+    err = zts_bind(s6, "::", port6);
     assert(err == ZTS_ERR_OK && zts_errno == 0);
 
-    err = zts_listen(s6, 1);
+    err = zts_bsd_listen(s6, 1);
     assert(err == ZTS_ERR_OK && zts_errno == 0);
 
     struct zts_sockaddr_in6 in6;
@@ -1189,7 +1189,7 @@ void test_server_socket_usage(uint16_t port4, uint16_t port6)
     clock_gettime(CLOCK_MONOTONIC, &start);
     do {
         DEBUG_INFO("server6: accepting...");
-        acc6 = zts_accept(s6, &in6, &addrlen6);
+        acc6 = zts_bsd_accept(s6, &in6, &addrlen6);
         zts_util_delay(250);
         clock_gettime(CLOCK_MONOTONIC, &now);
         time_diff = (now.tv_sec - start.tv_sec);
@@ -1200,24 +1200,24 @@ void test_server_socket_usage(uint16_t port4, uint16_t port6)
 
     // Read message
     memset(dstbuf, 0, buflen);
-    bytes_read = zts_read(acc6, dstbuf, buflen);
+    bytes_read = zts_bsd_read(acc6, dstbuf, buflen);
     DEBUG_INFO("server6: read (%d) bytes", bytes_read);
     assert(bytes_read == msglen && zts_errno == 0);
 
     // Send message
-    bytes_sent = zts_write(acc6, msg, msglen);
+    bytes_sent = zts_bsd_write(acc6, msg, msglen);
     DEBUG_INFO("server6: wrote (%d) bytes", bytes_sent);
     assert(bytes_sent == msglen && zts_errno == 0);
 
-    zts_close(s6);
+    zts_bsd_close(s6);
     assert(err == ZTS_ERR_OK && zts_errno == 0);
 
-    zts_close(acc6);
+    zts_bsd_close(acc6);
     assert(err == ZTS_ERR_OK && zts_errno == 0);
 
     zts_node_stop();
     assert(err == ZTS_ERR_OK && zts_errno == 0);
-    int s = zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
+    int s = zts_bsd_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
     assert(s == ZTS_ERR_SERVICE);
 
     assert(bytes_sent == bytes_read);
@@ -1249,16 +1249,16 @@ void test_client_socket_usage(char* ip4, uint16_t port4, char* ip6, uint16_t por
     // IPv4 test
 
     err = ZTS_ERR_OK;
-    int s4 = zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
+    int s4 = zts_bsd_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
     assert(err == ZTS_ERR_OK && zts_errno == 0);
 
-    zts_simple_set_blocking(s4, 1);
+    zts_set_blocking(s4, 1);
     assert(err == ZTS_ERR_OK && zts_errno == 0);
 
     clock_gettime(CLOCK_MONOTONIC, &start);
     do {
         DEBUG_INFO("client4: connecting to: %s:%d", ip4, port4);
-        err = zts_simple_connect(s4, ip4, port4, CONNECT_TIMEOUT);
+        err = zts_connect(s4, ip4, port4, CONNECT_TIMEOUT);
         zts_util_delay(500);
         clock_gettime(CLOCK_MONOTONIC, &now);
         time_diff = (now.tv_sec - start.tv_sec);
@@ -1267,19 +1267,19 @@ void test_client_socket_usage(char* ip4, uint16_t port4, char* ip6, uint16_t por
 
     DEBUG_INFO("client4: connected");
     // Send message
-    bytes_sent = zts_write(s4, msg, msglen);
+    bytes_sent = zts_bsd_write(s4, msg, msglen);
     DEBUG_INFO("client4: wrote (%d) bytes", bytes_sent);
     assert(bytes_sent == msglen && zts_errno == 0);
 
     // Read message
     memset(dstbuf, 0, buflen);
-    bytes_read = zts_read(s4, dstbuf, buflen);
+    bytes_read = zts_bsd_read(s4, dstbuf, buflen);
     assert(bytes_read == msglen && zts_errno == 0);
 
     DEBUG_INFO("client4: read (%d) bytes", bytes_read);
     assert(bytes_sent == bytes_read && zts_errno == 0);
 
-    zts_close(s4);
+    zts_bsd_close(s4);
     assert(err == ZTS_ERR_OK && zts_errno == 0);
 
     assert(bytes_sent == bytes_read);
@@ -1293,16 +1293,16 @@ void test_client_socket_usage(char* ip4, uint16_t port4, char* ip6, uint16_t por
     // IPv6 test
 
     err = ZTS_ERR_OK;
-    int s6 = zts_socket(ZTS_AF_INET6, ZTS_SOCK_STREAM, 0);
+    int s6 = zts_bsd_socket(ZTS_AF_INET6, ZTS_SOCK_STREAM, 0);
     assert(err == ZTS_ERR_OK && zts_errno == 0);
 
-    zts_simple_set_blocking(s6, 1);
+    zts_set_blocking(s6, 1);
     assert(err == ZTS_ERR_OK && zts_errno == 0);
 
     clock_gettime(CLOCK_MONOTONIC, &start);
     do {
         DEBUG_INFO("client6: connecting to: %s:%d", ip6, port6);
-        err = zts_simple_connect(s6, ip6, port6, CONNECT_TIMEOUT);
+        err = zts_connect(s6, ip6, port6, CONNECT_TIMEOUT);
         zts_util_delay(500);
         clock_gettime(CLOCK_MONOTONIC, &now);
         time_diff = (now.tv_sec - start.tv_sec);
@@ -1311,24 +1311,24 @@ void test_client_socket_usage(char* ip4, uint16_t port4, char* ip6, uint16_t por
 
     DEBUG_INFO("client6: connected");
     // Send message
-    bytes_sent = zts_write(s6, msg, msglen);
+    bytes_sent = zts_bsd_write(s6, msg, msglen);
     DEBUG_INFO("client6: wrote (%d) bytes", bytes_sent);
     assert(bytes_sent == msglen && zts_errno == 0);
 
     // Read message
     memset(dstbuf, 0, buflen);
-    bytes_read = zts_read(s6, dstbuf, buflen);
+    bytes_read = zts_bsd_read(s6, dstbuf, buflen);
     assert(bytes_read == msglen && zts_errno == 0);
 
     DEBUG_INFO("client6: read (%d) bytes", bytes_read);
     assert(bytes_sent == bytes_read && zts_errno == 0);
 
-    zts_close(s6);
+    zts_bsd_close(s6);
     assert(err == ZTS_ERR_OK && zts_errno == 0);
 
     zts_node_stop();
     assert(err == ZTS_ERR_OK && zts_errno == 0);
-    int s = zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
+    int s = zts_bsd_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
     assert(s == ZTS_ERR_SERVICE);
 
     assert(bytes_sent == bytes_read);

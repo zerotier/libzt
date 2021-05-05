@@ -4,6 +4,16 @@
 # | SYSTEM DISCOVERY AND CONFIGURATION                                        |
 # -----------------------------------------------------------------------------
 
+check_submodules()
+{
+    if [ "$(ls -A ext/lwip)" ] && [ "$(ls -A ext/lwip-contrib)" ] && [ "$(ls -A ext/ZeroTierOne)" ]; then
+        :
+    else
+        echo "Submodules seem to be missing. Please run: git submodule update --init"
+        exit 1
+    fi
+}
+
 CLANG_FORMAT=clang-format-11
 
 PYTHON=python3
@@ -126,6 +136,7 @@ gethosttype()
 #
 xcframework()
 {
+    check_submodules
     if [[ ! $OSNAME = *"darwin"* ]]; then
         echo "Can only build this on a Mac"
         exit 0
@@ -179,6 +190,7 @@ xcframework()
 #
 iphonesimulator-framework()
 {
+    check_submodules
     if [[ ! $OSNAME = *"darwin"* ]]; then
         echo "Can only build this on a Mac"
         exit 0
@@ -228,6 +240,7 @@ iphonesimulator-framework()
 #
 macos-framework()
 {
+    check_submodules
     if [[ ! $OSNAME = *"darwin"* ]]; then
         echo "Can only build this on a Mac"
         exit 0
@@ -274,6 +287,7 @@ macos-framework()
 #
 iphoneos-framework()
 {
+    check_submodules
     if [[ ! $OSNAME = *"darwin"* ]]; then
         echo "Can only build this on a Mac"
         exit 0
@@ -322,6 +336,7 @@ iphoneos-framework()
 #
 host()
 {
+    check_submodules
     ARTIFACT="host"
     # Default to release
     BUILD_TYPE=${1:-release}
@@ -365,6 +380,7 @@ host-uninstall()
 #
 host-python()
 {
+    check_submodules
     ARTIFACT="python"
     # Default to release
     BUILD_TYPE=${1:-release}
@@ -417,6 +433,7 @@ host-python()
 # Build shared library with P/INVOKE wrapper symbols exported
 host-pinvoke()
 {
+    check_submodules
     ARTIFACT="pinvoke"
     # Default to release
     BUILD_TYPE=${1:-release}
@@ -459,6 +476,7 @@ host-pinvoke()
 # Build shared library with Java JNI wrapper symbols exported (.jar)
 host-jar()
 {
+    check_submodules
     ARTIFACT="jar"
     # Default to release
     BUILD_TYPE=${1:-release}
@@ -550,6 +568,7 @@ fi
 #
 android-aar()
 {
+    check_submodules
     ARTIFACT="android"
     BUILD_TYPE=${1:-release} # Default to release
     CMAKE_SWITCH="ZTS_ENABLE_JAVA"
@@ -580,6 +599,7 @@ android-aar()
 # the core C API, not any of the language bindings.
 test()
 {
+    check_submodules
     ARTIFACT="test"
     # Default to release
     BUILD_TYPE=${1:-release}

@@ -701,8 +701,6 @@ clean()
     rm -rf $ANDROID_PKG_PROJ_DIR/app/build
     rm -rf $ANDROID_PKG_PROJ_DIR/app/src/main/java/com/zerotier/libzt/*.java
     rm -rf $ANDROID_PKG_PROJ_DIR/app/.externalNativeBuild
-    # Python pkg
-    cd pkg/pypi && ./build.sh clean
     # Remove whatever remains
     find . \
         \( -name '*.dylib' \
@@ -721,6 +719,8 @@ clean()
         \) -exec rm -rf {} +
 
     find . -type d -name "__pycache__" -exec rm -rf {} +
+    # Python pkg
+    cd pkg/pypi && ./build.sh clean
 }
 
 list()

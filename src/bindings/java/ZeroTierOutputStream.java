@@ -39,7 +39,7 @@ public class ZeroTierOutputStream extends OutputStream {
         it and free resources. Resources will be properly freed when the
         socket implementation's native close() is called or if both I/OStreams
         are closed separately */
-        ZeroTierNative.zts_shutdown(zfd, ZeroTierNative.ZTS_SHUT_WR);
+        ZeroTierNative.zts_bsd_shutdown(zfd, ZeroTierNative.ZTS_SHUT_WR);
         zfd = -1;
     }
 
@@ -50,7 +50,7 @@ public class ZeroTierOutputStream extends OutputStream {
      */
     public void write(byte[] originBuffer) throws IOException
     {
-        int bytesWritten = ZeroTierNative.zts_write(zfd, originBuffer);
+        int bytesWritten = ZeroTierNative.zts_bsd_write(zfd, originBuffer);
         if (bytesWritten < 0) {
             throw new IOException("write(originBuffer[]), errno=" + bytesWritten);
         }
@@ -75,7 +75,7 @@ public class ZeroTierOutputStream extends OutputStream {
         if ((offset + numBytes) > originBuffer.length) {
             throw new IndexOutOfBoundsException("(offset+numBytes) > originBuffer.length");
         }
-        int bytesWritten = ZeroTierNative.zts_write_offset(zfd, originBuffer, offset, numBytes);
+        int bytesWritten = ZeroTierNative.zts_bsd_write_offset(zfd, originBuffer, offset, numBytes);
         if (bytesWritten < 0) {
             throw new IOException("write(originBuffer[],offset,numBytes), errno=" + bytesWritten);
         }
@@ -89,7 +89,7 @@ public class ZeroTierOutputStream extends OutputStream {
     public void write(int d) throws IOException
     {
         byte lowByte = (byte)(d & 0xFF);
-        int bytesWritten = ZeroTierNative.zts_write_byte(zfd, lowByte);
+        int bytesWritten = ZeroTierNative.zts_bsd_write_byte(zfd, lowByte);
         if (bytesWritten < 0) {
             throw new IOException("write(d), errno=" + bytesWritten);
         }

@@ -97,7 +97,7 @@ int main(int argc, char** argv)
     }
 
     // Do network stuff!
-    // zts_socket, zts_connect, etc
+    // zts_bsd_socket, zts_bsd_connect, etc
 
     printf("Node %llx is now online. Idling.\n", zts_node_get_id());
     while (1) {

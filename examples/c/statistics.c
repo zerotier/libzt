@@ -57,7 +57,7 @@ int main(int argc, char** argv)
     printf("Join %llx from another machine and ping me at %s\n", net_id, ipstr);
 
     // Do network stuff!
-    // zts_socket, zts_connect, etc
+    // zts_bsd_socket, zts_bsd_connect, etc
 
     // Show protocol statistics
 

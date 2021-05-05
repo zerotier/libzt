@@ -69,20 +69,20 @@ int main(int argc, char** argv)
     // Sockets
 
     printf("Creating socket...\n");
-    if ((fd = zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0)) < 0) {
+    if ((fd = zts_bsd_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0)) < 0) {
         printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, err, zts_errno);
         exit(1);
     }
     printf("Binding...\n");
     // Can also use:
-    //   zts_bind(int fd, const struct zts_sockaddr* addr, zts_socklen_t addrlen)
-    if ((err = zts_simple_bind(fd, local_addr, local_port) < 0)) {
+    //   zts_bsd_bind(int fd, const struct zts_sockaddr* addr, zts_socklen_t addrlen)
+    if ((err = zts_bind(fd, local_addr, local_port) < 0)) {
         printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, err, zts_errno);
         exit(1);
     }
     printf("Listening...\n");
     int backlog = 100;
-    if ((err = zts_listen(fd, backlog)) < 0) {
+    if ((err = zts_bsd_listen(fd, backlog)) < 0) {
         printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, err, zts_errno);
         exit(1);
     }
@@ -93,12 +93,12 @@ int main(int argc, char** argv)
     while (1) {
         // Accept
         // Can also use
-        //   zts_accept(int fd, struct zts_sockaddr* addr, zts_socklen_t* addrlen)
+        //   zts_bsd_accept(int fd, struct zts_sockaddr* addr, zts_socklen_t* addrlen)
 
         char ipstr[ZTS_INET6_ADDRSTRLEN] = { 0 };
         unsigned int port = 0;
         printf("Accepting on listening socket...\n");
-        if ((accfd = zts_simple_accept(fd, ipstr, ZTS_INET6_ADDRSTRLEN, &port)) < 0) {
+        if ((accfd = zts_accept(fd, ipstr, ZTS_INET6_ADDRSTRLEN, &port)) < 0) {
             printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, err, zts_errno);
         }
         printf("Accepted connection from %s:%d\n", ipstr, port);
@@ -108,16 +108,16 @@ int main(int argc, char** argv)
 
     // Technique 1: ZTS_O_NONBLOCK
     if (0) {
-        zts_fcntl(fd, ZTS_F_SETFL, ZTS_O_NONBLOCK);
-        zts_fcntl(accfd, ZTS_F_SETFL, ZTS_O_NONBLOCK);
+        zts_bsd_fcntl(fd, ZTS_F_SETFL, ZTS_O_NONBLOCK);
+        zts_bsd_fcntl(accfd, ZTS_F_SETFL, ZTS_O_NONBLOCK);
         while (1) {
-            bytes = zts_recv(accfd, recvBuf, sizeof(recvBuf), 0);
-            printf("zts_recv(%d, ...)=%d\n", accfd, bytes);
+            bytes = zts_bsd_recv(accfd, recvBuf, sizeof(recvBuf), 0);
+            printf("zts_bsd_recv(%d, ...)=%d\n", accfd, bytes);
             zts_util_delay(100);
         }
     }
 
-    // Technique 2: zts_select
+    // Technique 2: zts_bsd_select
     if (0) {
         struct zts_timeval tv;
         tv.tv_sec = 0;
@@ -128,21 +128,21 @@ int main(int argc, char** argv)
         ZTS_FD_SET(accfd, &active_fd_set);
         while (1) {
             read_fd_set = active_fd_set;
-            if ((result = zts_select(ZTS_FD_SETSIZE, &read_fd_set, NULL, NULL, &tv) < 0)) {
+            if ((result = zts_bsd_select(ZTS_FD_SETSIZE, &read_fd_set, NULL, NULL, &tv) < 0)) {
                 // perror ("select");
                 exit(1);
             }
             for (int i = 0; i < ZTS_FD_SETSIZE; i++) {
                 if (ZTS_FD_ISSET(i, &read_fd_set)) {
-                    bytes = zts_recv(accfd, recvBuf, sizeof(recvBuf), 0);
-                    printf("zts_recv(%d, ...)=%d\n", i, bytes);
+                    bytes = zts_bsd_recv(accfd, recvBuf, sizeof(recvBuf), 0);
+                    printf("zts_bsd_recv(%d, ...)=%d\n", i, bytes);
                 }
                 // ZTS_FD_CLR(i, &active_fd_set);
             }
         }
     }
 
-    // Technique 3: zts_poll
+    // Technique 3: zts_bsd_poll
     if (1) {
         int numfds = 0;
         struct zts_pollfd poll_set[16];
@@ -153,17 +153,17 @@ int main(int argc, char** argv)
         int result = 0;
         int timeout_ms = 50;
         while (1) {
-            result = zts_poll(poll_set, numfds, timeout_ms);
-            printf("zts_poll()=%d\n", result);
+            result = zts_bsd_poll(poll_set, numfds, timeout_ms);
+            printf("zts_bsd_poll()=%d\n", result);
             for (int i = 0; i < numfds; i++) {
                 if (poll_set[i].revents & ZTS_POLLIN) {
-                    bytes = zts_recv(poll_set[i].fd, recvBuf, sizeof(recvBuf), 0);
-                    printf("zts_recv(%d, ...)=%d\n", i, bytes);
+                    bytes = zts_bsd_recv(poll_set[i].fd, recvBuf, sizeof(recvBuf), 0);
+                    printf("zts_bsd_recv(%d, ...)=%d\n", i, bytes);
                 }
             }
         }
     }
 
-    err = zts_close(fd);
+    err = zts_bsd_close(fd);
     return zts_node_stop();
 }

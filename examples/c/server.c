@@ -72,12 +72,12 @@ int main(int argc, char** argv)
 
     // Accept incoming connection
 
-    // Can also use traditional: zts_socket(), zts_bind(), zts_listen(), zts_accept(), etc.
+    // Can also use traditional: zts_bsd_socket(), zts_bsd_bind(), zts_bsd_listen(), zts_bsd_accept(), etc.
 
     char remote_addr[ZTS_INET6_ADDRSTRLEN] = { 0 };
     int remote_port = 0;
     int len = ZTS_INET6_ADDRSTRLEN;
-    if ((accfd = zts_simple_tcp_server(local_addr, local_port, remote_addr, len, &remote_port)) < 0) {
+    if ((accfd = zts_tcp_server(local_addr, local_port, remote_addr, len, &remote_port)) < 0) {
         printf("Error (fd=%d, zts_errno=%d). Exiting.\n", accfd, zts_errno);
         exit(1);
     }
@@ -89,13 +89,13 @@ int main(int argc, char** argv)
     char recvBuf[128] = { 0 };
 
     printf("Reading message string from client...\n");
-    if ((bytes = zts_read(accfd, recvBuf, sizeof(recvBuf))) < 0) {
+    if ((bytes = zts_bsd_read(accfd, recvBuf, sizeof(recvBuf))) < 0) {
         printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, bytes, zts_errno);
         exit(1);
     }
     printf("Read %d bytes: %s\n", bytes, recvBuf);
     printf("Sending message string to client...\n");
-    if ((bytes = zts_write(accfd, recvBuf, bytes)) < 0) {
+    if ((bytes = zts_bsd_write(accfd, recvBuf, bytes)) < 0) {
         printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, bytes, zts_errno);
         exit(1);
     }
@@ -104,7 +104,7 @@ int main(int argc, char** argv)
     // Close
 
     printf("Closing sockets\n");
-    err = zts_close(accfd);
-    err = zts_close(fd);
+    err = zts_bsd_close(accfd);
+    err = zts_bsd_close(fd);
     return zts_node_stop();
 }

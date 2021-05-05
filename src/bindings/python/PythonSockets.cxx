@@ -29,7 +29,7 @@ int zts_py_setblocking(int fd, int block)
 {
     int new_flags, cur_flags, err = 0;
 
-    Py_BEGIN_ALLOW_THREADS cur_flags = zts_fcntl(fd, F_GETFL, 0);
+    Py_BEGIN_ALLOW_THREADS cur_flags = zts_bsd_fcntl(fd, F_GETFL, 0);
 
     if (cur_flags < 0) {
         err = ZTS_ERR_SOCKET;
@@ -44,7 +44,7 @@ int zts_py_setblocking(int fd, int block)
     }
 
     if (new_flags != cur_flags) {
-        err = zts_fcntl(fd, F_SETFL, new_flags);
+        err = zts_bsd_fcntl(fd, F_SETFL, new_flags);
     }
 
 done:
@@ -57,7 +57,7 @@ int zts_py_getblocking(int fd)
 {
     int flags;
 
-    Py_BEGIN_ALLOW_THREADS flags = zts_fcntl(fd, F_GETFL, 0);
+    Py_BEGIN_ALLOW_THREADS flags = zts_bsd_fcntl(fd, F_GETFL, 0);
     Py_END_ALLOW_THREADS
 
         if (flags < 0)
@@ -103,7 +103,7 @@ PyObject* zts_py_accept(int fd)
 {
     struct zts_sockaddr_in addrbuf = { 0 };
     socklen_t addrlen = sizeof(addrbuf);
-    int err = zts_accept(fd, (struct zts_sockaddr*)&addrbuf, &addrlen);
+    int err = zts_bsd_accept(fd, (struct zts_sockaddr*)&addrbuf, &addrlen);
     char ipstr[ZTS_INET_ADDRSTRLEN] = { 0 };
     zts_inet_ntop(ZTS_AF_INET, &(addrbuf.sin_addr), ipstr, ZTS_INET_ADDRSTRLEN);
     PyObject* t;
@@ -120,7 +120,7 @@ int zts_py_listen(int fd, int backlog)
     if (backlog < 0) {
         backlog = 128;
     }
-    return zts_listen(fd, backlog);
+    return zts_bsd_listen(fd, backlog);
 }
 
 int zts_py_bind(int fd, int family, int type, PyObject* addr_obj)
@@ -131,7 +131,7 @@ int zts_py_bind(int fd, int family, int type, PyObject* addr_obj)
     if (zts_py_tuple_to_sockaddr(family, addr_obj, (struct zts_sockaddr*)&addrbuf, &addrlen) != ZTS_ERR_OK) {
         return ZTS_ERR_ARG;
     }
-    Py_BEGIN_ALLOW_THREADS err = zts_bind(fd, (struct zts_sockaddr*)&addrbuf, addrlen);
+    Py_BEGIN_ALLOW_THREADS err = zts_bsd_bind(fd, (struct zts_sockaddr*)&addrbuf, addrlen);
     Py_END_ALLOW_THREADS return err;
 }
 
@@ -143,7 +143,7 @@ int zts_py_connect(int fd, int family, int type, PyObject* addr_obj)
     if (zts_py_tuple_to_sockaddr(family, addr_obj, (struct zts_sockaddr*)&addrbuf, &addrlen) != ZTS_ERR_OK) {
         return ZTS_ERR_ARG;
     }
-    Py_BEGIN_ALLOW_THREADS err = zts_connect(fd, (struct zts_sockaddr*)&addrbuf, addrlen);
+    Py_BEGIN_ALLOW_THREADS err = zts_bsd_connect(fd, (struct zts_sockaddr*)&addrbuf, addrlen);
     Py_END_ALLOW_THREADS return err;
 }
 
@@ -157,7 +157,7 @@ PyObject* zts_py_recv(int fd, int len, int flags)
         return NULL;
     }
 
-    bytes_read = zts_recv(fd, PyBytes_AS_STRING(buf), len, flags);
+    bytes_read = zts_bsd_recv(fd, PyBytes_AS_STRING(buf), len, flags);
     t = PyTuple_New(2);
     PyTuple_SetItem(t, 0, PyLong_FromLong(bytes_read));
 
@@ -187,7 +187,7 @@ int zts_py_send(int fd, PyObject* buf, int flags)
         return 0;
     }
 
-    bytes_sent = zts_send(fd, output.buf, output.len, flags);
+    bytes_sent = zts_bsd_send(fd, output.buf, output.len, flags);
     PyBuffer_Release(&output);
 
     return bytes_sent;
@@ -196,7 +196,7 @@ int zts_py_send(int fd, PyObject* buf, int flags)
 int zts_py_close(int fd)
 {
     int err;
-    Py_BEGIN_ALLOW_THREADS err = zts_close(fd);
+    Py_BEGIN_ALLOW_THREADS err = zts_bsd_close(fd);
     Py_END_ALLOW_THREADS return err;
 }
 

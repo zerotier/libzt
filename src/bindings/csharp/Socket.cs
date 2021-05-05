@@ -91,7 +91,7 @@ namespace ZeroTier.Sockets
                     protocol = 0;   // ?
                     break;
             }
-            if ((_fd = zts_socket(family, type, protocol)) < 0) {
+            if ((_fd = zts_bsd_socket(family, type, protocol)) < 0) {
                 throw new ZeroTier.Sockets.SocketException((int)_fd);
             }
             _socketFamily = addressFamily;
@@ -129,11 +129,7 @@ namespace ZeroTier.Sockets
             if (remoteEndPoint == null) {
                 throw new ArgumentNullException("remoteEndPoint");
             }
-            int err = zts_simple_connect(
-                _fd,
-                remoteEndPoint.Address.ToString(),
-                (ushort)remoteEndPoint.Port,
-                _connectTimeout);
+            int err = zts_connect(_fd, remoteEndPoint.Address.ToString(), (ushort)remoteEndPoint.Port, _connectTimeout);
             if (err < 0) {
                 throw new ZeroTier.Sockets.SocketException(err, ZeroTier.Core.Node.ErrNo);
             }
@@ -155,11 +151,11 @@ namespace ZeroTier.Sockets
             }
             int err = Constants.ERR_OK;
             if (localEndPoint.AddressFamily == AddressFamily.InterNetwork) {
-                err = zts_simple_bind(_fd, "0.0.0.0", (ushort)localEndPoint.Port);
+                err = zts_bind(_fd, "0.0.0.0", (ushort)localEndPoint.Port);
             }
             if (localEndPoint.AddressFamily == AddressFamily.InterNetworkV6) {
                 // Todo: detect IPAddress.IPv6Any
-                err = zts_simple_bind(_fd, "::", (ushort)localEndPoint.Port);
+                err = zts_bind(_fd, "::", (ushort)localEndPoint.Port);
             }
             if (err < 0) {
                 throw new ZeroTier.Sockets.SocketException((int)err);
@@ -178,7 +174,7 @@ namespace ZeroTier.Sockets
                 throw new ZeroTier.Sockets.SocketException((int)Constants.ERR_SOCKET);
             }
             int err = Constants.ERR_OK;
-            if ((err = zts_listen(_fd, backlog)) < 0) {
+            if ((err = zts_bsd_listen(_fd, backlog)) < 0) {
                 // Invalid backlog value perhaps?
                 throw new ZeroTier.Sockets.SocketException((int)Constants.ERR_SOCKET);
             }
@@ -199,14 +195,14 @@ namespace ZeroTier.Sockets
             }
             IntPtr lpBuffer = Marshal.AllocHGlobal(ZeroTier.Constants.INET6_ADDRSTRLEN);
             int port = 0;
-            int accepted_fd = zts_simple_accept(_fd, lpBuffer, ZeroTier.Constants.INET6_ADDRSTRLEN, ref port);
+            int accepted_fd = zts_accept(_fd, lpBuffer, ZeroTier.Constants.INET6_ADDRSTRLEN, ref port);
             // Convert buffer to managed string
             string str = Marshal.PtrToStringAnsi(lpBuffer);
             Marshal.FreeHGlobal(lpBuffer);
             lpBuffer = IntPtr.Zero;
             IPEndPoint clientEndPoint = new IPEndPoint(IPAddress.Parse(str), port);
             Console.WriteLine("clientEndPoint = " + clientEndPoint.ToString());
-            // Create new socket by providing file descriptor returned from zts_accept call.
+            // Create new socket by providing file descriptor returned from zts_bsd_accept call.
             Socket clientSocket =
                 new Socket(accepted_fd, _socketFamily, _socketType, _socketProtocol, _localEndPoint, clientEndPoint);
             return clientSocket;
@@ -229,7 +225,7 @@ namespace ZeroTier.Sockets
                     ztHow = Constants.O_RDWR;
                     break;
             }
-            zts_shutdown(_fd, ztHow);
+            zts_bsd_shutdown(_fd, ztHow);
         }
 
         public void Close()
@@ -237,17 +233,17 @@ namespace ZeroTier.Sockets
             if (_isClosed) {
                 throw new ObjectDisposedException("Socket has already been closed");
             }
-            zts_close(_fd);
+            zts_bsd_close(_fd);
             _isClosed = true;
         }
 
         public bool Blocking
         {
             get {
-                return Convert.ToBoolean(zts_simple_get_blocking(_fd));
+                return Convert.ToBoolean(zts_get_blocking(_fd));
             }
             set {
-                zts_simple_set_blocking(_fd, Convert.ToInt32(value));
+                zts_set_blocking(_fd, Convert.ToInt32(value));
             }
         }
 
@@ -272,7 +268,7 @@ namespace ZeroTier.Sockets
             int result = 0;
             int timeout_ms = (microSeconds / 1000);
             uint numfds = 1;
-            if ((result = zts_poll(poll_fd_ptr, numfds, timeout_ms)) < 0) {
+            if ((result = zts_bsd_poll(poll_fd_ptr, numfds, timeout_ms)) < 0) {
                 throw new ZeroTier.Sockets.SocketException(result, ZeroTier.Core.Node.ErrNo);
             }
             poll_set = (zts_pollfd)Marshal.PtrToStructure(poll_fd_ptr, typeof(zts_pollfd));
@@ -306,7 +302,7 @@ namespace ZeroTier.Sockets
             }
             int flags = 0;
             IntPtr bufferPtr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
-            return zts_send(_fd, bufferPtr, (uint)Buffer.ByteLength(buffer), (int)flags);
+            return zts_bsd_send(_fd, bufferPtr, (uint)Buffer.ByteLength(buffer), (int)flags);
         }
 
         public Int32 Receive(Byte[] buffer)
@@ -322,7 +318,7 @@ namespace ZeroTier.Sockets
             }
             int flags = 0;
             IntPtr bufferPtr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
-            return zts_recv(_fd, bufferPtr, (uint)Buffer.ByteLength(buffer), (int)flags);
+            return zts_bsd_recv(_fd, bufferPtr, (uint)Buffer.ByteLength(buffer), (int)flags);
         }
 
         public int ReceiveTimeout
@@ -490,11 +486,11 @@ namespace ZeroTier.Sockets
         [DllImport(
             "libzt",
             CharSet = CharSet.Ansi,
-            EntryPoint = "CSharp_zts_gethostbyname")] public static extern global::System.IntPtr
-        zts_gethostbyname(string jarg1);
+            EntryPoint = "CSharp_zts_bsd_gethostbyname")] public static extern global::System.IntPtr
+        zts_bsd_gethostbyname(string jarg1);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_select")]
-        static extern int zts_select(
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_select")]
+        static extern int zts_bsd_select(
             int jarg1,
             global::System.Runtime.InteropServices.HandleRef jarg2,
             global::System.Runtime.InteropServices.HandleRef jarg3,
@@ -507,86 +503,86 @@ namespace ZeroTier.Sockets
         [DllImport("libzt", EntryPoint = "CSharp_zts_get_protocol_stats")]
         static extern int zts_get_protocol_stats(int arg1, IntPtr arg2);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_socket")]
-        static extern int zts_socket(int arg1, int arg2, int arg3);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_socket")]
+        static extern int zts_bsd_socket(int arg1, int arg2, int arg3);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_connect")]
-        static extern int zts_connect(int arg1, IntPtr arg2, ushort arg3);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_connect")]
+        static extern int zts_bsd_connect(int arg1, IntPtr arg2, ushort arg3);
 
-        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_connect_easy")]
-        static extern int zts_connect_easy(int arg1, int arg2, string arg3, ushort arg4, int arg5);
+        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_bsd_connect_easy")]
+        static extern int zts_bsd_connect_easy(int arg1, int arg2, string arg3, ushort arg4, int arg5);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_bind")]
-        static extern int zts_bind(int arg1, IntPtr arg2, ushort arg3);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_bind")]
+        static extern int zts_bsd_bind(int arg1, IntPtr arg2, ushort arg3);
 
-        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_bind_easy")]
-        static extern int zts_bind_easy(int arg1, int arg2, string arg3, ushort arg4);
+        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_bsd_bind_easy")]
+        static extern int zts_bsd_bind_easy(int arg1, int arg2, string arg3, ushort arg4);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_listen")]
-        static extern int zts_listen(int arg1, int arg2);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_listen")]
+        static extern int zts_bsd_listen(int arg1, int arg2);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_accept")]
-        static extern int zts_accept(int arg1, IntPtr arg2, IntPtr arg3);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_accept")]
+        static extern int zts_bsd_accept(int arg1, IntPtr arg2, IntPtr arg3);
 
-        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_accept_easy")]
-        static extern int zts_accept_easy(int arg1, IntPtr remoteAddrStr, int arg2, ref int arg3);
+        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_bsd_accept_easy")]
+        static extern int zts_bsd_accept_easy(int arg1, IntPtr remoteAddrStr, int arg2, ref int arg3);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_setsockopt")]
-        static extern int zts_setsockopt(int arg1, int arg2, int arg3, IntPtr arg4, ushort arg5);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_setsockopt")]
+        static extern int zts_bsd_setsockopt(int arg1, int arg2, int arg3, IntPtr arg4, ushort arg5);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_getsockopt")]
-        static extern int zts_getsockopt(int arg1, int arg2, int arg3, IntPtr arg4, IntPtr arg5);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_getsockopt")]
+        static extern int zts_bsd_getsockopt(int arg1, int arg2, int arg3, IntPtr arg4, IntPtr arg5);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_getsockname")]
-        static extern int zts_getsockname(int arg1, IntPtr arg2, IntPtr arg3);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_getsockname")]
+        static extern int zts_bsd_getsockname(int arg1, IntPtr arg2, IntPtr arg3);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_getpeername")]
-        static extern int zts_getpeername(int arg1, IntPtr arg2, IntPtr arg3);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_getpeername")]
+        static extern int zts_bsd_getpeername(int arg1, IntPtr arg2, IntPtr arg3);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_close")]
-        static extern int zts_close(int arg1);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_close")]
+        static extern int zts_bsd_close(int arg1);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_fcntl")]
-        static extern int zts_fcntl(int arg1, int arg2, int arg3);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_fcntl")]
+        static extern int zts_bsd_fcntl(int arg1, int arg2, int arg3);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_poll")]
-        static extern int zts_poll(IntPtr arg1, uint arg2, int arg3);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_poll")]
+        static extern int zts_bsd_poll(IntPtr arg1, uint arg2, int arg3);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_ioctl")]
-        static extern int zts_ioctl(int arg1, uint arg2, IntPtr arg3);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_ioctl")]
+        static extern int zts_bsd_ioctl(int arg1, uint arg2, IntPtr arg3);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_send")]
-        static extern int zts_send(int arg1, IntPtr arg2, uint arg3, int arg4);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_send")]
+        static extern int zts_bsd_send(int arg1, IntPtr arg2, uint arg3, int arg4);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_sendto")]
-        static extern int zts_sendto(int arg1, IntPtr arg2, uint arg3, int arg4, IntPtr arg5, ushort arg6);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_sendto")]
+        static extern int zts_bsd_sendto(int arg1, IntPtr arg2, uint arg3, int arg4, IntPtr arg5, ushort arg6);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_sendmsg")]
-        static extern int zts_sendmsg(int arg1, IntPtr arg2, int arg3);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_sendmsg")]
+        static extern int zts_bsd_sendmsg(int arg1, IntPtr arg2, int arg3);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_recv")]
-        static extern int zts_recv(int arg1, IntPtr arg2, uint arg3, int arg4);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_recv")]
+        static extern int zts_bsd_recv(int arg1, IntPtr arg2, uint arg3, int arg4);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_recvfrom")]
-        static extern int zts_recvfrom(int arg1, IntPtr arg2, uint arg3, int arg4, IntPtr arg5, IntPtr arg6);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_recvfrom")]
+        static extern int zts_bsd_recvfrom(int arg1, IntPtr arg2, uint arg3, int arg4, IntPtr arg5, IntPtr arg6);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_recvmsg")]
-        static extern int zts_recvmsg(int arg1, IntPtr arg2, int arg3);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_recvmsg")]
+        static extern int zts_bsd_recvmsg(int arg1, IntPtr arg2, int arg3);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_read")]
-        static extern int zts_read(int arg1, IntPtr arg2, uint arg3);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_read")]
+        static extern int zts_bsd_read(int arg1, IntPtr arg2, uint arg3);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_readv")]
-        static extern int zts_readv(int arg1, IntPtr arg2, int arg3);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_readv")]
+        static extern int zts_bsd_readv(int arg1, IntPtr arg2, int arg3);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_write")]
-        static extern int zts_write(int arg1, IntPtr arg2, uint arg3);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_write")]
+        static extern int zts_bsd_write(int arg1, IntPtr arg2, uint arg3);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_writev")]
-        static extern int zts_writev(int arg1, IntPtr arg2, int arg3);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_writev")]
+        static extern int zts_bsd_writev(int arg1, IntPtr arg2, int arg3);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_shutdown")]
-        static extern int zts_shutdown(int arg1, int arg2);
+        [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_shutdown")]
+        static extern int zts_bsd_shutdown(int arg1, int arg2);
 
         [DllImport("libzt", EntryPoint = "CSharp_zts_set_no_delay")]
         static extern int zts_set_no_delay(int fd, int enabled);
@@ -660,97 +656,102 @@ namespace ZeroTier.Sockets
         [DllImport("libzt", EntryPoint = "CSharp_zts_errno_get")]
         static extern int zts_errno_get();
 
-        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_simple_accept")]
-        static extern int zts_simple_accept(int jarg1, IntPtr jarg2, int jarg3, ref int jarg4);
+        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_accept")]
+        static extern int zts_accept(int jarg1, IntPtr jarg2, int jarg3, ref int jarg4);
 
-        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_simple_tcp_client")]
-        static extern int zts_simple_tcp_client(string jarg1, int jarg2);
+        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_tcp_client")]
+        static extern int zts_tcp_client(string jarg1, int jarg2);
 
-        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_simple_tcp_server")]
-        static extern int zts_simple_tcp_server(
+        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_tcp_server")]
+        static extern int zts_tcp_server(
             string jarg1,
             int jarg2,
             string jarg3,
             int jarg4,
             global::System.Runtime.InteropServices.HandleRef jarg5);
 
-        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_simple_udp_server")]
-        static extern int zts_simple_udp_server(string jarg1, int jarg2);
+        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_udp_server")]
+        static extern int zts_udp_server(string jarg1, int jarg2);
 
-        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_simple_udp_client")]
-        static extern int zts_simple_udp_client(string jarg1);
+        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_udp_client")]
+        static extern int zts_udp_client(string jarg1);
 
-        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_simple_bind")]
-        static extern int zts_simple_bind(int jarg1, string jarg2, int jarg3);
+        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_bind")]
+        static extern int zts_bind(int jarg1, string jarg2, int jarg3);
 
-        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_simple_connect")]
-        static extern int zts_simple_connect(int jarg1, string jarg2, int jarg3, int jarg4);
+        [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_connect")]
+        static extern int zts_connect(int jarg1, string jarg2, int jarg3, int jarg4);
 
         [DllImport("libzt", EntryPoint = "CSharp_zts_stats_get_all")]
         static extern int zts_stats_get_all(global::System.Runtime.InteropServices.HandleRef jarg1);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_set_no_delay")]
-        static extern int zts_simple_set_no_delay(int jarg1, int jarg2);
+        /*
+                [DllImport("libzt", EntryPoint = "CSharp_zts_set_no_delay")]
+                static extern int zts_set_no_delay(int jarg1, int jarg2);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_get_no_delay")]
-        static extern int zts_simple_get_no_delay(int jarg1);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_get_no_delay")]
+                static extern int zts_get_no_delay(int jarg1);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_set_linger")]
-        static extern int zts_simple_set_linger(int jarg1, int jarg2, int jarg3);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_set_linger")]
+                static extern int zts_set_linger(int jarg1, int jarg2, int jarg3);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_get_linger_enabled")]
-        static extern int zts_simple_get_linger_enabled(int jarg1);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_get_linger_enabled")]
+                static extern int zts_get_linger_enabled(int jarg1);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_get_linger_value")]
-        static extern int zts_simple_get_linger_value(int jarg1);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_get_linger_value")]
+                static extern int zts_get_linger_value(int jarg1);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_set_reuse_addr")]
-        static extern int zts_simple_set_reuse_addr(int jarg1, int jarg2);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_set_reuse_addr")]
+                static extern int zts_set_reuse_addr(int jarg1, int jarg2);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_get_reuse_addr")]
-        static extern int zts_simple_get_reuse_addr(int jarg1);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_get_reuse_addr")]
+                static extern int zts_get_reuse_addr(int jarg1);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_set_recv_timeout")]
-        static extern int zts_simple_set_recv_timeout(int jarg1, int jarg2, int jarg3);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_set_recv_timeout")]
+                static extern int zts_set_recv_timeout(int jarg1, int jarg2, int jarg3);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_get_recv_timeout")]
-        static extern int zts_simple_get_recv_timeout(int jarg1);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_get_recv_timeout")]
+                static extern int zts_get_recv_timeout(int jarg1);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_set_send_timeout")]
-        static extern int zts_simple_set_send_timeout(int jarg1, int jarg2, int jarg3);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_set_send_timeout")]
+                static extern int zts_set_send_timeout(int jarg1, int jarg2, int jarg3);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_get_send_timeout")]
-        static extern int zts_simple_get_send_timeout(int jarg1);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_get_send_timeout")]
+                static extern int zts_get_send_timeout(int jarg1);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_set_send_buf_size")]
-        static extern int zts_simple_set_send_buf_size(int jarg1, int jarg2);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_set_send_buf_size")]
+                static extern int zts_set_send_buf_size(int jarg1, int jarg2);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_get_send_buf_size")]
-        static extern int zts_simple_get_send_buf_size(int jarg1);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_get_send_buf_size")]
+                static extern int zts_get_send_buf_size(int jarg1);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_set_recv_buf_size")]
-        static extern int zts_simple_set_recv_buf_size(int jarg1, int jarg2);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_set_recv_buf_size")]
+                static extern int zts_set_recv_buf_size(int jarg1, int jarg2);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_get_recv_buf_size")]
-        static extern int zts_simple_get_recv_buf_size(int jarg1);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_get_recv_buf_size")]
+                static extern int zts_get_recv_buf_size(int jarg1);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_set_ttl")]
-        static extern int zts_simple_set_ttl(int jarg1, int jarg2);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_set_ttl")]
+                static extern int zts_set_ttl(int jarg1, int jarg2);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_get_ttl")]
-        static extern int zts_simple_get_ttl(int jarg1);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_get_ttl")]
+                static extern int zts_get_ttl(int jarg1);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_set_blocking")]
-        static extern int zts_simple_set_blocking(int jarg1, int jarg2);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_set_blocking")]
+                static extern int zts_set_blocking(int jarg1, int jarg2);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_get_blocking")]
-        static extern int zts_simple_get_blocking(int jarg1);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_get_blocking")]
+                static extern int zts_get_blocking(int jarg1);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_set_keepalive")]
-        static extern int zts_simple_set_keepalive(int jarg1, int jarg2);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_set_keepalive")]
+                static extern int zts_set_keepalive(int jarg1, int jarg2);
 
-        [DllImport("libzt", EntryPoint = "CSharp_zts_simple_get_keepalive")]
-        static extern int zts_simple_get_keepalive(int jarg1);
+                [DllImport("libzt", EntryPoint = "CSharp_zts_get_keepalive")]
+                static extern int zts_get_keepalive(int jarg1);
+
+
+
+        */
 
         [DllImport("libzt", EntryPoint = "CSharp_zts_util_delay")]
         public static extern void zts_util_delay(int jarg1);

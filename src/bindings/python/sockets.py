@@ -46,7 +46,7 @@ class socket:
         # Only create native socket if no fd was provided. We may have
         # accepted a connection
         if sock_fd is None:
-            self._fd = libzt.zts_socket(sock_family, sock_type, sock_proto)
+            self._fd = libzt.zts_bsd_socket(sock_family, sock_type, sock_proto)
 
     def has_dualstack_ipv6(self):
         """Return whether libzt supports dual stack sockets: yes"""
@@ -427,4 +427,4 @@ class socket:
           - ZTS_SHUT_WR - Shut down writing side of socket.
           - ZTS_SHUT_RDWR - Both ends of the socket.
         """
-        libzt.zts_shutdown(self._fd, how)
+        libzt.zts_bsd_shutdown(self._fd, how)

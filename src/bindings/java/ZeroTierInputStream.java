@@ -37,7 +37,7 @@ public class ZeroTierInputStream extends InputStream {
         that aspect of the socket but not actually close it and free resources. Resources
         will be properly freed when the socket implementation's close() is called or if
         both I/OStreams are closed separately */
-        ZeroTierNative.zts_shutdown(zfd, ZeroTierNative.ZTS_SHUT_RD);
+        ZeroTierNative.zts_bsd_shutdown(zfd, ZeroTierNative.ZTS_SHUT_RD);
         zfd = -1;
     }
 
@@ -52,7 +52,7 @@ public class ZeroTierInputStream extends InputStream {
         Objects.requireNonNull(destStream, "destStream must not be null");
         int bytesTransferred = 0, bytesRead;
         byte[] buf = new byte[8192];
-        while (((bytesRead = ZeroTierNative.zts_read(zfd, buf)) >= 0)) {
+        while (((bytesRead = ZeroTierNative.zts_bsd_read(zfd, buf)) >= 0)) {
             destStream.write(buf, 0, bytesRead);
             bytesTransferred += bytesRead;
         }
@@ -68,7 +68,7 @@ public class ZeroTierInputStream extends InputStream {
     {
         byte[] buf = new byte[1];
         // Unlike a native read(), if nothing is read we should return -1
-        int retval = ZeroTierNative.zts_read(zfd, buf);
+        int retval = ZeroTierNative.zts_bsd_read(zfd, buf);
         if ((retval == 0) | (retval == -104) /* EINTR, from SO_RCVTIMEO */) {
             return -1;
         }
@@ -88,7 +88,7 @@ public class ZeroTierInputStream extends InputStream {
     {
         Objects.requireNonNull(destBuffer, "input byte array must not be null");
         // Unlike a native read(), if nothing is read we should return -1
-        int retval = ZeroTierNative.zts_read(zfd, destBuffer);
+        int retval = ZeroTierNative.zts_bsd_read(zfd, destBuffer);
         if ((retval == 0) | (retval == -104) /* EINTR, from SO_RCVTIMEO */) {
             return -1;
         }
@@ -122,7 +122,7 @@ public class ZeroTierInputStream extends InputStream {
             return 0;
         }
         // Unlike a native read(), if nothing is read we should return -1
-        int retval = ZeroTierNative.zts_read_offset(zfd, destBuffer, offset, numBytes);
+        int retval = ZeroTierNative.zts_bsd_read_offset(zfd, destBuffer, offset, numBytes);
         if ((retval == 0) | (retval == -104) /* EINTR, from SO_RCVTIMEO */) {
             return -1;
         }
@@ -139,9 +139,9 @@ public class ZeroTierInputStream extends InputStream {
      */
     public byte[] readAllBytes​() throws IOException
     {
-        int pendingDataSize = ZeroTierNative.zts_simple_get_pending_data_size(zfd);
+        int pendingDataSize = ZeroTierNative.zts_get_pending_data_size(zfd);
         byte[] buf = new byte[pendingDataSize];
-        int retval = ZeroTierNative.zts_read(zfd, buf);
+        int retval = ZeroTierNative.zts_bsd_read(zfd, buf);
         if ((retval == 0) | (retval == -104) /* EINTR, from SO_RCVTIMEO */) {
             // No action needed
         }
@@ -174,7 +174,7 @@ public class ZeroTierInputStream extends InputStream {
         if (numBytes == 0) {
             return 0;
         }
-        int retval = ZeroTierNative.zts_read_offset(zfd, destBuffer, offset, numBytes);
+        int retval = ZeroTierNative.zts_bsd_read_offset(zfd, destBuffer, offset, numBytes);
         if ((retval == 0) | (retval == -104) /* EINTR, from SO_RCVTIMEO */) {
             // No action needed
         }
@@ -199,7 +199,8 @@ public class ZeroTierInputStream extends InputStream {
         int bufSize = (int)Math.min(2048, bytesRemaining);
         byte[] buf = new byte[bufSize];
         while (bytesRemaining > 0) {
-            if ((bytesRead = ZeroTierNative.zts_read_length(zfd, buf, (int)Math.min(bufSize, bytesRemaining))) < 0) {
+            if ((bytesRead = ZeroTierNative.zts_bsd_read_length(zfd, buf, (int)Math.min(bufSize, bytesRemaining)))
+                < 0) {
                 break;
             }
             bytesRemaining -= bytesRead;

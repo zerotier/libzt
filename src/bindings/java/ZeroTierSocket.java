@@ -76,7 +76,7 @@ public class ZeroTierSocket {
         if (_zfd > -1) {
             throw new IOException("This socket has already been created (fd=" + _zfd + ")");
         }
-        _zfd = ZeroTierNative.zts_socket(ZeroTierNative.ZTS_AF_INET, ZeroTierNative.ZTS_SOCK_STREAM, protocol);
+        _zfd = ZeroTierNative.zts_bsd_socket(ZeroTierNative.ZTS_AF_INET, ZeroTierNative.ZTS_SOCK_STREAM, protocol);
         if (_zfd < 0) {
             throw new IOException("Error while creating socket (" + _zfd + ")");
         }
@@ -105,7 +105,7 @@ public class ZeroTierSocket {
             throw new IOException("Invalid address type. Socket is of type AF_INET6");
         }
         int err;
-        if ((err = ZeroTierNative.zts_simple_connect(_zfd, remoteAddr.getHostAddress(), remotePort, 0)) < 0) {
+        if ((err = ZeroTierNative.zts_connect(_zfd, remoteAddr.getHostAddress(), remotePort, 0)) < 0) {
             throw new IOException("Error while connecting to remote host (" + err + ")");
         }
         _isConnected = true;
@@ -155,7 +155,7 @@ public class ZeroTierSocket {
             throw new IOException("Invalid address type. Socket is of type AF_INET6");
         }
         int err;
-        if ((err = ZeroTierNative.zts_simple_bind(_zfd, localAddr.getHostAddress(), localPort)) < 0) {
+        if ((err = ZeroTierNative.zts_bind(_zfd, localAddr.getHostAddress(), localPort)) < 0) {
             throw new IOException("Error while connecting to remote host (" + err + ")");
         }
         _localPort = localPort;
@@ -190,7 +190,7 @@ public class ZeroTierSocket {
             throw new IOException("Invalid backlog value");
         }
         int err;
-        if ((err = ZeroTierNative.zts_listen(_zfd, backlog)) < 0) {
+        if ((err = ZeroTierNative.zts_bsd_listen(_zfd, backlog)) < 0) {
             throw new IOException("Error while putting socket into listening state (" + err + ")");
         }
     }
@@ -207,7 +207,7 @@ public class ZeroTierSocket {
         }
         int accetpedFd = -1;
         ZeroTierSocketAddress addr = new ZeroTierSocketAddress();
-        if ((accetpedFd = ZeroTierNative.zts_accept(_zfd, addr)) < 0) {
+        if ((accetpedFd = ZeroTierNative.zts_bsd_accept(_zfd, addr)) < 0) {
             throw new IOException("Error while accepting connection (" + accetpedFd + ")");
         }
         return new ZeroTierSocket(_family, _type, _protocol, accetpedFd);
@@ -223,7 +223,7 @@ public class ZeroTierSocket {
         if (_zfd < 0) {
             throw new IOException("Invalid socket (fd < 0)");
         }
-        ZeroTierNative.zts_close(_zfd);
+        ZeroTierNative.zts_bsd_close(_zfd);
         _isClosed = true;
     }
 
@@ -237,7 +237,7 @@ public class ZeroTierSocket {
         if (_isClosed) {
             throw new SocketException("Error: ZeroTierSocket is closed");
         }
-        return ZeroTierNative.zts_simple_get_keepalive(_zfd) == 1;
+        return ZeroTierNative.zts_get_keepalive(_zfd) == 1;
     }
 
     /**
@@ -298,7 +298,7 @@ public class ZeroTierSocket {
         if (_isClosed) {
             throw new SocketException("Error: ZeroTierSocket is closed");
         }
-        return ZeroTierNative.zts_simple_get_recv_buf_size(_zfd);
+        return ZeroTierNative.zts_get_recv_buf_size(_zfd);
     }
 
     /**
@@ -311,7 +311,7 @@ public class ZeroTierSocket {
         if (_isClosed) {
             throw new SocketException("Error: ZeroTierSocket is closed");
         }
-        return ZeroTierNative.zts_simple_get_send_buf_size(_zfd);
+        return ZeroTierNative.zts_get_send_buf_size(_zfd);
     }
 
     /**
@@ -324,7 +324,7 @@ public class ZeroTierSocket {
         if (_isClosed) {
             throw new SocketException("Error: ZeroTierSocket is closed");
         }
-        return ZeroTierNative.zts_simple_get_reuse_addr(_zfd) == 1;
+        return ZeroTierNative.zts_get_reuse_addr(_zfd) == 1;
     }
 
     /**
@@ -337,7 +337,7 @@ public class ZeroTierSocket {
         if (_isClosed) {
             throw new SocketException("Error: ZeroTierSocket is closed");
         }
-        return ZeroTierNative.zts_simple_get_linger_value(_zfd);
+        return ZeroTierNative.zts_get_linger_value(_zfd);
     }
 
     /**
@@ -350,7 +350,7 @@ public class ZeroTierSocket {
         if (_isClosed) {
             throw new SocketException("Error: ZeroTierSocket is closed");
         }
-        return ZeroTierNative.zts_simple_get_recv_timeout(_zfd);
+        return ZeroTierNative.zts_get_recv_timeout(_zfd);
     }
 
     /**
@@ -363,7 +363,7 @@ public class ZeroTierSocket {
         if (_isClosed) {
             throw new SocketException("Error: ZeroTierSocket is closed");
         }
-        return ZeroTierNative.zts_simple_get_no_delay(_zfd) == 1;
+        return ZeroTierNative.zts_get_no_delay(_zfd) == 1;
     }
 
     /**
@@ -409,7 +409,7 @@ public class ZeroTierSocket {
         if (_inputHasBeenShutdown) {
             throw new SocketException("Error: ZeroTierSocket input has been shut down");
         }
-        ZeroTierNative.zts_shutdown(_zfd, ZeroTierNative.ZTS_SHUT_RD);
+        ZeroTierNative.zts_bsd_shutdown(_zfd, ZeroTierNative.ZTS_SHUT_RD);
         _inputHasBeenShutdown = true;
     }
 
@@ -429,7 +429,7 @@ public class ZeroTierSocket {
         if (_outputHasBeenShutdown) {
             throw new SocketException("Error: ZeroTierSocket output has been shut down");
         }
-        ZeroTierNative.zts_shutdown(_zfd, ZeroTierNative.ZTS_SHUT_WR);
+        ZeroTierNative.zts_bsd_shutdown(_zfd, ZeroTierNative.ZTS_SHUT_WR);
         _outputHasBeenShutdown = true;
     }
 
@@ -500,7 +500,7 @@ public class ZeroTierSocket {
         if (_isClosed) {
             throw new SocketException("Error: ZeroTierSocket is closed");
         }
-        if (ZeroTierNative.zts_simple_set_keepalive(_zfd, (enabled ? 1 : 0)) != ZeroTierNative.ZTS_ERR_OK) {
+        if (ZeroTierNative.zts_set_keepalive(_zfd, (enabled ? 1 : 0)) != ZeroTierNative.ZTS_ERR_OK) {
             throw new SocketException("Error: Could not set SO_KEEPALIVE");
         }
     }
@@ -519,7 +519,7 @@ public class ZeroTierSocket {
         if (bufferSize <= 0) {
             throw new IllegalArgumentException("Error: bufferSize <= 0");
         }
-        if (ZeroTierNative.zts_simple_set_recv_buf_size(_zfd, bufferSize) != ZeroTierNative.ZTS_ERR_OK) {
+        if (ZeroTierNative.zts_set_recv_buf_size(_zfd, bufferSize) != ZeroTierNative.ZTS_ERR_OK) {
             throw new SocketException("Error: Could not set receive buffer size");
         }
     }
@@ -535,7 +535,7 @@ public class ZeroTierSocket {
         if (_isClosed) {
             throw new SocketException("Error: ZeroTierSocket is closed");
         }
-        if (ZeroTierNative.zts_simple_set_reuse_addr(_zfd, (enabled ? 1 : 0)) != ZeroTierNative.ZTS_ERR_OK) {
+        if (ZeroTierNative.zts_set_reuse_addr(_zfd, (enabled ? 1 : 0)) != ZeroTierNative.ZTS_ERR_OK) {
             throw new SocketException("Error: Could not set SO_REUSEADDR");
         }
     }
@@ -554,7 +554,7 @@ public class ZeroTierSocket {
         if (bufferSize <= 0) {
             throw new IllegalArgumentException("Error: bufferSize <= 0");
         }
-        if (ZeroTierNative.zts_simple_set_send_buf_size(_zfd, bufferSize) != ZeroTierNative.ZTS_ERR_OK) {
+        if (ZeroTierNative.zts_set_send_buf_size(_zfd, bufferSize) != ZeroTierNative.ZTS_ERR_OK) {
             throw new SocketException("Error: Could not set SO_SNDBUF");
         }
     }
@@ -574,7 +574,7 @@ public class ZeroTierSocket {
         if (lingerTime < 0) {
             throw new IllegalArgumentException("Error: lingerTime < 0");
         }
-        if (ZeroTierNative.zts_simple_set_linger(_zfd, (enabled ? 1 : 0), lingerTime) != ZeroTierNative.ZTS_ERR_OK) {
+        if (ZeroTierNative.zts_set_linger(_zfd, (enabled ? 1 : 0), lingerTime) != ZeroTierNative.ZTS_ERR_OK) {
             throw new SocketException("Error: Could not set ZTS_SO_LINGER");
         }
     }
@@ -594,7 +594,7 @@ public class ZeroTierSocket {
             throw new IllegalArgumentException("Error: SO_TIMEOUT < 0");
         }
         // TODO: This is incorrect
-        if (ZeroTierNative.zts_simple_set_recv_timeout(_zfd, timeout, timeout) != ZeroTierNative.ZTS_ERR_OK) {
+        if (ZeroTierNative.zts_set_recv_timeout(_zfd, timeout, timeout) != ZeroTierNative.ZTS_ERR_OK) {
             throw new SocketException("Error: Could not set SO_RCVTIMEO");
         }
     }
@@ -610,7 +610,7 @@ public class ZeroTierSocket {
         if (_isClosed) {
             throw new SocketException("Error: ZeroTierSocket is closed");
         }
-        if (ZeroTierNative.zts_simple_set_no_delay(_zfd, (enabled ? 1 : 0)) != ZeroTierNative.ZTS_ERR_OK) {
+        if (ZeroTierNative.zts_set_no_delay(_zfd, (enabled ? 1 : 0)) != ZeroTierNative.ZTS_ERR_OK) {
             throw new SocketException("Error: Could not set TCP_NODELAY");
         }
     }

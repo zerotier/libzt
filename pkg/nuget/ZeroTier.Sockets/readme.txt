@@ -26,7 +26,7 @@ Other API options:
 
 We offer two other API layers depending on your use case. The first is a lower-
 level BSD-style socket API. This API is similar to BSD-style sockets
-(zts_socket(), zts_listen(), zts_bind(), etc.) The second is a Highly-
+(zts_bsd_socket(), zts_bsd_listen(), zts_bsd_bind(), etc.) The second is a Highly-
 performant virtual Ethernet layer. It can be used for any transport protocol
 and is only recommended for those who have advanced or specialty applications.
 

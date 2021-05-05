@@ -76,23 +76,23 @@ int main(int argc, char** argv)
 
     // Connect to remote host
 
-    // Can also use traditional: zts_socket(), zts_connect(), etc
+    // Can also use traditional: zts_bsd_socket(), zts_bsd_connect(), etc
 
     printf("Attempting to connect...\n");
-    while ((fd = zts_simple_tcp_client(remote_addr, remote_port)) < 0) {
+    while ((fd = zts_tcp_client(remote_addr, remote_port)) < 0) {
         printf("Re-attempting to connect...\n");
     }
 
     // Data I/O
 
     printf("Sending message string to server...\n");
-    if ((bytes = zts_write(fd, msgStr, strlen(msgStr))) < 0) {
+    if ((bytes = zts_bsd_write(fd, msgStr, strlen(msgStr))) < 0) {
         printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, bytes, zts_errno);
         exit(1);
     }
     printf("Sent %d bytes: %s\n", bytes, msgStr);
     printf("Reading message string from server...\n");
-    if ((bytes = zts_read(fd, recvBuf, sizeof(recvBuf))) < 0) {
+    if ((bytes = zts_bsd_read(fd, recvBuf, sizeof(recvBuf))) < 0) {
         printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, bytes, zts_errno);
         exit(1);
     }
@@ -101,6 +101,6 @@ int main(int argc, char** argv)
     // Close
 
     printf("Closing sockets\n");
-    zts_close(fd);
+    zts_bsd_close(fd);
     return zts_node_stop();
 }

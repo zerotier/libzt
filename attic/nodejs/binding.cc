@@ -195,7 +195,7 @@ zts_sockaddr_in sockaddr_in(const char *remoteAddr, const int remotePort)
  *      ZTS_ERR_NO_RESULT     // No result (not necessarily an error)
  *      ZTS_ERR_GENERAL       // Consider filing a bug report
  *
- *   Category 2: Sockets (zts_socket, zts_bind, zts_connect, zts_listen, etc).
+ *   Category 2: Sockets (zts_bsd_socket, zts_bsd_bind, zts_bsd_connect, zts_bsd_listen, etc).
  *               Errors returned by these functions can be the same as the above. With
  *               the added possibility of zts_errno being set. Much like standard
  *               errno this will provide a more specific reason for an error's occurrence.
@@ -212,14 +212,14 @@ zts_sockaddr_in sockaddr_in(const char *remoteAddr, const int remotePort)
  *
  *   If you are calling a zts_* function, use the appropriate ZTS_* constants:
  *
- *          zts_socket(ZTS_AF_INET6, ZTS_SOCK_DGRAM, 0); (CORRECT)
- *          zts_socket(AF_INET6, SOCK_DGRAM, 0);         (INCORRECT)
+ *          zts_bsd_socket(ZTS_AF_INET6, ZTS_SOCK_DGRAM, 0); (CORRECT)
+ *          zts_bsd_socket(AF_INET6, SOCK_DGRAM, 0);         (INCORRECT)
  *
  *   If you are calling a zts_* function, use the appropriate zts_* structure:
  *
  *          struct zts_sockaddr_in in4;  <------ Note the zts_* prefix
  *             ...
- *          zts_bind(fd, (struct zts_sockaddr *)&in4, sizeof(struct zts_sockaddr_in)) < 0)
+ *          zts_bsd_bind(fd, (struct zts_sockaddr *)&in4, sizeof(struct zts_sockaddr_in)) < 0)
  *
  */
 class ZeroTier
@@ -356,7 +356,7 @@ public:
 	static int open(const int socket_family, const int socket_type, const int protocol)
 	{
 		int fd;
-		if ((fd = zts_socket(socket_family, socket_type, protocol)) < 0) {
+		if ((fd = zts_bsd_socket(socket_family, socket_type, protocol)) < 0) {
 			printf("Error creating ZeroTier socket (fd=%d, zts_errno=%d).\n", fd, zts_errno);
 		}
 		return fd;
@@ -370,7 +370,7 @@ public:
 	*/
 	static int close(int fd)
 	{
-		return zts_close(fd);
+		return zts_bsd_close(fd);
 	}
 
 	/**
@@ -381,7 +381,7 @@ public:
 	*/
 	static int shutdown(int fd)
 	{
-		return zts_shutdown(fd, ZTS_SHUT_RDWR);
+		return zts_bsd_shutdown(fd, ZTS_SHUT_RDWR);
 	}
 
 	/**
@@ -397,7 +397,7 @@ public:
 		struct zts_sockaddr_in in4 = sockaddr_in(localAddr, localPort);
 
 		int err = ZTS_ERR_OK;
-		if ((err = zts_bind(fd, (const struct zts_sockaddr *)&in4, sizeof(in4))) < 0) {
+		if ((err = zts_bsd_bind(fd, (const struct zts_sockaddr *)&in4, sizeof(in4))) < 0) {
 				printf("Error binding to interface (fd=%d, ret=%d, zts_errno=%d).\n",
 					fd, err, zts_errno);
 		}
@@ -424,7 +424,7 @@ public:
 
 		// Retries are often required since ZT uses transport-triggered links (explained above)
 		int err = ZTS_ERR_OK;
-		if ((err = zts_connect(fd, (const struct zts_sockaddr *)&in4, sizeof(in4))) < 0) {
+		if ((err = zts_bsd_connect(fd, (const struct zts_sockaddr *)&in4, sizeof(in4))) < 0) {
 				printf("Error connecting to remote host (fd=%d, ret=%d, zts_errno=%d).\n",
 					fd, err, zts_errno);
 		} else {
@@ -436,12 +436,12 @@ public:
 		// int err = ZTS_ERR_OK;
 		// for (;;) {
 		// 	printf("Connecting to remote host...\n");
-		// 	if ((err = zts_connect(fd, (const struct zts_sockaddr *)&in4, sizeof(in4))) < 0) {
+		// 	if ((err = zts_bsd_connect(fd, (const struct zts_sockaddr *)&in4, sizeof(in4))) < 0) {
 		// 		printf("Error connecting to remote host (fd=%d, ret=%d, zts_errno=%d). Trying again.\n",
 		// 			fd, err, zts_errno);
-		// 		zts_close(fd);
+		// 		zts_bsd_close(fd);
 		// 		// printf("Creating socket...\n");
-		// 		if ((fd = zts_socket(socket_family, socket_type, protocol)) < 0) {
+		// 		if ((fd = zts_bsd_socket(socket_family, socket_type, protocol)) < 0) {
 		// 			printf("Error creating ZeroTier socket (fd=%d, zts_errno=%d).\n", fd, zts_errno);
 		// 			return -1;
 		// 		}
@@ -469,7 +469,7 @@ public:
 	*/
 	static ssize_t read(int fd, nbind::Buffer buf)
 	{
-		return zts_read(fd, buf.data(), buf.length());
+		return zts_bsd_read(fd, buf.data(), buf.length());
 	}
 
 	/**
@@ -481,7 +481,7 @@ public:
 	*/
 	static ssize_t write(int fd, nbind::Buffer buf)
 	{
-		return zts_write(fd, buf.data(), buf.length());
+		return zts_bsd_write(fd, buf.data(), buf.length());
 	}
 
 	/**
@@ -499,7 +499,7 @@ public:
 			iov[i].iov_base = bufs[i].data();
 			iov[i].iov_len = bufs[i].length();
 		}
-		return zts_writev(fd, iov, bufs.size());
+		return zts_bsd_writev(fd, iov, bufs.size());
 	}
 
 	/**
@@ -512,7 +512,7 @@ public:
 	*/
 	static ssize_t recv(int fd, nbind::Buffer buf, int flags)
 	{
-		return zts_recv(fd, buf.data(), buf.length(), flags);
+		return zts_bsd_recv(fd, buf.data(), buf.length(), flags);
 	}
 
 	/**
@@ -525,7 +525,7 @@ public:
 	*/
 	static ssize_t send(int fd, nbind::Buffer buf, int flags)
 	{
-		return zts_send(fd, buf.data(), buf.length(), flags);
+		return zts_bsd_send(fd, buf.data(), buf.length(), flags);
 	}
 
 	static int setBlocking(int fd, bool isBlocking)
@@ -570,7 +570,7 @@ public:
 	*/
 	static int fcntl(int fd, int cmd, int flags)
 	{
-		return zts_fcntl(fd, cmd, flags);
+		return zts_bsd_fcntl(fd, cmd, flags);
 	}
 
 	/**
@@ -585,7 +585,7 @@ public:
 	*/
 	static int setsockopt(int fd, int level, int optname, const void *optval, zts_socklen_t optlen)
 	{
-		return zts_setsockopt(fd, level, optname, optval, optlen);
+		return zts_bsd_setsockopt(fd, level, optname, optval, optlen);
 	}
 
 	/**
@@ -600,7 +600,7 @@ public:
 	*/
 	static int getsockopt(int fd, int level, int optname, void *optval, zts_socklen_t *optlen)
 	{
-		return zts_getsockopt(fd, level, optname, optval, optlen);
+		return zts_bsd_getsockopt(fd, level, optname, optval, optlen);
 	}
 
 	/**
@@ -615,7 +615,7 @@ public:
 	{
 		struct zts_sockaddr_in in4;
 		zts_socklen_t addrlen;
-		zts_getsockname(fd, (struct zts_sockaddr *)&in4, &addrlen);
+		zts_bsd_getsockname(fd, (struct zts_sockaddr *)&in4, &addrlen);
 		return in4;
 	}
 
@@ -623,7 +623,7 @@ public:
 	{
 		struct zts_sockaddr_in6 in6;
 		zts_socklen_t addrlen;
-		zts_getsockname(fd, (struct zts_sockaddr *)&in6, &addrlen);
+		zts_bsd_getsockname(fd, (struct zts_sockaddr *)&in6, &addrlen);
 		return in6;
 	}
 
@@ -639,7 +639,7 @@ public:
 	{
 		struct zts_sockaddr_in in4;
 		zts_socklen_t addrlen;
-		zts_getpeername(fd, (struct zts_sockaddr *)&in4, &addrlen);
+		zts_bsd_getpeername(fd, (struct zts_sockaddr *)&in4, &addrlen);
 		return in4;
 	}
 
@@ -647,7 +647,7 @@ public:
 	{
 		struct zts_sockaddr_in6 in6;
 		zts_socklen_t addrlen;
-		zts_getpeername(fd, (struct zts_sockaddr *)&in6, &addrlen);
+		zts_bsd_getpeername(fd, (struct zts_sockaddr *)&in6, &addrlen);
 		return in6;
 	}
 

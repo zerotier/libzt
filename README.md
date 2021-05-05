@@ -1,7 +1,7 @@
 <div align="center">
 
 <h1>ZeroTier SDK</h1>
-<img alt="zts_socket()" src="https://i.imgur.com/BwSHwE3.png" class="doxyhidden"> </img>
+<img alt="" src="https://i.imgur.com/BwSHwE3.png" class="doxyhidden"> </img>
 
 Peer-to-peer and cross-platform encrypted connections built right into your app or service. No drivers, no root, and no host configuration.
 
@@ -25,16 +25,13 @@ Peer-to-peer and cross-platform encrypted connections built right into your app 
 | Language/Platform | Installation | Version | Example |
 |:----------|:---------|:---|:---|
 | C/C++  | [Build from source](#build-from-source) | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>|[C/C++](./examples/cpp)  |
-| Objective-C  | See [examples/objective-c](./examples/objective-c) | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> |[Objective-C](./examples/objective-c)  |
 | C#  | `Install-Package ZeroTier.Sockets` |<a href="https://www.nuget.org/packages/ZeroTier.Sockets/"><img src="https://img.shields.io/github/v/tag/zerotier/libzt?label=NuGet"/></a> |[C#](./examples/csharp)  |
 | Python  | `pip install libzt`|<a href="https://pypi.org/project/libzt/"><img src="https://img.shields.io/pypi/v/libzt?label=PyPI"/></a> |[Python](./examples/python)  |
 | Rust  | Coming *very* soon | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>|[Rust](./examples/rust)  |
-| Swift  | See [examples/swift](./examples/swift) |<img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> |[Swift](./examples/swift)  |
 | Java  | `./build.sh host-jar` |<img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> |[Java](./examples/java)  |
-| Node.js  | See [examples/nodejs](./examples/nodejs) |<img src="https://img.shields.io/badge/-help--wanted-green"/>|[Node.js](./examples/nodejs)  |
 | Linux  | [Build from source](#build-from-source) | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/></a>| [C/C++](./examples/cpp)  |
-| macOS  | `brew install libzt`|<a href="https://formulae.brew.sh/formula/libzt#default"><img src="https://img.shields.io/homebrew/v/libzt?label=Homebrew"/></a> | [C/C++](./examples/cpp), [Objective-C](./examples/objective-c)  |
-| iOS / iPadOS  | `./build.sh ios-framework` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>| [Objective-C](./examples/objective-c), [Swift](./examples/swift)  |
+| macOS  | `brew install libzt`|<a href="https://formulae.brew.sh/formula/libzt#default"><img src="https://img.shields.io/homebrew/v/libzt?label=Homebrew"/></a> | [C/C++](./examples/cpp), [Objective-C](./attic/objective-c)  |
+| iOS / iPadOS  | `./build.sh ios-framework` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>| [Objective-C](./attic/objective-c), [Swift](./attic/swift)  |
 | Android  |`./build.sh android-aar` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> | [Java](./examples/java)  |
 
 <br>
@@ -46,10 +43,10 @@ Peer-to-peer and cross-platform encrypted connections built right into your app 
 
 int main()
 {
-    zts_start(...)
-    zts_join(networkId);
-    int fd = zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
-    zts_connect(fd, ...);
+    zts_node_start();
+    zts_net_join(net_id);
+    int fd = zts_bsd_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0);
+    zts_bsd_connect(fd, ...);
     ...
 }
 ```

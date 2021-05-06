@@ -246,10 +246,10 @@ void VirtualTap::threadMain() throw()
     FD_ZERO(&nullfds);
     int nfds = (int)std::max(_shutdownSignalPipe[0], 0) + 1;
 #if defined(__linux__)
-    //pthread_setname_np(pthread_self(), vtap_full_name);
+    // pthread_setname_np(pthread_self(), vtap_full_name);
 #endif
 #if defined(__APPLE__)
-    //pthread_setname_np(vtap_full_name);
+    // pthread_setname_np(vtap_full_name);
 #endif
     while (true) {
         FD_SET(_shutdownSignalPipe[0], &readfds);
@@ -295,10 +295,10 @@ static void zts_tcpip_init_done(void* arg)
 static void zts_main_lwip_driver_loop(void* arg)
 {
 #if defined(__linux__)
-    //pthread_setname_np(pthread_self(), ZTS_LWIP_THREAD_NAME);
+    // pthread_setname_np(pthread_self(), ZTS_LWIP_THREAD_NAME);
 #endif
 #if defined(__APPLE__)
-    //pthread_setname_np(ZTS_LWIP_THREAD_NAME);
+    // pthread_setname_np(ZTS_LWIP_THREAD_NAME);
 #endif
     sys_sem_t sem;
     LWIP_UNUSED_ARG(arg);

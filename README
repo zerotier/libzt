@@ -13,7 +13,7 @@ build.ps1 are used to simplify building and packaging for various targets.
 
 1. git submodule update --init
 2. (*)nix  : ./build.sh host "release"
-2. Windows : . .\build.ps1; Build-Host -BuildType "Release"
+2. Windows : . .\build.ps1; Build-Host -BuildType "Release" -Arch "x64"
 
 To see additional build targets:
 

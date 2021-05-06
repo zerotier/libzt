@@ -398,6 +398,8 @@ SWIGINTERN void SWIG_CSharpException(int code, const char* msg)
 extern "C" {
 #endif
 
+#ifndef ZTS_DISABLE_CENTRAL_API
+
 SWIGEXPORT int SWIGSTDCALL CSharp_zts_central_set_access_mode(char jarg1)
 {
     int jresult;
@@ -596,6 +598,8 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_central_net_get_members(void* jarg1, unsig
     jresult = result;
     return jresult;
 }
+
+#endif // ZTS_DISABLE_CENTRAL_API
 
 SWIGEXPORT int SWIGSTDCALL CSharp_zts_id_new(char* jarg1, void* jarg2)
 {

@@ -1,8 +1,6 @@
-function Build-Host
+function Build-Host([string]$BuildType, [string]$Arch)
 {
-	$Arch="x64"
 	$Artifact="host"
-	$BuildType="Debug"
 	$Variant="-DBUILD_HOST=1"
 
 	# Directory for CMake to build and store intermediate files

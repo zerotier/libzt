@@ -91,6 +91,7 @@ set(ALLOW_INSTALL_TARGET        TRUE)
 set(BUILD_STATIC_LIB            TRUE)
 set(BUILD_SHARED_LIB            TRUE)
 set(BUILD_HOST_SELFTEST         TRUE)
+set(ZTS_DISABLE_CENTRAL_API     TRUE)
 
 # C# language bindings (libzt.dll/dylib/so)
 if (ZTS_ENABLE_PINVOKE)
@@ -275,10 +276,12 @@ if(BUILD_HOST_EXAMPLES)
         ${PROJ_DIR}/examples/c/adhoc.c)
     target_link_libraries(adhoc ${STATIC_LIB_NAME})
 
+if(NOT ZTS_DISABLE_CENTRAL_API)
     add_executable(centralapi
         ${PROJ_DIR}/examples/c/centralapi.cpp)
-    target_compile_options(centralapi PRIVATE "-Wno-tautological-overlap-compare")
+    #target_compile_options(centralapi PRIVATE "-Wno-tautological-overlap-compare")
     target_link_libraries(centralapi ${STATIC_LIB_NAME})
+endif()
 
     add_executable(callbackapi
         ${PROJ_DIR}/examples/c/callbackapi.c)
@@ -313,11 +316,14 @@ endif()
 # |                                    FLAGS                                   |
 # ------------------------------------------------------------------------------
 
-#set(ZT_FLAGS "${ZT_FLAGS} -DNO_GETADDRINFO=1")
+set(ZT_FLAGS "${ZT_FLAGS} -DZT_SDK=1")
 set(ZT_FLAGS "${ZT_FLAGS} -DZT_USE_MINIUPNPC=1")
 set(ZT_FLAGS "${ZT_FLAGS} -D_USING_LWIP_DEFINITIONS_=0")
-set(ZT_FLAGS "${ZT_FLAGS} -DOMIT_JSON_SUPPORT=1 -Wno-unused-parameter")
-set(LWIP_FLAGS "${LWIP_FLAGS} -Wno-tautological-constant-out-of-range-compare -Wno-parentheses-equality")
+
+if (NOT BUILD_WIN)
+    set(ZT_FLAGS "${ZT_FLAGS} -DOMIT_JSON_SUPPORT=1 -Wno-unused-parameter")
+    set(LWIP_FLAGS "${LWIP_FLAGS} -Wno-tautological-constant-out-of-range-compare -Wno-parentheses-equality")
+endif()
 
 if(BUILD_DEBUG)
     set(LWIP_FLAGS "${LWIP_FLAGS} -DLWIP_DBG_TYPES_ON=128")

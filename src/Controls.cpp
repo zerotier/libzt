@@ -270,7 +270,7 @@ void* cbRun(void* arg)
 {
     ZTS_UNUSED_ARG(arg);
 #if defined(__APPLE__)
-    pthread_setname_np(ZTS_EVENT_CALLBACK_THREAD_NAME);
+    //pthread_setname_np(ZTS_EVENT_CALLBACK_THREAD_NAME);
 #endif
     zts_events->run();
     //#if ZTS_ENABLE_JAVA
@@ -485,7 +485,7 @@ void* _runNodeService(void* arg)
 {
     ZTS_UNUSED_ARG(arg);
 #if defined(__APPLE__)
-    pthread_setname_np(ZTS_SERVICE_THREAD_NAME);
+    //pthread_setname_np(ZTS_SERVICE_THREAD_NAME);
 #endif
     try {
         zts_service->run();
@@ -526,7 +526,7 @@ int zts_node_start()
         if ((res = pthread_create(&cbThread, NULL, cbRun, NULL)) != 0) {}
 #endif
 #if defined(__linux__)
-        pthread_setname_np(cbThread, ZTS_EVENT_CALLBACK_THREAD_NAME);
+        //pthread_setname_np(cbThread, ZTS_EVENT_CALLBACK_THREAD_NAME);
 #endif
         if (res != ZTS_ERR_OK) {
             zts_events->clrState(ZTS_STATE_CALLBACKS_RUNNING);
@@ -544,7 +544,7 @@ int zts_node_start()
     if ((res = pthread_create(&service_thread, NULL, _runNodeService, (void*)NULL)) != 0) {}
 #endif
 #if defined(__linux__)
-    pthread_setname_np(service_thread, ZTS_SERVICE_THREAD_NAME);
+    //pthread_setname_np(service_thread, ZTS_SERVICE_THREAD_NAME);
 #endif
     if (res != ZTS_ERR_OK) {
         zts_events->clrState(ZTS_STATE_NODE_RUNNING);

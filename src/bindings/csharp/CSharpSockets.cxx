@@ -599,7 +599,7 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_central_net_get_members(void* jarg1, unsig
     return jresult;
 }
 
-#endif // ZTS_DISABLE_CENTRAL_API
+#endif   // ZTS_DISABLE_CENTRAL_API
 
 SWIGEXPORT int SWIGSTDCALL CSharp_zts_id_new(char* jarg1, void* jarg2)
 {

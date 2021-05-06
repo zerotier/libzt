@@ -30,7 +30,7 @@ Peer-to-peer and cross-platform encrypted connections built right into your app 
 | Rust  | Coming *very* soon | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>|[Rust](./examples/rust)  |
 | Java  | `./build.sh host-jar` |<img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> |[Java](./examples/java)  |
 | Linux  | [Build from source](#build-from-source) | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/></a>| [C/C++](./examples/c)  |
-| macOS  | `brew install zerotier/tap/libzt`|<a href="https://formulae.brew.sh/formula/libzt#default"><img src="https://img.shields.io/homebrew/v/libzt?label=Homebrew"/></a> | [C/C++](./examples/c), [Objective-C](./attic/objective-c)  |
+| macOS  | `brew install zerotier/tap/libzt`| <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label=Homebrew"/></a>| [C/C++](./examples/c)  |
 | iOS / iPadOS  | `./build.sh ios-framework` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>| [Objective-C](./attic/objective-c), [Swift](./attic/swift)  |
 | Android  |`./build.sh android-aar` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> | [Java](./examples/java)  |
 

@@ -24,13 +24,13 @@ Peer-to-peer and cross-platform encrypted connections built right into your app 
 
 | Language/Platform | Installation | Version | Example |
 |:----------|:---------|:---|:---|
-| C/C++  | [Build from source](#build-from-source) | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>|[C/C++](./examples/cpp)  |
+| C/C++  | [Build from source](#build-from-source) | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/></a>| [C/C++](./examples/c)  |
 | C#  | `Install-Package ZeroTier.Sockets` |<a href="https://www.nuget.org/packages/ZeroTier.Sockets/"><img src="https://img.shields.io/github/v/tag/zerotier/libzt?label=NuGet"/></a> |[C#](./examples/csharp)  |
 | Python  | `pip install libzt`|<a href="https://pypi.org/project/libzt/"><img src="https://img.shields.io/pypi/v/libzt?label=PyPI"/></a> |[Python](./examples/python)  |
 | Rust  | Coming *very* soon | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>|[Rust](./examples/rust)  |
 | Java  | `./build.sh host-jar` |<img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> |[Java](./examples/java)  |
-| Linux  | [Build from source](#build-from-source) | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/></a>| [C/C++](./examples/cpp)  |
-| macOS  | `brew install libzt`|<a href="https://formulae.brew.sh/formula/libzt#default"><img src="https://img.shields.io/homebrew/v/libzt?label=Homebrew"/></a> | [C/C++](./examples/cpp), [Objective-C](./attic/objective-c)  |
+| Linux  | [Build from source](#build-from-source) | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/></a>| [C/C++](./examples/c)  |
+| macOS  | `brew install zerotier/tap/libzt`|<a href="https://formulae.brew.sh/formula/libzt#default"><img src="https://img.shields.io/homebrew/v/libzt?label=Homebrew"/></a> | [C/C++](./examples/c), [Objective-C](./attic/objective-c)  |
 | iOS / iPadOS  | `./build.sh ios-framework` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>| [Objective-C](./attic/objective-c), [Swift](./attic/swift)  |
 | Android  |`./build.sh android-aar` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> | [Java](./examples/java)  |
 

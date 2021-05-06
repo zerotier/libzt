@@ -69,7 +69,7 @@ int main(int argc, char** argv)
     // Sockets
 
     printf("Creating socket...\n");
-    if ((fd = zts_bsd_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0)) < 0) {
+    if ((fd = zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0)) < 0) {
         printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, err, zts_errno);
         exit(1);
     }
@@ -82,7 +82,7 @@ int main(int argc, char** argv)
     }
     printf("Listening...\n");
     int backlog = 100;
-    if ((err = zts_bsd_listen(fd, backlog)) < 0) {
+    if ((err = zts_listen(fd, backlog)) < 0) {
         printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, err, zts_errno);
         exit(1);
     }
@@ -90,19 +90,17 @@ int main(int argc, char** argv)
     int bytes = 0;
     char recvBuf[128] = { 0 };
 
-    while (1) {
-        // Accept
-        // Can also use
-        //   zts_bsd_accept(int fd, struct zts_sockaddr* addr, zts_socklen_t* addrlen)
+    // Accept
+    // Can also use
+    //   zts_bsd_accept(int fd, struct zts_sockaddr* addr, zts_socklen_t* addrlen)
 
-        char ipstr[ZTS_INET6_ADDRSTRLEN] = { 0 };
-        unsigned int port = 0;
-        printf("Accepting on listening socket...\n");
-        if ((accfd = zts_accept(fd, ipstr, ZTS_INET6_ADDRSTRLEN, &port)) < 0) {
-            printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, err, zts_errno);
-        }
-        printf("Accepted connection from %s:%d\n", ipstr, port);
+    char remote_ipstr[ZTS_INET6_ADDRSTRLEN] = { 0 };
+    unsigned int port = 0;
+    printf("Accepting on listening socket...\n");
+    if ((accfd = zts_accept(fd, remote_ipstr, ZTS_INET6_ADDRSTRLEN, &port)) < 0) {
+        printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, err, zts_errno);
     }
+    printf("Accepted connection from %s:%d\n", remote_ipstr, port);
 
     // Data I/O
 

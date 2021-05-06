@@ -89,13 +89,13 @@ int main(int argc, char** argv)
     char recvBuf[128] = { 0 };
 
     printf("Reading message string from client...\n");
-    if ((bytes = zts_bsd_read(accfd, recvBuf, sizeof(recvBuf))) < 0) {
+    if ((bytes = zts_read(accfd, recvBuf, sizeof(recvBuf))) < 0) {
         printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, bytes, zts_errno);
         exit(1);
     }
     printf("Read %d bytes: %s\n", bytes, recvBuf);
     printf("Sending message string to client...\n");
-    if ((bytes = zts_bsd_write(accfd, recvBuf, bytes)) < 0) {
+    if ((bytes = zts_write(accfd, recvBuf, bytes)) < 0) {
         printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, bytes, zts_errno);
         exit(1);
     }
@@ -104,7 +104,7 @@ int main(int argc, char** argv)
     // Close
 
     printf("Closing sockets\n");
-    err = zts_bsd_close(accfd);
-    err = zts_bsd_close(fd);
+    err = zts_close(accfd);
+    err = zts_close(fd);
     return zts_node_stop();
 }

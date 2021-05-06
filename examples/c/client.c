@@ -86,13 +86,13 @@ int main(int argc, char** argv)
     // Data I/O
 
     printf("Sending message string to server...\n");
-    if ((bytes = zts_bsd_write(fd, msgStr, strlen(msgStr))) < 0) {
+    if ((bytes = zts_write(fd, msgStr, strlen(msgStr))) < 0) {
         printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, bytes, zts_errno);
         exit(1);
     }
     printf("Sent %d bytes: %s\n", bytes, msgStr);
     printf("Reading message string from server...\n");
-    if ((bytes = zts_bsd_read(fd, recvBuf, sizeof(recvBuf))) < 0) {
+    if ((bytes = zts_read(fd, recvBuf, sizeof(recvBuf))) < 0) {
         printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, bytes, zts_errno);
         exit(1);
     }
@@ -101,6 +101,6 @@ int main(int argc, char** argv)
     // Close
 
     printf("Closing sockets\n");
-    zts_bsd_close(fd);
+    zts_close(fd);
     return zts_node_stop();
 }

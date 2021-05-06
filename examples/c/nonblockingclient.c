@@ -65,7 +65,7 @@ int main(int argc, char** argv)
 
     // Create socket
 
-    if ((fd = zts_bsd_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0)) < 0) {
+    if ((fd = zts_socket(ZTS_AF_INET, ZTS_SOCK_STREAM, 0)) < 0) {
         printf("Error (fd=%d, zts_errno=%d). Exiting.\n", fd, zts_errno);
         exit(1);
     }
@@ -83,14 +83,14 @@ int main(int argc, char** argv)
     // Wait random intervals to send a message to the server
     // The non-blocking aspect of this example is server-side
     while (1) {
-        if ((bytes = zts_bsd_send(fd, msgStr, strlen(msgStr), 0)) < 0) {
+        if ((bytes = zts_send(fd, msgStr, strlen(msgStr), 0)) < 0) {
             printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, bytes, zts_errno);
             exit(1);
         }
-        printf("zts_bsd_send()=%d\n", bytes);
+        printf("zts_send()=%d\n", bytes);
         zts_util_delay((rand() % 100) * 50);
     }
 
-    zts_bsd_close(fd);
+    zts_close(fd);
     return zts_node_stop();
 }

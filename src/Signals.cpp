@@ -33,7 +33,6 @@
 #include "ZeroTierSockets.h"
 
 #include <cstdlib>
-#include <execinfo.h>
 #include <signal.h>
 
 void zts_signal_handler(int signal)

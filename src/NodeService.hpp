@@ -115,6 +115,8 @@ class NodeService {
 
     Phy<NodeService*> _phy;
     Node* _node;
+
+    uint64_t _nodeId;
     unsigned int _primaryPort = 0;
     unsigned int _secondaryPort = 0;
     unsigned int _tertiaryPort = 0;
@@ -258,9 +260,9 @@ class NodeService {
 
     zts_net_info_t* prepare_network_details_msg(const NetworkState& n);
 
-    void generateEventMsgs();
+    void generateSyntheticEvents();
 
-    void sendEventToUser(unsigned int event_code, const void* arg, unsigned int len = 0);
+    void sendEventToUser(unsigned int zt_event_code, const void* obj, unsigned int len = 0);
 
     /** Join a network */
     int join(uint64_t net_id);

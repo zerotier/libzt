@@ -356,29 +356,27 @@ int zts_util_ipstr_to_saddr(
     int family = zts_util_get_ip_family(src_ipstr);
 
     if (family == ZTS_AF_INET) {
-        struct zts_sockaddr_in in4;
-        in4.sin_port = htons(port);
-        in4.sin_family = family;
+        struct zts_sockaddr_in* in4 = (struct zts_sockaddr_in*)dest_addr;
+        in4->sin_port = htons(port);
+        in4->sin_family = family;
 #if defined(_WIN32)
-        zts_inet_pton(family, src_ipstr, &(in4.sin_addr.S_addr));
+        zts_inet_pton(family, src_ipstr, &(in4->sin_addr.S_addr));
 #else
-        zts_inet_pton(family, src_ipstr, &(in4.sin_addr.s_addr));
+        zts_inet_pton(family, src_ipstr, &(in4->sin_addr.s_addr));
 #endif
-        dest_addr = (struct zts_sockaddr*)&in4;
-        *addrlen = sizeof(in4);
+        *addrlen = sizeof(struct zts_sockaddr_in);
         return ZTS_ERR_OK;
     }
     if (family == ZTS_AF_INET6) {
-        struct zts_sockaddr_in6 in6;
-        in6.sin6_port = htons(port);
-        in6.sin6_family = family;
+        struct zts_sockaddr_in6* in6 = (struct zts_sockaddr_in6*)dest_addr;
+        in6->sin6_port = htons(port);
+        in6->sin6_family = family;
 #if defined(_WIN32)
-        zts_inet_pton(family, src_ipstr, &(in6.sin6_addr));
+        zts_inet_pton(family, src_ipstr, &(in6->sin6_addr));
 #else
-        zts_inet_pton(family, src_ipstr, &(in6.sin6_addr));
+        zts_inet_pton(family, src_ipstr, &(in6->sin6_addr));
 #endif
-        dest_addr = (struct zts_sockaddr*)&in6;
-        *addrlen = sizeof(in6);
+        *addrlen = sizeof(struct zts_sockaddr_in6);
         return ZTS_ERR_OK;
     }
     return ZTS_ERR_ARG;
@@ -434,7 +432,7 @@ int zts_bind(int fd, const char* ipstr, unsigned short port)
         return ZTS_ERR_SERVICE;
     }
     zts_socklen_t addrlen = 0;
-    struct zts_sockaddr_storage ss;
+    struct zts_sockaddr_storage ss = { 0, 0, { 0 }, { 0 }, { 0 } };
     struct zts_sockaddr* sa = NULL;
 
     addrlen = sizeof(ss);

@@ -165,6 +165,7 @@ static void StapFrameHandler(
 NodeService::NodeService()
     : _phy(this, false, true)
     , _node((Node*)0)
+    , _nodeId(0x0)
     , _primaryPort()
     , _udpPortPickerCounter(0)
     , _lastDirectReceiveFromGlobal(0)
@@ -373,7 +374,7 @@ NodeService::ReasonForTermination NodeService::run()
             }
 
             // Generate callback messages for user application
-            generateEventMsgs();
+            generateSyntheticEvents();
 
             // Run background task processor in core if it's time to do so
             int64_t dl = _nextBackgroundTaskDeadline;
@@ -504,6 +505,7 @@ void NodeService::terminate()
     _run_m.lock();
     _run = false;
     _run_m.unlock();
+    _nodeId = 0x0;
     _primaryPort = 0;
     _homePath.clear();
     _allowNetworkCaching = true;
@@ -645,12 +647,12 @@ int NodeService::nodeVirtualNetworkConfigFunction(
                 return -999;   // tap init failed
             }
             if (op == ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_CONFIG_UPDATE) {
-                sendEventToUser(ZTS_EVENT_NETWORK_UPDATE, (void*)prepare_network_details_msg(n));
+                sendEventToUser(ZTS_EVENT_NETWORK_UPDATE, (void*)&n);
             }
             break;
         case ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_DOWN:
         case ZT_VIRTUAL_NETWORK_CONFIG_OPERATION_DESTROY:
-            sendEventToUser(ZTS_EVENT_NETWORK_DOWN, (void*)prepare_network_details_msg(n));
+            sendEventToUser(ZTS_EVENT_NETWORK_DOWN, (void*)&n);
             if (n.tap) {   // sanity check
                 *nuptr = (void*)0;
                 delete n.tap;
@@ -679,17 +681,10 @@ int NodeService::nodeVirtualNetworkConfigFunction(
 void NodeService::nodeEventCallback(enum ZT_Event event, const void* metaData)
 {
     ZTS_UNUSED_ARG(metaData);
-    zts_node_info_t* nd = new zts_node_info_t;
-    nd->node_id = _node ? _node->address() : 0x0;
-    nd->ver_major = ZEROTIER_ONE_VERSION_MAJOR;
-    nd->ver_minor = ZEROTIER_ONE_VERSION_MINOR;
-    nd->ver_rev = ZEROTIER_ONE_VERSION_REVISION;
-    nd->port_primary = _primaryPort;
-    nd->port_secondary = _secondaryPort;
-    nd->port_tertiary = _tertiaryPort;
 
     int event_code = 0;
     _nodeIsOnline = (event == ZT_EVENT_ONLINE) ? true : false;
+    _nodeId = _node ? _node->address() : 0x0;
 
     switch (event) {
         case ZT_EVENT_UP:
@@ -714,42 +709,135 @@ void NodeService::nodeEventCallback(enum ZT_Event event, const void* metaData)
             break;
     }
     if (event_code) {
-        sendEventToUser(event_code, (void*)nd);
+        sendEventToUser(event_code, NULL);
     }
 }
 
-zts_net_info_t* NodeService::prepare_network_details_msg(const NetworkState& n)
+void NodeService::sendEventToUser(unsigned int zt_event_code, const void* obj, unsigned int len)
 {
-    zts_net_info_t* nd = new zts_net_info_t();
-    nd->net_id = n.config.nwid;
-    nd->mac = n.config.mac;
-    strncpy(nd->name, n.config.name, sizeof(n.config.name));
-    nd->status = (zts_network_status_t)n.config.status;
-    nd->type = (zts_net_info_type_t)n.config.type;
-    nd->mtu = n.config.mtu;
-    nd->dhcp = n.config.dhcp;
-    nd->bridge = n.config.bridge;
-    nd->broadcast_enabled = n.config.broadcastEnabled;
-    nd->port_error = n.config.portError;
-    nd->netconf_rev = n.config.netconfRevision;
-    // Copy and convert address structures
-    nd->assigned_addr_count = n.config.assignedAddressCount;
-    for (unsigned int i = 0; i < n.config.assignedAddressCount; i++) {
-        native_ss_to_zts_ss(&(nd->assigned_addrs[i]), &(n.config.assignedAddresses[i]));
+    if (! _events) {
+        return;
     }
-    nd->route_count = n.config.routeCount;
-    for (unsigned int i = 0; i < n.config.routeCount; i++) {
-        native_ss_to_zts_ss(&(nd->routes[i].target), &(n.config.routes[i].target));
-        native_ss_to_zts_ss(&(nd->routes[i].via), &(n.config.routes[i].via));
-        nd->routes[i].flags = n.config.routes[i].flags;
-        nd->routes[i].metric = n.config.routes[i].metric;
+
+    // Convert raw ZT object into ZTS counterpart
+
+    void* objptr = NULL;
+
+    switch (zt_event_code) {
+        case ZTS_EVENT_NODE_UP:
+        case ZTS_EVENT_NODE_ONLINE:
+        case ZTS_EVENT_NODE_OFFLINE:
+        case ZTS_EVENT_NODE_DOWN:
+        case ZTS_EVENT_NODE_FATAL_ERROR: {
+            zts_node_info_t* nd = new zts_node_info_t;
+            nd->node_id = _nodeId;
+            nd->ver_major = ZEROTIER_ONE_VERSION_MAJOR;
+            nd->ver_minor = ZEROTIER_ONE_VERSION_MINOR;
+            nd->ver_rev = ZEROTIER_ONE_VERSION_REVISION;
+            nd->port_primary = _primaryPort;
+            nd->port_secondary = _secondaryPort;
+            nd->port_tertiary = _tertiaryPort;
+            objptr = (void*)nd;
+            break;
+        }
+        case ZTS_EVENT_NETWORK_NOT_FOUND:
+        case ZTS_EVENT_NETWORK_CLIENT_TOO_OLD:
+        case ZTS_EVENT_NETWORK_REQ_CONFIG:
+        case ZTS_EVENT_NETWORK_ACCESS_DENIED:
+        case ZTS_EVENT_NETWORK_DOWN: {
+            NetworkState* ns = (NetworkState*)obj;
+            zts_net_info_t* nd = new zts_net_info_t();
+            nd->net_id = ns->config.nwid;
+            objptr = (void*)nd;
+            break;
+        }
+        case ZTS_EVENT_NETWORK_UPDATE:
+        case ZTS_EVENT_NETWORK_READY_IP4:
+        case ZTS_EVENT_NETWORK_READY_IP6:
+        case ZTS_EVENT_NETWORK_OK: {
+            NetworkState* ns = (NetworkState*)obj;
+            zts_net_info_t* nd = new zts_net_info_t();
+            nd->net_id = ns->config.nwid;
+            nd->mac = ns->config.mac;
+            strncpy(nd->name, ns->config.name, sizeof(ns->config.name));
+            nd->status = (zts_network_status_t)ns->config.status;
+            nd->type = (zts_net_info_type_t)ns->config.type;
+            nd->mtu = ns->config.mtu;
+            nd->dhcp = ns->config.dhcp;
+            nd->bridge = ns->config.bridge;
+            nd->broadcast_enabled = ns->config.broadcastEnabled;
+            nd->port_error = ns->config.portError;
+            nd->netconf_rev = ns->config.netconfRevision;
+            // Copy and convert address structures
+            nd->assigned_addr_count = ns->config.assignedAddressCount;
+            for (unsigned int i = 0; i < ns->config.assignedAddressCount; i++) {
+                native_ss_to_zts_ss(&(nd->assigned_addrs[i]), &(ns->config.assignedAddresses[i]));
+            }
+            nd->route_count = ns->config.routeCount;
+            for (unsigned int i = 0; i < ns->config.routeCount; i++) {
+                native_ss_to_zts_ss(&(nd->routes[i].target), &(ns->config.routes[i].target));
+                native_ss_to_zts_ss(&(nd->routes[i].via), &(ns->config.routes[i].via));
+                nd->routes[i].flags = ns->config.routes[i].flags;
+                nd->routes[i].metric = ns->config.routes[i].metric;
+            }
+            nd->multicast_sub_count = ns->config.multicastSubscriptionCount;
+            memcpy(nd->multicast_subs, &(ns->config.multicastSubscriptions), sizeof(ns->config.multicastSubscriptions));
+            objptr = (void*)nd;
+            break;
+        }
+        case ZTS_EVENT_ADDR_ADDED_IP4:
+            objptr = (void*)obj;
+            break;
+        case ZTS_EVENT_ADDR_ADDED_IP6:
+            objptr = (void*)obj;
+            break;
+        case ZTS_EVENT_ADDR_REMOVED_IP4:
+            objptr = (void*)obj;
+            break;
+        case ZTS_EVENT_ADDR_REMOVED_IP6:
+            objptr = (void*)obj;
+            break;
+        case ZTS_EVENT_STORE_IDENTITY_PUBLIC:
+            objptr = (void*)obj;
+            break;
+        case ZTS_EVENT_STORE_IDENTITY_SECRET:
+            objptr = (void*)obj;
+            break;
+        case ZTS_EVENT_STORE_PLANET:
+            objptr = (void*)obj;
+            break;
+        case ZTS_EVENT_STORE_PEER:
+            objptr = (void*)obj;
+            break;
+        case ZTS_EVENT_STORE_NETWORK:
+            objptr = (void*)obj;
+            break;
+        case ZTS_EVENT_PEER_DIRECT:
+        case ZTS_EVENT_PEER_RELAY:
+        case ZTS_EVENT_PEER_UNREACHABLE:
+        case ZTS_EVENT_PEER_PATH_DISCOVERED:
+        case ZTS_EVENT_PEER_PATH_DEAD: {
+            zts_peer_info_t* pd = new zts_peer_info_t();
+            ZT_Peer* peer = (ZT_Peer*)obj;
+            memcpy(pd, peer, sizeof(zts_peer_info_t));
+            for (unsigned int j = 0; j < peer->pathCount; j++) {
+                native_ss_to_zts_ss(&(pd->paths[j].address), &(peer->paths[j].address));
+            }
+            objptr = (void*)pd;
+            break;
+        }
+        default:
+            break;
     }
-    nd->multicast_sub_count = n.config.multicastSubscriptionCount;
-    memcpy(nd->multicast_subs, &(n.config.multicastSubscriptions), sizeof(n.config.multicastSubscriptions));
-    return nd;
+
+    // Send event
+
+    if (objptr) {
+        _events->enqueue(zt_event_code, objptr, len);
+    }
 }
 
-void NodeService::generateEventMsgs()
+void NodeService::generateSyntheticEvents()
 {
     // Force the ordering of callback messages, these messages are
     // only useful if the node and stack are both up and running
@@ -768,76 +856,57 @@ void NodeService::generateEventMsgs()
         }
         switch (mostRecentStatus) {
             case ZT_NETWORK_STATUS_NOT_FOUND:
-                sendEventToUser(ZTS_EVENT_NETWORK_NOT_FOUND, (void*)prepare_network_details_msg(netState));
+                sendEventToUser(ZTS_EVENT_NETWORK_NOT_FOUND, (void*)&netState);
                 break;
             case ZT_NETWORK_STATUS_CLIENT_TOO_OLD:
-                sendEventToUser(ZTS_EVENT_NETWORK_CLIENT_TOO_OLD, (void*)prepare_network_details_msg(netState));
+                sendEventToUser(ZTS_EVENT_NETWORK_CLIENT_TOO_OLD, (void*)&netState);
                 break;
             case ZT_NETWORK_STATUS_REQUESTING_CONFIGURATION:
-                sendEventToUser(ZTS_EVENT_NETWORK_REQ_CONFIG, (void*)prepare_network_details_msg(netState));
+                sendEventToUser(ZTS_EVENT_NETWORK_REQ_CONFIG, (void*)&netState);
                 break;
             case ZT_NETWORK_STATUS_OK:
                 if (tap->hasIpv4Addr() && zts_lwip_is_netif_up(tap->netif4)) {
-                    sendEventToUser(ZTS_EVENT_NETWORK_READY_IP4, (void*)prepare_network_details_msg(netState));
+                    sendEventToUser(ZTS_EVENT_NETWORK_READY_IP4, (void*)&netState);
                 }
                 if (tap->hasIpv6Addr() && zts_lwip_is_netif_up(tap->netif6)) {
-                    sendEventToUser(ZTS_EVENT_NETWORK_READY_IP6, (void*)prepare_network_details_msg(netState));
+                    sendEventToUser(ZTS_EVENT_NETWORK_READY_IP6, (void*)&netState);
                 }
                 // In addition to the READY messages, send one OK message
-                sendEventToUser(ZTS_EVENT_NETWORK_OK, (void*)prepare_network_details_msg(netState));
+                sendEventToUser(ZTS_EVENT_NETWORK_OK, (void*)&netState);
                 break;
             case ZT_NETWORK_STATUS_ACCESS_DENIED:
-                sendEventToUser(ZTS_EVENT_NETWORK_ACCESS_DENIED, (void*)prepare_network_details_msg(netState));
+                sendEventToUser(ZTS_EVENT_NETWORK_ACCESS_DENIED, (void*)&netState);
                 break;
             default:
                 break;
         }
         netState.tap->_networkStatus = mostRecentStatus;
     }
-    bool bShouldCopyPeerInfo = false;
-    int event_code = 0;
     ZT_PeerList* pl = _node->peers();
-    zts_peer_info_t* pd;
     if (pl) {
         for (unsigned long i = 0; i < pl->peerCount; ++i) {
             if (! peerCache.count(pl->peers[i].address)) {
                 // New peer, add status
                 if (pl->peers[i].pathCount > 0) {
-                    bShouldCopyPeerInfo = true;
-                    event_code = ZTS_EVENT_PEER_DIRECT;
+                    sendEventToUser(ZTS_EVENT_PEER_DIRECT, (void*)&(pl->peers[i]));
                 }
                 if (pl->peers[i].pathCount == 0) {
-                    bShouldCopyPeerInfo = true;
-                    event_code = ZTS_EVENT_PEER_RELAY;
+                    sendEventToUser(ZTS_EVENT_PEER_RELAY, (void*)&(pl->peers[i]));
                 }
             }
-            // Previously known peer, update status
-            else {
+            else {   // Previously known peer, update status
                 if (peerCache[pl->peers[i].address] < pl->peers[i].pathCount) {
-                    bShouldCopyPeerInfo = true;
-                    event_code = ZTS_EVENT_PEER_PATH_DISCOVERED;
+                    sendEventToUser(ZTS_EVENT_PEER_PATH_DISCOVERED, (void*)&(pl->peers[i]));
                 }
                 if (peerCache[pl->peers[i].address] > pl->peers[i].pathCount) {
-                    bShouldCopyPeerInfo = true;
-                    event_code = ZTS_EVENT_PEER_PATH_DEAD;
+                    sendEventToUser(ZTS_EVENT_PEER_PATH_DEAD, (void*)&(pl->peers[i]));
                 }
                 if (peerCache[pl->peers[i].address] == 0 && pl->peers[i].pathCount > 0) {
-                    bShouldCopyPeerInfo = true;
-                    event_code = ZTS_EVENT_PEER_DIRECT;
+                    sendEventToUser(ZTS_EVENT_PEER_DIRECT, (void*)&(pl->peers[i]));
                 }
                 if (peerCache[pl->peers[i].address] > 0 && pl->peers[i].pathCount == 0) {
-                    bShouldCopyPeerInfo = true;
-                    event_code = ZTS_EVENT_PEER_RELAY;
+                    sendEventToUser(ZTS_EVENT_PEER_RELAY, (void*)&(pl->peers[i]));
                 }
-            }
-            if (bShouldCopyPeerInfo) {
-                pd = new zts_peer_info_t();
-                memcpy(pd, &(pl->peers[i]), sizeof(zts_peer_info_t));
-                for (unsigned int j = 0; j < pl->peers[i].pathCount; j++) {
-                    native_ss_to_zts_ss(&(pd->paths[j].address), &(pl->peers[i].paths[j].address));
-                }
-                sendEventToUser(event_code, (void*)pd);
-                bShouldCopyPeerInfo = false;
             }
             // Update our cache with most recently observed path count
             peerCache[pl->peers[i].address] = pl->peers[i].pathCount;
@@ -1160,14 +1229,6 @@ int NodeService::getIdentity(char* keypair, unsigned int* len)
     }
     *len = strnlen(keypair, ZT_IDENTITY_STRING_BUFFER_LENGTH);
     return ZTS_ERR_OK;
-}
-
-void NodeService::sendEventToUser(unsigned int event_code, const void* arg, unsigned int len)
-{
-    if (! _events) {
-        return;
-    }
-    _events->enqueue(event_code, arg, len);
 }
 
 void NodeService::nodeStatePutFunction(

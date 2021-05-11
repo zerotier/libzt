@@ -175,7 +175,7 @@ namespace ZeroTier.Core
                     newEvent.NetworkInfo = ni;
                     newEvent.NetworkInfo.Id = net_info.net_id;
                     newEvent.NetworkInfo.MACAddress = net_info.mac;
-                    newEvent.NetworkInfo.Name = System.Text.Encoding.Default.GetString(net_info.name);
+                    newEvent.NetworkInfo.Name = System.Text.Encoding.UTF8.GetString(net_info.name);
                     newEvent.NetworkInfo.Status = net_info.status;
                     newEvent.NetworkInfo.Type = net_info.type;
                     newEvent.NetworkInfo.MTU = net_info.mtu;
@@ -581,7 +581,7 @@ namespace ZeroTier.Core
         }
 
         [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_id_new")] static extern int
-        zts_id_new(string arg1, global::System.Runtime.InteropServices.HandleRef arg2);
+        zts_id_new(string arg1, IntPtr arg2);
 
         [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_id_pair_is_valid")]
         static extern int zts_id_pair_is_valid(string arg1, int arg2);
@@ -660,24 +660,19 @@ namespace ZeroTier.Core
         static extern int zts_addr_is_assigned(ulong arg1, int arg2);
 
         [DllImport("libzt", EntryPoint = "CSharp_zts_addr_get")]
-        static extern int zts_addr_get(ulong arg1, int arg2, global::System.Runtime.InteropServices.HandleRef arg3);
+        static extern int zts_addr_get(ulong arg1, int arg2, IntPtr arg3);
 
         [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_addr_get_str")]
         static extern int zts_addr_get_str(ulong arg1, int arg2, IntPtr arg3, int arg4);
 
         [DllImport("libzt", EntryPoint = "CSharp_zts_addr_get_all")]
-        static extern int zts_addr_get_all(
-            ulong arg1,
-            global::System.Runtime.InteropServices.HandleRef arg2,
-            global::System.Runtime.InteropServices.HandleRef arg3);
+        static extern int zts_addr_get_all(ulong arg1, IntPtr arg2, IntPtr arg3);
 
         [DllImport("libzt", EntryPoint = "CSharp_zts_addr_compute_6plane")]
-        static extern int
-        zts_addr_compute_6plane(ulong arg1, ulong arg2, global::System.Runtime.InteropServices.HandleRef arg3);
+        static extern int zts_addr_compute_6plane(ulong arg1, ulong arg2, IntPtr arg3);
 
         [DllImport("libzt", EntryPoint = "CSharp_zts_addr_compute_rfc4193")]
-        static extern int
-        zts_addr_compute_rfc4193(ulong arg1, ulong arg2, global::System.Runtime.InteropServices.HandleRef arg3);
+        static extern int zts_addr_compute_rfc4193(ulong arg1, ulong arg2, IntPtr arg3);
 
         [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_addr_compute_rfc4193_str")]
         static extern int zts_addr_compute_rfc4193_str(ulong arg1, ulong arg2, string arg3, int arg4);
@@ -745,7 +740,7 @@ namespace ZeroTier.Core
         public static extern ulong zts_node_get_id();
 
         [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_node_get_id_pair")]
-        static extern int zts_node_get_id_pair(string arg1, global::System.Runtime.InteropServices.HandleRef arg2);
+        static extern int zts_node_get_id_pair(string arg1, IntPtr arg2);
 
         [DllImport("libzt", EntryPoint = "CSharp_zts_node_get_port")]
         static extern int zts_node_get_port();

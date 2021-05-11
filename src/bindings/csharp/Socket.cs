@@ -490,12 +490,7 @@ namespace ZeroTier.Sockets
         zts_bsd_gethostbyname(string jarg1);
 
         [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_select")]
-        static extern int zts_bsd_select(
-            int jarg1,
-            global::System.Runtime.InteropServices.HandleRef jarg2,
-            global::System.Runtime.InteropServices.HandleRef jarg3,
-            global::System.Runtime.InteropServices.HandleRef jarg4,
-            global::System.Runtime.InteropServices.HandleRef jarg5);
+        static extern int zts_bsd_select(int jarg1, IntPtr jarg2, IntPtr jarg3, IntPtr jarg4, IntPtr jarg5);
 
         [DllImport("libzt", EntryPoint = "CSharp_zts_get_all_stats")]
         static extern int zts_get_all_stats(IntPtr arg1);
@@ -663,12 +658,7 @@ namespace ZeroTier.Sockets
         static extern int zts_tcp_client(string jarg1, int jarg2);
 
         [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_tcp_server")]
-        static extern int zts_tcp_server(
-            string jarg1,
-            int jarg2,
-            string jarg3,
-            int jarg4,
-            global::System.Runtime.InteropServices.HandleRef jarg5);
+        static extern int zts_tcp_server(string jarg1, int jarg2, string jarg3, int jarg4, IntPtr jarg5);
 
         [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_udp_server")]
         static extern int zts_udp_server(string jarg1, int jarg2);
@@ -683,7 +673,7 @@ namespace ZeroTier.Sockets
         static extern int zts_connect(int jarg1, string jarg2, int jarg3, int jarg4);
 
         [DllImport("libzt", EntryPoint = "CSharp_zts_stats_get_all")]
-        static extern int zts_stats_get_all(global::System.Runtime.InteropServices.HandleRef jarg1);
+        static extern int zts_stats_get_all(IntPtr jarg1);
 
         /*
                 [DllImport("libzt", EntryPoint = "CSharp_zts_set_no_delay")]
@@ -760,11 +750,7 @@ namespace ZeroTier.Sockets
         static extern int zts_util_get_ip_family(string jarg1);
 
         [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_util_ipstr_to_saddr")]
-        static extern int zts_util_ipstr_to_saddr(
-            string jarg1,
-            int jarg2,
-            global::System.Runtime.InteropServices.HandleRef jarg3,
-            global::System.Runtime.InteropServices.HandleRef jarg4);
+        static extern int zts_util_ipstr_to_saddr(string jarg1, int jarg2, IntPtr jarg3, IntPtr jarg4);
 
         /// <value>The value of errno for the low-level socket layer</value>
         public static int ErrNo

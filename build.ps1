@@ -94,10 +94,10 @@ function Build-All
 
 function BuildNuGetPackages([string]$Version)
 {
-	BuildNuGetPackage-Sockets -BuildType "Release" -Arch "x64" -Version $Version
-	BuildNuGetPackage-Sockets -BuildType "Debug" -Arch "x64" -Version $Version
-	BuildNuGetPackage-Sockets -BuildType "Release" -Arch "Win32" -Version $Version
-	BuildNuGetPackage-Sockets -BuildType "Debug" -Arch "Win32" -Version $Version
+	BuildNuGetPackage -BuildType "Release" -Arch "x64" -Version $Version
+	BuildNuGetPackage -BuildType "Debug" -Arch "x64" -Version $Version
+	BuildNuGetPackage -BuildType "Release" -Arch "Win32" -Version $Version
+	BuildNuGetPackage -BuildType "Debug" -Arch "Win32" -Version $Version
 }
 
 function BuildNuGetPackage([string]$BuildType, [string]$Arch, [string]$Version)

@@ -69,6 +69,9 @@ int init_subsystems()
     zts_install_signal_handlers();
 #endif   // ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
     if (! zts_service) {
+#if defined(__WINDOWS__)
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
+#endif
         zts_service = new NodeService();
         zts_service->setUserEventSystem(zts_events);
     }
@@ -536,7 +539,6 @@ int zts_node_start()
     }
     // Start ZeroTier service
 #if defined(__WINDOWS__)
-    WSAStartup(MAKEWORD(2, 2), &wsaData);
     HANDLE serviceThread = CreateThread(NULL, 0, _runNodeService, (void*)NULL, 0, NULL);
     // TODO: Check success
 #else

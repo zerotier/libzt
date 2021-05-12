@@ -70,7 +70,7 @@ int init_subsystems()
 #endif   // ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
     if (! zts_service) {
 #if defined(__WINDOWS__)
-    WSAStartup(MAKEWORD(2, 2), &wsaData);
+        WSAStartup(MAKEWORD(2, 2), &wsaData);
 #endif
         zts_service = new NodeService();
         zts_service->setUserEventSystem(zts_events);

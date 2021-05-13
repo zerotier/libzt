@@ -26,13 +26,16 @@ public class ExampleApp {
         // node.InitAllowIdentityCaching(true);
         // node.InitAllowWorldCaching(false);
         node.InitSetEventHandler(OnZeroTierEvent);
-        node.InitSetPort(0);   // Will randomly attempt ports if set to 0
+        //node.InitSetPort(0);   // Will randomly attempt ports if not specified or is set to 0
+        node.InitSetRandomPortRange(40000, 50000);
+        // node.InitAllowSecondaryPort(false);
 
         // (OPTIONAL) Set custom signed roots
 
         // In this case we only allow ZeroTier to contact our Amsterdam root server
         // To see examples of how to generate and sign roots definitions see docs.zerotier.com
 
+        /*
         var rootsData = new byte[] {
             0x01, 0x00, 0x00, 0x00, 0x00, 0x08, 0xea, 0xc9, 0x0a, 0x00, 0x00, 0x01, 0x6c, 0xe3, 0xe2, 0x39, 0x55, 0x74,
             0xeb, 0x27, 0x9d, 0xc9, 0xe7, 0x5a, 0x52, 0xbb, 0x91, 0x8f, 0xf7, 0x43, 0x3c, 0xbf, 0x77, 0x5a, 0x4b, 0x57,
@@ -52,6 +55,7 @@ public class ExampleApp {
             0x00, 0x00, 0x00, 0x00, 0x27, 0x09
         };
         node.InitSetRoots(rootsData, rootsData.Length);
+        */
 
         node.Start();   // Network activity only begins after calling Start()
         while (! node.Online) {

@@ -70,7 +70,7 @@ int init_subsystems()
 #endif   // ZTS_ENABLE_CUSTOM_SIGNAL_HANDLERS
     if (! zts_service) {
 #if defined(__WINDOWS__)
-    WSAStartup(MAKEWORD(2, 2), &wsaData);
+        WSAStartup(MAKEWORD(2, 2), &wsaData);
 #endif
         zts_service = new NodeService();
         zts_service->setUserEventSystem(zts_events);
@@ -130,7 +130,7 @@ int zts_init_blacklist_if(const char* prefix, unsigned int len)
 int zts_init_set_roots(const void* roots_data, unsigned int len)
 {
     ACQUIRE_SERVICE_OFFLINE();
-    return zts_service->setWorld(roots_data, len);
+    return zts_service->setRoots(roots_data, len);
 }
 
 int zts_init_set_port(unsigned short port)
@@ -138,6 +138,25 @@ int zts_init_set_port(unsigned short port)
     ACQUIRE_SERVICE_OFFLINE();
     zts_service->setPrimaryPort(port);
     return ZTS_ERR_OK;
+}
+
+int zts_init_set_random_port_range(unsigned short start_port, unsigned short end_port)
+{
+    ACQUIRE_SERVICE_OFFLINE();
+    zts_service->setRandomPortRange(start_port, end_port);
+    return ZTS_ERR_OK;
+}
+
+int zts_init_allow_secondary_port(unsigned int allowed)
+{
+    ACQUIRE_SERVICE_OFFLINE();
+    return zts_service->allowSecondaryPort(allowed);
+}
+
+int zts_init_allow_port_mapping(unsigned int allowed)
+{
+    ACQUIRE_SERVICE_OFFLINE();
+    return zts_service->allowPortMapping(allowed);
 }
 
 int zts_init_allow_peer_cache(unsigned int allowed)
@@ -155,7 +174,7 @@ int zts_init_allow_net_cache(unsigned int allowed)
 int zts_init_allow_roots_cache(unsigned int allowed)
 {
     ACQUIRE_SERVICE_OFFLINE();
-    return zts_service->allowWorldCaching(allowed);
+    return zts_service->allowRootSetCaching(allowed);
 }
 
 int zts_init_allow_id_cache(unsigned int allowed)

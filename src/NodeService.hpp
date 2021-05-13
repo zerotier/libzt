@@ -117,9 +117,13 @@ class NodeService {
     Node* _node;
 
     uint64_t _nodeId;
-    unsigned int _primaryPort = 0;
-    unsigned int _secondaryPort = 0;
-    unsigned int _tertiaryPort = 0;
+    unsigned int _primaryPort;
+    unsigned int _secondaryPort;
+    unsigned int _tertiaryPort;
+
+    unsigned int _randomPortRangeStart;
+    unsigned int _randomPortRangeEnd;
+
     volatile unsigned int _udpPortPickerCounter;
 
     std::map<uint64_t, unsigned int> peerCache;
@@ -197,15 +201,16 @@ class NodeService {
     std::string _fatalErrorMessage;
 
     // uPnP/NAT-PMP port mapper if enabled
-    bool _portMappingEnabled;   // local.conf settings
+    bool _allowPortMapping;
 #ifdef ZT_USE_MINIUPNPC
     PortMapper* _portMapper;
 #endif
+    bool _allowSecondaryPort;
 
     uint8_t _allowNetworkCaching;
     uint8_t _allowPeerCaching;
     uint8_t _allowIdentityCaching;
-    uint8_t _allowWorldCaching;
+    uint8_t _allowRootSetCaching;
 
     char _publicIdStr[ZT_IDENTITY_STRING_BUFFER_LENGTH] = { 0 };
     char _secretIdStr[ZT_IDENTITY_STRING_BUFFER_LENGTH] = { 0 };
@@ -368,11 +373,20 @@ class NodeService {
     /** Instruct the NodeService on where to look for identity files and caches */
     int setHomePath(const char* homePath);
 
-    /** Set the NodeService's primary port */
+    /** Set the primary port */
     int setPrimaryPort(unsigned short primaryPort);
 
-    /** Get the NodeService's primary port */
+    /** Set random range to select backup ports from */
+    int setRandomPortRange(unsigned short startPort, unsigned short endPort);
+
+    /** Get the primary port */
     unsigned short getPrimaryPort() const;
+
+    /** Allow or disallow port-mapping */
+    int allowPortMapping(unsigned int allowed);
+
+    /** Allow or disallow backup port */
+    int allowSecondaryPort(unsigned int allowed);
 
     /** Set the event system instance used to convey messages to the user */
     int setUserEventSystem(Events* events);
@@ -380,7 +394,7 @@ class NodeService {
     void enableEvents();
 
     /** Set the roots definition */
-    int setWorld(const void* data, unsigned int len);
+    int setRoots(const void* data, unsigned int len);
 
     /** Add Interface prefix to blacklist (prevents ZeroTier from using that interface) */
     int addInterfacePrefixToBlacklist(const char* prefix, unsigned int len);
@@ -401,7 +415,7 @@ class NodeService {
     int allowIdentityCaching(unsigned int allowed);
 
     /** Allow ZeroTier to cache root definitions to storage */
-    int allowWorldCaching(unsigned int allowed);
+    int allowRootSetCaching(unsigned int allowed);
 
     /** Return whether broadcast is enabled on the given network */
     int getNetworkBroadcast(uint64_t net_id);

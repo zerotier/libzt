@@ -688,15 +688,24 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_init_set_roots(void* jarg1, int jarg2)
     return jresult;
 }
 
-SWIGEXPORT int SWIGSTDCALL CSharp_zts_init_set_port(unsigned short jarg1)
+SWIGEXPORT int SWIGSTDCALL CSharp_zts_init_set_port(unsigned short port)
 {
-    int jresult;
-    unsigned short arg1;
-    int result;
-    arg1 = (unsigned short)jarg1;
-    result = (int)zts_init_set_port(arg1);
-    jresult = result;
-    return jresult;
+    return zts_init_set_port(port);
+}
+
+SWIGEXPORT int SWIGSTDCALL CSharp_zts_init_set_random_port_range(unsigned short start_port, unsigned short end_port)
+{
+    return zts_init_set_random_port_range(start_port, end_port);
+}
+
+SWIGEXPORT int SWIGSTDCALL CSharp_zts_init_allow_secondary_port(int allowed)
+{
+    return zts_init_allow_secondary_port(allowed);
+}
+
+SWIGEXPORT int SWIGSTDCALL CSharp_zts_init_allow_port_mapping(int allowed)
+{
+    return zts_init_allow_port_mapping(allowed);
 }
 
 SWIGEXPORT int SWIGSTDCALL CSharp_zts_init_allow_net_cache(int jarg1)

@@ -1058,9 +1058,7 @@ int zts_py_getblocking(int fd);
 // Central API                                                                //
 //----------------------------------------------------------------------------//
 
-#ifdef ZTS_ENABLE_PYTHON
 #define ZTS_DISABLE_CENTRAL_API 1
-#endif
 
 #ifndef ZTS_DISABLE_CENTRAL_API
 
@@ -1331,6 +1329,40 @@ ZTS_API int ZTCALL zts_init_set_roots(const void* roots_data, unsigned int len);
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
 ZTS_API int ZTCALL zts_init_set_port(unsigned short port);
+
+/**
+ * @brief Set range that random ports will be selected from. This is an initialization function that can
+ * only be called before `zts_node_start()`.
+ *
+ * @param start_port Start of port range
+ * @param end_port End of port range
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
+ */
+ZTS_API int ZTCALL zts_init_set_random_port_range(unsigned short start_port, unsigned short end_port);
+
+/**
+ * @brief Allow or disallow ZeroTier from automatically selecting a backup port to help get through
+ * buggy NAT. This is enabled by default. This port is randomly chosen and should be disabled if you
+ * want to control exactly which ports ZeroTier talks on and (iff) you know with absolute certainty
+ * that traffic on your chosen primary port is allowed. This is an initialization function that can
+ * only be called before `zts_node_start()`.
+ *
+ * @param port Port number
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
+ */
+ZTS_API int ZTCALL zts_init_allow_secondary_port(unsigned int allowed);
+
+/**
+ * @brief Allow or disallow the use of port-mapping. This is enabled by default. This is an
+ * initialization function that can only be called before `zts_node_start()`.
+ *
+ * @param port Port number
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
+ */
+ZTS_API int ZTCALL zts_init_allow_port_mapping(unsigned int allowed);
 
 /**
  * @brief Enable or disable whether the node will cache network details

@@ -167,20 +167,25 @@ NodeService::NodeService()
     , _node((Node*)0)
     , _nodeId(0x0)
     , _primaryPort()
+    , _secondaryPort(0)
+    , _tertiaryPort(0)
+    , _randomPortRangeStart(0)
+    , _randomPortRangeEnd(0)
     , _udpPortPickerCounter(0)
     , _lastDirectReceiveFromGlobal(0)
     , _lastRestart(0)
     , _nextBackgroundTaskDeadline(0)
     , _run(false)
     , _termReason(ONE_STILL_RUNNING)
-    , _portMappingEnabled(true)
+    , _allowPortMapping(true)
 #ifdef ZT_USE_MINIUPNPC
     , _portMapper((PortMapper*)0)
 #endif
+    , _allowSecondaryPort(true)
     , _allowNetworkCaching(true)
     , _allowPeerCaching(true)
     , _allowIdentityCaching(true)
-    , _allowWorldCaching(true)
+    , _allowRootSetCaching(true)
     , _userDefinedWorld(false)
     , _nodeIsOnline(false)
     , _eventsEnabled(false)
@@ -240,6 +245,9 @@ NodeService::ReasonForTermination NodeService::run()
             _node = new Node(this, (void*)0, &cb, OSUtils::now());
         }
 
+        unsigned int minPort = (_randomPortRangeStart ? _randomPortRangeStart : 20000);
+        unsigned int maxPort = (_randomPortRangeEnd ? _randomPortRangeEnd : 45500);
+
         // Make sure we can use the primary port, and hunt for one if
         // configured to do so
         const int portTrials = (_primaryPort == 0) ? 256 : 1;   // if port is 0, pick random
@@ -247,10 +255,11 @@ NodeService::ReasonForTermination NodeService::run()
             if (_primaryPort == 0) {
                 unsigned int randp = 0;
                 Utils::getSecureRandom(&randp, sizeof(randp));
-                _primaryPort = 20000 + (randp % 45500);
+                _primaryPort = (randp % (maxPort - minPort + 1)) + minPort;
             }
             if (_trialBind(_primaryPort)) {
                 _ports[0] = _primaryPort;
+                break;
             }
             else {
                 _primaryPort = 0;
@@ -268,25 +277,32 @@ NodeService::ReasonForTermination NodeService::run()
         // fail if more than one device behind the same NAT tries to use the
         // same internal private address port number. Buggy NATs are a
         // running theme.
-        _ports[1] = (_secondaryPort == 0) ? 20000 + ((unsigned int)_node->address() % 45500) : _secondaryPort;
-        for (int i = 0;; ++i) {
-            if (i > 1000) {
-                _ports[1] = 0;
-                break;
-            }
-            else if (++_ports[1] >= 65536) {
-                _ports[1] = 20000;
-            }
-            if (_trialBind(_ports[1])) {
-                break;
+        if (_allowSecondaryPort) {
+            //_ports[1] = (_secondaryPort == 0) ? minPort + ((unsigned int)_node->address() % maxPort) : _secondaryPort;
+            _ports[1] = (_secondaryPort == 0) ? (((unsigned int)_node->address() % (maxPort - minPort + 1)) + minPort)
+                                              : _secondaryPort;
+            for (int i = 0;; ++i) {
+                if (i > 1000) {
+                    _ports[1] = 0;
+                    break;
+                }
+                else if (++_ports[1] >= maxPort) {
+                    _ports[1] = minPort;
+                }
+                if (_trialBind(_ports[1])) {
+                    _secondaryPort = _ports[1];
+                    break;
+                }
             }
         }
 #ifdef ZT_USE_MINIUPNPC
-        if (_portMappingEnabled) {
+        if (_allowPortMapping) {
             // If we're running uPnP/NAT-PMP, bind a *third* port for that.
             // We can't use the other two ports for that because some NATs
             // do really funky stuff with ports that are explicitly mapped
             // that breaks things.
+            maxPort = (_randomPortRangeEnd ? _randomPortRangeEnd : 65536);
+
             if (_ports[1]) {
                 _ports[2] = (_tertiaryPort == 0) ? _ports[1] : _tertiaryPort;
                 for (int i = 0;; ++i) {
@@ -294,10 +310,11 @@ NodeService::ReasonForTermination NodeService::run()
                         _ports[2] = 0;
                         break;
                     }
-                    else if (++_ports[2] >= 65536) {
-                        _ports[2] = 20000;
+                    else if (++_ports[2] >= maxPort) {
+                        _ports[2] = minPort;
                     }
                     if (_trialBind(_ports[2])) {
+                        _tertiaryPort = _ports[2];
                         break;
                     }
                 }
@@ -511,7 +528,7 @@ void NodeService::terminate()
     _allowNetworkCaching = true;
     _allowPeerCaching = true;
     _allowIdentityCaching = true;
-    _allowWorldCaching = true;
+    _allowRootSetCaching = true;
     memset(_publicIdStr, 0, ZT_IDENTITY_STRING_BUFFER_LENGTH);
     memset(_secretIdStr, 0, ZT_IDENTITY_STRING_BUFFER_LENGTH);
     _interfacePrefixBlacklist.clear();
@@ -1270,7 +1287,7 @@ void NodeService::nodeStatePutFunction(
         case ZT_STATE_OBJECT_PLANET:
             sendEventToUser(ZTS_EVENT_STORE_PLANET, data, len);
             memcpy(_rootsData, data, len);
-            if (_homePath.length() > 0 && _allowWorldCaching) {
+            if (_homePath.length() > 0 && _allowRootSetCaching) {
                 OSUtils::ztsnprintf(p, sizeof(p), "%s" ZT_PATH_SEPARATOR_S "roots", _homePath.c_str());
             }
             else {
@@ -1711,9 +1728,40 @@ int NodeService::setPrimaryPort(unsigned short primaryPort)
     return ZTS_ERR_OK;
 }
 
+int NodeService::setRandomPortRange(unsigned short startPort, unsigned short endPort)
+{
+    Mutex::Lock _lr(_run_m);
+    if (_run) {
+        return ZTS_ERR_SERVICE;
+    }
+    _randomPortRangeStart = startPort;
+    _randomPortRangeEnd = endPort;
+    return ZTS_ERR_OK;
+}
+
 unsigned short NodeService::getPrimaryPort() const
 {
     return _primaryPort;
+}
+
+int NodeService::allowPortMapping(unsigned int allowed)
+{
+    Mutex::Lock _lr(_run_m);
+    if (_run) {
+        return ZTS_ERR_SERVICE;
+    }
+    _allowPortMapping = allowed;
+    return ZTS_ERR_OK;
+}
+
+int NodeService::allowSecondaryPort(unsigned int allowed)
+{
+    Mutex::Lock _lr(_run_m);
+    if (_run) {
+        return ZTS_ERR_SERVICE;
+    }
+    _allowSecondaryPort = allowed;
+    return ZTS_ERR_OK;
 }
 
 int NodeService::setUserEventSystem(Events* events)
@@ -1735,7 +1783,7 @@ void NodeService::enableEvents()
     _events->enable();
 }
 
-int NodeService::setWorld(const void* rootsData, unsigned int len)
+int NodeService::setRoots(const void* rootsData, unsigned int len)
 {
     if (! rootsData || len <= 0 || len > ZTS_STORE_DATA_LEN) {
         return ZTS_ERR_ARG;
@@ -1834,13 +1882,13 @@ int NodeService::allowIdentityCaching(unsigned int allowed)
     return ZTS_ERR_OK;
 }
 
-int NodeService::allowWorldCaching(unsigned int allowed)
+int NodeService::allowRootSetCaching(unsigned int allowed)
 {
     Mutex::Lock _lr(_run_m);
     if (_run) {
         return ZTS_ERR_SERVICE;
     }
-    _allowWorldCaching = allowed;
+    _allowRootSetCaching = allowed;
     return ZTS_ERR_OK;
 }
 int NodeService::getNetworkBroadcast(uint64_t net_id)

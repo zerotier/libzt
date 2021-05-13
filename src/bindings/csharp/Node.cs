@@ -30,7 +30,6 @@ namespace ZeroTier.Core
 
     public class Node {
         static ulong _id = 0x0;
-        static ushort _primaryPort;
         static ushort _secondaryPort;
         static ushort _tertiaryPort;
         static int _versionMajor;
@@ -39,7 +38,7 @@ namespace ZeroTier.Core
         static bool _isOnline = false;
         static bool _hasBeenFreed = false;
         string _configFilePath;
-        ushort _servicePort;
+        ushort _primaryPort;
 
         static ZeroTierManagedEventCallback _managedCallback;
         CSharpCallbackWithStruct _unmanagedCallback;
@@ -64,7 +63,6 @@ namespace ZeroTier.Core
             _versionRev = 0;
             _isOnline = false;
             _configFilePath = string.Empty;
-            _servicePort = 0;
             _networks.Clear();
             _peers.Clear();
         }
@@ -99,9 +97,14 @@ namespace ZeroTier.Core
         {
             int res = Constants.ERR_OK;
             if ((res = zts_init_set_port(port)) == Constants.ERR_OK) {
-                _servicePort = port;
+                _primaryPort = port;
             }
             return res;
+        }
+
+        public int InitSetRandomPortRange(UInt16 startPort, UInt16 endPort)
+        {
+            return zts_init_set_random_port_range(startPort, endPort);
         }
 
         public int InitSetRoots(byte[] roots_data, int len)
@@ -116,6 +119,16 @@ namespace ZeroTier.Core
         public int InitAllowNetworkCaching(bool allowed)
         {
             return zts_init_allow_net_cache(Convert.ToByte(allowed));
+        }
+
+        public int InitAllowSecondaryPort(bool allowed)
+        {
+            return zts_init_allow_secondary_port(Convert.ToByte(allowed));
+        }
+
+        public int InitAllowPortMapping(bool allowed)
+        {
+            return zts_init_allow_port_mapping(Convert.ToByte(allowed));
         }
 
         public int InitAllowPeerCaching(bool allowed)
@@ -338,7 +351,7 @@ namespace ZeroTier.Core
                     (zts_route_info_t)Marshal.PtrToStructure(msg.route, typeof(zts_route_info_t));
                 newEvent = new ZeroTier.Core.Event();
                 newEvent.Code = msg.event_code;
-                newEvent.RouteInfo = default;   // new RouteInfo();
+                // newEvent.RouteInfo = default;   // new RouteInfo();
 
                 if (msg.event_code == Constants.EVENT_ROUTE_ADDED) {
                     newEvent.Name = "EVENT_ROUTE_ADDED";
@@ -354,10 +367,10 @@ namespace ZeroTier.Core
                 zts_peer_info_t peer_info = (zts_peer_info_t)Marshal.PtrToStructure(msg.peer, typeof(zts_peer_info_t));
                 newEvent = new ZeroTier.Core.Event();
                 newEvent.Code = msg.event_code;
-                newEvent.PeerInfo = default;   // new PeerInfo();
+                // newEvent.PeerInfo = default;   // new PeerInfo();
 
                 if (peer_info.role == Constants.PEER_ROLE_PLANET) {
-                    Console.WriteLine("ROOT");
+                    newEvent.Name = "PEER_ROLE_PLANET";
                 }
                 if (msg.event_code == Constants.EVENT_PEER_DIRECT) {
                     newEvent.Name = "EVENT_PEER_DIRECT";
@@ -381,7 +394,7 @@ namespace ZeroTier.Core
                     (zts_addr_info_t)Marshal.PtrToStructure(msg.addr, typeof(zts_addr_info_t));
                 newEvent = new ZeroTier.Core.Event();
                 newEvent.Code = msg.event_code;
-                newEvent.AddressInfo = default;   // new AddressInfo();
+                // newEvent.AddressInfo = default;   // new AddressInfo();
 
                 if (msg.event_code == Constants.EVENT_ADDR_ADDED_IP4) {
                     newEvent.Name = "EVENT_ADDR_ADDED_IP4";
@@ -402,7 +415,7 @@ namespace ZeroTier.Core
             if (msg.cache != IntPtr.Zero) {
                 newEvent = new ZeroTier.Core.Event();
                 newEvent.Code = msg.event_code;
-                newEvent.AddressInfo = default;   // new AddressInfo();
+                // newEvent.AddressInfo = default;   // new AddressInfo();
 
                 if (msg.event_code == Constants.EVENT_STORE_IDENTITY_SECRET) {
                     newEvent.Name = "EVENT_STORE_IDENTITY_SECRET";
@@ -580,11 +593,21 @@ namespace ZeroTier.Core
             }
         }
 
+        // id
+
         [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_id_new")] static extern int
         zts_id_new(string arg1, IntPtr arg2);
 
         [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_id_pair_is_valid")]
         static extern int zts_id_pair_is_valid(string arg1, int arg2);
+
+        // init
+
+        [DllImport("libzt", EntryPoint = "CSharp_zts_init_allow_net_cache")]
+        static extern int zts_init_allow_net_cache(int arg1);
+
+        [DllImport("libzt", EntryPoint = "CSharp_zts_init_allow_peer_cache")]
+        static extern int zts_init_allow_peer_cache(int arg1);
 
         [DllImport("libzt", CharSet = CharSet.Ansi, EntryPoint = "CSharp_zts_init_from_storage")]
         static extern int zts_init_from_storage(string arg1);
@@ -603,6 +626,15 @@ namespace ZeroTier.Core
 
         [DllImport("libzt", EntryPoint = "CSharp_zts_init_set_port")]
         static extern int zts_init_set_port(ushort arg1);
+
+        [DllImport("libzt", EntryPoint = "CSharp_zts_init_set_random_port_range")]
+        static extern int zts_init_set_random_port_range(ushort arg1, ushort arg2);
+
+        [DllImport("libzt", EntryPoint = "CSharp_zts_init_allow_secondary_port")]
+        static extern int zts_init_allow_secondary_port(int arg1);
+
+        [DllImport("libzt", EntryPoint = "CSharp_zts_init_allow_port_mapping")]
+        static extern int zts_init_allow_port_mapping(int arg1);
 
         // Core query API
 
@@ -642,17 +674,6 @@ namespace ZeroTier.Core
 
         [DllImport("libzt", EntryPoint = "CSharp_zts_core_query_mc")]
         static extern int zts_core_query_mc(ulong net_id, int idx, ref ulong mac, ref uint adi);
-
-        // init
-
-        [DllImport("libzt", EntryPoint = "CSharp_zts_init_allow_net_cache")]
-        static extern int zts_init_allow_net_cache(int arg1);
-
-        [DllImport("libzt", EntryPoint = "CSharp_zts_init_allow_peer_cache")]
-        static extern int zts_init_allow_peer_cache(int arg1);
-
-        [DllImport("libzt", EntryPoint = "CSharp_zts_init_clear")]
-        static extern int zts_init_clear();
 
         // addr
 

@@ -1,5 +1,6 @@
-[ZeroTier](https://www.zerotier.com)
+[ZeroTier.Sockets](https://www.zerotier.com)
 =====
+Part of the [ZeroTier SDK](https://github.com/zerotier/libzt)
 
 Securely connect application instances, physical devices, and virtual devices as if everything is on a single LAN. ZeroTier brings your network into user-space. No root, and no host configuration requirements.
 
@@ -11,20 +12,3 @@ We've paired our network hyper-visor core with a TCP/UDP/IP stack [(lwIP)](https
  - SDK Repo: https://github.com/zerotier/libzt
  - Forum: https://discuss.zerotier.com
 
-## 1.3.4 Release Notes
-
-### Added:
- - IPv6 Support
- - `Socket.ReceiveTimeout`
- - `Socket.SendTimeout`
- - `Socket.ConnectTimeout`
- - `Socket.SendBufferSize`
- - `Socket.ReceiveBufferSize`
- - `Socket.Ttl`
- - `Socket.LingerState`
- - `Socket.KeepAlive`
- - `Socket.NoDelay`
- - `Socket.Blocking`
-
-### Bugfixes:
- - Minor C API fixes

@@ -26,7 +26,7 @@ public class ExampleApp {
         // node.InitAllowIdentityCaching(true);
         // node.InitAllowWorldCaching(false);
         node.InitSetEventHandler(OnZeroTierEvent);
-        //node.InitSetPort(0);   // Will randomly attempt ports if not specified or is set to 0
+        // node.InitSetPort(0);   // Will randomly attempt ports if not specified or is set to 0
         node.InitSetRandomPortRange(40000, 50000);
         // node.InitAllowSecondaryPort(false);
 

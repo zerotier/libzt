@@ -372,7 +372,7 @@ int zts_util_ipstr_to_saddr(
         in6->sin6_port = htons(port);
         in6->sin6_family = family;
 #if defined(_WIN32)
-        zts_inet_pton(family, src_ipstr, &(in6->sin6_addr));
+        ZeroTier::zts_inet_pton(family, src_ipstr, &(in6->sin6_addr));
 #else
         zts_inet_pton(family, src_ipstr, &(in6->sin6_addr));
 #endif
@@ -410,13 +410,13 @@ int zts_connect(int fd, const char* ipstr, unsigned short port, int timeout_ms)
     // Convert to standard address structure
 
     addrlen = sizeof(ss);
-    zts_util_ipstr_to_saddr(ipstr, port, (struct zts_sockaddr*)&ss, &addrlen);
+    ZeroTier::zts_util_ipstr_to_saddr(ipstr, port, (struct zts_sockaddr*)&ss, &addrlen);
     sa = (struct zts_sockaddr*)&ss;
 
     if (addrlen > 0 && sa != NULL) {
         if (zts_get_blocking(fd)) {
             do {
-                err = zts_bsd_connect(fd, sa, addrlen);
+                err = ZeroTier::zts_bsd_connect(fd, sa, addrlen);
                 zts_util_delay(connect_delay);
                 n_tries--;
             } while ((err < 0) && (zts_errno != 0) && (n_tries > 0));
@@ -437,11 +437,11 @@ int zts_bind(int fd, const char* ipstr, unsigned short port)
 
     addrlen = sizeof(ss);
     int err = ZTS_ERR_OK;
-    if ((err = zts_util_ipstr_to_saddr(ipstr, port, (struct zts_sockaddr*)&ss, &addrlen)) != ZTS_ERR_OK) {
+    if ((err = ZeroTier::zts_util_ipstr_to_saddr(ipstr, port, (struct zts_sockaddr*)&ss, &addrlen)) != ZTS_ERR_OK) {
         return err;
     }
     sa = (struct zts_sockaddr*)&ss;
-    return zts_bsd_bind(fd, sa, addrlen);
+    return ZeroTier::zts_bsd_bind(fd, sa, addrlen);
 }
 
 int zts_listen(int fd, int backlog)
@@ -460,7 +460,7 @@ int zts_accept(int fd, char* remote_addr, int len, unsigned short* port)
     zts_sockaddr_storage ss;
     zts_socklen_t addrlen = sizeof(ss);
 
-    int acc_fd = zts_bsd_accept(fd, (zts_sockaddr*)&ss, (zts_socklen_t*)&addrlen);
+    int acc_fd = ZeroTier::zts_bsd_accept(fd, (zts_sockaddr*)&ss, (zts_socklen_t*)&addrlen);
     int err = ZTS_ERR_OK;
     if ((err = zts_util_ntop((struct zts_sockaddr*)&ss, addrlen, remote_addr, len, port)) < ZTS_ERR_OK) {
         return err;
@@ -520,7 +520,7 @@ int zts_getpeername(int fd, char* remote_addr_str, int len, unsigned short* port
     struct zts_sockaddr* sa = (struct zts_sockaddr*)&ss;
     int err = ZTS_ERR_OK;
     zts_socklen_t addrlen = sizeof(ss);
-    if ((err = zts_bsd_getpeername(fd, sa, &addrlen)) < 0) {
+    if ((err = ZeroTier::zts_bsd_getpeername(fd, sa, &addrlen)) < 0) {
         return err;
     }
     return zts_util_ntop(sa, addrlen, remote_addr_str, len, port);
@@ -538,7 +538,7 @@ int zts_getsockname(int fd, char* local_addr_str, int len, unsigned short* port)
     struct zts_sockaddr* sa = (struct zts_sockaddr*)&ss;
     int err = ZTS_ERR_OK;
     zts_socklen_t addrlen = sizeof(ss);
-    if ((err = zts_bsd_getsockname(fd, sa, &addrlen)) < 0) {
+    if ((err = ZeroTier::zts_bsd_getsockname(fd, sa, &addrlen)) < 0) {
         return err;
     }
     return zts_util_ntop(sa, addrlen, local_addr_str, len, port);
@@ -903,13 +903,13 @@ int zts_util_ntop(struct zts_sockaddr* addr, zts_socklen_t addrlen, char* dst_st
     }
     if (addr->sa_family == ZTS_AF_INET) {
         struct zts_sockaddr_in* in4 = (struct zts_sockaddr_in*)addr;
-        zts_inet_ntop(ZTS_AF_INET, &(in4->sin_addr), dst_str, len);
+        ZeroTier::zts_inet_ntop(ZTS_AF_INET, &(in4->sin_addr), dst_str, len);
         *port = ntohs(in4->sin_port);
         return ZTS_ERR_OK;
     }
     if (addr->sa_family == ZTS_AF_INET6) {
         struct zts_sockaddr_in6* in6 = (struct zts_sockaddr_in6*)addr;
-        zts_inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), dst_str, len);
+        ZeroTier::zts_inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), dst_str, len);
         *port = ntohs(in6->sin6_port);
         return ZTS_ERR_OK;
     }

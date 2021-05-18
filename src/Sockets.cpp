@@ -606,6 +606,30 @@ int zts_udp_client(const char* remote_ipstr)
     return fd;
 }
 
+int zts_get_last_socket_error(int fd)
+{
+    int optval = 0;
+    zts_socklen_t optlen = sizeof(optval);
+    int err = ZTS_ERR_OK;
+    if ((err = zts_bsd_getsockopt(fd, ZTS_SOL_SOCKET, ZTS_SO_ERROR, &optval, &optlen)) < 0) {
+        return err;
+    }
+    return optval;
+}
+
+size_t zts_get_data_available(int fd)
+{
+    if (! transport_ok()) {
+        return ZTS_ERR_SERVICE;
+    }
+    int err = ZTS_ERR_OK;
+    size_t bytes_available = 0;
+    if ((err = zts_bsd_ioctl(fd, ZTS_FIONREAD, &bytes_available)) < 0) {
+        return err;
+    }
+    return bytes_available;
+}
+
 int zts_set_no_delay(int fd, int enabled)
 {
     if (! transport_ok()) {

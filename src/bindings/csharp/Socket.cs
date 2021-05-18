@@ -230,6 +230,12 @@ namespace ZeroTier.Sockets
 
         public void Close()
         {
+            Close(0);
+        }
+
+        public void Close(int timeout)
+        {
+            // TODO: Timeout needs to be implemented
             if (_isClosed) {
                 throw new ObjectDisposedException("Socket has already been closed");
             }
@@ -291,21 +297,10 @@ namespace ZeroTier.Sockets
 
         public Int32 Send(Byte[] buffer)
         {
-            if (_isClosed) {
-                throw new ObjectDisposedException("Socket has been closed");
-            }
-            if (_fd < 0) {
-                throw new ZeroTier.Sockets.SocketException((int)ZeroTier.Constants.ERR_SOCKET);
-            }
-            if (buffer == null) {
-                throw new ArgumentNullException("buffer");
-            }
-            int flags = 0;
-            IntPtr bufferPtr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
-            return zts_bsd_send(_fd, bufferPtr, (uint)Buffer.ByteLength(buffer), (int)flags);
+            return Send(buffer, 0, buffer != null ? buffer.Length : 0, SocketFlags.None);
         }
 
-        public Int32 Receive(Byte[] buffer)
+        public Int32 Send(Byte[] buffer, int offset, int size, SocketFlags socketFlags)
         {
             if (_isClosed) {
                 throw new ObjectDisposedException("Socket has been closed");
@@ -316,9 +311,49 @@ namespace ZeroTier.Sockets
             if (buffer == null) {
                 throw new ArgumentNullException("buffer");
             }
+            if (size < 0 || size > buffer.Length - offset) {
+                throw new ArgumentOutOfRangeException("size");
+            }
+            if (offset < 0 || offset > buffer.Length) {
+                throw new ArgumentOutOfRangeException("offset");
+            }
             int flags = 0;
             IntPtr bufferPtr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
-            return zts_bsd_recv(_fd, bufferPtr, (uint)Buffer.ByteLength(buffer), (int)flags);
+            return zts_bsd_send(_fd, bufferPtr + offset, (uint)Buffer.ByteLength(buffer), (int)flags);
+        }
+
+        public int Available
+        {
+            get {
+                return zts_get_data_available(_fd);
+            }
+        }
+
+        public Int32 Receive(Byte[] buffer)
+        {
+            return Receive(buffer, 0, buffer != null ? buffer.Length : 0, SocketFlags.None);
+        }
+
+        public Int32 Receive(byte[] buffer, int offset, int size, SocketFlags socketFlags)
+        {
+            if (_isClosed) {
+                throw new ObjectDisposedException("Socket has been closed");
+            }
+            if (_fd < 0) {
+                throw new ZeroTier.Sockets.SocketException((int)ZeroTier.Constants.ERR_SOCKET);
+            }
+            if (buffer == null) {
+                throw new ArgumentNullException("buffer");
+            }
+            if (size < 0 || size > buffer.Length - offset) {
+                throw new ArgumentOutOfRangeException("size");
+            }
+            if (offset < 0 || offset > buffer.Length) {
+                throw new ArgumentOutOfRangeException("offset");
+            }
+            int flags = 0;
+            IntPtr bufferPtr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
+            return zts_bsd_recv(_fd, bufferPtr + offset, (uint)Buffer.ByteLength(buffer), (int)flags);
         }
 
         public int ReceiveTimeout
@@ -578,6 +613,9 @@ namespace ZeroTier.Sockets
 
         [DllImport("libzt", EntryPoint = "CSharp_zts_bsd_shutdown")]
         static extern int zts_bsd_shutdown(int arg1, int arg2);
+
+        [DllImport("libzt", EntryPoint = "CSharp_zts_get_data_available")]
+        static extern int zts_get_data_available(int fd);
 
         [DllImport("libzt", EntryPoint = "CSharp_zts_set_no_delay")]
         static extern int zts_set_no_delay(int fd, int enabled);

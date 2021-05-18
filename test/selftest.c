@@ -1146,6 +1146,15 @@ void test_server_socket_usage(uint16_t port4, uint16_t port6)
     // Read message
 
     memset(dstbuf, 0, buflen);
+
+    // Test zts_get_data_available
+    while (1) {
+        int av = zts_get_data_available(acc4);
+        zts_util_delay(50);
+        if (av > 0) {
+            break;
+        }
+    }
     bytes_read = zts_bsd_read(acc4, dstbuf, buflen);
     DEBUG_INFO("server4: read (%d) bytes", bytes_read);
     assert(bytes_read == msglen && zts_errno == 0);

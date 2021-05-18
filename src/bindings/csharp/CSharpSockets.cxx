@@ -398,6 +398,11 @@ SWIGINTERN void SWIG_CSharpException(int code, const char* msg)
 extern "C" {
 #endif
 
+SWIGEXPORT int SWIGSTDCALL CSharp_zts_errno_get()
+{
+    return zts_errno;
+}
+
 #ifndef ZTS_DISABLE_CENTRAL_API
 
 SWIGEXPORT int SWIGSTDCALL CSharp_zts_central_set_access_mode(char jarg1)
@@ -1572,6 +1577,11 @@ SWIGEXPORT int SWIGSTDCALL CSharp_zts_bsd_shutdown(int jarg1, int jarg2)
     result = (int)zts_bsd_shutdown(arg1, arg2);
     jresult = result;
     return jresult;
+}
+
+SWIGEXPORT size_t SWIGSTDCALL CSharp_zts_get_data_available(int fd)
+{
+    return zts_get_data_available(fd);
 }
 
 SWIGEXPORT int SWIGSTDCALL CSharp_zts_set_no_delay(int jarg1, int jarg2)

@@ -2624,6 +2624,24 @@ ZTS_API int ZTCALL zts_udp_client(const char* remote_ipstr);
 ZTS_API int ZTCALL zts_set_no_delay(int fd, int enabled);
 
 /**
+ * @brief Get the last error for the given socket
+ *
+ * @param fd Socket file descriptor
+ * @return Error number defined in `zts_errno_t`. `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
+ */
+ZTS_API int ZTCALL zts_get_last_socket_error(int fd);
+
+/**
+ * @brief Return amount of data available to read from socket
+ *
+ * @param fd Socket file descriptor
+ * @return Number of bytes available to read. `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument. Sets `zts_errno`
+ */
+ZTS_API size_t ZTCALL zts_get_data_available(int fd);
+
+/**
  * @brief Return whether `TCP_NODELAY` is enabled
  *
  * @param fd Socket file descriptor

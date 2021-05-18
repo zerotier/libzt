@@ -9,7 +9,7 @@
 		<license type="file">LICENSE.txt</license>
 		<icon>icon.png</icon>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
-		<releaseNotes>Namespace adjustments, additions to Socket API, memory leak fixes.</releaseNotes>
+		<releaseNotes>Add NetworkStream. Fix errno bug</releaseNotes>
 		<description>Encrypted P2P SD-WAN networking layer (Managed C# API) [x64]</description>
 		<title>Encrypted P2P SD-WAN networking layer (Managed C# API) [x64]</title>
 		<copyright>Copyright 2021 ZeroTier, Inc.</copyright>
@@ -26,7 +26,7 @@
 		<file src="runtimes\**" target="runtimes" />
 		<file src="licenses\LICENSE.txt" target="" />
 		<file src="runtimes\win10-x64\lib\uap10.0\*.dll" target="ref\uap10.0" />
-		<file src="contentFiles\*.cs" target="contentFiles\cs\any\ZeroTier.Source.ReadOnly" /> 
+		<file src="contentFiles\*.cs" target="contentFiles\cs\any\ZeroTier.Source.ReadOnly" />
 		<file src="runtimes\win10-x64\lib\uap10.0\*.dll" target="build" />
 		<file src="runtimes\win10-x64\native\*.dll" target="ref\native" />
 	</files>

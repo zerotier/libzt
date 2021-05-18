@@ -453,7 +453,7 @@ ZTS_API int ZTCALL zts_net_get_mac_str(uint64_t net_id, char* dst, unsigned int 
         dst,
         ZTS_MAC_ADDRSTRLEN,
         "%x:%x:%x:%x:%x:%x",
-        (mac >> 48) & 0xFF,
+        (mac >> 40) & 0xFF,
         (mac >> 32) & 0xFF,
         (mac >> 24) & 0xFF,
         (mac >> 16) & 0xFF,

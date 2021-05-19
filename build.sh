@@ -584,7 +584,8 @@ android-aar()
     rm -rf ext/ZeroTierOne/ext/miniupnpc/VERSION
     export PATH=$ANDROID_HOME/cmdline-tools/tools/bin:$PATH
     # Copy source files into project
-    cp -f src/bindings/java/*.java ${ANDROID_PKG_PROJ_DIR}/app/src/main/java/com/zerotier/libzt
+    mkdir -p ${ANDROID_PKG_PROJ_DIR}/app/src/main/java/com/zerotier/sockets
+    cp -f src/bindings/java/*.java ${ANDROID_PKG_PROJ_DIR}/app/src/main/java/com/zerotier/sockets
     # Build
     UPPERCASE_BUILD_TYPE="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
     CMAKE_FLAGS="-D${CMAKE_SWITCH}=1 -D${CMAKE_SWITCH}=ON"

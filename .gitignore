@@ -39,7 +39,6 @@ zerotier-one.port
 *.exe
 *.bin
 *.framework
-*.jar
 bin/
 gen/
 

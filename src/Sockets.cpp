@@ -373,9 +373,11 @@ int zts_util_ipstr_to_saddr(
         in6->sin6_port = htons(port);
         in6->sin6_family = family;
         // Handle the unspecified address
-        any = ((strlen(src_ipstr) >= 2) && !strncmp(src_ipstr, "::", 2))
-            || ((strlen(src_ipstr) >= 15) && !strncmp(src_ipstr, "0:0:0:0:0:0:0:0", 15)) ? 1 : 0;
-        if (!any) {
+        any = ((strlen(src_ipstr) >= 2) && ! strncmp(src_ipstr, "::", 2))
+                      || ((strlen(src_ipstr) >= 15) && ! strncmp(src_ipstr, "0:0:0:0:0:0:0:0", 15))
+                  ? 1
+                  : 0;
+        if (! any) {
             zts_inet_pton(family, src_ipstr, &(in6->sin6_addr));
         }
         else {

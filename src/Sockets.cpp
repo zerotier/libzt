@@ -367,15 +367,20 @@ int zts_util_ipstr_to_saddr(
         *addrlen = sizeof(struct zts_sockaddr_in);
         return ZTS_ERR_OK;
     }
+    int any = 0;
     if (family == ZTS_AF_INET6) {
         struct zts_sockaddr_in6* in6 = (struct zts_sockaddr_in6*)dest_addr;
         in6->sin6_port = htons(port);
         in6->sin6_family = family;
-#if defined(_WIN32)
-        zts_inet_pton(family, src_ipstr, &(in6->sin6_addr));
-#else
-        zts_inet_pton(family, src_ipstr, &(in6->sin6_addr));
-#endif
+        // Handle the unspecified address
+        any = ((strlen(src_ipstr) >= 2) && !strncmp(src_ipstr, "::", 2))
+            || ((strlen(src_ipstr) >= 15) && !strncmp(src_ipstr, "0:0:0:0:0:0:0:0", 15)) ? 1 : 0;
+        if (!any) {
+            zts_inet_pton(family, src_ipstr, &(in6->sin6_addr));
+        }
+        else {
+            memset((void*)&(in6->sin6_addr), 0, sizeof(zts_in6_addr));
+        }
         *addrlen = sizeof(struct zts_sockaddr_in6);
         return ZTS_ERR_OK;
     }

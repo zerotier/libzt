@@ -17,6 +17,11 @@ import com.zerotier.sockets.*;
 import java.io.*;
 import java.net.*;
 
+/**
+ * Implements SocketServer-like behavior over ZeroTier
+ *
+ * @author  ZeroTier, Inc.
+ */
 public class ZeroTierServerSocket {
     private ZeroTierSocket _socket;
 
@@ -33,8 +38,8 @@ public class ZeroTierServerSocket {
      */
     public ZeroTierServerSocket(int localPort) throws IOException
     {
-        _socket = new ZeroTierSocket(ZeroTierNative.ZTS_AF_INET, ZeroTierNative.ZTS_SOCK_STREAM, 0);
-        _socket.bind("0.0.0.0", localPort);
+        _socket = new ZeroTierSocket(ZeroTierNative.ZTS_AF_INET6, ZeroTierNative.ZTS_SOCK_STREAM, 0);
+        _socket.bind("::", localPort);
         _socket.listen(0);
     }
 

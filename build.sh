@@ -478,6 +478,7 @@ host-jar()
 {
     check_submodules
     ARTIFACT="jar"
+    PKG_VERSION=$(cat .version)
     # Default to release
     BUILD_TYPE=${1:-release}
     if [[ $1 = *"docs"* ]]; then
@@ -505,7 +506,7 @@ host-jar()
     export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
     javac -Xlint:deprecation com/zerotier/sockets/*.java
 
-    jar cf libzt-"$(cat .version)".jar $SHARED_LIB_NAME com/zerotier/sockets/*.class
+    jar cf libzt-$PKG_VERSION.jar $SHARED_LIB_NAME com/zerotier/sockets/*.class
     rm -rf com $SHARED_LIB_NAME
     cd -
     # Copy JAR to dist/

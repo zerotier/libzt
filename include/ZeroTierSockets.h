@@ -1841,9 +1841,8 @@ typedef struct {
 } zts_stats_counter_t;
 
 /**
- * @brief Get all statistical counters for all protocols and levels, where
- * *all* means *most*. If you need anything more detailed you should inspect
- * what is available in `lwip/stats.h`.
+ * @brief Get all statistical counters for all protocols and levels.
+ * See also: lwip/stats.h.
  *
  * This function can only be used in debug builds.
  *
@@ -2917,7 +2916,7 @@ ZTS_API const zts_ip_addr* ZTCALL zts_dns_get_server(uint8_t index);
  * @brief Lock the core service so that queries about addresses, routes, paths, etc. can be
  * performed.
  *
- * `Notice`: `zts_core_` functions are intended to be used by high-level language wrappers.
+ * Notice: Core locking functions are intended to be used by high-level language wrappers.
  * Only lock the core if you know *exactly* what you are doing.
  *
  * @return `ZTS_ERR_OK` if successful. `ZTS_ERR_SERVICE` if the core service is unavailable.
@@ -2928,7 +2927,7 @@ ZTS_API int ZTCALL zts_core_lock_obtain();
  * @brief Lock the core service so that queries about addresses, routes, paths, etc. can be
  * performed.
  *
- * `Notice`: `zts_core_` functions are intended to be used by high-level language wrappers.
+ * Notice: Core locking functions are intended to be used by high-level language wrappers.
  * Only lock the core if you know *exactly* what you are doing.
  *
  * @return `ZTS_ERR_OK` if successful. `ZTS_ERR_SERVICE` if the core service is unavailable.
@@ -2939,9 +2938,9 @@ ZTS_API int ZTCALL zts_core_lock_release();
  * @brief Lock the core service so that queries about addresses, routes, paths, etc. can be
  * performed.
  *
- * `Notice`: `zts_core_` functions are intended to be used by high-level language wrappers.
- * Only lock the core if you know *exactly* what you are doing. `zts_core_lock_obtain()` and
- * `zts_core_lock_release()` must be called before and after this function.
+ * Notice: Core locking functions are intended to be used by high-level language wrappers.
+ * Only lock the core if you know *exactly* what you are doing. zts_core_lock_obtain() and
+ * zts_core_lock_release() must be called before and after this function.
  *
  * @return `ZTS_ERR_OK` if successful. `ZTS_ERR_SERVICE` if the core service is unavailable.
  */
@@ -2951,9 +2950,9 @@ ZTS_API int ZTCALL zts_core_query_addr_count(uint64_t net_id);
  * @brief Lock the core service so that queries about addresses, routes, paths, etc. can be
  * performed.
  *
- * `Notice`: `zts_core_` functions are intended to be used by high-level language wrappers.
- * Only lock the core if you know *exactly* what you are doing. `zts_core_lock_obtain()` and
- * `zts_core_lock_release()` must be called before and after this function.
+ * Notice: Core locking functions are intended to be used by high-level language wrappers.
+ * Only lock the core if you know *exactly* what you are doing. zts_core_lock_obtain() and
+ * zts_core_lock_release() must be called before and after this function.
  *
  * @return `ZTS_ERR_OK` if successful. `ZTS_ERR_SERVICE` if the core service is unavailable.
  */
@@ -2963,9 +2962,9 @@ ZTS_API int ZTCALL zts_core_query_addr(uint64_t net_id, unsigned int idx, char* 
  * @brief Lock the core service so that queries about addresses, routes, paths, etc. can be
  * performed.
  *
- * `Notice`: `zts_core_` functions are intended to be used by high-level language wrappers.
- * Only lock the core if you know *exactly* what you are doing. `zts_core_lock_obtain()` and
- * `zts_core_lock_release()` must be called before and after this function.
+ * Notice: Core locking functions are intended to be used by high-level language wrappers.
+ * Only lock the core if you know *exactly* what you are doing. zts_core_lock_obtain() and
+ * zts_core_lock_release() must be called before and after this function.
  *
  * @return `ZTS_ERR_OK` if successful. `ZTS_ERR_SERVICE` if the core service is unavailable.
  */
@@ -2975,9 +2974,9 @@ ZTS_API int ZTCALL zts_core_query_route_count(uint64_t net_id);
  * @brief Lock the core service so that queries about addresses, routes, paths, etc. can be
  * performed.
  *
- * `Notice`: `zts_core_` functions are intended to be used by high-level language wrappers.
- * Only lock the core if you know *exactly* what you are doing. `zts_core_lock_obtain()` and
- * `zts_core_lock_release()` must be called before and after this function.
+ * Notice: Core locking functions are intended to be used by high-level language wrappers.
+ * Only lock the core if you know *exactly* what you are doing. zts_core_lock_obtain() and
+ * zts_core_lock_release() must be called before and after this function.
  *
  * @return `ZTS_ERR_OK` if successful. `ZTS_ERR_SERVICE` if the core service is unavailable.
  */
@@ -2994,9 +2993,9 @@ ZTS_API int ZTCALL zts_core_query_route(
  * @brief Lock the core service so that queries about addresses, routes, paths, etc. can be
  * performed.
  *
- * `Notice`: `zts_core_` functions are intended to be used by high-level language wrappers.
- * Only lock the core if you know *exactly* what you are doing. `zts_core_lock_obtain()` and
- * `zts_core_lock_release()` must be called before and after this function.
+ * Notice: Core locking functions are intended to be used by high-level language wrappers.
+ * Only lock the core if you know *exactly* what you are doing. zts_core_lock_obtain() and
+ * zts_core_lock_release() must be called before and after this function.
  *
  * @return `ZTS_ERR_OK` if successful. `ZTS_ERR_SERVICE` if the core service is unavailable.
  */
@@ -3006,9 +3005,9 @@ ZTS_API int ZTCALL zts_core_query_path_count(uint64_t peer_id);
  * @brief Lock the core service so that queries about addresses, routes, paths, etc. can be
  * performed.
  *
- * `Notice`: `zts_core_` functions are intended to be used by high-level language wrappers.
- * Only lock the core if you know *exactly* what you are doing. `zts_core_lock_obtain()` and
- * `zts_core_lock_release()` must be called before and after this function.
+ * Notice: Core locking functions are intended to be used by high-level language wrappers.
+ * Only lock the core if you know *exactly* what you are doing. zts_core_lock_obtain() and
+ * zts_core_lock_release() must be called before and after this function.
  *
  * @return `ZTS_ERR_OK` if successful. `ZTS_ERR_SERVICE` if the core service is unavailable.
  */
@@ -3018,9 +3017,9 @@ ZTS_API int ZTCALL zts_core_query_path(uint64_t peer_id, unsigned int idx, char*
  * @brief Lock the core service so that queries about addresses, routes, paths, etc. can be
  * performed.
  *
- * `Notice`: `zts_core_` functions are intended to be used by high-level language wrappers.
- * Only lock the core if you know *exactly* what you are doing. `zts_core_lock_obtain()` and
- * `zts_core_lock_release()` must be called before and after this function.
+ * Notice: Core locking functions are intended to be used by high-level language wrappers.
+ * Only lock the core if you know *exactly* what you are doing. zts_core_lock_obtain() and
+ * zts_core_lock_release() must be called before and after this function.
  *
  * @return `ZTS_ERR_OK` if successful. `ZTS_ERR_SERVICE` if the core service is unavailable.
  */
@@ -3030,9 +3029,9 @@ ZTS_API int ZTCALL zts_core_query_mc_count(uint64_t net_id);
  * @brief Lock the core service so that queries about addresses, routes, paths, etc. can be
  * performed.
  *
- * `Notice`: `zts_core_` functions are intended to be used by high-level language wrappers.
- * Only lock the core if you know *exactly* what you are doing. `zts_core_lock_obtain()` and
- * `zts_core_lock_release()` must be called before and after this function.
+ * Notice: Core locking functions are intended to be used by high-level language wrappers.
+ * Only lock the core if you know *exactly* what you are doing. zts_core_lock_obtain() and
+ * zts_core_lock_release() must be called before and after this function.
  *
  * @return `ZTS_ERR_OK` if successful. `ZTS_ERR_SERVICE` if the core service is unavailable.
  */

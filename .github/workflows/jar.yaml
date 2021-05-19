@@ -15,6 +15,13 @@ jobs:
     - name: Install JDK
       run: sudo apt install default-jdk
 
+    - name: Set env
+      run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
     - name: Build
-      run: ./build.sh host-jar "release"
+      run: PKG_VER_TAG=$RELEASE_VERSION ./build.sh host-jar "release"
+
+    - uses: actions/upload-artifact@v2
+      with:
+        path: dist
 

@@ -504,7 +504,10 @@ host-jar()
     cd $JAVA_JAR_DIR
     export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
     javac -Xlint:deprecation com/zerotier/sockets/*.java
-    jar cf libzt-"$(git describe --abbrev=0)".jar $SHARED_LIB_NAME com/zerotier/sockets/*.class
+
+    PKG_VER_TAG="${PKG_VER_TAG:-"$(git describe --abbrev=0)"}"
+
+    jar cf libzt-$PKG_VER_TAG.jar $SHARED_LIB_NAME com/zerotier/sockets/*.class
     rm -rf com $SHARED_LIB_NAME
     cd -
     # Copy JAR to dist/

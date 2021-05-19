@@ -1,10 +1,9 @@
 import com.zerotier.sockets.*;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.math.BigInteger;
-import java.net.InetAddress;
 import java.net.DatagramPacket;
+import java.net.InetAddress;
 
 public class selftest {
     public static void main(String[] args)

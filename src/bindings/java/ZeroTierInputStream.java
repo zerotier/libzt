@@ -11,9 +11,9 @@
  */
 /****/
 
-package com.zerotier.sdk;
+package com.zerotier.sockets;
 
-import com.zerotier.sdk.ZeroTierNative;
+import com.zerotier.sockets.ZeroTierNative;
 import java.io.*;
 import java.util.Objects;
 

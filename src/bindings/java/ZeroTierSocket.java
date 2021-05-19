@@ -11,9 +11,9 @@
  */
 /****/
 
-package com.zerotier.sdk;
+package com.zerotier.sockets;
 
-import com.zerotier.sdk.*;
+import com.zerotier.sockets.*;
 import java.io.*;
 import java.net.*;
 
@@ -53,6 +53,11 @@ public class ZeroTierSocket {
         _outputStream.zfd = fd;
     }
 
+    public int getNativeFileDescriptor()
+    {
+        return _zfd;
+    }
+
     private ZeroTierSocket(int family, int type, int protocol, int zfd)
     {
         _family = family;
@@ -60,6 +65,28 @@ public class ZeroTierSocket {
         _protocol = protocol;
         setNativeFileDescriptor(zfd);
         // Since we only call this from accept() we will mark it as connected
+        _isConnected = true;
+    }
+
+    public ZeroTierSocket(String remoteAddr, int remotePort) throws IOException
+    {
+        _protocol = 0;
+        _type = ZeroTierNative.ZTS_SOCK_STREAM;
+
+        InetAddress address = InetAddress.getByName(remoteAddr);
+        if (address instanceof Inet6Address) {
+            _family = ZeroTierNative.ZTS_AF_INET6;
+        }
+        else if (address instanceof Inet4Address) {
+            _family = ZeroTierNative.ZTS_AF_INET;
+        }
+
+        _zfd = ZeroTierNative.zts_bsd_socket(_family, _type, _protocol);
+        setNativeFileDescriptor(_zfd);
+        int err;
+        if ((err = ZeroTierNative.zts_connect(_zfd, remoteAddr, remotePort, 0)) < 0) {
+            throw new IOException("Error while connecting to remote host (" + err + ")");
+        }
         _isConnected = true;
     }
 
@@ -76,7 +103,7 @@ public class ZeroTierSocket {
         if (_zfd > -1) {
             throw new IOException("This socket has already been created (fd=" + _zfd + ")");
         }
-        _zfd = ZeroTierNative.zts_bsd_socket(ZeroTierNative.ZTS_AF_INET, ZeroTierNative.ZTS_SOCK_STREAM, protocol);
+        _zfd = ZeroTierNative.zts_bsd_socket(family, type, protocol);
         if (_zfd < 0) {
             throw new IOException("Error while creating socket (" + _zfd + ")");
         }
@@ -265,7 +292,7 @@ public class ZeroTierSocket {
     }
 
     /**
-     * Get the remote port to which this ZeroTierSocket is bound
+     * Get the remote port to which this ZeroTierSocket is connected
      * @return Remote port
      */
     public int getRemotePort()
@@ -277,7 +304,7 @@ public class ZeroTierSocket {
     }
 
     /**
-     * Get the remote address to which this ZeroTierSocket is bound
+     * Get the remote address to which this ZeroTierSocket is connected
      * @return Remote address
      */
     public InetAddress getRemoteAddress()
@@ -286,6 +313,30 @@ public class ZeroTierSocket {
             return null;
         }
         return _remoteAddr;
+    }
+
+    /**
+     * Get the remote address to which this ZeroTierSocket is connected. Same as getRemoteAddress()
+     * @return Remote address
+     */
+    public InetAddress getInetAddress()
+    {
+        if (! _isConnected) {
+            return null;
+        }
+        return _remoteAddr;
+    }
+
+    /**
+     * Get the local endpoint address to which this socket is bound to
+     * @return Local endpoint address
+     */
+    public SocketAddress getLocalSocketAddress()
+    {
+        if (! _isConnected) {
+            return null;
+        }
+        return new InetSocketAddress(_remoteAddr, _remotePort);
     }
 
     /**
@@ -319,7 +370,7 @@ public class ZeroTierSocket {
      * @return true or false
      * @exception SocketException when an error occurs in the native socket layer
      */
-    public boolean getReuseAddressEnabled() throws SocketException
+    public boolean getReuseAddress() throws SocketException
     {
         if (_isClosed) {
             throw new SocketException("Error: ZeroTierSocket is closed");
@@ -585,7 +636,7 @@ public class ZeroTierSocket {
      *
      * @exception SocketException when an error occurs in the native socket layer
      */
-    public void setSoTimeoutValue(int timeout) throws SocketException
+    public void setSoTimeout(int timeout) throws SocketException
     {
         if (_isClosed) {
             throw new SocketException("Error: ZeroTierSocket is closed");

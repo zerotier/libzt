@@ -11,13 +11,15 @@
  */
 /****/
 
-package com.zerotier.sdk;
+package com.zerotier.sockets;
 
-import com.zerotier.sdk.ZeroTierNative;
+import com.zerotier.sockets.ZeroTierNative;
 import java.net.InetAddress;
 
 /**
  * Convenience class for holding address information. Used internally by JNI layer.
+ * You (as a consumer of this library) should probably not use this as it is non-standard
+ * and very likely to be removed at some point.
  */
 class ZeroTierSocketAddress {
     private byte[] _ip6 = new byte[16];

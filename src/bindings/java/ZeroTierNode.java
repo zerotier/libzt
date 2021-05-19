@@ -11,9 +11,11 @@
  */
 /****/
 
-package com.zerotier.sdk;
+package com.zerotier.sockets;
 
-import com.zerotier.sdk.*;
+import com.zerotier.sockets.*;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 /**
  * Class that provides a control interface for nodes and networks by
@@ -190,5 +192,51 @@ public class ZeroTierNode {
     public long getId()
     {
         return ZeroTierNative.zts_node_get_id();
+    }
+
+    /**
+     * Get the first-assigned IPv4 address
+     *
+     * @param networkId Network to get assigned address for
+     *
+     * @return  address
+     */
+    public InetAddress getIPv4Address(long networkId)
+    {
+        try {
+            return InetAddress.getByName(ZeroTierNative.zts_addr_get_str(networkId, ZeroTierNative.ZTS_AF_INET));
+        }
+        catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get the first-assigned IPv6 address
+     *
+     * @param networkId Network to get assigned address for
+     *
+     * @return  address
+     */
+    public InetAddress getIPv6Address(long networkId)
+    {
+        try {
+            return InetAddress.getByName(ZeroTierNative.zts_addr_get_str(networkId, ZeroTierNative.ZTS_AF_INET6));
+        }
+        catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get the first-assigned IPv6 address
+     *
+     * @param networkId Network to get assigned address for
+     *
+     * @return  address
+     */
+    public String getMACAddress(long networkId)
+    {
+        return ZeroTierNative.zts_net_get_mac_str(networkId);
     }
 }

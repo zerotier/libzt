@@ -11,14 +11,14 @@
  */
 /****/
 
-package com.zerotier.sdk;
+package com.zerotier.sockets;
 
 /**
  * Class that must be implemented to receive ZeroTier event notifications.
  */
-interface ZeroTierEventListener {
+public interface ZeroTierEventListener {
     /*
      * Called when an even occurs within ZeroTier
      */
-    public void onZeroTierEvent(long nwid, int event_code);
+    public void onZeroTierEvent(long id, int eventCode);
 }

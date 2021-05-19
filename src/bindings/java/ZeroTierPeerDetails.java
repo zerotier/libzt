@@ -11,9 +11,9 @@
  */
 /****/
 
-package com.zerotier.sdk;
+package com.zerotier.sockets;
 
-import com.zerotier.sdk.*;
+import com.zerotier.sockets.*;
 
 /**
  * This class encapsulates details about a Peer on a ZeroTier network

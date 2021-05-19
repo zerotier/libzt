@@ -11,7 +11,7 @@
  */
 /****/
 
-package com.zerotier.sdk;
+package com.zerotier.sockets;
 
 /**
  * This class provides an fdset-like behavior to ZeroTierSocket

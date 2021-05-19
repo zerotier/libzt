@@ -493,7 +493,7 @@ host-jar()
     mkdir -p $PKG_OUTPUT_DIR
     # Share same cache dir with CMake
     JAVA_JAR_DIR=$CACHE_DIR/pkg/jar
-    JAVA_JAR_SOURCE_TREE_DIR=$JAVA_JAR_DIR/com/zerotier/sdk/
+    JAVA_JAR_SOURCE_TREE_DIR=$JAVA_JAR_DIR/com/zerotier/sockets/
     mkdir -p $JAVA_JAR_SOURCE_TREE_DIR
     cp -f src/bindings/java/*.java $JAVA_JAR_SOURCE_TREE_DIR
     # Build
@@ -503,8 +503,8 @@ host-jar()
     cp -f $CACHE_DIR/lib/libzt.* $JAVA_JAR_DIR
     cd $JAVA_JAR_DIR
     export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
-    javac -Xlint:deprecation com/zerotier/sdk/*.java
-    jar cf libzt-"$(git describe --abbrev=0)".jar $SHARED_LIB_NAME com/zerotier/sdk/*.class
+    javac -Xlint:deprecation com/zerotier/sockets/*.java
+    jar cf libzt-"$(git describe --abbrev=0)".jar $SHARED_LIB_NAME com/zerotier/sockets/*.class
     rm -rf com $SHARED_LIB_NAME
     cd -
     # Copy JAR to dist/
@@ -633,7 +633,7 @@ format-code()
         if [[ ! $(which $CLANG_FORMAT) = "" ]];
         then
             # Eventually: find . -path ./ext -prune -false -o -type f \( -iname \*.c -o -iname \*.h -o -iname \*.cpp -o -iname \*.hpp \) -exec clang-format -i {} \;
-            $CLANG_FORMAT -i include/*.h              \
+            $CLANG_FORMAT -i --verbose include/*.h    \
                             src/*.c                   \
                             src/*.cpp                 \
                             src/*.hpp                 \

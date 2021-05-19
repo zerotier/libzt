@@ -11,9 +11,9 @@
  */
 /****/
 
-package com.zerotier.sdk;
+package com.zerotier.sockets;
 
-import com.zerotier.sdk.*;
+import com.zerotier.sockets.*;
 import java.io.*;
 import java.util.Arrays;
 import java.util.Objects;
@@ -23,7 +23,7 @@ import java.util.Objects;
  */
 public class ZeroTierOutputStream extends OutputStream {
     /**
-     * File descriptor used by lower native layer
+     * File descriptor used by lower native layer. No touch!
      */
     public int zfd = -1;
 

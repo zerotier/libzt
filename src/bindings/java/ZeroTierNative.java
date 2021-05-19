@@ -11,7 +11,7 @@
  */
 /****/
 
-package com.zerotier.sdk;
+package com.zerotier.sockets;
 
 /**
  * Class that exposes the low-level C socket interface provided by libzt. This
@@ -252,10 +252,6 @@ public class ZeroTierNative {
     public static int ZTS_TCP_KEEPCNT = 0x00000005;
 
     //----------------------------------------------------------------------------//
-    // ZeroTier Service Controls                                                  //
-    //----------------------------------------------------------------------------//
-
-    //----------------------------------------------------------------------------//
     // Error codes                                                                //
     //----------------------------------------------------------------------------//
 
@@ -426,11 +422,9 @@ public class ZeroTierNative {
 
     // public static native int zts_id_new(char* key,  int* key_buf_len);
     // public static native int zts_id_pair_is_valid(/*const*/ char* key,  int len);
-
     public static native int zts_init_from_storage(String path);
     public static native int zts_init_set_event_handler(ZeroTierEventListener callbackClass);
     public static native int zts_init_set_port(short port);
-
     // public static native int zts_init_from_memory(/*const*/ char* key,  int len);
     public static native int zts_init_blacklist_if(/*const*/ String prefix, int len);
     // public static native int zts_init_set_roots(/*const*/ void* roots_data,  int len);
@@ -439,70 +433,37 @@ public class ZeroTierNative {
     public static native int zts_init_allow_roots_cache(int allowed);
     public static native int zts_init_allow_id_cache(int allowed);
     public static native int zts_addr_is_assigned(long net_id, int family);
-    // public static native int zts_addr_get(long net_id,  int family, struct sockaddr_storage* addr);
-    // public static native int zts_addr_get_str(long net_id,  int family, char* dst,  int len);
+    public static native String zts_addr_get_str(long net_id, int family);
     // public static native int zts_addr_get_all(long net_id, struct sockaddr_storage* addr,  int* count);
     // public static native int zts_addr_compute_6plane(/*const*/ long net_id, /*const*/ long node_id, struct
     // sockaddr_storage* addr); public static native int zts_addr_compute_rfc4193(/*const*/ long net_id, /*const*/ long
     // node_id, struct sockaddr_storage* addr);
     public static native int zts_addr_compute_rfc4193_str(long net_id, long node_id, String dst, int len);
     public static native int zts_addr_compute_6plane_str(long net_id, long node_id, String dst, int len);
-
     public static native long zts_net_compute_adhoc_id(short start_port, short end_port);
     public static native int zts_net_join(long net_id);
     public static native int zts_net_leave(long net_id);
     public static native int zts_net_transport_is_ready(/*const*/ long net_id);
     public static native long zts_net_get_mac(long net_id);
-    public static native int zts_net_get_mac_str(long net_id, String dst, int len);
+    public static native String zts_net_get_mac_str(long net_id);
     public static native int zts_net_get_broadcast(long net_id);
     public static native int zts_net_get_mtu(long net_id);
     public static native int zts_net_get_name(long net_id, String dst, int len);
     public static native int zts_net_get_status(long net_id);
     public static native int zts_net_get_type(long net_id);
-
     public static native int zts_route_is_assigned(long net_id, int family);
-
     public static native int zts_node_start();
     public static native int zts_node_is_online();
     public static native long zts_node_get_id();
-    // public static native int zts_node_get_id_pair(char* key,  int* key_buf_len);
+    // public static native int zts_node_get_id_pair(char* key, int* key_buf_len);
     public static native int zts_node_get_port();
     public static native int zts_node_stop();
     public static native int zts_node_free();
-
     public static native int zts_moon_orbit(long moon_roots_id, long moon_seed);
     public static native int zts_moon_deorbit(long moon_roots_id);
-
-    // public static native int zts_bsd_socket(int family, int type, int protocol);
-    // public static native int zts_bsd_connect(int fd, /*const*/ struct sockaddr* addr, socklen_t addrlen);
-    // public static native int zts_bsd_bind(int fd, /*const*/ struct sockaddr* addr, socklen_t addrlen);
-    // public static native int zts_bsd_listen(int fd, int backlog);
-    // public static native int zts_bsd_accept(int fd, struct sockaddr* addr, socklen_t* addrlen);
-    // public static native int zts_bsd_setsockopt(int fd, int level, int optname, /*const*/ void* optval, socklen_t
-    // optlen); public static native int zts_bsd_getsockopt(int fd, int level, int optname, void* optval, socklen_t*
-    // optlen); public static native int zts_bsd_getsockname(int fd, struct sockaddr* addr, socklen_t* addrlen); public
-    // static native int zts_bsd_getpeername(int fd, struct sockaddr* addr, socklen_t* addrlen); public static native
-    // int zts_bsd_close(int fd); public static native int zts_bsd_select(int nfds, fd_set* readfds, fd_set* writefds,
-    // fd_set* exceptfds, struct timeval* timeout); public static native int zts_bsd_fcntl(int fd, int cmd, int flags);
-    // public static native int zts_bsd_poll(struct pollfd* fds, nfds_t nfds, int timeout); public static native int
-    // zts_bsd_ioctl(int fd,  long request, void* argp); public static native  int send(int fd, /*const*/ void* buf,
-    // size_t len, int flags); public static native  int sendto(int fd,
-    // /*const*/ void* buf, size_t len, int flags, /*const*/ struct sockaddr* addr, socklen_t addrlen); public static
-    // native  int sendmsg(int fd, /*const*/ struct msghdr* msg, int flags); public static native  int recv(int fd,
-    // void* buf, size_t len, int flags); public static native  int recvfrom(int fd, void* buf, size_t len, int flags,
-    // struct sockaddr* addr, socklen_t* addrlen); public static native  int recvmsg(int fd, struct msghdr* msg, int
-    // flags); public static native  int read(int fd, void* buf, size_t len); public static native  int readv(int fd,
-    // /*const*/ struct iovec* iov, int iovcnt); public static native  int write(int fd, /*const*/ void* buf, size_t
-    // len); public static native  int writev(int fd, /*const*/ struct iovec* iov, int iovcnt); public static native int
-    // shutdown(int fd, int how);
-    public static native int zts_connect(int fd, /*const*/ String ipstr, int port, int timeout_ms);
-    public static native int zts_bind(int fd, /*const*/ String ipstr, int port);
+    public static native int zts_connect(int fd, String ipstr, int port, int timeout_ms);
+    public static native int zts_bind(int fd, String ipstr, int port);
     // public static native int zts_accept(int fd, String remote_addr, int len, int* port);
-    public static native int zts_tcp_client(/*const*/ String remote_ipstr, int remote_port);
-    // public static native int zts_tcp_server(/*const*/ String local_ipstr, int local_port, String remote_ipstr,
-    // int len, int* remote_port);
-    public static native int zts_udp_server(/*const*/ String local_ipstr, int local_port);
-    public static native int zts_udp_client(/*const*/ String remote_ipstr);
     public static native int zts_set_no_delay(int fd, int enabled);
     public static native int zts_get_no_delay(int fd);
     public static native int zts_set_linger(int fd, int enabled, int value);
@@ -527,7 +488,7 @@ public class ZeroTierNative {
     public static native int zts_get_keepalive(int fd);
     // struct hostent* gethostbyname(/*const*/ String name);
     // public static native int zts_dns_set_server(uint8_t index, /*const*/ ip_addr* addr);
-    // ZTS_API /*const*/ ip_addr* ZTCALL dns_get_server(uint8_t index);
+    // ip_addr* dns_get_server(uint8_t index);
     public static native int zts_core_lock_obtain();
     public static native int zts_core_lock_release();
     public static native int zts_core_query_addr_count(long net_id);
@@ -560,35 +521,21 @@ public class ZeroTierNative {
         roots_t* roots_spec);
     */
     public static native void zts_util_delay(long milliseconds);
-
-    //////////////////////////////////////////////////////////////////////////////
-    // Socket API                                                               //
-    //////////////////////////////////////////////////////////////////////////////
-
     public static native int zts_bsd_socket(int family, int type, int protocol);
-    // public static native int zts_bsd_connect(int fd, ZeroTierSocketAddress addr);
-    // public static native int zts_bsd_bind(int fd, ZeroTierSocketAddress addr);
     public static native int zts_bsd_listen(int fd, int backlog);
     public static native int zts_bsd_accept(int fd, ZeroTierSocketAddress addr);
-
-    // public static native int zts_bsd_setsockopt(int fd, int level, int optname, ZeroTierSocketOptionValue optval);
-    // public static native int zts_bsd_getsockopt(int fd, int level, int optname, ZeroTierSocketOptionValue optval);
-
     public static native int zts_bsd_read(int fd, byte[] buf);
     public static native int zts_bsd_read_offset(int fd, byte[] buf, int offset, int len);
     public static native int zts_bsd_read_length(int fd, byte[] buf, int len);
     public static native int zts_bsd_recv(int fd, byte[] buf, int flags);
     public static native int zts_bsd_recvfrom(int fd, byte[] buf, int flags, ZeroTierSocketAddress addr);
-
     public static native int zts_bsd_write(int fd, byte[] buf);
     public static native int zts_bsd_write_byte(int fd, byte b);
     public static native int zts_bsd_write_offset(int fd, byte[] buf, int offset, int len);
     public static native int zts_bsd_sendto(int fd, byte[] buf, int flags, ZeroTierSocketAddress addr);
     public static native int zts_bsd_send(int fd, byte[] buf, int flags);
-
     public static native int zts_bsd_shutdown(int fd, int how);
     public static native int zts_bsd_close(int fd);
-
     public static native boolean zts_bsd_getsockname(int fd, ZeroTierSocketAddress addr);
     public static native int zts_bsd_getpeername(int fd, ZeroTierSocketAddress addr);
     public static native int zts_bsd_fcntl(int sock, int cmd, int flag);

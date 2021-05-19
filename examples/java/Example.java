@@ -1,12 +1,14 @@
-import com.zerotier.sdk.*;
+import com.zerotier.sockets.*;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.DatagramPacket;
 
 public class selftest {
     public static void main(String[] args)
     {
-        System.err.println(args.length);
         if (args.length < 4 || args.length > 5) {
             System.err.println("Invalid arguments");
             System.err.println(" Usage: <server|client> <id_path> <network> <addr> <port>");
@@ -20,7 +22,9 @@ public class selftest {
         int port = 0;
         String mode = args[0];
         storagePath = args[1];
-        BigInteger networkId = new BigInteger(args[2], 16);
+        BigInteger nwid = new BigInteger(args[2], 16);
+        Long networkId = nwid.longValue();
+
         if (args.length == 4) {
             port = Integer.parseInt(args[3]);
         }
@@ -29,7 +33,7 @@ public class selftest {
             port = Integer.parseInt(args[4]);
         }
         System.out.println("mode        = " + mode);
-        System.out.println("networkId   = " + Long.toHexString(networkId.longValue()));
+        System.out.println("networkId   = " + Long.toHexString(networkId));
         System.out.println("storagePath = " + storagePath);
         System.out.println("remoteAddr  = " + remoteAddr);
         System.out.println("port        = " + port);
@@ -37,9 +41,8 @@ public class selftest {
         // ZeroTier setup
 
         ZeroTierNode node = new ZeroTierNode();
-
         node.initFromStorage(storagePath);
-        // node.initSetEventHandler(new MyZeroTierEventListener());
+        node.initSetEventHandler(new MyZeroTierEventListener());
         // node.initSetPort(9994);
         node.start();
 
@@ -49,29 +52,40 @@ public class selftest {
         }
         System.out.println("Node ID: " + Long.toHexString(node.getId()));
         System.out.println("Joining network...");
-        node.join(networkId.longValue());
+        node.join(networkId);
         System.out.println("Waiting for network...");
-        while (! node.isNetworkTransportReady(networkId.longValue())) {
+        while (! node.isNetworkTransportReady(networkId)) {
             ZeroTierNative.zts_util_delay(50);
         }
-        System.out.println("joined");
+        System.out.println("Joined");
+
+        // IPv4
+
+        InetAddress addr4 = node.getIPv4Address(networkId);
+        System.out.println("IPv4 address = " + addr4.getHostAddress());
+
+        // IPv6
+
+        InetAddress addr6 = node.getIPv6Address(networkId);
+        System.out.println("IPv6 address = " + addr6.getHostAddress());
+
+        // MAC address
+
+        System.out.println("MAC address = " + node.getMACAddress(networkId));
 
         // Socket logic
 
         if (mode.equals("server")) {
             System.out.println("Starting server...");
             try {
-                ZeroTierSocket socket =
-                    new ZeroTierSocket(ZeroTierNative.ZTS_AF_INET, ZeroTierNative.ZTS_SOCK_STREAM, 0);
-                socket.bind("0.0.0.0", port);
-                socket.listen(100);
-                ZeroTierSocket newConnection = socket.accept();
-                ZeroTierInputStream inputStream = newConnection.getInputStream();
+                ZeroTierServerSocket listener = new ZeroTierServerSocket(port);
+                ZeroTierSocket conn = listener.accept();
+                ZeroTierInputStream inputStream = conn.getInputStream();
                 DataInputStream dataInputStream = new DataInputStream(inputStream);
                 String message = dataInputStream.readUTF();
                 System.out.println("recv: " + message);
-                socket.close();
-                newConnection.close();
+                listener.close();
+                conn.close();
             }
             catch (Exception ex) {
                 System.out.println(ex);
@@ -81,9 +95,7 @@ public class selftest {
         if (mode.equals("client")) {
             System.out.println("Starting client...");
             try {
-                ZeroTierSocket socket =
-                    new ZeroTierSocket(ZeroTierNative.ZTS_AF_INET, ZeroTierNative.ZTS_SOCK_STREAM, 0);
-                socket.connect(remoteAddr, port);
+                ZeroTierSocket socket = new ZeroTierSocket(remoteAddr, port);
                 ZeroTierOutputStream outputStream = socket.getOutputStream();
                 DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
                 dataOutputStream.writeUTF("Hello from java!");
@@ -99,40 +111,38 @@ public class selftest {
 /**
  * (OPTIONAL) event handler
  */
-/*
 class MyZeroTierEventListener implements ZeroTierEventListener {
-    public void onZeroTierEvent(long id, int event_code)
+    public void onZeroTierEvent(long id, int eventCode)
     {
-        if (event_code == ZeroTierNative.ZTS_EVENT_NODE_UP) {
+        if (eventCode == ZeroTierNative.ZTS_EVENT_NODE_UP) {
             System.out.println("EVENT_NODE_UP");
         }
-        if (event_code == ZeroTierNative.ZTS_EVENT_NODE_ONLINE) {
+        if (eventCode == ZeroTierNative.ZTS_EVENT_NODE_ONLINE) {
             System.out.println("EVENT_NODE_ONLINE: " + Long.toHexString(id));
         }
-        if (event_code == ZeroTierNative.ZTS_EVENT_NODE_OFFLINE) {
+        if (eventCode == ZeroTierNative.ZTS_EVENT_NODE_OFFLINE) {
             System.out.println("EVENT_NODE_OFFLINE");
         }
-        if (event_code == ZeroTierNative.ZTS_EVENT_NODE_DOWN) {
+        if (eventCode == ZeroTierNative.ZTS_EVENT_NODE_DOWN) {
             System.out.println("EVENT_NODE_DOWN");
         }
-        if (event_code == ZeroTierNative.ZTS_EVENT_NETWORK_READY_IP4) {
+        if (eventCode == ZeroTierNative.ZTS_EVENT_NETWORK_READY_IP4) {
             System.out.println("ZTS_EVENT_NETWORK_READY_IP4: " + Long.toHexString(id));
         }
-        if (event_code == ZeroTierNative.ZTS_EVENT_NETWORK_READY_IP6) {
+        if (eventCode == ZeroTierNative.ZTS_EVENT_NETWORK_READY_IP6) {
             System.out.println("ZTS_EVENT_NETWORK_READY_IP6: " + Long.toHexString(id));
         }
-        if (event_code == ZeroTierNative.ZTS_EVENT_NETWORK_DOWN) {
+        if (eventCode == ZeroTierNative.ZTS_EVENT_NETWORK_DOWN) {
             System.out.println("EVENT_NETWORK_DOWN: " + Long.toHexString(id));
         }
-        if (event_code == ZeroTierNative.ZTS_EVENT_NETWORK_OK) {
+        if (eventCode == ZeroTierNative.ZTS_EVENT_NETWORK_OK) {
             System.out.println("EVENT_NETWORK_OK: " + Long.toHexString(id));
         }
-        if (event_code == ZeroTierNative.ZTS_EVENT_NETWORK_ACCESS_DENIED) {
+        if (eventCode == ZeroTierNative.ZTS_EVENT_NETWORK_ACCESS_DENIED) {
             System.out.println("EVENT_NETWORK_ACCESS_DENIED: " + Long.toHexString(id));
         }
-        if (event_code == ZeroTierNative.ZTS_EVENT_NETWORK_NOT_FOUND) {
+        if (eventCode == ZeroTierNative.ZTS_EVENT_NETWORK_NOT_FOUND) {
             System.out.println("EVENT_NETWORK_NOT_FOUND: " + Long.toHexString(id));
         }
     }
 }
-*/

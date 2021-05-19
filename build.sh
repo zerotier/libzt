@@ -505,9 +505,7 @@ host-jar()
     export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
     javac -Xlint:deprecation com/zerotier/sockets/*.java
 
-    PKG_VER_TAG="${PKG_VER_TAG:-"$(git describe --abbrev=0)"}"
-
-    jar cf libzt-$PKG_VER_TAG.jar $SHARED_LIB_NAME com/zerotier/sockets/*.class
+    jar cf libzt-"$(cat .version)".jar $SHARED_LIB_NAME com/zerotier/sockets/*.class
     rm -rf com $SHARED_LIB_NAME
     cd -
     # Copy JAR to dist/
@@ -724,6 +722,13 @@ clean()
     find . -type d -name "__pycache__" -exec rm -rf {} +
     # Python pkg
     cd pkg/pypi && ./build.sh clean
+}
+
+tag_release()
+{
+    git tag -a $1 -m $2
+    "$(git describe --tags --abbrev=0)" >> .version
+    git push origin --tags
 }
 
 list()

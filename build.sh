@@ -661,8 +661,11 @@ format-code()
     if [[ $1 = *"python"* ]]; then
         if [[ ! $($PIP list | grep black) = "" ]];
         then
-            $PYTHON -m black src/bindings/python/*.py
-            $PYTHON -m black examples/python/*.py
+            $PYTHON -m black src/bindings/python/libzt.py
+            $PYTHON -m black src/bindings/python/node.py
+            $PYTHON -m black src/bindings/python/sockets.py
+            $PYTHON -m black examples/python/
+            $PYTHON -m black test/selftest.py
         else
             echo "Please install python module (black)"
         fi

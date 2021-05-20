@@ -13,6 +13,7 @@
 %module libzt
 %{
 #include "ZeroTierSockets.h"
+#include "PythonSockets.h"
 %}
 
 %feature("director") PythonDirectorCallbackClass;
@@ -35,3 +36,4 @@
 %ignore zts_msghdr;
 
 %include "ZeroTierSockets.h"
+%include "PythonSockets.h"

@@ -77,3 +77,9 @@ class ZeroTierNode:
 
     def net_transport_is_ready(self, net_id):
         return libzt.zts_net_transport_is_ready(net_id)
+
+    def addr_get_ipv4(self, net_id):
+        return libzt.zts_py_addr_get_str(net_id, libzt.ZTS_AF_INET)
+
+    def addr_get_ipv6(self, net_id):
+        return libzt.zts_py_addr_get_str(net_id, libzt.ZTS_AF_INET6)

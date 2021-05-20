@@ -89,6 +89,8 @@ def main():
         time.sleep(1)
     print("Joined network")
 
+    print("addr = ", n.addr_get_ipv4(net_id))
+
     #
     # Example server
     #

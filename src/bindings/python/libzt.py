@@ -532,6 +532,25 @@ class zts_event_msg_t(object):
 # Register zts_event_msg_t in _libzt:
 _libzt.zts_event_msg_t_swigregister(zts_event_msg_t)
 
+ZTS_DISABLE_CENTRAL_API = _libzt.ZTS_DISABLE_CENTRAL_API
+ZTS_ID_STR_BUF_LEN = _libzt.ZTS_ID_STR_BUF_LEN
+
+
+def zts_id_new(key, key_buf_len):
+    return _libzt.zts_id_new(key, key_buf_len)
+
+
+def zts_id_pair_is_valid(key, len):
+    return _libzt.zts_id_pair_is_valid(key, len)
+
+
+def zts_init_from_storage(path):
+    return _libzt.zts_init_from_storage(path)
+
+
+def zts_init_from_memory(key, len):
+    return _libzt.zts_init_from_memory(key, len)
+
 
 class PythonDirectorCallbackClass(object):
     thisown = property(
@@ -564,62 +583,6 @@ class PythonDirectorCallbackClass(object):
 
 # Register PythonDirectorCallbackClass in _libzt:
 _libzt.PythonDirectorCallbackClass_swigregister(PythonDirectorCallbackClass)
-
-
-def zts_py_bind(fd, family, type, addro):
-    return _libzt.zts_py_bind(fd, family, type, addro)
-
-
-def zts_py_connect(fd, family, type, addro):
-    return _libzt.zts_py_connect(fd, family, type, addro)
-
-
-def zts_py_accept(fd):
-    return _libzt.zts_py_accept(fd)
-
-
-def zts_py_listen(fd, backlog):
-    return _libzt.zts_py_listen(fd, backlog)
-
-
-def zts_py_recv(fd, len, flags):
-    return _libzt.zts_py_recv(fd, len, flags)
-
-
-def zts_py_send(fd, buf, flags):
-    return _libzt.zts_py_send(fd, buf, flags)
-
-
-def zts_py_close(fd):
-    return _libzt.zts_py_close(fd)
-
-
-def zts_py_setblocking(fd, flag):
-    return _libzt.zts_py_setblocking(fd, flag)
-
-
-def zts_py_getblocking(fd):
-    return _libzt.zts_py_getblocking(fd)
-
-
-ZTS_DISABLE_CENTRAL_API = _libzt.ZTS_DISABLE_CENTRAL_API
-ZTS_ID_STR_BUF_LEN = _libzt.ZTS_ID_STR_BUF_LEN
-
-
-def zts_id_new(key, key_buf_len):
-    return _libzt.zts_id_new(key, key_buf_len)
-
-
-def zts_id_pair_is_valid(key, len):
-    return _libzt.zts_id_pair_is_valid(key, len)
-
-
-def zts_init_from_storage(path):
-    return _libzt.zts_init_from_storage(path)
-
-
-def zts_init_from_memory(key, len):
-    return _libzt.zts_init_from_memory(key, len)
 
 
 def zts_init_set_event_handler(callback):
@@ -1509,3 +1472,43 @@ def zts_inet_ntop(family, src, dst, size):
 
 def zts_inet_pton(family, src, dst):
     return _libzt.zts_inet_pton(family, src, dst)
+
+
+def zts_py_bind(fd, family, type, addro):
+    return _libzt.zts_py_bind(fd, family, type, addro)
+
+
+def zts_py_connect(fd, family, type, addro):
+    return _libzt.zts_py_connect(fd, family, type, addro)
+
+
+def zts_py_accept(fd):
+    return _libzt.zts_py_accept(fd)
+
+
+def zts_py_listen(fd, backlog):
+    return _libzt.zts_py_listen(fd, backlog)
+
+
+def zts_py_recv(fd, len, flags):
+    return _libzt.zts_py_recv(fd, len, flags)
+
+
+def zts_py_send(fd, buf, flags):
+    return _libzt.zts_py_send(fd, buf, flags)
+
+
+def zts_py_close(fd):
+    return _libzt.zts_py_close(fd)
+
+
+def zts_py_setblocking(fd, flag):
+    return _libzt.zts_py_setblocking(fd, flag)
+
+
+def zts_py_getblocking(fd):
+    return _libzt.zts_py_getblocking(fd)
+
+
+def zts_py_addr_get_str(net_id, family):
+    return _libzt.zts_py_addr_get_str(net_id, family)

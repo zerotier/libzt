@@ -997,48 +997,6 @@ typedef struct {
 } zts_event_msg_t;
 
 //----------------------------------------------------------------------------//
-// Python Bindings (Subset of regular socket API)                             //
-//----------------------------------------------------------------------------//
-
-#ifdef ZTS_ENABLE_PYTHON
-#include "Python.h"
-
-/**
- * Abstract class used as a director. Pointer to an instance of this class
- * is provided to the Python layer.
- */
-class PythonDirectorCallbackClass {
-  public:
-    /**
-     * Called by native code on event. Implemented in Python
-     */
-    virtual void on_zerotier_event(zts_event_msg_t* msg);
-    virtual ~PythonDirectorCallbackClass() {};
-};
-
-extern PythonDirectorCallbackClass* _userEventCallback;
-
-int zts_py_bind(int fd, int family, int type, PyObject* addro);
-
-int zts_py_connect(int fd, int family, int type, PyObject* addro);
-
-PyObject* zts_py_accept(int fd);
-
-int zts_py_listen(int fd, int backlog);
-
-PyObject* zts_py_recv(int fd, int len, int flags);
-
-int zts_py_send(int fd, PyObject* buf, int flags);
-
-int zts_py_close(int fd);
-
-int zts_py_setblocking(int fd, int flag);
-
-int zts_py_getblocking(int fd);
-
-#endif   // ZTS_ENABLE_PYTHON
-
-//----------------------------------------------------------------------------//
 // ZeroTier Service and Network Controls                                      //
 //----------------------------------------------------------------------------//
 
@@ -1274,6 +1232,24 @@ ZTS_API int ZTCALL zts_init_from_storage(const char* path);
  */
 ZTS_API int ZTCALL zts_init_from_memory(const char* key, unsigned int len);
 
+#ifdef ZTS_ENABLE_PYTHON
+#include "Python.h"
+
+/**
+ * Abstract class used as a director. Pointer to an instance of this class
+ * is provided to the Python layer.
+ */
+class PythonDirectorCallbackClass {
+  public:
+    /**
+     * Called by native code on event. Implemented in Python
+     */
+    virtual void on_zerotier_event(zts_event_msg_t* msg);
+    virtual ~PythonDirectorCallbackClass() {};
+};
+
+extern PythonDirectorCallbackClass* _userEventCallback;
+
 /**
  * @brief Set the event handler function. This is an initialization function that can only be called
  * before `zts_node_start()`.
@@ -1283,7 +1259,6 @@ ZTS_API int ZTCALL zts_init_from_memory(const char* key, unsigned int len);
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
-#ifdef ZTS_ENABLE_PYTHON
 ZTS_API int ZTCALL zts_init_set_event_handler(PythonDirectorCallbackClass* callback);
 #endif
 #ifdef ZTS_ENABLE_PINVOKE

@@ -200,4 +200,15 @@ int zts_py_close(int fd)
     Py_END_ALLOW_THREADS return err;
 }
 
+PyObject* zts_py_addr_get_str(uint64_t net_id, int family)
+{
+    char addr_str[ZTS_IP_MAX_STR_LEN] = { 0 };
+    if (zts_addr_get_str(net_id, family, addr_str, ZTS_IP_MAX_STR_LEN) < 0) {
+        PyErr_SetString(PyExc_Warning, "No address of the given type has been assigned by the network");
+        return NULL;
+    }
+    PyObject* t = PyUnicode_FromString(addr_str);
+    return t;
+}
+
 #endif   // ZTS_ENABLE_PYTHON

@@ -1,6 +1,7 @@
 <div align="center">
 
-<h1>ZeroTier SDK</h1>
+<h1>ZeroTier Sockets</h1>
+Part of the ZeroTier SDK
 <img alt="" src="https://i.imgur.com/BwSHwE3.png" class="doxyhidden"> </img>
 
 Peer-to-peer and cross-platform encrypted connections built right into your app or service. No drivers, no root, and no host configuration.
@@ -8,7 +9,7 @@ Peer-to-peer and cross-platform encrypted connections built right into your app 
 <br>
 
 <a href="./examples">Examples</a> |
-<a href="./include/README.md">API Documentation</a> |
+<a href="https://docs.zerotier.com/libzt-c/tutorial.html">Documentation</a> |
 <a href="https://discuss.zerotier.com/">Community</a> |
 <a href="https://github.com/zerotier/libzt/issues">Report a Bug</a>
 
@@ -31,7 +32,7 @@ Peer-to-peer and cross-platform encrypted connections built right into your app 
 | Java  | `./build.sh host-jar` |<img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> |[Java](./examples/java)  |
 | Linux  | [Build from source](#build-from-source) | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/></a>| [C/C++](./examples/c)  |
 | macOS  | `brew install zerotier/tap/libzt`| <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label=Homebrew"/></a>| [C/C++](./examples/c)  |
-| iOS / iPadOS  | `./build.sh ios-framework` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>| [Objective-C](./attic/objective-c), [Swift](./attic/swift)  |
+| iOS / iPadOS  | `./build.sh iphoneos-framework` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>| [Objective-C](./attic/objective-c), [Swift](./attic/swift)  |
 | Android  |`./build.sh android-aar` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> | [Java](./examples/java)  |
 
 <br>
@@ -96,7 +97,7 @@ While we do operate a global network of redundant root servers, network controll
 
 # Help
 
- - Reference: [C API](./include/README.md)
+ - Documentation: [docs.zerotier.com](https://docs.zerotier.com/libzt-c/tutorial.html)
  - Examples: [examples/](./examples)
  - Bug reports: [Open a github issue](https://github.com/zerotier/libzt/issues).
  - General ZeroTier troubleshooting: [Knowledgebase](https://zerotier.atlassian.net/wiki/spaces/SD/overview).

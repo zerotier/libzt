@@ -636,22 +636,22 @@ format-code()
         if [[ ! $(which $CLANG_FORMAT) = "" ]];
         then
             # Eventually: find . -path ./ext -prune -false -o -type f \( -iname \*.c -o -iname \*.h -o -iname \*.cpp -o -iname \*.hpp \) -exec clang-format -i {} \;
-            $CLANG_FORMAT -i --verbose include/*.h    \
-                            src/*.c                   \
-                            src/*.cpp                 \
-                            src/*.hpp                 \
-                            examples/c/*.c            \
-                            examples/csharp/*.cs      \
-                            examples/java/*.java      \
-                            test/*.c                  \
-                            test/*.cs                 \
-                            src/bindings/csharp/*.cs  \
-                            src/bindings/csharp/*.cxx \
-                            src/bindings/java/*.java  \
-                            src/bindings/java/*.cxx   \
-                            examples/csharp/*.cs      \
-                            src/bindings/python/*.cxx \
-                            src/bindings/python/*.h
+            $CLANG_FORMAT -i --verbose include/*.h                \
+                            src/*.c                               \
+                            src/*.cpp                             \
+                            src/*.hpp                             \
+                            examples/c/*.c                        \
+                            examples/csharp/*.cs                  \
+                            examples/java/*.java                  \
+                            test/*.c                              \
+                            test/*.cs                             \
+                            src/bindings/csharp/*.cs              \
+                            src/bindings/csharp/*.cxx             \
+                            src/bindings/java/*.java              \
+                            src/bindings/java/*.cxx               \
+                            examples/csharp/*.cs                  \
+                            src/bindings/python/PythonSockets.cxx \
+                            src/bindings/python/PythonSocket.h
             return 0
         else
             echo "Please install clang-format"

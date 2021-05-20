@@ -8,25 +8,18 @@ def handle_error(err):
     if err == libzt.ZTS_ERR_SOCKET:
         if errno() == libzt.ZTS_EAGAIN:
             raise BlockingIOError()
-            return
         if errno() == libzt.ZTS_EINPROGRESS:
             raise BlockingIOError()
-            return
         if errno() == libzt.ZTS_EALREADY:
             raise BlockingIOError()
-            return
         if errno() == libzt.ZTS_ECONNABORTED:
             raise ConnectionAbortedError()
-            return
         if errno() == libzt.ZTS_ECONNREFUSED:
             raise ConnectionRefusedError()
-            return
         if errno() == libzt.ZTS_ECONNRESET:
             raise ConnectionResetError()
-            return
         if errno() == libzt.ZTS_ETIMEDOUT:
             raise TimeoutError()
-            return
         raise Exception("ZTS_ERR_SOCKET (" + str(err) + ")")
     if err == libzt.ZTS_ERR_SERVICE:
         raise Exception("ZTS_ERR_SERVICE (" + str(err) + ")")

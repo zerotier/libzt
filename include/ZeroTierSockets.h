@@ -200,7 +200,7 @@ typedef enum {
 extern int zts_errno;
 
 typedef enum {
-    /** Operation not permitted (`zts_errno` value) */
+    /** Operation not permitted */
     ZTS_EPERM = 1,
     /** No such file or directory */
     ZTS_ENOENT = 2,
@@ -278,6 +278,8 @@ typedef enum {
     ZTS_ENOTCONN = 107,
     /** Connection timed out */
     ZTS_ETIMEDOUT = 110,
+    /* Connection refused */
+    ZTS_ECONNREFUSED = 111,
     /** No route to host */
     ZTS_EHOSTUNREACH = 113,
     /** Operation already in progress */

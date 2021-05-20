@@ -1,12 +1,13 @@
-'''Example low-level socket usage'''
+"""Example low-level socket usage"""
 
 import time
 import sys
 
 import libzt
 
+
 def print_usage():
-    '''print help'''
+    """print help"""
     print(
         "\nUsage: <server|client> <storage_path> <net_id> <remote_ip> <remote_port>\n"
     )
@@ -17,6 +18,7 @@ def print_usage():
     if len(sys.argv) > 6:
         print("Too many arguments")
     sys.exit(0)
+
 
 #
 # (Optional) Event handler
@@ -35,15 +37,16 @@ def on_zerotier_event(event_code, id):
     if event_code == libzt.ZTS_EVENT_PEER_RELAY:
         print("ZTS_EVENT_PEER_RELAY (" + str(event_code) + ") : " + hex(id))
 
+
 #
 # Main
 #
 def main():
-    mode = None # client|server
-    storage_path = "." # Where identity files are stored
-    net_id = 0 # Network to join
-    remote_ip = None # ZeroTier IP of remote node
-    remote_port = 8080 # ZeroTier port your app logic may use
+    mode = None  # client|server
+    storage_path = "."  # Where identity files are stored
+    net_id = 0  # Network to join
+    remote_ip = None  # ZeroTier IP of remote node
+    remote_port = 8080  # ZeroTier port your app logic may use
 
     if len(sys.argv) < 5 or len(sys.argv) > 6:
         print_usage()
@@ -72,9 +75,9 @@ def main():
     print("Starting ZeroTier...")
 
     n = libzt.ZeroTierNode()
-    n.init_set_event_handler(on_zerotier_event) # Optional
-    n.init_from_storage(storage_path) # Optional
-    n.init_set_port(9994) # Optional
+    n.init_set_event_handler(on_zerotier_event)  # Optional
+    n.init_from_storage(storage_path)  # Optional
+    n.init_set_port(9994)  # Optional
     n.node_start()
 
     print("Waiting for node to come online...")
@@ -121,13 +124,14 @@ def main():
             client.connect((remote_ip, remote_port))
             data = "Hello, world!"
             print("send: ", data)
-            sent_bytes = client.send(data.encode('utf-8'))
+            sent_bytes = client.send(data.encode("utf-8"))
             print("sent: " + str(sent_bytes) + " byte(s)")
             data = client.recv(1024)
             print("recv: ", repr(data))
         except Exception as ex:
             print(ex)
         print("errno=", libzt.errno())
+
 
 if __name__ == "__main__":
     main()

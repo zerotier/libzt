@@ -638,6 +638,18 @@ def zts_init_set_port(port):
     return _libzt.zts_init_set_port(port)
 
 
+def zts_init_set_random_port_range(start_port, end_port):
+    return _libzt.zts_init_set_random_port_range(start_port, end_port)
+
+
+def zts_init_allow_secondary_port(allowed):
+    return _libzt.zts_init_allow_secondary_port(allowed)
+
+
+def zts_init_allow_port_mapping(allowed):
+    return _libzt.zts_init_allow_port_mapping(allowed)
+
+
 def zts_init_allow_net_cache(allowed):
     return _libzt.zts_init_allow_net_cache(allowed)
 
@@ -1137,6 +1149,10 @@ def zts_bsd_shutdown(fd, how):
     return _libzt.zts_bsd_shutdown(fd, how)
 
 
+def zts_socket(family, type, protocol):
+    return _libzt.zts_socket(family, type, protocol)
+
+
 def zts_connect(fd, ipstr, port, timeout_ms):
     return _libzt.zts_connect(fd, ipstr, port, timeout_ms)
 
@@ -1145,8 +1161,44 @@ def zts_bind(fd, ipstr, port):
     return _libzt.zts_bind(fd, ipstr, port)
 
 
+def zts_listen(fd, backlog):
+    return _libzt.zts_listen(fd, backlog)
+
+
 def zts_accept(fd, remote_addr, len, port):
     return _libzt.zts_accept(fd, remote_addr, len, port)
+
+
+def zts_send(fd, buf, len, flags):
+    return _libzt.zts_send(fd, buf, len, flags)
+
+
+def zts_recv(fd, buf, len, flags):
+    return _libzt.zts_recv(fd, buf, len, flags)
+
+
+def zts_read(fd, buf, len):
+    return _libzt.zts_read(fd, buf, len)
+
+
+def zts_write(fd, buf, len):
+    return _libzt.zts_write(fd, buf, len)
+
+
+def zts_shutdown_rd(fd):
+    return _libzt.zts_shutdown_rd(fd)
+
+
+def zts_shutdown_wr(fd):
+    return _libzt.zts_shutdown_wr(fd)
+
+
+def zts_shutdown_rdwr(fd):
+    return _libzt.zts_shutdown_rdwr(fd)
+
+
+def zts_close(fd):
+    return _libzt.zts_close(fd)
 
 
 def zts_getpeername(fd, remote_addr_str, len, port):
@@ -1177,6 +1229,14 @@ def zts_udp_client(remote_ipstr):
 
 def zts_set_no_delay(fd, enabled):
     return _libzt.zts_set_no_delay(fd, enabled)
+
+
+def zts_get_last_socket_error(fd):
+    return _libzt.zts_get_last_socket_error(fd)
+
+
+def zts_get_data_available(fd):
+    return _libzt.zts_get_data_available(fd)
 
 
 def zts_get_no_delay(fd):

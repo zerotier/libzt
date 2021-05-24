@@ -37,15 +37,15 @@ namespace ZeroTier.Core
         static int _versionRev;
         static bool _isOnline = false;
         static bool _hasBeenFreed = false;
-        string _configFilePath;
-        ushort _primaryPort;
+        static string _configFilePath;
+        static ushort _primaryPort;
 
         static ZeroTierManagedEventCallback _managedCallback;
-        CSharpCallbackWithStruct _unmanagedCallback;
+        static CSharpCallbackWithStruct _unmanagedCallback;
 
-        ConcurrentDictionary<ulong, ZeroTier.Core.NetworkInfo> _networks =
+        static ConcurrentDictionary<ulong, ZeroTier.Core.NetworkInfo> _networks =
             new ConcurrentDictionary<ulong, NetworkInfo>();
-        ConcurrentDictionary<ulong, ZeroTier.Core.PeerInfo> _peers = new ConcurrentDictionary<ulong, PeerInfo>();
+        static ConcurrentDictionary<ulong, ZeroTier.Core.PeerInfo> _peers = new ConcurrentDictionary<ulong, PeerInfo>();
 
         public Node()
         {

@@ -9,7 +9,7 @@ Peer-to-peer and cross-platform encrypted connections built right into your app 
 <br>
 
 <a href="./examples">Examples</a> |
-<a href="https://docs.zerotier.com/libzt-c/tutorial.html">Documentation</a> |
+<a href="https://docs.zerotier.com/sockets/tutorial.html">Documentation</a> |
 <a href="https://discuss.zerotier.com/">Community</a> |
 <a href="https://github.com/zerotier/libzt/issues">Report a Bug</a>
 
@@ -97,7 +97,7 @@ While we do operate a global network of redundant root servers, network controll
 
 # Help
 
- - Documentation: [docs.zerotier.com](https://docs.zerotier.com/libzt-c/tutorial.html)
+ - Documentation: [docs.zerotier.com](https://docs.zerotier.com/sockets/tutorial.html)
  - Examples: [examples/](./examples)
  - Bug reports: [Open a github issue](https://github.com/zerotier/libzt/issues).
  - General ZeroTier troubleshooting: [Knowledgebase](https://zerotier.atlassian.net/wiki/spaces/SD/overview).

@@ -19,6 +19,8 @@ use std::os::raw::c_int;
 use std::time::Duration;
 use std::{io, mem};
 
+type time_t = i64;
+
 use crate::utils::*;
 
 // Note: FileDesc and c_int in libc are private so we can't use that. Use i32 instead

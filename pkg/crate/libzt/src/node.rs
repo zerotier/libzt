@@ -15,12 +15,11 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-include!(concat!("./libzt.rs"));
-
+use crate::libzt::*;
 use std::ffi::{c_void, CStr, CString};
-use std::str::FromStr;
-use std::net::{IpAddr,AddrParseError};
 use std::io;
+use std::net::{AddrParseError, IpAddr};
+use std::str::FromStr;
 
 extern "C" fn native_event_handler(msg: *mut c_void) {
     let event: &mut zts_event_msg_t = unsafe { &mut *(msg as *mut zts_event_msg_t) };
@@ -106,13 +105,13 @@ impl ZeroTierNode {
         unsafe { zts_util_delay(interval_ms) }
     }
 
-    pub fn addr_get(&self, net_id: u64) -> Result<IpAddr,AddrParseError> {
+    pub fn addr_get(&self, net_id: u64) -> Result<IpAddr, AddrParseError> {
         unsafe {
             let mut v = vec![0; (ZTS_INET6_ADDRSTRLEN as usize) + 1];
             let ptr = v.as_mut_ptr() as *mut i8;
             zts_addr_get_str(net_id, ZTS_AF_INET, ptr, ZTS_INET6_ADDRSTRLEN);
             let c_str = CStr::from_ptr(ptr);
-            return IpAddr::from_str(&c_str.to_string_lossy().into_owned())
+            return IpAddr::from_str(&c_str.to_string_lossy().into_owned());
         }
     }
 }

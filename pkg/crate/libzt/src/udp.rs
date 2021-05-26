@@ -19,6 +19,7 @@ use std::os::raw::c_int;
 use std::time::Duration;
 //use std::cmp;
 
+use crate::libzt::*;
 use crate::socket::Socket;
 use crate::utils::*;
 

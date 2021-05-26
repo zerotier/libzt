@@ -85,9 +85,9 @@ namespace ZeroTier.Core
             if (managedCallback == null) {
                 throw new ArgumentNullException("managedCallback");
             }
+            _unmanagedCallback = OnZeroTierEvent;
             int res = Constants.ERR_OK;
-            if ((res = zts_init_set_event_handler(OnZeroTierEvent)) == Constants.ERR_OK) {
-                _unmanagedCallback = OnZeroTierEvent;
+            if ((res = zts_init_set_event_handler(_unmanagedCallback)) == Constants.ERR_OK) {
                 _managedCallback = new ZeroTierManagedEventCallback(managedCallback);
             }
             return res;

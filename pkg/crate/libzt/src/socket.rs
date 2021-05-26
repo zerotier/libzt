@@ -21,6 +21,7 @@ use std::{io, mem};
 
 type time_t = i64;
 
+use crate::libzt::*;
 use crate::utils::*;
 
 // Note: FileDesc and c_int in libc are private so we can't use that. Use i32 instead

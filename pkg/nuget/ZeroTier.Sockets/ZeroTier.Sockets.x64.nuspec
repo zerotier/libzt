@@ -9,8 +9,8 @@
 		<license type="file">LICENSE.txt</license>
 		<icon>icon.png</icon>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
-		<releaseNotes>Add NetworkStream. Fix errno bug</releaseNotes>
-		<description>Encrypted P2P SD-WAN networking layer (Managed C# API) [x64]</description>
+		<releaseNotes>Fix callback delegate bug</releaseNotes>
+		<description>Encrypted P2P SD-WAN networking layer [x64]</description>
 		<title>Encrypted P2P SD-WAN networking layer (Managed C# API) [x64]</title>
 		<copyright>Copyright 2021 ZeroTier, Inc.</copyright>
 		<tags>p2p networking utility library sdwan socket tcp udp ip encryption vpn sdk zerotier libzt libzerotier native</tags>

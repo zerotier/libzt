@@ -201,7 +201,6 @@ namespace ZeroTier.Sockets
             Marshal.FreeHGlobal(lpBuffer);
             lpBuffer = IntPtr.Zero;
             IPEndPoint clientEndPoint = new IPEndPoint(IPAddress.Parse(str), port);
-            Console.WriteLine("clientEndPoint = " + clientEndPoint.ToString());
             // Create new socket by providing file descriptor returned from zts_bsd_accept call.
             Socket clientSocket =
                 new Socket(accepted_fd, _socketFamily, _socketType, _socketProtocol, _localEndPoint, clientEndPoint);

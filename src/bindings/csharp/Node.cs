@@ -73,7 +73,6 @@ namespace ZeroTier.Core
                 throw new ArgumentNullException("configFilePath");
             }
             int res = Constants.ERR_OK;
-            Console.WriteLine("path = " + configFilePath);
             if ((res = zts_init_from_storage(configFilePath)) == Constants.ERR_OK) {
                 _configFilePath = configFilePath;
             }

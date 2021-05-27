@@ -26,7 +26,8 @@ class MyEventCallbackClass(_EventCallbackClass):
             id = msg.peer.peer_id
         # Now that we've adjusted internal state, notify user
         global _user_specified_event_handler
-        _user_specified_event_handler(msg.event_code, id)
+        if _user_specified_event_handler is not None:
+            _user_specified_event_handler(msg.event_code, id)
 
 
 class ZeroTierNode:

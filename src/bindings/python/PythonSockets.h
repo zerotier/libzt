@@ -17,13 +17,13 @@
 #ifdef ZTS_ENABLE_PYTHON
 #include "Python.h"
 
+typedef int SOCKET_T;
+
 int zts_py_bind(int fd, int family, int type, PyObject* addro);
 
 int zts_py_connect(int fd, int family, int type, PyObject* addro);
 
 PyObject* zts_py_accept(int fd);
-
-int zts_py_listen(int fd, int backlog);
 
 PyObject* zts_py_recv(int fd, int len, int flags);
 
@@ -31,11 +31,13 @@ int zts_py_send(int fd, PyObject* buf, int flags);
 
 int zts_py_close(int fd);
 
-int zts_py_setblocking(int fd, int flag);
-
-int zts_py_getblocking(int fd);
-
 PyObject* zts_py_addr_get_str(uint64_t net_id, int family);
+
+PyObject* zts_py_select(PyObject* module, PyObject* rlist, PyObject* wlist, PyObject* xlist, PyObject* timeout_obj);
+
+int zts_py_setsockopt(int fd, PyObject* args);
+
+PyObject* zts_py_getsockopt(int fd, PyObject* args);
 
 #endif   // ZTS_ENABLE_PYTHON
 

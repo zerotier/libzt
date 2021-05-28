@@ -76,6 +76,9 @@ class ZeroTierNode:
     def node_is_online(self):
         return libzt.zts_node_is_online()
 
+    def node_id(self):
+        return libzt.zts_node_get_id()
+
     def net_transport_is_ready(self, net_id):
         return libzt.zts_net_transport_is_ready(net_id)
 

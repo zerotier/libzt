@@ -104,13 +104,11 @@ class socket:
 
     def fromfd(self, fd, sock_family, sock_type, sock_proto=0):
         """libzt does not support this (yet)"""
-        raise NotImplementedError(
-            "fromfd(): Not supported. OS File descriptors aren't used in libzt."
-        )
+        raise NotImplementedError("ZeroTier does not expose OS-level sockets")
 
     def fromshare(self, data):
-        """libzt does not support this (yet)"""
-        raise NotImplementedError("libzt does not support this (yet?)")
+        """ZeroTier sockets cannot be shared"""
+        raise NotImplementedError("ZeroTier sockets cannot be shared")
 
     def getaddrinfo(
         self, host, port, sock_family=0, sock_type=0, sock_proto=0, flags=0
@@ -246,21 +244,21 @@ class socket:
         if err < 0:
             handle_error(err)
 
-    def connect(self, remote_address):
+    def connect(self, address):
         """connect(address)
 
         Connect the socket to a remote address"""
-        err = libzt.zts_py_connect(self._fd, self._family, self._type, remote_address)
+        err = libzt.zts_py_connect(self._fd, self._family, self._type, address)
         if err < 0:
             handle_error(err)
 
-    def connect_ex(self, remote_address):
+    def connect_ex(self, address):
         """connect_ex(address) -> errno
 
         Connect to remote host but return low-level result code, and errno on failure
         This uses a non-thread-safe implementation of errno
         """
-        err = libzt.zts_py_connect(self._fd, self._family, self._type, remote_address)
+        err = libzt.zts_py_connect(self._fd, self._family, self._type, address)
         if err < 0:
             return errno()
         return err
@@ -268,7 +266,7 @@ class socket:
     def detach(self):
         """libzt does not support this"""
         raise NotImplementedError(
-            "detach(): Not supported. OS File descriptors aren't used in libzt."
+            "detach(): Not supported. ZeroTier sockets are not OS-level sockets"
         )
 
     def dup(self):
@@ -276,18 +274,19 @@ class socket:
         raise NotImplementedError("libzt does not support this (yet?)")
 
     def fileno(self):
-        """libzt does not support this"""
-        raise NotImplementedError("libzt does not support this (yet?)")
+        """Return ZeroTier socket file descriptor. This is not OS-level. Can
+        only be used with ZeroTier's version of select"""
+        return self._fd
 
     def get_inheritable(self):
-        """libzt does not support this (yet)"""
-        raise NotImplementedError("libzt does not support this (yet?)")
+        """ZeroTier sockets cannot be shared. This always returns False"""
+        return False
 
     def getblocking(self):
         """getblocking()
 
         Return True if the socket is in blocking mode, False if it is non-blocking"""
-        return libzt.zts_py_getblocking(self._fd)
+        return libzt.zts_get_blocking(self._fd)
 
     def getpeername(self):
         """libzt does not support this (yet)"""
@@ -297,17 +296,17 @@ class socket:
         """libzt does not support this (yet)"""
         raise NotImplementedError("libzt does not support this (yet?)")
 
-    def getsockopt(self, level, optname, buflen):
-        """libzt does not support this (yet)"""
-        raise NotImplementedError("libzt does not support this (yet?)")
+    def getsockopt(self, level, optname, buflen=None):
+        """Get a socket option value"""
+        return libzt.zts_py_getsockopt(self._fd, (level, optname))
 
     def gettimeout(self):
         """libzt does not support this (yet)"""
         raise NotImplementedError("libzt does not support this (yet?)")
 
-    def ioctl(self, control, option):
-        """libzt does not support this (yet)"""
-        raise NotImplementedError("libzt does not support this (yet?)")
+    def ioctl(self, request, arg=0, mutate_flag=True):
+        """Perform I/O control operations"""
+        return libzt.zts_py_ioctl(self._fd, request, arg, mutate_flag)
 
     def listen(self, backlog=None):
         """listen([backlog])
@@ -322,7 +321,7 @@ class socket:
         if backlog is None:
             backlog = -1  # Lower-level code picks default
 
-        err = libzt.zts_py_listen(self._fd, backlog)
+        err = libzt.zts_bsd_listen(self._fd, backlog)
         if err < 0:
             handle_error(err)
 
@@ -412,25 +411,25 @@ class socket:
         raise NotImplementedError("libzt does not support this (yet?)")
 
     def set_inheritable(self, inheritable):
-        """libzt does not support this (yet)"""
-        raise NotImplementedError("libzt does not support this (yet?)")
+        """ZeroTier sockets cannot be shared"""
+        raise NotImplementedError("ZeroTier sockets cannot be shared")
 
     def setblocking(self, flag):
         """setblocking(flag)
 
         Sets the socket to blocking mode if flag=True, non-blocking if flag=False."""
-        libzt.zts_py_setblocking(self._fd, flag)
+        libzt.zts_set_blocking(self._fd, flag)
 
     def settimeout(self, value):
         """libzt does not support this (yet)"""
         raise NotImplementedError("libzt does not support this (yet?)")
 
-    # TODO: value: buffer
-    # TODO: value: int
-    # TODO: value: None -> optlen required
     def setsockopt(self, level, optname, value):
-        """libzt does not support this (yet)"""
-        raise NotImplementedError("libzt does not support this (yet?)")
+        """Set a socket option value"""
+        err = libzt.zts_py_setsockopt(self._fd, (level, optname, value))
+        if err < 0:
+            handle_error(err)
+        return err
 
     def shutdown(self, how):
         """shutdown(how)

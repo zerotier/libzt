@@ -1,3 +1,11 @@
-# Unsafe bindings for ZeroTier SDK
+[libzt](https://www.zerotier.com)
+=====
+Part of the ZeroTier SDK
 
-This crate is a pre-Alpha work in progress intended as a placeholder as development continues. Currently only basic creation and management of a node and unsafe BSD-style socket operations are supported. An idiomatic wrapper will eventually replace this.
+Securely connect application instances, physical devices, and virtual devices as if everything is on a single LAN. ZeroTier brings your network into user-space. No root, and no host configuration requirements.
+
+We've paired our network hyper-visor core with a TCP/UDP/IP stack [(lwIP)](https://en.wikipedia.org/wiki/LwIP) to provide your application with an exclusive and private virtual network layer. All traffic is end-to-end encrypted between each peer and we provide an easy-to-use socket interface similar to [std::net](https://doc.rust-lang.org/std/net/index.html).
+
+ - Docs: [docs.zerotier.com](https://docs.zerotier.com/sockets/tutorial.html)
+ - Repo: [github.com/zerotier/libzt](https://github.com/zerotier/libzt)
+ - Website: [zerotier.com](https://www.zerotier.com/)

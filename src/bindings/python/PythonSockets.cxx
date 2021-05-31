@@ -59,7 +59,7 @@ static int zts_py_tuple_to_sockaddr(int family, PyObject* addr_obj, struct zts_s
             return ZTS_ERR_ARG;
         }
         addr = (struct zts_sockaddr_in*)dst_addr;
-        zts_inet_pton(ZTS_AF_INET, host_str, &(addr->sin_addr.s_addr));
+        result = zts_inet_pton(ZTS_AF_INET, host_str, &(addr->sin_addr.s_addr));
         PyMem_Free(host_str);
         if (port < 0 || port > 0xFFFF) {
             return ZTS_ERR_ARG;
@@ -82,7 +82,10 @@ PyObject* zts_py_accept(int fd)
 {
     struct zts_sockaddr_in addrbuf = { 0 };
     socklen_t addrlen = sizeof(addrbuf);
-    int err = zts_bsd_accept(fd, (struct zts_sockaddr*)&addrbuf, &addrlen);
+    int err = ZTS_ERR_OK;
+    Py_BEGIN_ALLOW_THREADS;
+    err = zts_bsd_accept(fd, (struct zts_sockaddr*)&addrbuf, &addrlen);
+    Py_END_ALLOW_THREADS;
     char ipstr[ZTS_INET_ADDRSTRLEN] = { 0 };
     zts_inet_ntop(ZTS_AF_INET, &(addrbuf.sin_addr), ipstr, ZTS_INET_ADDRSTRLEN);
     PyObject* t;
@@ -102,8 +105,10 @@ int zts_py_bind(int fd, int family, int type, PyObject* addr_obj)
     if (zts_py_tuple_to_sockaddr(family, addr_obj, (struct zts_sockaddr*)&addrbuf, &addrlen) != ZTS_ERR_OK) {
         return ZTS_ERR_ARG;
     }
-    Py_BEGIN_ALLOW_THREADS err = zts_bsd_bind(fd, (struct zts_sockaddr*)&addrbuf, addrlen);
-    Py_END_ALLOW_THREADS return err;
+    Py_BEGIN_ALLOW_THREADS;
+    err = zts_bsd_bind(fd, (struct zts_sockaddr*)&addrbuf, addrlen);
+    Py_END_ALLOW_THREADS;
+    return err;
 }
 
 int zts_py_connect(int fd, int family, int type, PyObject* addr_obj)
@@ -114,8 +119,10 @@ int zts_py_connect(int fd, int family, int type, PyObject* addr_obj)
     if (zts_py_tuple_to_sockaddr(family, addr_obj, (struct zts_sockaddr*)&addrbuf, &addrlen) != ZTS_ERR_OK) {
         return ZTS_ERR_ARG;
     }
-    Py_BEGIN_ALLOW_THREADS err = zts_bsd_connect(fd, (struct zts_sockaddr*)&addrbuf, addrlen);
-    Py_END_ALLOW_THREADS return err;
+    Py_BEGIN_ALLOW_THREADS;
+    err = zts_bsd_connect(fd, (struct zts_sockaddr*)&addrbuf, addrlen);
+    Py_END_ALLOW_THREADS;
+    return err;
 }
 
 PyObject* zts_py_recv(int fd, int len, int flags)
@@ -128,7 +135,9 @@ PyObject* zts_py_recv(int fd, int len, int flags)
         return NULL;
     }
 
+    Py_BEGIN_ALLOW_THREADS;
     bytes_read = zts_bsd_recv(fd, PyBytes_AS_STRING(buf), len, flags);
+    Py_END_ALLOW_THREADS;
     t = PyTuple_New(2);
     PyTuple_SetItem(t, 0, PyLong_FromLong(bytes_read));
 
@@ -157,8 +166,9 @@ int zts_py_send(int fd, PyObject* buf, int flags)
     if (PyObject_GetBuffer(buf, &output, PyBUF_SIMPLE) != 0) {
         return 0;
     }
-
+    Py_BEGIN_ALLOW_THREADS;
     bytes_sent = zts_bsd_send(fd, output.buf, output.len, flags);
+    Py_END_ALLOW_THREADS;
     PyBuffer_Release(&output);
 
     return bytes_sent;
@@ -167,8 +177,10 @@ int zts_py_send(int fd, PyObject* buf, int flags)
 int zts_py_close(int fd)
 {
     int err;
-    Py_BEGIN_ALLOW_THREADS err = zts_bsd_close(fd);
-    Py_END_ALLOW_THREADS return err;
+    Py_BEGIN_ALLOW_THREADS;
+    err = zts_bsd_close(fd);
+    Py_END_ALLOW_THREADS;
+    return err;
 }
 
 PyObject* zts_py_addr_get_str(uint64_t net_id, int family)
@@ -358,13 +370,14 @@ PyObject* zts_py_select(PyObject* module, PyObject* rlist, PyObject* wlist, PyOb
     }
 
     do {
-        Py_BEGIN_ALLOW_THREADS errno = 0;
+        Py_BEGIN_ALLOW_THREADS;
+        errno = 0;
         // struct zts_timeval zts_tvp;
         // zts_tvp.tv_sec = tvp.tv_sec;
         // zts_tvp.tv_sec = tvp.tv_sec;
 
         n = zts_bsd_select(max, &ifdset, &ofdset, &efdset, (struct zts_timeval*)tvp);
-        Py_END_ALLOW_THREADS
+        Py_END_ALLOW_THREADS;
 
             if (errno != EINTR)
         {
@@ -452,14 +465,15 @@ int zts_py_setsockopt(int fd, PyObject* args)
 
     PyErr_Clear();
     // setsockopt(level, opt, buffer)
-    if (! PyArg_ParseTuple(args, "iiy*:setsockopt", &level, &optname, &optval))
-        return NULL;
+    if (! PyArg_ParseTuple(args, "iiy*:setsockopt", &level, &optname, &optval)) {
+        return (int)NULL;
+    }
 
 #ifdef MS_WINDOWS
     if (optval.len > INT_MAX) {
         PyBuffer_Release(&optval);
         PyErr_Format(PyExc_OverflowError, "socket option is larger than %i bytes", INT_MAX);
-        return NULL;
+        return (int)NULL;
     }
     res = zts_bsd_setsockopt(fd, level, optname, optval.buf, (int)optval.len);
 #else
@@ -529,8 +543,9 @@ PyObject* zts_py_fcntl(int fd, int code, PyObject* arg)
         }
     }
     do {
-        Py_BEGIN_ALLOW_THREADS ret = zts_bsd_fcntl(fd, code, (int)int_arg);
-        Py_END_ALLOW_THREADS
+        Py_BEGIN_ALLOW_THREADS;
+        ret = zts_bsd_fcntl(fd, code, (int)int_arg);
+        Py_END_ALLOW_THREADS;
     } while (ret == -1 && zts_errno == ZTS_EINTR);
     if (ret < 0) {
         return set_error();
@@ -581,9 +596,10 @@ PyObject* zts_py_ioctl(int fd, unsigned int code, PyObject* ob_arg, int mutate_a
                 }
             }
             if (buf == arg) {
-                Py_BEGIN_ALLOW_THREADS /* think array.resize() */
-                    ret = zts_bsd_ioctl(fd, code, arg);
-                Py_END_ALLOW_THREADS
+                Py_BEGIN_ALLOW_THREADS;
+                /* think array.resize() */
+                ret = zts_bsd_ioctl(fd, code, arg);
+                Py_END_ALLOW_THREADS;
             }
             else {
                 ret = zts_bsd_ioctl(fd, code, arg);
@@ -615,8 +631,10 @@ PyObject* zts_py_ioctl(int fd, unsigned int code, PyObject* ob_arg, int mutate_a
             }
             memcpy(buf, str, len);
             buf[len] = '\0';
-            Py_BEGIN_ALLOW_THREADS ret = zts_bsd_ioctl(fd, code, buf);
-            Py_END_ALLOW_THREADS if (ret < 0)
+            Py_BEGIN_ALLOW_THREADS;
+            ret = zts_bsd_ioctl(fd, code, buf);
+            Py_END_ALLOW_THREADS;
+            if (ret < 0)
             {
                 PyBuffer_Release(&pstr);
                 PyErr_SetFromErrno(PyExc_OSError);
@@ -637,8 +655,10 @@ PyObject* zts_py_ioctl(int fd, unsigned int code, PyObject* ob_arg, int mutate_a
         // Fall-through to outside the 'if' statement.
     }
     // TODO: Double check that &arg is correct
-    Py_BEGIN_ALLOW_THREADS ret = zts_bsd_ioctl(fd, code, &arg);
-    Py_END_ALLOW_THREADS if (ret < 0)
+    Py_BEGIN_ALLOW_THREADS;
+    ret = zts_bsd_ioctl(fd, code, &arg);
+    Py_END_ALLOW_THREADS;
+    if (ret < 0)
     {
         PyErr_SetFromErrno(PyExc_OSError);
         return NULL;

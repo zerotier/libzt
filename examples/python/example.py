@@ -126,7 +126,7 @@ def main():
         try:
             print("connecting...")
             client.connect((remote_ip, remote_port))
-            data = "Hello, roots!"
+            data = "Hello, network!"
             print("send: ", data)
             sent_bytes = client.send(data)
             print("sent: " + str(sent_bytes) + " byte(s)")

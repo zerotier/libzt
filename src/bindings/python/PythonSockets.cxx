@@ -37,6 +37,8 @@
 #include "lwip/inet.h"
 #include "lwip/sockets.h"
 #include "structmember.h"   // PyMemberDef
+#include "sysmodule.h"
+#include "pytime.h"
 
 #include <string.h>
 #include <sys/time.h>

@@ -379,8 +379,7 @@ PyObject* zts_py_select(PyObject* module, PyObject* rlist, PyObject* wlist, PyOb
         n = zts_bsd_select(max, &ifdset, &ofdset, &efdset, (struct zts_timeval*)tvp);
         Py_END_ALLOW_THREADS;
 
-            if (errno != EINTR)
-        {
+        if (errno != EINTR) {
             break;
         }
 
@@ -634,8 +633,7 @@ PyObject* zts_py_ioctl(int fd, unsigned int code, PyObject* ob_arg, int mutate_a
             Py_BEGIN_ALLOW_THREADS;
             ret = zts_bsd_ioctl(fd, code, buf);
             Py_END_ALLOW_THREADS;
-            if (ret < 0)
-            {
+            if (ret < 0) {
                 PyBuffer_Release(&pstr);
                 PyErr_SetFromErrno(PyExc_OSError);
                 return NULL;
@@ -658,8 +656,7 @@ PyObject* zts_py_ioctl(int fd, unsigned int code, PyObject* ob_arg, int mutate_a
     Py_BEGIN_ALLOW_THREADS;
     ret = zts_bsd_ioctl(fd, code, &arg);
     Py_END_ALLOW_THREADS;
-    if (ret < 0)
-    {
+    if (ret < 0) {
         PyErr_SetFromErrno(PyExc_OSError);
         return NULL;
     }

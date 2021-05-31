@@ -368,6 +368,22 @@ host-uninstall()
     cd -
 }
 
+# Build rust crate, libzt.a, link and test
+#
+host-rust()
+{
+    BUILD_TYPE=${1:-debug}
+
+    cd pkg/crate/libzt
+    cargo build # --verbose
+
+    # Test Rust crate
+    if [[ $2 = *"test"* ]]; then
+        cargo run --example libzt-test-app -- server $alice_path $testnet 0.0.0.0 $port4 &
+        cargo run --example libzt-test-app -- client $bob_path $testnet $alice_ip4 $port4 &
+    fi
+}
+
 # Build C extension module (*.so), python module, package both into wheel
 #
 # ./build.sh host-python-wheel "release"
@@ -467,7 +483,7 @@ host-pinvoke()
         cp $LIB_OUTPUT_DIR/* $BIN_OUTPUT_DIR
         # Start Alice as server
         MONO_THREADS_SUSPEND=preemptive; mono --debug "$BIN_OUTPUT_DIR/selftest.exe" server $alice_path $testnet $port4 &
-        sleep 5
+        sleep 3
         # Start Bob as client
         MONO_THREADS_SUSPEND=preemptive; mono --debug "$BIN_OUTPUT_DIR/selftest.exe" client $bob_path $testnet $alice_ip4 $port4 &
     fi
@@ -663,6 +679,7 @@ format-code()
         then
             $PYTHON -m black src/bindings/python/libzt.py
             $PYTHON -m black src/bindings/python/node.py
+            $PYTHON -m black src/bindings/python/select.py
             $PYTHON -m black src/bindings/python/sockets.py
             $PYTHON -m black examples/python/
             $PYTHON -m black test/selftest.py
@@ -692,6 +709,8 @@ test-c()
 # Recursive deep clean
 clean()
 {
+    # Clean rust crate
+    (cd pkg/crate/libzt && cargo clean)
     # Finished artifacts
     rm -rf $BUILD_OUTPUT_DIR
     # CMake's build system cache

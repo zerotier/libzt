@@ -15,7 +15,8 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use crate::libzt::*;
+include!(concat!(env!("OUT_DIR"), "/libzt.rs"));
+
 use std::ffi::c_void;
 use std::io::{Error, ErrorKind};
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6, ToSocketAddrs};

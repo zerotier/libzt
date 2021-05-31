@@ -15,7 +15,8 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-pub mod libzt;
+include!(concat!(env!("OUT_DIR"), "/libzt.rs"));
+
 pub mod node;
 pub mod socket;
 pub mod tcp;

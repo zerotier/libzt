@@ -14,16 +14,17 @@
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
+#![allow(unused_variables)]
 
-use crate::libzt::*;
+include!(concat!(env!("OUT_DIR"), "/libzt.rs"));
+
 use std::ffi::{c_void, CStr, CString};
-use std::io;
 use std::net::{AddrParseError, IpAddr};
 use std::str::FromStr;
 
 extern "C" fn native_event_handler(msg: *mut c_void) {
     let event: &mut zts_event_msg_t = unsafe { &mut *(msg as *mut zts_event_msg_t) };
-    println!("event: {}", event.event_code);
+    //println!("event: {}", event.event_code);
     //user_event_handler(event.event_code);
 }
 

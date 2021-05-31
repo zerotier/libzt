@@ -124,6 +124,16 @@ if (ZTS_ENABLE_PINVOKE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_ENABLE_PINVOKE=1")
 endif()
 
+# Rust language bindings
+if (ZTS_ENABLE_RUST)
+    # Features
+    set(BUILD_STATIC_LIB        TRUE)
+    set(BUILD_SHARED_LIB       FALSE)
+    set(BUILD_EXAMPLES         FALSE)
+    set(ALLOW_INSTALL_TARGET   FALSE)
+    set(BUILD_HOST_SELFTEST    FALSE)
+endif()
+
 # Python language bindings (_libzt.so)
 if (ZTS_ENABLE_PYTHON)
     # Features

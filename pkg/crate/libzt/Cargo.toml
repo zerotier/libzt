@@ -16,12 +16,13 @@ categories = ["network-programming", "cryptography"]
 [build-dependencies]
 bindgen = "0.57"
 libc = "0.2"
+cmake = "0.1"
 
 [lib]
 name = "libzt"
 path = "src/lib.rs"
 
-[[bin]]
+[[example]]
 name = "libzt-test-app"
-path = "src/bin/libzt-test-app.rs"
+path = "src/examples/libzt-test-app.rs"
 

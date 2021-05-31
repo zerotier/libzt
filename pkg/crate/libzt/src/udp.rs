@@ -13,13 +13,12 @@
 
 use std::convert::TryInto;
 use std::ffi::{c_void, CString};
-use std::io::{self, Error, ErrorKind};
+use std::io::{self /*, Error, ErrorKind*/};
 use std::net::{/*Ipv4Addr, Ipv6Addr,*/ SocketAddr, ToSocketAddrs};
 use std::os::raw::c_int;
 use std::time::Duration;
 //use std::cmp;
 
-use crate::libzt::*;
 use crate::socket::Socket;
 use crate::utils::*;
 
@@ -82,24 +81,23 @@ impl UdpSocketImpl {
         self.inner.peek_from(buf)
     }
 
-    pub fn send_to(&self, buf: &[u8], dst: &SocketAddr) -> io::Result<usize> {
-        /*
-                let len = cmp::min(buf.len(), <size_t>::MAX as usize) as size_t;
-                let (dstp, dstlen) = dst.into_inner();
-                let ret = cvt(unsafe {
-                    zts_bsd_sendto(
-                        *self.inner.as_inner(),
-                        buf.as_ptr() as *const c_void,
-                        len,
-                        ZTS_MSG_NOSIGNAL,
-                        dstp,
-                        dstlen,
-                    )
-                })?;
-                Ok(ret as usize)
-        */
-        Ok(0)
-    }
+    /*
+        pub fn send_to(&self, buf: &[u8], dst: &SocketAddr) -> io::Result<usize> {
+            let len = cmp::min(buf.len(), <size_t>::MAX as usize) as size_t;
+            let (dstp, dstlen) = dst.into_inner();
+            let ret = cvt(unsafe {
+                zts_bsd_sendto(
+                    *self.inner.as_inner(),
+                    buf.as_ptr() as *const c_void,
+                    len,
+                    ZTS_MSG_NOSIGNAL,
+                    dstp,
+                    dstlen,
+                )
+            })?;
+            Ok(ret as usize)
+        }
+    */
 
     pub fn set_read_timeout(&self, dur: Option<Duration>) -> io::Result<()> {
         self.inner.set_timeout(dur, ZTS_SO_RCVTIMEO as i32)
@@ -317,17 +315,17 @@ impl UdpSocket {
     pub fn peek_from(&self, buf: &mut [u8]) -> io::Result<(usize, SocketAddr)> {
         self.0.peek_from(buf)
     }
-
-    pub fn send_to<A: ToSocketAddrs>(&self, buf: &[u8], addr: A) -> io::Result<usize> {
-        match addr.to_socket_addrs()?.next() {
-            Some(addr) => self.0.send_to(buf, &addr),
-            None => Err(Error::new(
-                ErrorKind::InvalidInput,
-                "No address to send data to",
-            )),
+    /*
+        pub fn send_to<A: ToSocketAddrs>(&self, buf: &[u8], addr: A) -> io::Result<usize> {
+            match addr.to_socket_addrs()?.next() {
+                Some(addr) => self.0.send_to(buf, &addr),
+                None => Err(Error::new(
+                    ErrorKind::InvalidInput,
+                    "No address to send data to",
+                )),
+            }
         }
-    }
-
+    */
     pub fn peer_addr(&self) -> io::Result<SocketAddr> {
         self.0.peer_addr()
     }

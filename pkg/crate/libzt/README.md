@@ -1,10 +1,19 @@
-[libzt](https://www.zerotier.com)
-=====
-Part of the ZeroTier SDK
+# libzt - Sockets over ZeroTier
+
+`libzt` replicates the functionality of [std::net](https://doc.rust-lang.org/std/net/index.html) but uses [ZeroTier](https://www.zerotier.com) as its transport layer.
 
 Securely connect application instances, physical devices, and virtual devices as if everything is on a single LAN. ZeroTier brings your network into user-space. No root, and no host configuration requirements.
 
-We've paired our network hyper-visor core with a TCP/UDP/IP stack [(lwIP)](https://en.wikipedia.org/wiki/LwIP) to provide your application with an exclusive and private virtual network layer. All traffic is end-to-end encrypted between each peer and we provide an easy-to-use socket interface similar to [std::net](https://doc.rust-lang.org/std/net/index.html).
+## Usage
+
+Add the following to your `Cargo.toml`:
+
+```toml
+[dependencies]
+libzt = "0.1.0"
+```
+
+## Resources
 
  - Docs: [docs.zerotier.com](https://docs.zerotier.com/sockets/tutorial.html)
  - Repo: [github.com/zerotier/libzt](https://github.com/zerotier/libzt)

@@ -38,8 +38,9 @@ fn main() -> std::io::Result<()> {
 
     if args.len() != 5 && args.len() != 6 {
         println!("Incorrect number of arguments.");
-        println!("  Usage: server <storage_path> <net_id> <local_ip> <local_port>");
-        println!("  Usage: client <storage_path> <net_id> <remote_ip> <remote_port>");
+        println!("  Usage: libzt-test-app server <storage_path> <net_id> <local_ip> <local_port>");
+        println!("  Usage: libzt-test-app client <storage_path> <net_id> <remote_ip> <remote_port>");
+        return Ok(())
     }
 
     let storage_path = &args[2];
@@ -50,25 +51,25 @@ fn main() -> std::io::Result<()> {
 
     // SET UP ZEROTIER
 
-    let nn = libzt::node::ZeroTierNode {};
+    let node = libzt::node::ZeroTierNode {};
     // (Optional) initialization
-    nn.init_set_port(0);
-    nn.init_set_event_handler(user_event_handler);
-    nn.init_from_storage(&storage_path);
+    node.init_set_port(0);
+    node.init_set_event_handler(user_event_handler);
+    node.init_from_storage(&storage_path);
     // Start the node
-    nn.start();
+    node.start();
     println!("Waiting for node to come online...");
-    while !nn.is_online() {
-        nn.delay(50);
+    while !node.is_online() {
+        node.delay(50);
     }
-    println!("Node ID = {:#06x}", nn.id());
+    println!("Node ID = {:#06x}", node.id());
     println!("Joining network");
-    nn.net_join(net_id);
+    node.net_join(net_id);
     println!("Waiting for network to assign addresses...");
-    while !nn.net_transport_is_ready(net_id) {
-        nn.delay(50);
+    while !node.net_transport_is_ready(net_id) {
+        node.delay(50);
     }
-    let addr = nn.addr_get(net_id).unwrap();
+    let addr = node.addr_get(net_id).unwrap();
     println!("Assigned addr = {}", addr);
 
     // Server
@@ -114,12 +115,11 @@ fn main() -> std::io::Result<()> {
             Ok(mut stream) => {
                 println!("Successfully connected to server");
 
-                let msg = b"Hello!";
+                let msg = b"Hello, network!";
 
                 stream.write(msg).unwrap();
-                println!("Sent Hello, awaiting reply...");
 
-                let mut data = [0 as u8; 6];
+                let mut data = [0 as u8; 15];
                 match stream.read_exact(&mut data) {
                     Ok(_) => {
                         if &data == msg {
@@ -141,6 +141,6 @@ fn main() -> std::io::Result<()> {
         println!("Terminated.");
     }
 
-    nn.stop();
+    node.stop();
     Ok(())
 }

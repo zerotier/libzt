@@ -37,11 +37,10 @@
 #include "lwip/inet.h"
 #include "lwip/sockets.h"
 #include "structmember.h"   // PyMemberDef
-#include "sysmodule.h"
-#include "pytime.h"
 
 #include <string.h>
 #include <sys/time.h>
+
 
 PyObject* set_error(void)
 {
@@ -329,13 +328,13 @@ PyObject* zts_py_select(PyObject* module, PyObject* rlist, PyObject* wlist, PyOb
         tvp = (struct timeval*)NULL;
     }
     else {
-        if (_PyTime_FromSecondsObject(&timeout, timeout_obj, _PyTime_ROUND_TIMEOUT) < 0) {
+        if (_PyTime_FromSecondsObject(&timeout, timeout_obj, _PyTime_ROUND_UP) < 0) {
             if (PyErr_ExceptionMatches(PyExc_TypeError)) {
                 PyErr_SetString(PyExc_TypeError, "timeout must be a float or None");
             }
             return NULL;
         }
-        if (_PyTime_AsTimeval(timeout, &tv, _PyTime_ROUND_TIMEOUT) == -1) {
+        if (_PyTime_AsTimeval(timeout, &tv, _PyTime_ROUND_UP) == -1) {
             return NULL;
         }
         if (tv.tv_sec < 0) {
@@ -528,9 +527,7 @@ PyObject* zts_py_fcntl(int fd, int code, PyObject* arg)
 {
     unsigned int int_arg = 0;
     int ret;
-    if (PySys_Audit("fcntl.fcntl", "iiO", fd, code, arg ? arg : Py_None) < 0) {
-        return NULL;
-    }
+
     if (arg != NULL) {
         int parse_result;
         PyErr_Clear();
@@ -563,10 +560,6 @@ PyObject* zts_py_ioctl(int fd, unsigned int code, PyObject* ob_arg, int mutate_a
     char* str;
     Py_ssize_t len;
     char buf[IOCTL_BUFSZ + 1]; /* argument plus NUL byte */
-
-    if (PySys_Audit("fcntl.ioctl", "iIO", fd, code, ob_arg ? ob_arg : Py_None) < 0) {
-        return NULL;
-    }
 
     if (ob_arg != NULL) {
         if (PyArg_Parse(ob_arg, "w*:ioctl", &pstr)) {

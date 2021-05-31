@@ -327,13 +327,18 @@ PyObject* zts_py_select(PyObject* module, PyObject* rlist, PyObject* wlist, PyOb
         tvp = (struct timeval*)NULL;
     }
     else {
-        if (_PyTime_FromSecondsObject(&timeout, timeout_obj, _PyTime_ROUND_UP) < 0) {
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION <= 5
+        _PyTime_round_t roundingMode = _PyTime_ROUND_CEILING;
+#else
+        _PyTime_round_t roundingMode = _PyTime_ROUND_UP;
+#endif
+        if (_PyTime_FromSecondsObject(&timeout, timeout_obj, roundingMode) < 0) {
             if (PyErr_ExceptionMatches(PyExc_TypeError)) {
                 PyErr_SetString(PyExc_TypeError, "timeout must be a float or None");
             }
             return NULL;
         }
-        if (_PyTime_AsTimeval(timeout, &tv, _PyTime_ROUND_UP) == -1) {
+        if (_PyTime_AsTimeval(timeout, &tv, roundingMode) == -1) {
             return NULL;
         }
         if (tv.tv_sec < 0) {

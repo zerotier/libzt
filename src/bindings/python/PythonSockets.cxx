@@ -41,7 +41,6 @@
 #include <string.h>
 #include <sys/time.h>
 
-
 PyObject* set_error(void)
 {
     return NULL;   // PyErr_SetFromErrno(zts_errno);

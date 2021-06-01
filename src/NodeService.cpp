@@ -272,15 +272,21 @@ NodeService::ReasonForTermination NodeService::run()
             return _termReason;
         }
 
-        // Attempt to bind to a secondary port chosen from our ZeroTier
-        // address. This exists because there are buggy NATs out there that
-        // fail if more than one device behind the same NAT tries to use the
-        // same internal private address port number. Buggy NATs are a
-        // running theme.
+        // Attempt to bind to a secondary port.
+        // This exists because there are buggy NATs out there that fail if more
+        // than one device behind the same NAT tries to use the same internal
+        // private address port number. Buggy NATs are a running theme.
+        //
+        // This used to pick the secondary port based on the node ID until we
+        // discovered another problem: buggy routers and malicious traffic
+        // "detection".  A lot of routers have such things built in these days
+        // and mis-detect ZeroTier traffic as malicious and block it resulting
+        // in a node that appears to be in a coma.  Secondary ports are now
+        // randomized on startup.
         if (_allowSecondaryPort) {
-            //_ports[1] = (_secondaryPort == 0) ? minPort + ((unsigned int)_node->address() % maxPort) : _secondaryPort;
-            _ports[1] = (_secondaryPort == 0) ? (((unsigned int)_node->address() % (maxPort - minPort + 1)) + minPort)
-                                              : _secondaryPort;
+            unsigned int randp = 0;
+            Utils::getSecureRandom(&randp, sizeof(randp));
+            _ports[1] = (_secondaryPort == 0) ? ((randp % (maxPort - minPort + 1)) + minPort) : _secondaryPort;
             for (int i = 0;; ++i) {
                 if (i > 1000) {
                     _ports[1] = 0;

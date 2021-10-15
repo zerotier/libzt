@@ -380,10 +380,15 @@ if(BUILD_WIN)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc -DNOMINMAX")
 else()
+    option(STACK_PROTECTOR "Compile with -fstack-protector" ON)
+    if(STACK_PROTECTOR)
+      set(STACK_PROTECTOR_FLAGS -fstack-protector)
+    endif()
+
     set(CMAKE_C_FLAGS
             "${CMAKE_C_FLAGS} \
          ${ZT_FLAGS} \
-         -fstack-protector")
+         ${STACK_PROTECTOR_FLAGS}")
 
     set(CMAKE_C_FLAGS_DEBUG
             "${CMAKE_C_FLAGS_DEBUG} \
@@ -393,7 +398,7 @@ else()
     set(CMAKE_C_FLAGS_RELEASE
             "${CMAKE_C_FLAGS_RELEASE} \
          ${RELEASE_OPTIMIZATION} \
-         -fstack-protector")
+         ${STACK_PROTECTOR_FLAGS}")
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
          ${ZT_FLAGS} -Wall -Wextra -std=c++11")

@@ -152,6 +152,12 @@ pub const fn htons(i: u16) -> u16 {
     i.to_be()
 }
 
+#[cfg(windows)]
+pub fn ipv4_addr(addr: zts_in_addr) -> u32 {
+    (addr.S_addr as u32).to_be()
+}
+
+#[cfg(not(windows))]
 pub fn ipv4_addr(addr: zts_in_addr) -> u32 {
     (addr.s_addr as u32).to_be()
 }

@@ -18,6 +18,7 @@
 
 include!(concat!(env!("OUT_DIR"), "/libzt.rs"));
 
+use std::convert::TryInto;
 use std::ffi::{c_void, CStr, CString};
 use std::net::{AddrParseError, IpAddr};
 use std::str::FromStr;
@@ -103,7 +104,7 @@ impl ZeroTierNode {
     }
 
     pub fn delay(&self, interval_ms: u64) -> () {
-        unsafe { zts_util_delay(interval_ms) }
+        unsafe { zts_util_delay(interval_ms.try_into().unwrap()) }
     }
 
     pub fn addr_get(&self, net_id: u64) -> Result<IpAddr, AddrParseError> {

@@ -244,7 +244,7 @@ impl Socket {
                     dur.as_secs() as time_t
                 };
                 let mut timeout = zts_timeval {
-                    tv_sec: secs,
+                    tv_sec: secs.try_into().unwrap(),
                     tv_usec: dur.subsec_micros() as std::os::raw::c_long,
                 };
                 if timeout.tv_sec == 0 && timeout.tv_usec == 0 {

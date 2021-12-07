@@ -1227,7 +1227,7 @@ ZTS_API int ZTCALL zts_init_from_storage(const char* path);
  *
  * See also: `zts_init_from_storage()`
  *
- * @param key Path Null-terminated file-system path string
+ * @param key Buffer containing identity key
  * @param len Length of `key` buffer
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
@@ -1325,7 +1325,7 @@ ZTS_API int ZTCALL zts_init_set_random_port_range(unsigned short start_port, uns
  * that traffic on your chosen primary port is allowed. This is an initialization function that can
  * only be called before `zts_node_start()`.
  *
- * @param port Port number
+ * @param allowed Whether or not this feature is enabled
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
@@ -1335,7 +1335,7 @@ ZTS_API int ZTCALL zts_init_allow_secondary_port(unsigned int allowed);
  * @brief Allow or disallow the use of port-mapping. This is enabled by default. This is an
  * initialization function that can only be called before `zts_node_start()`.
  *
- * @param port Port number
+ * @param allowed Whether or not this feature is enabled
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
@@ -1355,7 +1355,7 @@ ZTS_API int ZTCALL zts_init_allow_port_mapping(unsigned int allowed);
  *
  * See also: `zts_init_allow_peer_cache()`
  *
- * @param enabled Whether or not this feature is enabled
+ * @param allowed Whether or not this feature is enabled
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
@@ -1374,7 +1374,7 @@ ZTS_API int ZTCALL zts_init_allow_net_cache(unsigned int allowed);
  *
  * See also: `zts_init_allow_net_cache()`
  *
- * @param enabled Whether or not this feature is enabled
+ * @param allowed Whether or not this feature is enabled
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
@@ -1384,7 +1384,7 @@ ZTS_API int ZTCALL zts_init_allow_peer_cache(unsigned int allowed);
  * @brief Enable or disable whether the node will cache root definitions (enabled
  * by default when `zts_init_from_storage()` is used.) Must be called before `zts_node_start()`.
  *
- * @param enabled Whether or not this feature is enabled
+ * @param allowed Whether or not this feature is enabled
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */
@@ -1394,7 +1394,7 @@ ZTS_API int ZTCALL zts_init_allow_roots_cache(unsigned int allowed);
  * @brief Enable or disable whether the node will cache identities (enabled
  * by default when `zts_init_from_storage()` is used.) Must be called before `zts_node_start()`.
  *
- * @param enabled Whether or not this feature is enabled
+ * @param allowed Whether or not this feature is enabled
  * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
  *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
  */

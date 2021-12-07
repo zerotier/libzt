@@ -362,6 +362,8 @@ class NodeService {
 
     int shouldBindInterface(const char* ifname, const InetAddress& ifaddr);
 
+    unsigned int _getRandomPort(unsigned int minPort, unsigned int maxPort);
+
     int _trialBind(unsigned int port);
 
     /** Return whether the NodeService is running */

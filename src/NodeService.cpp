@@ -284,21 +284,10 @@ NodeService::ReasonForTermination NodeService::run()
         // in a node that appears to be in a coma.  Secondary ports are now
         // randomized on startup.
         if (_allowSecondaryPort) {
-            unsigned int randp = 0;
-            Utils::getSecureRandom(&randp, sizeof(randp));
-            _ports[1] = (_secondaryPort == 0) ? ((randp % (maxPort - minPort + 1)) + minPort) : _secondaryPort;
-            for (int i = 0;; ++i) {
-                if (i > 1000) {
-                    _ports[1] = 0;
-                    break;
-                }
-                else if (++_ports[1] >= maxPort) {
-                    _ports[1] = minPort;
-                }
-                if (_trialBind(_ports[1])) {
-                    _secondaryPort = _ports[1];
-                    break;
-                }
+            if (_secondaryPort) {
+                _ports[1] = _secondaryPort;
+            } else {
+                _ports[1] = _getRandomPort(minPort, maxPort);
             }
         }
 #ifdef ZT_USE_MINIUPNPC
@@ -310,33 +299,38 @@ NodeService::ReasonForTermination NodeService::run()
             maxPort = (_randomPortRangeEnd ? _randomPortRangeEnd : 65536);
 
             if (_ports[1]) {
-                _ports[2] = (_tertiaryPort == 0) ? _ports[1] : _tertiaryPort;
-                for (int i = 0;; ++i) {
-                    if (i > 1000) {
-                        _ports[2] = 0;
-                        break;
+                if (_tertiaryPort) {
+                    _ports[2] = _tertiaryPort;
+                } else {
+                    _ports[2] = minPort + (_ports[0] % 40000);
+                    for(int i=0;;++i) {
+                        if (i > 1000) {
+                            _ports[2] = 0;
+                            break;
+                        }
+                        else if (++_ports[2] >= maxPort) {
+                            _ports[2] = minPort;
+                        }
+                        if (_trialBind(_ports[2])) {
+                            _tertiaryPort = _ports[2];
+                            break;
+                        }
                     }
-                    else if (++_ports[2] >= maxPort) {
-                        _ports[2] = minPort;
+                    if (_ports[2]) {
+                        char uniqueName[64] = { 0 };
+                        OSUtils::ztsnprintf(
+                            uniqueName,
+                            sizeof(uniqueName),
+                            "ZeroTier/%.10llx@%u",
+                            _node->address(),
+                            _ports[2]);
+                        _portMapper = new PortMapper(_ports[2], uniqueName);
                     }
-                    if (_trialBind(_ports[2])) {
-                        _tertiaryPort = _ports[2];
-                        break;
-                    }
-                }
-                if (_ports[2]) {
-                    char uniqueName[64] = { 0 };
-                    OSUtils::ztsnprintf(
-                        uniqueName,
-                        sizeof(uniqueName),
-                        "ZeroTier/%.10llx@%u",
-                        _node->address(),
-                        _ports[2]);
-                    _portMapper = new PortMapper(_ports[2], uniqueName);
                 }
             }
         }
 #endif
+
         // Join existing networks in networks.d
         if (_allowNetworkCaching) {
             std::vector<std::string> networksDotD(
@@ -357,7 +351,7 @@ NodeService::ReasonForTermination NodeService::run()
         int64_t lastCleanedPeersDb = 0;
         int64_t lastLocalInterfaceAddressCheck =
             (clockShouldBe - ZT_LOCAL_INTERFACE_CHECK_INTERVAL) + 15000;   // do this in 15s to give portmapper time to
-                                                                           // configure and other things time to settle
+        int64_t lastOnline = OSUtils::now();
         for (;;) {
             _run_m.lock();
             if (! _run) {
@@ -379,6 +373,17 @@ NodeService::ReasonForTermination NodeService::run()
             if ((now > clockShouldBe) && ((now - clockShouldBe) > 10000)) {
                 _lastRestart = now;
                 restarted = true;
+            }
+
+            // If secondary port is not configured to a constant value and we've been offline for a while,
+            // bind a new secondary port. This is a workaround for a "coma" issue caused by buggy NATs that stop
+            // working on one port after a while.
+            if (_node->online()) {
+                lastOnline = now;
+            }
+            else if ((_secondaryPort == 0) && ((now - lastOnline) > ZT_PATH_HEARTBEAT_PERIOD)) {
+                _secondaryPort = _getRandomPort(minPort, maxPort);
+                lastBindRefresh = 0;
             }
 
             // Refresh bindings in case device's interfaces have changed,
@@ -1673,6 +1678,25 @@ int NodeService::shouldBindInterface(const char* ifname, const InetAddress& ifad
         }
     }
     return true;
+}
+
+unsigned int NodeService::_getRandomPort(unsigned int minPort, unsigned int maxPort)
+{
+    unsigned int randp = 0;
+    Utils::getSecureRandom(&randp,sizeof(randp));
+    randp = (randp % (maxPort - minPort + 1)) + minPort;
+    for(int i=0;;++i) {
+        if (i > 1000) {
+            return 0;
+        }
+        else if (++randp >= maxPort) {
+            randp = minPort;
+        }
+        if (_trialBind(randp)) {
+            break;
+        }
+    }
+    return randp;
 }
 
 int NodeService::_trialBind(unsigned int port)

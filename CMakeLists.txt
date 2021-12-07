@@ -105,11 +105,11 @@ include_directories(${LWIP_PORT_DIR}/include)
 # ------------------------------------------------------------------------------
 
 # Defaults
-set(ALLOW_INSTALL_TARGET        TRUE)
-set(BUILD_STATIC_LIB            TRUE)
-set(BUILD_SHARED_LIB            TRUE)
-set(BUILD_HOST_SELFTEST         TRUE)
-set(ZTS_DISABLE_CENTRAL_API     TRUE)
+option(ALLOW_INSTALL_TARGET     "Enable the install target"   TRUE)
+option(BUILD_STATIC_LIB         "Build static library"        TRUE)
+option(BUILD_SHARED_LIB         "Build shared libary"         TRUE)
+option(BUILD_HOST_SELFTEST      "Build host selftest binary"  TRUE)
+option(ZTS_DISABLE_CENTRAL_API  "Disable central API"         TRUE)
 
 # C# language bindings (libzt.dll/dylib/so)
 if (ZTS_ENABLE_PINVOKE)

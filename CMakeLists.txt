@@ -105,11 +105,11 @@ include_directories(${LWIP_PORT_DIR}/include)
 # ------------------------------------------------------------------------------
 
 # Defaults
-set(ALLOW_INSTALL_TARGET        TRUE)
-set(BUILD_STATIC_LIB            TRUE)
-set(BUILD_SHARED_LIB            TRUE)
-set(BUILD_HOST_SELFTEST         TRUE)
-set(ZTS_DISABLE_CENTRAL_API     TRUE)
+option(ALLOW_INSTALL_TARGET     "Enable the install target"   TRUE)
+option(BUILD_STATIC_LIB         "Build static library"        TRUE)
+option(BUILD_SHARED_LIB         "Build shared libary"         TRUE)
+option(BUILD_HOST_SELFTEST      "Build host selftest binary"  TRUE)
+option(ZTS_DISABLE_CENTRAL_API  "Disable central API"         TRUE)
 
 # C# language bindings (libzt.dll/dylib/so)
 if (ZTS_ENABLE_PINVOKE)
@@ -380,10 +380,15 @@ if(BUILD_WIN)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc -DNOMINMAX")
 else()
+    option(STACK_PROTECTOR "Compile with -fstack-protector" ON)
+    if(STACK_PROTECTOR)
+      set(STACK_PROTECTOR_FLAGS -fstack-protector)
+    endif()
+
     set(CMAKE_C_FLAGS
             "${CMAKE_C_FLAGS} \
          ${ZT_FLAGS} \
-         -fstack-protector")
+         ${STACK_PROTECTOR_FLAGS}")
 
     set(CMAKE_C_FLAGS_DEBUG
             "${CMAKE_C_FLAGS_DEBUG} \
@@ -393,7 +398,7 @@ else()
     set(CMAKE_C_FLAGS_RELEASE
             "${CMAKE_C_FLAGS_RELEASE} \
          ${RELEASE_OPTIMIZATION} \
-         -fstack-protector")
+         ${STACK_PROTECTOR_FLAGS}")
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
          ${ZT_FLAGS} -Wall -Wextra -std=c++11")

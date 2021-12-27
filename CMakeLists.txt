@@ -413,27 +413,8 @@ else()
          ${RELEASE_OPTIMIZATION}")
 endif()
 
-# WINDOWS-specific MSVC flags and libraries
+# WINDOWS-specific MSVC flags
 if(BUILD_WIN)
-    # 32-bit
-    if(NOT BUILD_WIN64)
-        set(WINLIBDIR,
-                "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.16299.0/um/x86")
-    endif()
-    # 64-bit
-    if(BUILD_WIN64)
-        set(WINLIBDIR,
-                "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.16299.0/um/x64")
-    endif()
-    # find_library (ws2_32_LIBRARY_PATH NAMES WS2_32 HINTS ${WINLIBDIR})
-    # find_library (shlwapi_LIBRARY_PATH NAMES ShLwApi HINTS ${WINLIBDIR})
-    set(ws2_32_LIBRARY_PATH "${WINLIBDIR}/WS2_32.Lib")
-    set(shlwapi_LIBRARY_PATH "${WINLIBDIR}/ShLwApi.Lib")
-    set(iphlpapi_LIBRARY_PATH "${WINLIBDIR}/iphlpapi.Lib")
-    message(STATUS ${WINLIBDIR})
-    message(STATUS "WS2_32=${ws2_32_LIBRARY_PATH}")
-    message(STATUS "ShLwApi=${shlwapi_LIBRARY_PATH}")
-    message(STATUS "liphlpapi=${iphlpapi_LIBRARY_PATH}")
     add_definitions(-DADD_EXPORTS=1)
 endif()
 
@@ -557,8 +538,8 @@ if(BUILD_STATIC_LIB)
     set_target_properties(zto_obj PROPERTIES COMPILE_FLAGS "${ZT_FLAGS}")
     if(BUILD_WIN)
         target_link_libraries(zto_obj ws2_32)
-        target_link_libraries(zto_obj ${shlwapi_LIBRARY_PATH})
-        target_link_libraries(zto_obj ${iphlpapi_LIBRARY_PATH})
+        target_link_libraries(zto_obj shlwapi)
+        target_link_libraries(zto_obj iphlpapi)
     endif()
 
     # libnatpmp_obj
@@ -659,8 +640,7 @@ if(BUILD_STATIC_LIB)
     target_link_libraries(${STATIC_LIB_NAME} ${CMAKE_THREAD_LIBS_INIT})
 
     if(BUILD_WIN)
-        target_link_libraries(${STATIC_LIB_NAME} ${ws2_32_LIBRARY_PATH}
-            ${shlwapi_LIBRARY_PATH} ${iphlpapi_LIBRARY_PATH})
+        target_link_libraries(${STATIC_LIB_NAME} ws2_32 shlwapi iphlpapi)
     endif()
     if(NOT ZTS_DISABLE_CENTRAL_API)
         target_link_libraries(${STATIC_LIB_NAME} ${CURL_LIBRARIES})
@@ -686,9 +666,6 @@ if(BUILD_SHARED_LIB)
     target_link_libraries(
         ${DYNAMIC_LIB_NAME}
         ${CMAKE_THREAD_LIBS_INIT}
-        ${ws2_32_LIBRARY_PATH}
-        ${shlwapi_LIBRARY_PATH}
-        ${iphlpapi_LIBRARY_PATH}
         zt_pic
         lwip_pic
         zto_pic
@@ -696,6 +673,9 @@ if(BUILD_SHARED_LIB)
         miniupnpc_pic)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
+    if(BUILD_WIN)
+        target_link_libraries(${DYNAMIC_LIB_NAME} ws2_32 shlwapi iphlpapi)
+    endif()
     if(BUILD_ANDROID)
         target_link_libraries(${DYNAMIC_LIB_NAME} android log)
     endif()

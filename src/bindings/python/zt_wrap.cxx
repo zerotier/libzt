@@ -15637,36 +15637,6 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_zts_py_listen(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  int arg1 ;
-  int arg2 ;
-  int val1 ;
-  int ecode1 = 0 ;
-  int val2 ;
-  int ecode2 = 0 ;
-  PyObject *swig_obj[2] ;
-  int result;
-  
-  if (!SWIG_Python_UnpackTuple(args, "zts_py_listen", 2, 2, swig_obj)) SWIG_fail;
-  ecode1 = SWIG_AsVal_int(swig_obj[0], &val1);
-  if (!SWIG_IsOK(ecode1)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "zts_py_listen" "', argument " "1"" of type '" "int""'");
-  } 
-  arg1 = static_cast< int >(val1);
-  ecode2 = SWIG_AsVal_int(swig_obj[1], &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "zts_py_listen" "', argument " "2"" of type '" "int""'");
-  } 
-  arg2 = static_cast< int >(val2);
-  result = (int)zts_py_listen(arg1,arg2);
-  resultobj = SWIG_From_int(static_cast< int >(result));
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
 SWIGINTERN PyObject *_wrap_zts_py_recv(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   int arg1 ;
@@ -15760,59 +15730,6 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_zts_py_setblocking(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  int arg1 ;
-  int arg2 ;
-  int val1 ;
-  int ecode1 = 0 ;
-  int val2 ;
-  int ecode2 = 0 ;
-  PyObject *swig_obj[2] ;
-  int result;
-  
-  if (!SWIG_Python_UnpackTuple(args, "zts_py_setblocking", 2, 2, swig_obj)) SWIG_fail;
-  ecode1 = SWIG_AsVal_int(swig_obj[0], &val1);
-  if (!SWIG_IsOK(ecode1)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "zts_py_setblocking" "', argument " "1"" of type '" "int""'");
-  } 
-  arg1 = static_cast< int >(val1);
-  ecode2 = SWIG_AsVal_int(swig_obj[1], &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "zts_py_setblocking" "', argument " "2"" of type '" "int""'");
-  } 
-  arg2 = static_cast< int >(val2);
-  result = (int)zts_py_setblocking(arg1,arg2);
-  resultobj = SWIG_From_int(static_cast< int >(result));
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_zts_py_getblocking(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  int arg1 ;
-  int val1 ;
-  int ecode1 = 0 ;
-  PyObject *swig_obj[1] ;
-  int result;
-  
-  if (!args) SWIG_fail;
-  swig_obj[0] = args;
-  ecode1 = SWIG_AsVal_int(swig_obj[0], &val1);
-  if (!SWIG_IsOK(ecode1)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "zts_py_getblocking" "', argument " "1"" of type '" "int""'");
-  } 
-  arg1 = static_cast< int >(val1);
-  result = (int)zts_py_getblocking(arg1);
-  resultobj = SWIG_From_int(static_cast< int >(result));
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
 SWIGINTERN PyObject *_wrap_zts_py_addr_get_str(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   uint64_t arg1 ;
@@ -15836,6 +15753,78 @@ SWIGINTERN PyObject *_wrap_zts_py_addr_get_str(PyObject *SWIGUNUSEDPARM(self), P
   } 
   arg2 = static_cast< int >(val2);
   result = (PyObject *)zts_py_addr_get_str(arg1,arg2);
+  resultobj = result;
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_zts_py_select(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  PyObject *arg1 = (PyObject *) 0 ;
+  PyObject *arg2 = (PyObject *) 0 ;
+  PyObject *arg3 = (PyObject *) 0 ;
+  PyObject *arg4 = (PyObject *) 0 ;
+  PyObject *arg5 = (PyObject *) 0 ;
+  PyObject *swig_obj[5] ;
+  PyObject *result = 0 ;
+  
+  if (!SWIG_Python_UnpackTuple(args, "zts_py_select", 5, 5, swig_obj)) SWIG_fail;
+  arg1 = swig_obj[0];
+  arg2 = swig_obj[1];
+  arg3 = swig_obj[2];
+  arg4 = swig_obj[3];
+  arg5 = swig_obj[4];
+  result = (PyObject *)zts_py_select(arg1,arg2,arg3,arg4,arg5);
+  resultobj = result;
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_zts_py_setsockopt(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  int arg1 ;
+  PyObject *arg2 = (PyObject *) 0 ;
+  int val1 ;
+  int ecode1 = 0 ;
+  PyObject *swig_obj[2] ;
+  int result;
+  
+  if (!SWIG_Python_UnpackTuple(args, "zts_py_setsockopt", 2, 2, swig_obj)) SWIG_fail;
+  ecode1 = SWIG_AsVal_int(swig_obj[0], &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "zts_py_setsockopt" "', argument " "1"" of type '" "int""'");
+  } 
+  arg1 = static_cast< int >(val1);
+  arg2 = swig_obj[1];
+  result = (int)zts_py_setsockopt(arg1,arg2);
+  resultobj = SWIG_From_int(static_cast< int >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_zts_py_getsockopt(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  int arg1 ;
+  PyObject *arg2 = (PyObject *) 0 ;
+  int val1 ;
+  int ecode1 = 0 ;
+  PyObject *swig_obj[2] ;
+  PyObject *result = 0 ;
+  
+  if (!SWIG_Python_UnpackTuple(args, "zts_py_getsockopt", 2, 2, swig_obj)) SWIG_fail;
+  ecode1 = SWIG_AsVal_int(swig_obj[0], &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "zts_py_getsockopt" "', argument " "1"" of type '" "int""'");
+  } 
+  arg1 = static_cast< int >(val1);
+  arg2 = swig_obj[1];
+  result = (PyObject *)zts_py_getsockopt(arg1,arg2);
   resultobj = result;
   return resultobj;
 fail:
@@ -16293,13 +16282,13 @@ static PyMethodDef SwigMethods[] = {
 	 { "zts_py_bind", _wrap_zts_py_bind, METH_VARARGS, NULL},
 	 { "zts_py_connect", _wrap_zts_py_connect, METH_VARARGS, NULL},
 	 { "zts_py_accept", _wrap_zts_py_accept, METH_O, NULL},
-	 { "zts_py_listen", _wrap_zts_py_listen, METH_VARARGS, NULL},
 	 { "zts_py_recv", _wrap_zts_py_recv, METH_VARARGS, NULL},
 	 { "zts_py_send", _wrap_zts_py_send, METH_VARARGS, NULL},
 	 { "zts_py_close", _wrap_zts_py_close, METH_O, NULL},
-	 { "zts_py_setblocking", _wrap_zts_py_setblocking, METH_VARARGS, NULL},
-	 { "zts_py_getblocking", _wrap_zts_py_getblocking, METH_O, NULL},
 	 { "zts_py_addr_get_str", _wrap_zts_py_addr_get_str, METH_VARARGS, NULL},
+	 { "zts_py_select", _wrap_zts_py_select, METH_VARARGS, NULL},
+	 { "zts_py_setsockopt", _wrap_zts_py_setsockopt, METH_VARARGS, NULL},
+	 { "zts_py_getsockopt", _wrap_zts_py_getsockopt, METH_VARARGS, NULL},
 	 { NULL, NULL, 0, NULL }
 };
 
@@ -16313,7 +16302,7 @@ static PyMethodDef SwigMethods_proxydocs[] = {
 static swig_type_info _swigt__p_PythonDirectorCallbackClass = {"_p_PythonDirectorCallbackClass", "PythonDirectorCallbackClass *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_a_32__p_char = {"_p_a_32__p_char", "char *(*)[32]", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_char = {"_p_char", "char *", 0, 0, (void*)0, 0};
-static swig_type_info _swigt__p_int = {"_p_int", "intptr_t *|int *|int_least32_t *|int_fast32_t *|int32_t *|int_fast16_t *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_int = {"_p_int", "intptr_t *|int *|int_least32_t *|int_fast32_t *|int32_t *|SOCKET_T *|int_fast16_t *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_long_long = {"_p_long_long", "int_least64_t *|int_fast64_t *|int64_t *|long long *|intmax_t *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_p_char = {"_p_p_char", "char **", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_short = {"_p_short", "short *|int_least16_t *|int16_t *", 0, 0, (void*)0, 0};
@@ -17315,6 +17304,7 @@ SWIG_init(void) {
   SWIG_Python_SetConstant(d, "ZTS_EISCONN",SWIG_From_int(static_cast< int >(ZTS_EISCONN)));
   SWIG_Python_SetConstant(d, "ZTS_ENOTCONN",SWIG_From_int(static_cast< int >(ZTS_ENOTCONN)));
   SWIG_Python_SetConstant(d, "ZTS_ETIMEDOUT",SWIG_From_int(static_cast< int >(ZTS_ETIMEDOUT)));
+  SWIG_Python_SetConstant(d, "ZTS_ECONNREFUSED",SWIG_From_int(static_cast< int >(ZTS_ECONNREFUSED)));
   SWIG_Python_SetConstant(d, "ZTS_EHOSTUNREACH",SWIG_From_int(static_cast< int >(ZTS_EHOSTUNREACH)));
   SWIG_Python_SetConstant(d, "ZTS_EALREADY",SWIG_From_int(static_cast< int >(ZTS_EALREADY)));
   SWIG_Python_SetConstant(d, "ZTS_EINPROGRESS",SWIG_From_int(static_cast< int >(ZTS_EINPROGRESS)));

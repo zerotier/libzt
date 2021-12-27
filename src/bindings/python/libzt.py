@@ -3,9 +3,8 @@
 #
 # Do not make changes to this file unless you know what you are doing--modify
 # the SWIG interface file instead.
-from enum import IntEnum
-from sys import version_info as _swig_python_version_info
 
+from sys import version_info as _swig_python_version_info
 if _swig_python_version_info < (2, 7, 0):
     raise RuntimeError("Python 2.7 or later required")
 
@@ -20,17 +19,12 @@ try:
 except ImportError:
     import __builtin__
 
-
 def _swig_repr(self):
     try:
         strthis = "proxy of " + self.this.__repr__()
     except __builtin__.Exception:
         strthis = ""
-    return "<%s.%s; %s >" % (
-        self.__class__.__module__,
-        self.__class__.__name__,
-        strthis,
-    )
+    return "<%s.%s; %s >" % (self.__class__.__module__, self.__class__.__name__, strthis,)
 
 
 def _swig_setattr_nondynamic_instance_variable(set):
@@ -43,7 +37,6 @@ def _swig_setattr_nondynamic_instance_variable(set):
             set(self, name, value)
         else:
             raise AttributeError("You cannot add instance attributes to %s" % self)
-
     return set_instance_attr
 
 
@@ -53,22 +46,18 @@ def _swig_setattr_nondynamic_class_variable(set):
             set(cls, name, value)
         else:
             raise AttributeError("You cannot add class attributes to %s" % cls)
-
     return set_class_attr
 
 
 def _swig_add_metaclass(metaclass):
     """Class decorator for adding a metaclass to a SWIG wrapped class - a slimmed down version of six.add_metaclass"""
-
     def wrapper(cls):
         return metaclass(cls.__name__, cls.__bases__, cls.__dict__.copy())
-
     return wrapper
 
 
 class _SwigNonDynamicMeta(type):
     """Meta class to enforce nondynamic attributes (no new attributes) for a class"""
-
     __setattr__ = _swig_setattr_nondynamic_class_variable(type.__setattr__)
 
 
@@ -119,6 +108,49 @@ ZTS_EVENT_STORE_IDENTITY_PUBLIC = _libzt.ZTS_EVENT_STORE_IDENTITY_PUBLIC
 ZTS_EVENT_STORE_PLANET = _libzt.ZTS_EVENT_STORE_PLANET
 ZTS_EVENT_STORE_PEER = _libzt.ZTS_EVENT_STORE_PEER
 ZTS_EVENT_STORE_NETWORK = _libzt.ZTS_EVENT_STORE_NETWORK
+ZTS_EPERM = _libzt.ZTS_EPERM
+ZTS_ENOENT = _libzt.ZTS_ENOENT
+ZTS_ESRCH = _libzt.ZTS_ESRCH
+ZTS_EINTR = _libzt.ZTS_EINTR
+ZTS_EIO = _libzt.ZTS_EIO
+ZTS_ENXIO = _libzt.ZTS_ENXIO
+ZTS_EBADF = _libzt.ZTS_EBADF
+ZTS_EAGAIN = _libzt.ZTS_EAGAIN
+ZTS_EWOULDBLOCK = _libzt.ZTS_EWOULDBLOCK
+ZTS_ENOMEM = _libzt.ZTS_ENOMEM
+ZTS_EACCES = _libzt.ZTS_EACCES
+ZTS_EFAULT = _libzt.ZTS_EFAULT
+ZTS_EBUSY = _libzt.ZTS_EBUSY
+ZTS_EEXIST = _libzt.ZTS_EEXIST
+ZTS_ENODEV = _libzt.ZTS_ENODEV
+ZTS_EINVAL = _libzt.ZTS_EINVAL
+ZTS_ENFILE = _libzt.ZTS_ENFILE
+ZTS_EMFILE = _libzt.ZTS_EMFILE
+ZTS_ENOSYS = _libzt.ZTS_ENOSYS
+ZTS_ENOTSOCK = _libzt.ZTS_ENOTSOCK
+ZTS_EDESTADDRREQ = _libzt.ZTS_EDESTADDRREQ
+ZTS_EMSGSIZE = _libzt.ZTS_EMSGSIZE
+ZTS_EPROTOTYPE = _libzt.ZTS_EPROTOTYPE
+ZTS_ENOPROTOOPT = _libzt.ZTS_ENOPROTOOPT
+ZTS_EPROTONOSUPPORT = _libzt.ZTS_EPROTONOSUPPORT
+ZTS_ESOCKTNOSUPPORT = _libzt.ZTS_ESOCKTNOSUPPORT
+ZTS_EOPNOTSUPP = _libzt.ZTS_EOPNOTSUPP
+ZTS_EPFNOSUPPORT = _libzt.ZTS_EPFNOSUPPORT
+ZTS_EAFNOSUPPORT = _libzt.ZTS_EAFNOSUPPORT
+ZTS_EADDRINUSE = _libzt.ZTS_EADDRINUSE
+ZTS_EADDRNOTAVAIL = _libzt.ZTS_EADDRNOTAVAIL
+ZTS_ENETDOWN = _libzt.ZTS_ENETDOWN
+ZTS_ENETUNREACH = _libzt.ZTS_ENETUNREACH
+ZTS_ECONNABORTED = _libzt.ZTS_ECONNABORTED
+ZTS_ECONNRESET = _libzt.ZTS_ECONNRESET
+ZTS_ENOBUFS = _libzt.ZTS_ENOBUFS
+ZTS_EISCONN = _libzt.ZTS_EISCONN
+ZTS_ENOTCONN = _libzt.ZTS_ENOTCONN
+ZTS_ETIMEDOUT = _libzt.ZTS_ETIMEDOUT
+ZTS_ECONNREFUSED = _libzt.ZTS_ECONNREFUSED
+ZTS_EHOSTUNREACH = _libzt.ZTS_EHOSTUNREACH
+ZTS_EALREADY = _libzt.ZTS_EALREADY
+ZTS_EINPROGRESS = _libzt.ZTS_EINPROGRESS
 ZTS_MAC_ADDRSTRLEN = _libzt.ZTS_MAC_ADDRSTRLEN
 ZTS_INET_ADDRSTRLEN = _libzt.ZTS_INET_ADDRSTRLEN
 ZTS_INET6_ADDRSTRLEN = _libzt.ZTS_INET6_ADDRSTRLEN
@@ -157,166 +189,39 @@ ZTS_IOC_VOID = _libzt.ZTS_IOC_VOID
 ZTS_IOC_OUT = _libzt.ZTS_IOC_OUT
 ZTS_IOC_IN = _libzt.ZTS_IOC_IN
 ZTS_IOC_INOUT = _libzt.ZTS_IOC_INOUT
-
-
-class zts_errno_t(IntEnum):
-    """Enum of socket error codes"""
-
-    # Operation not permitted 
-    ZTS_EPERM = _libzt.ZTS_EPERM,
-    # No such file or directory 
-    ZTS_ENOENT = _libzt.ZTS_ENOENT,
-    # No such process 
-    ZTS_ESRCH = _libzt.ZTS_ESRCH,
-    # Interrupted system call 
-    ZTS_EINTR = _libzt.ZTS_EINTR,
-    # I/O error 
-    ZTS_EIO = _libzt.ZTS_EIO,
-    # No such device or address 
-    ZTS_ENXIO = _libzt.ZTS_ENXIO,
-    # Bad file number 
-    ZTS_EBADF = _libzt.ZTS_EBADF,
-    # Try again 
-    ZTS_EAGAIN = _libzt.ZTS_EAGAIN,
-    # Operation would block 
-    ZTS_EWOULDBLOCK = _libzt.ZTS_EWOULDBLOCK,
-    # Out of memory 
-    ZTS_ENOMEM = _libzt.ZTS_ENOMEM,
-    # Permission denied 
-    ZTS_EACCES = _libzt.ZTS_EACCES,
-    # Bad address 
-    ZTS_EFAULT = _libzt.ZTS_EFAULT,
-    # Device or resource busy 
-    ZTS_EBUSY = _libzt.ZTS_EBUSY,
-    # File exists 
-    ZTS_EEXIST = _libzt.ZTS_EEXIST,
-    # No such device 
-    ZTS_ENODEV = _libzt.ZTS_ENODEV,
-    # Invalid argument 
-    ZTS_EINVAL = _libzt.ZTS_EINVAL,
-    # File table overflow 
-    ZTS_ENFILE = _libzt.ZTS_ENFILE,
-    # Too many open files 
-    ZTS_EMFILE = _libzt.ZTS_EMFILE,
-    # Function not implemented 
-    ZTS_ENOSYS = _libzt.ZTS_ENOSYS,
-    # Socket operation on non-socket 
-    ZTS_ENOTSOCK = _libzt.ZTS_ENOTSOCK,
-    # Destination address required 
-    ZTS_EDESTADDRREQ = _libzt.ZTS_EDESTADDRREQ,
-    # Message too long 
-    ZTS_EMSGSIZE = _libzt.ZTS_EMSGSIZE,
-    # Protocol wrong type for socket 
-    ZTS_EPROTOTYPE = _libzt.ZTS_EPROTOTYPE,
-    # Protocol not available 
-    ZTS_ENOPROTOOPT = _libzt.ZTS_ENOPROTOOPT,
-    # Protocol not supported 
-    ZTS_EPROTONOSUPPORT = _libzt.ZTS_EPROTONOSUPPORT,
-    # Socket type not supported 
-    ZTS_ESOCKTNOSUPPORT = _libzt.ZTS_ESOCKTNOSUPPORT,
-    # Operation not supported on transport endpoint 
-    ZTS_EOPNOTSUPP = _libzt.ZTS_EOPNOTSUPP,
-    # Protocol family not supported 
-    ZTS_EPFNOSUPPORT = _libzt.ZTS_EPFNOSUPPORT,
-    # Address family not supported by protocol 
-    ZTS_EAFNOSUPPORT = _libzt.ZTS_EAFNOSUPPORT,
-    # Address already in use 
-    ZTS_EADDRINUSE = _libzt.ZTS_EADDRINUSE,
-    # Cannot assign requested address 
-    ZTS_EADDRNOTAVAIL = _libzt.ZTS_EADDRNOTAVAIL,
-    # Network is down 
-    ZTS_ENETDOWN = _libzt.ZTS_ENETDOWN,
-    # Network is unreachable 
-    ZTS_ENETUNREACH = _libzt.ZTS_ENETUNREACH,
-    # Software caused connection abort 
-    ZTS_ECONNABORTED = _libzt.ZTS_ECONNABORTED,
-    # Connection reset by peer 
-    ZTS_ECONNRESET = _libzt.ZTS_ECONNRESET,
-    # No buffer space available 
-    ZTS_ENOBUFS = _libzt.ZTS_ENOBUFS,
-    # Transport endpoint is already connected 
-    ZTS_EISCONN = _libzt.ZTS_EISCONN,
-    # Transport endpoint is not connected 
-    ZTS_ENOTCONN = _libzt.ZTS_ENOTCONN,
-    # Connection timed out 
-    ZTS_ETIMEDOUT = _libzt.ZTS_ETIMEDOUT,
-    # Connection refused
-    ZTS_ECONNREFUSED = _libzt.ZTS_ECONNREFUSED,
-    # No route to host 
-    ZTS_EHOSTUNREACH = _libzt.ZTS_EHOSTUNREACH,
-    # Operation already in progress 
-    ZTS_EALREADY = _libzt.ZTS_EALREADY,
-    # Operation now in progress 
-    ZTS_EINPROGRESS = _libzt.ZTS_EINPROGRESS
-
-
-# Compatability - enum values were originally constants defined at the module level
-for enum_val in zts_errno_t:
-    globals()[enum_val.name] = enum_val.value
-
-
 class zts_node_info_t(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
-    node_id = property(
-        _libzt.zts_node_info_t_node_id_get, _libzt.zts_node_info_t_node_id_set
-    )
-    port_primary = property(
-        _libzt.zts_node_info_t_port_primary_get, _libzt.zts_node_info_t_port_primary_set
-    )
-    port_secondary = property(
-        _libzt.zts_node_info_t_port_secondary_get,
-        _libzt.zts_node_info_t_port_secondary_set,
-    )
-    port_tertiary = property(
-        _libzt.zts_node_info_t_port_tertiary_get,
-        _libzt.zts_node_info_t_port_tertiary_set,
-    )
-    ver_major = property(
-        _libzt.zts_node_info_t_ver_major_get, _libzt.zts_node_info_t_ver_major_set
-    )
-    ver_minor = property(
-        _libzt.zts_node_info_t_ver_minor_get, _libzt.zts_node_info_t_ver_minor_set
-    )
-    ver_rev = property(
-        _libzt.zts_node_info_t_ver_rev_get, _libzt.zts_node_info_t_ver_rev_set
-    )
+    node_id = property(_libzt.zts_node_info_t_node_id_get, _libzt.zts_node_info_t_node_id_set)
+    port_primary = property(_libzt.zts_node_info_t_port_primary_get, _libzt.zts_node_info_t_port_primary_set)
+    port_secondary = property(_libzt.zts_node_info_t_port_secondary_get, _libzt.zts_node_info_t_port_secondary_set)
+    port_tertiary = property(_libzt.zts_node_info_t_port_tertiary_get, _libzt.zts_node_info_t_port_tertiary_set)
+    ver_major = property(_libzt.zts_node_info_t_ver_major_get, _libzt.zts_node_info_t_ver_major_set)
+    ver_minor = property(_libzt.zts_node_info_t_ver_minor_get, _libzt.zts_node_info_t_ver_minor_set)
+    ver_rev = property(_libzt.zts_node_info_t_ver_rev_get, _libzt.zts_node_info_t_ver_rev_set)
 
     def __init__(self):
         _libzt.zts_node_info_t_swiginit(self, _libzt.new_zts_node_info_t())
-
     __swig_destroy__ = _libzt.delete_zts_node_info_t
-
 
 # Register zts_node_info_t in _libzt:
 _libzt.zts_node_info_t_swigregister(zts_node_info_t)
 cvar = _libzt.cvar
 
-
 class zts_addr_info_t(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
-    net_id = property(
-        _libzt.zts_addr_info_t_net_id_get, _libzt.zts_addr_info_t_net_id_set
-    )
+    net_id = property(_libzt.zts_addr_info_t_net_id_get, _libzt.zts_addr_info_t_net_id_set)
     addr = property(_libzt.zts_addr_info_t_addr_get, _libzt.zts_addr_info_t_addr_set)
 
     def __init__(self):
         _libzt.zts_addr_info_t_swiginit(self, _libzt.new_zts_addr_info_t())
-
     __swig_destroy__ = _libzt.delete_zts_addr_info_t
-
 
 # Register zts_addr_info_t in _libzt:
 _libzt.zts_addr_info_t_swigregister(zts_addr_info_t)
 
-ZTS_NETWORK_STATUS_REQUESTING_CONFIGURATION = (
-    _libzt.ZTS_NETWORK_STATUS_REQUESTING_CONFIGURATION
-)
+ZTS_NETWORK_STATUS_REQUESTING_CONFIGURATION = _libzt.ZTS_NETWORK_STATUS_REQUESTING_CONFIGURATION
 ZTS_NETWORK_STATUS_OK = _libzt.ZTS_NETWORK_STATUS_OK
 ZTS_NETWORK_STATUS_ACCESS_DENIED = _libzt.ZTS_NETWORK_STATUS_ACCESS_DENIED
 ZTS_NETWORK_STATUS_NOT_FOUND = _libzt.ZTS_NETWORK_STATUS_NOT_FOUND
@@ -324,51 +229,30 @@ ZTS_NETWORK_STATUS_PORT_ERROR = _libzt.ZTS_NETWORK_STATUS_PORT_ERROR
 ZTS_NETWORK_STATUS_CLIENT_TOO_OLD = _libzt.ZTS_NETWORK_STATUS_CLIENT_TOO_OLD
 ZTS_NETWORK_TYPE_PRIVATE = _libzt.ZTS_NETWORK_TYPE_PRIVATE
 ZTS_NETWORK_TYPE_PUBLIC = _libzt.ZTS_NETWORK_TYPE_PUBLIC
-
-
 class zts_route_info_t(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
-    target = property(
-        _libzt.zts_route_info_t_target_get, _libzt.zts_route_info_t_target_set
-    )
+    target = property(_libzt.zts_route_info_t_target_get, _libzt.zts_route_info_t_target_set)
     via = property(_libzt.zts_route_info_t_via_get, _libzt.zts_route_info_t_via_set)
-    flags = property(
-        _libzt.zts_route_info_t_flags_get, _libzt.zts_route_info_t_flags_set
-    )
-    metric = property(
-        _libzt.zts_route_info_t_metric_get, _libzt.zts_route_info_t_metric_set
-    )
+    flags = property(_libzt.zts_route_info_t_flags_get, _libzt.zts_route_info_t_flags_set)
+    metric = property(_libzt.zts_route_info_t_metric_get, _libzt.zts_route_info_t_metric_set)
 
     def __init__(self):
         _libzt.zts_route_info_t_swiginit(self, _libzt.new_zts_route_info_t())
-
     __swig_destroy__ = _libzt.delete_zts_route_info_t
-
 
 # Register zts_route_info_t in _libzt:
 _libzt.zts_route_info_t_swigregister(zts_route_info_t)
 
-
 class zts_multicast_group_t(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
-    mac = property(
-        _libzt.zts_multicast_group_t_mac_get, _libzt.zts_multicast_group_t_mac_set
-    )
-    adi = property(
-        _libzt.zts_multicast_group_t_adi_get, _libzt.zts_multicast_group_t_adi_set
-    )
+    mac = property(_libzt.zts_multicast_group_t_mac_get, _libzt.zts_multicast_group_t_mac_set)
+    adi = property(_libzt.zts_multicast_group_t_adi_get, _libzt.zts_multicast_group_t_adi_set)
 
     def __init__(self):
         _libzt.zts_multicast_group_t_swiginit(self, _libzt.new_zts_multicast_group_t())
-
     __swig_destroy__ = _libzt.delete_zts_multicast_group_t
-
 
 # Register zts_multicast_group_t in _libzt:
 _libzt.zts_multicast_group_t_swigregister(zts_multicast_group_t)
@@ -376,77 +260,40 @@ _libzt.zts_multicast_group_t_swigregister(zts_multicast_group_t)
 ZTS_PEER_ROLE_LEAF = _libzt.ZTS_PEER_ROLE_LEAF
 ZTS_PEER_ROLE_MOON = _libzt.ZTS_PEER_ROLE_MOON
 ZTS_PEER_ROLE_PLANET = _libzt.ZTS_PEER_ROLE_PLANET
-
-
 class zts_net_info_t(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
-    net_id = property(
-        _libzt.zts_net_info_t_net_id_get, _libzt.zts_net_info_t_net_id_set
-    )
+    net_id = property(_libzt.zts_net_info_t_net_id_get, _libzt.zts_net_info_t_net_id_set)
     mac = property(_libzt.zts_net_info_t_mac_get, _libzt.zts_net_info_t_mac_set)
     name = property(_libzt.zts_net_info_t_name_get, _libzt.zts_net_info_t_name_set)
-    status = property(
-        _libzt.zts_net_info_t_status_get, _libzt.zts_net_info_t_status_set
-    )
+    status = property(_libzt.zts_net_info_t_status_get, _libzt.zts_net_info_t_status_set)
     type = property(_libzt.zts_net_info_t_type_get, _libzt.zts_net_info_t_type_set)
     mtu = property(_libzt.zts_net_info_t_mtu_get, _libzt.zts_net_info_t_mtu_set)
     dhcp = property(_libzt.zts_net_info_t_dhcp_get, _libzt.zts_net_info_t_dhcp_set)
-    bridge = property(
-        _libzt.zts_net_info_t_bridge_get, _libzt.zts_net_info_t_bridge_set
-    )
-    broadcast_enabled = property(
-        _libzt.zts_net_info_t_broadcast_enabled_get,
-        _libzt.zts_net_info_t_broadcast_enabled_set,
-    )
-    port_error = property(
-        _libzt.zts_net_info_t_port_error_get, _libzt.zts_net_info_t_port_error_set
-    )
-    netconf_rev = property(
-        _libzt.zts_net_info_t_netconf_rev_get, _libzt.zts_net_info_t_netconf_rev_set
-    )
-    assigned_addr_count = property(
-        _libzt.zts_net_info_t_assigned_addr_count_get,
-        _libzt.zts_net_info_t_assigned_addr_count_set,
-    )
-    assigned_addrs = property(
-        _libzt.zts_net_info_t_assigned_addrs_get,
-        _libzt.zts_net_info_t_assigned_addrs_set,
-    )
-    route_count = property(
-        _libzt.zts_net_info_t_route_count_get, _libzt.zts_net_info_t_route_count_set
-    )
-    routes = property(
-        _libzt.zts_net_info_t_routes_get, _libzt.zts_net_info_t_routes_set
-    )
-    multicast_sub_count = property(
-        _libzt.zts_net_info_t_multicast_sub_count_get,
-        _libzt.zts_net_info_t_multicast_sub_count_set,
-    )
+    bridge = property(_libzt.zts_net_info_t_bridge_get, _libzt.zts_net_info_t_bridge_set)
+    broadcast_enabled = property(_libzt.zts_net_info_t_broadcast_enabled_get, _libzt.zts_net_info_t_broadcast_enabled_set)
+    port_error = property(_libzt.zts_net_info_t_port_error_get, _libzt.zts_net_info_t_port_error_set)
+    netconf_rev = property(_libzt.zts_net_info_t_netconf_rev_get, _libzt.zts_net_info_t_netconf_rev_set)
+    assigned_addr_count = property(_libzt.zts_net_info_t_assigned_addr_count_get, _libzt.zts_net_info_t_assigned_addr_count_set)
+    assigned_addrs = property(_libzt.zts_net_info_t_assigned_addrs_get, _libzt.zts_net_info_t_assigned_addrs_set)
+    route_count = property(_libzt.zts_net_info_t_route_count_get, _libzt.zts_net_info_t_route_count_set)
+    routes = property(_libzt.zts_net_info_t_routes_get, _libzt.zts_net_info_t_routes_set)
+    multicast_sub_count = property(_libzt.zts_net_info_t_multicast_sub_count_get, _libzt.zts_net_info_t_multicast_sub_count_set)
 
     def __init__(self):
         _libzt.zts_net_info_t_swiginit(self, _libzt.new_zts_net_info_t())
-
     __swig_destroy__ = _libzt.delete_zts_net_info_t
-
 
 # Register zts_net_info_t in _libzt:
 _libzt.zts_net_info_t_swigregister(zts_net_info_t)
 
-
 class zts_path_t(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
     address = property(_libzt.zts_path_t_address_get, _libzt.zts_path_t_address_set)
     last_tx = property(_libzt.zts_path_t_last_tx_get, _libzt.zts_path_t_last_tx_set)
     last_rx = property(_libzt.zts_path_t_last_rx_get, _libzt.zts_path_t_last_rx_set)
-    trusted_path_id = property(
-        _libzt.zts_path_t_trusted_path_id_get, _libzt.zts_path_t_trusted_path_id_set
-    )
+    trusted_path_id = property(_libzt.zts_path_t_trusted_path_id_get, _libzt.zts_path_t_trusted_path_id_set)
     latency = property(_libzt.zts_path_t_latency_get, _libzt.zts_path_t_latency_set)
     unused_0 = property(_libzt.zts_path_t_unused_0_get, _libzt.zts_path_t_unused_0_set)
     unused_1 = property(_libzt.zts_path_t_unused_1_get, _libzt.zts_path_t_unused_1_set)
@@ -458,118 +305,70 @@ class zts_path_t(object):
     unused_7 = property(_libzt.zts_path_t_unused_7_get, _libzt.zts_path_t_unused_7_set)
     ifname = property(_libzt.zts_path_t_ifname_get, _libzt.zts_path_t_ifname_set)
     expired = property(_libzt.zts_path_t_expired_get, _libzt.zts_path_t_expired_set)
-    preferred = property(
-        _libzt.zts_path_t_preferred_get, _libzt.zts_path_t_preferred_set
-    )
+    preferred = property(_libzt.zts_path_t_preferred_get, _libzt.zts_path_t_preferred_set)
 
     def __init__(self):
         _libzt.zts_path_t_swiginit(self, _libzt.new_zts_path_t())
-
     __swig_destroy__ = _libzt.delete_zts_path_t
-
 
 # Register zts_path_t in _libzt:
 _libzt.zts_path_t_swigregister(zts_path_t)
 
-
 class zts_peer_info_t(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
-    peer_id = property(
-        _libzt.zts_peer_info_t_peer_id_get, _libzt.zts_peer_info_t_peer_id_set
-    )
-    ver_major = property(
-        _libzt.zts_peer_info_t_ver_major_get, _libzt.zts_peer_info_t_ver_major_set
-    )
-    ver_minor = property(
-        _libzt.zts_peer_info_t_ver_minor_get, _libzt.zts_peer_info_t_ver_minor_set
-    )
-    ver_rev = property(
-        _libzt.zts_peer_info_t_ver_rev_get, _libzt.zts_peer_info_t_ver_rev_set
-    )
-    latency = property(
-        _libzt.zts_peer_info_t_latency_get, _libzt.zts_peer_info_t_latency_set
-    )
+    peer_id = property(_libzt.zts_peer_info_t_peer_id_get, _libzt.zts_peer_info_t_peer_id_set)
+    ver_major = property(_libzt.zts_peer_info_t_ver_major_get, _libzt.zts_peer_info_t_ver_major_set)
+    ver_minor = property(_libzt.zts_peer_info_t_ver_minor_get, _libzt.zts_peer_info_t_ver_minor_set)
+    ver_rev = property(_libzt.zts_peer_info_t_ver_rev_get, _libzt.zts_peer_info_t_ver_rev_set)
+    latency = property(_libzt.zts_peer_info_t_latency_get, _libzt.zts_peer_info_t_latency_set)
     role = property(_libzt.zts_peer_info_t_role_get, _libzt.zts_peer_info_t_role_set)
-    path_count = property(
-        _libzt.zts_peer_info_t_path_count_get, _libzt.zts_peer_info_t_path_count_set
-    )
-    unused_0 = property(
-        _libzt.zts_peer_info_t_unused_0_get, _libzt.zts_peer_info_t_unused_0_set
-    )
+    path_count = property(_libzt.zts_peer_info_t_path_count_get, _libzt.zts_peer_info_t_path_count_set)
+    unused_0 = property(_libzt.zts_peer_info_t_unused_0_get, _libzt.zts_peer_info_t_unused_0_set)
     paths = property(_libzt.zts_peer_info_t_paths_get, _libzt.zts_peer_info_t_paths_set)
 
     def __init__(self):
         _libzt.zts_peer_info_t_swiginit(self, _libzt.new_zts_peer_info_t())
-
     __swig_destroy__ = _libzt.delete_zts_peer_info_t
-
 
 # Register zts_peer_info_t in _libzt:
 _libzt.zts_peer_info_t_swigregister(zts_peer_info_t)
 
 ZTS_MAX_NUM_ROOTS = _libzt.ZTS_MAX_NUM_ROOTS
 ZTS_MAX_ENDPOINTS_PER_ROOT = _libzt.ZTS_MAX_ENDPOINTS_PER_ROOT
-
-
 class zts_root_set_t(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
-    public_id_str = property(
-        _libzt.zts_root_set_t_public_id_str_get, _libzt.zts_root_set_t_public_id_str_set
-    )
-    endpoint_ip_str = property(
-        _libzt.zts_root_set_t_endpoint_ip_str_get,
-        _libzt.zts_root_set_t_endpoint_ip_str_set,
-    )
+    public_id_str = property(_libzt.zts_root_set_t_public_id_str_get, _libzt.zts_root_set_t_public_id_str_set)
+    endpoint_ip_str = property(_libzt.zts_root_set_t_endpoint_ip_str_get, _libzt.zts_root_set_t_endpoint_ip_str_set)
 
     def __init__(self):
         _libzt.zts_root_set_t_swiginit(self, _libzt.new_zts_root_set_t())
-
     __swig_destroy__ = _libzt.delete_zts_root_set_t
-
 
 # Register zts_root_set_t in _libzt:
 _libzt.zts_root_set_t_swigregister(zts_root_set_t)
 
-
 class zts_netif_info_t(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
-    net_id = property(
-        _libzt.zts_netif_info_t_net_id_get, _libzt.zts_netif_info_t_net_id_set
-    )
+    net_id = property(_libzt.zts_netif_info_t_net_id_get, _libzt.zts_netif_info_t_net_id_set)
     mac = property(_libzt.zts_netif_info_t_mac_get, _libzt.zts_netif_info_t_mac_set)
     mtu = property(_libzt.zts_netif_info_t_mtu_get, _libzt.zts_netif_info_t_mtu_set)
 
     def __init__(self):
         _libzt.zts_netif_info_t_swiginit(self, _libzt.new_zts_netif_info_t())
-
     __swig_destroy__ = _libzt.delete_zts_netif_info_t
-
 
 # Register zts_netif_info_t in _libzt:
 _libzt.zts_netif_info_t_swigregister(zts_netif_info_t)
 
-
 class zts_event_msg_t(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
-    event_code = property(
-        _libzt.zts_event_msg_t_event_code_get, _libzt.zts_event_msg_t_event_code_set
-    )
+    event_code = property(_libzt.zts_event_msg_t_event_code_get, _libzt.zts_event_msg_t_event_code_set)
     node = property(_libzt.zts_event_msg_t_node_get, _libzt.zts_event_msg_t_node_set)
-    network = property(
-        _libzt.zts_event_msg_t_network_get, _libzt.zts_event_msg_t_network_set
-    )
+    network = property(_libzt.zts_event_msg_t_network_get, _libzt.zts_event_msg_t_network_set)
     netif = property(_libzt.zts_event_msg_t_netif_get, _libzt.zts_event_msg_t_netif_set)
     route = property(_libzt.zts_event_msg_t_route_get, _libzt.zts_event_msg_t_route_set)
     peer = property(_libzt.zts_event_msg_t_peer_get, _libzt.zts_event_msg_t_peer_set)
@@ -579,9 +378,7 @@ class zts_event_msg_t(object):
 
     def __init__(self):
         _libzt.zts_event_msg_t_swiginit(self, _libzt.new_zts_event_msg_t())
-
     __swig_destroy__ = _libzt.delete_zts_event_msg_t
-
 
 # Register zts_event_msg_t in _libzt:
 _libzt.zts_event_msg_t_swigregister(zts_event_msg_t)
@@ -589,32 +386,23 @@ _libzt.zts_event_msg_t_swigregister(zts_event_msg_t)
 ZTS_DISABLE_CENTRAL_API = _libzt.ZTS_DISABLE_CENTRAL_API
 ZTS_ID_STR_BUF_LEN = _libzt.ZTS_ID_STR_BUF_LEN
 
-
 def zts_id_new(key, key_buf_len):
     return _libzt.zts_id_new(key, key_buf_len)
-
 
 def zts_id_pair_is_valid(key, len):
     return _libzt.zts_id_pair_is_valid(key, len)
 
-
 def zts_init_from_storage(path):
     return _libzt.zts_init_from_storage(path)
 
-
 def zts_init_from_memory(key, len):
     return _libzt.zts_init_from_memory(key, len)
-
-
 class PythonDirectorCallbackClass(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
 
     def on_zerotier_event(self, msg):
         return _libzt.PythonDirectorCallbackClass_on_zerotier_event(self, msg)
-
     __swig_destroy__ = _libzt.delete_PythonDirectorCallbackClass
 
     def __init__(self):
@@ -622,18 +410,11 @@ class PythonDirectorCallbackClass(object):
             _self = None
         else:
             _self = self
-        _libzt.PythonDirectorCallbackClass_swiginit(
-            self,
-            _libzt.new_PythonDirectorCallbackClass(
-                _self,
-            ),
-        )
-
+        _libzt.PythonDirectorCallbackClass_swiginit(self, _libzt.new_PythonDirectorCallbackClass(_self, ))
     def __disown__(self):
         self.this.disown()
         _libzt.disown_PythonDirectorCallbackClass(self)
         return weakref.proxy(self)
-
 
 # Register PythonDirectorCallbackClass in _libzt:
 _libzt.PythonDirectorCallbackClass_swigregister(PythonDirectorCallbackClass)
@@ -642,291 +423,165 @@ _libzt.PythonDirectorCallbackClass_swigregister(PythonDirectorCallbackClass)
 def zts_init_set_event_handler(callback):
     return _libzt.zts_init_set_event_handler(callback)
 
-
 def zts_init_blacklist_if(prefix, len):
     return _libzt.zts_init_blacklist_if(prefix, len)
-
 
 def zts_init_set_roots(roots_data, len):
     return _libzt.zts_init_set_roots(roots_data, len)
 
-
 def zts_init_set_port(port):
     return _libzt.zts_init_set_port(port)
-
 
 def zts_init_set_random_port_range(start_port, end_port):
     return _libzt.zts_init_set_random_port_range(start_port, end_port)
 
-
 def zts_init_allow_secondary_port(allowed):
     return _libzt.zts_init_allow_secondary_port(allowed)
-
 
 def zts_init_allow_port_mapping(allowed):
     return _libzt.zts_init_allow_port_mapping(allowed)
 
-
 def zts_init_allow_net_cache(allowed):
     return _libzt.zts_init_allow_net_cache(allowed)
-
 
 def zts_init_allow_peer_cache(allowed):
     return _libzt.zts_init_allow_peer_cache(allowed)
 
-
 def zts_init_allow_roots_cache(allowed):
     return _libzt.zts_init_allow_roots_cache(allowed)
-
 
 def zts_init_allow_id_cache(allowed):
     return _libzt.zts_init_allow_id_cache(allowed)
 
-
 def zts_addr_is_assigned(net_id, family):
     return _libzt.zts_addr_is_assigned(net_id, family)
-
 
 def zts_addr_get(net_id, family, addr):
     return _libzt.zts_addr_get(net_id, family, addr)
 
-
 def zts_addr_get_str(net_id, family, dst, len):
     return _libzt.zts_addr_get_str(net_id, family, dst, len)
-
 
 def zts_addr_get_all(net_id, addr, count):
     return _libzt.zts_addr_get_all(net_id, addr, count)
 
-
 def zts_addr_compute_6plane(net_id, node_id, addr):
     return _libzt.zts_addr_compute_6plane(net_id, node_id, addr)
-
 
 def zts_addr_compute_rfc4193(net_id, node_id, addr):
     return _libzt.zts_addr_compute_rfc4193(net_id, node_id, addr)
 
-
 def zts_addr_compute_rfc4193_str(net_id, node_id, dst, len):
     return _libzt.zts_addr_compute_rfc4193_str(net_id, node_id, dst, len)
-
 
 def zts_addr_compute_6plane_str(net_id, node_id, dst, len):
     return _libzt.zts_addr_compute_6plane_str(net_id, node_id, dst, len)
 
-
 def zts_net_compute_adhoc_id(start_port, end_port):
     return _libzt.zts_net_compute_adhoc_id(start_port, end_port)
-
 
 def zts_net_join(net_id):
     return _libzt.zts_net_join(net_id)
 
-
 def zts_net_leave(net_id):
     return _libzt.zts_net_leave(net_id)
-
 
 def zts_net_transport_is_ready(net_id):
     return _libzt.zts_net_transport_is_ready(net_id)
 
-
 def zts_net_get_mac(net_id):
     return _libzt.zts_net_get_mac(net_id)
-
 
 def zts_net_get_mac_str(net_id, dst, len):
     return _libzt.zts_net_get_mac_str(net_id, dst, len)
 
-
 def zts_net_get_broadcast(net_id):
     return _libzt.zts_net_get_broadcast(net_id)
-
 
 def zts_net_get_mtu(net_id):
     return _libzt.zts_net_get_mtu(net_id)
 
-
 def zts_net_get_name(net_id, dst, len):
     return _libzt.zts_net_get_name(net_id, dst, len)
-
 
 def zts_net_get_status(net_id):
     return _libzt.zts_net_get_status(net_id)
 
-
 def zts_net_get_type(net_id):
     return _libzt.zts_net_get_type(net_id)
-
 
 def zts_route_is_assigned(net_id, family):
     return _libzt.zts_route_is_assigned(net_id, family)
 
-
 def zts_node_start():
     return _libzt.zts_node_start()
-
 
 def zts_node_is_online():
     return _libzt.zts_node_is_online()
 
-
 def zts_node_get_id():
     return _libzt.zts_node_get_id()
-
 
 def zts_node_get_id_pair(key, key_dst_len):
     return _libzt.zts_node_get_id_pair(key, key_dst_len)
 
-
 def zts_node_get_port():
     return _libzt.zts_node_get_port()
-
 
 def zts_node_stop():
     return _libzt.zts_node_stop()
 
-
 def zts_node_free():
     return _libzt.zts_node_free()
-
 
 def zts_moon_orbit(moon_roots_id, moon_seed):
     return _libzt.zts_moon_orbit(moon_roots_id, moon_seed)
 
-
 def zts_moon_deorbit(moon_roots_id):
     return _libzt.zts_moon_deorbit(moon_roots_id)
-
-
 class zts_stats_counter_t(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
-    link_tx = property(
-        _libzt.zts_stats_counter_t_link_tx_get, _libzt.zts_stats_counter_t_link_tx_set
-    )
-    link_rx = property(
-        _libzt.zts_stats_counter_t_link_rx_get, _libzt.zts_stats_counter_t_link_rx_set
-    )
-    link_drop = property(
-        _libzt.zts_stats_counter_t_link_drop_get,
-        _libzt.zts_stats_counter_t_link_drop_set,
-    )
-    link_err = property(
-        _libzt.zts_stats_counter_t_link_err_get, _libzt.zts_stats_counter_t_link_err_set
-    )
-    etharp_tx = property(
-        _libzt.zts_stats_counter_t_etharp_tx_get,
-        _libzt.zts_stats_counter_t_etharp_tx_set,
-    )
-    etharp_rx = property(
-        _libzt.zts_stats_counter_t_etharp_rx_get,
-        _libzt.zts_stats_counter_t_etharp_rx_set,
-    )
-    etharp_drop = property(
-        _libzt.zts_stats_counter_t_etharp_drop_get,
-        _libzt.zts_stats_counter_t_etharp_drop_set,
-    )
-    etharp_err = property(
-        _libzt.zts_stats_counter_t_etharp_err_get,
-        _libzt.zts_stats_counter_t_etharp_err_set,
-    )
-    ip4_tx = property(
-        _libzt.zts_stats_counter_t_ip4_tx_get, _libzt.zts_stats_counter_t_ip4_tx_set
-    )
-    ip4_rx = property(
-        _libzt.zts_stats_counter_t_ip4_rx_get, _libzt.zts_stats_counter_t_ip4_rx_set
-    )
-    ip4_drop = property(
-        _libzt.zts_stats_counter_t_ip4_drop_get, _libzt.zts_stats_counter_t_ip4_drop_set
-    )
-    ip4_err = property(
-        _libzt.zts_stats_counter_t_ip4_err_get, _libzt.zts_stats_counter_t_ip4_err_set
-    )
-    ip6_tx = property(
-        _libzt.zts_stats_counter_t_ip6_tx_get, _libzt.zts_stats_counter_t_ip6_tx_set
-    )
-    ip6_rx = property(
-        _libzt.zts_stats_counter_t_ip6_rx_get, _libzt.zts_stats_counter_t_ip6_rx_set
-    )
-    ip6_drop = property(
-        _libzt.zts_stats_counter_t_ip6_drop_get, _libzt.zts_stats_counter_t_ip6_drop_set
-    )
-    ip6_err = property(
-        _libzt.zts_stats_counter_t_ip6_err_get, _libzt.zts_stats_counter_t_ip6_err_set
-    )
-    icmp4_tx = property(
-        _libzt.zts_stats_counter_t_icmp4_tx_get, _libzt.zts_stats_counter_t_icmp4_tx_set
-    )
-    icmp4_rx = property(
-        _libzt.zts_stats_counter_t_icmp4_rx_get, _libzt.zts_stats_counter_t_icmp4_rx_set
-    )
-    icmp4_drop = property(
-        _libzt.zts_stats_counter_t_icmp4_drop_get,
-        _libzt.zts_stats_counter_t_icmp4_drop_set,
-    )
-    icmp4_err = property(
-        _libzt.zts_stats_counter_t_icmp4_err_get,
-        _libzt.zts_stats_counter_t_icmp4_err_set,
-    )
-    icmp6_tx = property(
-        _libzt.zts_stats_counter_t_icmp6_tx_get, _libzt.zts_stats_counter_t_icmp6_tx_set
-    )
-    icmp6_rx = property(
-        _libzt.zts_stats_counter_t_icmp6_rx_get, _libzt.zts_stats_counter_t_icmp6_rx_set
-    )
-    icmp6_drop = property(
-        _libzt.zts_stats_counter_t_icmp6_drop_get,
-        _libzt.zts_stats_counter_t_icmp6_drop_set,
-    )
-    icmp6_err = property(
-        _libzt.zts_stats_counter_t_icmp6_err_get,
-        _libzt.zts_stats_counter_t_icmp6_err_set,
-    )
-    udp_tx = property(
-        _libzt.zts_stats_counter_t_udp_tx_get, _libzt.zts_stats_counter_t_udp_tx_set
-    )
-    udp_rx = property(
-        _libzt.zts_stats_counter_t_udp_rx_get, _libzt.zts_stats_counter_t_udp_rx_set
-    )
-    udp_drop = property(
-        _libzt.zts_stats_counter_t_udp_drop_get, _libzt.zts_stats_counter_t_udp_drop_set
-    )
-    udp_err = property(
-        _libzt.zts_stats_counter_t_udp_err_get, _libzt.zts_stats_counter_t_udp_err_set
-    )
-    tcp_tx = property(
-        _libzt.zts_stats_counter_t_tcp_tx_get, _libzt.zts_stats_counter_t_tcp_tx_set
-    )
-    tcp_rx = property(
-        _libzt.zts_stats_counter_t_tcp_rx_get, _libzt.zts_stats_counter_t_tcp_rx_set
-    )
-    tcp_drop = property(
-        _libzt.zts_stats_counter_t_tcp_drop_get, _libzt.zts_stats_counter_t_tcp_drop_set
-    )
-    tcp_err = property(
-        _libzt.zts_stats_counter_t_tcp_err_get, _libzt.zts_stats_counter_t_tcp_err_set
-    )
-    nd6_tx = property(
-        _libzt.zts_stats_counter_t_nd6_tx_get, _libzt.zts_stats_counter_t_nd6_tx_set
-    )
-    nd6_rx = property(
-        _libzt.zts_stats_counter_t_nd6_rx_get, _libzt.zts_stats_counter_t_nd6_rx_set
-    )
-    nd6_drop = property(
-        _libzt.zts_stats_counter_t_nd6_drop_get, _libzt.zts_stats_counter_t_nd6_drop_set
-    )
-    nd6_err = property(
-        _libzt.zts_stats_counter_t_nd6_err_get, _libzt.zts_stats_counter_t_nd6_err_set
-    )
+    link_tx = property(_libzt.zts_stats_counter_t_link_tx_get, _libzt.zts_stats_counter_t_link_tx_set)
+    link_rx = property(_libzt.zts_stats_counter_t_link_rx_get, _libzt.zts_stats_counter_t_link_rx_set)
+    link_drop = property(_libzt.zts_stats_counter_t_link_drop_get, _libzt.zts_stats_counter_t_link_drop_set)
+    link_err = property(_libzt.zts_stats_counter_t_link_err_get, _libzt.zts_stats_counter_t_link_err_set)
+    etharp_tx = property(_libzt.zts_stats_counter_t_etharp_tx_get, _libzt.zts_stats_counter_t_etharp_tx_set)
+    etharp_rx = property(_libzt.zts_stats_counter_t_etharp_rx_get, _libzt.zts_stats_counter_t_etharp_rx_set)
+    etharp_drop = property(_libzt.zts_stats_counter_t_etharp_drop_get, _libzt.zts_stats_counter_t_etharp_drop_set)
+    etharp_err = property(_libzt.zts_stats_counter_t_etharp_err_get, _libzt.zts_stats_counter_t_etharp_err_set)
+    ip4_tx = property(_libzt.zts_stats_counter_t_ip4_tx_get, _libzt.zts_stats_counter_t_ip4_tx_set)
+    ip4_rx = property(_libzt.zts_stats_counter_t_ip4_rx_get, _libzt.zts_stats_counter_t_ip4_rx_set)
+    ip4_drop = property(_libzt.zts_stats_counter_t_ip4_drop_get, _libzt.zts_stats_counter_t_ip4_drop_set)
+    ip4_err = property(_libzt.zts_stats_counter_t_ip4_err_get, _libzt.zts_stats_counter_t_ip4_err_set)
+    ip6_tx = property(_libzt.zts_stats_counter_t_ip6_tx_get, _libzt.zts_stats_counter_t_ip6_tx_set)
+    ip6_rx = property(_libzt.zts_stats_counter_t_ip6_rx_get, _libzt.zts_stats_counter_t_ip6_rx_set)
+    ip6_drop = property(_libzt.zts_stats_counter_t_ip6_drop_get, _libzt.zts_stats_counter_t_ip6_drop_set)
+    ip6_err = property(_libzt.zts_stats_counter_t_ip6_err_get, _libzt.zts_stats_counter_t_ip6_err_set)
+    icmp4_tx = property(_libzt.zts_stats_counter_t_icmp4_tx_get, _libzt.zts_stats_counter_t_icmp4_tx_set)
+    icmp4_rx = property(_libzt.zts_stats_counter_t_icmp4_rx_get, _libzt.zts_stats_counter_t_icmp4_rx_set)
+    icmp4_drop = property(_libzt.zts_stats_counter_t_icmp4_drop_get, _libzt.zts_stats_counter_t_icmp4_drop_set)
+    icmp4_err = property(_libzt.zts_stats_counter_t_icmp4_err_get, _libzt.zts_stats_counter_t_icmp4_err_set)
+    icmp6_tx = property(_libzt.zts_stats_counter_t_icmp6_tx_get, _libzt.zts_stats_counter_t_icmp6_tx_set)
+    icmp6_rx = property(_libzt.zts_stats_counter_t_icmp6_rx_get, _libzt.zts_stats_counter_t_icmp6_rx_set)
+    icmp6_drop = property(_libzt.zts_stats_counter_t_icmp6_drop_get, _libzt.zts_stats_counter_t_icmp6_drop_set)
+    icmp6_err = property(_libzt.zts_stats_counter_t_icmp6_err_get, _libzt.zts_stats_counter_t_icmp6_err_set)
+    udp_tx = property(_libzt.zts_stats_counter_t_udp_tx_get, _libzt.zts_stats_counter_t_udp_tx_set)
+    udp_rx = property(_libzt.zts_stats_counter_t_udp_rx_get, _libzt.zts_stats_counter_t_udp_rx_set)
+    udp_drop = property(_libzt.zts_stats_counter_t_udp_drop_get, _libzt.zts_stats_counter_t_udp_drop_set)
+    udp_err = property(_libzt.zts_stats_counter_t_udp_err_get, _libzt.zts_stats_counter_t_udp_err_set)
+    tcp_tx = property(_libzt.zts_stats_counter_t_tcp_tx_get, _libzt.zts_stats_counter_t_tcp_tx_set)
+    tcp_rx = property(_libzt.zts_stats_counter_t_tcp_rx_get, _libzt.zts_stats_counter_t_tcp_rx_set)
+    tcp_drop = property(_libzt.zts_stats_counter_t_tcp_drop_get, _libzt.zts_stats_counter_t_tcp_drop_set)
+    tcp_err = property(_libzt.zts_stats_counter_t_tcp_err_get, _libzt.zts_stats_counter_t_tcp_err_set)
+    nd6_tx = property(_libzt.zts_stats_counter_t_nd6_tx_get, _libzt.zts_stats_counter_t_nd6_tx_set)
+    nd6_rx = property(_libzt.zts_stats_counter_t_nd6_rx_get, _libzt.zts_stats_counter_t_nd6_rx_set)
+    nd6_drop = property(_libzt.zts_stats_counter_t_nd6_drop_get, _libzt.zts_stats_counter_t_nd6_drop_set)
+    nd6_err = property(_libzt.zts_stats_counter_t_nd6_err_get, _libzt.zts_stats_counter_t_nd6_err_set)
 
     def __init__(self):
         _libzt.zts_stats_counter_t_swiginit(self, _libzt.new_zts_stats_counter_t())
-
     __swig_destroy__ = _libzt.delete_zts_stats_counter_t
-
 
 # Register zts_stats_counter_t in _libzt:
 _libzt.zts_stats_counter_t_swigregister(zts_stats_counter_t)
@@ -935,27 +590,20 @@ _libzt.zts_stats_counter_t_swigregister(zts_stats_counter_t)
 def zts_stats_get_all(dst):
     return _libzt.zts_stats_get_all(dst)
 
-
 def zts_bsd_socket(family, type, protocol):
     return _libzt.zts_bsd_socket(family, type, protocol)
-
 
 def zts_bsd_connect(fd, addr, addrlen):
     return _libzt.zts_bsd_connect(fd, addr, addrlen)
 
-
 def zts_bsd_bind(fd, addr, addrlen):
     return _libzt.zts_bsd_bind(fd, addr, addrlen)
-
 
 def zts_bsd_listen(fd, backlog):
     return _libzt.zts_bsd_listen(fd, backlog)
 
-
 def zts_bsd_accept(fd, addr, addrlen):
     return _libzt.zts_bsd_accept(fd, addr, addrlen)
-
-
 ZTS_SOL_SOCKET = _libzt.ZTS_SOL_SOCKET
 ZTS_SO_DEBUG = _libzt.ZTS_SO_DEBUG
 ZTS_SO_ACCEPTCONN = _libzt.ZTS_SO_ACCEPTCONN
@@ -1015,45 +663,32 @@ ZTS_IPTOS_PREC_IMMEDIATE = _libzt.ZTS_IPTOS_PREC_IMMEDIATE
 ZTS_IPTOS_PREC_PRIORITY = _libzt.ZTS_IPTOS_PREC_PRIORITY
 ZTS_IPTOS_PREC_ROUTINE = _libzt.ZTS_IPTOS_PREC_ROUTINE
 
-
 def zts_bsd_setsockopt(fd, level, optname, optval, optlen):
     return _libzt.zts_bsd_setsockopt(fd, level, optname, optval, optlen)
-
 
 def zts_bsd_getsockopt(fd, level, optname, optval, optlen):
     return _libzt.zts_bsd_getsockopt(fd, level, optname, optval, optlen)
 
-
 def zts_bsd_getsockname(fd, addr, addrlen):
     return _libzt.zts_bsd_getsockname(fd, addr, addrlen)
-
 
 def zts_bsd_getpeername(fd, addr, addrlen):
     return _libzt.zts_bsd_getpeername(fd, addr, addrlen)
 
-
 def zts_bsd_close(fd):
     return _libzt.zts_bsd_close(fd)
-
-
 LWIP_SOCKET_OFFSET = _libzt.LWIP_SOCKET_OFFSET
 MEMP_NUM_NETCONN = _libzt.MEMP_NUM_NETCONN
 ZTS_FD_SETSIZE = _libzt.ZTS_FD_SETSIZE
-
-
 class zts_timeval(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
     tv_sec = property(_libzt.zts_timeval_tv_sec_get, _libzt.zts_timeval_tv_sec_set)
     tv_usec = property(_libzt.zts_timeval_tv_usec_get, _libzt.zts_timeval_tv_usec_set)
 
     def __init__(self):
         _libzt.zts_timeval_swiginit(self, _libzt.new_zts_timeval())
-
     __swig_destroy__ = _libzt.delete_zts_timeval
-
 
 # Register zts_timeval in _libzt:
 _libzt.zts_timeval_swigregister(zts_timeval)
@@ -1061,8 +696,6 @@ _libzt.zts_timeval_swigregister(zts_timeval)
 
 def zts_bsd_select(nfds, readfds, writefds, exceptfds, timeout):
     return _libzt.zts_bsd_select(nfds, readfds, writefds, exceptfds, timeout)
-
-
 ZTS_F_GETFL = _libzt.ZTS_F_GETFL
 ZTS_F_SETFL = _libzt.ZTS_F_SETFL
 ZTS_O_NONBLOCK = _libzt.ZTS_O_NONBLOCK
@@ -1071,11 +704,8 @@ ZTS_O_RDONLY = _libzt.ZTS_O_RDONLY
 ZTS_O_WRONLY = _libzt.ZTS_O_WRONLY
 ZTS_O_RDWR = _libzt.ZTS_O_RDWR
 
-
 def zts_bsd_fcntl(fd, cmd, flags):
     return _libzt.zts_bsd_fcntl(fd, cmd, flags)
-
-
 ZTS_POLLIN = _libzt.ZTS_POLLIN
 ZTS_POLLOUT = _libzt.ZTS_POLLOUT
 ZTS_POLLERR = _libzt.ZTS_POLLERR
@@ -1087,36 +717,26 @@ ZTS_POLLWRNORM = _libzt.ZTS_POLLWRNORM
 ZTS_POLLWRBAND = _libzt.ZTS_POLLWRBAND
 ZTS_POLLHUP = _libzt.ZTS_POLLHUP
 
-
 def zts_bsd_poll(fds, nfds, timeout):
     return _libzt.zts_bsd_poll(fds, nfds, timeout)
-
 
 def zts_bsd_ioctl(fd, request, argp):
     return _libzt.zts_bsd_ioctl(fd, request, argp)
 
-
 def zts_bsd_send(fd, buf, len, flags):
     return _libzt.zts_bsd_send(fd, buf, len, flags)
 
-
 def zts_bsd_sendto(fd, buf, len, flags, addr, addrlen):
     return _libzt.zts_bsd_sendto(fd, buf, len, flags, addr, addrlen)
-
-
 class zts_iovec(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
     iov_base = property(_libzt.zts_iovec_iov_base_get, _libzt.zts_iovec_iov_base_set)
     iov_len = property(_libzt.zts_iovec_iov_len_get, _libzt.zts_iovec_iov_len_set)
 
     def __init__(self):
         _libzt.zts_iovec_swiginit(self, _libzt.new_zts_iovec())
-
     __swig_destroy__ = _libzt.delete_zts_iovec
-
 
 # Register zts_iovec in _libzt:
 _libzt.zts_iovec_swigregister(zts_iovec)
@@ -1124,246 +744,176 @@ _libzt.zts_iovec_swigregister(zts_iovec)
 ZTS_MSG_TRUNC = _libzt.ZTS_MSG_TRUNC
 ZTS_MSG_CTRUNC = _libzt.ZTS_MSG_CTRUNC
 
-
 def zts_bsd_sendmsg(fd, msg, flags):
     return _libzt.zts_bsd_sendmsg(fd, msg, flags)
-
 
 def zts_bsd_recv(fd, buf, len, flags):
     return _libzt.zts_bsd_recv(fd, buf, len, flags)
 
-
 def zts_bsd_recvfrom(fd, buf, len, flags, addr, addrlen):
     return _libzt.zts_bsd_recvfrom(fd, buf, len, flags, addr, addrlen)
-
 
 def zts_bsd_recvmsg(fd, msg, flags):
     return _libzt.zts_bsd_recvmsg(fd, msg, flags)
 
-
 def zts_bsd_read(fd, buf, len):
     return _libzt.zts_bsd_read(fd, buf, len)
-
 
 def zts_bsd_readv(fd, iov, iovcnt):
     return _libzt.zts_bsd_readv(fd, iov, iovcnt)
 
-
 def zts_bsd_write(fd, buf, len):
     return _libzt.zts_bsd_write(fd, buf, len)
 
-
 def zts_bsd_writev(fd, iov, iovcnt):
     return _libzt.zts_bsd_writev(fd, iov, iovcnt)
-
-
 ZTS_SHUT_RD = _libzt.ZTS_SHUT_RD
 ZTS_SHUT_WR = _libzt.ZTS_SHUT_WR
 ZTS_SHUT_RDWR = _libzt.ZTS_SHUT_RDWR
 
-
 def zts_bsd_shutdown(fd, how):
     return _libzt.zts_bsd_shutdown(fd, how)
-
 
 def zts_socket(family, type, protocol):
     return _libzt.zts_socket(family, type, protocol)
 
-
 def zts_connect(fd, ipstr, port, timeout_ms):
     return _libzt.zts_connect(fd, ipstr, port, timeout_ms)
-
 
 def zts_bind(fd, ipstr, port):
     return _libzt.zts_bind(fd, ipstr, port)
 
-
 def zts_listen(fd, backlog):
     return _libzt.zts_listen(fd, backlog)
-
 
 def zts_accept(fd, remote_addr, len, port):
     return _libzt.zts_accept(fd, remote_addr, len, port)
 
-
 def zts_send(fd, buf, len, flags):
     return _libzt.zts_send(fd, buf, len, flags)
-
 
 def zts_recv(fd, buf, len, flags):
     return _libzt.zts_recv(fd, buf, len, flags)
 
-
 def zts_read(fd, buf, len):
     return _libzt.zts_read(fd, buf, len)
-
 
 def zts_write(fd, buf, len):
     return _libzt.zts_write(fd, buf, len)
 
-
 def zts_shutdown_rd(fd):
     return _libzt.zts_shutdown_rd(fd)
-
 
 def zts_shutdown_wr(fd):
     return _libzt.zts_shutdown_wr(fd)
 
-
 def zts_shutdown_rdwr(fd):
     return _libzt.zts_shutdown_rdwr(fd)
-
 
 def zts_close(fd):
     return _libzt.zts_close(fd)
 
-
 def zts_getpeername(fd, remote_addr_str, len, port):
     return _libzt.zts_getpeername(fd, remote_addr_str, len, port)
-
 
 def zts_getsockname(fd, local_addr_str, len, port):
     return _libzt.zts_getsockname(fd, local_addr_str, len, port)
 
-
 def zts_tcp_client(remote_ipstr, remote_port):
     return _libzt.zts_tcp_client(remote_ipstr, remote_port)
 
-
 def zts_tcp_server(local_ipstr, local_port, remote_ipstr, len, remote_port):
-    return _libzt.zts_tcp_server(
-        local_ipstr, local_port, remote_ipstr, len, remote_port
-    )
-
+    return _libzt.zts_tcp_server(local_ipstr, local_port, remote_ipstr, len, remote_port)
 
 def zts_udp_server(local_ipstr, local_port):
     return _libzt.zts_udp_server(local_ipstr, local_port)
 
-
 def zts_udp_client(remote_ipstr):
     return _libzt.zts_udp_client(remote_ipstr)
-
 
 def zts_set_no_delay(fd, enabled):
     return _libzt.zts_set_no_delay(fd, enabled)
 
-
 def zts_get_last_socket_error(fd):
     return _libzt.zts_get_last_socket_error(fd)
-
 
 def zts_get_data_available(fd):
     return _libzt.zts_get_data_available(fd)
 
-
 def zts_get_no_delay(fd):
     return _libzt.zts_get_no_delay(fd)
-
 
 def zts_set_linger(fd, enabled, value):
     return _libzt.zts_set_linger(fd, enabled, value)
 
-
 def zts_get_linger_enabled(fd):
     return _libzt.zts_get_linger_enabled(fd)
-
 
 def zts_get_linger_value(fd):
     return _libzt.zts_get_linger_value(fd)
 
-
 def zts_get_pending_data_size(fd):
     return _libzt.zts_get_pending_data_size(fd)
-
 
 def zts_set_reuse_addr(fd, enabled):
     return _libzt.zts_set_reuse_addr(fd, enabled)
 
-
 def zts_get_reuse_addr(fd):
     return _libzt.zts_get_reuse_addr(fd)
-
 
 def zts_set_recv_timeout(fd, seconds, microseconds):
     return _libzt.zts_set_recv_timeout(fd, seconds, microseconds)
 
-
 def zts_get_recv_timeout(fd):
     return _libzt.zts_get_recv_timeout(fd)
-
 
 def zts_set_send_timeout(fd, seconds, microseconds):
     return _libzt.zts_set_send_timeout(fd, seconds, microseconds)
 
-
 def zts_get_send_timeout(fd):
     return _libzt.zts_get_send_timeout(fd)
-
 
 def zts_set_send_buf_size(fd, size):
     return _libzt.zts_set_send_buf_size(fd, size)
 
-
 def zts_get_send_buf_size(fd):
     return _libzt.zts_get_send_buf_size(fd)
-
 
 def zts_set_recv_buf_size(fd, size):
     return _libzt.zts_set_recv_buf_size(fd, size)
 
-
 def zts_get_recv_buf_size(fd):
     return _libzt.zts_get_recv_buf_size(fd)
-
 
 def zts_set_ttl(fd, ttl):
     return _libzt.zts_set_ttl(fd, ttl)
 
-
 def zts_get_ttl(fd):
     return _libzt.zts_get_ttl(fd)
-
 
 def zts_set_blocking(fd, enabled):
     return _libzt.zts_set_blocking(fd, enabled)
 
-
 def zts_get_blocking(fd):
     return _libzt.zts_get_blocking(fd)
-
 
 def zts_set_keepalive(fd, enabled):
     return _libzt.zts_set_keepalive(fd, enabled)
 
-
 def zts_get_keepalive(fd):
     return _libzt.zts_get_keepalive(fd)
-
-
 class zts_hostent(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
     h_name = property(_libzt.zts_hostent_h_name_get, _libzt.zts_hostent_h_name_set)
-    h_aliases = property(
-        _libzt.zts_hostent_h_aliases_get, _libzt.zts_hostent_h_aliases_set
-    )
-    h_addrtype = property(
-        _libzt.zts_hostent_h_addrtype_get, _libzt.zts_hostent_h_addrtype_set
-    )
-    h_length = property(
-        _libzt.zts_hostent_h_length_get, _libzt.zts_hostent_h_length_set
-    )
-    h_addr_list = property(
-        _libzt.zts_hostent_h_addr_list_get, _libzt.zts_hostent_h_addr_list_set
-    )
+    h_aliases = property(_libzt.zts_hostent_h_aliases_get, _libzt.zts_hostent_h_aliases_set)
+    h_addrtype = property(_libzt.zts_hostent_h_addrtype_get, _libzt.zts_hostent_h_addrtype_set)
+    h_length = property(_libzt.zts_hostent_h_length_get, _libzt.zts_hostent_h_length_set)
+    h_addr_list = property(_libzt.zts_hostent_h_addr_list_get, _libzt.zts_hostent_h_addr_list_set)
 
     def __init__(self):
         _libzt.zts_hostent_swiginit(self, _libzt.new_zts_hostent())
-
     __swig_destroy__ = _libzt.delete_zts_hostent
-
 
 # Register zts_hostent in _libzt:
 _libzt.zts_hostent_swigregister(zts_hostent)
@@ -1371,54 +921,38 @@ _libzt.zts_hostent_swigregister(zts_hostent)
 
 def zts_bsd_gethostbyname(name):
     return _libzt.zts_bsd_gethostbyname(name)
-
-
 class zts_ip4_addr(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
     addr = property(_libzt.zts_ip4_addr_addr_get, _libzt.zts_ip4_addr_addr_set)
 
     def __init__(self):
         _libzt.zts_ip4_addr_swiginit(self, _libzt.new_zts_ip4_addr())
-
     __swig_destroy__ = _libzt.delete_zts_ip4_addr
-
 
 # Register zts_ip4_addr in _libzt:
 _libzt.zts_ip4_addr_swigregister(zts_ip4_addr)
 
-
 class zts_ip6_addr(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
     addr = property(_libzt.zts_ip6_addr_addr_get, _libzt.zts_ip6_addr_addr_set)
 
     def __init__(self):
         _libzt.zts_ip6_addr_swiginit(self, _libzt.new_zts_ip6_addr())
-
     __swig_destroy__ = _libzt.delete_zts_ip6_addr
-
 
 # Register zts_ip6_addr in _libzt:
 _libzt.zts_ip6_addr_swigregister(zts_ip6_addr)
 
-
 class zts_ip_addr(object):
-    thisown = property(
-        lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag"
-    )
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
     type = property(_libzt.zts_ip_addr_type_get, _libzt.zts_ip_addr_type_set)
 
     def __init__(self):
         _libzt.zts_ip_addr_swiginit(self, _libzt.new_zts_ip_addr())
-
     __swig_destroy__ = _libzt.delete_zts_ip_addr
-
 
 # Register zts_ip_addr in _libzt:
 _libzt.zts_ip_addr_swigregister(zts_ip_addr)
@@ -1427,142 +961,94 @@ _libzt.zts_ip_addr_swigregister(zts_ip_addr)
 def zts_dns_set_server(index, addr):
     return _libzt.zts_dns_set_server(index, addr)
 
-
 def zts_dns_get_server(index):
     return _libzt.zts_dns_get_server(index)
-
 
 def zts_core_lock_obtain():
     return _libzt.zts_core_lock_obtain()
 
-
 def zts_core_lock_release():
     return _libzt.zts_core_lock_release()
-
 
 def zts_core_query_addr_count(net_id):
     return _libzt.zts_core_query_addr_count(net_id)
 
-
 def zts_core_query_addr(net_id, idx, addr, len):
     return _libzt.zts_core_query_addr(net_id, idx, addr, len)
-
 
 def zts_core_query_route_count(net_id):
     return _libzt.zts_core_query_route_count(net_id)
 
-
 def zts_core_query_route(net_id, idx, target, via, len, flags, metric):
     return _libzt.zts_core_query_route(net_id, idx, target, via, len, flags, metric)
-
 
 def zts_core_query_path_count(peer_id):
     return _libzt.zts_core_query_path_count(peer_id)
 
-
 def zts_core_query_path(peer_id, idx, dst, len):
     return _libzt.zts_core_query_path(peer_id, idx, dst, len)
-
 
 def zts_core_query_mc_count(net_id):
     return _libzt.zts_core_query_mc_count(net_id)
 
-
 def zts_core_query_mc(net_id, idx, mac, adi):
     return _libzt.zts_core_query_mc(net_id, idx, mac, adi)
 
-
-def zts_util_sign_root_set(
-    roots_out,
-    roots_len,
-    prev_key,
-    prev_key_len,
-    curr_key,
-    curr_key_len,
-    id,
-    ts,
-    roots_spec,
-):
-    return _libzt.zts_util_sign_root_set(
-        roots_out,
-        roots_len,
-        prev_key,
-        prev_key_len,
-        curr_key,
-        curr_key_len,
-        id,
-        ts,
-        roots_spec,
-    )
-
+def zts_util_sign_root_set(roots_out, roots_len, prev_key, prev_key_len, curr_key, curr_key_len, id, ts, roots_spec):
+    return _libzt.zts_util_sign_root_set(roots_out, roots_len, prev_key, prev_key_len, curr_key, curr_key_len, id, ts, roots_spec)
 
 def zts_util_delay(milliseconds):
     return _libzt.zts_util_delay(milliseconds)
 
-
 def zts_util_get_ip_family(ipstr):
     return _libzt.zts_util_get_ip_family(ipstr)
-
 
 def zts_util_ipstr_to_saddr(src_ipstr, port, dstaddr, addrlen):
     return _libzt.zts_util_ipstr_to_saddr(src_ipstr, port, dstaddr, addrlen)
 
-
 def zts_util_ntop(addr, addrlen, dst_str, len, port):
     return _libzt.zts_util_ntop(addr, addrlen, dst_str, len, port)
-
 
 def zts_ipaddr_ntoa(addr):
     return _libzt.zts_ipaddr_ntoa(addr)
 
-
 def zts_ipaddr_aton(cp, addr):
     return _libzt.zts_ipaddr_aton(cp, addr)
-
 
 def zts_inet_ntop(family, src, dst, size):
     return _libzt.zts_inet_ntop(family, src, dst, size)
 
-
 def zts_inet_pton(family, src, dst):
     return _libzt.zts_inet_pton(family, src, dst)
-
 
 def zts_py_bind(fd, family, type, addro):
     return _libzt.zts_py_bind(fd, family, type, addro)
 
-
 def zts_py_connect(fd, family, type, addro):
     return _libzt.zts_py_connect(fd, family, type, addro)
-
 
 def zts_py_accept(fd):
     return _libzt.zts_py_accept(fd)
 
-
-def zts_py_listen(fd, backlog):
-    return _libzt.zts_py_listen(fd, backlog)
-
-
 def zts_py_recv(fd, len, flags):
     return _libzt.zts_py_recv(fd, len, flags)
-
 
 def zts_py_send(fd, buf, flags):
     return _libzt.zts_py_send(fd, buf, flags)
 
-
 def zts_py_close(fd):
     return _libzt.zts_py_close(fd)
 
-
-def zts_py_setblocking(fd, flag):
-    return _libzt.zts_py_setblocking(fd, flag)
-
-
-def zts_py_getblocking(fd):
-    return _libzt.zts_py_getblocking(fd)
-
-
 def zts_py_addr_get_str(net_id, family):
     return _libzt.zts_py_addr_get_str(net_id, family)
+
+def zts_py_select(module, rlist, wlist, xlist, timeout_obj):
+    return _libzt.zts_py_select(module, rlist, wlist, xlist, timeout_obj)
+
+def zts_py_setsockopt(fd, args):
+    return _libzt.zts_py_setsockopt(fd, args)
+
+def zts_py_getsockopt(fd, args):
+    return _libzt.zts_py_getsockopt(fd, args)
+
+

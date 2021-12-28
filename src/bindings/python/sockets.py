@@ -1,25 +1,119 @@
 """ZeroTier low-level socket interface"""
+from enum import IntEnum
+
 import libzt
+
+
+class zts_errno(IntEnum):
+    """Enum of socket error codes"""
+
+    # Operation not permitted 
+    ZTS_EPERM = libzt.ZTS_EPERM,
+    # No such file or directory 
+    ZTS_ENOENT = libzt.ZTS_ENOENT,
+    # No such process 
+    ZTS_ESRCH = libzt.ZTS_ESRCH,
+    # Interrupted system call 
+    ZTS_EINTR = libzt.ZTS_EINTR,
+    # I/O error 
+    ZTS_EIO = libzt.ZTS_EIO,
+    # No such device or address 
+    ZTS_ENXIO = libzt.ZTS_ENXIO,
+    # Bad file number 
+    ZTS_EBADF = libzt.ZTS_EBADF,
+    # Try again 
+    ZTS_EAGAIN = libzt.ZTS_EAGAIN,
+    # Operation would block 
+    ZTS_EWOULDBLOCK = libzt.ZTS_EWOULDBLOCK,
+    # Out of memory 
+    ZTS_ENOMEM = libzt.ZTS_ENOMEM,
+    # Permission denied 
+    ZTS_EACCES = libzt.ZTS_EACCES,
+    # Bad address 
+    ZTS_EFAULT = libzt.ZTS_EFAULT,
+    # Device or resource busy 
+    ZTS_EBUSY = libzt.ZTS_EBUSY,
+    # File exists 
+    ZTS_EEXIST = libzt.ZTS_EEXIST,
+    # No such device 
+    ZTS_ENODEV = libzt.ZTS_ENODEV,
+    # Invalid argument 
+    ZTS_EINVAL = libzt.ZTS_EINVAL,
+    # File table overflow 
+    ZTS_ENFILE = libzt.ZTS_ENFILE,
+    # Too many open files 
+    ZTS_EMFILE = libzt.ZTS_EMFILE,
+    # Function not implemented 
+    ZTS_ENOSYS = libzt.ZTS_ENOSYS,
+    # Socket operation on non-socket 
+    ZTS_ENOTSOCK = libzt.ZTS_ENOTSOCK,
+    # Destination address required 
+    ZTS_EDESTADDRREQ = libzt.ZTS_EDESTADDRREQ,
+    # Message too long 
+    ZTS_EMSGSIZE = libzt.ZTS_EMSGSIZE,
+    # Protocol wrong type for socket 
+    ZTS_EPROTOTYPE = libzt.ZTS_EPROTOTYPE,
+    # Protocol not available 
+    ZTS_ENOPROTOOPT = libzt.ZTS_ENOPROTOOPT,
+    # Protocol not supported 
+    ZTS_EPROTONOSUPPORT = libzt.ZTS_EPROTONOSUPPORT,
+    # Socket type not supported 
+    ZTS_ESOCKTNOSUPPORT = libzt.ZTS_ESOCKTNOSUPPORT,
+    # Operation not supported on transport endpoint 
+    ZTS_EOPNOTSUPP = libzt.ZTS_EOPNOTSUPP,
+    # Protocol family not supported 
+    ZTS_EPFNOSUPPORT = libzt.ZTS_EPFNOSUPPORT,
+    # Address family not supported by protocol 
+    ZTS_EAFNOSUPPORT = libzt.ZTS_EAFNOSUPPORT,
+    # Address already in use 
+    ZTS_EADDRINUSE = libzt.ZTS_EADDRINUSE,
+    # Cannot assign requested address 
+    ZTS_EADDRNOTAVAIL = libzt.ZTS_EADDRNOTAVAIL,
+    # Network is down 
+    ZTS_ENETDOWN = libzt.ZTS_ENETDOWN,
+    # Network is unreachable 
+    ZTS_ENETUNREACH = libzt.ZTS_ENETUNREACH,
+    # Software caused connection abort 
+    ZTS_ECONNABORTED = libzt.ZTS_ECONNABORTED,
+    # Connection reset by peer 
+    ZTS_ECONNRESET = libzt.ZTS_ECONNRESET,
+    # No buffer space available 
+    ZTS_ENOBUFS = libzt.ZTS_ENOBUFS,
+    # Transport endpoint is already connected 
+    ZTS_EISCONN = libzt.ZTS_EISCONN,
+    # Transport endpoint is not connected 
+    ZTS_ENOTCONN = libzt.ZTS_ENOTCONN,
+    # Connection timed out 
+    ZTS_ETIMEDOUT = libzt.ZTS_ETIMEDOUT,
+    # Connection refused
+    ZTS_ECONNREFUSED = libzt.ZTS_ECONNREFUSED,
+    # No route to host 
+    ZTS_EHOSTUNREACH = libzt.ZTS_EHOSTUNREACH,
+    # Operation already in progress 
+    ZTS_EALREADY = libzt.ZTS_EALREADY,
+    # Operation now in progress 
+    ZTS_EINPROGRESS = libzt.ZTS_EINPROGRESS
 
 
 def handle_error(err):
     """Convert libzt error code to exception"""
     if err == libzt.ZTS_ERR_SOCKET:
-        if errno() == libzt.ZTS_EAGAIN:
+        sock_err = errno()
+        if sock_err == zts_errno.ZTS_EAGAIN:
             raise BlockingIOError()
-        if errno() == libzt.ZTS_EINPROGRESS:
+        if sock_err == zts_errno.ZTS_EINPROGRESS:
             raise BlockingIOError()
-        if errno() == libzt.ZTS_EALREADY:
+        if sock_err == zts_errno.ZTS_EALREADY:
             raise BlockingIOError()
-        if errno() == libzt.ZTS_ECONNABORTED:
+        if sock_err == zts_errno.ZTS_ECONNABORTED:
             raise ConnectionAbortedError()
-        if errno() == libzt.ZTS_ECONNREFUSED:
+        if sock_err == zts_errno.ZTS_ECONNREFUSED:
             raise ConnectionRefusedError()
-        if errno() == libzt.ZTS_ECONNRESET:
+        if sock_err == zts_errno.ZTS_ECONNRESET:
             raise ConnectionResetError()
-        if errno() == libzt.ZTS_ETIMEDOUT:
+        if sock_err == zts_errno.ZTS_ETIMEDOUT:
             raise TimeoutError()
-        raise Exception("ZTS_ERR_SOCKET (" + str(err) + ")")
+        raise ConnectionError(zts_errno(sock_err).name + " (" + str(sock_err) + ")")
     if err == libzt.ZTS_ERR_SERVICE:
         raise Exception("ZTS_ERR_SERVICE (" + str(err) + ")")
     if err == libzt.ZTS_ERR_ARG:

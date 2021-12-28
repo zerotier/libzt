@@ -174,6 +174,71 @@ int zts_py_send(int fd, PyObject* buf, int flags)
     return bytes_sent;
 }
 
+int zts_py_sendall(int fd, PyObject* bytes, int flags)
+{
+    int res;
+
+    Py_buffer pbuf = *(Py_buffer*) bytes;
+    char *buf = (char *) pbuf.buf;
+    int bytes_left = pbuf.len;
+
+    int has_timeout;
+    int deadline_initialized = 0;
+
+    _PyTime_t timeout;
+    _PyTime_t interval;
+    _PyTime_t deadline;
+
+    res = zts_get_send_timeout(fd);
+    if (res < 0)
+        goto done;
+
+    timeout = (_PyTime_t) 1000 * 1000 * (int64_t) res; // Convert ms to ns
+    interval = timeout;
+    has_timeout = (interval > 0);
+
+    /* Call zts_bsd_send() until no more bytes left to send in the buffer.
+    Keep track of remaining time until timeout and exit with ZTS_ETIMEDOUT if timeout exceeded.
+    Check signals between calls to send() to prevent undue blocking.*/
+    do {
+        if (has_timeout) {
+            if (deadline_initialized) {
+                interval = deadline - _PyTime_GetMonotonicClock();
+            } else {
+                deadline_initialized = 1;
+                deadline = _PyTime_GetMonotonicClock() + timeout;
+            }
+
+            if (interval <= 0) {
+                zts_errno = ZTS_ETIMEDOUT;
+                res = ZTS_ERR_SOCKET;
+                goto done;
+            }
+        }
+
+        Py_BEGIN_ALLOW_THREADS;
+        res = zts_bsd_send(fd, buf, bytes_left, flags);
+        Py_END_ALLOW_THREADS;
+        if (res < 0)
+            goto done;
+
+        int bytes_sent = res;
+        assert(bytes_sent > 0);
+        buf += bytes_sent;  // Advance pointer
+        bytes_left -= bytes_sent;
+
+        if (PyErr_CheckSignals())  // Handle interrupts, etc.
+            goto done;
+
+    } while (bytes_left > 0);
+
+    res = 0;  // Success
+
+done:
+    PyBuffer_Release(&pbuf);
+    return res;
+}
+
 int zts_py_close(int fd)
 {
     int err;

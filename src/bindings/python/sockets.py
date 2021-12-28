@@ -475,9 +475,23 @@ class socket:
             handle_error(err)
         return err
 
-    def sendall(self, n_bytes, flags):
-        """libzt does not support this (yet)"""
-        raise NotImplementedError("libzt does not support this (yet?)")
+    def sendall(self, bytes, flags=0):
+        """sendall(data[, flags])
+
+        | Write data to the socket. Sends data until all data is sent, then returns None. Optional flags may be:
+        |  - ZTS_MSG_PEEK - Peeks at an incoming message.
+        |  - ZTS_MSG_DONTWAIT - Nonblocking I/O for this operation only.
+        |  - ZTS_MSG_MORE - Sender will send more.
+
+        :param bytes: Data to send
+        :type bytes: Union[bytes, bytearray]
+        :param flags: Optional flags
+        :type flags: int
+        :return: None
+        """
+        err = libzt.zts_py_sendall(self._fd, bytes, flags)
+        if err < 0:
+            handle_error(err)
 
     def sendto(self, n_bytes, flags, address):
         """libzt does not support this (yet)"""

@@ -29,6 +29,8 @@ PyObject* zts_py_recv(int fd, int len, int flags);
 
 int zts_py_send(int fd, PyObject* buf, int flags);
 
+int zts_py_sendall(int fd, PyObject* bytes, int flags);
+
 int zts_py_close(int fd);
 
 PyObject* zts_py_addr_get_str(uint64_t net_id, int family);

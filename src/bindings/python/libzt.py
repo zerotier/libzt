@@ -1051,4 +1051,10 @@ def zts_py_setsockopt(fd, args):
 def zts_py_getsockopt(fd, args):
     return _libzt.zts_py_getsockopt(fd, args)
 
+def zts_py_settimeout(fd, value):
+    return _libzt.zts_py_settimeout(fd, value)
+
+def zts_py_gettimeout(fd):
+    return _libzt.zts_py_gettimeout(fd)
+
 

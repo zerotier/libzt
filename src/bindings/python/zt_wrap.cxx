@@ -15832,6 +15832,53 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_zts_py_settimeout(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  int arg1 ;
+  PyObject *arg2 = (PyObject *) 0 ;
+  int val1 ;
+  int ecode1 = 0 ;
+  PyObject *swig_obj[2] ;
+  int result;
+  
+  if (!SWIG_Python_UnpackTuple(args, "zts_py_settimeout", 2, 2, swig_obj)) SWIG_fail;
+  ecode1 = SWIG_AsVal_int(swig_obj[0], &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "zts_py_settimeout" "', argument " "1"" of type '" "int""'");
+  } 
+  arg1 = static_cast< int >(val1);
+  arg2 = swig_obj[1];
+  result = (int)zts_py_settimeout(arg1,arg2);
+  resultobj = SWIG_From_int(static_cast< int >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_zts_py_gettimeout(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  int arg1 ;
+  int val1 ;
+  int ecode1 = 0 ;
+  PyObject *swig_obj[1] ;
+  PyObject *result = 0 ;
+  
+  if (!args) SWIG_fail;
+  swig_obj[0] = args;
+  ecode1 = SWIG_AsVal_int(swig_obj[0], &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "zts_py_gettimeout" "', argument " "1"" of type '" "int""'");
+  } 
+  arg1 = static_cast< int >(val1);
+  result = (PyObject *)zts_py_gettimeout(arg1);
+  resultobj = result;
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 static PyMethodDef SwigMethods[] = {
 	 { "SWIG_PyInstanceMethod_New", SWIG_PyInstanceMethod_New, METH_O, NULL},
 	 { "zts_node_info_t_node_id_set", _wrap_zts_node_info_t_node_id_set, METH_VARARGS, NULL},
@@ -16289,6 +16336,8 @@ static PyMethodDef SwigMethods[] = {
 	 { "zts_py_select", _wrap_zts_py_select, METH_VARARGS, NULL},
 	 { "zts_py_setsockopt", _wrap_zts_py_setsockopt, METH_VARARGS, NULL},
 	 { "zts_py_getsockopt", _wrap_zts_py_getsockopt, METH_VARARGS, NULL},
+	 { "zts_py_settimeout", _wrap_zts_py_settimeout, METH_VARARGS, NULL},
+	 { "zts_py_gettimeout", _wrap_zts_py_gettimeout, METH_O, NULL},
 	 { NULL, NULL, 0, NULL }
 };
 

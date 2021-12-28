@@ -39,6 +39,10 @@ int zts_py_setsockopt(int fd, PyObject* args);
 
 PyObject* zts_py_getsockopt(int fd, PyObject* args);
 
+int zts_py_settimeout(int fd, PyObject* value);
+
+PyObject* zts_py_gettimeout(int fd);
+
 #endif   // ZTS_ENABLE_PYTHON
 
 #endif   // ZTS_PYTHON_SOCKETS_H

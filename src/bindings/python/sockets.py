@@ -1,5 +1,4 @@
 """ZeroTier low-level socket interface"""
-
 import libzt
 
 
@@ -421,8 +420,39 @@ class socket:
         libzt.zts_set_blocking(self._fd, flag)
 
     def settimeout(self, value):
-        """libzt does not support this (yet)"""
-        raise NotImplementedError("libzt does not support this (yet?)")
+        """
+        |Set timeout for socket send/recv operations. Socket can be in one of three modes:
+        | - Blocking: Operations block until complete or the system returns an error (e.g. connection timed out)
+        | - Non-blocking: Operations fail if they cannot be completed immediately
+        | - Timeout: Operations fail if they cannot be completed within the specified timeout (and raise TimeoutError)
+
+        :param value: Timeout in seconds (must be non-negative).
+            If zero, socket is put in non-blocking mode.
+            If None, socket is put in blocking mode.
+        :type value: Float
+        :return: None
+        """
+        err = libzt.zts_py_settimeout(self._fd, value)
+        if err < 0:
+            handle_error(err)
+
+    def gettimeout(self):
+        """
+        |Get timeout for socket send/recv operations. Socket can be in one of three modes:
+        | - Blocking: Operations block until complete or the system returns an error (e.g. connection timed out)
+        | - Non-blocking: Operations fail if they cannot be completed immediately
+        | - Timeout: Operations fail if they cannot be completed within the specified timeout (and raise TimeoutError)
+
+        :return: Timeout in seconds.
+            If zero, socket is in non-blocking mode.
+            If None, socket is in blocking mode.
+        :rtype: Optional[float]
+        """
+        err, res = libzt.zts_py_gettimeout(self._fd)
+        if err < 0:
+            handle_error(err)
+        else:
+            return res
 
     def setsockopt(self, level, optname, value):
         """Set a socket option value"""

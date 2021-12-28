@@ -489,6 +489,93 @@ done:
     return res;
 }
 
+int zts_py_settimeout(int fd, PyObject* value)
+{
+    int res;
+
+    // If None, set blocking mode
+    if (value == Py_None) {
+        res = zts_set_blocking(fd, true);
+        return res;
+    }
+
+    double double_val = PyFloat_AsDouble(value);
+
+    // If negative, throw an error
+    if (double_val < 0.) {
+        return ZTS_ERR_ARG;
+    }
+
+    // Set non-blocking mode
+    res = zts_set_blocking(fd, false);
+    if (res < 0) {
+        return res;
+    }
+
+    // Calculate timeout secs/microseconds
+    int total_micros = (int) floor(double_val * 1e6);
+    div_t div_res = div(total_micros, 1000);
+
+    int secs = div_res.quot;
+    int micros = div_res.rem;
+
+    // Set both send and recv timeouts
+    res = zts_set_send_timeout(fd, secs, micros);
+    if (res < 0) {
+        return res;
+    }
+    res = zts_set_recv_timeout(fd, secs, micros);
+    return res;
+}
+
+PyObject* zts_py_gettimeout(int fd)
+{
+    PyObject *t;
+    int res;
+
+    t = PyTuple_New(2);
+
+    res = zts_get_blocking(fd);
+
+    // If err, return (err, None)
+    if (res < 0) {
+        PyTuple_SetItem(t, 0, PyLong_FromLong((long) res));
+        Py_INCREF(Py_None);
+        PyTuple_SetItem(t, 1, Py_None);
+        Py_INCREF(t);
+        return t;
+    }
+
+    // If socket in blocking mode, return (0, None)
+    if (res == 1) {
+        PyTuple_SetItem(t, 0, PyLong_FromLong(0L));
+        Py_INCREF(Py_None);
+        PyTuple_SetItem(t, 1, Py_None);
+        Py_INCREF(t);
+        return t;
+    }
+
+    // Send and recv timeouts should be equal
+    res = zts_get_recv_timeout(fd);
+
+    // If err, return (err, None)
+    if (res < 0) {
+        PyTuple_SetItem(t, 0, PyLong_FromLong((long) res));
+        Py_INCREF(Py_None);
+        PyTuple_SetItem(t, 1, Py_None);
+        Py_INCREF(t);
+        return t;
+    }
+
+    // Return (0, timeout)
+    // Result of zts_get_recv_timeout() is in milliseconds
+    double timeout = 1e-3 * (double) res;
+    PyTuple_SetItem(t, 0, PyLong_FromLong(0L));
+    PyTuple_SetItem(t, 1, PyFloat_FromDouble(timeout));
+    Py_INCREF(t);
+    return t;
+}
+
 PyObject* zts_py_getsockopt(int fd, PyObject* args)
 {
     int level;

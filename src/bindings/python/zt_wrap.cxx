@@ -15707,6 +15707,38 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_zts_py_sendall(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  int arg1 ;
+  PyObject *arg2 = (PyObject *) 0 ;
+  int arg3 ;
+  int val1 ;
+  int ecode1 = 0 ;
+  int val3 ;
+  int ecode3 = 0 ;
+  PyObject *swig_obj[3] ;
+  int result;
+  
+  if (!SWIG_Python_UnpackTuple(args, "zts_py_sendall", 3, 3, swig_obj)) SWIG_fail;
+  ecode1 = SWIG_AsVal_int(swig_obj[0], &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "zts_py_sendall" "', argument " "1"" of type '" "int""'");
+  } 
+  arg1 = static_cast< int >(val1);
+  arg2 = swig_obj[1];
+  ecode3 = SWIG_AsVal_int(swig_obj[2], &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "zts_py_sendall" "', argument " "3"" of type '" "int""'");
+  } 
+  arg3 = static_cast< int >(val3);
+  result = (int)zts_py_sendall(arg1,arg2,arg3);
+  resultobj = SWIG_From_int(static_cast< int >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_zts_py_close(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   int arg1 ;
@@ -16331,6 +16363,7 @@ static PyMethodDef SwigMethods[] = {
 	 { "zts_py_accept", _wrap_zts_py_accept, METH_O, NULL},
 	 { "zts_py_recv", _wrap_zts_py_recv, METH_VARARGS, NULL},
 	 { "zts_py_send", _wrap_zts_py_send, METH_VARARGS, NULL},
+	 { "zts_py_sendall", _wrap_zts_py_sendall, METH_VARARGS, NULL},
 	 { "zts_py_close", _wrap_zts_py_close, METH_O, NULL},
 	 { "zts_py_addr_get_str", _wrap_zts_py_addr_get_str, METH_VARARGS, NULL},
 	 { "zts_py_select", _wrap_zts_py_select, METH_VARARGS, NULL},

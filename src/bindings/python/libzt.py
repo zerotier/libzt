@@ -1036,6 +1036,9 @@ def zts_py_recv(fd, len, flags):
 def zts_py_send(fd, buf, flags):
     return _libzt.zts_py_send(fd, buf, flags)
 
+def zts_py_sendall(fd, bytes, flags):
+    return _libzt.zts_py_sendall(fd, bytes, flags)
+
 def zts_py_close(fd):
     return _libzt.zts_py_close(fd)
 

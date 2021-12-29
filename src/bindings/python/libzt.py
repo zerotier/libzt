@@ -189,6 +189,7 @@ ZTS_IOC_VOID = _libzt.ZTS_IOC_VOID
 ZTS_IOC_OUT = _libzt.ZTS_IOC_OUT
 ZTS_IOC_IN = _libzt.ZTS_IOC_IN
 ZTS_IOC_INOUT = _libzt.ZTS_IOC_INOUT
+
 class zts_node_info_t(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr

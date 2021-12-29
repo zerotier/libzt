@@ -6,22 +6,21 @@ import libzt
 def handle_error(err):
     """Convert libzt error code to exception"""
     if err == libzt.ZTS_ERR_SOCKET:
-        sock_err = errno()
-        if sock_err == libzt.zts_errno_t.ZTS_EAGAIN:
+        if errno() == libzt.ZTS_EAGAIN:
             raise BlockingIOError()
-        if sock_err == libzt.zts_errno_t.ZTS_EINPROGRESS:
+        if errno() == libzt.ZTS_EINPROGRESS:
             raise BlockingIOError()
-        if sock_err == libzt.zts_errno_t.ZTS_EALREADY:
+        if errno() == libzt.ZTS_EALREADY:
             raise BlockingIOError()
-        if sock_err == libzt.zts_errno_t.ZTS_ECONNABORTED:
+        if errno() == libzt.ZTS_ECONNABORTED:
             raise ConnectionAbortedError()
-        if sock_err == libzt.zts_errno_t.ZTS_ECONNREFUSED:
+        if errno() == libzt.ZTS_ECONNREFUSED:
             raise ConnectionRefusedError()
-        if sock_err == libzt.zts_errno_t.ZTS_ECONNRESET:
+        if errno() == libzt.ZTS_ECONNRESET:
             raise ConnectionResetError()
-        if sock_err == libzt.zts_errno_t.ZTS_ETIMEDOUT:
+        if errno() == libzt.ZTS_ETIMEDOUT:
             raise TimeoutError()
-        raise ConnectionError(libzt.zts_errno_t(sock_err).name + " (" + str(sock_err) + ")")
+        raise Exception("ZTS_ERR_SOCKET (" + str(err) + ")")
     if err == libzt.ZTS_ERR_SERVICE:
         raise Exception("ZTS_ERR_SERVICE (" + str(err) + ")")
     if err == libzt.ZTS_ERR_ARG:

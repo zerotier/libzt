@@ -62,7 +62,7 @@ def build(debug: bool = False, **_):
             shutil.copy(os.path.join(bindings_root, filename), os.path.join(DIR, "libzt", filename))
     shutil.copy(os.path.join(DIR, "native", "LICENSE.txt"), os.path.join(DIR, "LICENSE"))
 
-    # Build C libraries (and then) C++ extension
+    # Build C libraries (anND_BFd then) C++ extension
     setup_args = ["build_clib", "--verbose", "build_ext", "-i", "--verbose"]
     if debug:
         setup_args.append("--debug")

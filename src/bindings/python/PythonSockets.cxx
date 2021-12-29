@@ -177,17 +177,26 @@ int zts_py_send(int fd, PyObject* buf, int flags)
 int zts_py_sendall(int fd, PyObject* bytes, int flags)
 {
     int res;
+    Py_buffer output;
 
-    Py_buffer pbuf = *(Py_buffer*) bytes;
-    char *buf = (char *) pbuf.buf;
-    int bytes_left = pbuf.len;
+    char *buf;
+    int bytes_left;
 
     int has_timeout;
     int deadline_initialized = 0;
 
-    _PyTime_t timeout;
-    _PyTime_t interval;
-    _PyTime_t deadline;
+    _PyTime_t timeout;  // Timeout duration
+    _PyTime_t interval;  // Time remaining until deadline
+    _PyTime_t deadline;  // System clock deadline for timeout
+
+    if (PyObject_GetBuffer(bytes, &output, PyBUF_SIMPLE) != 0) {
+        // BufferError has been raised. No need to set our own error.
+        res = ZTS_ERR_OK;
+        goto done;
+    }
+
+    buf = (char *) output.buf;
+    bytes_left = output.len;
 
     res = zts_get_send_timeout(fd);
     if (res < 0)
@@ -224,6 +233,7 @@ int zts_py_sendall(int fd, PyObject* bytes, int flags)
 
         int bytes_sent = res;
         assert(bytes_sent > 0);
+
         buf += bytes_sent;  // Advance pointer
         bytes_left -= bytes_sent;
 
@@ -232,10 +242,11 @@ int zts_py_sendall(int fd, PyObject* bytes, int flags)
 
     } while (bytes_left > 0);
 
-    res = 0;  // Success
+    res = ZTS_ERR_OK;  // Success
 
 done:
-    PyBuffer_Release(&pbuf);
+    if (output.obj != NULL)
+        PyBuffer_Release(&output);
     return res;
 }
 

@@ -44,7 +44,7 @@
 #define ZT_LOCAL_INTERFACE_CHECK_INTERVAL 60000
 
 #ifdef __WINDOWS__
-#include <Windows.h>
+#include <windows.h>
 #endif
 
 namespace ZeroTier {

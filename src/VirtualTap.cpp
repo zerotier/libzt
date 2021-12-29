@@ -37,7 +37,7 @@
 #include "VirtualTap.hpp"
 
 #if defined(__WINDOWS__)
-#include "Synchapi.h"
+#include "synchapi.h"
 
 #include <time.h>
 #endif

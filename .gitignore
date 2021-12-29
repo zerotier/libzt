@@ -7,6 +7,7 @@ ports/xcode_macos/
 products/
 tmp/
 API.pdf
+cache/
 
 # ZeroTier-specific 
 *.conf
@@ -47,9 +48,20 @@ gen/
 
 # Python
 *.py[co]
-packages/PyPI/libzt.egg-info/
 *.pypirc
 __pycache__/
+*.egg-info/
+pkg/pypi/dist/
+pkg/pypi/libzt/libzt.py
+pkg/pypi/libzt/node.py
+pkg/pypi/libzt/select.py
+pkg/pypi/libzt/sockets.py
+pkg/pypi/native
+pkg/pypi/LICENSE
+
+# SWIG
+src/bindings/python/libzt.py
+src/bindings/python/zt_wrap.*
 
 # Junk
 *.DS_Store

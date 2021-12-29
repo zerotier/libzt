@@ -8,6 +8,7 @@ products/
 tmp/
 API.pdf
 cache/
+dist/
 
 # ZeroTier-specific 
 *.conf

@@ -3,7 +3,7 @@
 #
 # Do not make changes to this file unless you know what you are doing--modify
 # the SWIG interface file instead.
-from enum import IntEnum
+
 from sys import version_info as _swig_python_version_info
 
 if _swig_python_version_info < (2, 7, 0):
@@ -119,6 +119,49 @@ ZTS_EVENT_STORE_IDENTITY_PUBLIC = _libzt.ZTS_EVENT_STORE_IDENTITY_PUBLIC
 ZTS_EVENT_STORE_PLANET = _libzt.ZTS_EVENT_STORE_PLANET
 ZTS_EVENT_STORE_PEER = _libzt.ZTS_EVENT_STORE_PEER
 ZTS_EVENT_STORE_NETWORK = _libzt.ZTS_EVENT_STORE_NETWORK
+ZTS_EPERM = _libzt.ZTS_EPERM
+ZTS_ENOENT = _libzt.ZTS_ENOENT
+ZTS_ESRCH = _libzt.ZTS_ESRCH
+ZTS_EINTR = _libzt.ZTS_EINTR
+ZTS_EIO = _libzt.ZTS_EIO
+ZTS_ENXIO = _libzt.ZTS_ENXIO
+ZTS_EBADF = _libzt.ZTS_EBADF
+ZTS_EAGAIN = _libzt.ZTS_EAGAIN
+ZTS_EWOULDBLOCK = _libzt.ZTS_EWOULDBLOCK
+ZTS_ENOMEM = _libzt.ZTS_ENOMEM
+ZTS_EACCES = _libzt.ZTS_EACCES
+ZTS_EFAULT = _libzt.ZTS_EFAULT
+ZTS_EBUSY = _libzt.ZTS_EBUSY
+ZTS_EEXIST = _libzt.ZTS_EEXIST
+ZTS_ENODEV = _libzt.ZTS_ENODEV
+ZTS_EINVAL = _libzt.ZTS_EINVAL
+ZTS_ENFILE = _libzt.ZTS_ENFILE
+ZTS_EMFILE = _libzt.ZTS_EMFILE
+ZTS_ENOSYS = _libzt.ZTS_ENOSYS
+ZTS_ENOTSOCK = _libzt.ZTS_ENOTSOCK
+ZTS_EDESTADDRREQ = _libzt.ZTS_EDESTADDRREQ
+ZTS_EMSGSIZE = _libzt.ZTS_EMSGSIZE
+ZTS_EPROTOTYPE = _libzt.ZTS_EPROTOTYPE
+ZTS_ENOPROTOOPT = _libzt.ZTS_ENOPROTOOPT
+ZTS_EPROTONOSUPPORT = _libzt.ZTS_EPROTONOSUPPORT
+ZTS_ESOCKTNOSUPPORT = _libzt.ZTS_ESOCKTNOSUPPORT
+ZTS_EOPNOTSUPP = _libzt.ZTS_EOPNOTSUPP
+ZTS_EPFNOSUPPORT = _libzt.ZTS_EPFNOSUPPORT
+ZTS_EAFNOSUPPORT = _libzt.ZTS_EAFNOSUPPORT
+ZTS_EADDRINUSE = _libzt.ZTS_EADDRINUSE
+ZTS_EADDRNOTAVAIL = _libzt.ZTS_EADDRNOTAVAIL
+ZTS_ENETDOWN = _libzt.ZTS_ENETDOWN
+ZTS_ENETUNREACH = _libzt.ZTS_ENETUNREACH
+ZTS_ECONNABORTED = _libzt.ZTS_ECONNABORTED
+ZTS_ECONNRESET = _libzt.ZTS_ECONNRESET
+ZTS_ENOBUFS = _libzt.ZTS_ENOBUFS
+ZTS_EISCONN = _libzt.ZTS_EISCONN
+ZTS_ENOTCONN = _libzt.ZTS_ENOTCONN
+ZTS_ETIMEDOUT = _libzt.ZTS_ETIMEDOUT
+ZTS_ECONNREFUSED = _libzt.ZTS_ECONNREFUSED
+ZTS_EHOSTUNREACH = _libzt.ZTS_EHOSTUNREACH
+ZTS_EALREADY = _libzt.ZTS_EALREADY
+ZTS_EINPROGRESS = _libzt.ZTS_EINPROGRESS
 ZTS_MAC_ADDRSTRLEN = _libzt.ZTS_MAC_ADDRSTRLEN
 ZTS_INET_ADDRSTRLEN = _libzt.ZTS_INET_ADDRSTRLEN
 ZTS_INET6_ADDRSTRLEN = _libzt.ZTS_INET6_ADDRSTRLEN
@@ -157,102 +200,6 @@ ZTS_IOC_VOID = _libzt.ZTS_IOC_VOID
 ZTS_IOC_OUT = _libzt.ZTS_IOC_OUT
 ZTS_IOC_IN = _libzt.ZTS_IOC_IN
 ZTS_IOC_INOUT = _libzt.ZTS_IOC_INOUT
-
-
-class zts_errno_t(IntEnum):
-    """Enum of socket error codes"""
-
-    # Operation not permitted 
-    ZTS_EPERM = _libzt.ZTS_EPERM,
-    # No such file or directory 
-    ZTS_ENOENT = _libzt.ZTS_ENOENT,
-    # No such process 
-    ZTS_ESRCH = _libzt.ZTS_ESRCH,
-    # Interrupted system call 
-    ZTS_EINTR = _libzt.ZTS_EINTR,
-    # I/O error 
-    ZTS_EIO = _libzt.ZTS_EIO,
-    # No such device or address 
-    ZTS_ENXIO = _libzt.ZTS_ENXIO,
-    # Bad file number 
-    ZTS_EBADF = _libzt.ZTS_EBADF,
-    # Try again 
-    ZTS_EAGAIN = _libzt.ZTS_EAGAIN,
-    # Operation would block 
-    ZTS_EWOULDBLOCK = _libzt.ZTS_EWOULDBLOCK,
-    # Out of memory 
-    ZTS_ENOMEM = _libzt.ZTS_ENOMEM,
-    # Permission denied 
-    ZTS_EACCES = _libzt.ZTS_EACCES,
-    # Bad address 
-    ZTS_EFAULT = _libzt.ZTS_EFAULT,
-    # Device or resource busy 
-    ZTS_EBUSY = _libzt.ZTS_EBUSY,
-    # File exists 
-    ZTS_EEXIST = _libzt.ZTS_EEXIST,
-    # No such device 
-    ZTS_ENODEV = _libzt.ZTS_ENODEV,
-    # Invalid argument 
-    ZTS_EINVAL = _libzt.ZTS_EINVAL,
-    # File table overflow 
-    ZTS_ENFILE = _libzt.ZTS_ENFILE,
-    # Too many open files 
-    ZTS_EMFILE = _libzt.ZTS_EMFILE,
-    # Function not implemented 
-    ZTS_ENOSYS = _libzt.ZTS_ENOSYS,
-    # Socket operation on non-socket 
-    ZTS_ENOTSOCK = _libzt.ZTS_ENOTSOCK,
-    # Destination address required 
-    ZTS_EDESTADDRREQ = _libzt.ZTS_EDESTADDRREQ,
-    # Message too long 
-    ZTS_EMSGSIZE = _libzt.ZTS_EMSGSIZE,
-    # Protocol wrong type for socket 
-    ZTS_EPROTOTYPE = _libzt.ZTS_EPROTOTYPE,
-    # Protocol not available 
-    ZTS_ENOPROTOOPT = _libzt.ZTS_ENOPROTOOPT,
-    # Protocol not supported 
-    ZTS_EPROTONOSUPPORT = _libzt.ZTS_EPROTONOSUPPORT,
-    # Socket type not supported 
-    ZTS_ESOCKTNOSUPPORT = _libzt.ZTS_ESOCKTNOSUPPORT,
-    # Operation not supported on transport endpoint 
-    ZTS_EOPNOTSUPP = _libzt.ZTS_EOPNOTSUPP,
-    # Protocol family not supported 
-    ZTS_EPFNOSUPPORT = _libzt.ZTS_EPFNOSUPPORT,
-    # Address family not supported by protocol 
-    ZTS_EAFNOSUPPORT = _libzt.ZTS_EAFNOSUPPORT,
-    # Address already in use 
-    ZTS_EADDRINUSE = _libzt.ZTS_EADDRINUSE,
-    # Cannot assign requested address 
-    ZTS_EADDRNOTAVAIL = _libzt.ZTS_EADDRNOTAVAIL,
-    # Network is down 
-    ZTS_ENETDOWN = _libzt.ZTS_ENETDOWN,
-    # Network is unreachable 
-    ZTS_ENETUNREACH = _libzt.ZTS_ENETUNREACH,
-    # Software caused connection abort 
-    ZTS_ECONNABORTED = _libzt.ZTS_ECONNABORTED,
-    # Connection reset by peer 
-    ZTS_ECONNRESET = _libzt.ZTS_ECONNRESET,
-    # No buffer space available 
-    ZTS_ENOBUFS = _libzt.ZTS_ENOBUFS,
-    # Transport endpoint is already connected 
-    ZTS_EISCONN = _libzt.ZTS_EISCONN,
-    # Transport endpoint is not connected 
-    ZTS_ENOTCONN = _libzt.ZTS_ENOTCONN,
-    # Connection timed out 
-    ZTS_ETIMEDOUT = _libzt.ZTS_ETIMEDOUT,
-    # Connection refused
-    ZTS_ECONNREFUSED = _libzt.ZTS_ECONNREFUSED,
-    # No route to host 
-    ZTS_EHOSTUNREACH = _libzt.ZTS_EHOSTUNREACH,
-    # Operation already in progress 
-    ZTS_EALREADY = _libzt.ZTS_EALREADY,
-    # Operation now in progress 
-    ZTS_EINPROGRESS = _libzt.ZTS_EINPROGRESS
-
-
-# Compatability - enum values were originally constants defined at the module level
-for enum_val in zts_errno_t:
-    globals()[enum_val.name] = enum_val.value
 
 
 class zts_node_info_t(object):

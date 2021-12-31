@@ -1,1 +1,2 @@
-__version__ = "1.8.4"
+import pkg_resources
+__version__ = pkg_resources.get_distribution("libzt").version

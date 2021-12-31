@@ -1,0 +1,60 @@
+[tool.poetry]
+name = "libzt"
+version = "1.8.4"
+description = "ZeroTier"
+authors = ["ZeroTier, Inc."]
+license = "BUSL 1.1"
+readme = "README.md"
+homepage = "https://www.zerotier.com/"
+repository = "https://github.com/zerotier/libzt/"
+documentation = "https://docs.zerotier.com/"
+keywords = [
+    "zerotier",
+    "p2p",
+    "peer-to-peer",
+    "sdwan",
+    "sdn",
+    "virtual",
+    "network",
+    "socket",
+    "tcp",
+    "udp",
+    "zt",
+    "encryption",
+    "encrypted",
+]
+classifiers = [
+    "Topic :: Internet",
+    "Topic :: System :: Networking",
+    "Topic :: Security :: Cryptography",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Telecommunications Industry",
+    "Intended Audience :: End Users/Desktop",
+    "License :: Free for non-commercial use",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: BSD",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Unix",
+    "Programming Language :: C",
+    "Programming Language :: Python",
+    "Programming Language :: C++",
+]
+packages = [
+    { include = "libzt" },
+]
+build = "build.py"
+
+[tool.poetry.dependencies]
+python = "^3.5"
+
+[tool.poetry.dev-dependencies]
+
+[tool.poetry.urls]
+"GitHub" = "https://github.com/zerotier/libzt/"
+"Issue Tracker" = "https://github.com/zerotier/libzt/issues"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -454,18 +454,22 @@ void zts_lwip_eth_rx(
 
     if (Utils::ntoh(ethhdr.type) == 0x800 || Utils::ntoh(ethhdr.type) == 0x806) {
         if (tap->netif4) {
+            LOCK_TCPIP_CORE();
             if ((err = ((struct netif*)tap->netif4)->input(p, (struct netif*)tap->netif4)) != ERR_OK) {
                 // DEBUG_ERROR("packet input error (%d)", err);
                 pbuf_free(p);
             }
+            UNLOCK_TCPIP_CORE();
         }
     }
     if (Utils::ntoh(ethhdr.type) == 0x86DD) {
         if (tap->netif6) {
+            LOCK_TCPIP_CORE();
             if ((err = ((struct netif*)tap->netif6)->input(p, (struct netif*)tap->netif6)) != ERR_OK) {
                 // DEBUG_ERROR("packet input error (%d)", err);
                 pbuf_free(p);
             }
+            UNLOCK_TCPIP_CORE();
         }
     }
 }

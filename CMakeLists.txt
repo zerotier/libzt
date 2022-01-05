@@ -457,7 +457,11 @@ endif()
 # |                                      JNI                                   |
 # ------------------------------------------------------------------------------
 
-if(ZTS_ENABLE_JAVA OR BUILD_ANDROID)
+if(BUILD_ANDROID)
+    option(ZTS_NDK_ONLY "Use C API callbacks on Android" FALSE)
+endif()
+
+if(ZTS_ENABLE_JAVA OR (BUILD_ANDROID AND NOT ZTS_NDK_ONLY))
     message(STATUS "Looking for JNI")
 
     if(BUILD_WIN)

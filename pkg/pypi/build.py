@@ -135,8 +135,5 @@ def build(setup_kwargs):
     # Pass up extensions information
     setup_kwargs["libraries"] = [cstuff()]
     setup_kwargs["ext_modules"] = [LibztModule()]
+    setup_kwargs["py_modules"] = ["libzt"]
     setup_kwargs["cmdclass"] = {"build_ext": ExtBuilder}
-
-
-
-

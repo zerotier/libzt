@@ -174,6 +174,82 @@ int zts_py_send(int fd, PyObject* buf, int flags)
     return bytes_sent;
 }
 
+int zts_py_sendall(int fd, PyObject* bytes, int flags)
+{
+    int res;
+    Py_buffer output;
+
+    char *buf;
+    int bytes_left;
+
+    int has_timeout;
+    int deadline_initialized = 0;
+
+    _PyTime_t timeout;  // Timeout duration
+    _PyTime_t interval;  // Time remaining until deadline
+    _PyTime_t deadline;  // System clock deadline for timeout
+
+    if (PyObject_GetBuffer(bytes, &output, PyBUF_SIMPLE) != 0) {
+        // BufferError has been raised. No need to set our own error.
+        res = ZTS_ERR_OK;
+        goto done;
+    }
+
+    buf = (char *) output.buf;
+    bytes_left = output.len;
+
+    res = zts_get_send_timeout(fd);
+    if (res < 0)
+        goto done;
+
+    timeout = (_PyTime_t) 1000 * 1000 * (int64_t) res; // Convert ms to ns
+    interval = timeout;
+    has_timeout = (interval > 0);
+
+    /* Call zts_bsd_send() until no more bytes left to send in the buffer.
+    Keep track of remaining time until timeout and exit with ZTS_ETIMEDOUT if timeout exceeded.
+    Check signals between calls to send() to prevent undue blocking.*/
+    do {
+        if (has_timeout) {
+            if (deadline_initialized) {
+                interval = deadline - _PyTime_GetMonotonicClock();
+            } else {
+                deadline_initialized = 1;
+                deadline = _PyTime_GetMonotonicClock() + timeout;
+            }
+
+            if (interval <= 0) {
+                zts_errno = ZTS_ETIMEDOUT;
+                res = ZTS_ERR_SOCKET;
+                goto done;
+            }
+        }
+
+        Py_BEGIN_ALLOW_THREADS;
+        res = zts_bsd_send(fd, buf, bytes_left, flags);
+        Py_END_ALLOW_THREADS;
+        if (res < 0)
+            goto done;
+
+        int bytes_sent = res;
+        assert(bytes_sent > 0);
+
+        buf += bytes_sent;  // Advance pointer
+        bytes_left -= bytes_sent;
+
+        if (PyErr_CheckSignals())  // Handle interrupts, etc.
+            goto done;
+
+    } while (bytes_left > 0);
+
+    res = ZTS_ERR_OK;  // Success
+
+done:
+    if (output.obj != NULL)
+        PyBuffer_Release(&output);
+    return res;
+}
+
 int zts_py_close(int fd)
 {
     int err;

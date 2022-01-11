@@ -23,7 +23,7 @@
 #include "ZeroTierSockets.h"
 
 #ifdef __WINDOWS__
-#include <BaseTsd.h>
+#include <basetsd.h>
 #endif
 
 /* Macro substitutions to standardize state checking of service, node, callbacks, and TCP/IP

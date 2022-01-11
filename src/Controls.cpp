@@ -27,7 +27,7 @@
 using namespace ZeroTier;
 
 #ifdef __WINDOWS__
-#include <Windows.h>
+#include <windows.h>
 WSADATA wsaData;
 #endif
 

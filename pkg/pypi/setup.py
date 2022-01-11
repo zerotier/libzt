@@ -56,7 +56,6 @@ else:
 	cpp_glob.extend(list(glob.glob('native/ext/ZeroTierOne/node/*.cpp')))
 	cpp_glob.extend(list(glob.glob('native/ext/ZeroTierOne/osdep/OSUtils.cpp')))
 	cpp_glob.extend(list(glob.glob('native/ext/ZeroTierOne/osdep/PortMapper.cpp')))
-	cpp_glob.extend(list(glob.glob('native/ext/ZeroTierOne/osdep/ManagedRoute.cpp')))
 
 	my_include_dirs=['native/include',
 			'native/src',

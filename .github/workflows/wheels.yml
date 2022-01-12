@@ -34,7 +34,7 @@ jobs:
       - name: Build wheels
         env:
           CIBW_ARCHS: auto
-          CIBW_BUILD: cp35-* cp36-* cp37-* cp38-* cp39-* cp310-*
+          CIBW_BUILD: cp36-* cp37-* cp38-* cp39-* cp310-*
         run: python -m cibuildwheel pkg/pypi --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v2

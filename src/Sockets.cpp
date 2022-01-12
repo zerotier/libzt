@@ -24,6 +24,10 @@
 #include "lwip/dns.h"
 #include "lwip/netdb.h"
 
+#if defined(__ANDROID__)
+#include <sys/endian.h>
+#endif
+
 int zts_errno;
 
 namespace ZeroTier {

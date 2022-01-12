@@ -65,7 +65,7 @@ def main():
         print_usage()
     print("mode         = ", mode)
     print("storage_path = ", storage_path)
-    print("net_id       = ", net_id)
+    print("net_id       = ", hex(net_id))
     print("remote_ip    = ", remote_ip)
     print("remote_port  = ", remote_port)
 

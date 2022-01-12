@@ -43,7 +43,6 @@ class LibztModule(Extension):
             *glob(os.path.join(ROOT_DIR, "ext/ZeroTierOne/node/*.cpp")),
             *glob(os.path.join(ROOT_DIR, "ext/ZeroTierOne/osdep/OSUtils.cpp")),
             *glob(os.path.join(ROOT_DIR, "ext/ZeroTierOne/osdep/PortMapper.cpp")),
-            *glob(os.path.join(ROOT_DIR, "ext/ZeroTierOne/osdep/ManagedRoute.cpp")),
         ]
         # noinspection PyUnresolvedReferences
         assert len(sources) > 0, "no sources found"

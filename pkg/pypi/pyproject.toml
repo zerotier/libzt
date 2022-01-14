@@ -56,5 +56,5 @@ python = "^3.6"
 "Issue Tracker" = "https://github.com/zerotier/libzt/issues"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["setuptools", "poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

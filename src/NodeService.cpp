@@ -1220,7 +1220,7 @@ uint64_t NodeService::getNodeId()
 
 int NodeService::setIdentity(const char* keypair, unsigned int len)
 {
-    if (keypair == NULL || len < ZT_IDENTITY_STRING_BUFFER_LENGTH) {
+    if (keypair == NULL || len > ZT_IDENTITY_STRING_BUFFER_LENGTH) {
         return ZTS_ERR_ARG;
     }
     // Double check user-provided keypair

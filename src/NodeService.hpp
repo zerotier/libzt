@@ -326,6 +326,9 @@ class NodeService {
     /** Set the node's identity */
     int setIdentity(const char* keypair, unsigned int len);
 
+    /** Set the node's identity from secret*/
+    int setIdentityFromSecret(const char* secret, unsigned int len);
+
     void nodeStatePutFunction(enum ZT_StateObjectType type, const uint64_t id[2], const void* data, unsigned int len);
 
     int nodeStateGetFunction(enum ZT_StateObjectType type, const uint64_t id[2], void* data, unsigned int maxlen);

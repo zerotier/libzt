@@ -1218,6 +1218,27 @@ uint64_t NodeService::getNodeId()
     return _node ? _node->address() : 0x0;
 }
 
+int NodeService::setIdentityFromSecret(const char* secret, unsigned int len)
+{
+    if (secret == NULL) {
+        return ZTS_ERR_ARG;
+    }
+    // Double check user-provided keypair
+    Identity id;
+    if (! id.fromSecret(secret, len)) {
+        return id.locallyValidate();
+    }
+    Mutex::Lock _lr(_run_m);
+    if (_run) {
+        return ZTS_ERR_SERVICE;
+    }
+    Mutex::Lock _ls(_store_m);
+    char keypair[ZT_IDENTITY_STRING_BUFFER_LENGTH];
+    id.toString(true, keypair);
+    memcpy(_secretIdStr, keypair, len);
+    return ZTS_ERR_OK;
+}
+
 int NodeService::setIdentity(const char* keypair, unsigned int len)
 {
     if (keypair == NULL || len < ZT_IDENTITY_STRING_BUFFER_LENGTH) {

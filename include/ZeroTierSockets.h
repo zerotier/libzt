@@ -1234,6 +1234,22 @@ ZTS_API int ZTCALL zts_init_from_storage(const char* path);
  */
 ZTS_API int ZTCALL zts_init_from_memory(const char* key, unsigned int len);
 
+/**
+ * @brief Instruct ZeroTier to use the identity provided by `secret`. This is an initialization
+ * function that can only be called before `zts_node_start()`.
+ *
+ * Note that calling this function is not mandatory and if it is not called the node's keys will be
+ * kept in memory and retrievable via `zts_node_get_id_pair()`.
+ *
+ * See also: `zts_init_from_storage()`
+ *
+ * @param key Buffer containing identity secret
+ * @param len Length of `secret` buffer
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem, `ZTS_ERR_ARG` if invalid argument.
+ */
+ZTS_API int ZTCALL zts_init_from_secret(const char* secret, unsigned int len);
+
 #ifdef ZTS_ENABLE_PYTHON
 #include "Python.h"
 

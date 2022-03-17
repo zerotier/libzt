@@ -95,6 +95,12 @@ int zts_init_from_memory(const char* keypair, unsigned int len)
     return zts_service->setIdentity(keypair, len);
 }
 
+int zts_init_from_secret(const char* secret, unsigned int len)
+{
+    ACQUIRE_SERVICE_OFFLINE();
+    return zts_service->setIdentityFromSecret(secret, len);
+}
+
 #ifdef ZTS_ENABLE_PYTHON
 int zts_init_set_event_handler(PythonDirectorCallbackClass* callback)
 #endif

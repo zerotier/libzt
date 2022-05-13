@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "libzt"
-version = "1.8.4"
+version = "1.8.10"
 description = "ZeroTier"
 authors = ["ZeroTier, Inc."]
 license = "BUSL 1.1"

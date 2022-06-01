@@ -29,7 +29,7 @@ Peer-to-peer and cross-platform encrypted connections built right into your app 
 | C#  | `Install-Package ZeroTier.Sockets` |<a href="https://www.nuget.org/packages/ZeroTier.Sockets/"><img src="https://img.shields.io/github/v/tag/zerotier/libzt?label=NuGet"/></a> |[C#](./examples/csharp)  |
 | Python  | `pip install libzt`|<a href="https://pypi.org/project/libzt/"><img src="https://img.shields.io/pypi/v/libzt?label=PyPI"/></a> |[Python](./examples/python)  |
 | Rust  | See: [crates.io/crates/libzt](https://crates.io/crates/libzt) | <img alt="version" src="https://img.shields.io/crates/v/libzt?color=blue"/>|[Rust](./examples/rust)  |
-| Java  | `./build.sh host-jar` |<img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> |[Java](./examples/java)  |
+| Java  | Install JDK, then: `./build.sh host-jar` |<img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> |[Java](./examples/java)  |
 | Linux  | `brew install zerotier/tap/libzt` | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/></a>| [C/C++](./examples/c)  |
 | macOS  | `brew install zerotier/tap/libzt`| <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label=Homebrew"/></a>| [C/C++](./examples/c)  |
 | iOS / iPadOS  | `./build.sh iphoneos-framework` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>| [Objective-C](./attic/objective-c), [Swift](./attic/swift)  |

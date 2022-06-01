@@ -494,7 +494,7 @@ host-jar()
 {
     check_submodules
     ARTIFACT="jar"
-    PKG_VERSION=$(cat .version)
+    PKG_VERSION=$(git describe --tags --abbrev=0)
     # Default to release
     BUILD_TYPE=${1:-release}
     if [[ $1 = *"docs"* ]]; then
@@ -745,13 +745,12 @@ clean()
 
     find . -type d -name "__pycache__" -exec rm -rf {} +
     # Python pkg
-    cd pkg/pypi && ./build.sh clean
+    # cd pkg/pypi && ./build.sh clean
 }
 
 tag_release()
 {
     git tag -a $1 -m $2
-    "$(git describe --tags --abbrev=0)" >> .version
     git push origin --tags
 }
 

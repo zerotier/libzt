@@ -10,7 +10,6 @@ Peer-to-peer and cross-platform encrypted connections built right into your app 
 
 <a href="./examples">Examples</a> |
 <a href="https://docs.zerotier.com/sockets/tutorial.html">Documentation</a> |
-<a href="https://discuss.zerotier.com/">Community</a> |
 <a href="https://github.com/zerotier/libzt/issues">Report a Bug</a>
 
 

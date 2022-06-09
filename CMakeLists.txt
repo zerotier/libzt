@@ -380,7 +380,7 @@ else()
     set(LWIP_FLAGS "${LWIP_FLAGS} -DLWIP_DBG_TYPES_ON=0")
 endif()
 
-if(BUILD_WIN)
+if(BUILD_WIN AND MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc -DNOMINMAX")
 else()

@@ -433,9 +433,8 @@ void zta2ss(JNIEnv* env, struct zts_sockaddr_storage* ss, jobject addr)
     }
     if (family == ZTS_AF_INET6) {
         struct zts_sockaddr_in6* in6 = (struct zts_sockaddr_in6*)ss;
-        jfieldID fid = env->GetFieldID(c, "_port", "I");
+        fid = env->GetFieldID(c, "_port", "I");
         in6->sin6_port = lwip_htons(env->GetIntField(addr, fid));
-        fid = env->GetFieldID(c, "_family", "I");
         in6->sin6_family = ZTS_AF_INET6;
         fid = env->GetFieldID(c, "_ip6", "[B");
         jobject ipData = env->GetObjectField(addr, fid);

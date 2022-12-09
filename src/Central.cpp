@@ -25,7 +25,7 @@
 
 #define REQ_LEN 64
 
-char api_url[ZTS_CENRTAL_MAX_URL_LEN];
+char api_url[ZTS_CENTRAL_MAX_URL_LEN];
 char api_token[ZTS_CENTRAL_TOKEN_LEN + 1];
 
 char* _resp_buf;
@@ -97,12 +97,12 @@ int zts_central_init(const char* url_str, const char* token_str, char* resp_buf,
     // Initialize all curl internal submodules
     curl_global_init(CURL_GLOBAL_ALL);
 
-    int url_len = strnlen(url_str, ZTS_CENRTAL_MAX_URL_LEN);
-    if (url_len < 3 || url_len > ZTS_CENRTAL_MAX_URL_LEN) {
+    int url_len = strnlen(url_str, ZTS_CENTRAL_MAX_URL_LEN);
+    if (url_len < 3 || url_len > ZTS_CENTRAL_MAX_URL_LEN) {
         return ZTS_ERR_ARG;
     }
     else {
-        memset(api_url, 0, ZTS_CENRTAL_MAX_URL_LEN);
+        memset(api_url, 0, ZTS_CENTRAL_MAX_URL_LEN);
         strncpy(api_url, url_str, url_len);
     }
     int token_len = strnlen(token_str, ZTS_CENTRAL_TOKEN_LEN);
@@ -146,19 +146,19 @@ int central_req(
         return ZTS_ERR_SERVICE;
     }
     zts_central_clear_resp_buf();
-    int central_strlen = strnlen(central_str, ZTS_CENRTAL_MAX_URL_LEN);
-    int api_route_strlen = strnlen(api_route_str, ZTS_CENRTAL_MAX_URL_LEN);
+    int central_strlen = strnlen(central_str, ZTS_CENTRAL_MAX_URL_LEN);
+    int api_route_strlen = strnlen(api_route_str, ZTS_CENTRAL_MAX_URL_LEN);
     int token_strlen = strnlen(token_str, ZTS_CENTRAL_TOKEN_LEN);
     int url_len = central_strlen + api_route_strlen;
     if (token_strlen > ZTS_CENTRAL_TOKEN_LEN) {
         return ZTS_ERR_ARG;
     }
-    if (url_len > ZTS_CENRTAL_MAX_URL_LEN) {
+    if (url_len > ZTS_CENTRAL_MAX_URL_LEN) {
         return ZTS_ERR_ARG;
     }
-    char req_url[ZTS_CENRTAL_MAX_URL_LEN] = { 0 };
-    strncpy(req_url, central_str, ZTS_CENRTAL_MAX_URL_LEN);
-    strncat(req_url, api_route_str, ZTS_CENRTAL_MAX_URL_LEN);
+    char req_url[ZTS_CENTRAL_MAX_URL_LEN] = { 0 };
+    strncpy(req_url, central_str, ZTS_CENTRAL_MAX_URL_LEN);
+    strncat(req_url, api_route_str, ZTS_CENTRAL_MAX_URL_LEN);
 
     CURL* curl;
     CURLcode res;

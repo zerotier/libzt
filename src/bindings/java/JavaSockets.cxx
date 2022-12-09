@@ -81,8 +81,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1bsd_1accept
     JNIEnv* env,
     jobject thisObj,
     jint fd,
-    jobject addr,
-    jint port)
+    jobject addr)
 {
     struct zts_sockaddr_storage ss;
     zts_socklen_t addrlen = sizeof(struct zts_sockaddr_storage);

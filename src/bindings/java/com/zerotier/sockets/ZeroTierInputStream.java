@@ -30,7 +30,7 @@ public class ZeroTierInputStream extends InputStream {
      * Close the ZeroTierInputStream
      * @exception IOException when an I/O error occurs
      */
-    public void close​() throws IOException
+    public void close() throws IOException
     {
         /* Note: this operation currently only stops RX on a socket that is shared
         between both I/OStreams. This means that closing this stream will only shutdown
@@ -47,7 +47,7 @@ public class ZeroTierInputStream extends InputStream {
      * @return Number of bytes transferred
      * @exception IOException when an I/O error occurs
      */
-    public long transferTo​(OutputStream destStream) throws IOException
+    public long transferTo(OutputStream destStream) throws IOException
     {
         Objects.requireNonNull(destStream, "destStream must not be null");
         int bytesTransferred = 0, bytesRead;
@@ -64,7 +64,7 @@ public class ZeroTierInputStream extends InputStream {
      * @return Single byte read
      * @exception IOException when an I/O error occurs
      */
-    public int read​() throws IOException
+    public int read() throws IOException
     {
         byte[] buf = new byte[1];
         // Unlike a native read(), if nothing is read we should return -1
@@ -73,7 +73,7 @@ public class ZeroTierInputStream extends InputStream {
             return -1;
         }
         if (retval < 0) {
-            throw new IOException("read​(), errno=" + retval);
+            throw new IOException("read(), errno=" + retval);
         }
         return buf[0];
     }
@@ -84,7 +84,7 @@ public class ZeroTierInputStream extends InputStream {
      * @return Number of bytes read
      * @exception IOException when an I/O error occurs
      */
-    public int read​(byte[] destBuffer) throws IOException
+    public int read(byte[] destBuffer) throws IOException
     {
         Objects.requireNonNull(destBuffer, "input byte array must not be null");
         // Unlike a native read(), if nothing is read we should return -1
@@ -93,7 +93,7 @@ public class ZeroTierInputStream extends InputStream {
             return -1;
         }
         if (retval < 0) {
-            throw new IOException("read​(destBuffer), errno=" + retval);
+            throw new IOException("read(destBuffer), errno=" + retval);
         }
         return retval;
     }
@@ -106,7 +106,7 @@ public class ZeroTierInputStream extends InputStream {
      * @return Number of bytes read.
      * @exception IOException when an I/O error occurs
      */
-    public int read​(byte[] destBuffer, int offset, int numBytes) throws IOException
+    public int read(byte[] destBuffer, int offset, int numBytes) throws IOException
     {
         Objects.requireNonNull(destBuffer, "input byte array must not be null");
         if (offset < 0) {
@@ -127,7 +127,7 @@ public class ZeroTierInputStream extends InputStream {
             return -1;
         }
         if (retval < 0) {
-            throw new IOException("read​(destBuffer, offset, numBytes), errno=" + retval);
+            throw new IOException("read(destBuffer, offset, numBytes), errno=" + retval);
         }
         return retval;
     }
@@ -137,7 +137,7 @@ public class ZeroTierInputStream extends InputStream {
      * @return Array of bytes
      * @exception IOException when an I/O error occurs
      */
-    public byte[] readAllBytes​() throws IOException
+    public byte[] readAllBytes() throws IOException
     {
         int pendingDataSize = ZeroTierNative.zts_get_pending_data_size(zfd);
         byte[] buf = new byte[pendingDataSize];
@@ -146,7 +146,7 @@ public class ZeroTierInputStream extends InputStream {
             // No action needed
         }
         if (retval < 0) {
-            throw new IOException("readAllBytes​(), errno=" + retval);
+            throw new IOException("readAllBytes(), errno=" + retval);
         }
         return buf;
     }
@@ -159,7 +159,7 @@ public class ZeroTierInputStream extends InputStream {
      * @return Nothing.
      * @exception IOException when an I/O error occurs
      */
-    public int readNBytes​(byte[] destBuffer, int offset, int numBytes) throws IOException
+    public int readNBytes(byte[] destBuffer, int offset, int numBytes) throws IOException
     {
         Objects.requireNonNull(destBuffer, "input byte array must not be null");
         if (offset < 0) {
@@ -179,7 +179,7 @@ public class ZeroTierInputStream extends InputStream {
             // No action needed
         }
         if (retval < 0) {
-            throw new IOException("readNBytes​(destBuffer, offset, numBytes), errno=" + retval);
+            throw new IOException("readNBytes(destBuffer, offset, numBytes), errno=" + retval);
         }
         return retval;
     }
@@ -190,7 +190,7 @@ public class ZeroTierInputStream extends InputStream {
      * @return Nothing.
      * @exception IOException when an I/O error occurs
      */
-    public long skip​(long numBytes) throws IOException
+    public long skip(long numBytes) throws IOException
     {
         if (numBytes <= 0) {
             return 0;

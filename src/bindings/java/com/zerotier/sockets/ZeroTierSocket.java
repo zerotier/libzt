@@ -421,7 +421,7 @@ public class ZeroTierSocket {
      * Return whether this ZeroTierSocket is bound to a local address
      * @return true or false
      */
-    public boolean isBound​()
+    public boolean isBound()
     {
         return _isBound;
     }
@@ -430,7 +430,7 @@ public class ZeroTierSocket {
      * Return whether this ZeroTierSocket has been closed
      * @return true or false
      */
-    public boolean isClosed​()
+    public boolean isClosed()
     {
         return _isClosed;
     }
@@ -439,7 +439,7 @@ public class ZeroTierSocket {
      * Return whether this ZeroTierSocket is connected to a remote address
      * @return true or false
      */
-    public boolean isConnected​()
+    public boolean isConnected()
     {
         return _isConnected;
     }
@@ -526,7 +526,7 @@ public class ZeroTierSocket {
      * Return whether the input-aspect of the ZeroTierSocket has been disabled.
      * @return true or false
      */
-    public boolean inputStreamHasBeenShutdown​()
+    public boolean inputStreamHasBeenShutdown()
     {
         return _inputHasBeenShutdown;
     }
@@ -535,7 +535,7 @@ public class ZeroTierSocket {
      * Return whether the output-aspect of the ZeroTierSocket has been disabled.
      * @return true or false
      */
-    public boolean outputStreamHasBeenShutdown​()
+    public boolean outputStreamHasBeenShutdown()
     {
         return _outputHasBeenShutdown;
     }

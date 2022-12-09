@@ -232,12 +232,12 @@ public class ZeroTierSocket {
         if (_zfd < 0) {
             throw new IOException("Invalid socket (fd < 0)");
         }
-        int accetpedFd = -1;
+        int acceptedFd = -1;
         ZeroTierSocketAddress addr = new ZeroTierSocketAddress();
-        if ((accetpedFd = ZeroTierNative.zts_bsd_accept(_zfd, addr)) < 0) {
-            throw new IOException("Error while accepting connection (" + accetpedFd + ")");
+        if ((acceptedFd = ZeroTierNative.zts_bsd_accept(_zfd, addr)) < 0) {
+            throw new IOException("Error while accepting connection (" + acceptedFd + ")");
         }
-        return new ZeroTierSocket(_family, _type, _protocol, accetpedFd);
+        return new ZeroTierSocket(_family, _type, _protocol, acceptedFd);
     }
 
     /**

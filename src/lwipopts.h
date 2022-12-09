@@ -149,7 +149,7 @@ happening sooner than they should.
 #define TCP_FAST_INTERVAL      TCP_TMR_INTERVAL
 #endif /* TCP_FAST_INTERVAL */
 
-#ifndef TCP_SLOW_INTERVALs
+#ifndef TCP_SLOW_INTERVAL
 /* the coarse grained timeout in milliseconds */
 #define TCP_SLOW_INTERVAL      (2*TCP_TMR_INTERVAL)
 #endif /* TCP_SLOW_INTERVAL */

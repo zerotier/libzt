@@ -1,16 +1,18 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 33
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 31
+        targetSdkVersion 33
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
                 cppFlags ""
+                version '3.22.1'
+                arguments "-DZTS_ENABLE_JAVA=ON"
             }
         }
         ndk {
@@ -28,13 +30,24 @@ android {
     externalNativeBuild {
         cmake {
             path "../../../CMakeLists.txt"
+            version '3.22.1'
+        }
+    }
+
+    ndkVersion '25.1.8937393'
+    
+    sourceSets {
+        main {
+            java {
+                srcDir 'src/main/java'
+                srcDir '../../../src/bindings/java'
+            }
         }
     }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.android.support:appcompat-v7:28.0.0-alpha3'
     implementation 'com.android.support.constraint:constraint-layout:1.1.2'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'

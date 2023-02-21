@@ -338,7 +338,7 @@ typedef enum {
 /**
  * Maximum number of direct network paths to a given peer
  */
-#define ZTS_MAX_PEER_NETWORK_PATHS 16
+#define ZTS_MAX_PEER_NETWORK_PATHS 64
 
 /**
  * Maximum number of multicast groups a device / network interface can be

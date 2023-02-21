@@ -26,6 +26,7 @@ INCLUDE_DIRS = [
     os.path.join(ROOT_DIR, "ext/lwip-contrib/ports/unix/port/include"),
     os.path.join(ROOT_DIR, "ext/ZeroTierOne/include"),
     os.path.join(ROOT_DIR, "ext/ZeroTierOne"),
+    os.path.join(ROOT_DIR, "ext/ZeroTierOne/ext"),
     os.path.join(ROOT_DIR, "ext/ZeroTierOne/node"),
     os.path.join(ROOT_DIR, "ext/ZeroTierOne/service"),
     os.path.join(ROOT_DIR, "ext/ZeroTierOne/osdep"),

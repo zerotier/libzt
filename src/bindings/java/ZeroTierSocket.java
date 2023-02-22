@@ -22,7 +22,7 @@ import java.net.*;
  *
  * @author  ZeroTier, Inc.
  */
-public class ZeroTierSocket {
+public class ZeroTierSocket implements Closeable {
     // File descriptor from lower native layer
     private int _zfd = -1;
     private int _family = -1;

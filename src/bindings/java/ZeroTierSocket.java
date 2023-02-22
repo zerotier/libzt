@@ -632,7 +632,7 @@ public class ZeroTierSocket implements Closeable {
 
     /**
      * Set the timeout value for SO_RCVTIMEO
-     * @param timeout Socket receive timeout value.
+     * @param timeout Socket receive timeout value in milliseconds.
      *
      * @exception SocketException when an error occurs in the native socket layer
      */

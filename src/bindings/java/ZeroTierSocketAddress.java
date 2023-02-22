@@ -21,7 +21,7 @@ import java.net.InetAddress;
  * You (as a consumer of this library) should probably not use this as it is non-standard
  * and very likely to be removed at some point.
  */
-class ZeroTierSocketAddress {
+public class ZeroTierSocketAddress {
     private byte[] _ip6 = new byte[16];
     private byte[] _ip4 = new byte[4];
 

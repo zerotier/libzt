@@ -58,11 +58,13 @@ public class ZeroTierSocket implements Closeable {
         return _zfd;
     }
 
-    private ZeroTierSocket(int family, int type, int protocol, int zfd)
+    private ZeroTierSocket(int family, int type, int protocol, int zfd, ZeroTierSocketAddress remoteAddr)
     {
         _family = family;
         _type = type;
         _protocol = protocol;
+        _remoteAddr = remoteAddr.toInetAddress();
+        _remotePort = remoteAddr.getPort();
         setNativeFileDescriptor(zfd);
         // Since we only call this from accept() we will mark it as connected
         _isConnected = true;
@@ -237,7 +239,7 @@ public class ZeroTierSocket implements Closeable {
         if ((accetpedFd = ZeroTierNative.zts_bsd_accept(_zfd, addr)) < 0) {
             throw new IOException("Error while accepting connection (" + accetpedFd + ")");
         }
-        return new ZeroTierSocket(_family, _type, _protocol, accetpedFd);
+        return new ZeroTierSocket(_family, _type, _protocol, accetpedFd, addr);
     }
 
     /**

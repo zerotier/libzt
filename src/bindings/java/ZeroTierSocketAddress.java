@@ -85,6 +85,30 @@ public class ZeroTierSocketAddress {
     }
 
     /**
+     * Convert to InetAddress
+     */
+    public InetAddress toInetAddress() 
+    {
+        if (_family == ZeroTierNative.ZTS_AF_INET) {
+            try {
+                return InetAddress.getByAddress(_ip4);
+            }
+            catch (Exception e) {
+                System.out.println(e);
+            }
+        }
+        if (_family == ZeroTierNative.ZTS_AF_INET6) {
+            try {
+                return InetAddress.getByAddress(_ip6);
+            }
+            catch (Exception e) {
+                System.out.println(e);
+            }
+        }
+        return null;
+    }
+
+    /**
      * Convert to string (ip and port)
      */
     public String toString()

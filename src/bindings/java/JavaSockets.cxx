@@ -295,7 +295,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1bsd_1read_1
 }
 
 JNIEXPORT jint JNICALL
-Java_com_zerotier_sockets_ZeroTierNative_zts_1bsd_1write__IB(JNIEnv* env, jclass clazz, jint fd, jbyteArray buf)
+Java_com_zerotier_sockets_ZeroTierNative_zts_1bsd_1write(JNIEnv* env, jclass clazz, jint fd, jbyteArray buf)
 {
     void* data = env->GetPrimitiveArrayCritical(buf, NULL);
     int retval = zts_bsd_write(fd, data, env->GetArrayLength(buf));

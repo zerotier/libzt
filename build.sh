@@ -596,18 +596,12 @@ android-aar()
     PKG_OUTPUT_DIR=$BUILD_OUTPUT_DIR/$TARGET_PLATFORM-$TARGET_MACHINE_TYPE-$ARTIFACT-$BUILD_TYPE
     mkdir -p $CACHE_DIR
     mkdir -p $PKG_OUTPUT_DIR
-    # Unsure why, but Gradle's build script chokes on this non-source file now
-    rm -rf ext/ZeroTierOne/ext/miniupnpc/VERSION
-    export PATH=$ANDROID_HOME/cmdline-tools/tools/bin:$PATH
-    # Copy source files into project
-    mkdir -p ${ANDROID_PKG_PROJ_DIR}/app/src/main/java/com/zerotier/sockets
-    cp -f src/bindings/java/com/zerotier/sockets/*.java ${ANDROID_PKG_PROJ_DIR}/app/src/main/java/com/zerotier/sockets
     # Build
     UPPERCASE_BUILD_TYPE="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
     CMAKE_FLAGS="-D${CMAKE_SWITCH}=1 -D${CMAKE_SWITCH}=ON"
     cd $ANDROID_PKG_PROJ_DIR
     ./gradlew $GRADLE_ARGS assemble$UPPERCASE_BUILD_TYPE # assembleRelease / assembleDebug
-    mv $ANDROID_PKG_PROJ_DIR/app/build/outputs/aar/*.aar \
+    cp $ANDROID_PKG_PROJ_DIR/app/build/outputs/aar/*.aar \
         $PKG_OUTPUT_DIR/libzt-$BUILD_TYPE.aar
     cd -
     echo -e "\n - Build cache  : $CACHE_DIR\n - Build output : $BUILD_OUTPUT_DIR\n"

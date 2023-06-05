@@ -234,12 +234,12 @@ public class ZeroTierSocket implements Closeable {
         if (_zfd < 0) {
             throw new IOException("Invalid socket (fd < 0)");
         }
-        int accetpedFd = -1;
+        int acceptedFd = -1;
         ZeroTierSocketAddress addr = new ZeroTierSocketAddress();
-        if ((accetpedFd = ZeroTierNative.zts_bsd_accept(_zfd, addr)) < 0) {
-            throw new IOException("Error while accepting connection (" + accetpedFd + ")");
+        if ((acceptedFd = ZeroTierNative.zts_bsd_accept(_zfd, addr)) < 0) {
+            throw new IOException("Error while accepting connection (" + acceptedFd + ")");
         }
-        return new ZeroTierSocket(_family, _type, _protocol, accetpedFd, addr);
+        return new ZeroTierSocket(_family, _type, _protocol, acceptedFd, addr);
     }
 
     /**
@@ -423,7 +423,7 @@ public class ZeroTierSocket implements Closeable {
      * Return whether this ZeroTierSocket is bound to a local address
      * @return true or false
      */
-    public boolean isBound​()
+    public boolean isBound()
     {
         return _isBound;
     }
@@ -432,7 +432,7 @@ public class ZeroTierSocket implements Closeable {
      * Return whether this ZeroTierSocket has been closed
      * @return true or false
      */
-    public boolean isClosed​()
+    public boolean isClosed()
     {
         return _isClosed;
     }
@@ -441,7 +441,7 @@ public class ZeroTierSocket implements Closeable {
      * Return whether this ZeroTierSocket is connected to a remote address
      * @return true or false
      */
-    public boolean isConnected​()
+    public boolean isConnected()
     {
         return _isConnected;
     }
@@ -528,7 +528,7 @@ public class ZeroTierSocket implements Closeable {
      * Return whether the input-aspect of the ZeroTierSocket has been disabled.
      * @return true or false
      */
-    public boolean inputStreamHasBeenShutdown​()
+    public boolean inputStreamHasBeenShutdown()
     {
         return _inputHasBeenShutdown;
     }
@@ -537,7 +537,7 @@ public class ZeroTierSocket implements Closeable {
      * Return whether the output-aspect of the ZeroTierSocket has been disabled.
      * @return true or false
      */
-    public boolean outputStreamHasBeenShutdown​()
+    public boolean outputStreamHasBeenShutdown()
     {
         return _outputHasBeenShutdown;
     }

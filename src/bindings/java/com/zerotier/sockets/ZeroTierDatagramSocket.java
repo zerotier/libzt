@@ -165,7 +165,7 @@ public class ZeroTierDatagramSocket implements Closeable {
             0,
             packet.getLength());
         if ((bytesRead <= 0) | (bytesRead == -104) /* EINTR, from SO_RCVTIMEO */) {
-            throw new IOException("read​(DatagramPacket), errno=" + bytesRead);
+            throw new IOException("read(DatagramPacket), errno=" + bytesRead);
         }
     }
 
@@ -277,16 +277,16 @@ public class ZeroTierDatagramSocket implements Closeable {
      * Return whether this ZeroTierSocket is bound to a local address
      * @return true or false
      */
-    public boolean isBound​()
+    public boolean isBound()
     {
-        return _socket.isBound​();
+        return _socket.isBound();
     }
 
     /**
      * Return whether this ZeroTierSocket has been closed
      * @return true or false
      */
-    public boolean isClosed​()
+    public boolean isClosed()
     {
         return _socket.isClosed();
     }
@@ -295,7 +295,7 @@ public class ZeroTierDatagramSocket implements Closeable {
      * Return whether this ZeroTierSocket is connected to a remote address
      * @return true or false
      */
-    public boolean isConnected​()
+    public boolean isConnected()
     {
         return _socket.isConnected();
     }

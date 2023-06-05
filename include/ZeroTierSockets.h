@@ -1023,7 +1023,7 @@ typedef struct {
 #ifndef ZTS_DISABLE_CENTRAL_API
 
 #define ZTS_CENTRAL_DEFAULT_URL         "https://my.zerotier.com"
-#define ZTS_CENRTAL_MAX_URL_LEN         128
+#define ZTS_CENTRAL_MAX_URL_LEN         128
 #define ZTS_CENTRAL_TOKEN_LEN           32
 #define ZTS_CENTRAL_RESP_BUF_DEFAULT_SZ (128 * 1024)
 

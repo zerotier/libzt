@@ -225,7 +225,7 @@ if(BUILD_IOS_FRAMEWORK)
         "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer")
     if(IOS_ARM64)
         set(CMAKE_OSX_ARCHITECTURES arm64)
-        set(SDKVER "11.4")
+        set(SDKVER "16.4")
     endif()
     if(IOS_ARMV7)
         # armv7 armv7s

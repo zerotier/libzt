@@ -350,6 +350,8 @@ host()
     mkdir -p $BIN_OUTPUT_DIR
     $CMAKE $VARIANT -H. -B$CACHE_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
     $CMAKE --build $CACHE_DIR $BUILD_CONCURRENCY
+    rm -f $BUILD_OUTPUT_DIR/native
+    ln -s $TARGET_BUILD_DIR $BUILD_OUTPUT_DIR/native
     cp -f $CACHE_DIR/lib/libzt.* $LIB_OUTPUT_DIR
     cp -f $CACHE_DIR/bin/* $BIN_OUTPUT_DIR
     echo -e "\n - Build cache  : $CACHE_DIR\n - Build output : $BUILD_OUTPUT_DIR\n"

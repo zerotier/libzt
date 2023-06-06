@@ -22,6 +22,7 @@ const DEFAULT_LISTEN_PORT: u16 = 9080;
 enum ForwardingError {
     BindFailed(String),
     ConnectFailed(String),
+    CopyFailed(String),
 }
 
 impl Error for ForwardingError {}
@@ -120,18 +121,31 @@ fn main() -> Result<()> {
 
             log::info!("connected");
 
+            let client_ = client.clone();
+            let remote_ = remote.clone();
+
             thread::spawn(move || {
                 let mut buf = [0u8; BUF_SIZE];
+                let mut running = true;
 
-                loop {
+                while running {
                     let mut client = client.lock();
                     let mut remote = remote.lock();
 
                     match client.read(&mut buf) {
                         Ok(n) if n > 0 => {
-                            log::debug!("got {} bytes from client", n);
-                            remote.write(&buf).unwrap();
-                            remote.flush().unwrap();
+                            log::debug!("got {} bytes from remote", n);
+                            running = remote
+                                .write(&buf)
+                                .map(|_| {
+                                    remote.flush().unwrap();
+                                    true
+                                })
+                                .unwrap_or_else(|e| {
+                                    let msg = format!("failed to write to remote: {:?}", e);
+                                    log::error!("{}", msg);
+                                    false
+                                });
                         }
                         Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
                             thread::sleep(Duration::new(0, 5000));
@@ -145,12 +159,30 @@ fn main() -> Result<()> {
                     }
 
                     buf.fill(0);
+                }
+            });
+            thread::spawn(move || {
+                let mut buf = [0u8; BUF_SIZE];
+                let mut running = true;
+
+                while running {
+                    let mut client = client_.lock();
+                    let mut remote = remote_.lock();
 
                     match remote.read(&mut buf) {
                         Ok(n) if n > 0 => {
                             log::debug!("got {} bytes from remote", n);
-                            client.write(&buf).unwrap();
-                            client.flush().unwrap();
+                            running = client
+                                .write(&buf)
+                                .map(|_| {
+                                    client.flush().unwrap();
+                                    true
+                                })
+                                .unwrap_or_else(|e| {
+                                    let msg = format!("failed to write to remote: {:?}", e);
+                                    log::error!("{}", msg);
+                                    false
+                                });
                         }
                         other => {
                             log::debug!("closing remote connection: {:?}", other);

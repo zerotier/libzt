@@ -1,0 +1,18 @@
+{
+  "name": "libzt",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "preinstall": "mkdir -p libzt; cd libzt; ln -sf ../../../../include; ln -sf ../../../../dist",
+    "install": "node-gyp configure build"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bindings": "^1.5.0",
+    "node-addon-api": "*",
+    "node-gyp": "^9.3.1"
+  }
+}

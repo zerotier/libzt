@@ -32,76 +32,79 @@ this function unless it's something trivial like zts_inet_ntop() or similar that
 no state-change implications. */
 void on_zts_event(void *msgPtr)
 {
-	struct zts_callback_msg *msg = (struct zts_callback_msg *)msgPtr;
+	zts_event_msg_t *msg = (zts_event_msg_t *)msgPtr;
 
 	// Node events
-	if (msg->eventCode == ZTS_EVENT_NODE_ONLINE) {
-		printf("ZTS_EVENT_NODE_ONLINE --- This node's ID is %llx\n", msg->node->address);
-		myNode.id = msg->node->address;
+	if (msg->event_code == ZTS_EVENT_NODE_UP) {
+		printf("ZTS_EVENT_NODE_UP\n");
+	}
+	if (msg->event_code == ZTS_EVENT_NODE_ONLINE) {
+		printf("ZTS_EVENT_NODE_ONLINE --- This node's ID is %lx\n", msg->node->node_id);
+		myNode.id = msg->node->node_id;
 		myNode.online = true;
 	}
-	if (msg->eventCode == ZTS_EVENT_NODE_OFFLINE) {
+	if (msg->event_code == ZTS_EVENT_NODE_OFFLINE) {
 		printf("ZTS_EVENT_NODE_OFFLINE --- Check your physical Internet connection, router, firewall, etc. What ports are you blocking?\n");
 		myNode.online = false;
 	}
-	if (msg->eventCode == ZTS_EVENT_NODE_NORMAL_TERMINATION) {
-		printf("ZTS_EVENT_NODE_NORMAL_TERMINATION\n");
+	if (msg->event_code == ZTS_EVENT_NODE_DOWN) {
+		printf("ZTS_EVENT_NODE_DOWN\n");
 	}
 
 	// Virtual network events
-	if (msg->eventCode == ZTS_EVENT_NETWORK_NOT_FOUND) {
-		printf("ZTS_EVENT_NETWORK_NOT_FOUND --- Are you sure %llx is a valid network?\n",
-			msg->network->nwid);
+	if (msg->event_code == ZTS_EVENT_NETWORK_NOT_FOUND) {
+		printf("ZTS_EVENT_NETWORK_NOT_FOUND --- Are you sure %lx is a valid network?\n",
+			msg->network->net_id);
 	}
-	if (msg->eventCode == ZTS_EVENT_NETWORK_REQ_CONFIG) {
-		printf("ZTS_EVENT_NETWORK_REQ_CONFIG --- Requesting config for network %llx, please wait a few seconds...\n", msg->network->nwid);
+	if (msg->event_code == ZTS_EVENT_NETWORK_REQ_CONFIG) {
+		printf("ZTS_EVENT_NETWORK_REQ_CONFIG --- Requesting config for network %lx, please wait a few seconds...\n", msg->network->net_id);
 	}
-	if (msg->eventCode == ZTS_EVENT_NETWORK_ACCESS_DENIED) {
-		printf("ZTS_EVENT_NETWORK_ACCESS_DENIED --- Access to virtual network %llx has been denied. Did you authorize the node yet?\n",
-			msg->network->nwid);
+	if (msg->event_code == ZTS_EVENT_NETWORK_ACCESS_DENIED) {
+		printf("ZTS_EVENT_NETWORK_ACCESS_DENIED --- Access to virtual network %lx has been denied. Did you authorize the node yet?\n",
+			msg->network->net_id);
 	}
-	if (msg->eventCode == ZTS_EVENT_NETWORK_READY_IP4) {
-		printf("ZTS_EVENT_NETWORK_READY_IP4 --- Network config received. IPv4 traffic can now be sent over network %llx\n",
-			msg->network->nwid);
+	if (msg->event_code == ZTS_EVENT_NETWORK_READY_IP4) {
+		printf("ZTS_EVENT_NETWORK_READY_IP4 --- Network config received. IPv4 traffic can now be sent over network %lx\n",
+			msg->network->net_id);
 		myNode.joinedAtLeastOneNetwork = true;
 	}
-	if (msg->eventCode == ZTS_EVENT_NETWORK_READY_IP6) {
-		printf("ZTS_EVENT_NETWORK_READY_IP6 --- Network config received. IPv6 traffic can now be sent over network %llx\n",
-			msg->network->nwid);
+	if (msg->event_code == ZTS_EVENT_NETWORK_READY_IP6) {
+		printf("ZTS_EVENT_NETWORK_READY_IP6 --- Network config received. IPv6 traffic can now be sent over network %lx\n",
+			msg->network->net_id);
 		myNode.joinedAtLeastOneNetwork = true;
 	}
-	if (msg->eventCode == ZTS_EVENT_NETWORK_DOWN) {
-		printf("ZTS_EVENT_NETWORK_DOWN --- %llx\n", msg->network->nwid);
+	if (msg->event_code == ZTS_EVENT_NETWORK_DOWN) {
+		printf("ZTS_EVENT_NETWORK_DOWN --- %lx\n", msg->network->net_id);
 	}
 
 	// Address events
-	if (msg->eventCode == ZTS_EVENT_ADDR_ADDED_IP4) {
+	if (msg->event_code == ZTS_EVENT_ADDR_ADDED_IP4) {
 		char ipstr[ZTS_INET_ADDRSTRLEN];
 		struct zts_sockaddr_in *in4 = (struct zts_sockaddr_in*)&(msg->addr->addr);
 		zts_inet_ntop(ZTS_AF_INET, &(in4->sin_addr), ipstr, ZTS_INET_ADDRSTRLEN);
-		printf("ZTS_EVENT_ADDR_NEW_IP4 --- This node's virtual address on network %llx is %s\n",
-			msg->addr->nwid, ipstr);
+		printf("ZTS_EVENT_ADDR_NEW_IP4 --- This node's virtual address on network %lx is %s\n",
+			msg->addr->net_id, ipstr);
 	}
-	if (msg->eventCode == ZTS_EVENT_ADDR_ADDED_IP6) {
+	if (msg->event_code == ZTS_EVENT_ADDR_ADDED_IP6) {
 		char ipstr[ZTS_INET6_ADDRSTRLEN];
 		struct zts_sockaddr_in6 *in6 = (struct zts_sockaddr_in6*)&(msg->addr->addr);
 		zts_inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), ipstr, ZTS_INET6_ADDRSTRLEN);
-		printf("ZTS_EVENT_ADDR_NEW_IP6 --- This node's virtual address on network %llx is %s\n",
-			msg->addr->nwid, ipstr);
+		printf("ZTS_EVENT_ADDR_NEW_IP6 --- This node's virtual address on network %lx is %s\n",
+			msg->addr->net_id, ipstr);
 	}
-	if (msg->eventCode == ZTS_EVENT_ADDR_REMOVED_IP4) {
+	if (msg->event_code == ZTS_EVENT_ADDR_REMOVED_IP4) {
 		char ipstr[ZTS_INET_ADDRSTRLEN];
 		struct zts_sockaddr_in *in4 = (struct zts_sockaddr_in*)&(msg->addr->addr);
 		zts_inet_ntop(ZTS_AF_INET, &(in4->sin_addr), ipstr, ZTS_INET_ADDRSTRLEN);
-		printf("ZTS_EVENT_ADDR_REMOVED_IP4 --- The virtual address %s for this node on network %llx has been removed.\n",
-			ipstr, msg->addr->nwid);
+		printf("ZTS_EVENT_ADDR_REMOVED_IP4 --- The virtual address %s for this node on network %lx has been removed.\n",
+			ipstr, msg->addr->net_id);
 	}
-	if (msg->eventCode == ZTS_EVENT_ADDR_REMOVED_IP6) {
+	if (msg->event_code == ZTS_EVENT_ADDR_REMOVED_IP6) {
 		char ipstr[ZTS_INET6_ADDRSTRLEN];
 		struct zts_sockaddr_in6 *in6 = (struct zts_sockaddr_in6*)&(msg->addr->addr);
 		zts_inet_ntop(ZTS_AF_INET6, &(in6->sin6_addr), ipstr, ZTS_INET6_ADDRSTRLEN);
-		printf("ZTS_EVENT_ADDR_REMOVED_IP6 --- The virtual address %s for this node on network %llx has been removed.\n",
-			ipstr, msg->addr->nwid);
+		printf("ZTS_EVENT_ADDR_REMOVED_IP6 --- The virtual address %s for this node on network %lx has been removed.\n",
+			ipstr, msg->addr->net_id);
 	}
 	// Peer events
 	if (msg->peer) {
@@ -110,20 +113,20 @@ void on_zts_event(void *msgPtr)
 			You might also see other unknown peers, these are our network controllers. */
 			return;
 		}
-		if (msg->eventCode == ZTS_EVENT_PEER_DIRECT) {
-			printf("ZTS_EVENT_PEER_DIRECT --- A direct path is known for node=%llx\n",
-				msg->peer->address);
+		if (msg->event_code == ZTS_EVENT_PEER_DIRECT) {
+			printf("ZTS_EVENT_PEER_DIRECT --- A direct path is known for node=%lx\n",
+				msg->peer->peer_id);
 		}
-		if (msg->eventCode == ZTS_EVENT_PEER_RELAY) {
-			printf("ZTS_EVENT_PEER_RELAY --- No direct path to node=%llx\n", msg->peer->address);
+		if (msg->event_code == ZTS_EVENT_PEER_RELAY) {
+			printf("ZTS_EVENT_PEER_RELAY --- No direct path to node=%lx\n", msg->peer->peer_id);
 		}
-		if (msg->eventCode == ZTS_EVENT_PEER_PATH_DISCOVERED) {
-			printf("ZTS_EVENT_PEER_PATH_DISCOVERED --- A new direct path was discovered for node=%llx\n",
-				msg->peer->address);
+		if (msg->event_code == ZTS_EVENT_PEER_PATH_DISCOVERED) {
+			printf("ZTS_EVENT_PEER_PATH_DISCOVERED --- A new direct path was discovered for node=%lx\n",
+				msg->peer->peer_id);
 		}
-		if (msg->eventCode == ZTS_EVENT_PEER_PATH_DEAD) {
-			printf("ZTS_EVENT_PEER_PATH_DEAD --- A direct path has died for node=%llx\n",
-				msg->peer->address);
+		if (msg->event_code == ZTS_EVENT_PEER_PATH_DEAD) {
+			printf("ZTS_EVENT_PEER_PATH_DEAD --- A direct path has died for node=%lx\n",
+				msg->peer->peer_id);
 		}
 	}
 }
@@ -133,9 +136,9 @@ zts_sockaddr_in sockaddr_in(const char *remoteAddr, const int remotePort)
 	struct zts_sockaddr_in in4;
 	in4.sin_port = htons(remotePort);
 #if defined(_WIN32)
-	zts_inet_pton(ZTS_AF_INET, remoteAddr.c_str(), &(in4.sin_addr.S_addr));
+	zts_inet_pton(ZTS_AF_INET, remoteAddr, &(in4.sin_addr.S_addr));
 #else
-	zts_inet_pton(ZTS_AF_INET, remoteAddr.c_str(), &(in4.sin_addr.s_addr));
+	zts_inet_pton(ZTS_AF_INET, remoteAddr, &(in4.sin_addr.s_addr));
 #endif
 	in4.sin_family = ZTS_AF_INET;
 	return in4;
@@ -237,15 +240,27 @@ public:
     static int start(const char *configPath, uint16_t servicePort)
 	{
 		// Bring up ZeroTier service
-
 		int err = ZTS_ERR_OK;
 
-		if((err = zts_start(configPath, &on_zts_event, servicePort)) != ZTS_ERR_OK) {
+		if((err = zts_init_from_storage(configPath)) != ZTS_ERR_OK) {
+			printf("Unable to start service, error = %d.\n", err);
+			return err;
+		}
+		if((err = zts_init_set_port(servicePort)) != ZTS_ERR_OK) {
+			printf("Unable to start service, error = %d.\n", err);
+			return err;
+		}
+		if((err = zts_init_set_event_handler(&on_zts_event)) != ZTS_ERR_OK) {
+			printf("Unable to start service, error = %d.\n", err);
+			return err;
+		}
+
+		if((err = zts_node_start()) != ZTS_ERR_OK) {
 			printf("Unable to start service, error = %d.\n", err);
 			return err;
 		}
 		printf("Waiting for node to come online...\n");
-		while (!myNode.online) { zts_delay_ms(50); }
+		while (!myNode.online) { zts_util_delay(50); }
 
 		return err;
 	}
@@ -260,20 +275,7 @@ public:
 	*/
 	static int stop()
 	{
-		return zts_stop();
-	}
-
-	/**
-	* @brief Restart the ZeroTier service.
-	*
-	* @usage This call will block until the service has been brought offline. Then
-	* it will return and the user application can then watch for the appropriate
-	* startup callback events.
-	* @return ZTS_ERR_OK on success. ZTS_ERR_SERVICE on failure.
-	*/
-	static int restart()
-	{
-		return zts_restart();
+		return zts_node_stop();
 	}
 
 	/**
@@ -287,7 +289,7 @@ public:
 	*/
 	static int free()
 	{
-		return zts_free();
+		return zts_node_free();
 	}
 
 	/**
@@ -304,13 +306,13 @@ public:
 
 		int err = ZTS_ERR_OK;
 
-		if((err = zts_join(nwid)) != ZTS_ERR_OK) {
+		if((err = zts_net_join(nwid)) != ZTS_ERR_OK) {
 			printf("Unable to join network, error = %d.\n", err);
 			return err;
 		}
-		printf("Joining network %llx\n", nwid);
+		printf("Joining network %lx\n", nwid);
 		printf("Don't forget to authorize this device in my.zerotier.com or the web API!\n");
-		while (!myNode.joinedAtLeastOneNetwork) { zts_delay_ms(50); }
+		while (!myNode.joinedAtLeastOneNetwork) { zts_util_delay(50); }
 
 		return err;
 	}
@@ -688,7 +690,6 @@ NBIND_CLASS(Node) {
 
 NBIND_CLASS(ZeroTier) {
 	method(start);
-	method(restart);
 	method(stop);
 	method(free);
 

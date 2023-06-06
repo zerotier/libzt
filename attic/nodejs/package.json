@@ -6,16 +6,16 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node test.js",
-    "preinstall": "mkdir -p libzt; cd libzt; ln -sf ../../../include; ln -sf ../../../lib",
+    "preinstall": "mkdir -p libzt; cd libzt; ln -sf ../../../../include; ln -sf ../../../../dist",
     "autogypi": "autogypi",
     "node-gyp": "node-gyp",
     "ndts": "ndts",
-    "install": "autogypi && node-gyp configure build"
+    "install": "autogypi && env CXXFLAGS=\"-std=c++17\" node-gyp configure build"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@mcesystems/nbind": "^0.3.18",
+    "@shahidhs-ibm/nbind": "^0.3.20",
     "autogypi": "^0.2.2",
     "nbind": "github:charto/nbind",
     "node-gyp": "^7.0.0"

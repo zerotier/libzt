@@ -29,26 +29,53 @@ while(! zts.net_transport_is_ready(nwid)) {
 try {
     console.log(zts.addr_get_str(nwid, false))
 } catch (error) {
-    console.log(error)
+    console.log(error.toString())
 }
 try {
     console.log(zts.addr_get_str(nwid, true))
 } catch (error) {
-    console.log(error)
+    console.log(error.toString())
 }
 
 const fd = zts.bsd_socket(2, 1, 0)
-console.log(fd)
+console.log(`fd: ${fd}`)
+
+
 zts.connect(fd, "172.24.144.58", 6000, 0)
 
 zts.bsd_send(fd, Buffer.from("hello!"), 0)
 
-const data = Buffer.alloc(10)
-const n = zts.bsd_recv(fd, data, 0)
+zts.bsd_recv_cb(fd, BigInt(20), 0, data => {
+    console.log("adb")
+    console.log(data.toString());
+})
 
-console.log(data.subarray(0, n).toString())
+// const n = zts.bsd_recv(fd, data, 0)
+
+// console.log(data.subarray(0, n).toString())
 
 
 zts.bsd_close(fd)
+
+
+
+// zts.bind(fd, "0.0.0.0", 6001)
+
+// zts.listen(fd, 10)
+
+// const conn = zts.accept(fd)
+
+// console.log(conn)
+
+
+// const data = Buffer.alloc(10)
+// const n = zts.bsd_recv(conn.fd, data, 0)
+
+// console.log(data.subarray(0, n).toString())
+
+// zts.bsd_send(conn.fd, Buffer.from("hello!"), 0)
+
+// zts.bsd_close(conn.fd)
+// zts.bsd_close(fd)
 
 process.stdin.resume();

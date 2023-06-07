@@ -1,9 +1,9 @@
+#include "BsdRecv.h"
 #include "ZeroTierSockets.h"
 
 #include <napi.h>
 
 using namespace Napi;
-
 
 // ### init ###
 
@@ -32,11 +32,9 @@ void event_handler(void* msgPtr)
 {
     event_callback.Acquire();
 
-    zts_event_msg_t *msg = (zts_event_msg_t *)msgPtr;
+    zts_event_msg_t* msg = (zts_event_msg_t*)msgPtr;
     double event = msg->event_code;
-    auto cb = [=]( Env env, Function jsCallback ) {
-        jsCallback.Call({Number::New( env, event)});
-    };
+    auto cb = [=](Env env, Function jsCallback) { jsCallback.Call({ Number::New(env, event) }); };
 
     event_callback.NonBlockingCall(cb);
 
@@ -56,13 +54,7 @@ Value init_set_event_handler(const CallbackInfo& info)
         return env.Null();
     }
     auto cb = info[0].As<Function>();
-    event_callback = ThreadSafeFunction::New(
-        env,
-        cb,
-        "zts_event_listener",
-        0,
-        1
-    );
+    event_callback = ThreadSafeFunction::New(env, cb, "zts_event_listener", 0, 1);
 
     int err = ZTS_ERR_OK;
     if ((err = zts_init_set_event_handler(&event_handler)) != ZTS_ERR_OK) {
@@ -94,7 +86,8 @@ Value node_is_online(const CallbackInfo& info)
     return Boolean::New(info.Env(), zts_node_is_online());
 }
 
-Value node_get_id(const CallbackInfo& info) {
+Value node_get_id(const CallbackInfo& info)
+{
     Env env = info.Env();
 
     auto id = zts_node_get_id();
@@ -129,7 +122,6 @@ Value node_free(const CallbackInfo& info)
 
     return env.Null();
 }
-
 
 // ### net ###
 
@@ -239,7 +231,8 @@ Value addr_get_str(const CallbackInfo& info)
 
 // ### bsd ###
 
-Value bsd_socket(const CallbackInfo& info) {
+Value bsd_socket(const CallbackInfo& info)
+{
     Env env = info.Env();
 
     if (info.Length() < 3) {
@@ -247,7 +240,7 @@ Value bsd_socket(const CallbackInfo& info) {
         return env.Null();
     }
 
-    if (! info[0].IsNumber() || !info[1].IsNumber() || ! info[2].IsNumber()) {
+    if (! info[0].IsNumber() || ! info[1].IsNumber() || ! info[2].IsNumber()) {
         TypeError::New(env, "Wrong type of arguments: family, type, protocol").ThrowAsJavaScriptException();
         return env.Null();
     }
@@ -265,7 +258,8 @@ Value bsd_socket(const CallbackInfo& info) {
     return Number::New(env, fd);
 }
 
-Value bsd_close(const CallbackInfo& info) {
+Value bsd_close(const CallbackInfo& info)
+{
     Env env = info.Env();
 
     if (info.Length() < 1) {
@@ -279,7 +273,7 @@ Value bsd_close(const CallbackInfo& info) {
     }
 
     int fd = info[0].As<Number>().Int32Value();
-    
+
     int err;
     if ((err = zts_bsd_close(fd)) < 0) {
         Error::New(env, "Error when sending.").ThrowAsJavaScriptException();
@@ -289,7 +283,8 @@ Value bsd_close(const CallbackInfo& info) {
     return env.Null();
 }
 
-Value bsd_send(const CallbackInfo& info) {
+Value bsd_send(const CallbackInfo& info)
+{
     Env env = info.Env();
 
     if (info.Length() < 3) {
@@ -297,7 +292,7 @@ Value bsd_send(const CallbackInfo& info) {
         return env.Null();
     }
 
-    if (! info[0].IsNumber() || !info[1].IsTypedArray() || ! info[2].IsNumber()) {
+    if (! info[0].IsNumber() || ! info[1].IsTypedArray() || ! info[2].IsNumber()) {
         TypeError::New(env, "Wrong type of arguments: fd, buffer, flags").ThrowAsJavaScriptException();
         return env.Null();
     }
@@ -305,7 +300,7 @@ Value bsd_send(const CallbackInfo& info) {
     int fd = info[0].As<Number>().Int32Value();
     auto data = info[1].As<Uint8Array>();
     int flags = info[2].As<Number>().Int32Value();
-    
+
     int bytesWritten;
     if ((bytesWritten = zts_send(fd, data.Data(), data.ByteLength(), flags)) < 0) {
         Error::New(env, "Error when sending.").ThrowAsJavaScriptException();
@@ -315,7 +310,8 @@ Value bsd_send(const CallbackInfo& info) {
     return Number::New(env, bytesWritten);
 }
 
-Value bsd_recv(const CallbackInfo& info) {
+Value bsd_recv(const CallbackInfo& info)
+{
     Env env = info.Env();
 
     if (info.Length() < 3) {
@@ -323,7 +319,7 @@ Value bsd_recv(const CallbackInfo& info) {
         return env.Null();
     }
 
-    if (! info[0].IsNumber() || !info[1].IsTypedArray() || ! info[2].IsNumber()) {
+    if (! info[0].IsNumber() || ! info[1].IsTypedArray() || ! info[2].IsNumber()) {
         TypeError::New(env, "Wrong type of arguments: fd, buffer, flags").ThrowAsJavaScriptException();
         return env.Null();
     }
@@ -331,19 +327,46 @@ Value bsd_recv(const CallbackInfo& info) {
     int fd = info[0].As<Number>().Int32Value();
     auto data = info[1].As<Uint8Array>();
     int flags = info[2].As<Number>().Int32Value();
-    
-    int bytesWritten;
-    if ((bytesWritten = zts_recv(fd, data.Data(), data.ByteLength(), flags)) < 0) {
+
+    int bytes_received;
+    if ((bytes_received = zts_recv(fd, data.Data(), data.ByteLength(), flags)) < 0) {
         Error::New(env, "Error when receiving.").ThrowAsJavaScriptException();
         return env.Null();
     }
 
-    return Number::New(env, bytesWritten);
+    return Number::New(env, bytes_received);
+}
+
+Value bsd_recv_cb(const CallbackInfo& info)
+{
+    Env env = info.Env();
+
+    if (info.Length() < 4) {
+        TypeError::New(env, "Wrong number of arguments: fd, length, flags, callback").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    if (! info[0].IsNumber() || ! info[1].IsBigInt() || ! info[2].IsNumber() || ! info[3].IsFunction()) {
+        TypeError::New(env, "Wrong type of arguments: fd, length, flags, callback").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    int fd = info[0].As<Number>().Int32Value();
+    bool lossless;
+    size_t n = info[1].As<BigInt>().Uint64Value(&lossless);
+    int flags = info[2].As<Number>().Int32Value();
+    auto cb = info[3].As<Function>();
+
+    auto worker = new BsdRecvWorker(cb, fd, n, flags);
+    worker->Queue();
+
+    return env.Null();
 }
 
 // ### no namespace socket stuff
 
-Value bind(const CallbackInfo& info) {
+Value bind(const CallbackInfo& info)
+{
     Env env = info.Env();
 
     if (info.Length() < 3) {
@@ -351,7 +374,7 @@ Value bind(const CallbackInfo& info) {
         return env.Null();
     }
 
-    if (! info[0].IsNumber() || !info[1].IsString() || !info[2].IsNumber()) {
+    if (! info[0].IsNumber() || ! info[1].IsString() || ! info[2].IsNumber()) {
         TypeError::New(env, "Wrong type of arguments: fd, ipstr, port").ThrowAsJavaScriptException();
         return env.Null();
     }
@@ -359,7 +382,7 @@ Value bind(const CallbackInfo& info) {
     int fd = info[0].As<Number>().Int32Value();
     std::string ipstr = info[1].As<String>();
     int port = info[2].As<Number>().Int32Value();
-    
+
     int err;
     if ((err = zts_bind(fd, ipstr.c_str(), port)) < 0) {
         Error::New(env, "Error when binding.").ThrowAsJavaScriptException();
@@ -369,7 +392,8 @@ Value bind(const CallbackInfo& info) {
     return env.Null();
 }
 
-Value listen(const CallbackInfo& info) {
+Value listen(const CallbackInfo& info)
+{
     Env env = info.Env();
 
     if (info.Length() < 2) {
@@ -377,14 +401,14 @@ Value listen(const CallbackInfo& info) {
         return env.Null();
     }
 
-    if (! info[0].IsNumber() || !info[1].IsNumber()) {
+    if (! info[0].IsNumber() || ! info[1].IsNumber()) {
         TypeError::New(env, "Wrong type of arguments: fd, backlog").ThrowAsJavaScriptException();
         return env.Null();
     }
 
     int fd = info[0].As<Number>().Int32Value();
     int backlog = info[1].As<Number>().Int32Value();
-    
+
     int err;
     if ((err = zts_listen(fd, backlog)) < 0) {
         Error::New(env, "Error when binding.").ThrowAsJavaScriptException();
@@ -394,7 +418,8 @@ Value listen(const CallbackInfo& info) {
     return env.Null();
 }
 
-Value accept(const CallbackInfo& info) {
+Value accept(const CallbackInfo& info)
+{
     Env env = info.Env();
 
     if (info.Length() < 1) {
@@ -408,10 +433,10 @@ Value accept(const CallbackInfo& info) {
     }
 
     int fd = info[0].As<Number>().Int32Value();
-    
+
     char remote_addr[ZTS_IP_MAX_STR_LEN];
     unsigned short port;
-    
+
     int new_fd;
     if ((new_fd = zts_accept(fd, remote_addr, ZTS_IP_MAX_STR_LEN, &port)) < 0) {
         Error::New(env, "Error when binding.").ThrowAsJavaScriptException();
@@ -426,7 +451,8 @@ Value accept(const CallbackInfo& info) {
     return obj;
 }
 
-Value connect(const CallbackInfo& info) {
+Value connect(const CallbackInfo& info)
+{
     Env env = info.Env();
 
     if (info.Length() < 4) {
@@ -434,7 +460,7 @@ Value connect(const CallbackInfo& info) {
         return env.Null();
     }
 
-    if (! info[0].IsNumber() || !info[1].IsString() || ! info[2].IsNumber() || ! info[3].IsNumber()) {
+    if (! info[0].IsNumber() || ! info[1].IsString() || ! info[2].IsNumber() || ! info[3].IsNumber()) {
         TypeError::New(env, "Wrong type of arguments: fd, ipstr, port, timeout").ThrowAsJavaScriptException();
         return env.Null();
     }
@@ -503,6 +529,8 @@ Object Init(Env env, Object exports)
     exports.Set("bsd_send", Function::New(env, bsd_send));
     exports.Set("bsd_recv", Function::New(env, bsd_recv));
 
+    exports["bsd_recv_cb"] = Function::New(env, bsd_recv_cb);
+
     // no ns socket
     exports["bind"] = Function::New(env, bind);
     exports["listen"] = Function::New(env, listen);
@@ -511,7 +539,7 @@ Object Init(Env env, Object exports)
 
     // util
     exports.Set("util_delay", Function::New(env, util_delay));
-    
+
     return exports;
 }
 

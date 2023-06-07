@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "preinstall": "mkdir -p libzt; cd libzt; ln -sf ../../../../include; ln -sf ../../../../dist",
-    "install": "node-gyp configure build"
+    "prebuild": "mkdir -p libzt; cd libzt; ln -sf ../../../../include; ln -sf ../../../../dist",
+    "build": "node-gyp configure build"
   },
   "author": "",
   "license": "MIT",

@@ -1,7 +1,7 @@
 {
     "targets": [
         {
-            "target_name": "node-libzt",
+            "target_name": "zts",
             "cflags!": ["-fno-exceptions"],
             "cflags_cc!": ["-fno-exceptions"],
             "sources": ["src/binding.cc"],

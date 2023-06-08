@@ -203,7 +203,7 @@ Value addr_get_str(const CallbackInfo& info)
 {
     Env env = info.Env();
 
-    if (info.Length() < 2) {
+    if (info.Length() < 1) {
         TypeError::New(env, "Wrong number of arguments").ThrowAsJavaScriptException();
         return env.Null();
     }
@@ -346,14 +346,13 @@ Value bsd_recv_cb(const CallbackInfo& info)
         return env.Null();
     }
 
-    if (! info[0].IsNumber() || ! info[1].IsBigInt() || ! info[2].IsNumber() || ! info[3].IsFunction()) {
+    if (! info[0].IsNumber() || ! info[1].IsNumber() || ! info[2].IsNumber() || ! info[3].IsFunction()) {
         TypeError::New(env, "Wrong type of arguments: fd, length, flags, callback").ThrowAsJavaScriptException();
         return env.Null();
     }
 
     int fd = info[0].As<Number>().Int32Value();
-    bool lossless;
-    size_t n = info[1].As<BigInt>().Uint64Value(&lossless);
+    unsigned int n = info[1].As<Number>().Uint32Value();
     int flags = info[2].As<Number>().Int32Value();
     auto cb = info[3].As<Function>();
 

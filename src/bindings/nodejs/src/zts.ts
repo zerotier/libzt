@@ -22,7 +22,7 @@ interface ZTS {
 
     bind(fd: number, ipAddr: string, port: number): void
     listen(fd: number, backlog: number): void
-    accept(fd: number): {fd: number, address: string, port: number}
+    accept(fd: number, callback: (err: Error | null, fd: number)=>void): void
     connect(fd: number, ipAddr: string, port: number, timeout: number, callback: (err: Error | null) => void): void
     shutdown_wr(fd: number): void
 

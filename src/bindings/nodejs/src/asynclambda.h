@@ -9,9 +9,10 @@ using namespace Napi;
  */
 class AsyncLambda : public AsyncWorker {
   public:
-    AsyncLambda(Function& callback, std::function<int()> lambda, std::function<void()> on_destroy)
+    AsyncLambda(Function& callback, std::string name, std::function<int()> lambda, std::function<void()> on_destroy)
         : AsyncWorker(callback)
         , ret(0)
+        , name(name)
         , lambda(lambda)
         , on_destroy(on_destroy)
     {
@@ -25,7 +26,9 @@ class AsyncLambda : public AsyncWorker {
     {
         ret = lambda();
         if (ret < 0) {
-            SetError("Error during operation.");
+            char err[200];
+            snprintf(err, 200, "Error during operation %s, ret: %d, errno: %d", name.c_str(), ret, errno);
+            SetError(std::string(err));
         }
     }
 
@@ -43,6 +46,7 @@ class AsyncLambda : public AsyncWorker {
 
   private:
     int ret;
+    std::string name;
     std::function<int()> lambda;
     std::function<void()> on_destroy;
 };

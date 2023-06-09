@@ -6,26 +6,28 @@
 
 using namespace Napi;
 
+#define VOID() return env.Undefined();
+
 #define NO_ARGS() Env env = info.Env();
 
 #define NB_ARGS(N)                                                                                                     \
     Env env = info.Env();                                                                                              \
     if (info.Length() < N) {                                                                                           \
         TypeError::New(env, "Wrong number of arguments. Expected: " #N).ThrowAsJavaScriptException();                  \
-        return env.Undefined();                                                                                             \
+        VOID();                                                                                        \
     }
 
 #define ARG_FUNC(POS, NAME)                                                                                            \
     if (! info[POS].IsFunction()) {                                                                                    \
         TypeError::New(env, "Argument at position " #POS "should be a function.").ThrowAsJavaScriptException();        \
-        return env.Undefined();                                                                                             \
+        VOID();                                                                                             \
     }                                                                                                                  \
     auto NAME = info[POS].As<Function>();
 
 #define ARG_INT32(POS, NAME)                                                                                           \
     if (! info[POS].IsNumber()) {                                                                                      \
         TypeError::New(env, "Argument at position " #POS "should be a number.").ThrowAsJavaScriptException();          \
-        return env.Undefined();                                                                                             \
+        VOID();                                                                                             \
     }                                                                                                                  \
     auto NAME = info[POS].As<Number>().Int32Value();
 
@@ -35,7 +37,7 @@ using namespace Napi;
 #define ARG_UINT64(POS, NAME)                                                                                          \
     if (! info[POS].IsBigInt()) {                                                                                      \
         TypeError::New(env, "Argument at position " #POS "should be a BigInt.").ThrowAsJavaScriptException();          \
-        return env.Undefined();                                                                                             \
+        VOID();                                                                                            \
     }                                                                                                                  \
     bool lossless;                                                                                                     \
     auto NAME = info[POS].As<BigInt>().Uint64Value(&lossless);
@@ -43,7 +45,7 @@ using namespace Napi;
 #define ARG_UINT8ARRAY(POS, NAME)                                                                                      \
     if (! info[POS].IsTypedArray()) {                                                                                  \
         TypeError::New(env, "Argument at position " #POS "should be a Uint8Array.").ThrowAsJavaScriptException();      \
-        return env.Undefined();                                                                                             \
+        VOID();                                                                                            \
     }                                                                                                                  \
     auto NAME = info[POS].As<Uint8Array>();
 
@@ -59,10 +61,10 @@ Value init_from_storage(const CallbackInfo& info)
     int err = ZTS_ERR_OK;
     if ((err = zts_init_from_storage(std::string(configPath).c_str())) != ZTS_ERR_OK) {
         Error::New(env, "Unable to set config path.").ThrowAsJavaScriptException();
-        return env.Undefined();
+        VOID();
     }
 
-    return env.Undefined();
+    VOID();
 }
 
 ThreadSafeFunction event_callback;
@@ -90,10 +92,10 @@ Value init_set_event_handler(const CallbackInfo& info)
     int err = ZTS_ERR_OK;
     if ((err = zts_init_set_event_handler(&event_handler)) != ZTS_ERR_OK) {
         Error::New(env, "Unable to start service.").ThrowAsJavaScriptException();
-        return env.Undefined();
+        VOID();
     }
 
-    return env.Undefined();
+    VOID();
 }
 
 // ### node ###
@@ -105,10 +107,10 @@ Value node_start(const CallbackInfo& info)
 
     if ((err = zts_node_start()) != ZTS_ERR_OK) {
         Error::New(env, "Unable to start service.").ThrowAsJavaScriptException();
-        return env.Undefined();
+        VOID();
     }
 
-    return env.Undefined();
+    VOID();
 }
 
 Value node_is_online(const CallbackInfo& info)
@@ -131,10 +133,10 @@ Value node_stop(const CallbackInfo& info)
 
     if ((err = zts_node_stop()) != ZTS_ERR_OK) {
         Error::New(env, "Unable to stop service.").ThrowAsJavaScriptException();
-        return env.Undefined();
+        VOID();
     }
 
-    return env.Undefined();
+    VOID();
 }
 
 Value node_free(const CallbackInfo& info)
@@ -144,10 +146,10 @@ Value node_free(const CallbackInfo& info)
 
     if ((err = zts_node_free()) != ZTS_ERR_OK) {
         Error::New(env, "Unable to free service.").ThrowAsJavaScriptException();
-        return env.Undefined();
+        VOID();
     }
 
-    return env.Undefined();
+    VOID();
 }
 
 // ### net ###
@@ -160,10 +162,10 @@ Value net_join(const CallbackInfo& info)
     int err;
     if ((err = zts_net_join(net_id)) != ZTS_ERR_OK) {
         Error::New(env, "Unable to join network.").ThrowAsJavaScriptException();
-        return env.Undefined();
+        VOID();
     }
 
-    return env.Undefined();
+    VOID();
 }
 
 Value net_leave(const CallbackInfo& info)
@@ -174,10 +176,10 @@ Value net_leave(const CallbackInfo& info)
     int err;
     if ((err = zts_net_leave(net_id)) != ZTS_ERR_OK) {
         Error::New(env, "Error leaving network.").ThrowAsJavaScriptException();
-        return env.Undefined();
+        VOID();
     }
 
-    return env.Undefined();
+    VOID();
 }
 
 Value net_transport_is_ready(const CallbackInfo& info)
@@ -203,7 +205,7 @@ Value addr_get_str(const CallbackInfo& info)
     int err;
     if ((err = zts_addr_get_str(net_id, family, addr, ZTS_IP_MAX_STR_LEN)) != ZTS_ERR_OK) {
         Error::New(env, "Unable to get ip address.").ThrowAsJavaScriptException();
-        return env.Undefined();
+        VOID();
     }
 
     return String::New(env, addr);
@@ -221,7 +223,7 @@ Value bsd_socket(const CallbackInfo& info)
     int fd;
     if ((fd = zts_bsd_socket(ipv6 ? ZTS_AF_INET6 : ZTS_AF_INET, type, protocol)) < 0) {
         Error::New(env, "Unable to start service.").ThrowAsJavaScriptException();
-        return env.Undefined();
+        VOID();
     }
 
     return Number::New(env, fd);
@@ -235,10 +237,10 @@ Value bsd_close(const CallbackInfo& info)
     int err;
     if ((err = zts_bsd_close(fd)) < 0) {
         Error::New(env, "Error when sending.").ThrowAsJavaScriptException();
-        return env.Undefined();
+        VOID();
     }
 
-    return env.Undefined();
+    VOID();
 }
 
 Value bsd_send(const CallbackInfo& info)
@@ -255,10 +257,10 @@ Value bsd_send(const CallbackInfo& info)
 
     auto execute = [fd, data_vec, size, flags]() { return zts_bsd_send(fd, data_vec->data(), size, flags); };
     auto on_destroy = [data_vec]() { delete data_vec; };
-    auto worker = new AsyncLambda(cb, execute, on_destroy);
+    auto worker = new AsyncLambda(cb, "bsd_send", execute, on_destroy);
     worker->Queue();
     
-    return env.Undefined();
+    VOID();
 }
 
 Value bsd_recv(const CallbackInfo& info)
@@ -272,7 +274,7 @@ Value bsd_recv(const CallbackInfo& info)
     auto worker = new BsdRecvWorker(cb, fd, n, flags);
     worker->Queue();
 
-    return env.Undefined();
+    VOID();
 }
 
 // ### no namespace socket stuff
@@ -287,10 +289,10 @@ Value bind(const CallbackInfo& info)
     int err;
     if ((err = zts_bind(fd, std::string(ipstr).c_str(), port)) < 0) {
         Error::New(env, "Error when binding.").ThrowAsJavaScriptException();
-        return env.Undefined();
+        VOID();
     }
 
-    return env.Undefined();
+    VOID();
 }
 
 Value listen(const CallbackInfo& info)
@@ -302,32 +304,26 @@ Value listen(const CallbackInfo& info)
     int err;
     if ((err = zts_listen(fd, backlog)) < 0) {
         Error::New(env, "Error when listening.").ThrowAsJavaScriptException();
-        return env.Undefined();
+        VOID();
     }
 
-    return env.Undefined();
+    VOID();
 }
 
 Value accept(const CallbackInfo& info)
 {
-    NB_ARGS(1)
+    NB_ARGS(2)
     ARG_INT32(0, fd)
+    ARG_FUNC(1, cb)
 
-    char remote_addr[ZTS_IP_MAX_STR_LEN];
-    unsigned short port;
+    auto worker = new AsyncLambda(cb, "accept", [fd]() {
+        char remote_addr[ZTS_IP_MAX_STR_LEN];
+        unsigned short port;
+        return zts_accept(fd, remote_addr, ZTS_IP_MAX_STR_LEN, &port);
+    }, []() {});
+    worker->Queue();
 
-    int new_fd;
-    if ((new_fd = zts_accept(fd, remote_addr, ZTS_IP_MAX_STR_LEN, &port)) < 0) {
-        Error::New(env, "Error when binding.").ThrowAsJavaScriptException();
-        return env.Undefined();
-    }
-
-    auto obj = Object::New(env);
-    obj["fd"] = Number::New(env, new_fd);
-    obj["address"] = String::New(env, remote_addr);
-    obj["port"] = Number::New(env, port);
-
-    return obj;
+    VOID();
 }
 
 Value connect(const CallbackInfo& info)
@@ -339,12 +335,12 @@ Value connect(const CallbackInfo& info)
     ARG_INT32(3, timeout)
     ARG_FUNC(4, cb)
 
-    auto worker = new AsyncLambda(cb, [=]() {
+    auto worker = new AsyncLambda(cb, "connect", [=]() {
         return zts_connect(fd, ipstr.c_str(), port, timeout);
     }, [](){});
     worker->Queue();
 
-    return env.Undefined();
+    VOID();
 }
 
 Value shutdown_wr(const CallbackInfo& info) {
@@ -354,10 +350,10 @@ Value shutdown_wr(const CallbackInfo& info) {
     int err;
     if ((err = zts_shutdown_wr(fd)) < 0) {
         Error::New(env, "Error shutdown_wr socket.").ThrowAsJavaScriptException();
-        return env.Undefined();
+        VOID();
     }
 
-    return env.Undefined();
+    VOID();
 }
 
 // ### util ###
@@ -369,7 +365,7 @@ Value util_delay(const CallbackInfo& info)
 
     zts_util_delay(delay);
 
-    return env.Undefined();
+    VOID();
 }
 
 // NAPI initialiser

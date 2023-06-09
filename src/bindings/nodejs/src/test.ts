@@ -1,8 +1,13 @@
 import { init } from ".";
-import { Socket } from "./Socket";
+import { Server } from "./Server";
+import { Socket, connect } from "./Socket";
 import zts from "./zts"
 
-init("id");
+const server = process.argv[2] === "server"
+const port = parseInt(process.argv[3])
+const host = process.argv[4]
+
+init("id" + (server ? "server" : ""));
 
 while(! zts.node_is_online()) {
     zts.util_delay(50);
@@ -32,23 +37,36 @@ try {
     console.log(error.toString())
 }
 
-const s = new Socket("172.24.144.58", 6000)
-// const s = net.connect(6000);
 
-let i = 0;
+if(server) {
+    console.log("starting server")
+    const server = new Server({}, socket => {
+        console.log("new connection")
+        socket.on("data", data=>socket.write(data));
+        socket.on("error", ()=>console.log("error"))
+    });
+    server.listen(port, "::", ()=>console.log("listening"));
+    server.on("error", err=>console.log(err));
+} else {
 
-s.on("connect", ()=> {
-    console.log("connected");
-    s.write(Buffer.from("ping"+i));
-    i++;
-});
-
-s.on("data", data=> {
-    console.log(`${data.length}`);
-    setTimeout(()=>{
-        s.write(Buffer.alloc(10_000))
-        i++
-    }, 0);
-});
-
-s.on("error", err => console.log(err));
+    const s = connect(host, port)
+    // const s = net.connect(6000);
+    
+    let i = 0;
+    
+    s.on("connect", ()=> {
+        console.log("connected");
+        s.write(Buffer.from("ping"+i));
+        i++;
+    });
+    
+    s.on("data", data=> {
+        console.log(`${data.length}`);
+        setTimeout(()=>{
+            s.write(Buffer.from("ping"+i));
+            i++
+        }, 100);
+    });
+    
+    s.on("error", err => console.log(err));
+}

@@ -1,25 +1,17 @@
-import zts from "./zts"
+import zts from "./zts";
 import { Duplex } from "stream";
 
 import { isIPv6 } from "net";
 
 export class Socket extends Duplex {
-    fd: number;
-    reading: boolean = false;
+    private fd: number;
+    private reading: boolean = false;
     
-    constructor(host: string, port: number) {
+    constructor(fd: number) {
         super({
             decodeStrings: true
         });
-        
-        this.fd = zts.bsd_socket(isIPv6(host), 1, 0);
-        zts.connect(this.fd, host, port, 0, err => {
-            if(err) {
-                this.destroy(err);
-                return;
-            }
-            this.emit("connect");
-        })
+        this.fd = fd;
     }
 
     _write(chunk: unknown, encoding: BufferEncoding, callback: (error?: Error) => void): void {
@@ -63,4 +55,20 @@ export class Socket extends Duplex {
         zts.bsd_close(this.fd);
         callback(error);
     }
+}
+
+export function connect(host: string, port: number): Socket {
+    const fd = zts.bsd_socket(isIPv6(host), 1, 0);
+    console.log(fd)
+    const s = new Socket(fd);
+
+    zts.connect(fd, host, port, 0, err => {
+        if(err) {
+            s.destroy(err);
+            return;
+        }
+        s.emit("connect");
+    });
+
+    return s;
 }

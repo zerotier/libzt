@@ -32,7 +32,7 @@ export class Server extends EventEmitter {
         this.fd = zts.bsd_socket(isIPv6(host), 1, 0);
         console.log(this.fd);
         zts.bind(this.fd, host, port);
-        zts.listen(this.fd, 20);
+        zts.listen(this.fd, 511);
 
         this.listening = true;
         process.nextTick(()=>this.emit("listening"));

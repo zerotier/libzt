@@ -19,7 +19,7 @@ class BsdRecvWorker : public AsyncWorker {
         data.reserve(n);
 
         int bytes_received;
-        if ((bytes_received = zts_recv(fd, data.data(), n, flags)) < 0) {
+        if ((bytes_received = zts_bsd_recv(fd, data.data(), n, flags)) < 0) {
             SetError("Error when receiving.");
             return;
         }
@@ -30,7 +30,7 @@ class BsdRecvWorker : public AsyncWorker {
     {
         HandleScope scope(Env());
 
-        Callback().Call({ Buffer<char>::Copy(Env(), data.data(), n) });
+        Callback().Call({ Env().Null(), Buffer<char>::Copy(Env(), data.data(), n) });
     }
 
   private:

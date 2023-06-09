@@ -1,5 +1,6 @@
 #include "ZeroTierSockets.h"
 #include "async.cc"
+#include "asynclambda.h"
 
 #include <napi.h>
 
@@ -11,30 +12,30 @@ using namespace Napi;
     Env env = info.Env();                                                                                              \
     if (info.Length() < N) {                                                                                           \
         TypeError::New(env, "Wrong number of arguments. Expected: " #N).ThrowAsJavaScriptException();                  \
-        return env.Null();                                                                                             \
+        return env.Undefined();                                                                                             \
     }
 
 #define ARG_FUNC(POS, NAME)                                                                                            \
     if (! info[POS].IsFunction()) {                                                                                    \
         TypeError::New(env, "Argument at position " #POS "should be a function.").ThrowAsJavaScriptException();        \
-        return env.Null();                                                                                             \
+        return env.Undefined();                                                                                             \
     }                                                                                                                  \
     auto NAME = info[POS].As<Function>();
 
 #define ARG_INT32(POS, NAME)                                                                                           \
     if (! info[POS].IsNumber()) {                                                                                      \
         TypeError::New(env, "Argument at position " #POS "should be a number.").ThrowAsJavaScriptException();          \
-        return env.Null();                                                                                             \
+        return env.Undefined();                                                                                             \
     }                                                                                                                  \
     auto NAME = info[POS].As<Number>().Int32Value();
 
-#define ARG_STRING(POS, NAME)  auto NAME = info[POS].ToString();
+#define ARG_STRING(POS, NAME)  auto NAME = std::string(info[POS].ToString());
 #define ARG_BOOLEAN(POS, NAME) auto NAME = info[POS].ToBoolean();
 
 #define ARG_UINT64(POS, NAME)                                                                                          \
     if (! info[POS].IsBigInt()) {                                                                                      \
         TypeError::New(env, "Argument at position " #POS "should be a BigInt.").ThrowAsJavaScriptException();          \
-        return env.Null();                                                                                             \
+        return env.Undefined();                                                                                             \
     }                                                                                                                  \
     bool lossless;                                                                                                     \
     auto NAME = info[POS].As<BigInt>().Uint64Value(&lossless);
@@ -42,9 +43,11 @@ using namespace Napi;
 #define ARG_UINT8ARRAY(POS, NAME)                                                                                      \
     if (! info[POS].IsTypedArray()) {                                                                                  \
         TypeError::New(env, "Argument at position " #POS "should be a Uint8Array.").ThrowAsJavaScriptException();      \
-        return env.Null();                                                                                             \
+        return env.Undefined();                                                                                             \
     }                                                                                                                  \
     auto NAME = info[POS].As<Uint8Array>();
+
+#define EXPORT(F) exports[#F] = Function::New(env, F);
 
 // ### init ###
 
@@ -56,10 +59,10 @@ Value init_from_storage(const CallbackInfo& info)
     int err = ZTS_ERR_OK;
     if ((err = zts_init_from_storage(std::string(configPath).c_str())) != ZTS_ERR_OK) {
         Error::New(env, "Unable to set config path.").ThrowAsJavaScriptException();
-        return env.Null();
+        return env.Undefined();
     }
 
-    return env.Null();
+    return env.Undefined();
 }
 
 ThreadSafeFunction event_callback;
@@ -87,10 +90,10 @@ Value init_set_event_handler(const CallbackInfo& info)
     int err = ZTS_ERR_OK;
     if ((err = zts_init_set_event_handler(&event_handler)) != ZTS_ERR_OK) {
         Error::New(env, "Unable to start service.").ThrowAsJavaScriptException();
-        return env.Null();
+        return env.Undefined();
     }
 
-    return env.Null();
+    return env.Undefined();
 }
 
 // ### node ###
@@ -102,10 +105,10 @@ Value node_start(const CallbackInfo& info)
 
     if ((err = zts_node_start()) != ZTS_ERR_OK) {
         Error::New(env, "Unable to start service.").ThrowAsJavaScriptException();
-        return env.Null();
+        return env.Undefined();
     }
 
-    return env.Null();
+    return env.Undefined();
 }
 
 Value node_is_online(const CallbackInfo& info)
@@ -128,10 +131,10 @@ Value node_stop(const CallbackInfo& info)
 
     if ((err = zts_node_stop()) != ZTS_ERR_OK) {
         Error::New(env, "Unable to stop service.").ThrowAsJavaScriptException();
-        return env.Null();
+        return env.Undefined();
     }
 
-    return env.Null();
+    return env.Undefined();
 }
 
 Value node_free(const CallbackInfo& info)
@@ -141,10 +144,10 @@ Value node_free(const CallbackInfo& info)
 
     if ((err = zts_node_free()) != ZTS_ERR_OK) {
         Error::New(env, "Unable to free service.").ThrowAsJavaScriptException();
-        return env.Null();
+        return env.Undefined();
     }
 
-    return env.Null();
+    return env.Undefined();
 }
 
 // ### net ###
@@ -157,10 +160,10 @@ Value net_join(const CallbackInfo& info)
     int err;
     if ((err = zts_net_join(net_id)) != ZTS_ERR_OK) {
         Error::New(env, "Unable to join network.").ThrowAsJavaScriptException();
-        return env.Null();
+        return env.Undefined();
     }
 
-    return env.Null();
+    return env.Undefined();
 }
 
 Value net_leave(const CallbackInfo& info)
@@ -171,10 +174,10 @@ Value net_leave(const CallbackInfo& info)
     int err;
     if ((err = zts_net_leave(net_id)) != ZTS_ERR_OK) {
         Error::New(env, "Error leaving network.").ThrowAsJavaScriptException();
-        return env.Null();
+        return env.Undefined();
     }
 
-    return env.Null();
+    return env.Undefined();
 }
 
 Value net_transport_is_ready(const CallbackInfo& info)
@@ -200,7 +203,7 @@ Value addr_get_str(const CallbackInfo& info)
     int err;
     if ((err = zts_addr_get_str(net_id, family, addr, ZTS_IP_MAX_STR_LEN)) != ZTS_ERR_OK) {
         Error::New(env, "Unable to get ip address.").ThrowAsJavaScriptException();
-        return env.Null();
+        return env.Undefined();
     }
 
     return String::New(env, addr);
@@ -211,14 +214,14 @@ Value addr_get_str(const CallbackInfo& info)
 Value bsd_socket(const CallbackInfo& info)
 {
     NB_ARGS(3)
-    ARG_INT32(0, family)
-    ARG_INT32(0, type)
-    ARG_INT32(0, protocol)
+    ARG_BOOLEAN(0, ipv6)
+    ARG_INT32(1, type)
+    ARG_INT32(2, protocol)
 
     int fd;
-    if ((fd = zts_bsd_socket(family, type, protocol)) < 0) {
+    if ((fd = zts_bsd_socket(ipv6 ? ZTS_AF_INET6 : ZTS_AF_INET, type, protocol)) < 0) {
         Error::New(env, "Unable to start service.").ThrowAsJavaScriptException();
-        return env.Null();
+        return env.Undefined();
     }
 
     return Number::New(env, fd);
@@ -232,45 +235,33 @@ Value bsd_close(const CallbackInfo& info)
     int err;
     if ((err = zts_bsd_close(fd)) < 0) {
         Error::New(env, "Error when sending.").ThrowAsJavaScriptException();
-        return env.Null();
+        return env.Undefined();
     }
 
-    return env.Null();
+    return env.Undefined();
 }
 
 Value bsd_send(const CallbackInfo& info)
 {
-    NB_ARGS(3)
+    NB_ARGS(4)
     ARG_INT32(0, fd)
     ARG_UINT8ARRAY(1, data)
     ARG_INT32(2, flags)
+    ARG_FUNC(3, cb)
 
-    int bytesWritten;
-    if ((bytesWritten = zts_send(fd, data.Data(), data.ByteLength(), flags)) < 0) {
-        Error::New(env, "Error when sending.").ThrowAsJavaScriptException();
-        return env.Null();
-    }
+    int size = data.ByteLength();
+    auto data_vec = new std::vector<uint8_t>();
+    data_vec->insert(data_vec->begin(), data.Data(), data.Data() + size);
 
-    return Number::New(env, bytesWritten);
+    auto execute = [fd, data_vec, size, flags]() { return zts_bsd_send(fd, data_vec->data(), size, flags); };
+    auto on_destroy = [data_vec]() { delete data_vec; };
+    auto worker = new AsyncLambda(cb, execute, on_destroy);
+    worker->Queue();
+    
+    return env.Undefined();
 }
 
 Value bsd_recv(const CallbackInfo& info)
-{
-    NB_ARGS(3)
-    ARG_INT32(0, fd)
-    ARG_UINT8ARRAY(1, data)
-    ARG_INT32(2, flags)
-
-    int bytes_received;
-    if ((bytes_received = zts_recv(fd, data.Data(), data.ByteLength(), flags)) < 0) {
-        Error::New(env, "Error when receiving.").ThrowAsJavaScriptException();
-        return env.Null();
-    }
-
-    return Number::New(env, bytes_received);
-}
-
-Value bsd_recv_cb(const CallbackInfo& info)
 {
     NB_ARGS(4)
     ARG_INT32(0, fd)
@@ -281,7 +272,7 @@ Value bsd_recv_cb(const CallbackInfo& info)
     auto worker = new BsdRecvWorker(cb, fd, n, flags);
     worker->Queue();
 
-    return env.Null();
+    return env.Undefined();
 }
 
 // ### no namespace socket stuff
@@ -296,10 +287,10 @@ Value bind(const CallbackInfo& info)
     int err;
     if ((err = zts_bind(fd, std::string(ipstr).c_str(), port)) < 0) {
         Error::New(env, "Error when binding.").ThrowAsJavaScriptException();
-        return env.Null();
+        return env.Undefined();
     }
 
-    return env.Null();
+    return env.Undefined();
 }
 
 Value listen(const CallbackInfo& info)
@@ -310,11 +301,11 @@ Value listen(const CallbackInfo& info)
 
     int err;
     if ((err = zts_listen(fd, backlog)) < 0) {
-        Error::New(env, "Error when binding.").ThrowAsJavaScriptException();
-        return env.Null();
+        Error::New(env, "Error when listening.").ThrowAsJavaScriptException();
+        return env.Undefined();
     }
 
-    return env.Null();
+    return env.Undefined();
 }
 
 Value accept(const CallbackInfo& info)
@@ -328,7 +319,7 @@ Value accept(const CallbackInfo& info)
     int new_fd;
     if ((new_fd = zts_accept(fd, remote_addr, ZTS_IP_MAX_STR_LEN, &port)) < 0) {
         Error::New(env, "Error when binding.").ThrowAsJavaScriptException();
-        return env.Null();
+        return env.Undefined();
     }
 
     auto obj = Object::New(env);
@@ -341,19 +332,32 @@ Value accept(const CallbackInfo& info)
 
 Value connect(const CallbackInfo& info)
 {
-    NB_ARGS(4)
+    NB_ARGS(5)
     ARG_INT32(0, fd)
     ARG_STRING(1, ipstr)
     ARG_INT32(2, port)
     ARG_INT32(3, timeout)
+    ARG_FUNC(4, cb)
+
+    auto worker = new AsyncLambda(cb, [=]() {
+        return zts_connect(fd, ipstr.c_str(), port, timeout);
+    }, [](){});
+    worker->Queue();
+
+    return env.Undefined();
+}
+
+Value shutdown_wr(const CallbackInfo& info) {
+    NB_ARGS(1)
+    ARG_INT32(0, fd)
 
     int err;
-    if ((err = zts_connect(fd, std::string(ipstr).c_str(), port, timeout)) != ZTS_ERR_OK) {
-        Error::New(env, "Error when connecting.").ThrowAsJavaScriptException();
-        return env.Null();
+    if ((err = zts_shutdown_wr(fd)) < 0) {
+        Error::New(env, "Error shutdown_wr socket.").ThrowAsJavaScriptException();
+        return env.Undefined();
     }
 
-    return env.Null();
+    return env.Undefined();
 }
 
 // ### util ###
@@ -365,7 +369,7 @@ Value util_delay(const CallbackInfo& info)
 
     zts_util_delay(delay);
 
-    return env.Null();
+    return env.Undefined();
 }
 
 // NAPI initialiser
@@ -373,40 +377,39 @@ Value util_delay(const CallbackInfo& info)
 Object Init(Env env, Object exports)
 {
     // init
-    exports.Set("init_from_storage", Function::New(env, init_from_storage));
-    exports.Set("init_set_event_handler", Function::New(env, init_set_event_handler));
-
+    EXPORT(init_from_storage)
+    EXPORT(init_set_event_handler)
+    
     // node
-    exports.Set("node_start", Function::New(env, node_start));
-    exports.Set("node_is_online", Function::New(env, node_is_online));
-    exports.Set("node_get_id", Function::New(env, node_get_id));
-    exports.Set("node_stop", Function::New(env, node_stop));
-    exports.Set("node_free", Function::New(env, node_free));
+    EXPORT(node_start)
+    EXPORT(node_is_online)
+    EXPORT(node_get_id)
+    EXPORT(node_stop)
+    EXPORT(node_free)
 
     // net
-    exports.Set("net_join", Function::New(env, net_join));
-    exports.Set("net_leave", Function::New(env, net_leave));
-    exports.Set("net_transport_is_ready", Function::New(env, net_transport_is_ready));
+    EXPORT(net_join)
+    EXPORT(net_leave)
+    EXPORT(net_transport_is_ready)
 
     // addr
-    exports.Set("addr_get_str", Function::New(env, addr_get_str));
+    EXPORT(addr_get_str)
 
     // bsd
-    exports.Set("bsd_socket", Function::New(env, bsd_socket));
-    exports.Set("bsd_close", Function::New(env, bsd_close));
-    exports.Set("bsd_send", Function::New(env, bsd_send));
-    exports.Set("bsd_recv", Function::New(env, bsd_recv));
-
-    exports["bsd_recv_cb"] = Function::New(env, bsd_recv_cb);
+    EXPORT(bsd_socket)
+    EXPORT(bsd_close)
+    EXPORT(bsd_send)
+    EXPORT(bsd_recv)
 
     // no ns socket
-    exports["bind"] = Function::New(env, bind);
-    exports["listen"] = Function::New(env, listen);
-    exports["accept"] = Function::New(env, accept);
-    exports["connect"] = Function::New(env, connect);
+    EXPORT(bind)
+    EXPORT(listen)
+    EXPORT(accept)
+    EXPORT(connect)
+    EXPORT(shutdown_wr)
 
     // util
-    exports.Set("util_delay", Function::New(env, util_delay));
+    EXPORT(util_delay)
 
     return exports;
 }

@@ -5,7 +5,7 @@ import { isIPv6 } from "net";
 
 export class Socket extends Duplex {
     private fd: number;
-    private reading: boolean = false;
+    private reading = false;
     
     constructor(fd: number) {
         super({
@@ -36,7 +36,7 @@ export class Socket extends Duplex {
             this.reading=false;
 
             if(err) {
-                console.log(err)
+                console.log(err);
                 this.destroy(err);
                 return;
             }
@@ -46,9 +46,9 @@ export class Socket extends Duplex {
                 return;
             }
 
-            let res = this.push(data);
+            const res = this.push(data);
             if(res) this._read(size);
-        })
+        });
     }
 
     _destroy(error: Error, callback: (error: Error) => void): void {
@@ -59,7 +59,7 @@ export class Socket extends Duplex {
 
 export function connect(host: string, port: number): Socket {
     const fd = zts.bsd_socket(isIPv6(host), 1, 0);
-    console.log(fd)
+    console.log(fd);
     const s = new Socket(fd);
 
     zts.connect(fd, host, port, 0, err => {

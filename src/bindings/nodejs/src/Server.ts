@@ -3,7 +3,6 @@ import zts from "./zts";
 import { Socket } from "./Socket";
 
 import { isIPv6 } from "net";
-import { cpSync } from "fs";
 
 
 export interface ServerEvents {
@@ -18,10 +17,10 @@ export declare interface Server {
 }
 
 export class Server extends EventEmitter {
-    private fd: number
-    private listening = false
+    private fd: number;
+    private listening = false;
 
-    constructor(options: {}, connectionListener?: ServerEvents["connection"]) {
+    constructor(options: Record<string, never>, connectionListener?: ServerEvents["connection"]) {
         super();
         if(connectionListener) this.on("connection", connectionListener);
     }
@@ -33,7 +32,7 @@ export class Server extends EventEmitter {
         this.fd = zts.bsd_socket(isIPv6(host), 1, 0);
         console.log(this.fd);
         zts.bind(this.fd, host, port);
-        zts.listen(this.fd, 20)
+        zts.listen(this.fd, 20);
 
         this.listening = true;
         process.nextTick(()=>this.emit("listening"));

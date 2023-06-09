@@ -14,7 +14,7 @@ interface ZTS {
 
     addr_get_str(nwid: bigint, ipv6: boolean): string
 
-    bsd_socket(ipv6: boolean, type: number, protocol: number): number
+    bsd_socket(family: number, type: number, protocol: number): number
     bsd_close(fd: number): void
 
     bsd_send(fd: number, data: Uint8Array, flags: number, callback: (err: Error | null, bytesWritten: number) => void): void;

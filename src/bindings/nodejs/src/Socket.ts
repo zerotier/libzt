@@ -7,11 +7,27 @@ export class Socket extends Duplex {
     private fd: number;
     private reading = false;
     
+    localAddress?: string;
+    localPort?: number;
+
+    remoteAddress?: string;
+    remotePort?: number;
+
     constructor(fd: number) {
         super({
             decodeStrings: true
         });
         this.fd = fd;
+
+        this.once("connect", ()=>{
+            const sockname = zts.getsockname(this.fd);
+            this.localAddress = sockname.address;
+            this.localPort = sockname.port;
+
+            const peername = zts.getpeername(this.fd);
+            this.remoteAddress = peername.address;
+            this.remotePort = peername.port;
+        });
     }
 
     _write(chunk: unknown, encoding: BufferEncoding, callback: (error?: Error) => void): void {
@@ -55,10 +71,18 @@ export class Socket extends Duplex {
         zts.bsd_close(this.fd);
         callback(error);
     }
+
+    address() {
+        try {
+            return zts.getsockname(this.fd);    
+        } catch (error) {
+            return {};
+        } 
+    }
 }
 
 export function connect(host: string, port: number): Socket {
-    const fd = zts.bsd_socket(isIPv6(host), defs.ZTS_SOCK_STREAM, 0);
+    const fd = zts.bsd_socket(isIPv6(host) ? defs.ZTS_AF_INET6 : defs.ZTS_AF_INET, defs.ZTS_SOCK_STREAM, 0);
     console.log(fd);
     const s = new Socket(fd);
 

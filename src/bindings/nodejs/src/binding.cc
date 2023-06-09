@@ -212,11 +212,11 @@ Value addr_get_str(CALLBACKINFO)
 Value bsd_socket(CALLBACKINFO)
 {
     NB_ARGS(3)
-    ARG_BOOLEAN(0, ipv6)
+    ARG_INT32(0, family)
     ARG_INT32(1, type)
     ARG_INT32(2, protocol)
 
-    int fd = zts_bsd_socket(ipv6 ? ZTS_AF_INET6 : ZTS_AF_INET, type, protocol);
+    int fd = zts_bsd_socket(family, type, protocol);
     CHECK_ERRNO(fd, "bsd_socket")
 
     return Number::New(env, fd);

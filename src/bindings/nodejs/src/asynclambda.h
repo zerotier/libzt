@@ -27,8 +27,10 @@ class AsyncLambda : public AsyncWorker {
     {
         ret = lambda();
         if (ret < 0) {
+            err_no = zts_errno;
+
             char err[200];
-            snprintf(err, 200, "Error during operation %s, ret: %d, errno: %d", name.c_str(), ret, errno);
+            snprintf(err, 200, "Error during operation %s, ret: %d, errno: %d", name.c_str(), ret, zts_errno);
             SetError(std::string(err));
         }
     }

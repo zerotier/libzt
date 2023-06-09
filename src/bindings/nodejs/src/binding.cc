@@ -6,6 +6,8 @@
 
 using namespace Napi;
 
+#define CALLBACKINFO const CallbackInfo& info
+
 #define VOID() return env.Undefined();
 
 #define NO_ARGS() Env env = info.Env();
@@ -14,20 +16,20 @@ using namespace Napi;
     Env env = info.Env();                                                                                              \
     if (info.Length() < N) {                                                                                           \
         TypeError::New(env, "Wrong number of arguments. Expected: " #N).ThrowAsJavaScriptException();                  \
-        VOID();                                                                                        \
+        VOID();                                                                                                        \
     }
 
 #define ARG_FUNC(POS, NAME)                                                                                            \
     if (! info[POS].IsFunction()) {                                                                                    \
         TypeError::New(env, "Argument at position " #POS "should be a function.").ThrowAsJavaScriptException();        \
-        VOID();                                                                                             \
+        VOID();                                                                                                        \
     }                                                                                                                  \
     auto NAME = info[POS].As<Function>();
 
 #define ARG_INT32(POS, NAME)                                                                                           \
     if (! info[POS].IsNumber()) {                                                                                      \
         TypeError::New(env, "Argument at position " #POS "should be a number.").ThrowAsJavaScriptException();          \
-        VOID();                                                                                             \
+        VOID();                                                                                                        \
     }                                                                                                                  \
     auto NAME = info[POS].As<Number>().Int32Value();
 
@@ -37,7 +39,7 @@ using namespace Napi;
 #define ARG_UINT64(POS, NAME)                                                                                          \
     if (! info[POS].IsBigInt()) {                                                                                      \
         TypeError::New(env, "Argument at position " #POS "should be a BigInt.").ThrowAsJavaScriptException();          \
-        VOID();                                                                                            \
+        VOID();                                                                                                        \
     }                                                                                                                  \
     bool lossless;                                                                                                     \
     auto NAME = info[POS].As<BigInt>().Uint64Value(&lossless);
@@ -45,24 +47,38 @@ using namespace Napi;
 #define ARG_UINT8ARRAY(POS, NAME)                                                                                      \
     if (! info[POS].IsTypedArray()) {                                                                                  \
         TypeError::New(env, "Argument at position " #POS "should be a Uint8Array.").ThrowAsJavaScriptException();      \
-        VOID();                                                                                            \
+        VOID();                                                                                                        \
     }                                                                                                                  \
     auto NAME = info[POS].As<Uint8Array>();
 
 #define EXPORT(F) exports[#F] = Function::New(env, F);
 
+#define CHECK(ERR, FUN)                                                                                                \
+    if (ERR < 0) {                                                                                                     \
+        auto error = Error::New(env, "Error during " FUN " call");                                                     \
+        error.Set(String::New(env, "code"), Number::New(env, ERR));                                                    \
+        error.ThrowAsJavaScriptException();                                                                            \
+        VOID()                                                                                                         \
+    }
+
+#define CHECK_ERRNO(ERR, FUN)                                                                                          \
+    if (ERR < 0) {                                                                                                     \
+        auto error = Error::New(env, "Error during " FUN " call");                                                     \
+        error.Set(String::New(env, "code"), Number::New(env, ERR));                                                    \
+        error.Set(String::New(env, "errno"), Number::New(env, zts_errno));                                             \
+        error.ThrowAsJavaScriptException();                                                                            \
+        VOID()                                                                                                         \
+    }
+
 // ### init ###
 
-Value init_from_storage(const CallbackInfo& info)
+Value init_from_storage(CALLBACKINFO)
 {
     NB_ARGS(1)
     ARG_STRING(0, configPath)
 
-    int err = ZTS_ERR_OK;
-    if ((err = zts_init_from_storage(std::string(configPath).c_str())) != ZTS_ERR_OK) {
-        Error::New(env, "Unable to set config path.").ThrowAsJavaScriptException();
-        VOID();
-    }
+    int err = zts_init_from_storage(std::string(configPath).c_str());
+    CHECK(err, "init_from_storage")
 
     VOID();
 }
@@ -82,107 +98,90 @@ void event_handler(void* msgPtr)
     event_callback.Release();
 }
 
-Value init_set_event_handler(const CallbackInfo& info)
+Value init_set_event_handler(CALLBACKINFO)
 {
     NB_ARGS(1)
     ARG_FUNC(0, cb)
 
     event_callback = ThreadSafeFunction::New(env, cb, "zts_event_listener", 0, 1);
 
-    int err = ZTS_ERR_OK;
-    if ((err = zts_init_set_event_handler(&event_handler)) != ZTS_ERR_OK) {
-        Error::New(env, "Unable to start service.").ThrowAsJavaScriptException();
-        VOID();
-    }
+    int err = zts_init_set_event_handler(&event_handler);
+    CHECK(err, "init_set_event_handler")
 
     VOID();
 }
 
 // ### node ###
 
-Value node_start(const CallbackInfo& info)
+Value node_start(CALLBACKINFO)
 {
     NO_ARGS()
-    int err = ZTS_ERR_OK;
 
-    if ((err = zts_node_start()) != ZTS_ERR_OK) {
-        Error::New(env, "Unable to start service.").ThrowAsJavaScriptException();
-        VOID();
-    }
+    int err = zts_node_start();
+    CHECK(err, "node_start")
 
     VOID();
 }
 
-Value node_is_online(const CallbackInfo& info)
+Value node_is_online(CALLBACKINFO)
 {
     return Boolean::New(info.Env(), zts_node_is_online());
 }
 
-Value node_get_id(const CallbackInfo& info)
+Value node_get_id(CALLBACKINFO)
 {
     NO_ARGS()
+
     auto id = zts_node_get_id();
 
     return BigInt::New(env, id);
 }
 
-Value node_stop(const CallbackInfo& info)
+Value node_stop(CALLBACKINFO)
 {
     NO_ARGS()
-    int err = ZTS_ERR_OK;
 
-    if ((err = zts_node_stop()) != ZTS_ERR_OK) {
-        Error::New(env, "Unable to stop service.").ThrowAsJavaScriptException();
-        VOID();
-    }
+    int err = zts_node_stop();
+    CHECK(err, "node_stop")
 
     VOID();
 }
 
-Value node_free(const CallbackInfo& info)
+Value node_free(CALLBACKINFO)
 {
     NO_ARGS()
-    int err = ZTS_ERR_OK;
 
-    if ((err = zts_node_free()) != ZTS_ERR_OK) {
-        Error::New(env, "Unable to free service.").ThrowAsJavaScriptException();
-        VOID();
-    }
+    int err = zts_node_free();
+    CHECK(err, "node°free")
 
     VOID();
 }
 
 // ### net ###
 
-Value net_join(const CallbackInfo& info)
+Value net_join(CALLBACKINFO)
 {
     NB_ARGS(1)
     ARG_UINT64(0, net_id)
 
-    int err;
-    if ((err = zts_net_join(net_id)) != ZTS_ERR_OK) {
-        Error::New(env, "Unable to join network.").ThrowAsJavaScriptException();
-        VOID();
-    }
+    int err = zts_net_join(net_id);
+    CHECK(err, "net_join")
 
     VOID();
 }
 
-Value net_leave(const CallbackInfo& info)
+Value net_leave(CALLBACKINFO)
 {
     NB_ARGS(1)
     ARG_UINT64(0, net_id)
 
-    int err;
-    if ((err = zts_net_leave(net_id)) != ZTS_ERR_OK) {
-        Error::New(env, "Error leaving network.").ThrowAsJavaScriptException();
-        VOID();
-    }
+    int err = zts_net_leave(net_id);
+    CHECK(err, "net_leave")
 
     VOID();
 }
 
-Value net_transport_is_ready(const CallbackInfo& info)
+Value net_transport_is_ready(CALLBACKINFO)
 {
     NB_ARGS(1)
     ARG_UINT64(0, net_id)
@@ -192,7 +191,7 @@ Value net_transport_is_ready(const CallbackInfo& info)
 
 // ### addr ###
 
-Value addr_get_str(const CallbackInfo& info)
+Value addr_get_str(CALLBACKINFO)
 {
     NB_ARGS(2)
     ARG_UINT64(0, net_id)
@@ -202,48 +201,39 @@ Value addr_get_str(const CallbackInfo& info)
 
     char addr[ZTS_IP_MAX_STR_LEN];
 
-    int err;
-    if ((err = zts_addr_get_str(net_id, family, addr, ZTS_IP_MAX_STR_LEN)) != ZTS_ERR_OK) {
-        Error::New(env, "Unable to get ip address.").ThrowAsJavaScriptException();
-        VOID();
-    }
+    int err = zts_addr_get_str(net_id, family, addr, ZTS_IP_MAX_STR_LEN);
+    CHECK(err, "addr_get_str")
 
     return String::New(env, addr);
 }
 
 // ### bsd ###
 
-Value bsd_socket(const CallbackInfo& info)
+Value bsd_socket(CALLBACKINFO)
 {
     NB_ARGS(3)
     ARG_BOOLEAN(0, ipv6)
     ARG_INT32(1, type)
     ARG_INT32(2, protocol)
 
-    int fd;
-    if ((fd = zts_bsd_socket(ipv6 ? ZTS_AF_INET6 : ZTS_AF_INET, type, protocol)) < 0) {
-        Error::New(env, "Unable to start service.").ThrowAsJavaScriptException();
-        VOID();
-    }
+    int fd = zts_bsd_socket(ipv6 ? ZTS_AF_INET6 : ZTS_AF_INET, type, protocol);
+    CHECK_ERRNO(fd, "bsd_socket")
 
     return Number::New(env, fd);
 }
 
-Value bsd_close(const CallbackInfo& info)
+Value bsd_close(CALLBACKINFO)
 {
     NB_ARGS(1)
     ARG_INT32(0, fd)
 
-    int err;
-    if ((err = zts_bsd_close(fd)) < 0) {
-        Error::New(env, "Error when sending.").ThrowAsJavaScriptException();
-        VOID();
-    }
+    int err = zts_bsd_close(fd);
+    CHECK_ERRNO(err, "bsd_close")
 
     VOID();
 }
 
-Value bsd_send(const CallbackInfo& info)
+Value bsd_send(CALLBACKINFO)
 {
     NB_ARGS(4)
     ARG_INT32(0, fd)
@@ -259,11 +249,11 @@ Value bsd_send(const CallbackInfo& info)
     auto on_destroy = [data_vec]() { delete data_vec; };
     auto worker = new AsyncLambda(cb, "bsd_send", execute, on_destroy);
     worker->Queue();
-    
+
     VOID();
 }
 
-Value bsd_recv(const CallbackInfo& info)
+Value bsd_recv(CALLBACKINFO)
 {
     NB_ARGS(4)
     ARG_INT32(0, fd)
@@ -279,54 +269,52 @@ Value bsd_recv(const CallbackInfo& info)
 
 // ### no namespace socket stuff
 
-Value bind(const CallbackInfo& info)
+Value bind(CALLBACKINFO)
 {
     NB_ARGS(3)
     ARG_INT32(0, fd)
     ARG_STRING(1, ipstr)
     ARG_INT32(2, port)
 
-    int err;
-    if ((err = zts_bind(fd, std::string(ipstr).c_str(), port)) < 0) {
-        Error::New(env, "Error when binding.").ThrowAsJavaScriptException();
-        VOID();
-    }
+    int err = zts_bind(fd, std::string(ipstr).c_str(), port);
+    CHECK_ERRNO(err, "bind")
 
     VOID();
 }
 
-Value listen(const CallbackInfo& info)
+Value listen(CALLBACKINFO)
 {
     NB_ARGS(2)
     ARG_INT32(0, fd)
     ARG_INT32(1, backlog)
 
-    int err;
-    if ((err = zts_listen(fd, backlog)) < 0) {
-        Error::New(env, "Error when listening.").ThrowAsJavaScriptException();
-        VOID();
-    }
+    int err = zts_listen(fd, backlog);
+    CHECK_ERRNO(err, "listen")
 
     VOID();
 }
 
-Value accept(const CallbackInfo& info)
+Value accept(CALLBACKINFO)
 {
     NB_ARGS(2)
     ARG_INT32(0, fd)
     ARG_FUNC(1, cb)
 
-    auto worker = new AsyncLambda(cb, "accept", [fd]() {
-        char remote_addr[ZTS_IP_MAX_STR_LEN];
-        unsigned short port;
-        return zts_accept(fd, remote_addr, ZTS_IP_MAX_STR_LEN, &port);
-    }, []() {});
+    auto worker = new AsyncLambda(
+        cb,
+        "accept",
+        [fd]() {
+            char remote_addr[ZTS_IP_MAX_STR_LEN];
+            unsigned short port;
+            return zts_accept(fd, remote_addr, ZTS_IP_MAX_STR_LEN, &port);
+        },
+        []() {});
     worker->Queue();
 
     VOID();
 }
 
-Value connect(const CallbackInfo& info)
+Value connect(CALLBACKINFO)
 {
     NB_ARGS(5)
     ARG_INT32(0, fd)
@@ -335,30 +323,66 @@ Value connect(const CallbackInfo& info)
     ARG_INT32(3, timeout)
     ARG_FUNC(4, cb)
 
-    auto worker = new AsyncLambda(cb, "connect", [=]() {
-        return zts_connect(fd, ipstr.c_str(), port, timeout);
-    }, [](){});
+    auto worker = new AsyncLambda(
+        cb,
+        "connect",
+        [=]() { return zts_connect(fd, ipstr.c_str(), port, timeout); },
+        []() {});
     worker->Queue();
 
     VOID();
 }
 
-Value shutdown_wr(const CallbackInfo& info) {
+Value shutdown_wr(CALLBACKINFO)
+{
     NB_ARGS(1)
     ARG_INT32(0, fd)
 
-    int err;
-    if ((err = zts_shutdown_wr(fd)) < 0) {
-        Error::New(env, "Error shutdown_wr socket.").ThrowAsJavaScriptException();
-        VOID();
-    }
+    int err = zts_shutdown_wr(fd);
+    CHECK_ERRNO(err, "shutdown_wr")
 
     VOID();
 }
 
+Value getpeername(CALLBACKINFO)
+{
+    NB_ARGS(1)
+    ARG_INT32(0, fd)
+
+    char addr[ZTS_IP_MAX_STR_LEN];
+    unsigned short port;
+
+    int err = zts_getpeername(fd, addr, ZTS_IP_MAX_STR_LEN, &port);
+    CHECK_ERRNO(err, "getsockname")
+
+    auto obj = Object::New(env);
+    obj["address"] = String::New(env, addr);
+    obj["port"] = Number::New(env, port);
+
+    return obj;
+}
+
+Value getsockname(CALLBACKINFO)
+{
+    NB_ARGS(1)
+    ARG_INT32(0, fd)
+
+    char addr[ZTS_IP_MAX_STR_LEN];
+    unsigned short port;
+
+    int err = zts_getsockname(fd, addr, ZTS_IP_MAX_STR_LEN, &port);
+    CHECK_ERRNO(err, "getsockname")
+
+    auto obj = Object::New(env);
+    obj["address"] = String::New(env, addr);
+    obj["port"] = Number::New(env, port);
+
+    return obj;
+}
+
 // ### util ###
 
-Value util_delay(const CallbackInfo& info)
+Value util_delay(CALLBACKINFO)
 {
     NB_ARGS(1)
     ARG_INT32(0, delay)
@@ -375,7 +399,7 @@ Object Init(Env env, Object exports)
     // init
     EXPORT(init_from_storage)
     EXPORT(init_set_event_handler)
-    
+
     // node
     EXPORT(node_start)
     EXPORT(node_is_online)
@@ -403,6 +427,8 @@ Object Init(Env env, Object exports)
     EXPORT(accept)
     EXPORT(connect)
     EXPORT(shutdown_wr)
+    EXPORT(getpeername)
+    EXPORT(getsockname)
 
     // util
     EXPORT(util_delay)

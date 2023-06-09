@@ -26,6 +26,9 @@ interface ZTS {
     connect(fd: number, ipAddr: string, port: number, timeout: number, callback: (err: Error | null) => void): void
     shutdown_wr(fd: number): void
 
+    getpeername(fd: number): { port: number, address: string }
+    getsockname(fd: number): { port: number, address: string }
+
     util_delay(ms: number): void
 }
 

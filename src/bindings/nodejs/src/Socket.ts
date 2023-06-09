@@ -1,4 +1,4 @@
-import zts from "./zts";
+import { defs, zts } from "./zts";
 import { Duplex } from "stream";
 
 import { isIPv6 } from "net";
@@ -58,7 +58,7 @@ export class Socket extends Duplex {
 }
 
 export function connect(host: string, port: number): Socket {
-    const fd = zts.bsd_socket(isIPv6(host), 1, 0);
+    const fd = zts.bsd_socket(isIPv6(host), defs.ZTS_SOCK_STREAM, 0);
     console.log(fd);
     const s = new Socket(fd);
 

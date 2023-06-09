@@ -1,7 +1,8 @@
 import { init } from ".";
 import { Server } from "./Server";
 import { connect } from "./Socket";
-import zts from "./zts";
+import { zts } from "./zts";
+
 
 const server = process.argv[2] === "server";
 const port = parseInt(process.argv[3]);
@@ -42,7 +43,10 @@ if(server) {
     console.log("starting server");
     const server = new Server({}, socket => {
         console.log("new connection");
-        socket.on("data", data=>socket.write(data));
+        socket.on("data", data=>{
+            console.log(data);
+            socket.write(data);
+        });
         socket.on("error", ()=>console.log("error"));
     });
     server.listen(port, "::", ()=>console.log("listening"));
@@ -61,7 +65,7 @@ if(server) {
     });
     
     s.on("data", data=> {
-        console.log(`${data.length}`);
+        console.log(`${data}`);
         setTimeout(()=>{
             s.write(Buffer.from("ping"+i));
             i++;
@@ -70,3 +74,4 @@ if(server) {
     
     s.on("error", err => console.log(err));
 }
+

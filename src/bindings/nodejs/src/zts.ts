@@ -30,7 +30,7 @@ interface ZTS {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const zts = require("../build/Release/zts") as ZTS;
+export const zts = require("../build/Release/zts") as ZTS;
 
 export enum errors {
     /** No error */
@@ -276,5 +276,4 @@ export enum errnos {
     ZTS_EINPROGRESS = 115
 }
 
-
-export default zts;
+export * as defs from "./defs";

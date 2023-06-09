@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import zts from "./zts";
+import {defs, zts} from "./zts";
 import { Socket } from "./Socket";
 
 import { isIPv6 } from "net";
@@ -29,7 +29,7 @@ export class Server extends EventEmitter {
     listen(port: number, host = "::", callback?: ServerEvents["listening"]) {
         if(callback) this.on("listening", callback);
         
-        this.fd = zts.bsd_socket(isIPv6(host), 1, 0);
+        this.fd = zts.bsd_socket(isIPv6(host), defs.ZTS_SOCK_STREAM, 0);
         console.log(this.fd);
         zts.bind(this.fd, host, port);
         zts.listen(this.fd, 511);

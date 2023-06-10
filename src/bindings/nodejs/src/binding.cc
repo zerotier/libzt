@@ -8,7 +8,7 @@ using namespace Napi;
 
 #define CALLBACKINFO const CallbackInfo& info
 
-#define VOID() return env.Undefined();
+#define VOID return env.Undefined();
 
 #define NO_ARGS() Env env = info.Env();
 
@@ -16,20 +16,20 @@ using namespace Napi;
     Env env = info.Env();                                                                                              \
     if (info.Length() < N) {                                                                                           \
         TypeError::New(env, "Wrong number of arguments. Expected: " #N).ThrowAsJavaScriptException();                  \
-        VOID();                                                                                                        \
+        VOID;                                                                                                        \
     }
 
 #define ARG_FUNC(POS, NAME)                                                                                            \
     if (! info[POS].IsFunction()) {                                                                                    \
         TypeError::New(env, "Argument at position " #POS "should be a function.").ThrowAsJavaScriptException();        \
-        VOID();                                                                                                        \
+        VOID;                                                                                                        \
     }                                                                                                                  \
     auto NAME = info[POS].As<Function>();
 
 #define ARG_INT32(POS, NAME)                                                                                           \
     if (! info[POS].IsNumber()) {                                                                                      \
         TypeError::New(env, "Argument at position " #POS "should be a number.").ThrowAsJavaScriptException();          \
-        VOID();                                                                                                        \
+        VOID;                                                                                                        \
     }                                                                                                                  \
     auto NAME = info[POS].As<Number>().Int32Value();
 
@@ -39,7 +39,7 @@ using namespace Napi;
 #define ARG_UINT64(POS, NAME)                                                                                          \
     if (! info[POS].IsBigInt()) {                                                                                      \
         TypeError::New(env, "Argument at position " #POS "should be a BigInt.").ThrowAsJavaScriptException();          \
-        VOID();                                                                                                        \
+        VOID;                                                                                                        \
     }                                                                                                                  \
     bool lossless;                                                                                                     \
     auto NAME = info[POS].As<BigInt>().Uint64Value(&lossless);
@@ -47,7 +47,7 @@ using namespace Napi;
 #define ARG_UINT8ARRAY(POS, NAME)                                                                                      \
     if (! info[POS].IsTypedArray()) {                                                                                  \
         TypeError::New(env, "Argument at position " #POS "should be a Uint8Array.").ThrowAsJavaScriptException();      \
-        VOID();                                                                                                        \
+        VOID;                                                                                                        \
     }                                                                                                                  \
     auto NAME = info[POS].As<Uint8Array>();
 
@@ -58,7 +58,7 @@ using namespace Napi;
         auto error = Error::New(env, "Error during " FUN " call");                                                     \
         error.Set(String::New(env, "code"), Number::New(env, ERR));                                                    \
         error.ThrowAsJavaScriptException();                                                                            \
-        VOID()                                                                                                         \
+        VOID;                                                                                                         \
     }
 
 #define CHECK_ERRNO(ERR, FUN)                                                                                          \
@@ -67,7 +67,7 @@ using namespace Napi;
         error.Set(String::New(env, "code"), Number::New(env, ERR));                                                    \
         error.Set(String::New(env, "errno"), Number::New(env, zts_errno));                                             \
         error.ThrowAsJavaScriptException();                                                                            \
-        VOID()                                                                                                         \
+        VOID;                                                                                                         \
     }
 
 // ### init ###
@@ -80,7 +80,7 @@ Value init_from_storage(CALLBACKINFO)
     int err = zts_init_from_storage(std::string(configPath).c_str());
     CHECK(err, "init_from_storage")
 
-    VOID();
+    VOID;
 }
 
 ThreadSafeFunction event_callback;
@@ -108,7 +108,7 @@ Value init_set_event_handler(CALLBACKINFO)
     int err = zts_init_set_event_handler(&event_handler);
     CHECK(err, "init_set_event_handler")
 
-    VOID();
+    VOID;
 }
 
 // ### node ###
@@ -120,7 +120,7 @@ Value node_start(CALLBACKINFO)
     int err = zts_node_start();
     CHECK(err, "node_start")
 
-    VOID();
+    VOID;
 }
 
 Value node_is_online(CALLBACKINFO)
@@ -144,7 +144,7 @@ Value node_stop(CALLBACKINFO)
     int err = zts_node_stop();
     CHECK(err, "node_stop")
 
-    VOID();
+    VOID;
 }
 
 Value node_free(CALLBACKINFO)
@@ -154,7 +154,7 @@ Value node_free(CALLBACKINFO)
     int err = zts_node_free();
     CHECK(err, "node°free")
 
-    VOID();
+    VOID;
 }
 
 // ### net ###
@@ -167,7 +167,7 @@ Value net_join(CALLBACKINFO)
     int err = zts_net_join(net_id);
     CHECK(err, "net_join")
 
-    VOID();
+    VOID;
 }
 
 Value net_leave(CALLBACKINFO)
@@ -178,7 +178,7 @@ Value net_leave(CALLBACKINFO)
     int err = zts_net_leave(net_id);
     CHECK(err, "net_leave")
 
-    VOID();
+    VOID;
 }
 
 Value net_transport_is_ready(CALLBACKINFO)
@@ -230,7 +230,7 @@ Value bsd_close(CALLBACKINFO)
     int err = zts_bsd_close(fd);
     CHECK_ERRNO(err, "bsd_close")
 
-    VOID();
+    VOID;
 }
 
 Value bsd_send(CALLBACKINFO)
@@ -250,7 +250,7 @@ Value bsd_send(CALLBACKINFO)
     auto worker = new AsyncLambda(cb, "bsd_send", execute, on_destroy);
     worker->Queue();
 
-    VOID();
+    VOID;
 }
 
 Value bsd_recv(CALLBACKINFO)
@@ -264,7 +264,7 @@ Value bsd_recv(CALLBACKINFO)
     auto worker = new BsdRecvWorker(cb, fd, n, flags);
     worker->Queue();
 
-    VOID();
+    VOID;
 }
 
 // ### no namespace socket stuff
@@ -279,7 +279,7 @@ Value bind(CALLBACKINFO)
     int err = zts_bind(fd, std::string(ipstr).c_str(), port);
     CHECK_ERRNO(err, "bind")
 
-    VOID();
+    VOID;
 }
 
 Value listen(CALLBACKINFO)
@@ -291,7 +291,7 @@ Value listen(CALLBACKINFO)
     int err = zts_listen(fd, backlog);
     CHECK_ERRNO(err, "listen")
 
-    VOID();
+    VOID;
 }
 
 Value accept(CALLBACKINFO)
@@ -311,7 +311,7 @@ Value accept(CALLBACKINFO)
         []() {});
     worker->Queue();
 
-    VOID();
+    VOID;
 }
 
 Value connect(CALLBACKINFO)
@@ -330,7 +330,7 @@ Value connect(CALLBACKINFO)
         []() {});
     worker->Queue();
 
-    VOID();
+    VOID;
 }
 
 Value shutdown_wr(CALLBACKINFO)
@@ -341,7 +341,7 @@ Value shutdown_wr(CALLBACKINFO)
     int err = zts_shutdown_wr(fd);
     CHECK_ERRNO(err, "shutdown_wr")
 
-    VOID();
+    VOID;
 }
 
 Value getpeername(CALLBACKINFO)
@@ -380,16 +380,28 @@ Value getsockname(CALLBACKINFO)
     return obj;
 }
 
-// ### util ###
+Value set_recv_timeout(CALLBACKINFO) {
+    NB_ARGS(3)
+    ARG_INT32(0,fd)
+    ARG_INT32(1, seconds)
+    ARG_INT32(2, microseconds)
 
-Value util_delay(CALLBACKINFO)
-{
-    NB_ARGS(1)
-    ARG_INT32(0, delay)
+    int err = zts_set_recv_timeout(fd, seconds, microseconds);
+    CHECK_ERRNO(err, "set_recv_timeout")
 
-    zts_util_delay(delay);
+    VOID;
+}
 
-    VOID();
+Value set_send_timeout(CALLBACKINFO) {
+    NB_ARGS(3)
+    ARG_INT32(0,fd)
+    ARG_INT32(1, seconds)
+    ARG_INT32(2, microseconds)
+
+    int err = zts_set_send_timeout(fd, seconds, microseconds);
+    CHECK_ERRNO(err, "set_recv_timeout")
+
+    VOID;
 }
 
 // NAPI initialiser
@@ -429,9 +441,8 @@ Object Init(Env env, Object exports)
     EXPORT(shutdown_wr)
     EXPORT(getpeername)
     EXPORT(getsockname)
-
-    // util
-    EXPORT(util_delay)
+    EXPORT(set_recv_timeout)
+    EXPORT(set_send_timeout)
 
     return exports;
 }

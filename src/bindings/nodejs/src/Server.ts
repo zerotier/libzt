@@ -13,6 +13,7 @@ export interface ServerEvents {
 
 export declare interface Server {
     on<E extends keyof ServerEvents>(event: E, listener: ServerEvents[E]): this
+    once<E extends keyof ServerEvents>(event: E, listener: ServerEvents[E]): this
     emit<E extends keyof ServerEvents>(event: E, ...args: Parameters<ServerEvents[E]>): boolean
 }
 
@@ -55,10 +56,10 @@ export class Server extends EventEmitter {
 
     address() {
         try {
-            return zts.getsockname(this.fd);    
+            return zts.getsockname(this.fd);
         } catch (error) {
             return {};
-        } 
+        }
     }
 }
 

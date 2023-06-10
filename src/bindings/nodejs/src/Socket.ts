@@ -1,17 +1,32 @@
-import { defs, zts } from "./zts";
+import { ZtsError, defs, errnos, errors, zts } from "./zts";
 import { Duplex } from "stream";
 
 import { isIPv6 } from "net";
 
+export interface SocketEvents {
+    "connect": () => void
+    "timeout": () => void
+    "error": (err: ZtsError) => void
+    "data": (data: Buffer) => void
+}
+
+export declare interface Socket {
+    on<E extends keyof SocketEvents>(event: E, listener: SocketEvents[E]): this
+    once<E extends keyof SocketEvents>(event: E, listener: SocketEvents[E]): this
+    emit<E extends keyof SocketEvents>(event: E, ...args: Parameters<SocketEvents[E]>): boolean
+}
+
 export class Socket extends Duplex {
     private fd: number;
     private reading = false;
-    
+
     localAddress?: string;
     localPort?: number;
 
     remoteAddress?: string;
     remotePort?: number;
+
+    timeout?: number;
 
     constructor(fd: number) {
         super({
@@ -19,7 +34,7 @@ export class Socket extends Duplex {
         });
         this.fd = fd;
 
-        this.once("connect", ()=>{
+        this.once("connect", () => {
             const sockname = zts.getsockname(this.fd);
             this.localAddress = sockname.address;
             this.localPort = sockname.port;
@@ -31,12 +46,21 @@ export class Socket extends Duplex {
     }
 
     _write(chunk: unknown, encoding: BufferEncoding, callback: (error?: Error) => void): void {
-        if(! (chunk instanceof Buffer) ) {
+        if (!(chunk instanceof Buffer)) {
             callback(Error("Why was this not a buffer?"));
             return;
         }
 
-        zts.bsd_send(this.fd, chunk, 0, callback);
+        zts.bsd_send(this.fd, chunk, 0, (err) => {
+            // if(err) {
+            //     if(this.timeout && err.code === errors.ZTS_ERR_SOCKET && err.errno === errnos.ZTS_EAGAIN) {
+            //         process.nextTick(()=>this.emit("timeout"));
+            //         callback();
+            //         return;
+            //     }
+            // }
+            callback(err);
+        });
     }
 
     _final(callback: (error?: Error) => void): void {
@@ -45,25 +69,30 @@ export class Socket extends Duplex {
     }
 
     _read(size: number): void {
-        if(this.reading) return;
+        if (this.reading) return;
         this.reading = true;
 
         zts.bsd_recv(this.fd, size, 0, (err, data) => {
-            this.reading=false;
+            this.reading = false;
 
-            if(err) {
+            if (err) {
+                if (this.timeout && err.code === errors.ZTS_ERR_SOCKET && err.errno === errnos.ZTS_EAGAIN) {
+                    process.nextTick(() => this.emit("timeout"));
+                    return;
+                }
+
                 console.log(err);
                 this.destroy(err);
                 return;
             }
 
-            if(data.length === 0) {
+            if (data.length === 0) {
                 this.push(null);
                 return;
             }
 
             const res = this.push(data);
-            if(res) this._read(size);
+            if (res) this._read(size);
         });
     }
 
@@ -74,10 +103,18 @@ export class Socket extends Duplex {
 
     address() {
         try {
-            return zts.getsockname(this.fd);    
+            return zts.getsockname(this.fd);
         } catch (error) {
             return {};
-        } 
+        }
+    }
+
+    setTimeout(timeout: number, callback?: () => void) {
+        if (callback) this.once("timeout", callback);
+        this.timeout = timeout;
+
+        zts.set_recv_timeout(this.fd, Math.floor(timeout / 1000), (timeout % 1000) * 1000);
+        zts.set_send_timeout(this.fd, Math.floor(timeout / 1000), (timeout % 1000) * 1000);
     }
 }
 
@@ -87,7 +124,7 @@ export function connect(host: string, port: number): Socket {
     const s = new Socket(fd);
 
     zts.connect(fd, host, port, 0, err => {
-        if(err) {
+        if (err) {
             s.destroy(err);
             return;
         }

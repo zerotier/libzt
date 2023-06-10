@@ -1,3 +1,5 @@
+export interface ZtsError extends Error { code?: number, errno?: number }
+
 interface ZTS {
     init_from_storage(path: string): void
     init_set_event_handler(callback: (event: number) => void): void
@@ -17,34 +19,34 @@ interface ZTS {
     bsd_socket(family: number, type: number, protocol: number): number
     bsd_close(fd: number): void
 
-    bsd_send(fd: number, data: Uint8Array, flags: number, callback: (err: Error | null, bytesWritten: number) => void): void;
-    bsd_recv(fd: number, len: number, flags: number, callback: (err: Error | null, data: Buffer) => void): void
+    bsd_send(fd: number, data: Uint8Array, flags: number, callback: (err: ZtsError | undefined, bytesWritten: number) => void): void;
+    bsd_recv(fd: number, len: number, flags: number, callback: (err: ZtsError | null, data: Buffer) => void): void
 
     bind(fd: number, ipAddr: string, port: number): void
     listen(fd: number, backlog: number): void
-    accept(fd: number, callback: (err: Error | null, fd: number) => void): void
-    connect(fd: number, ipAddr: string, port: number, timeout: number, callback: (err: Error | null) => void): void
+    accept(fd: number, callback: (err: ZtsError | null, fd: number) => void): void
+    connect(fd: number, ipAddr: string, port: number, timeout: number, callback: (err: ZtsError | null) => void): void
     shutdown_wr(fd: number): void
 
     getpeername(fd: number): { port: number, address: string }
     getsockname(fd: number): { port: number, address: string }
-
-    util_delay(ms: number): void
+    set_recv_timeout(fd: number, seconds: number, microseconds: number): void
+    set_send_timeout(fd: number, seconds: number, microseconds: number): void
 }
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 export const zts = require("../build/Release/zts") as ZTS;
 
 export enum errors {
-    /** No error */
+    /** No ZtsError */
     ZTS_ERR_OK = 0,
-    /** Socket error, see `zts_errno` */
+    /** Socket ZtsError, see `zts_errno` */
     ZTS_ERR_SOCKET = -1,
     /** This operation is not allowed at this time. Or possibly the node hasn't been started */
     ZTS_ERR_SERVICE = -2,
     /** Invalid argument */
     ZTS_ERR_ARG = -3,
-    /** No result (not necessarily an error) */
+    /** No result (not necessarily an ZtsError) */
     ZTS_ERR_NO_RESULT = -4,
     /** Consider filing a bug report */
     ZTS_ERR_GENERAL = -5
@@ -84,7 +86,7 @@ export enum events {
     ZTS_EVENT_NODE_DOWN = 203,
 
     /**
-     * A fatal error has occurred. One possible reason is:
+     * A fatal ZtsError has occurred. One possible reason is:
      *
      * Your identity has collided with another node's ZeroTier address
      *
@@ -97,7 +99,7 @@ export enum events {
      * initialized.
      *
      * This is reported as an event rather than a return code since it's
-     * detected asynchronously via error messages from authoritative nodes.
+     * detected asynchronously via ZtsError messages from authoritative nodes.
      *
      * If this occurs, you must shut down and delete the node, delete the
      * identity.secret record/file from the data store, and restart to generate
@@ -115,7 +117,7 @@ export enum events {
      *
      * Meta-data: none
      */
-    ZTS_EVENT_NODE_FATAL_ERROR = 204,
+    ZTS_EVENT_NODE_FATAL_ZtsError = 204,
 
     /** Network ID does not correspond to a known network */
     ZTS_EVENT_NETWORK_NOT_FOUND = 210,
@@ -199,7 +201,7 @@ export enum errnos {
     ZTS_ESRCH = 3,
     /** Interrupted system call */
     ZTS_EINTR = 4,
-    /** I/O error */
+    /** I/O ZtsError */
     ZTS_EIO = 5,
     /** No such device or address */
     ZTS_ENXIO = 6,

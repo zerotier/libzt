@@ -22,6 +22,9 @@ interface ZTS {
     bsd_send(fd: number, data: Uint8Array, flags: number, callback: (err: ZtsError | undefined, bytesWritten: number) => void): void;
     bsd_recv(fd: number, len: number, flags: number, callback: (err: ZtsError | null, data: Buffer) => void): void
 
+    bsd_sendto(fd: number, data: Uint8Array, flags: number, ipaddr: string, port: number, callback: (err: ZtsError | undefined, bytesWritten: number) => void): void
+    bsd_recvfrom(fd: number, len: number, flags: number, callback: (err: ZtsError | undefined, data: Buffer, address: string, port: number)=>void): void
+
     bind(fd: number, ipAddr: string, port: number): void
     listen(fd: number, backlog: number): void
     accept(fd: number, callback: (err: ZtsError | null, fd: number) => void): void

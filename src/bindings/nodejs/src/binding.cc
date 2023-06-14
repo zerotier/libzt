@@ -16,20 +16,20 @@ using namespace Napi;
     Env env = info.Env();                                                                                              \
     if (info.Length() < N) {                                                                                           \
         TypeError::New(env, "Wrong number of arguments. Expected: " #N).ThrowAsJavaScriptException();                  \
-        VOID;                                                                                                        \
+        VOID;                                                                                                          \
     }
 
 #define ARG_FUNC(POS, NAME)                                                                                            \
     if (! info[POS].IsFunction()) {                                                                                    \
         TypeError::New(env, "Argument at position " #POS "should be a function.").ThrowAsJavaScriptException();        \
-        VOID;                                                                                                        \
+        VOID;                                                                                                          \
     }                                                                                                                  \
     auto NAME = info[POS].As<Function>();
 
 #define ARG_INT32(POS, NAME)                                                                                           \
     if (! info[POS].IsNumber()) {                                                                                      \
         TypeError::New(env, "Argument at position " #POS "should be a number.").ThrowAsJavaScriptException();          \
-        VOID;                                                                                                        \
+        VOID;                                                                                                          \
     }                                                                                                                  \
     auto NAME = info[POS].As<Number>().Int32Value();
 
@@ -39,7 +39,7 @@ using namespace Napi;
 #define ARG_UINT64(POS, NAME)                                                                                          \
     if (! info[POS].IsBigInt()) {                                                                                      \
         TypeError::New(env, "Argument at position " #POS "should be a BigInt.").ThrowAsJavaScriptException();          \
-        VOID;                                                                                                        \
+        VOID;                                                                                                          \
     }                                                                                                                  \
     bool lossless;                                                                                                     \
     auto NAME = info[POS].As<BigInt>().Uint64Value(&lossless);
@@ -47,7 +47,7 @@ using namespace Napi;
 #define ARG_UINT8ARRAY(POS, NAME)                                                                                      \
     if (! info[POS].IsTypedArray()) {                                                                                  \
         TypeError::New(env, "Argument at position " #POS "should be a Uint8Array.").ThrowAsJavaScriptException();      \
-        VOID;                                                                                                        \
+        VOID;                                                                                                          \
     }                                                                                                                  \
     auto NAME = info[POS].As<Uint8Array>();
 
@@ -58,7 +58,7 @@ using namespace Napi;
         auto error = Error::New(env, "Error during " FUN " call");                                                     \
         error.Set(String::New(env, "code"), Number::New(env, ERR));                                                    \
         error.ThrowAsJavaScriptException();                                                                            \
-        VOID;                                                                                                         \
+        VOID;                                                                                                          \
     }
 
 #define CHECK_ERRNO(ERR, FUN)                                                                                          \
@@ -67,7 +67,7 @@ using namespace Napi;
         error.Set(String::New(env, "code"), Number::New(env, ERR));                                                    \
         error.Set(String::New(env, "errno"), Number::New(env, zts_errno));                                             \
         error.ThrowAsJavaScriptException();                                                                            \
-        VOID;                                                                                                         \
+        VOID;                                                                                                          \
     }
 
 // ### init ###
@@ -267,6 +267,48 @@ Value bsd_recv(CALLBACKINFO)
     VOID;
 }
 
+Value bsd_sendto(CALLBACKINFO)
+{
+    NB_ARGS(4)
+    ARG_INT32(0, fd)
+    ARG_UINT8ARRAY(1, data)
+    ARG_INT32(2, flags)
+    ARG_STRING(3, ipaddr)
+    ARG_INT32(4, port)
+    ARG_FUNC(5, cb)
+
+    int size = data.ByteLength();
+    auto data_vec = new std::vector<uint8_t>();
+    data_vec->insert(data_vec->begin(), data.Data(), data.Data() + size);
+
+    struct zts_sockaddr_storage addr;
+    zts_socklen_t addrlen = sizeof(struct zts_sockaddr_storage);
+    zts_util_ipstr_to_saddr(ipaddr.c_str(), port, (struct zts_sockaddr*)&addr, &addrlen);
+
+    auto execute = [fd, data_vec, size, flags, addr, addrlen]() {
+        return zts_bsd_sendto(fd, data_vec->data(), size, flags, (struct zts_sockaddr*)&addr, addrlen);
+    };
+    auto on_destroy = [data_vec]() { delete data_vec; };
+    auto worker = new AsyncLambda(cb, "bsd_send", execute, on_destroy);
+    worker->Queue();
+
+    VOID;
+}
+
+Value bsd_recvfrom(CALLBACKINFO)
+{
+    NB_ARGS(4)
+    ARG_INT32(0, fd)
+    ARG_INT32(1, n)
+    ARG_INT32(2, flags)
+    ARG_FUNC(3, cb)
+
+    auto worker = new BsdRecvFromWorker(cb, fd, n, flags);
+    worker->Queue();
+
+    VOID;
+}
+
 // ### no namespace socket stuff
 
 Value bind(CALLBACKINFO)
@@ -380,9 +422,10 @@ Value getsockname(CALLBACKINFO)
     return obj;
 }
 
-Value set_recv_timeout(CALLBACKINFO) {
+Value set_recv_timeout(CALLBACKINFO)
+{
     NB_ARGS(3)
-    ARG_INT32(0,fd)
+    ARG_INT32(0, fd)
     ARG_INT32(1, seconds)
     ARG_INT32(2, microseconds)
 
@@ -392,9 +435,10 @@ Value set_recv_timeout(CALLBACKINFO) {
     VOID;
 }
 
-Value set_send_timeout(CALLBACKINFO) {
+Value set_send_timeout(CALLBACKINFO)
+{
     NB_ARGS(3)
-    ARG_INT32(0,fd)
+    ARG_INT32(0, fd)
     ARG_INT32(1, seconds)
     ARG_INT32(2, microseconds)
 
@@ -432,6 +476,8 @@ Object Init(Env env, Object exports)
     EXPORT(bsd_close)
     EXPORT(bsd_send)
     EXPORT(bsd_recv)
+    EXPORT(bsd_sendto)
+    EXPORT(bsd_recvfrom)
 
     // no ns socket
     EXPORT(bind)

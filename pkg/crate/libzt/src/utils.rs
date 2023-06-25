@@ -153,7 +153,7 @@ pub const fn htons(i: u16) -> u16 {
 }
 
 pub fn ipv4_addr(addr: zts_in_addr) -> u32 {
-    (addr.s_addr as u32).to_be()
+    (addr.S_addr as u32).to_be()
 }
 
 // Copied from: https://docs.rs/pnet_sys/0.28.0/src/pnet_sys/unix.rs.html#162-201

@@ -102,7 +102,7 @@ impl ZeroTierNode {
         }
     }
 
-    pub fn delay(&self, interval_ms: u64) -> () {
+    pub fn delay(&self, interval_ms: u32) -> () {
         unsafe { zts_util_delay(interval_ms) }
     }
 

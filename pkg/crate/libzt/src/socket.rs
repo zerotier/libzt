@@ -239,9 +239,9 @@ impl Socket {
                 }
 
                 let secs = if dur.as_secs() > time_t::MAX as u64 {
-                    time_t::MAX
+                    time_t::MAX.try_into().unwrap()
                 } else {
-                    dur.as_secs() as time_t
+                    dur.as_secs().try_into().unwrap()
                 };
                 let mut timeout = zts_timeval {
                     tv_sec: secs,

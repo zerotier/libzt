@@ -500,7 +500,7 @@ struct zts_in6_addr {
         uint32_t u32_addr[4];
         uint8_t u8_addr[16];
     } un;
-    //#define s6_addr  un.u8_addr
+    // #define s6_addr  un.u8_addr
 };
 
 /**
@@ -1497,7 +1497,7 @@ ZTS_API int ZTCALL zts_addr_compute_6plane_str(uint64_t net_id, uint64_t node_id
  * @brief Compute `RFC4193` IPv6 address for the given Network ID and Node ID
  *
  * Ad-hoc Network:
- * ```
+ * ```text
  * ffSSSSEEEE000000
  * | |   |   |
  * | |   |   Reserved for future use, must be 0

@@ -15,7 +15,7 @@ categories = ["network-programming", "cryptography"]
 [dependencies]
 
 [build-dependencies]
-bindgen = "0.58"
+bindgen = "0.66"
 libc = "0.2"
 cmake = "0.1"
 
@@ -23,7 +23,6 @@ cmake = "0.1"
 name = "libzt"
 path = "src/lib.rs"
 
-[[example]]
+[[target.'cfg(unix)'.example]]
 name = "libzt-test-app"
 path = "src/examples/libzt-test-app.rs"
-

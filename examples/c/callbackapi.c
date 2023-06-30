@@ -52,7 +52,7 @@ int main(int argc, char** argv)
 {
     if (argc != 2) {
         printf("\nUsage:\n");
-        printf("pingable-node <net_id>\n");
+        printf("callbackapi <net_id>\n");
         exit(0);
     }
     long long int net_id = strtoull(argv[1], NULL, 16);   // At least 64 bits

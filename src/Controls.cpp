@@ -133,6 +133,12 @@ int zts_init_set_roots(const void* roots_data, unsigned int len)
     return zts_service->setRoots(roots_data, len);
 }
 
+int zts_init_set_low_bandwidth_mode(bool enabled)
+{
+    ACQUIRE_SERVICE_OFFLINE();
+    return zts_service->setLowBandwidthMode(enabled);
+}
+
 int zts_init_set_port(unsigned short port)
 {
     ACQUIRE_SERVICE_OFFLINE();

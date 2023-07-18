@@ -1829,6 +1829,16 @@ int NodeService::setRoots(const void* rootsData, unsigned int len)
     return ZTS_ERR_OK;
 }
 
+int_fast32_t NodeService::setLowBandwidthMode(bool enabled)
+{
+    Mutex::Lock _lr(_run_m);
+    if (_run) {
+        return ZTS_ERR_SERVICE;
+    }
+    _node->setLowBandwidthMode(enabled);
+    return ZTS_ERR_OK;
+}
+
 int NodeService::addInterfacePrefixToBlacklist(const char* prefix, unsigned int len)
 {
     if (! prefix || len == 0 || len > 15) {

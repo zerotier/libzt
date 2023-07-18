@@ -398,6 +398,9 @@ class NodeService {
     /** Set the roots definition */
     int setRoots(const void* data, unsigned int len);
 
+    /** Enable or disable low-bandwidth mode (sends less ambient traffic, network updates happen less frequently) */
+    int setLowBandwidthMode(bool enabled);
+
     /** Add Interface prefix to blacklist (prevents ZeroTier from using that interface) */
     int addInterfacePrefixToBlacklist(const char* prefix, unsigned int len);
 

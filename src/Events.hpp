@@ -28,7 +28,7 @@
 
 /* Macro substitutions to standardize state checking of service, node, callbacks, and TCP/IP
  * stack. These are used only for control functions that are called at a low frequency. All higher
- * frequency socket calls use a unguarded state flags */
+ * frequency socket calls use unguarded state flags */
 
 // Lock service and check that it is running
 #define ACQUIRE_SERVICE(x)                                                                                             \

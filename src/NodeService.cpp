@@ -1061,25 +1061,24 @@ int NodeService::getRouteAtIdx(
         return ZTS_ERR_ARG;
     }
     // target
-    const char* err = NULL;
     struct sockaddr* sa = (struct sockaddr*)&(netState.config.routes[idx].target);
     if (sa->sa_family == AF_INET) {
         struct sockaddr_in* in4 = (struct sockaddr_in*)sa;
-        err = inet_ntop(AF_INET, &(in4->sin_addr), target, ZTS_INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET, &(in4->sin_addr), target, ZTS_INET6_ADDRSTRLEN);
     }
     if (sa->sa_family == AF_INET6) {
         struct sockaddr_in6* in6 = (struct sockaddr_in6*)sa;
-        err = inet_ntop(AF_INET6, &(in6->sin6_addr), target, ZTS_INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET6, &(in6->sin6_addr), target, ZTS_INET6_ADDRSTRLEN);
     }
     // via
     struct sockaddr* sa_via = (struct sockaddr*)&(netState.config.routes[idx].via);
     if (sa_via->sa_family == AF_INET) {
         struct sockaddr_in* in4 = (struct sockaddr_in*)sa_via;
-        err = inet_ntop(AF_INET, &(in4->sin_addr), via, ZTS_INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET, &(in4->sin_addr), via, ZTS_INET6_ADDRSTRLEN);
     }
     if (sa_via->sa_family == AF_INET6) {
         struct sockaddr_in6* in6 = (struct sockaddr_in6*)sa_via;
-        err = inet_ntop(AF_INET6, &(in6->sin6_addr), via, ZTS_INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET6, &(in6->sin6_addr), via, ZTS_INET6_ADDRSTRLEN);
     }
     if (strlen(via) == 0) {
         strncpy(via, "0.0.0.0", 7);

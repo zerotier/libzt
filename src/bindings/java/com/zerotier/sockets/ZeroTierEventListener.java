@@ -18,7 +18,7 @@ package com.zerotier.sockets;
  */
 public interface ZeroTierEventListener {
     /*
-     * Called when an even occurs within ZeroTier
+     * Called when an event occurs within ZeroTier
      */
     public void onZeroTierEvent(long id, int eventCode);
 }

@@ -589,15 +589,15 @@ JNIEXPORT jint JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1is_1a
     return zts_addr_is_assigned(net_id, family);
 }
 
-JNIEXPORT jint JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1get(
-    JNIEnv* jenv,
-    jobject thisObj,
-    long net_id,
-    jint family,
-    struct sockaddr_storage* addr)
-{
-    // Use Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1get_1str instead
-}
+//JNIEXPORT jint JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1get(
+//    JNIEnv* jenv,
+//    jobject thisObj,
+//    long net_id,
+//    jint family,
+//    struct sockaddr_storage* addr)
+//{
+//    // Use Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1get_1str instead
+//}
 
 JNIEXPORT jstring JNICALL
 Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1get_1str(JNIEnv* jenv, jclass clazz, long net_id, jint family)
@@ -608,34 +608,34 @@ Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1get_1str(JNIEnv* jenv, jclas
     return result;
 }
 
-JNIEXPORT jint JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1get_1all(
-    JNIEnv* jenv,
-    jobject thisObj,
-    long net_id,
-    struct sockaddr_storage* addr,
-    jint* count)
-{
-    /* This feature will be implemented once the lower-level
-    limitation of one addr per family per network is removed. */
-}
+//JNIEXPORT jint JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1get_1all(
+//    JNIEnv* jenv,
+//    jobject thisObj,
+//    long net_id,
+//    struct sockaddr_storage* addr,
+//    jint* count)
+//{
+//    /* This feature will be implemented once the lower-level
+//    limitation of one addr per family per network is removed. */
+//}
 
-JNIEXPORT jint JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1compute_16plane(
-    JNIEnv* jenv,
-    jobject thisObj,
-    jlong net_id,
-    jlong node_id,
-    struct sockaddr_storage* addr)
-{
-}
+//JNIEXPORT jint JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1compute_16plane(
+//    JNIEnv* jenv,
+//    jobject thisObj,
+//    jlong net_id,
+//    jlong node_id,
+//    struct sockaddr_storage* addr)
+//{
+//}
 
-JNIEXPORT jint JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1compute_1rfc4193(
-    JNIEnv* jenv,
-    jobject thisObj,
-    jlong net_id,
-    jlong node_id,
-    struct sockaddr_storage* addr)
-{
-}
+//JNIEXPORT jint JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1compute_1rfc4193(
+//    JNIEnv* jenv,
+//    jobject thisObj,
+//    jlong net_id,
+//    jlong node_id,
+//    struct sockaddr_storage* addr)
+//{
+//}
 
 JNIEXPORT jint JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1compute_1rfc4193_1str(
     JNIEnv* jenv,

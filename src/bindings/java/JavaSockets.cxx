@@ -675,7 +675,7 @@ Java_com_zerotier_sockets_ZeroTierNative_zts_1net_1transport_1is_1ready(JNIEnv* 
 }
 
 JNIEXPORT uint64_t JNICALL
-Java_com_zerotier_sockets_ZeroTierNative_zts_1net_get_mac(JNIEnv* jenv, jclass clazz, jlong net_id)
+Java_com_zerotier_sockets_ZeroTierNative_zts_1net_1get_1mac(JNIEnv* jenv, jclass clazz, jlong net_id)
 {
     return zts_net_get_mac(net_id);
 }

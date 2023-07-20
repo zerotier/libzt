@@ -603,7 +603,7 @@ android-aar()
     CMAKE_FLAGS="-D${CMAKE_SWITCH}=1 -D${CMAKE_SWITCH}=ON"
     cd $ANDROID_PKG_PROJ_DIR
     ./gradlew $GRADLE_ARGS assemble$UPPERCASE_BUILD_TYPE # assembleRelease / assembleDebug
-    cp $ANDROID_PKG_PROJ_DIR/app/build/outputs/aar/*.aar \
+    cp $ANDROID_PKG_PROJ_DIR/app/build/outputs/aar/libzt-$BUILD_TYPE.aar \
         $PKG_OUTPUT_DIR/libzt-$BUILD_TYPE.aar
     cd -
     echo -e "\n - Build cache  : $CACHE_DIR\n - Build output : $BUILD_OUTPUT_DIR\n"

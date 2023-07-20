@@ -37,7 +37,7 @@ extern JavaVM* jvm;
 
 void java_detach_from_thread()
 {
-    jint rs = jvm->DetachCurrentThread();
+    jvm->DetachCurrentThread();
 }
 
 #ifdef __cplusplus

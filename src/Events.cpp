@@ -182,11 +182,10 @@ void Events::sendToUser(zts_event_msg_t* msg)
     if (javaCbMethodId) {
         JNIEnv* env;
 #if defined(__ANDROID__)
-        jint rs = jvm->AttachCurrentThread(&env, NULL);
+        jvm->AttachCurrentThread(&env, NULL);
 #else
-        jint rs = jvm->AttachCurrentThread((void**)&env, NULL);
+        jvm->AttachCurrentThread((void**)&env, NULL);
 #endif
-        uint64_t arg = 0;
         uint64_t id = 0;
         if (ZTS_NODE_EVENT(msg->event_code)) {
             id = msg->node ? msg->node->node_id : 0;

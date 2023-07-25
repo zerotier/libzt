@@ -121,6 +121,27 @@ int zts_init_set_event_handler(PythonDirectorCallbackClass* callback)
     return ZTS_ERR_OK;
 }
 
+int zts_init_set_tcp_relay(const char* tcp_relay_addr, unsigned short tcp_relay_port)
+{
+    ACQUIRE_SERVICE_OFFLINE();
+    zts_service->setTcpRelayAddress(tcp_relay_addr, tcp_relay_port);
+    return ZTS_ERR_OK;
+}
+
+int zts_init_allow_tcp_relay(bool enabled)
+{
+    ACQUIRE_SERVICE_OFFLINE();
+    zts_service->allowTcpRelay(enabled);
+    return ZTS_ERR_OK;
+}
+
+int zts_init_force_tcp_relay(bool enabled)
+{
+    ACQUIRE_SERVICE_OFFLINE();
+    zts_service->forceTcpRelay(enabled);
+    return ZTS_ERR_OK;
+}
+
 int zts_init_blacklist_if(const char* prefix, unsigned int len)
 {
     ACQUIRE_SERVICE_OFFLINE();

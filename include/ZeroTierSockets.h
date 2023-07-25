@@ -1275,6 +1275,24 @@ ZTS_API int ZTCALL zts_init_set_event_handler(void (*callback)(void*));
 #endif
 
 /**
+ * @brief Set TCP relay for ZeroTier to use instead of P2P UDP
+ *
+ * @param tcp_relay_addr IP address of TCP relay
+ * @param tcp_relay_port Port of TCP relay
+ */
+ZTS_API int ZTCALL zts_init_set_tcp_relay(const char* tcp_relay_addr, unsigned short tcp_relay_port);
+
+/**
+ * @brief Allow TCP relay for ZeroTier to use instead of P2P UDP
+ */
+ZTS_API int ZTCALL zts_init_allow_tcp_relay(int enabled);
+
+/**
+ * @brief Force TCP relay for ZeroTier to use instead of P2P UDP
+ */
+ZTS_API int ZTCALL zts_init_force_tcp_relay(int enabled);
+
+/**
  * @brief Blacklist an interface prefix (or name). This prevents ZeroTier from
  * sending traffic over matching interfaces. This is an initialization function that can
  * only be called before `zts_node_start()`.

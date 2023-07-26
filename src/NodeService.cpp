@@ -2094,12 +2094,12 @@ void NodeService::setTcpRelayAddress(const char* tcpRelayAddr, unsigned short tc
 
 void NodeService::allowTcpRelay(bool enabled)
 {
-    _allowTcpRelay = true;
+    _allowTcpRelay = enabled;
 }
 
 void NodeService::forceTcpRelay(bool enabled)
 {
-    _forceTcpRelay = true;
+    _forceTcpRelay = enabled;
 }
 
 int NodeService::setRoots(const void* rootsData, unsigned int len)

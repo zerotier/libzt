@@ -128,14 +128,14 @@ int zts_init_set_tcp_relay(const char* tcp_relay_addr, unsigned short tcp_relay_
     return ZTS_ERR_OK;
 }
 
-int zts_init_allow_tcp_relay(bool enabled)
+int zts_init_allow_tcp_relay(int enabled)
 {
     ACQUIRE_SERVICE_OFFLINE();
     zts_service->allowTcpRelay(enabled);
     return ZTS_ERR_OK;
 }
 
-int zts_init_force_tcp_relay(bool enabled)
+int zts_init_force_tcp_relay(int enabled)
 {
     ACQUIRE_SERVICE_OFFLINE();
     zts_service->forceTcpRelay(enabled);

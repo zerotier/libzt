@@ -1703,7 +1703,7 @@ int NodeService::nodeWirePacketSendFunction(
                     else if (
                         _forceTcpRelay
                         || (((now - _lastSendToGlobalV4) < ZT_TCP_FALLBACK_AFTER)
-                            && ((now - _lastSendToGlobalV4) > (ZT_PING_CHECK_INVERVAL / 2)))) {
+                            && ((now - _lastSendToGlobalV4) > (ZT_PING_CHECK_INTERVAL / 2)))) {
                         const InetAddress addr(_fallbackRelayAddress);
                         TcpConnection* tc = new TcpConnection();
                         {

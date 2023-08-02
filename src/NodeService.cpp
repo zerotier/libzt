@@ -713,6 +713,10 @@ void NodeService::phyOnTcpData(PhySocket* sock, void** uptr, void* data, unsigne
         TcpConnection* tc = reinterpret_cast<TcpConnection*>(*uptr);
         tc->lastReceive = OSUtils::now();
         switch (tc->type) {
+            case TcpConnection::TCP_UNCATEGORIZED_INCOMING:
+            case TcpConnection::TCP_HTTP_INCOMING:
+            case TcpConnection::TCP_HTTP_OUTGOING:
+                break;
             case TcpConnection::TCP_TUNNEL_OUTGOING:
                 tc->readq.append((const char*)data, len);
                 while (tc->readq.length() >= 5) {

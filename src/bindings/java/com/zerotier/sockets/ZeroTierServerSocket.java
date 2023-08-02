@@ -76,24 +76,10 @@ public class ZeroTierServerSocket {
     /**
      * Bind to a local address
      * @param localAddr Local address to which this socket should bind
-     * @param localPort Local port to which this socket should bind
      *
      * @exception IOException when an I/O error occurs
      */
     public void bind(SocketAddress localAddr) throws IOException
-    {
-        InetSocketAddress inetAddr = (InetSocketAddress)localAddr;
-        _socket.bind(inetAddr.getHostName(), inetAddr.getPort());
-    }
-
-    /**
-     * Bind to a local address
-     * @param localAddr Local address to which this socket should bind
-     * @param localPort Local port to which this socket should bind
-     *
-     * @exception IOException when an I/O error occurs
-     */
-    public void bind(SocketAddress localAddr, int backlog) throws IOException
     {
         InetSocketAddress inetAddr = (InetSocketAddress)localAddr;
         _socket.bind(inetAddr.getHostName(), inetAddr.getPort());

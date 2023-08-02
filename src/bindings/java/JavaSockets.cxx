@@ -600,7 +600,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1is_1a
 //}
 
 JNIEXPORT jstring JNICALL
-Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1get_1str(JNIEnv* jenv, jclass clazz, long net_id, jint family)
+Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1get_1str(JNIEnv* jenv, jclass clazz, jlong net_id, jint family)
 {
     char ip_str[ZTS_IP_MAX_STR_LEN] = { 0 };
     zts_addr_get_str(net_id, family, ip_str, ZTS_IP_MAX_STR_LEN);
@@ -659,7 +659,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1addr_1compu
     return ZTS_ERR_OK;
 }
 
-JNIEXPORT uint64_t JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1net_1compute_1adhoc_1id(
+JNIEXPORT jlong JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1net_1compute_1adhoc_1id(
     JNIEnv* jenv,
     jclass clazz,
     short start_port,
@@ -674,7 +674,7 @@ Java_com_zerotier_sockets_ZeroTierNative_zts_1net_1transport_1is_1ready(JNIEnv* 
     return zts_net_transport_is_ready(net_id);
 }
 
-JNIEXPORT uint64_t JNICALL
+JNIEXPORT jlong JNICALL
 Java_com_zerotier_sockets_ZeroTierNative_zts_1net_1get_1mac(JNIEnv* jenv, jclass clazz, jlong net_id)
 {
     return zts_net_get_mac(net_id);
@@ -742,7 +742,7 @@ JNIEXPORT jint JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1node_1is_1o
     return zts_node_is_online();
 }
 
-JNIEXPORT uint64_t JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1node_1get_1id(JNIEnv* jenv, jclass clazz)
+JNIEXPORT jlong JNICALL Java_com_zerotier_sockets_ZeroTierNative_zts_1node_1get_1id(JNIEnv* jenv, jclass clazz)
 {
     return zts_node_get_id();
 }

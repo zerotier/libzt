@@ -1316,6 +1316,23 @@ ZTS_API int ZTCALL zts_init_blacklist_if(const char* prefix, unsigned int len);
 ZTS_API int ZTCALL zts_init_set_roots(const void* roots_data, unsigned int len);
 
 /**
+ * @brief Enable or disable low-bandwidth mode. This is an initialization function that can
+ * only be called before `zts_node_start()`.
+ *
+ * Low-bandwidth mode reduces the ambient traffic that ZeroTier sends
+ * at the expense of responsiveness to network changes. It does not reduce your
+ * established connection speeds. It is an adjustment to multiple internal
+ * timers that results in fewer keepalive probes and network configuration
+ * requests being sent. This is a good option if your underlying physical network
+ * doesn't change much.
+ *
+ * @param enabled Whether low-bandwidth mode is enabled or not (default: false)
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_SERVICE` if the node
+ *     experiences a problem.
+ */
+ZTS_API int ZTCALL zts_init_set_low_bandwidth_mode(int enabled);
+
+/**
  * @brief Set the port to which the node should bind. This is an initialization function that can
  * only be called before `zts_node_start()`.
  *

@@ -197,6 +197,8 @@ void Events::sendToUser(zts_event_msg_t* msg)
             id = msg->peer ? msg->peer->peer_id : 0;
         }
         env->CallVoidMethod(javaCbObjRef, javaCbMethodId, id, msg->event_code);
+
+        jvm->DetachCurrentThread();
     }
 #endif   // ZTS_ENABLE_JAVA
 #ifdef ZTS_ENABLE_PINVOKE

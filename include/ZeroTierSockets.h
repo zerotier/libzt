@@ -437,6 +437,12 @@ typedef void (*CppCallback)(void* msg);
 /** 255.255.255.255 */
 #define ZTS_INADDR_BROADCAST ZTS_IPADDR_BROADCAST
 
+
+#define ZTS_IN6ADDR_ANY_INIT {{{0,0,0,0}}}
+
+
+
+
 // Socket protocol types
 #define ZTS_SOCK_STREAM 0x0001
 #define ZTS_SOCK_DGRAM  0x0002
@@ -502,6 +508,8 @@ struct zts_in6_addr {
     } un;
     //#define s6_addr  un.u8_addr
 };
+
+const struct zts_in6_addr zts_in6addr_any = ZTS_IN6ADDR_ANY_INIT;
 
 /**
  * Address structure to specify an IPv4 endpoint

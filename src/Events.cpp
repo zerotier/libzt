@@ -35,14 +35,14 @@ void PythonDirectorCallbackClass::on_zerotier_event(zts_event_msg_t* msg)
 }
 #endif
 
-#define ZTS_NODE_EVENT(code)    code >= ZTS_EVENT_NODE_UP&& code <= ZTS_EVENT_NODE_FATAL_ERROR
-#define ZTS_NETWORK_EVENT(code) code >= ZTS_EVENT_NETWORK_NOT_FOUND&& code <= ZTS_EVENT_NETWORK_UPDATE
-#define ZTS_STACK_EVENT(code)   code >= ZTS_EVENT_STACK_UP&& code <= ZTS_EVENT_STACK_DOWN
-#define ZTS_NETIF_EVENT(code)   code >= ZTS_EVENT_NETIF_UP&& code <= ZTS_EVENT_NETIF_LINK_DOWN
-#define ZTS_PEER_EVENT(code)    code >= ZTS_EVENT_PEER_DIRECT&& code <= ZTS_EVENT_PEER_PATH_DEAD
-#define ZTS_ROUTE_EVENT(code)   code >= ZTS_EVENT_ROUTE_ADDED&& code <= ZTS_EVENT_ROUTE_REMOVED
-#define ZTS_ADDR_EVENT(code)    code >= ZTS_EVENT_ADDR_ADDED_IP4&& code <= ZTS_EVENT_ADDR_REMOVED_IP6
-#define ZTS_STORE_EVENT(code)   code >= ZTS_EVENT_STORE_IDENTITY_SECRET&& code <= ZTS_EVENT_STORE_NETWORK
+#define ZTS_NODE_EVENT(code)    code >= ZTS_EVENT_NODE_UP && code <= ZTS_EVENT_NODE_FATAL_ERROR
+#define ZTS_NETWORK_EVENT(code) code >= ZTS_EVENT_NETWORK_NOT_FOUND && code <= ZTS_EVENT_NETWORK_UPDATE
+#define ZTS_STACK_EVENT(code)   code >= ZTS_EVENT_STACK_UP && code <= ZTS_EVENT_STACK_DOWN
+#define ZTS_NETIF_EVENT(code)   code >= ZTS_EVENT_NETIF_UP && code <= ZTS_EVENT_NETIF_LINK_DOWN
+#define ZTS_PEER_EVENT(code)    code >= ZTS_EVENT_PEER_DIRECT && code <= ZTS_EVENT_PEER_PATH_DEAD
+#define ZTS_ROUTE_EVENT(code)   code >= ZTS_EVENT_ROUTE_ADDED && code <= ZTS_EVENT_ROUTE_REMOVED
+#define ZTS_ADDR_EVENT(code)    code >= ZTS_EVENT_ADDR_ADDED_IP4 && code <= ZTS_EVENT_ADDR_REMOVED_IP6
+#define ZTS_STORE_EVENT(code)   code >= ZTS_EVENT_STORE_IDENTITY_SECRET && code <= ZTS_EVENT_STORE_NETWORK
 
 namespace ZeroTier {
 

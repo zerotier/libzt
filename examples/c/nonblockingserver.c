@@ -14,7 +14,7 @@ int main(int argc, char** argv)
 {
     if (argc != 5) {
         printf("\nlibzt example server\n");
-        printf("server <id_storage_path> <net_id> <local_addr> <local_port>\n");
+        printf("nonblockingserver <id_storage_path> <net_id> <local_addr> <local_port>\n");
         exit(0);
     }
     char* storage_path = argv[1];

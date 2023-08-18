@@ -28,6 +28,7 @@
 #include "Phy.hpp"
 #include "PortMapper.hpp"
 #include "ZeroTierSockets.h"
+#include "version.h"
 
 #include <string>
 #include <vector>
@@ -43,16 +44,52 @@
 // How often to check for local interface addresses
 #define ZT_LOCAL_INTERFACE_CHECK_INTERVAL 60000
 
+// Attempt to engage TCP fallback after this many ms of no reply to packets sent to global-scope IPs
+#define ZT_TCP_FALLBACK_AFTER 30000
+
+// Fake TLS hello for TCP tunnel outgoing connections (TUNNELED mode)
+static const char ZT_TCP_TUNNEL_HELLO[9] = { 0x17,
+                                             0x03,
+                                             0x03,
+                                             0x00,
+                                             0x04,
+                                             (char)ZEROTIER_ONE_VERSION_MAJOR,
+                                             (char)ZEROTIER_ONE_VERSION_MINOR,
+                                             (char)((ZEROTIER_ONE_VERSION_REVISION >> 8) & 0xff),
+                                             (char)(ZEROTIER_ONE_VERSION_REVISION & 0xff) };
+
 #ifdef __WINDOWS__
 #include <windows.h>
 #endif
 
 namespace ZeroTier {
 
+class NodeService;
 struct InetAddress;
 class VirtualTap;
 class MAC;
 class Events;
+
+/**
+ * A TCP connection and related state and buffers
+ */
+struct TcpConnection {
+    enum {
+        TCP_UNCATEGORIZED_INCOMING,   // uncategorized incoming connection
+        TCP_HTTP_INCOMING,
+        TCP_HTTP_OUTGOING,
+        TCP_TUNNEL_OUTGOING   // TUNNELED mode proxy outbound connection
+    } type;
+
+    NodeService* parent;
+    PhySocket* sock;
+    InetAddress remoteAddr;
+    uint64_t lastReceive;
+
+    std::string readq;
+    std::string writeq;
+    Mutex writeq_m;
+};
 
 /**
  * ZeroTier node service
@@ -161,6 +198,16 @@ class NodeService {
     // Time we last received a packet from a global address
     uint64_t _lastDirectReceiveFromGlobal;
 
+    InetAddress _fallbackRelayAddress;
+    bool _allowTcpRelay;
+    bool _forceTcpRelay;
+    uint64_t _lastSendToGlobalV4;
+
+    // Active TCP/IP connections
+    std::vector<TcpConnection*> _tcpConnections;
+    Mutex _tcpConnections_m;
+    TcpConnection* _tcpFallbackTunnel;
+
     // Last potential sleep/wake event
     uint64_t _lastRestart;
 
@@ -254,6 +301,8 @@ class NodeService {
         const struct sockaddr* from,
         void* data,
         unsigned long len);
+
+    void phyOnTcpConnect(PhySocket* sock, void** uptr, bool success);
 
     int nodeVirtualNetworkConfigFunction(
         uint64_t net_id,
@@ -393,10 +442,22 @@ class NodeService {
     /** Set the event system instance used to convey messages to the user */
     int setUserEventSystem(Events* events);
 
+    /** Set the address and port for the tcp relay that ZeroTier should use */
+    void setTcpRelayAddress(const char* tcpRelayAddr, unsigned short tcpRelayPort);
+
+    /** Allow ZeroTier to use the TCP relay */
+    void allowTcpRelay(bool enabled);
+
+    /** Force ZeroTier to only use the the TCP relay */
+    void forceTcpRelay(bool enabled);
+
     void enableEvents();
 
     /** Set the roots definition */
     int setRoots(const void* data, unsigned int len);
+
+    /** Enable or disable low-bandwidth mode (sends less ambient traffic, network updates happen less frequently) */
+    int setLowBandwidthMode(bool enabled);
 
     /** Add Interface prefix to blacklist (prevents ZeroTier from using that interface) */
     int addInterfacePrefixToBlacklist(const char* prefix, unsigned int len);
@@ -443,12 +504,6 @@ class NodeService {
     /** Return whether an address of the given family has been assigned by the network */
     int addrIsAssigned(uint64_t net_id, unsigned int family);
 
-    void phyOnTcpConnect(PhySocket* sock, void** uptr, bool success)
-    {
-        ZTS_UNUSED_ARG(sock);
-        ZTS_UNUSED_ARG(uptr);
-        ZTS_UNUSED_ARG(success);
-    }
     void phyOnTcpAccept(PhySocket* sockL, PhySocket* sockN, void** uptrL, void** uptrN, const struct sockaddr* from)
     {
         ZTS_UNUSED_ARG(sockL);
@@ -457,23 +512,13 @@ class NodeService {
         ZTS_UNUSED_ARG(uptrN);
         ZTS_UNUSED_ARG(from);
     }
-    void phyOnTcpClose(PhySocket* sock, void** uptr)
-    {
-        ZTS_UNUSED_ARG(sock);
-        ZTS_UNUSED_ARG(uptr);
-    }
-    void phyOnTcpData(PhySocket* sock, void** uptr, void* data, unsigned long len)
-    {
-        ZTS_UNUSED_ARG(sock);
-        ZTS_UNUSED_ARG(uptr);
-        ZTS_UNUSED_ARG(data);
-        ZTS_UNUSED_ARG(len);
-    }
-    void phyOnTcpWritable(PhySocket* sock, void** uptr)
-    {
-        ZTS_UNUSED_ARG(sock);
-        ZTS_UNUSED_ARG(uptr);
-    }
+
+    void phyOnTcpClose(PhySocket* sock, void** uptr);
+
+    void phyOnTcpData(PhySocket* sock, void** uptr, void* data, unsigned long len);
+
+    void phyOnTcpWritable(PhySocket* sock, void** uptr);
+
     void phyOnFileDescriptorActivity(PhySocket* sock, void** uptr, bool readable, bool writable)
     {
         ZTS_UNUSED_ARG(sock);

@@ -522,7 +522,7 @@ host-jar()
     cp -f $CACHE_DIR/lib/libzt.* $JAVA_JAR_DIR
     cd $JAVA_JAR_DIR
     export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
-    javac -Xlint:deprecation com/zerotier/sockets/*.java
+    javac -Xlint:all com/zerotier/sockets/*.java
 
     jar cf libzt-$PKG_VERSION.jar $SHARED_LIB_NAME com/zerotier/sockets/*.class
     rm -rf com $SHARED_LIB_NAME

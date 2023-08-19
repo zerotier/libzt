@@ -82,8 +82,6 @@ endif()
 # ------------------------------------------------------------------------------
 # |                             INCLUDE DIRECTORIES                            |
 # ------------------------------------------------------------------------------
-# Temporary measure to test GitHub workflow on Ubuntu
-include_directories(/usr/lib/jvm/java-11-openjdk-amd64/include/linux/)
 # ZeroTier
 include_directories(${ZTO_SRC_DIR})
 include_directories(${ZTO_SRC_DIR}/include)
@@ -471,37 +469,40 @@ endif()
 
 if(ZTS_ENABLE_JAVA OR (BUILD_ANDROID AND NOT ZTS_NDK_ONLY))
     message(STATUS "Looking for JNI")
+    message(STATUS "Ignore seeing \"Found JNI: NotNeeded\" below; check that JNI_INCLUDE_DIRS is valid")
 
-    if(BUILD_WIN)
-        # We are only interested in finding jni.h: we do not care about extended JVM
-        # functionality or the AWT library. set(JAVA_AWT_LIBRARY NotNeeded)
-        # set(JAVA_JVM_LIBRARY NotNeeded) set(JAVA_INCLUDE_PATH2 NotNeeded)
-        # set(JAVA_AWT_INCLUDE_PATH NotNeeded)
-        set(JAVA_INCLUDE_PATH "C:\\Program Files\\Java\\jdk-10.0.2\\include")
-    endif()
-
+    #
+    # "trick" CMake into thinking that we have already found these
+    # https://stackoverflow.com/a/51764145
+    #
+    # These may be missing, but we do not need them
+    #
+    # There is no official way of telling CMake: "skip looking for AWT, etc."
+    #
     set(JAVA_AWT_LIBRARY NotNeeded)
     set(JAVA_JVM_LIBRARY NotNeeded)
-    set(JAVA_INCLUDE_PATH2 NotNeeded)
     set(JAVA_AWT_INCLUDE_PATH NotNeeded)
-    find_package(JNI REQUIRED)
+    
+    #
+    # Do NOT make REQUIRED
+    # Until there is an official way of telling CMake to skip AWT, etc.,
+    # then JNI will be considered as "not found"
+    #
+    find_package(JNI)
 
-    if(JNI_FOUND)
-        message(STATUS "JNI_INCLUDE_DIR=${JNI_INCLUDE_DIRS}")
-        message(STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
-        list(GET JNI_INCLUDE_DIRS 0 JNI_INCLUDE_DIR)
-        message(STATUS "jni path=${JNI_INCLUDE_DIR}")
-        include_directories("${JNI_INCLUDE_DIR}")
-        # include_directories ("${JNI_INCLUDE_DIRS}")
-        if(BUILD_WIN)
-            include_directories("${JNI_INCLUDE_DIR}\\win32")
-        endif()
-        if(BUILD_MACOS)
-            include_directories("${JNI_INCLUDE_DIR}/darwin")
-        endif()
-        if(BUILD_LINUX)
-            include_directories("${JNI_INCLUDE_DIR}/linux")
-        endif()
+    list(FILTER JNI_INCLUDE_DIRS EXCLUDE REGEX NotNeeded)
+    list(FILTER JNI_LIBRARIES EXCLUDE REGEX NotNeeded)
+
+    #
+    # Do NOT check JNI_FOUND here, check JNI_INCLUDE_DIRS instead
+    # because of setting the above variables to NotNeeded,
+    # the variable JNI_FOUND is now set to NotNeeded, which is annoying
+    #
+    # We only care about JNI_INCLUDE_DIRS
+    #
+    if(JNI_INCLUDE_DIRS)
+        message(STATUS "JNI_INCLUDE_DIRS: ${JNI_INCLUDE_DIRS}")
+        include_directories("${JNI_INCLUDE_DIRS}")
     else()
         message(STATUS "JNI not found")
     endif()

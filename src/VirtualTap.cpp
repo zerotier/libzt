@@ -312,6 +312,10 @@ static void zts_main_lwip_driver_loop(void* arg)
         zts_util_delay(LWIP_DRIVER_LOOP_INTERVAL);
     }
     _has_exited = true;
+    
+    //
+    // no need to check if event was enqueued since NULL is being passed
+    //
     zts_events->enqueue(ZTS_EVENT_STACK_DOWN, NULL);
 }
 

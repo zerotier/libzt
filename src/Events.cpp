@@ -93,11 +93,18 @@ void Events::run()
     }
 }
 
-void Events::enqueue(unsigned int event_code, const void* arg, int len)
+bool Events::enqueue(unsigned int event_code, const void* arg, int len)
 {
     if (! _enabled) {
-        return;
+        return false;
     }
+    if (_callbackMsgQueue.size_approx() > 1024) {
+        /* Rate-limit number of events. This value should only grow if the
+        user application isn't returning from the event handler in a timely manner.
+        For most applications it should hover around 1 to 2 */
+        return false;
+    }
+    
     zts_event_msg_t* msg = new zts_event_msg_t();
     msg->event_code = event_code;
 
@@ -132,15 +139,12 @@ void Events::enqueue(unsigned int event_code, const void* arg, int len)
         msg->cache = (void*)arg;
         msg->len = len;
     }
-    if (msg && _callbackMsgQueue.size_approx() > 1024) {
-        /* Rate-limit number of events. This value should only grow if the
-        user application isn't returning from the event handler in a timely manner.
-        For most applications it should hover around 1 to 2 */
-        destroy(msg);
-    }
-    else {
-        _callbackMsgQueue.enqueue(msg);
-    }
+
+    //
+    // ownership of arg is now transferred
+    //
+    _callbackMsgQueue.enqueue(msg);
+    return true;
 }
 
 void Events::destroy(zts_event_msg_t* msg)

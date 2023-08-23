@@ -350,6 +350,8 @@ host()
     mkdir -p $BIN_OUTPUT_DIR
     $CMAKE $VARIANT -H. -B$CACHE_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
     $CMAKE --build $CACHE_DIR $BUILD_CONCURRENCY
+    rm -f $BUILD_OUTPUT_DIR/native
+    ln -s $TARGET_BUILD_DIR $BUILD_OUTPUT_DIR/native
     cp -f $CACHE_DIR/lib/libzt.* $LIB_OUTPUT_DIR
     cp -f $CACHE_DIR/bin/* $BIN_OUTPUT_DIR
     echo -e "\n - Build cache  : $CACHE_DIR\n - Build output : $BUILD_OUTPUT_DIR\n"
@@ -494,12 +496,12 @@ host-jar()
 {
     check_submodules
     ARTIFACT="jar"
-    PKG_VERSION=$(cat .version)
+    PKG_VERSION=$(git describe --tags --abbrev=0)
     # Default to release
     BUILD_TYPE=${1:-release}
     if [[ $1 = *"docs"* ]]; then
         # Generate documentation
-        javadoc src/bindings/java/*.java -d docs/java
+        javadoc src/bindings/java/com/zerotier/sockets/*.java -d docs/java
         exit 0
     fi
     VARIANT="-DZTS_ENABLE_JAVA=True"
@@ -512,7 +514,7 @@ host-jar()
     JAVA_JAR_DIR=$CACHE_DIR/pkg/jar
     JAVA_JAR_SOURCE_TREE_DIR=$JAVA_JAR_DIR/com/zerotier/sockets/
     mkdir -p $JAVA_JAR_SOURCE_TREE_DIR
-    cp -f src/bindings/java/*.java $JAVA_JAR_SOURCE_TREE_DIR
+    cp -f src/bindings/java/com/zerotier/sockets/*.java $JAVA_JAR_SOURCE_TREE_DIR
     # Build
     $CMAKE $VARIANT -H. -B$CACHE_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
     $CMAKE --build $CACHE_DIR $BUILD_CONCURRENCY
@@ -520,7 +522,7 @@ host-jar()
     cp -f $CACHE_DIR/lib/libzt.* $JAVA_JAR_DIR
     cd $JAVA_JAR_DIR
     export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
-    javac -Xlint:deprecation com/zerotier/sockets/*.java
+    javac -Xlint:all com/zerotier/sockets/*.java
 
     jar cf libzt-$PKG_VERSION.jar $SHARED_LIB_NAME com/zerotier/sockets/*.class
     rm -rf com $SHARED_LIB_NAME
@@ -596,18 +598,12 @@ android-aar()
     PKG_OUTPUT_DIR=$BUILD_OUTPUT_DIR/$TARGET_PLATFORM-$TARGET_MACHINE_TYPE-$ARTIFACT-$BUILD_TYPE
     mkdir -p $CACHE_DIR
     mkdir -p $PKG_OUTPUT_DIR
-    # Unsure why, but Gradle's build script chokes on this non-source file now
-    rm -rf ext/ZeroTierOne/ext/miniupnpc/VERSION
-    export PATH=$ANDROID_HOME/cmdline-tools/tools/bin:$PATH
-    # Copy source files into project
-    mkdir -p ${ANDROID_PKG_PROJ_DIR}/app/src/main/java/com/zerotier/sockets
-    cp -f src/bindings/java/*.java ${ANDROID_PKG_PROJ_DIR}/app/src/main/java/com/zerotier/sockets
     # Build
     UPPERCASE_BUILD_TYPE="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
     CMAKE_FLAGS="-D${CMAKE_SWITCH}=1 -D${CMAKE_SWITCH}=ON"
     cd $ANDROID_PKG_PROJ_DIR
     ./gradlew $GRADLE_ARGS assemble$UPPERCASE_BUILD_TYPE # assembleRelease / assembleDebug
-    mv $ANDROID_PKG_PROJ_DIR/app/build/outputs/aar/*.aar \
+    cp $ANDROID_PKG_PROJ_DIR/app/build/outputs/aar/libzt-$BUILD_TYPE.aar \
         $PKG_OUTPUT_DIR/libzt-$BUILD_TYPE.aar
     cd -
     echo -e "\n - Build cache  : $CACHE_DIR\n - Build output : $BUILD_OUTPUT_DIR\n"
@@ -652,21 +648,21 @@ format-code()
         if [[ ! $(which $CLANG_FORMAT) = "" ]];
         then
             # Eventually: find . -path ./ext -prune -false -o -type f \( -iname \*.c -o -iname \*.h -o -iname \*.cpp -o -iname \*.hpp \) -exec clang-format -i {} \;
-            $CLANG_FORMAT -i --verbose include/*.h                \
-                            src/*.c                               \
-                            src/*.cpp                             \
-                            src/*.hpp                             \
-                            examples/c/*.c                        \
-                            examples/csharp/*.cs                  \
-                            examples/java/*.java                  \
-                            test/*.c                              \
-                            test/*.cs                             \
-                            src/bindings/csharp/*.cs              \
-                            src/bindings/csharp/*.cxx             \
-                            src/bindings/java/*.java              \
-                            src/bindings/java/*.cxx               \
-                            examples/csharp/*.cs                  \
-                            src/bindings/python/PythonSockets.cxx \
+            $CLANG_FORMAT -i --verbose include/*.h                        \
+                            src/*.c                                       \
+                            src/*.cpp                                     \
+                            src/*.hpp                                     \
+                            examples/c/*.c                                \
+                            examples/csharp/*.cs                          \
+                            examples/java/*.java                          \
+                            test/*.c                                      \
+                            test/*.cs                                     \
+                            src/bindings/csharp/*.cs                      \
+                            src/bindings/csharp/*.cxx                     \
+                            src/bindings/java/com/zerotier/sockets/*.java \
+                            src/bindings/java/*.cxx                       \
+                            examples/csharp/*.cs                          \
+                            src/bindings/python/PythonSockets.cxx         \
                             src/bindings/python/PythonSocket.h
             return 0
         else
@@ -745,13 +741,12 @@ clean()
 
     find . -type d -name "__pycache__" -exec rm -rf {} +
     # Python pkg
-    cd pkg/pypi && ./build.sh clean
+    # cd pkg/pypi && ./build.sh clean
 }
 
 tag_release()
 {
     git tag -a $1 -m $2
-    "$(git describe --tags --abbrev=0)" >> .version
     git push origin --tags
 }
 

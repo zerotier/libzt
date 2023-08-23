@@ -1,16 +1,18 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 33
     defaultConfig {
-        minSdkVersion 14
-        targetSdkVersion 23
+        minSdkVersion 21
+        targetSdkVersion 33
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
                 cppFlags ""
+                version '3.22.1'
+                arguments "-DZTS_ENABLE_JAVA=ON"
             }
         }
         ndk {
@@ -28,15 +30,34 @@ android {
     externalNativeBuild {
         cmake {
             path "../../../CMakeLists.txt"
+            version '3.22.1'
+        }
+    }
+
+    ndkVersion '25.1.8937393'
+
+    namespace 'com.example.zerotier'
+    
+    sourceSets {
+        main {
+            java {
+                srcDir 'src/main/java'
+                srcDir '../../../src/bindings/java'
+            }
+        }
+    }
+
+    android.libraryVariants.all { variant ->
+        variant.outputs.all { file ->
+            file.outputFileName = "libzt-${variant.buildType.name}.aar"
         }
     }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.android.support:appcompat-v7:28.0.0-alpha3'
-    implementation 'com.android.support.constraint:constraint-layout:1.1.2'
-    testImplementation 'junit:junit:4.12'
+    implementation 'com.android.support.constraint:constraint-layout:2.0.4'
+    testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 }

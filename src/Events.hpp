@@ -28,7 +28,7 @@
 
 /* Macro substitutions to standardize state checking of service, node, callbacks, and TCP/IP
  * stack. These are used only for control functions that are called at a low frequency. All higher
- * frequency socket calls use a unguarded state flags */
+ * frequency socket calls use unguarded state flags */
 
 // Lock service and check that it is running
 #define ACQUIRE_SERVICE(x)                                                                                             \
@@ -115,8 +115,12 @@ class Events {
 
     /**
      * Enqueue an event to be sent to the user application
+     * 
+     * Returns true if arg was enqueued.
+     * If enqueued, then ownership of arg has been transferred.
+     * If NOT enqueued, then ownership of arg has NOT been transferred.
      */
-    void enqueue(unsigned int event_code, const void* arg, int len = 0);
+    bool enqueue(unsigned int event_code, const void* arg, int len = 0);
 
     /**
      * Send callback message to user application

@@ -14,7 +14,7 @@ int main(int argc, char** argv)
 {
     if (argc != 5) {
         printf("\nlibzt example server\n");
-        printf("server <id_storage_path> <net_id> <local_addr> <local_port>\n");
+        printf("nonblockingserver <id_storage_path> <net_id> <local_addr> <local_port>\n");
         exit(0);
     }
     char* storage_path = argv[1];
@@ -95,7 +95,7 @@ int main(int argc, char** argv)
     //   zts_bsd_accept(int fd, struct zts_sockaddr* addr, zts_socklen_t* addrlen)
 
     char remote_ipstr[ZTS_INET6_ADDRSTRLEN] = { 0 };
-    unsigned int port = 0;
+    unsigned short port = 0;
     printf("Accepting on listening socket...\n");
     if ((accfd = zts_accept(fd, remote_ipstr, ZTS_INET6_ADDRSTRLEN, &port)) < 0) {
         printf("Error (fd=%d, ret=%d, zts_errno=%d). Exiting.\n", fd, err, zts_errno);

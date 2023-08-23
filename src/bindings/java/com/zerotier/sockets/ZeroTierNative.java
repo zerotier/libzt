@@ -228,7 +228,7 @@ public class ZeroTierNative {
     public static int ZTS_SO_DONTROUTE = 0x00000010;     // NOT YET SUPPORTED
     public static int ZTS_SO_USELOOPBACK = 0x00000040;   // NOT YET SUPPORTED
     public static int ZTS_SO_LINGER = 0x00000080;
-    public static int ZTS_SO_DONTLINGER = ((int)(~ZTS_SO_LINGER));
+    public static int ZTS_SO_DONTLINGER = (~ZTS_SO_LINGER);
     public static int ZTS_SO_OOBINLINE = 0x00000100;   // NOT YET SUPPORTED
     public static int ZTS_SO_REUSEPORT = 0x00000200;   // NOT YET SUPPORTED
     public static int ZTS_SO_SNDBUF = 0x00001001;      // NOT YET SUPPORTED
@@ -407,7 +407,7 @@ public class ZeroTierNative {
     /**
      * Maximum number of direct network paths to a given peer
      */
-    public static int ZTS_MAX_PEER_NETWORK_PATHS = 16;
+    public static int ZTS_MAX_PEER_NETWORK_PATHS = 64;
 
     /**
      * Maximum number of multicast groups a device / network interface can be

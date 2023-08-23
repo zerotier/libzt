@@ -17,6 +17,8 @@
  * ZeroTier Node Service
  */
 
+#include <stdlib.h>
+
 #include "NodeService.hpp"
 
 #include "../version.h"
@@ -28,13 +30,15 @@
 #include "VirtualTap.hpp"
 
 #if defined(__WINDOWS__)
-#include <shlobj.h>
-#include <winsock2.h>
-#include <windows.h>
 #include <iphlpapi.h>
 #include <netioapi.h>
+#include <shlobj.h>
+#include <windows.h>
+#include <winsock2.h>
 #define stat _stat
 #endif
+
+#define ZT_TCP_FALLBACK_RELAY "204.80.128.1/443"
 
 namespace ZeroTier {
 
@@ -173,6 +177,11 @@ NodeService::NodeService()
     , _randomPortRangeEnd(0)
     , _udpPortPickerCounter(0)
     , _lastDirectReceiveFromGlobal(0)
+    , _fallbackRelayAddress(ZT_TCP_FALLBACK_RELAY)
+    , _allowTcpRelay(true)
+    , _forceTcpRelay(false)
+    , _lastSendToGlobalV4(0)
+    , _tcpFallbackTunnel((TcpConnection*)0)
     , _lastRestart(0)
     , _nextBackgroundTaskDeadline(0)
     , _run(false)
@@ -286,7 +295,8 @@ NodeService::ReasonForTermination NodeService::run()
         if (_allowSecondaryPort) {
             if (_secondaryPort) {
                 _ports[1] = _secondaryPort;
-            } else {
+            }
+            else {
                 _ports[1] = _getRandomPort(minPort, maxPort);
             }
         }
@@ -301,9 +311,10 @@ NodeService::ReasonForTermination NodeService::run()
             if (_ports[1]) {
                 if (_tertiaryPort) {
                     _ports[2] = _tertiaryPort;
-                } else {
+                }
+                else {
                     _ports[2] = minPort + (_ports[0] % 40000);
-                    for(int i=0;;++i) {
+                    for (int i = 0;; ++i) {
                         if (i > 1000) {
                             _ports[2] = 0;
                             break;
@@ -398,7 +409,10 @@ NodeService::ReasonForTermination NodeService::run()
                         p[pc++] = _ports[i];
                     }
                 }
-                _binder.refresh(_phy, p, pc, explicitBind, *this);
+                if (! _forceTcpRelay) {
+                    // Only bother binding UDP ports if we aren't forcing TCP-relay mode
+                    _binder.refresh(_phy, p, pc, explicitBind, *this);
+                }
             }
 
             // Generate callback messages for user application
@@ -409,6 +423,12 @@ NodeService::ReasonForTermination NodeService::run()
             if (dl <= now) {
                 _node->processBackgroundTasks((void*)0, now, &_nextBackgroundTaskDeadline);
                 dl = _nextBackgroundTaskDeadline;
+            }
+
+            // Close TCP fallback tunnel if we have direct UDP
+            if (! _forceTcpRelay && (_tcpFallbackTunnel)
+                && ((now - _lastDirectReceiveFromGlobal) < (ZT_TCP_FALLBACK_AFTER / 2))) {
+                _phy.close(_tcpFallbackTunnel->sock);
             }
 
             // Sync multicast group memberships
@@ -616,6 +636,9 @@ void NodeService::phyOnDatagram(
     void* data,
     unsigned long len)
 {
+    if (_forceTcpRelay) {
+        return;
+    }
     ZTS_UNUSED_ARG(uptr);
     ZTS_UNUSED_ARG(localAddr);
     if ((len >= 16) && (reinterpret_cast<const InetAddress*>(from)->ipScope() == InetAddress::IP_SCOPE_GLOBAL))
@@ -636,6 +659,189 @@ void NodeService::phyOnDatagram(
         _termReason = ONE_UNRECOVERABLE_ERROR;
         _fatalErrorMessage = tmp;
         this->terminate();
+    }
+}
+
+void NodeService::phyOnTcpConnect(PhySocket* sock, void** uptr, bool success)
+{
+    if (! success) {
+        phyOnTcpClose(sock, uptr);
+        return;
+    }
+
+    TcpConnection* const tc = reinterpret_cast<TcpConnection*>(*uptr);
+    if (! tc) {   // sanity check
+        _phy.close(sock, true);
+        return;
+    }
+    tc->sock = sock;
+
+    if (tc->type == TcpConnection::TCP_TUNNEL_OUTGOING) {
+        if (_tcpFallbackTunnel)
+            _phy.close(_tcpFallbackTunnel->sock);
+        _tcpFallbackTunnel = tc;
+        _phy.streamSend(sock, ZT_TCP_TUNNEL_HELLO, sizeof(ZT_TCP_TUNNEL_HELLO));
+    }
+    else {
+        _phy.close(sock, true);
+    }
+}
+
+void NodeService::phyOnTcpClose(PhySocket* sock, void** uptr)
+{
+    TcpConnection* tc = (TcpConnection*)*uptr;
+    if (tc) {
+        if (tc == _tcpFallbackTunnel) {
+            _tcpFallbackTunnel = (TcpConnection*)0;
+        }
+        {
+            Mutex::Lock _l(_tcpConnections_m);
+            _tcpConnections.erase(
+                std::remove(_tcpConnections.begin(), _tcpConnections.end(), tc),
+                _tcpConnections.end());
+        }
+        delete tc;
+    }
+}
+
+void NodeService::phyOnTcpData(PhySocket* sock, void** uptr, void* data, unsigned long len)
+{
+    try {
+        if (! len) {
+            return;   // sanity check, should never happen
+        }
+        TcpConnection* tc = reinterpret_cast<TcpConnection*>(*uptr);
+        tc->lastReceive = OSUtils::now();
+        switch (tc->type) {
+            case TcpConnection::TCP_UNCATEGORIZED_INCOMING:
+            case TcpConnection::TCP_HTTP_INCOMING:
+            case TcpConnection::TCP_HTTP_OUTGOING:
+                break;
+            case TcpConnection::TCP_TUNNEL_OUTGOING:
+                tc->readq.append((const char*)data, len);
+                while (tc->readq.length() >= 5) {
+                    const char* data = tc->readq.data();
+                    const unsigned long mlen =
+                        (((((unsigned long)data[3]) & 0xff) << 8) | (((unsigned long)data[4]) & 0xff));
+                    if (tc->readq.length() >= (mlen + 5)) {
+                        InetAddress from;
+
+                        unsigned long plen = mlen;   // payload length, modified if there's an IP header
+                        data += 5;                   // skip forward past pseudo-TLS junk and mlen
+                        if (plen == 4) {
+                            // Hello message, which isn't sent by proxy and would be ignored by client
+                        }
+                        else if (plen) {
+                            // Messages should contain IPv4 or IPv6 source IP address data
+                            switch (data[0]) {
+                                case 4:   // IPv4
+                                    if (plen >= 7) {
+                                        from.set(
+                                            (const void*)(data + 1),
+                                            4,
+                                            ((((unsigned int)data[5]) & 0xff) << 8) | (((unsigned int)data[6]) & 0xff));
+                                        data += 7;   // type + 4 byte IP + 2 byte port
+                                        plen -= 7;
+                                    }
+                                    else {
+                                        _phy.close(sock);
+                                        return;
+                                    }
+                                    break;
+                                case 6:   // IPv6
+                                    if (plen >= 19) {
+                                        from.set(
+                                            (const void*)(data + 1),
+                                            16,
+                                            ((((unsigned int)data[17]) & 0xff) << 8)
+                                                | (((unsigned int)data[18]) & 0xff));
+                                        data += 19;   // type + 16 byte IP + 2 byte port
+                                        plen -= 19;
+                                    }
+                                    else {
+                                        _phy.close(sock);
+                                        return;
+                                    }
+                                    break;
+                                case 0:   // none/omitted
+                                    ++data;
+                                    --plen;
+                                    break;
+                                default:   // invalid address type
+                                    _phy.close(sock);
+                                    return;
+                            }
+
+                            if (from) {
+                                InetAddress fakeTcpLocalInterfaceAddress((uint32_t)0xffffffff, 0xffff);
+                                const ZT_ResultCode rc = _node->processWirePacket(
+                                    (void*)0,
+                                    OSUtils::now(),
+                                    -1,
+                                    reinterpret_cast<struct sockaddr_storage*>(&from),
+                                    data,
+                                    plen,
+                                    &_nextBackgroundTaskDeadline);
+                                if (ZT_ResultCode_isFatal(rc)) {
+                                    char tmp[256];
+                                    OSUtils::ztsnprintf(
+                                        tmp,
+                                        sizeof(tmp),
+                                        "fatal error code from processWirePacket: %d",
+                                        (int)rc);
+                                    Mutex::Lock _l(_termReason_m);
+                                    _termReason = ONE_UNRECOVERABLE_ERROR;
+                                    _fatalErrorMessage = tmp;
+                                    this->terminate();
+                                    _phy.close(sock);
+                                    return;
+                                }
+                            }
+                        }
+
+                        if (tc->readq.length() > (mlen + 5)) {
+                            tc->readq.erase(tc->readq.begin(), tc->readq.begin() + (mlen + 5));
+                        }
+                        else {
+                            tc->readq.clear();
+                        }
+                    }
+                    else {
+                        break;
+                    }
+                }
+                return;
+        }
+    }
+    catch (...) {
+        _phy.close(sock);
+    }
+}
+
+void NodeService::phyOnTcpWritable(PhySocket* sock, void** uptr)
+{
+    TcpConnection* tc = reinterpret_cast<TcpConnection*>(*uptr);
+    bool closeit = false;
+    {
+        Mutex::Lock _l(tc->writeq_m);
+        if (tc->writeq.length() > 0) {
+            long sent = (long)_phy.streamSend(sock, tc->writeq.data(), (unsigned long)tc->writeq.length(), true);
+            if (sent > 0) {
+                if ((unsigned long)sent >= (unsigned long)tc->writeq.length()) {
+                    tc->writeq.clear();
+                    _phy.setNotifyWritable(sock, false);
+                }
+                else {
+                    tc->writeq.erase(tc->writeq.begin(), tc->writeq.begin() + sent);
+                }
+            }
+        }
+        else {
+            _phy.setNotifyWritable(sock, false);
+        }
+    }
+    if (closeit) {
+        _phy.close(sock);
     }
 }
 
@@ -751,13 +957,17 @@ void NodeService::sendEventToUser(unsigned int zt_event_code, const void* obj, u
 
     void* objptr = NULL;
 
+    zts_node_info_t* nd;
+    zts_net_info_t* nt;
+    zts_peer_info_t* pr;
+    
     switch (zt_event_code) {
         case ZTS_EVENT_NODE_UP:
         case ZTS_EVENT_NODE_ONLINE:
         case ZTS_EVENT_NODE_OFFLINE:
         case ZTS_EVENT_NODE_DOWN:
         case ZTS_EVENT_NODE_FATAL_ERROR: {
-            zts_node_info_t* nd = new zts_node_info_t;
+            nd = new zts_node_info_t;
             nd->node_id = _nodeId;
             nd->ver_major = ZEROTIER_ONE_VERSION_MAJOR;
             nd->ver_minor = ZEROTIER_ONE_VERSION_MINOR;
@@ -774,9 +984,9 @@ void NodeService::sendEventToUser(unsigned int zt_event_code, const void* obj, u
         case ZTS_EVENT_NETWORK_ACCESS_DENIED:
         case ZTS_EVENT_NETWORK_DOWN: {
             NetworkState* ns = (NetworkState*)obj;
-            zts_net_info_t* nd = new zts_net_info_t();
-            nd->net_id = ns->config.nwid;
-            objptr = (void*)nd;
+            nt = new zts_net_info_t();
+            nt->net_id = ns->config.nwid;
+            objptr = (void*)nt;
             break;
         }
         case ZTS_EVENT_NETWORK_UPDATE:
@@ -784,33 +994,33 @@ void NodeService::sendEventToUser(unsigned int zt_event_code, const void* obj, u
         case ZTS_EVENT_NETWORK_READY_IP6:
         case ZTS_EVENT_NETWORK_OK: {
             NetworkState* ns = (NetworkState*)obj;
-            zts_net_info_t* nd = new zts_net_info_t();
-            nd->net_id = ns->config.nwid;
-            nd->mac = ns->config.mac;
-            strncpy(nd->name, ns->config.name, sizeof(ns->config.name));
-            nd->status = (zts_network_status_t)ns->config.status;
-            nd->type = (zts_net_info_type_t)ns->config.type;
-            nd->mtu = ns->config.mtu;
-            nd->dhcp = ns->config.dhcp;
-            nd->bridge = ns->config.bridge;
-            nd->broadcast_enabled = ns->config.broadcastEnabled;
-            nd->port_error = ns->config.portError;
-            nd->netconf_rev = ns->config.netconfRevision;
+            nt = new zts_net_info_t();
+            nt->net_id = ns->config.nwid;
+            nt->mac = ns->config.mac;
+            strncpy(nt->name, ns->config.name, sizeof(ns->config.name));
+            nt->status = (zts_network_status_t)ns->config.status;
+            nt->type = (zts_net_info_type_t)ns->config.type;
+            nt->mtu = ns->config.mtu;
+            nt->dhcp = ns->config.dhcp;
+            nt->bridge = ns->config.bridge;
+            nt->broadcast_enabled = ns->config.broadcastEnabled;
+            nt->port_error = ns->config.portError;
+            nt->netconf_rev = ns->config.netconfRevision;
             // Copy and convert address structures
-            nd->assigned_addr_count = ns->config.assignedAddressCount;
+            nt->assigned_addr_count = ns->config.assignedAddressCount;
             for (unsigned int i = 0; i < ns->config.assignedAddressCount; i++) {
-                native_ss_to_zts_ss(&(nd->assigned_addrs[i]), &(ns->config.assignedAddresses[i]));
+                native_ss_to_zts_ss(&(nt->assigned_addrs[i]), &(ns->config.assignedAddresses[i]));
             }
-            nd->route_count = ns->config.routeCount;
+            nt->route_count = ns->config.routeCount;
             for (unsigned int i = 0; i < ns->config.routeCount; i++) {
-                native_ss_to_zts_ss(&(nd->routes[i].target), &(ns->config.routes[i].target));
-                native_ss_to_zts_ss(&(nd->routes[i].via), &(ns->config.routes[i].via));
-                nd->routes[i].flags = ns->config.routes[i].flags;
-                nd->routes[i].metric = ns->config.routes[i].metric;
+                native_ss_to_zts_ss(&(nt->routes[i].target), &(ns->config.routes[i].target));
+                native_ss_to_zts_ss(&(nt->routes[i].via), &(ns->config.routes[i].via));
+                nt->routes[i].flags = ns->config.routes[i].flags;
+                nt->routes[i].metric = ns->config.routes[i].metric;
             }
-            nd->multicast_sub_count = ns->config.multicastSubscriptionCount;
-            memcpy(nd->multicast_subs, &(ns->config.multicastSubscriptions), sizeof(ns->config.multicastSubscriptions));
-            objptr = (void*)nd;
+            nt->multicast_sub_count = ns->config.multicastSubscriptionCount;
+            memcpy(nt->multicast_subs, &(ns->config.multicastSubscriptions), sizeof(ns->config.multicastSubscriptions));
+            objptr = (void*)nt;
             break;
         }
         case ZTS_EVENT_ADDR_ADDED_IP4:
@@ -845,13 +1055,13 @@ void NodeService::sendEventToUser(unsigned int zt_event_code, const void* obj, u
         case ZTS_EVENT_PEER_UNREACHABLE:
         case ZTS_EVENT_PEER_PATH_DISCOVERED:
         case ZTS_EVENT_PEER_PATH_DEAD: {
-            zts_peer_info_t* pd = new zts_peer_info_t();
+            pr = new zts_peer_info_t();
             ZT_Peer* peer = (ZT_Peer*)obj;
-            memcpy(pd, peer, sizeof(zts_peer_info_t));
+            memcpy(pr, peer, sizeof(zts_peer_info_t));
             for (unsigned int j = 0; j < peer->pathCount; j++) {
-                native_ss_to_zts_ss(&(pd->paths[j].address), &(peer->paths[j].address));
+                native_ss_to_zts_ss(&(pr->paths[j].address), &(peer->paths[j].address));
             }
-            objptr = (void*)pd;
+            objptr = (void*)pr;
             break;
         }
         default:
@@ -861,7 +1071,64 @@ void NodeService::sendEventToUser(unsigned int zt_event_code, const void* obj, u
     // Send event
 
     if (objptr) {
-        _events->enqueue(zt_event_code, objptr, len);
+        if (!_events->enqueue(zt_event_code, objptr, len)) {
+            //
+            // ownership of objptr was NOT transferred, so delete any news from above
+            //
+            switch (zt_event_code) {
+                case ZTS_EVENT_NODE_UP:
+                case ZTS_EVENT_NODE_ONLINE:
+                case ZTS_EVENT_NODE_OFFLINE:
+                case ZTS_EVENT_NODE_DOWN:
+                case ZTS_EVENT_NODE_FATAL_ERROR: {
+                    delete nd;
+                    break;
+                }
+                case ZTS_EVENT_NETWORK_NOT_FOUND:
+                case ZTS_EVENT_NETWORK_CLIENT_TOO_OLD:
+                case ZTS_EVENT_NETWORK_REQ_CONFIG:
+                case ZTS_EVENT_NETWORK_ACCESS_DENIED:
+                case ZTS_EVENT_NETWORK_DOWN: {
+                    delete nt;
+                    break;
+                }
+                case ZTS_EVENT_NETWORK_UPDATE:
+                case ZTS_EVENT_NETWORK_READY_IP4:
+                case ZTS_EVENT_NETWORK_READY_IP6:
+                case ZTS_EVENT_NETWORK_OK: {
+                    delete nt;
+                    break;
+                }
+                case ZTS_EVENT_ADDR_ADDED_IP4:
+                    break;
+                case ZTS_EVENT_ADDR_ADDED_IP6:
+                    break;
+                case ZTS_EVENT_ADDR_REMOVED_IP4:
+                    break;
+                case ZTS_EVENT_ADDR_REMOVED_IP6:
+                    break;
+                case ZTS_EVENT_STORE_IDENTITY_PUBLIC:
+                    break;
+                case ZTS_EVENT_STORE_IDENTITY_SECRET:
+                    break;
+                case ZTS_EVENT_STORE_PLANET:
+                    break;
+                case ZTS_EVENT_STORE_PEER:
+                    break;
+                case ZTS_EVENT_STORE_NETWORK:
+                    break;
+                case ZTS_EVENT_PEER_DIRECT:
+                case ZTS_EVENT_PEER_RELAY:
+                case ZTS_EVENT_PEER_UNREACHABLE:
+                case ZTS_EVENT_PEER_PATH_DISCOVERED:
+                case ZTS_EVENT_PEER_PATH_DEAD: {
+                    delete pr;
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
     }
 }
 
@@ -1061,25 +1328,24 @@ int NodeService::getRouteAtIdx(
         return ZTS_ERR_ARG;
     }
     // target
-    const char* err = NULL;
     struct sockaddr* sa = (struct sockaddr*)&(netState.config.routes[idx].target);
     if (sa->sa_family == AF_INET) {
         struct sockaddr_in* in4 = (struct sockaddr_in*)sa;
-        err = inet_ntop(AF_INET, &(in4->sin_addr), target, ZTS_INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET, &(in4->sin_addr), target, ZTS_INET6_ADDRSTRLEN);
     }
     if (sa->sa_family == AF_INET6) {
         struct sockaddr_in6* in6 = (struct sockaddr_in6*)sa;
-        err = inet_ntop(AF_INET6, &(in6->sin6_addr), target, ZTS_INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET6, &(in6->sin6_addr), target, ZTS_INET6_ADDRSTRLEN);
     }
     // via
     struct sockaddr* sa_via = (struct sockaddr*)&(netState.config.routes[idx].via);
     if (sa_via->sa_family == AF_INET) {
         struct sockaddr_in* in4 = (struct sockaddr_in*)sa_via;
-        err = inet_ntop(AF_INET, &(in4->sin_addr), via, ZTS_INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET, &(in4->sin_addr), via, ZTS_INET6_ADDRSTRLEN);
     }
     if (sa_via->sa_family == AF_INET6) {
         struct sockaddr_in6* in6 = (struct sockaddr_in6*)sa_via;
-        err = inet_ntop(AF_INET6, &(in6->sin6_addr), via, ZTS_INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET6, &(in6->sin6_addr), via, ZTS_INET6_ADDRSTRLEN);
     }
     if (strlen(via) == 0) {
         strncpy(via, "0.0.0.0", 7);
@@ -1226,7 +1492,7 @@ uint64_t NodeService::getNodeId()
 int NodeService::setIdentity(const char* keypair, unsigned int len)
 {
     if (keypair == NULL || len < ZT_IDENTITY_STRING_BUFFER_LENGTH) {
-        return ZTS_ERR_ARG;
+        //   return ZTS_ERR_ARG;
     }
     // Double check user-provided keypair
     Identity id;
@@ -1455,6 +1721,79 @@ int NodeService::nodeWirePacketSendFunction(
     unsigned int len,
     unsigned int ttl)
 {
+    if (_allowTcpRelay) {
+        if (addr->ss_family == AF_INET) {
+            // TCP fallback tunnel support, currently IPv4 only
+            if ((len >= 16)
+                && (reinterpret_cast<const InetAddress*>(addr)->ipScope() == InetAddress::IP_SCOPE_GLOBAL)) {
+                // Engage TCP tunnel fallback if we haven't received anything valid from a global
+                // IP address in ZT_TCP_FALLBACK_AFTER milliseconds. If we do start getting
+                // valid direct traffic we'll stop using it and close the socket after a while.
+                const int64_t now = OSUtils::now();
+                if (_forceTcpRelay
+                    || (((now - _lastDirectReceiveFromGlobal) > ZT_TCP_FALLBACK_AFTER)
+                        && ((now - _lastRestart) > ZT_TCP_FALLBACK_AFTER))) {
+                    if (_tcpFallbackTunnel) {
+                        bool flushNow = false;
+                        {
+                            Mutex::Lock _l(_tcpFallbackTunnel->writeq_m);
+                            if (_tcpFallbackTunnel->writeq.size() < (1024 * 64)) {
+                                if (_tcpFallbackTunnel->writeq.length() == 0) {
+                                    _phy.setNotifyWritable(_tcpFallbackTunnel->sock, true);
+                                    flushNow = true;
+                                }
+                                const unsigned long mlen = len + 7;
+                                _tcpFallbackTunnel->writeq.push_back((char)0x17);
+                                _tcpFallbackTunnel->writeq.push_back((char)0x03);
+                                _tcpFallbackTunnel->writeq.push_back((char)0x03);   // fake TLS 1.2 header
+                                _tcpFallbackTunnel->writeq.push_back((char)((mlen >> 8) & 0xff));
+                                _tcpFallbackTunnel->writeq.push_back((char)(mlen & 0xff));
+                                _tcpFallbackTunnel->writeq.push_back((char)4);   // IPv4
+                                _tcpFallbackTunnel->writeq.append(
+                                    reinterpret_cast<const char*>(reinterpret_cast<const void*>(
+                                        &(reinterpret_cast<const struct sockaddr_in*>(addr)->sin_addr.s_addr))),
+                                    4);
+                                _tcpFallbackTunnel->writeq.append(
+                                    reinterpret_cast<const char*>(reinterpret_cast<const void*>(
+                                        &(reinterpret_cast<const struct sockaddr_in*>(addr)->sin_port))),
+                                    2);
+                                _tcpFallbackTunnel->writeq.append((const char*)data, len);
+                            }
+                        }
+                        if (flushNow) {
+                            void* tmpptr = (void*)_tcpFallbackTunnel;
+                            phyOnTcpWritable(_tcpFallbackTunnel->sock, &tmpptr);
+                        }
+                    }
+                    else if (
+                        _forceTcpRelay
+                        || (((now - _lastSendToGlobalV4) < ZT_TCP_FALLBACK_AFTER)
+                            && ((now - _lastSendToGlobalV4) > (ZT_PING_CHECK_INTERVAL / 2)))) {
+                        const InetAddress addr(_fallbackRelayAddress);
+                        TcpConnection* tc = new TcpConnection();
+                        {
+                            Mutex::Lock _l(_tcpConnections_m);
+                            _tcpConnections.push_back(tc);
+                        }
+                        tc->type = TcpConnection::TCP_TUNNEL_OUTGOING;
+                        tc->remoteAddr = addr;
+                        tc->lastReceive = OSUtils::now();
+                        tc->parent = this;
+                        tc->sock = (PhySocket*)0;   // set in connect handler
+                        bool connected = false;
+                        _phy.tcpConnect(reinterpret_cast<const struct sockaddr*>(&addr), connected, (void*)tc, true);
+                    }
+                }
+                _lastSendToGlobalV4 = now;
+            }
+        }
+    }
+
+    if (_forceTcpRelay) {
+        // Shortcut here so that we don't emit any UDP packets
+        return 0;
+    }
+
     // Even when relaying we still send via UDP. This way if UDP starts
     // working we can instantly "fail forward" to it and stop using TCP
     // proxy fallback, which is slow.
@@ -1683,9 +2022,9 @@ int NodeService::shouldBindInterface(const char* ifname, const InetAddress& ifad
 unsigned int NodeService::_getRandomPort(unsigned int minPort, unsigned int maxPort)
 {
     unsigned int randp = 0;
-    Utils::getSecureRandom(&randp,sizeof(randp));
+    Utils::getSecureRandom(&randp, sizeof(randp));
     randp = (randp % (maxPort - minPort + 1)) + minPort;
-    for(int i=0;;++i) {
+    for (int i = 0;; ++i) {
         if (i > 1000) {
             return 0;
         }
@@ -1813,6 +2152,21 @@ void NodeService::enableEvents()
     _events->enable();
 }
 
+void NodeService::setTcpRelayAddress(const char* tcpRelayAddr, unsigned short tcpRelayPort)
+{
+    _fallbackRelayAddress = InetAddress(std::string(std::string(tcpRelayAddr) + std::string("/") + std::to_string(tcpRelayPort)).c_str());
+}
+
+void NodeService::allowTcpRelay(bool enabled)
+{
+    _allowTcpRelay = enabled;
+}
+
+void NodeService::forceTcpRelay(bool enabled)
+{
+    _forceTcpRelay = enabled;
+}
+
 int NodeService::setRoots(const void* rootsData, unsigned int len)
 {
     if (! rootsData || len <= 0 || len > ZTS_STORE_DATA_LEN) {
@@ -1826,6 +2180,16 @@ int NodeService::setRoots(const void* rootsData, unsigned int len)
     memcpy(_rootsData, rootsData, len);
     _rootsDataLen = len;
     _userDefinedWorld = true;
+    return ZTS_ERR_OK;
+}
+
+int NodeService::setLowBandwidthMode(bool enabled)
+{
+    Mutex::Lock _lr(_run_m);
+    if (_run) {
+        return ZTS_ERR_SERVICE;
+    }
+    _node->setLowBandwidthMode(enabled);
     return ZTS_ERR_OK;
 }
 

@@ -82,8 +82,6 @@ endif()
 # ------------------------------------------------------------------------------
 # |                             INCLUDE DIRECTORIES                            |
 # ------------------------------------------------------------------------------
-# Temporary measure to test GitHub workflow on Ubuntu
-include_directories(/usr/lib/jvm/java-11-openjdk-amd64/include/linux/)
 # ZeroTier
 include_directories(${ZTO_SRC_DIR})
 include_directories(${ZTO_SRC_DIR}/include)
@@ -92,6 +90,8 @@ include_directories(${ZTO_SRC_DIR}/osdep)
 # ZeroTier (ext)
 #include_directories(${ZTO_SRC_DIR}/ext/miniupnpc)
 include_directories(${ZTO_SRC_DIR}/ext/libnatpmp)
+include_directories(${ZTO_SRC_DIR}/ext/prometheus-cpp-lite-1.0/core/include)
+include_directories(${ZTO_SRC_DIR}/ext/prometheus-cpp-lite-1.0/simpleapi/include)
 # libzt
 include_directories(${PROJ_DIR}/src)
 include_directories(${PROJ_DIR}/include)
@@ -116,7 +116,7 @@ if (ZTS_ENABLE_PINVOKE)
     # Features
     set(BUILD_STATIC_LIB       FALSE)
     set(BUILD_SHARED_LIB        TRUE)
-    set(BUILD_EXAMPLES         FALSE)
+    set(BUILD_HOST_EXAMPLES    FALSE)
     set(ALLOW_INSTALL_TARGET   FALSE)
     set(BUILD_HOST_SELFTEST    FALSE)
     # Sources and libraries
@@ -129,7 +129,7 @@ if (ZTS_ENABLE_RUST)
     # Features
     set(BUILD_STATIC_LIB        TRUE)
     set(BUILD_SHARED_LIB       FALSE)
-    set(BUILD_EXAMPLES         FALSE)
+    set(BUILD_HOST_EXAMPLES    FALSE)
     set(ALLOW_INSTALL_TARGET   FALSE)
     set(BUILD_HOST_SELFTEST    FALSE)
 endif()
@@ -142,7 +142,7 @@ if (ZTS_ENABLE_PYTHON)
     # Targets
     set(BUILD_STATIC_LIB       FALSE)
     set(BUILD_SHARED_LIB        TRUE)
-    set(BUILD_EXAMPLES         FALSE)
+    set(BUILD_HOST_EXAMPLES    FALSE)
     set(ALLOW_INSTALL_TARGET   FALSE)
     set(BUILD_HOST_SELFTEST    FALSE)
     # Sources and libraries
@@ -190,15 +190,17 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Android")
     set(BUILD_STATIC_LIB       FALSE)
     set(BUILD_SHARED_LIB        TRUE)
     set(BUILD_HOST_SELFTEST    FALSE)
-    set(BUILD_EXAMPLES         FALSE)
+    set(BUILD_HOST_EXAMPLES    FALSE)
     set(ALLOW_INSTALL_TARGET   FALSE)
+    set(LANG_WRAPPER_FILE ${LIBZT_SRC_DIR}/bindings/java/*.cxx)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_ENABLE_JAVA=1")
 endif()
 
 if(BUILD_MACOS_FRAMEWORK)
     set(BUILD_STATIC_LIB        TRUE)
     set(BUILD_SHARED_LIB        TRUE)
     set(BUILD_HOST_SELFTEST    FALSE)
-    set(BUILD_EXAMPLES         FALSE)
+    set(BUILD_HOST_EXAMPLES    FALSE)
     set(ALLOW_INSTALL_TARGET   FALSE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOMIT_JSON_SUPPORT=1")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DOMIT_JSON_SUPPORT=1")
@@ -213,7 +215,7 @@ if(BUILD_IOS_FRAMEWORK)
     set(BUILD_STATIC_LIB        TRUE)
     set(BUILD_SHARED_LIB        TRUE)
     set(BUILD_HOST_SELFTEST    FALSE)
-    set(BUILD_EXAMPLES         FALSE)
+    set(BUILD_HOST_EXAMPLES    FALSE)
     set(ALLOW_INSTALL_TARGET   FALSE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOMIT_JSON_SUPPORT=1")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DOMIT_JSON_SUPPORT=1")
@@ -221,7 +223,7 @@ if(BUILD_IOS_FRAMEWORK)
         "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer")
     if(IOS_ARM64)
         set(CMAKE_OSX_ARCHITECTURES arm64)
-        set(SDKVER "11.4")
+        set(SDKVER "16.4")
     endif()
     if(IOS_ARMV7)
         # armv7 armv7s
@@ -277,7 +279,6 @@ endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "debug")
     set(BUILD_DEBUG ON)
     set(CMAKE_VERBOSE_MAKEFILE ON)
-    set(DEBUG_OPTIMIZATION "-O3")
 endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "release")
     set(BUILD_RELEASE ON)
@@ -396,7 +397,6 @@ else()
 
     set(CMAKE_C_FLAGS_DEBUG
             "${CMAKE_C_FLAGS_DEBUG} \
-         ${DEBUG_OPTIMIZATION} \
          -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
 
     set(CMAKE_C_FLAGS_RELEASE
@@ -409,7 +409,6 @@ else()
 
     set(CMAKE_CXX_FLAGS_DEBUG
             "${CMAKE_CXX_FLAGS_DEBUG} \
-         ${DEBUG_OPTIMIZATION} \
          -DLWIP_DEBUG=1 -DLIBZT_DEBUG=1")
 
     set(CMAKE_CXX_FLAGS_RELEASE
@@ -467,37 +466,40 @@ endif()
 
 if(ZTS_ENABLE_JAVA OR (BUILD_ANDROID AND NOT ZTS_NDK_ONLY))
     message(STATUS "Looking for JNI")
+    message(STATUS "Ignore seeing \"Found JNI: NotNeeded\" below; check that JNI_INCLUDE_DIRS is valid")
 
-    if(BUILD_WIN)
-        # We are only interested in finding jni.h: we do not care about extended JVM
-        # functionality or the AWT library. set(JAVA_AWT_LIBRARY NotNeeded)
-        # set(JAVA_JVM_LIBRARY NotNeeded) set(JAVA_INCLUDE_PATH2 NotNeeded)
-        # set(JAVA_AWT_INCLUDE_PATH NotNeeded)
-        set(JAVA_INCLUDE_PATH "C:\\Program Files\\Java\\jdk-10.0.2\\include")
-    endif()
-
+    #
+    # "trick" CMake into thinking that we have already found these
+    # https://stackoverflow.com/a/51764145
+    #
+    # These may be missing, but we do not need them
+    #
+    # There is no official way of telling CMake: "skip looking for AWT, etc."
+    #
     set(JAVA_AWT_LIBRARY NotNeeded)
     set(JAVA_JVM_LIBRARY NotNeeded)
-    set(JAVA_INCLUDE_PATH2 NotNeeded)
     set(JAVA_AWT_INCLUDE_PATH NotNeeded)
-    find_package(JNI REQUIRED)
+    
+    #
+    # Do NOT make REQUIRED
+    # Until there is an official way of telling CMake to skip AWT, etc.,
+    # then JNI will be considered as "not found"
+    #
+    find_package(JNI)
 
-    if(JNI_FOUND)
-        message(STATUS "JNI_INCLUDE_DIR=${JNI_INCLUDE_DIRS}")
-        message(STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
-        list(GET JNI_INCLUDE_DIRS 0 JNI_INCLUDE_DIR)
-        message(STATUS "jni path=${JNI_INCLUDE_DIR}")
-        include_directories("${JNI_INCLUDE_DIR}")
-        # include_directories ("${JNI_INCLUDE_DIRS}")
-        if(BUILD_WIN)
-            include_directories("${JNI_INCLUDE_DIR}\\win32")
-        endif()
-        if(BUILD_MACOS)
-            include_directories("${JNI_INCLUDE_DIR}/darwin")
-        endif()
-        if(BUILD_LINUX)
-            include_directories("${JNI_INCLUDE_DIR}/linux")
-        endif()
+    list(FILTER JNI_INCLUDE_DIRS EXCLUDE REGEX NotNeeded)
+    list(FILTER JNI_LIBRARIES EXCLUDE REGEX NotNeeded)
+
+    #
+    # Do NOT check JNI_FOUND here, check JNI_INCLUDE_DIRS instead
+    # because of setting the above variables to NotNeeded,
+    # the variable JNI_FOUND is now set to NotNeeded, which is annoying
+    #
+    # We only care about JNI_INCLUDE_DIRS
+    #
+    if(JNI_INCLUDE_DIRS)
+        message(STATUS "JNI_INCLUDE_DIRS: ${JNI_INCLUDE_DIRS}")
+        include_directories("${JNI_INCLUDE_DIRS}")
     else()
         message(STATUS "JNI not found")
     endif()

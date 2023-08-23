@@ -10,7 +10,6 @@ Peer-to-peer and cross-platform encrypted connections built right into your app 
 
 <a href="./examples">Examples</a> |
 <a href="https://docs.zerotier.com/sockets/tutorial.html">Documentation</a> |
-<a href="https://discuss.zerotier.com/">Community</a> |
 <a href="https://github.com/zerotier/libzt/issues">Report a Bug</a>
 
 
@@ -19,7 +18,7 @@ Peer-to-peer and cross-platform encrypted connections built right into your app 
 
 
 <img alt="latest libzt version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label=latest"/></a>
-<a href="https://github.com/zerotier/libzt/commits/master"><img alt="Last Commit" src="https://img.shields.io/github/last-commit/zerotier/libzt"/></a>
+<a href="https://github.com/zerotier/libzt/commits/main"><img alt="Last Commit" src="https://img.shields.io/github/last-commit/zerotier/libzt"/></a>
 <a href="https://github.com/zerotier/libzt/actions"><img alt="Build Status (master branch)" src="https://img.shields.io/github/workflow/status/zerotier/libzt/CMake/master"/></a>
 </div>
 
@@ -29,7 +28,7 @@ Peer-to-peer and cross-platform encrypted connections built right into your app 
 | C#  | `Install-Package ZeroTier.Sockets` |<a href="https://www.nuget.org/packages/ZeroTier.Sockets/"><img src="https://img.shields.io/github/v/tag/zerotier/libzt?label=NuGet"/></a> |[C#](./examples/csharp)  |
 | Python  | `pip install libzt`|<a href="https://pypi.org/project/libzt/"><img src="https://img.shields.io/pypi/v/libzt?label=PyPI"/></a> |[Python](./examples/python)  |
 | Rust  | See: [crates.io/crates/libzt](https://crates.io/crates/libzt) | <img alt="version" src="https://img.shields.io/crates/v/libzt?color=blue"/>|[Rust](./examples/rust)  |
-| Java  | `./build.sh host-jar` |<img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> |[Java](./examples/java)  |
+| Java  | Install JDK, then: `./build.sh host-jar` |<img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/> |[Java](./examples/java)  |
 | Linux  | `brew install zerotier/tap/libzt` | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/></a>| [C/C++](./examples/c)  |
 | macOS  | `brew install zerotier/tap/libzt`| <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label=Homebrew"/></a>| [C/C++](./examples/c)  |
 | iOS / iPadOS  | `./build.sh iphoneos-framework` | <img src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/>| [Objective-C](./attic/objective-c), [Swift](./attic/swift)  |
@@ -93,7 +92,7 @@ Important directories:
 
 We provide ways for your app or enterprise to function independently from any of our services if desired.
 
-While we do operate a global network of redundant root servers, network controllers and an admin API/UI called [Central](https://my.zerotier.com), some use-cases require full control over the infrastructure and we try to make it as easy as possible to set up your own controllers and root servers: See [here](https://github.com/zerotier/ZeroTierOne/tree/master/controller) to learn more about how to set up your own network controller, and [here](https://www.zerotier.com/manual/#4_4) to learn more about setting up your own roots.
+While we do operate a global network of redundant root servers, network controllers and an admin API/UI called [Central](https://my.zerotier.com), some use-cases require full control over the infrastructure and we try to make it as easy as possible to set up your own controllers and root servers: See [here](https://github.com/zerotier/ZeroTierOne/tree/main/controller) to learn more about how to set up your own network controller, and [here](https://docs.zerotier.com/zerotier/moons) to learn more about setting up your own roots.
 
 # Help
 

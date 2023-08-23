@@ -5,7 +5,7 @@ import java.math.BigInteger;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 
-public class selftest {
+public class Example {
     public static void main(String[] args)
     {
         if (args.length < 4 || args.length > 5) {
@@ -110,7 +110,7 @@ public class selftest {
 /**
  * (OPTIONAL) event handler
  */
-class MyZeroTierEventListener implements ZeroTierEventListener {
+class MyZeroTierEventListener implements com.zerotier.sockets.ZeroTierEventListener {
     public void onZeroTierEvent(long id, int eventCode)
     {
         if (eventCode == ZeroTierNative.ZTS_EVENT_NODE_UP) {

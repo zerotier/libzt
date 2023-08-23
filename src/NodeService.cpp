@@ -21,7 +21,6 @@
 
 #include "NodeService.hpp"
 
-#include "../version.h"
 #include "Events.hpp"
 #include "InetAddress.hpp"
 #include "Mutex.hpp"
@@ -960,7 +959,7 @@ void NodeService::sendEventToUser(unsigned int zt_event_code, const void* obj, u
     zts_node_info_t* nd;
     zts_net_info_t* nt;
     zts_peer_info_t* pr;
-    
+
     switch (zt_event_code) {
         case ZTS_EVENT_NODE_UP:
         case ZTS_EVENT_NODE_ONLINE:

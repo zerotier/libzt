@@ -47,20 +47,29 @@ export class Server extends EventEmitter {
                 }
                 const s = new Socket(fd);
                 s.emit("connect");
-                process.nextTick(() => this.emit("connection", s));
-                if (this.listening) accept();
+                
+                if (this.listening) {
+                    process.nextTick(() => this.emit("connection", s));
+                    accept();
+                }
             });
         };
 
         accept();
     }
 
-    address() {
+    address(): Record<string, never> | {port: number, address: string} {
         try {
             return zts.getsockname(this.fd);
         } catch (error) {
             return {};
         }
+    }
+
+    close() {
+        this.listening = false;
+        
+        zts.bsd_close(this.fd);
     }
 }
 

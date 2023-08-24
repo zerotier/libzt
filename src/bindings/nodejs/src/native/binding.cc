@@ -83,11 +83,11 @@ Value init_from_storage(CALLBACKINFO)
     VOID;
 }
 
-ThreadSafeFunction event_callback;
+ThreadSafeFunction event_callback = nullptr;
 
 void event_handler(void* msgPtr)
 {
-    event_callback.Acquire();
+    if(event_callback.Acquire() != napi_ok) return;
 
     zts_event_msg_t* msg = (zts_event_msg_t*)msgPtr;
     double event = msg->event_code;
@@ -144,6 +144,8 @@ Value node_stop(CALLBACKINFO)
     int err = zts_node_stop();
     CHECK(err, "node_stop")
 
+    if(event_callback) event_callback.Abort();
+
     VOID;
 }
 
@@ -152,7 +154,9 @@ Value node_free(CALLBACKINFO)
     NO_ARGS()
 
     int err = zts_node_free();
-    CHECK(err, "node°free")
+    CHECK(err, "node_free")
+
+    if(event_callback) event_callback.Abort();
 
     VOID;
 }

@@ -1,6 +1,6 @@
 import { setTimeout } from "timers/promises";
-import { Server, connect, init, udp, zts } from "../index";
 
+import { Server, connect, startNode, zts, udp } from "../index";
 
 async function main() {
 
@@ -9,7 +9,7 @@ async function main() {
     const port = parseInt(process.argv[4]);
     const host = process.argv[5];
 
-    init("id/" + (server ? "server" : "client"));
+    startNode("id/" + (server ? "server" : "client"));
 
     while (!zts.node_is_online()) {
         await setTimeout(50);

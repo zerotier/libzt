@@ -312,6 +312,10 @@ static void zts_main_lwip_driver_loop(void* arg)
         zts_util_delay(LWIP_DRIVER_LOOP_INTERVAL);
     }
     _has_exited = true;
+    
+    //
+    // no need to check if event was enqueued since NULL is being passed
+    //
     zts_events->enqueue(ZTS_EVENT_STACK_DOWN, NULL);
 }
 
@@ -572,7 +576,20 @@ void zts_lwip_init_interface(void* tapref, const InetAddress& ip)
         LOCK_TCPIP_CORE();
         if (isNewNetif) {
             vtap->netif6 = (void*)n;
-            netif_add(n, NULL, NULL, NULL, (void*)vtap, zts_netif_init6, ethernet_input);
+            
+            //
+            // was:
+            // netif_add(n, NULL, NULL, NULL, (void*)vtap, zts_netif_init6, ethernet_input);
+            //
+            // but there is this documentation:
+            // > With NO_SYS=0, this must be set to tcpip_input for all netif types (whether ethernet, PPP, slipif, etc.)
+            // https://lwip.fandom.com/wiki/Writing_a_device_driver
+            //
+            // and also with ethernet_input and lwIP asserts turned on, we get:
+            // Assertion "Function called without core lock" failed at line 236 in /Users/brenton/development/github/libzt/ext/lwip-contrib/ports/unix/port/sys_arch.c
+            //
+            netif_add(n, NULL, NULL, NULL, (void*)vtap, zts_netif_init6, tcpip_input);
+
             n->ip6_autoconfig_enabled = 1;
             vtap->_mac.copyTo(n->hwaddr, n->hwaddr_len);
             netif_create_ip6_linklocal_address(n, 1);

@@ -4,25 +4,23 @@
 Part of the ZeroTier SDK
 <img alt="" src="https://i.imgur.com/BwSHwE3.png" class="doxyhidden"> </img>
 
-Peer-to-peer and cross-platform encrypted connections built right into your app or service. No drivers, no root, and no host configuration.
+P2P cross-platform encrypted sockets library using ZeroTier
 
 <br>
 
 <a href="./examples">Examples</a> |
-<a href="https://docs.zerotier.com/sockets/tutorial.html">Documentation</a> |
-<a href="https://github.com/zerotier/libzt/issues">Report a Bug</a>
-
+<a href="https://docs.zerotier.com/sockets/tutorial.html">Docs</a> |
+<a href="https://github.com/zerotier/libzt/issues">Report an issue</a>
 
 <a href="https://www.twitter.com/zerotier"><img alt="@zerotier" src="https://img.shields.io/twitter/follow/zerotier?style=social"/></a>
 <a href="https://old.reddit.com/r/zerotier"><img alt="r/zerotier" src="https://img.shields.io/reddit/subreddit-subscribers/zerotier?style=social"/></a>
 
-
 <img alt="latest libzt version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label=latest"/></a>
 <a href="https://github.com/zerotier/libzt/commits/main"><img alt="Last Commit" src="https://img.shields.io/github/last-commit/zerotier/libzt"/></a>
-<a href="https://github.com/zerotier/libzt/actions"><img alt="Build Status (master branch)" src="https://img.shields.io/github/workflow/status/zerotier/libzt/CMake/master"/></a>
+<a href="https://github.com/zerotier/libzt/actions"><img alt="Build Status (master branch)" src="https://img.shields.io/github/actions/workflow/status/zerotier/libzt/selftest.yml?branch=main"/></a>
 </div>
 
-| Language/Platform | Installation | Version | Example |
+| Language/Platform | Install | Version | Example |
 |:----------|:---------|:---|:---|
 | C/C++  | [Build from source](#build-from-source) | <img alt="version" src="https://img.shields.io/github/v/tag/zerotier/libzt?label="/></a>| [C/C++](./examples/c)  |
 | C#  | `Install-Package ZeroTier.Sockets` |<a href="https://www.nuget.org/packages/ZeroTier.Sockets/"><img src="https://img.shields.io/github/v/tag/zerotier/libzt?label=NuGet"/></a> |[C#](./examples/csharp)  |
@@ -51,7 +49,7 @@ int main()
 }
 ```
 
-# Build from source
+# Build from source (optional)
 
 ```
 git submodule update --init
@@ -88,11 +86,9 @@ Important directories:
 |`cache`| Contains build system caches that can safely be deleted after use.|
 |`pkg`| Contains project, script and spec files to generate packages.|
 
-# Self-hosting (Optional)
+# Self-hosting
 
-We provide ways for your app or enterprise to function independently from any of our services if desired.
-
-While we do operate a global network of redundant root servers, network controllers and an admin API/UI called [Central](https://my.zerotier.com), some use-cases require full control over the infrastructure and we try to make it as easy as possible to set up your own controllers and root servers: See [here](https://github.com/zerotier/ZeroTierOne/tree/main/controller) to learn more about how to set up your own network controller, and [here](https://docs.zerotier.com/zerotier/moons) to learn more about setting up your own roots.
+If you'd like to use your own infrastructure we make it easy to [set up your own controllers and roots](https://docs.zerotier.com/self-hosting/introduction).
 
 # Help
 

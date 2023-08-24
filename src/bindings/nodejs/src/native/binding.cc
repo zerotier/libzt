@@ -375,6 +375,17 @@ Value connect(CALLBACKINFO)
     VOID;
 }
 
+Value shutdown_rd(CALLBACKINFO)
+{
+    NB_ARGS(1)
+    ARG_INT32(0, fd)
+
+    int err = zts_shutdown_rd(fd);
+    CHECK_ERRNO(err, "shutdown_rd")
+
+    VOID;
+}
+
 Value shutdown_wr(CALLBACKINFO)
 {
     NB_ARGS(1)
@@ -484,6 +495,7 @@ Object Init(Env env, Object exports)
     EXPORT(listen)
     EXPORT(accept)
     EXPORT(connect)
+    EXPORT(shutdown_rd)
     EXPORT(shutdown_wr)
     EXPORT(getpeername)
     EXPORT(getsockname)

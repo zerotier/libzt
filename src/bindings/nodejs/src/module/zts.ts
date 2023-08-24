@@ -29,6 +29,7 @@ interface ZTS {
     listen(fd: number, backlog: number): void
     accept(fd: number, callback: (err: ZtsError | null, fd: number) => void): void
     connect(fd: number, ipAddr: string, port: number, timeout: number, callback: (err: ZtsError | null) => void): void
+    shutdown_rd(fd: number): void
     shutdown_wr(fd: number): void
 
     getpeername(fd: number): { port: number, address: string }

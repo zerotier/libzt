@@ -81,7 +81,6 @@ export class Socket extends Duplex {
                     return;
                 }
 
-                console.log(err);
                 this.destroy(err);
                 return;
             }
@@ -120,7 +119,7 @@ export class Socket extends Duplex {
 
 export function connect(host: string, port: number): Socket {
     const fd = zts.bsd_socket(isIPv6(host) ? defs.ZTS_AF_INET6 : defs.ZTS_AF_INET, defs.ZTS_SOCK_STREAM, 0);
-    console.log(fd);
+    
     const s = new Socket(fd);
 
     zts.connect(fd, host, port, 0, err => {

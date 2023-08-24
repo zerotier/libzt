@@ -152,7 +152,7 @@ Value node_free(CALLBACKINFO)
     NO_ARGS()
 
     int err = zts_node_free();
-    CHECK(err, "node°free")
+    CHECK(err, "node_free")
 
     VOID;
 }

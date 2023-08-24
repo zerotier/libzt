@@ -5,14 +5,15 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "link": "mkdir -p libzt; cd libzt; ln -sf ../../../../include; ln -sf ../../../../dist",
+    "link": "ln -sf ../../.. libzt-root",
+    "install": "cmake-js compile -p 12",
     "build": "rimraf dist && tsc"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "node-addon-api": "*",
-    "node-gyp": "^9.3.1"
+    "cmake-js": "^7.2.1",
+    "node-addon-api": "^7.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.2.5",

@@ -3,7 +3,6 @@
 ## Build in development
 
 ```bash
-./build.sh host
 cd src/bindings/nodejs
 npm run link
 npm ci            (rerun after changes to native code)
@@ -25,4 +24,4 @@ npm test (TODO)
 - UDP connect
 - Nicer wrapper around Node and Network
 - More features from ZeroTierSockets.h
-- Configure macos and windows
+- Configure macos and windows (might work already, not tested)

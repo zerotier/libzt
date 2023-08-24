@@ -9,14 +9,13 @@ async function main() {
     const port = parseInt(process.argv[4]);
     const host = process.argv[5];
 
-    startNode("id/" + (server ? "server" : "client"));
+    startNode();
 
     while (!zts.node_is_online()) {
         await setTimeout(50);
     }
 
     const nwid = BigInt("0xff0000ffff000000");
-
 
 
     // 40 node id + 24 net id
@@ -28,11 +27,6 @@ async function main() {
         await setTimeout(50);
     }
 
-    try {
-        console.log(zts.addr_get_str(nwid, false));
-    } catch (error) {
-        console.log(error.toString());
-    }
     try {
         console.log(zts.addr_get_str(nwid, true));
     } catch (error) {

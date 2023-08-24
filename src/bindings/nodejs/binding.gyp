@@ -4,7 +4,7 @@
             "target_name": "zts",
             "cflags!": ["-fno-exceptions"],
             "cflags_cc!": ["-fno-exceptions"],
-            "sources": ["src/binding.cc"],
+            "sources": ["src/native/binding.cc"],
             "include_dirs": [
                 "<!(node -p \"require('node-addon-api').include_dir\")",
                 "<(module_root_dir)/libzt/include",

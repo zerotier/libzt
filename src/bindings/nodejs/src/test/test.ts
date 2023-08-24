@@ -1,9 +1,5 @@
 import { setTimeout } from "timers/promises";
-import { init } from "./index";
-import { Server } from "./Server";
-import { connect } from "./Socket";
-import { zts } from "./zts";
-import { createSocket } from "./UDPSocket";
+import { Server, connect, init, udp, zts } from "../index";
 
 
 async function main() {
@@ -47,7 +43,7 @@ async function main() {
     if (protocol === "udp") {
         if (server) {
 
-            const s = createSocket({ type: "udp6" }, (msg, rinfo) => {
+            const s = udp.createSocket({ type: "udp6" }, (msg, rinfo) => {
                 console.log(`${msg}`);
                 console.log(rinfo);
                 s.send(msg, rinfo.port, rinfo.address);
@@ -56,7 +52,7 @@ async function main() {
             console.log(s.address());
         } else {
 
-            const s = createSocket({ type: "udp6" }, (msg, rinfo) => {
+            const s = udp.createSocket({ type: "udp6" }, (msg, rinfo) => {
                 console.log(`${msg}`);
                 console.log(rinfo);
             });

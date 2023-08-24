@@ -1,4 +1,4 @@
-import { zts } from "./zts";
+import { zts } from "./module/zts";
 
 export function init(path: string) {
     zts.init_from_storage(path);
@@ -8,7 +8,7 @@ export function init(path: string) {
 }
 
 
-export * from "./zts";
-export * from "./Socket";
-export * from "./Server";
-export * as udp from "./UDPSocket";
+export * from "./module/zts";
+export * from "./module/Socket";
+export * from "./module/Server";
+export * as udp from "./module/UDPSocket";

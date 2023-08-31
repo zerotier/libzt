@@ -4,7 +4,6 @@
 
 ```bash
 cd src/bindings/nodejs
-npm run link
 npm ci            (rerun after changes to native code)
 npm run build     (rerun after changes to typescript)
 npm test (TODO)

@@ -164,6 +164,16 @@ if (ZTS_ENABLE_JAVA)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZTS_ENABLE_JAVA=1")
 endif()
 
+# nodejs language bindings
+if (ZTS_ENABLE_NODEJS)
+    set(BUILD_STATIC_LIB        TRUE)
+    set(BUILD_SHARED_LIB       FALSE)
+    set(BUILD_HOST_EXAMPLES    FALSE)
+    set(ALLOW_INSTALL_TARGET   FALSE)
+    set(BUILD_HOST_SELFTEST    FALSE)
+
+endif()
+
 # All native targets for this host
 if(BUILD_HOST)
     set(BUILD_STATIC_LIB        TRUE)
@@ -786,4 +796,35 @@ if (ALLOW_INSTALL_TARGET)
         TARGETS ${DYNAMIC_LIB_NAME}
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
+endif()
+
+
+
+# ------------------------------------------------------------------------------
+# |                                  NODEJS                                    |
+# ------------------------------------------------------------------------------
+
+# nodejs language bindings
+if (ZTS_ENABLE_NODEJS)
+
+    add_definitions(-DNAPI_VERSION=6)
+
+    include_directories(${CMAKE_JS_INC})
+
+    file(GLOB SOURCE_FILES "${NODEJS_DIR}/src/native/binding.cc")
+
+    add_library(nodezt SHARED ${SOURCE_FILES} ${CMAKE_JS_SRC})
+    set_target_properties(nodezt PROPERTIES PREFIX "" SUFFIX ".node")
+    target_link_libraries(nodezt ${CMAKE_JS_LIB})
+
+    target_link_libraries(nodezt ${STATIC_LIB_NAME})
+
+    if(MSVC AND CMAKE_JS_NODELIB_DEF AND CMAKE_JS_NODELIB_TARGET)
+        # Generate node.lib
+        execute_process(COMMAND ${CMAKE_AR} /def:${CMAKE_JS_NODELIB_DEF} /out:${CMAKE_JS_NODELIB_TARGET} ${CMAKE_STATIC_LINKER_FLAGS})
+    endif()
+
+    # Include N-API wrappers
+    target_include_directories(nodezt PRIVATE "${NODEJS_DIR}/node_modules/node-addon-api")
+
 endif()

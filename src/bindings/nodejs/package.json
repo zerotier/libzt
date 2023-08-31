@@ -5,7 +5,6 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "link": "ln -sf ../../.. libzt-root",
     "install": "cmake-js compile -p 12",
     "build": "rimraf dist && tsc"
   },

@@ -39,7 +39,7 @@ interface ZTS {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-export const zts = require("../../build/Release/zts.node") as ZTS;
+export const zts = require("../../build/Release/nodezt.node") as ZTS;
 
 export enum errors {
     /** No ZtsError */

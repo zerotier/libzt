@@ -350,6 +350,8 @@ host()
     mkdir -p $BIN_OUTPUT_DIR
     $CMAKE $VARIANT -H. -B$CACHE_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
     $CMAKE --build $CACHE_DIR $BUILD_CONCURRENCY
+    rm -f $BUILD_OUTPUT_DIR/native
+    ln -s $TARGET_BUILD_DIR $BUILD_OUTPUT_DIR/native
     cp -f $CACHE_DIR/lib/libzt.* $LIB_OUTPUT_DIR
     cp -f $CACHE_DIR/bin/* $BIN_OUTPUT_DIR
     echo -e "\n - Build cache  : $CACHE_DIR\n - Build output : $BUILD_OUTPUT_DIR\n"
@@ -520,7 +522,7 @@ host-jar()
     cp -f $CACHE_DIR/lib/libzt.* $JAVA_JAR_DIR
     cd $JAVA_JAR_DIR
     export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
-    javac -Xlint:deprecation com/zerotier/sockets/*.java
+    javac -Xlint:all com/zerotier/sockets/*.java
 
     jar cf libzt-$PKG_VERSION.jar $SHARED_LIB_NAME com/zerotier/sockets/*.class
     rm -rf com $SHARED_LIB_NAME
@@ -601,7 +603,7 @@ android-aar()
     CMAKE_FLAGS="-D${CMAKE_SWITCH}=1 -D${CMAKE_SWITCH}=ON"
     cd $ANDROID_PKG_PROJ_DIR
     ./gradlew $GRADLE_ARGS assemble$UPPERCASE_BUILD_TYPE # assembleRelease / assembleDebug
-    cp $ANDROID_PKG_PROJ_DIR/app/build/outputs/aar/*.aar \
+    cp $ANDROID_PKG_PROJ_DIR/app/build/outputs/aar/libzt-$BUILD_TYPE.aar \
         $PKG_OUTPUT_DIR/libzt-$BUILD_TYPE.aar
     cd -
     echo -e "\n - Build cache  : $CACHE_DIR\n - Build output : $BUILD_OUTPUT_DIR\n"

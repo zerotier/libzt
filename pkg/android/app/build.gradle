@@ -46,6 +46,12 @@ android {
             }
         }
     }
+
+    android.libraryVariants.all { variant ->
+        variant.outputs.all { file ->
+            file.outputFileName = "libzt-${variant.buildType.name}.aar"
+        }
+    }
 }
 
 dependencies {

@@ -75,7 +75,7 @@ int main(int argc, char** argv)
     // Can also use traditional: zts_bsd_socket(), zts_bsd_bind(), zts_bsd_listen(), zts_bsd_accept(), etc.
 
     char remote_addr[ZTS_INET6_ADDRSTRLEN] = { 0 };
-    int remote_port = 0;
+    unsigned short remote_port = 0;
     int len = ZTS_INET6_ADDRSTRLEN;
     if ((accfd = zts_tcp_server(local_addr, local_port, remote_addr, len, &remote_port)) < 0) {
         printf("Error (fd=%d, zts_errno=%d). Exiting.\n", accfd, zts_errno);

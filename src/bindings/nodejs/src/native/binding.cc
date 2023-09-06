@@ -1,6 +1,7 @@
 #include "ZeroTierSockets.h"
 #include "async.cc"
 #include "asynclambda.h"
+#include "lwip/tcp.h"
 
 #include <napi.h>
 
@@ -406,7 +407,7 @@ Value getpeername(CALLBACKINFO)
     unsigned short port;
 
     int err = zts_getpeername(fd, addr, ZTS_IP_MAX_STR_LEN, &port);
-    CHECK_ERRNO(err, "getsockname")
+    CHECK_ERRNO(err, "getpeername")
 
     auto obj = Object::New(env);
     obj["address"] = String::New(env, addr);
@@ -459,6 +460,24 @@ Value set_send_timeout(CALLBACKINFO)
     VOID;
 }
 
+// TODO destructor frees pcb block?
+class TCP_PCB : public ObjectWrap<TCP_PCB> {
+  public:
+    static Napi::Object Init(Napi::Env env, Napi::Object exports);
+    TCP_PCB(CALLBACKINFO);
+    struct tcp_pcb* pcb;
+};
+
+Napi::Object TCP_PCB::Init(Napi::Env env, Napi::Object exports)
+{
+    Function func = DefineClass(env, "TCP_Socket", {});
+
+    
+
+    return exports;
+}
+
+
 // NAPI initialiser
 
 Object Init(Env env, Object exports)
@@ -506,3 +525,5 @@ Object Init(Env env, Object exports)
 }
 
 NODE_API_MODULE(hello, Init)
+
+

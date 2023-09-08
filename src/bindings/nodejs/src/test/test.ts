@@ -9,18 +9,18 @@ async function main() {
     const port = parseInt(process.argv[4]);
     const host = process.argv[5];
 
-    startNode();
+    console.log("starting node");
+    startNode(undefined, (event)=> console.log(event));
 
+    console.log("waiting for node to come online");
     while (!zts.node_is_online()) {
         await setTimeout(50);
     }
 
-    const nwid = BigInt("0xff0000ffff000000");
+    console.log(zts.node_get_id());
 
+    const nwid = "ff0000ffff000000";
 
-    // 40 node id + 24 net id
-
-    console.log(nwid.toString(16));
     zts.net_join(nwid);
 
     while (!zts.net_transport_is_ready(nwid)) {

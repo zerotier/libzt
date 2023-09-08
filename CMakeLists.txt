@@ -807,13 +807,17 @@ endif()
 # nodejs language bindings
 if (ZTS_ENABLE_NODEJS)
 
-    add_definitions(-DNAPI_VERSION=6)
+    add_definitions(-DNAPI_VERSION=4)
 
     include_directories(${CMAKE_JS_INC})
 
-    file(GLOB SOURCE_FILES "${NODEJS_DIR}/src/native/binding.cc")
+    set(NODEJS_SRC_DIR "${NODEJS_DIR}/src/native")
+    set(NODEJS_SRC_FILES 
+   "${NODEJS_SRC_DIR}/binding.cc"       
+                        )
 
-    add_library(nodezt SHARED ${SOURCE_FILES} ${CMAKE_JS_SRC})
+
+    add_library(nodezt SHARED ${NODEJS_SRC_FILES} ${CMAKE_JS_SRC})
     set_target_properties(nodezt PROPERTIES PREFIX "" SUFFIX ".node")
     target_link_libraries(nodezt ${CMAKE_JS_LIB})
 

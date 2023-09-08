@@ -6,15 +6,15 @@ interface ZTS {
 
     node_start(): void
     node_is_online(): boolean
-    node_get_id(): bigint
+    node_get_id(): string
     node_stop(): void
     node_free(): void
 
-    net_join(nwid: bigint): void
-    net_leave(nwid: bigint): void
-    net_transport_is_ready(nwid: bigint): boolean
+    net_join(nwid: string): void
+    net_leave(nwid: string): void
+    net_transport_is_ready(nwid: string): boolean
 
-    addr_get_str(nwid: bigint, ipv6: boolean): string
+    addr_get_str(nwid: string, ipv6: boolean): string
 
     bsd_socket(family: number, type: number, protocol: number): number
     bsd_close(fd: number): void

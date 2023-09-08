@@ -1,12 +1,11 @@
 #include "ZeroTierSockets.h"
+#include "macros.h"
 
 #include <napi.h>
 
-using namespace Napi;
-
-class BsdRecvWorker : public AsyncWorker {
+class BsdRecvWorker : public Napi::AsyncWorker {
   public:
-    BsdRecvWorker(Function& callback, int fd, size_t n, int flags)
+    BsdRecvWorker(Napi::Function& callback, int fd, size_t n, int flags)
         : AsyncWorker(callback)
         , ret(0)
         , err_no(0)
@@ -33,16 +32,17 @@ class BsdRecvWorker : public AsyncWorker {
 
     void OnOK() override
     {
-        HandleScope scope(Env());
+        HANDLE_SCOPE();
 
-        Callback().Call({ Env().Null(), Buffer<char>::Copy(Env(), data.data(), ret) });
+        Callback().Call({ Env().Null(), Napi::Buffer<char>::Copy(Env(), data.data(), ret) });
     }
 
     void OnError(const Napi::Error& e) override
     {
-        HandleScope scope(Env());
-        e.Set(String::New(Env(), "code"), Number::New(Env(), ret));
-        e.Set(String::New(Env(), "errno"), Number::New(Env(), err_no));
+        HANDLE_SCOPE();
+
+        e.Set(STRING("code"), NUMBER(ret));
+        e.Set(STRING("errno"), NUMBER(err_no));
 
         Callback().Call({ e.Value() });
     }
@@ -57,9 +57,9 @@ class BsdRecvWorker : public AsyncWorker {
     int flags;
 };
 
-class BsdRecvFromWorker : public AsyncWorker {
+class BsdRecvFromWorker : public Napi::AsyncWorker {
   public:
-    BsdRecvFromWorker(Function& callback, int fd, size_t n, int flags)
+    BsdRecvFromWorker(Napi::Function& callback, int fd, size_t n, int flags)
         : AsyncWorker(callback)
         , ret(0)
         , err_no(0)
@@ -87,20 +87,24 @@ class BsdRecvFromWorker : public AsyncWorker {
 
     void OnOK() override
     {
-        HandleScope scope(Env());
+        HANDLE_SCOPE();
 
         char address[ZTS_IP_MAX_STR_LEN];
         unsigned short port;
         zts_util_ntop((struct zts_sockaddr*)&sockaddr, addrlen, address, ZTS_IP_MAX_STR_LEN, &port);
 
-        Callback().Call({ Env().Null(), Buffer<char>::Copy(Env(), data.data(), ret), String::New(Env(), address), Number::New(Env(), port) });
+        Callback().Call({ Env().Null(),
+                          Napi::Buffer<char>::Copy(Env(), data.data(), ret),
+                          STRING(address),
+                          NUMBER(port) });
     }
 
     void OnError(const Napi::Error& e) override
     {
-        HandleScope scope(Env());
-        e.Set(String::New(Env(), "code"), Number::New(Env(), ret));
-        e.Set(String::New(Env(), "errno"), Number::New(Env(), err_no));
+        HANDLE_SCOPE();
+
+        e.Set(STRING("code"), NUMBER(ret));
+        e.Set(STRING("errno"), NUMBER(err_no));
 
         Callback().Call({ e.Value() });
     }

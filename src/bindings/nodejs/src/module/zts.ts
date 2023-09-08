@@ -1,4 +1,12 @@
+
 export interface ZtsError extends Error { code?: number, errno?: number }
+
+declare class UDP {
+    constructor(ipv6: boolean, recvCallback: (data: Buffer, addr: string, port: number)=>void)
+
+    send_to(data: Uint8Array, addr: string, port: number): void
+    bind(addr: string, port: number): void
+}
 
 type ZTS = {
     init_from_storage(path: string): void
@@ -36,10 +44,13 @@ type ZTS = {
     getsockname(fd: number): { port: number, address: string }
     set_recv_timeout(fd: number, seconds: number, microseconds: number): void
     set_send_timeout(fd: number, seconds: number, microseconds: number): void
+
+    UDP: new(ipv6: boolean, recvCallback: (data: Buffer, addr: string, port: number)=>void)=>UDP;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 export const zts = require("../../build/Release/nodezt.node") as ZTS;
+
 
 export enum errors {
     /** No ZtsError */

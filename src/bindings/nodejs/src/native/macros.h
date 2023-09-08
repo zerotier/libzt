@@ -14,11 +14,34 @@
 
 #define EXPORT(F) exports[#F] = Napi::Function::New(env, F);
 
+// CLASS
+
+#define FUNC_REF(NAME) Napi::FunctionReference* NAME = new Napi::FunctionReference();
+
+#define INIT_CLASS(NAME) NAME::Init(env, exports);
+
+#define CLASS(NAME) class NAME : public Napi::ObjectWrap<NAME>
+
+#define CONSTRUCTOR_DECL(NAME) NAME(CALLBACKINFO);
+
+#define CONSTRUCTOR_IMPL(NAME) NAME::NAME(CALLBACKINFO) : Napi::ObjectWrap<NAME>(info)
+
+#define CLASS_INIT_DECL() static Napi::Object Init(Napi::Env env, Napi::Object exports);
+
+#define CLASS_DEFINE(NAME, ...) \
+    DefineClass(env, #NAME, __VA_ARGS__)
+
+#define CLASS_INIT_IMPL(NAME) Napi::Object NAME::Init(Napi::Env env, Napi::Object exports)
+
+#define CLASS_INSTANCE_METHOD(CLASS, NAME) InstanceMethod<&CLASS::NAME>(#NAME, static_cast<napi_property_attributes>(napi_writable | napi_configurable))
+
 // METHOD 
  
 #define CALLBACKINFO const Napi::CallbackInfo& info
 
 #define METHOD(NAME) Napi::Value NAME(CALLBACKINFO)
+
+#define CLASS_METHOD_IMPL(CLASS, NAME) METHOD(CLASS::NAME)
 
 #define HANDLE_SCOPE() \
     Napi::HandleScope scope(Env()); \
@@ -40,6 +63,12 @@
         throw Napi::TypeError::New(env, "Argument at position " #POS "should be a function.");                               \
     }                                                                                                                  \
     auto NAME = info[POS].As<Napi::Function>();
+
+#define ARG_NUMBER(POS, NAME)                                                                                           \
+    if (! info[POS].IsNumber()) {                                                                                      \
+        throw Napi::TypeError::New(env, "Argument at position " #POS "should be a number.");                                 \
+    }                                                                                                                  \
+    auto NAME = info[POS].As<Napi::Number>();
 
 #define ARG_INT32(POS, NAME)                                                                                           \
     if (! info[POS].IsNumber()) {                                                                                      \

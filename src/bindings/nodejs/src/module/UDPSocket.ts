@@ -11,14 +11,13 @@ interface UDPSocketEvents {
     "error": (err: Error) => void
 }
 
-declare interface UDPSocket {
-    on<E extends keyof UDPSocketEvents>(event: E, listener: UDPSocketEvents[E]): this
-    once<E extends keyof UDPSocketEvents>(event: E, listener: UDPSocketEvents[E]): this
-    emit<E extends keyof UDPSocketEvents>(event: E, ...args: Parameters<UDPSocketEvents[E]>): boolean
-}
 
+/**
+ * @fires close
+ */
 class UDPSocket extends EventEmitter {
     private fd: number;
+    
     private ipv6;
     private bound = false;
     private connection: { connected: false } | { connected: true, address: string, port: number } = { connected: false };

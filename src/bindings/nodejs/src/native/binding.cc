@@ -1,7 +1,9 @@
 #include "ZeroTierSockets.h"
 #include "async.cc"
 #include "asynclambda.h"
-#include "lwip/tcp.h"
+#include "tcp.cc"
+#include "udp.cc"
+
 #include "macros.h"
 
 #include <napi.h>
@@ -50,6 +52,9 @@ void event_handler(void* msgPtr)
     event_callback.Release();
 }
 
+/**
+ * @param cb { (event: number) => void } Callback that is called for every event.
+ */
 METHOD(init_set_event_handler)
 {
     NB_ARGS(1)
@@ -411,20 +416,13 @@ METHOD(set_send_timeout)
     return VOID;
 }
 
-// TODO destructor frees pcb block?
-class TCP_PCB : public Napi::ObjectWrap<TCP_PCB> {
-  public:
-    static Napi::Object Init(Napi::Env env, Napi::Object exports);
-    TCP_PCB(CALLBACKINFO);
-    struct tcp_pcb* pcb;
-};
-
-Napi::Object TCP_PCB::Init(Napi::Env env, Napi::Object exports)
+METHOD(create_class)
 {
-    Napi::Function func = DefineClass(env, "TCP_Socket", {});
+    NB_ARGS(0);
 
-    return exports;
+    return TCP::constructor->New({});
 }
+
 
 // NAPI initialiser
 
@@ -468,4 +466,9 @@ INIT_ADDON(zts)
     EXPORT(getsockname)
     EXPORT(set_recv_timeout)
     EXPORT(set_send_timeout)
+
+    EXPORT(create_class)
+    INIT_CLASS(TCP::Socket)
+
+    INIT_CLASS(UDP::Socket)
 }

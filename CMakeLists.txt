@@ -813,9 +813,9 @@ if (ZTS_ENABLE_NODEJS)
 
     set(NODEJS_SRC_DIR "${NODEJS_DIR}/src/native")
     set(NODEJS_SRC_FILES 
-#    "${NODEJS_SRC_DIR}/binding.cc"                    
-    "${NODEJS_SRC_DIR}/binding.cpp"
-    "${NODEJS_SRC_DIR}/impl.cpp"
+   "${NODEJS_SRC_DIR}/binding.cc"                    
+    # "${NODEJS_SRC_DIR}/binding.cpp"
+    # "${NODEJS_SRC_DIR}/impl.cpp"
                         )
 
 

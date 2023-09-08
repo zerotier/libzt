@@ -2,197 +2,147 @@
 #include "async.cc"
 #include "asynclambda.h"
 #include "lwip/tcp.h"
+#include "macros.h"
 
 #include <napi.h>
 
-using namespace Napi;
-
-#define CALLBACKINFO const CallbackInfo& info
-
-#define VOID return env.Undefined();
-
-#define NO_ARGS() Env env = info.Env();
-
-#define NB_ARGS(N)                                                                                                     \
-    Env env = info.Env();                                                                                              \
-    if (info.Length() < N) {                                                                                           \
-        TypeError::New(env, "Wrong number of arguments. Expected: " #N).ThrowAsJavaScriptException();                  \
-        VOID;                                                                                                          \
-    }
-
-#define ARG_FUNC(POS, NAME)                                                                                            \
-    if (! info[POS].IsFunction()) {                                                                                    \
-        TypeError::New(env, "Argument at position " #POS "should be a function.").ThrowAsJavaScriptException();        \
-        VOID;                                                                                                          \
-    }                                                                                                                  \
-    auto NAME = info[POS].As<Function>();
-
-#define ARG_INT32(POS, NAME)                                                                                           \
-    if (! info[POS].IsNumber()) {                                                                                      \
-        TypeError::New(env, "Argument at position " #POS "should be a number.").ThrowAsJavaScriptException();          \
-        VOID;                                                                                                          \
-    }                                                                                                                  \
-    auto NAME = info[POS].As<Number>().Int32Value();
-
-#define ARG_STRING(POS, NAME)  auto NAME = std::string(info[POS].ToString());
-#define ARG_BOOLEAN(POS, NAME) auto NAME = info[POS].ToBoolean();
-
-#define ARG_UINT64(POS, NAME)                                                                                          \
-    if (! info[POS].IsBigInt()) {                                                                                      \
-        TypeError::New(env, "Argument at position " #POS "should be a BigInt.").ThrowAsJavaScriptException();          \
-        VOID;                                                                                                          \
-    }                                                                                                                  \
-    bool lossless;                                                                                                     \
-    auto NAME = info[POS].As<BigInt>().Uint64Value(&lossless);
-
-#define ARG_UINT8ARRAY(POS, NAME)                                                                                      \
-    if (! info[POS].IsTypedArray()) {                                                                                  \
-        TypeError::New(env, "Argument at position " #POS "should be a Uint8Array.").ThrowAsJavaScriptException();      \
-        VOID;                                                                                                          \
-    }                                                                                                                  \
-    auto NAME = info[POS].As<Uint8Array>();
-
-#define EXPORT(F) exports[#F] = Function::New(env, F);
-
-#define CHECK(ERR, FUN)                                                                                                \
+#define ERROR(ERR, FUN)                                                                                                \
     if (ERR < 0) {                                                                                                     \
-        auto error = Error::New(env, "Error during " FUN " call");                                                     \
-        error.Set(String::New(env, "code"), Number::New(env, ERR));                                                    \
-        error.ThrowAsJavaScriptException();                                                                            \
-        VOID;                                                                                                          \
+        auto error = Napi::Error::New(info.Env(), "Error during " FUN " call");                                        \
+        error.Set(STRING("code"), NUMBER(ERR));                                                                        \
+        throw error;                                                                                                   \
     }
 
 #define CHECK_ERRNO(ERR, FUN)                                                                                          \
     if (ERR < 0) {                                                                                                     \
-        auto error = Error::New(env, "Error during " FUN " call");                                                     \
-        error.Set(String::New(env, "code"), Number::New(env, ERR));                                                    \
-        error.Set(String::New(env, "errno"), Number::New(env, zts_errno));                                             \
-        error.ThrowAsJavaScriptException();                                                                            \
-        VOID;                                                                                                          \
+        auto error = Napi::Error::New(info.Env(), "Error during " FUN " call");                                        \
+        error.Set(STRING("code"), NUMBER(ERR));                                                                        \
+        error.Set(STRING("errno"), NUMBER(zts_errno));                                                                 \
+        throw error;                                                                                                   \
     }
 
 // ### init ###
 
-Value init_from_storage(CALLBACKINFO)
+METHOD(init_from_storage)
 {
     NB_ARGS(1)
     ARG_STRING(0, configPath)
 
     int err = zts_init_from_storage(std::string(configPath).c_str());
-    CHECK(err, "init_from_storage")
+    ERROR(err, "init_from_storage")
 
-    VOID;
+    return VOID;
 }
 
-ThreadSafeFunction event_callback;
+Napi::ThreadSafeFunction event_callback;
 
 void event_handler(void* msgPtr)
 {
     event_callback.Acquire();
 
     zts_event_msg_t* msg = (zts_event_msg_t*)msgPtr;
-    double event = msg->event_code;
-    auto cb = [=](Env env, Function jsCallback) { jsCallback.Call({ Number::New(env, event) }); };
+    int event = msg->event_code;
+    auto cb = [=](Napi::Env env, Napi::Function jsCallback) { jsCallback.Call({ NUMBER(event) }); };
 
     event_callback.NonBlockingCall(cb);
 
     event_callback.Release();
 }
 
-Value init_set_event_handler(CALLBACKINFO)
+METHOD(init_set_event_handler)
 {
     NB_ARGS(1)
     ARG_FUNC(0, cb)
 
-    event_callback = ThreadSafeFunction::New(env, cb, "zts_event_listener", 0, 1);
+    event_callback = Napi::ThreadSafeFunction::New(env, cb, "zts_event_listener", 0, 1);
 
     int err = zts_init_set_event_handler(&event_handler);
-    CHECK(err, "init_set_event_handler")
+    ERROR(err, "init_set_event_handler")
 
-    VOID;
+    return VOID;
 }
 
 // ### node ###
 
-Value node_start(CALLBACKINFO)
+METHOD(node_start)
 {
     NO_ARGS()
 
     int err = zts_node_start();
-    CHECK(err, "node_start")
+    ERROR(err, "node_start")
 
-    VOID;
+    return VOID;
 }
 
-Value node_is_online(CALLBACKINFO)
+METHOD(node_is_online)
 {
-    return Boolean::New(info.Env(), zts_node_is_online());
+    return BOOL(zts_node_is_online());
 }
 
-Value node_get_id(CALLBACKINFO)
+METHOD(node_get_id)
 {
     NO_ARGS()
 
     auto id = zts_node_get_id();
 
-    return BigInt::New(env, id);
+    return BIGINT(id);
 }
 
-Value node_stop(CALLBACKINFO)
+METHOD(node_stop)
 {
     NO_ARGS()
 
     int err = zts_node_stop();
-    CHECK(err, "node_stop")
+    ERROR(err, "node_stop")
 
-    VOID;
+    return VOID;
 }
 
-Value node_free(CALLBACKINFO)
+METHOD(node_free)
 {
     NO_ARGS()
 
     int err = zts_node_free();
-    CHECK(err, "node_free")
+    ERROR(err, "node_free")
 
-    VOID;
+    return VOID;
 }
 
 // ### net ###
 
-Value net_join(CALLBACKINFO)
+METHOD(net_join)
 {
     NB_ARGS(1)
     ARG_UINT64(0, net_id)
 
     int err = zts_net_join(net_id);
-    CHECK(err, "net_join")
+    ERROR(err, "net_join")
 
-    VOID;
+    return VOID;
 }
 
-Value net_leave(CALLBACKINFO)
+METHOD(net_leave)
 {
     NB_ARGS(1)
     ARG_UINT64(0, net_id)
 
     int err = zts_net_leave(net_id);
-    CHECK(err, "net_leave")
+    ERROR(err, "net_leave")
 
-    VOID;
+    return VOID;
 }
 
-Value net_transport_is_ready(CALLBACKINFO)
+METHOD(net_transport_is_ready)
 {
     NB_ARGS(1)
     ARG_UINT64(0, net_id)
 
-    return Boolean::New(env, zts_net_transport_is_ready(net_id));
+    return BOOL(zts_net_transport_is_ready(net_id));
 }
 
 // ### addr ###
 
-Value addr_get_str(CALLBACKINFO)
+METHOD(addr_get_str)
 {
     NB_ARGS(2)
     ARG_UINT64(0, net_id)
@@ -203,14 +153,14 @@ Value addr_get_str(CALLBACKINFO)
     char addr[ZTS_IP_MAX_STR_LEN];
 
     int err = zts_addr_get_str(net_id, family, addr, ZTS_IP_MAX_STR_LEN);
-    CHECK(err, "addr_get_str")
+    ERROR(err, "addr_get_str")
 
-    return String::New(env, addr);
+    return STRING(addr);
 }
 
 // ### bsd ###
 
-Value bsd_socket(CALLBACKINFO)
+METHOD(bsd_socket)
 {
     NB_ARGS(3)
     ARG_INT32(0, family)
@@ -220,10 +170,10 @@ Value bsd_socket(CALLBACKINFO)
     int fd = zts_bsd_socket(family, type, protocol);
     CHECK_ERRNO(fd, "bsd_socket")
 
-    return Number::New(env, fd);
+    return NUMBER(fd);
 }
 
-Value bsd_close(CALLBACKINFO)
+METHOD(bsd_close)
 {
     NB_ARGS(1)
     ARG_INT32(0, fd)
@@ -231,10 +181,10 @@ Value bsd_close(CALLBACKINFO)
     int err = zts_bsd_close(fd);
     CHECK_ERRNO(err, "bsd_close")
 
-    VOID;
+    return VOID;
 }
 
-Value bsd_send(CALLBACKINFO)
+METHOD(bsd_send)
 {
     NB_ARGS(4)
     ARG_INT32(0, fd)
@@ -251,10 +201,10 @@ Value bsd_send(CALLBACKINFO)
     auto worker = new AsyncLambda(cb, "bsd_send", execute, on_destroy);
     worker->Queue();
 
-    VOID;
+    return VOID;
 }
 
-Value bsd_recv(CALLBACKINFO)
+METHOD(bsd_recv)
 {
     NB_ARGS(4)
     ARG_INT32(0, fd)
@@ -265,10 +215,10 @@ Value bsd_recv(CALLBACKINFO)
     auto worker = new BsdRecvWorker(cb, fd, n, flags);
     worker->Queue();
 
-    VOID;
+    return VOID;
 }
 
-Value bsd_sendto(CALLBACKINFO)
+METHOD(bsd_sendto)
 {
     NB_ARGS(4)
     ARG_INT32(0, fd)
@@ -293,10 +243,10 @@ Value bsd_sendto(CALLBACKINFO)
     auto worker = new AsyncLambda(cb, "bsd_send", execute, on_destroy);
     worker->Queue();
 
-    VOID;
+    return VOID;
 }
 
-Value bsd_recvfrom(CALLBACKINFO)
+METHOD(bsd_recvfrom)
 {
     NB_ARGS(4)
     ARG_INT32(0, fd)
@@ -307,12 +257,12 @@ Value bsd_recvfrom(CALLBACKINFO)
     auto worker = new BsdRecvFromWorker(cb, fd, n, flags);
     worker->Queue();
 
-    VOID;
+    return VOID;
 }
 
 // ### no namespace socket stuff
 
-Value bind(CALLBACKINFO)
+METHOD(bind)
 {
     NB_ARGS(3)
     ARG_INT32(0, fd)
@@ -322,10 +272,10 @@ Value bind(CALLBACKINFO)
     int err = zts_bind(fd, std::string(ipstr).c_str(), port);
     CHECK_ERRNO(err, "bind")
 
-    VOID;
+    return VOID;
 }
 
-Value listen(CALLBACKINFO)
+METHOD(listen)
 {
     NB_ARGS(2)
     ARG_INT32(0, fd)
@@ -334,10 +284,10 @@ Value listen(CALLBACKINFO)
     int err = zts_listen(fd, backlog);
     CHECK_ERRNO(err, "listen")
 
-    VOID;
+    return VOID;
 }
 
-Value accept(CALLBACKINFO)
+METHOD(accept)
 {
     NB_ARGS(2)
     ARG_INT32(0, fd)
@@ -354,10 +304,10 @@ Value accept(CALLBACKINFO)
         []() {});
     worker->Queue();
 
-    VOID;
+    return VOID;
 }
 
-Value connect(CALLBACKINFO)
+METHOD(connect)
 {
     NB_ARGS(5)
     ARG_INT32(0, fd)
@@ -373,10 +323,10 @@ Value connect(CALLBACKINFO)
         []() {});
     worker->Queue();
 
-    VOID;
+    return VOID;
 }
 
-Value shutdown_rd(CALLBACKINFO)
+METHOD(shutdown_rd)
 {
     NB_ARGS(1)
     ARG_INT32(0, fd)
@@ -384,10 +334,10 @@ Value shutdown_rd(CALLBACKINFO)
     int err = zts_shutdown_rd(fd);
     CHECK_ERRNO(err, "shutdown_rd")
 
-    VOID;
+    return VOID;
 }
 
-Value shutdown_wr(CALLBACKINFO)
+METHOD(shutdown_wr)
 {
     NB_ARGS(1)
     ARG_INT32(0, fd)
@@ -395,10 +345,10 @@ Value shutdown_wr(CALLBACKINFO)
     int err = zts_shutdown_wr(fd);
     CHECK_ERRNO(err, "shutdown_wr")
 
-    VOID;
+    return VOID;
 }
 
-Value getpeername(CALLBACKINFO)
+METHOD(getpeername)
 {
     NB_ARGS(1)
     ARG_INT32(0, fd)
@@ -409,14 +359,10 @@ Value getpeername(CALLBACKINFO)
     int err = zts_getpeername(fd, addr, ZTS_IP_MAX_STR_LEN, &port);
     CHECK_ERRNO(err, "getpeername")
 
-    auto obj = Object::New(env);
-    obj["address"] = String::New(env, addr);
-    obj["port"] = Number::New(env, port);
-
-    return obj;
+    return OBJECT(ADD_FIELD(address, STRING(addr)) ADD_FIELD(port, NUMBER(port)));
 }
 
-Value getsockname(CALLBACKINFO)
+METHOD(getsockname)
 {
     NB_ARGS(1)
     ARG_INT32(0, fd)
@@ -427,14 +373,13 @@ Value getsockname(CALLBACKINFO)
     int err = zts_getsockname(fd, addr, ZTS_IP_MAX_STR_LEN, &port);
     CHECK_ERRNO(err, "getsockname")
 
-    auto obj = Object::New(env);
-    obj["address"] = String::New(env, addr);
-    obj["port"] = Number::New(env, port);
-
-    return obj;
+    return OBJECT(
+        ADD_FIELD(address, STRING(addr));
+        ADD_FIELD(port, NUMBER(port))
+    );
 }
 
-Value set_recv_timeout(CALLBACKINFO)
+METHOD(set_recv_timeout)
 {
     NB_ARGS(3)
     ARG_INT32(0, fd)
@@ -444,10 +389,10 @@ Value set_recv_timeout(CALLBACKINFO)
     int err = zts_set_recv_timeout(fd, seconds, microseconds);
     CHECK_ERRNO(err, "set_recv_timeout")
 
-    VOID;
+    return VOID;
 }
 
-Value set_send_timeout(CALLBACKINFO)
+METHOD(set_send_timeout)
 {
     NB_ARGS(3)
     ARG_INT32(0, fd)
@@ -457,11 +402,11 @@ Value set_send_timeout(CALLBACKINFO)
     int err = zts_set_send_timeout(fd, seconds, microseconds);
     CHECK_ERRNO(err, "set_recv_timeout")
 
-    VOID;
+    return VOID;
 }
 
 // TODO destructor frees pcb block?
-class TCP_PCB : public ObjectWrap<TCP_PCB> {
+class TCP_PCB : public Napi::ObjectWrap<TCP_PCB> {
   public:
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
     TCP_PCB(CALLBACKINFO);
@@ -470,17 +415,14 @@ class TCP_PCB : public ObjectWrap<TCP_PCB> {
 
 Napi::Object TCP_PCB::Init(Napi::Env env, Napi::Object exports)
 {
-    Function func = DefineClass(env, "TCP_Socket", {});
-
-    
+    Napi::Function func = DefineClass(env, "TCP_Socket", {});
 
     return exports;
 }
 
-
 // NAPI initialiser
 
-Object Init(Env env, Object exports)
+Napi::Object Init(Napi::Env env, Napi::Object exports)
 {
     // init
     EXPORT(init_from_storage)
@@ -524,6 +466,4 @@ Object Init(Env env, Object exports)
     return exports;
 }
 
-NODE_API_MODULE(hello, Init)
-
-
+NODE_API_MODULE(zts, Init)

@@ -1,15 +1,15 @@
 #include "ZeroTierSockets.h"
 
 #include <napi.h>
+#include "macros.h"
 
-using namespace Napi;
 
 /**
  * Runs lambda asynchronously, calls callback with (null, lambda return value) or (error)
  */
-class AsyncLambda : public AsyncWorker {
+class AsyncLambda : public Napi::AsyncWorker {
   public:
-    AsyncLambda(Function& callback, std::string name, std::function<int()> lambda, std::function<void()> on_destroy)
+    AsyncLambda(Napi::Function& callback, std::string name, std::function<int()> lambda, std::function<void()> on_destroy)
         : AsyncWorker(callback)
         , ret(0)
         , err_no(0)
@@ -37,16 +37,17 @@ class AsyncLambda : public AsyncWorker {
 
     void OnOK() override
     {
-        HandleScope scope(Env());
+        HANDLE_SCOPE();
 
-        Callback().Call({ Env().Null(), Number::New(Env(), ret) });
+        Callback().Call({ Env().Null(), NUMBER(ret) });
     }
 
     void OnError(const Napi::Error& e) override
     {
-        HandleScope scope(Env());
-        e.Set(String::New(Env(), "code"), Number::New(Env(), ret));
-        e.Set(String::New(Env(), "errno"), Number::New(Env(), err_no));
+        HANDLE_SCOPE();
+        
+        e.Set(STRING("code"), NUMBER(ret));
+        e.Set(STRING("errno"), NUMBER(err_no));
 
         Callback().Call({ e.Value() });
     }

@@ -17,12 +17,10 @@ async function main() {
         await setTimeout(50);
     }
 
-    const nwid = BigInt("0xff0000ffff000000");
+    console.log(zts.node_get_id());
 
+    const nwid = "ff0000ffff000000";
 
-    // 40 node id + 24 net id
-
-    console.log(nwid.toString(16));
     zts.net_join(nwid);
 
     while (!zts.net_transport_is_ready(nwid)) {

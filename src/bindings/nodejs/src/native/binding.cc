@@ -5,6 +5,7 @@
 #include "macros.h"
 
 #include <napi.h>
+#include <sstream>
 
 #define ERROR(ERR, FUN)                                                                                                \
     if (ERR < 0) {                                                                                                     \
@@ -85,7 +86,10 @@ METHOD(node_get_id)
 
     auto id = zts_node_get_id();
 
-    return BIGINT(id);
+    std::ostringstream ss;
+    ss << std::hex << id;
+
+    return STRING(ss.str());
 }
 
 METHOD(node_stop)
@@ -110,12 +114,17 @@ METHOD(node_free)
 
 // ### net ###
 
+uint64_t convert_net_id(std::string net_id)
+{
+    return std::stoull(net_id, nullptr, 16);
+}
+
 METHOD(net_join)
 {
     NB_ARGS(1)
-    ARG_UINT64(0, net_id)
+    ARG_STRING(0, net_id)
 
-    int err = zts_net_join(net_id);
+    int err = zts_net_join(convert_net_id(net_id));
     ERROR(err, "net_join")
 
     return VOID;
@@ -124,9 +133,9 @@ METHOD(net_join)
 METHOD(net_leave)
 {
     NB_ARGS(1)
-    ARG_UINT64(0, net_id)
+    ARG_STRING(0, net_id)
 
-    int err = zts_net_leave(net_id);
+    int err = zts_net_leave(convert_net_id(net_id));
     ERROR(err, "net_leave")
 
     return VOID;
@@ -135,9 +144,9 @@ METHOD(net_leave)
 METHOD(net_transport_is_ready)
 {
     NB_ARGS(1)
-    ARG_UINT64(0, net_id)
+    ARG_STRING(0, net_id)
 
-    return BOOL(zts_net_transport_is_ready(net_id));
+    return BOOL(zts_net_transport_is_ready(convert_net_id(net_id)));
 }
 
 // ### addr ###
@@ -145,14 +154,14 @@ METHOD(net_transport_is_ready)
 METHOD(addr_get_str)
 {
     NB_ARGS(2)
-    ARG_UINT64(0, net_id)
+    ARG_STRING(0, net_id)
     ARG_BOOLEAN(1, ipv6)
 
     auto family = ipv6 ? ZTS_AF_INET6 : ZTS_AF_INET;
 
     char addr[ZTS_IP_MAX_STR_LEN];
 
-    int err = zts_addr_get_str(net_id, family, addr, ZTS_IP_MAX_STR_LEN);
+    int err = zts_addr_get_str(convert_net_id(net_id), family, addr, ZTS_IP_MAX_STR_LEN);
     ERROR(err, "addr_get_str")
 
     return STRING(addr);
@@ -373,10 +382,7 @@ METHOD(getsockname)
     int err = zts_getsockname(fd, addr, ZTS_IP_MAX_STR_LEN, &port);
     CHECK_ERRNO(err, "getsockname")
 
-    return OBJECT(
-        ADD_FIELD(address, STRING(addr));
-        ADD_FIELD(port, NUMBER(port))
-    );
+    return OBJECT(ADD_FIELD(address, STRING(addr)); ADD_FIELD(port, NUMBER(port)));
 }
 
 METHOD(set_recv_timeout)
@@ -422,7 +428,7 @@ Napi::Object TCP_PCB::Init(Napi::Env env, Napi::Object exports)
 
 // NAPI initialiser
 
-Napi::Object Init(Napi::Env env, Napi::Object exports)
+INIT_ADDON(zts)
 {
     // init
     EXPORT(init_from_storage)
@@ -462,8 +468,4 @@ Napi::Object Init(Napi::Env env, Napi::Object exports)
     EXPORT(getsockname)
     EXPORT(set_recv_timeout)
     EXPORT(set_send_timeout)
-
-    return exports;
 }
-
-NODE_API_MODULE(zts, Init)

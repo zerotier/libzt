@@ -1,6 +1,6 @@
 export interface ZtsError extends Error { code?: number, errno?: number }
 
-interface ZTS {
+type ZTS = {
     init_from_storage(path: string): void
     init_set_event_handler(callback: (event: number) => void): void
 

@@ -1,4 +1,5 @@
 import { setTimeout } from "timers/promises";
+import { setTimeout as cbTimeout } from "timers";
 
 import { startNode, zts , udp as dgram} from "../index";
 
@@ -36,34 +37,45 @@ async function main() {
     
     if (server) {
 
-        const udp = new zts.UDP(true, (data, addr, port) => {
-            console.log(`received: ${data.toString()} from ${addr} at ${port}`);
-        });
-        udp.bind("::1", port);
-    } else {
         // const udp = new zts.UDP(true, (data, addr, port) => {
         //     console.log(`received: ${data.toString()} from ${addr} at ${port}`);
         // });
-        // for(let i = 0; i < 10; i++) {
-        //     udp.send_to(Buffer.from(`hello ${i}`), host, port);
-        // }
+        // udp.bind("::1", port);
+
 
         const s = dgram.createSocket({ type: "udp6" }, (msg, rinfo) => {
             console.log(`${msg}`);
             console.log(rinfo);
-        });
-        s.on("error", (err) => {
-            console.log(err);
+            s.send(msg, rinfo.port, rinfo.address);
         });
         s.bind(port);
         console.log(s.address());
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-            console.log("sending");
-            const msg = Buffer.from("abcdefg");
-            s.send(msg, port, host, () => console.log("sent"));
-            await setTimeout(1000);
+    } else {
+        const udp = new zts.UDP(true, (data, addr, port) => {
+            console.log(`received: ${data.toString()} from ${addr} at ${port}`);
+        });
+        for(let i = 0; i < 10000000; i++) {
+            console.log(`sending ${i}`);
+            udp.send_to(Buffer.from(`hello ${i}`), host, port);
+            await setTimeout(500);
         }
+
+        // const s = dgram.createSocket({ type: "udp6" }, (msg, rinfo) => {
+        //     console.log(`${msg}`);
+        //     console.log(rinfo);
+        // });
+        // s.on("error", (err) => {
+        //     console.log(err);
+        // });
+        // s.bind(port);
+        // console.log(s.address());
+        // // eslint-disable-next-line no-constant-condition
+        // while (true) {
+        //     console.log("sending");
+        //     const msg = Buffer.from("abcdefg");
+        //     s.send(msg, port, host, () => console.log("sent"));
+        //     await setTimeout(1000);
+        // }
     }
 }
 

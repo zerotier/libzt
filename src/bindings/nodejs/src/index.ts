@@ -16,4 +16,4 @@ export function startNode(path?: string, eventHandler?: (event: number)=>void) {
 export * from "./module/zts";
 export * from "./module/Socket";
 export * from "./module/Server";
-export * as udp from "./module/UDPSocket";
+export * as dgram from "./module/dgram";

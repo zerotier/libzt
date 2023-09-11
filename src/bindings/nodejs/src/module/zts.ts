@@ -6,6 +6,9 @@ declare class UDP {
 
     send_to(data: Uint8Array, addr: string, port: number): void
     bind(addr: string, port: number): void
+
+    address(): { port: number, address: string }
+    close(): void
 }
 
 type ZTS = {

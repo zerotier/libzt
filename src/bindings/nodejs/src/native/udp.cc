@@ -19,9 +19,8 @@ CLASS(Socket)
 
     ~Socket()
     {
-        tcpip_callback((tcpip_callback_fn)udp_remove, pcb);
-        // udp_remove(pcb);
-        recv_cb->Release();
+        // if(pcb) tcpip_callback((tcpip_callback_fn)udp_remove, pcb);
+        // recv_cb->Release();
     }
 
   private:
@@ -30,11 +29,18 @@ CLASS(Socket)
     Napi::ThreadSafeFunction* recv_cb = new Napi::ThreadSafeFunction;
     METHOD(send_to);
     METHOD(bind);
+    METHOD(address);
+    METHOD(close);
 };
 
 CLASS_INIT_IMPL(Socket)
 {
-    auto func = CLASS_DEFINE(Socket, { CLASS_INSTANCE_METHOD(Socket, send_to), CLASS_INSTANCE_METHOD(Socket, bind) });
+    auto func = CLASS_DEFINE(
+        Socket,
+        { CLASS_INSTANCE_METHOD(Socket, send_to),
+          CLASS_INSTANCE_METHOD(Socket, bind),
+          CLASS_INSTANCE_METHOD(Socket, address) ,
+          CLASS_INSTANCE_METHOD(Socket, close) });
 
     *constructor = Napi::Persistent(func);
 
@@ -60,8 +66,9 @@ void lwip_recv_cb(void* arg, struct udp_pcb* pcb, struct pbuf* p, const ip_addr_
     auto cb = [](Napi::Env env, Napi::Function jsCallback, recv_data* rd) {
         auto p = rd->p;
 
-        auto data =
-            Napi::Buffer<char>::NewOrCopy(env, (char*)p->payload, p->len, [p](Napi::Env env, char* data) { pbuf_free(p); });
+        auto data = Napi::Buffer<char>::NewOrCopy(env, (char*)p->payload, p->len, [p](Napi::Env env, char* data) {
+            pbuf_free(p);
+        });
 
         auto addr = STRING(rd->addr);
         auto port = NUMBER(rd->port);
@@ -94,7 +101,10 @@ CONSTRUCTOR_IMPL(Socket)
     cd->ipv6 = ipv6;
     cd->recv_cb = recv_cb;
 
-    *recv_cb = Napi::ThreadSafeFunction::New(env, recvCallback, "recvCallback", 0, 1);
+    *recv_cb = Napi::ThreadSafeFunction::New(env, recvCallback, "recvCallback", 0, 1,
+    [](Napi::Env env) {
+        env.RunScript(STRING("console.log('closing tsfn')"));
+    });
 
     tcpip_callback(
         [](void* ctx) {
@@ -189,6 +199,28 @@ CLASS_METHOD_IMPL(Socket, bind)
     //     e.Set(STRING("code"), NUMBER(err));
     //     throw e;
     // }
+
+    return VOID;
+}
+
+CLASS_METHOD_IMPL(Socket, address) {
+    NO_ARGS();
+
+    char addr[ZTS_IP_MAX_STR_LEN];
+    ipaddr_ntoa_r(&pcb->local_ip, addr, ZTS_IP_MAX_STR_LEN);
+
+    return OBJECT(ADD_FIELD(address, STRING(addr)); ADD_FIELD(port, NUMBER(pcb->local_port)));
+}
+
+CLASS_METHOD_IMPL(Socket, close) {
+    NO_ARGS();
+
+    if(pcb) tcpip_callback([](void* ctx) {
+        udp_remove((udp_pcb*) ctx);
+    }, pcb);
+    pcb = nullptr;
+
+    recv_cb->Release();
 
     return VOID;
 }

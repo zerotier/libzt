@@ -1,6 +1,6 @@
 import { setTimeout } from "timers/promises";
 
-import { startNode, zts, udp as dgram} from "../index";
+import { startNode, zts, dgram } from "../index";
 
 async function main() {
 
@@ -35,48 +35,31 @@ async function main() {
 
     
     if (server) {
-
-        const udp = new zts.UDP(true, (data, addr, port) => {
-            console.log(`received: ${data.length} from ${addr} at ${port}`);
-            udp.send_to(data, addr, port);
-            // process.nextTick(()=>udp.send_to(Buffer.from("Hello back!"), addr, port));
+        const server = dgram.createSocket({type: "udp6"}, (msg, rinfo) => {
+            console.log(`received: ${msg.length} from ${rinfo.address} at ${rinfo.port}`);
+            server.send(Buffer.from(msg.toString().toUpperCase()), rinfo.port, rinfo.address);
+            server.close();
         });
-        udp.bind("::1", port);
-
-
-        // const s = dgram.createSocket({ type: "udp6" }, (msg, rinfo) => {
-        //     console.log(`${msg}`);
-        //     console.log(rinfo);
-        //     s.send(msg, rinfo.port, rinfo.address);
-        // });
-        // s.bind(port);
-        // console.log(s.address());
+        server.bind(port);
+        console.log(server.address());
     } else {
-        const udp = new zts.UDP(true, (data, addr, port) => {
-            console.log(`received: ${data.toString()} from ${addr} at ${port}`);
+
+        const socket = dgram.createSocket({type: "udp6"}, (msg, rinfo) => {
+            console.log(`received: ${rinfo.size} from ${rinfo.address} at ${rinfo.port}`);
         });
-        for(let i = 0; i < 10000000; i++) {
+
+
+        for(let i = 0; i < 20; i++) {
             console.log(`sending ${i}`);
-            udp.send_to(Buffer.from(`hello ${i}`.repeat(20)), host, port);
-            await setTimeout(20);
+            socket.send(Buffer.from(`hello ${i}`.repeat(20)), port, host);
+            await setTimeout(50);
         }
 
-        // const s = dgram.createSocket({ type: "udp6" }, (msg, rinfo) => {
-        //     console.log(`${msg}`);
-        //     console.log(rinfo);
-        // });
-        // s.on("error", (err) => {
-        //     console.log(err);
-        // });
-        // s.bind(port);
-        // console.log(s.address());
-        // // eslint-disable-next-line no-constant-condition
-        // while (true) {
-        //     console.log("sending");
-        //     const msg = Buffer.from("abcdefg");
-        //     s.send(msg, port, host, () => console.log("sent"));
-        //     await setTimeout(1000);
-        // }
+        socket.close();
+
+        console.log("closed?");
+
+        zts.node_free();
     }
 }
 

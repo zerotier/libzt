@@ -104,6 +104,8 @@ METHOD(node_stop)
     int err = zts_node_stop();
     ERROR(err, "node_stop")
 
+    if(event_callback) event_callback.Abort();
+
     return VOID;
 }
 
@@ -113,6 +115,8 @@ METHOD(node_free)
 
     int err = zts_node_free();
     ERROR(err, "node_free")
+
+    if(event_callback) event_callback.Abort();
 
     return VOID;
 }

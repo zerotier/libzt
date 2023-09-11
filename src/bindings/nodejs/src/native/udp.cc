@@ -42,32 +42,33 @@ CLASS_INIT_IMPL(Socket)
     return exports;
 }
 
- 
 void lwip_recv_cb(void* arg, struct udp_pcb* pcb, struct pbuf* p, const ip_addr_t* addr, u16_t port)
 {
     auto threadsafe = (Napi::ThreadSafeFunction*)arg;
 
     struct recv_data {
         pbuf* p;
-        const ip_addr_t* addr;
+        char addr[ZTS_IP_MAX_STR_LEN];
         u16_t port;
     };
     auto rd = new recv_data;
     rd->p = p;
-    rd->addr = addr;
     rd->port = port;
 
+    ipaddr_ntoa_r(addr, rd->addr, ZTS_IP_MAX_STR_LEN);
+
     auto cb = [](Napi::Env env, Napi::Function jsCallback, recv_data* rd) {
-        char address[ZTS_IP_MAX_STR_LEN];
-        
-        ipaddr_ntoa_r(rd->addr, address, ZTS_IP_MAX_STR_LEN);
+        auto p = rd->p;
 
+        auto data =
+            Napi::Buffer<char>::NewOrCopy(env, (char*)p->payload, p->len, [p](Napi::Env env, char* data) { pbuf_free(p); });
 
-        jsCallback.Call({ Napi::Buffer<char>::Copy(env, (const char*)rd->p->payload, rd->p->len),
-                          STRING(address),
-                          NUMBER(rd->port) });
+        auto addr = STRING(rd->addr);
+        auto port = NUMBER(rd->port);
 
-        pbuf_free(rd->p);
+        delete rd;
+
+        jsCallback.Call({ data, addr, port });
     };
     threadsafe->NonBlockingCall(rd, cb);
 }
@@ -106,8 +107,6 @@ CONSTRUCTOR_IMPL(Socket)
             delete cd;
         },
         cd);
-
-    // udp_recv(pcb, lwip_recv_cb, recv_cb);
 }
 
 CLASS_METHOD_IMPL(Socket, send_to)
@@ -117,19 +116,18 @@ CLASS_METHOD_IMPL(Socket, send_to)
     ARG_STRING(1, addr)
     ARG_NUMBER(2, port)
 
-    struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, data.ByteLength(), PBUF_RAM);
-    p->payload = data.Data();
-    p->len = data.ByteLength();
-
     struct send_data {
+        std::vector<uint8_t> data;
         udp_pcb* pcb;
         ip_addr_t ip_addr;
-        pbuf* p;
         u16_t port;
     };
 
     auto sd = new send_data;
-    sd->p = p;
+
+    int size = data.ByteLength();
+    sd->data.insert(sd->data.begin(), data.Data(), data.Data() + size);
+
     sd->pcb = pcb;
     sd->port = port.Int32Value();
 
@@ -139,9 +137,12 @@ CLASS_METHOD_IMPL(Socket, send_to)
         [](void* ctx) {
             auto sd = (send_data*)ctx;
 
-            int err = udp_sendto(sd->pcb, sd->p, &sd->ip_addr, sd->port);
+            struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, sd->data.size(), PBUF_RAM);
+            p->payload = sd->data.data();
 
-            pbuf_free(sd->p);
+            int err = udp_sendto(sd->pcb, p, &sd->ip_addr, sd->port);
+
+            pbuf_free(p);
             delete sd;
         },
         sd);

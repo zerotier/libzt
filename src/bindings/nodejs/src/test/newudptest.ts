@@ -1,7 +1,6 @@
 import { setTimeout } from "timers/promises";
-import { setTimeout as cbTimeout } from "timers";
 
-import { startNode, zts , udp as dgram} from "../index";
+import { startNode, zts, udp as dgram} from "../index";
 
 async function main() {
 
@@ -37,27 +36,29 @@ async function main() {
     
     if (server) {
 
-        // const udp = new zts.UDP(true, (data, addr, port) => {
-        //     console.log(`received: ${data.toString()} from ${addr} at ${port}`);
-        // });
-        // udp.bind("::1", port);
-
-
-        const s = dgram.createSocket({ type: "udp6" }, (msg, rinfo) => {
-            console.log(`${msg}`);
-            console.log(rinfo);
-            s.send(msg, rinfo.port, rinfo.address);
+        const udp = new zts.UDP(true, (data, addr, port) => {
+            console.log(`received: ${data.length} from ${addr} at ${port}`);
+            udp.send_to(data, addr, port);
+            // process.nextTick(()=>udp.send_to(Buffer.from("Hello back!"), addr, port));
         });
-        s.bind(port);
-        console.log(s.address());
+        udp.bind("::1", port);
+
+
+        // const s = dgram.createSocket({ type: "udp6" }, (msg, rinfo) => {
+        //     console.log(`${msg}`);
+        //     console.log(rinfo);
+        //     s.send(msg, rinfo.port, rinfo.address);
+        // });
+        // s.bind(port);
+        // console.log(s.address());
     } else {
         const udp = new zts.UDP(true, (data, addr, port) => {
             console.log(`received: ${data.toString()} from ${addr} at ${port}`);
         });
         for(let i = 0; i < 10000000; i++) {
             console.log(`sending ${i}`);
-            udp.send_to(Buffer.from(`hello ${i}`), host, port);
-            await setTimeout(500);
+            udp.send_to(Buffer.from(`hello ${i}`.repeat(20)), host, port);
+            await setTimeout(20);
         }
 
         // const s = dgram.createSocket({ type: "udp6" }, (msg, rinfo) => {

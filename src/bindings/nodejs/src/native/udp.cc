@@ -26,13 +26,7 @@ CLASS(Socket)
     CLASS_INIT_DECL();
     CONSTRUCTOR_DECL(Socket);
 
-    ~Socket()
-    {
-        // if(pcb) tcpip_callback((tcpip_callback_fn)udp_remove, pcb);
-        // recv_cb->Release();
-    }
-
-    OnRecvTSFN* onRecv = new OnRecvTSFN();
+    OnRecvTSFN onRecv;
 
   private:
     bool ipv6;
@@ -66,7 +60,7 @@ void lwip_recv_cb(void* arg, struct udp_pcb* pcb, struct pbuf* p, const ip_addr_
     recv_data* rd = new recv_data { p : p, port : port };
     ipaddr_ntoa_r(addr, rd->addr, ZTS_IP_MAX_STR_LEN);
 
-    thiz->onRecv->BlockingCall(rd);
+    thiz->onRecv.BlockingCall(rd);
 }
 
 #define FREE_PBUF(PTR) tcpip_callback([](void* p) { pbuf_free((pbuf*)p); }, PTR);
@@ -104,7 +98,7 @@ CONSTRUCTOR_IMPL(Socket)
 
     this->ipv6 = ipv6;
 
-    *onRecv = OnRecvTSFN::New(env, recvCallback, "recvCallback", 0, 1, nullptr);
+    onRecv = OnRecvTSFN::New(env, recvCallback, "recvCallback", 0, 1, nullptr);
 
     tcpip_callback(
         [](void* ctx) {
@@ -130,25 +124,26 @@ CLASS_METHOD_IMPL(Socket, send_to)
 
         u16_t len;
         uint8_t* data;
-        Napi::Reference<Napi::Uint8Array>* dataRef;
 
         udp_pcb* pcb;
         ip_addr_t ip_addr;
         u16_t port;
     };
 
+    auto dataRef = NEW_REF_UINT8ARRAY(data);
+
     auto sd = new send_data {
-        onSent : TSFN_ONCE(callback, "udpOnSent", ),
+        onSent : TSFN_ONCE(
+            callback,
+            "udpOnSent",
+            /* unref data when sending complete */ { delete dataRef; }),
 
         len : data.ByteLength(),
         data : data.Data(),
-        dataRef : new Napi::Reference<Napi::Uint8Array>(),
 
         pcb : pcb,
         port : port.Int32Value()
     };
-
-    *sd->dataRef = Napi::Persistent(data);
 
     ipaddr_aton(addr.c_str(), &sd->ip_addr);
 
@@ -161,10 +156,7 @@ CLASS_METHOD_IMPL(Socket, send_to)
 
             auto err = udp_sendto(sd->pcb, p, &sd->ip_addr, sd->port);
 
-            auto dataRef = sd->dataRef;
-            sd->onSent->BlockingCall([err, dataRef](TSFN_ARGS) {
-                delete dataRef;   // allow data to be garbage collected
-
+            sd->onSent->BlockingCall([err](TSFN_ARGS) {
                 if (err != ERR_OK) {
                     auto error = Napi::Error::New(env, "send error");
                     error.Set("code", NUMBER(err));
@@ -222,8 +214,11 @@ CLASS_METHOD_IMPL(Socket, address)
     char addr[ZTS_IP_MAX_STR_LEN];
     ipaddr_ntoa_r(&pcb->local_ip, addr, ZTS_IP_MAX_STR_LEN);
 
-    return OBJECT(ADD_FIELD(address, STRING(addr)); ADD_FIELD(port, NUMBER(pcb->local_port));
-                  ADD_FIELD(family, IP_IS_V6(&pcb->local_ip) ? STRING("udp6") : STRING("udp4")));
+    return OBJECT({
+        ADD_FIELD("address", STRING(addr));
+        ADD_FIELD("port", NUMBER(pcb->local_port));
+        ADD_FIELD("family", IP_IS_V6(&pcb->local_ip) ? STRING("udp6") : STRING("udp4"))
+    });
 }
 
 CLASS_METHOD_IMPL(Socket, close)
@@ -236,9 +231,7 @@ CLASS_METHOD_IMPL(Socket, close)
             Napi::ThreadSafeFunction* onClose;
             udp_pcb* pcb;
         };
-        auto cd = new close_data { 
-            onClose : TSFN_ONCE(callback, "udpOnClose", this->onRecv->Abort();),
-             pcb : pcb };
+        auto cd = new close_data { onClose : TSFN_ONCE(callback, "udpOnClose", { this->onRecv.Abort(); }), pcb : pcb };
 
         tcpip_callback(
             [](void* ctx) {

@@ -97,13 +97,26 @@
 #define NUMBER(VALUE) Napi::Number::New(env, VALUE)
 
 // use inside of an OBJECT def macro
-#define ADD_FIELD(NAME, VALUE) ret_obj[#NAME] = VALUE;
+#define ADD_FIELD(NAME, VALUE) ret_obj[NAME] = VALUE;
 
-#define OBJECT(...)                                                                                                    \
+#define OBJECT(FIELDS)                                                                                                    \
     [&] {                                                                                                              \
         auto ret_obj = Napi::Object::New(env);                                                                         \
-        __VA_ARGS__                                                                                                    \
+        FIELDS                                                                                                  \
         return ret_obj;                                                                                                \
+    }()
+
+// Reference
+
+/**
+ * Returns pointer to new reference. Has to be manually deleted!
+ */
+#define NEW_REF_UINT8ARRAY(ARRAY)                                                                                      \
+    [&]() {                                                                                                            \
+        \ 
+        auto __ref = new Napi::Reference<Napi::Uint8Array>;                                                            \
+        *__ref = Napi::Persistent(ARRAY);                                                                              \
+        return __ref;                                                                                                  \
     }()
 
 // Threadsafe
@@ -111,17 +124,17 @@
 /**
  * returns pointer to a new threadafe function with the specified callback
  * Memory is automatically freed when the tsfn finalises
- * 
+ *
  * Last argument can contain extra finalising code (copy capture)
-*/
-#define TSFN_ONCE(CALLBACK, NAME, FINALISE)                                                                                      \
+ */
+#define TSFN_ONCE(CALLBACK, NAME, FINALISE)                                                                            \
     [&]() {                                                                                                            \
-        auto __tsfn = new Napi::ThreadSafeFunction;                                                                       \
-        *__tsfn = Napi::ThreadSafeFunction::New(env, CALLBACK, NAME, 0, 1, [=](Napi::Env) { \
-            FINALISE;\
-            delete __tsfn; \ 
-        });              \
-        return __tsfn;                                                                                                    \
+        auto __tsfn = new Napi::ThreadSafeFunction;                                                                    \
+        *__tsfn = Napi::ThreadSafeFunction::New(env, CALLBACK, NAME, 0, 1, [=](Napi::Env) {                            \
+            FINALISE;                                                                                                  \
+            delete __tsfn;                                                                                             \
+        });                                                                                                            \
+        return __tsfn;                                                                                                 \
     }()
 
 #define TSFN_ARGS Napi::Env env, Napi::Function jsCallback

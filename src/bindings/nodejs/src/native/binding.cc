@@ -337,7 +337,10 @@ METHOD(getpeername)
     int err = zts_getpeername(fd, addr, ZTS_IP_MAX_STR_LEN, &port);
     CHECK_ERRNO(err, "getpeername")
 
-    return OBJECT(ADD_FIELD(address, STRING(addr)) ADD_FIELD(port, NUMBER(port)));
+    return OBJECT({
+        ADD_FIELD("address", STRING(addr));
+        ADD_FIELD("port", NUMBER(port));
+    });
 }
 
 METHOD(getsockname)
@@ -351,7 +354,10 @@ METHOD(getsockname)
     int err = zts_getsockname(fd, addr, ZTS_IP_MAX_STR_LEN, &port);
     CHECK_ERRNO(err, "getsockname")
 
-    return OBJECT(ADD_FIELD(address, STRING(addr)); ADD_FIELD(port, NUMBER(port)));
+    return OBJECT({
+        ADD_FIELD("address", STRING(addr));
+        ADD_FIELD("port", NUMBER(port))
+    });
 }
 
 METHOD(set_recv_timeout)

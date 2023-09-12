@@ -1,6 +1,6 @@
 import { setTimeout } from "timers/promises";
 
-import { Server, connect, startNode, zts, udp } from "../index";
+import { Server, connect, startNode, zts, dgram } from "../index";
 
 async function main() {
 
@@ -37,7 +37,7 @@ async function main() {
     if (protocol === "udp") {
         if (server) {
 
-            const s = udp.createSocket({ type: "udp6" }, (msg, rinfo) => {
+            const s = dgram.createSocket({ type: "udp6" }, (msg, rinfo) => {
                 console.log(`${msg}`);
                 console.log(rinfo);
                 s.send(msg, rinfo.port, rinfo.address);
@@ -46,7 +46,7 @@ async function main() {
             console.log(s.address());
         } else {
 
-            const s = udp.createSocket({ type: "udp6" }, (msg, rinfo) => {
+            const s = dgram.createSocket({ type: "udp6" }, (msg, rinfo) => {
                 console.log(`${msg}`);
                 console.log(rinfo);
             });

@@ -1,6 +1,8 @@
 import { setTimeout } from "timers/promises";
 
-import { startNode, zts, dgram } from "../index";
+import { startNode, zts,  dgram} from "../index";
+// import * as dgram from "../module/UDPSocket";
+
 
 async function main() {
 
@@ -36,9 +38,12 @@ async function main() {
     
     if (server) {
         const server = dgram.createSocket({type: "udp6"}, (msg, rinfo) => {
-            console.log(`received: ${msg.length} from ${rinfo.address} at ${rinfo.port}`);
-            server.send(Buffer.from(msg.toString().toUpperCase()), rinfo.port, rinfo.address);
-            server.close();
+            console.log(`received: ${msg.length} from ${rinfo.address} at ${rinfo.port}, rinfo size ${rinfo.size}`);
+            server.send(Buffer.from(msg.toString().toUpperCase()), rinfo.port, rinfo.address, (err)=> {
+                if(err) console.log(err);
+                console.log("sent");
+            });
+
         });
         server.bind(port);
         console.log(server.address());
@@ -48,14 +53,17 @@ async function main() {
             console.log(`received: ${rinfo.size} from ${rinfo.address} at ${rinfo.port}`);
         });
 
-
-        for(let i = 0; i < 20; i++) {
+        for(let i = 0; i < 1000000; i++) {
             console.log(`sending ${i}`);
-            socket.send(Buffer.from(`hello ${i}`.repeat(20)), port, host);
-            await setTimeout(50);
+            
+            socket.send(Buffer.from(`hello ${i}    `.repeat(20)), port, host, (err)=>{
+                console.log("sent");
+                if(err) console.log(err);
+            });
+            await setTimeout(2);
         }
 
-        socket.close();
+        // socket.close();
 
         console.log("closed?");
 

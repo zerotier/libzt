@@ -11,6 +11,15 @@ namespace UDP {
 
 FUNC_REF(constructor);
 
+struct recv_data {
+    pbuf* p;
+    char addr[ZTS_IP_MAX_STR_LEN];
+    u16_t port;
+};
+void tsfnOnRecv(Napi::Env env, Napi::Function jsCallback, nullptr_t* ctx, recv_data* rd);
+
+using OnRecvTSFN = Napi::TypedThreadSafeFunction<nullptr_t, recv_data, tsfnOnRecv>;
+
 CLASS(Socket)
 {
   public:
@@ -23,10 +32,12 @@ CLASS(Socket)
         // recv_cb->Release();
     }
 
+    OnRecvTSFN* onRecv = new OnRecvTSFN();
+
   private:
+    bool ipv6;
     udp_pcb* pcb;
 
-    Napi::ThreadSafeFunction* recv_cb = new Napi::ThreadSafeFunction;
     METHOD(send_to);
     METHOD(bind);
     METHOD(address);
@@ -39,7 +50,7 @@ CLASS_INIT_IMPL(Socket)
         Socket,
         { CLASS_INSTANCE_METHOD(Socket, send_to),
           CLASS_INSTANCE_METHOD(Socket, bind),
-          CLASS_INSTANCE_METHOD(Socket, address) ,
+          CLASS_INSTANCE_METHOD(Socket, address),
           CLASS_INSTANCE_METHOD(Socket, close) });
 
     *constructor = Napi::Persistent(func);
@@ -50,34 +61,40 @@ CLASS_INIT_IMPL(Socket)
 
 void lwip_recv_cb(void* arg, struct udp_pcb* pcb, struct pbuf* p, const ip_addr_t* addr, u16_t port)
 {
-    auto threadsafe = (Napi::ThreadSafeFunction*)arg;
+    auto thiz = (Socket*)arg;
 
-    struct recv_data {
-        pbuf* p;
-        char addr[ZTS_IP_MAX_STR_LEN];
-        u16_t port;
-    };
-    auto rd = new recv_data;
-    rd->p = p;
-    rd->port = port;
-
+    recv_data* rd = new recv_data { p : p, port : port };
     ipaddr_ntoa_r(addr, rd->addr, ZTS_IP_MAX_STR_LEN);
 
-    auto cb = [](Napi::Env env, Napi::Function jsCallback, recv_data* rd) {
-        auto p = rd->p;
+    thiz->onRecv->BlockingCall(rd);
+}
 
-        auto data = Napi::Buffer<char>::NewOrCopy(env, (char*)p->payload, p->len, [p](Napi::Env env, char* data) {
-            pbuf_free(p);
-        });
+#define FREE_PBUF(PTR) tcpip_callback([](void* p){pbuf_free((pbuf*) p);}, PTR);
 
-        auto addr = STRING(rd->addr);
-        auto port = NUMBER(rd->port);
-
+/*
+ * 
+*/
+void tsfnOnRecv(Napi::Env env, Napi::Function jsCallback, nullptr_t* ctx, recv_data* rd)
+{
+    if (env == NULL) {
+        FREE_PBUF(rd->p);
+        // pbuf_free(rd->p);
         delete rd;
 
-        jsCallback.Call({ data, addr, port });
-    };
-    threadsafe->NonBlockingCall(rd, cb);
+        return;
+    }
+    pbuf* p = rd->p;
+
+    auto data =
+        Napi::Buffer<char>::NewOrCopy(env, (char*)p->payload, p->len, [p](Napi::Env env, char* data) { FREE_PBUF(p) });
+        // Napi::Buffer<char>::Copy(env, (char*)p->payload, p->len);
+
+    auto addr = STRING(rd->addr);
+    auto port = NUMBER(rd->port);
+
+    delete rd;
+
+    jsCallback.Call({ data, addr, port });
 }
 
 /**
@@ -90,56 +107,47 @@ CONSTRUCTOR_IMPL(Socket)
     ARG_BOOLEAN(0, ipv6);
     ARG_FUNC(1, recvCallback);
 
-    struct construct_data {
-        udp_pcb** pcb_ptr;
-        bool ipv6;
-        Napi::ThreadSafeFunction* recv_cb;
-    };
+    this->ipv6 = ipv6;
 
-    auto cd = new construct_data;
-    cd->pcb_ptr = &pcb;
-    cd->ipv6 = ipv6;
-    cd->recv_cb = recv_cb;
-
-    *recv_cb = Napi::ThreadSafeFunction::New(env, recvCallback, "recvCallback", 0, 1,
-    [](Napi::Env env) {
-        env.RunScript(STRING("console.log('closing tsfn')"));
-    });
+    *onRecv = OnRecvTSFN::New(env, recvCallback, "recvCallback", 0, 1, nullptr);
 
     tcpip_callback(
         [](void* ctx) {
-            auto cd = (construct_data*)ctx;
+            auto thiz = (Socket*)ctx;
 
-            *cd->pcb_ptr = udp_new_ip_type(cd->ipv6 ? IPADDR_TYPE_V6 : IPADDR_TYPE_V4);
+            thiz->pcb = udp_new_ip_type(thiz->ipv6 ? IPADDR_TYPE_V6 : IPADDR_TYPE_V4);
 
-            udp_recv(*cd->pcb_ptr, lwip_recv_cb, cd->recv_cb);
-
-            delete cd;
+            udp_recv(thiz->pcb, lwip_recv_cb, thiz);
         },
-        cd);
+        this);
 }
 
 CLASS_METHOD_IMPL(Socket, send_to)
 {
-    NB_ARGS(3)
+    NB_ARGS(4)
     ARG_UINT8ARRAY(0, data)
     ARG_STRING(1, addr)
     ARG_NUMBER(2, port)
+    ARG_FUNC(3, callback)
 
     struct send_data {
+        Napi::ThreadSafeFunction* onSent;
         std::vector<uint8_t> data;
         udp_pcb* pcb;
         ip_addr_t ip_addr;
         u16_t port;
     };
 
-    auto sd = new send_data;
+    auto sd = new send_data { 
+        onSent: new Napi::ThreadSafeFunction, 
+        pcb : pcb, port : port.Int32Value() };
+
+    *sd->onSent = Napi::ThreadSafeFunction::New(env, callback, "udpOnSent", 0, 1, [](Napi::Env env, Napi::ThreadSafeFunction* onSent){
+        delete onSent;
+    }, sd->onSent);
 
     int size = data.ByteLength();
     sd->data.insert(sd->data.begin(), data.Data(), data.Data() + size);
-
-    sd->pcb = pcb;
-    sd->port = port.Int32Value();
 
     ipaddr_aton(addr.c_str(), &sd->ip_addr);
 
@@ -150,18 +158,23 @@ CLASS_METHOD_IMPL(Socket, send_to)
             struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, sd->data.size(), PBUF_RAM);
             p->payload = sd->data.data();
 
-            int err = udp_sendto(sd->pcb, p, &sd->ip_addr, sd->port);
+            auto err = udp_sendto(sd->pcb, p, &sd->ip_addr, sd->port);
+
+            sd->onSent->BlockingCall([err](Napi::Env env, Napi::Function jsCallback) {
+                if (err != ERR_OK) {
+                    auto error = Napi::Error::New(env, "send error");
+                    error.Set("code", NUMBER(err));
+                    jsCallback.Call({ error.Value() });
+                }
+                else
+                    jsCallback.Call({});
+            });
+            sd->onSent->Release();
 
             pbuf_free(p);
             delete sd;
         },
         sd);
-
-    // if (err < 0) {
-    //     auto e = Napi::Error::New(env, "Error while sending udp");
-    //     e.Set(STRING("code"), NUMBER(err));
-    //     throw e;
-    // }
 
     return VOID;
 }
@@ -194,16 +207,11 @@ CLASS_METHOD_IMPL(Socket, bind)
         },
         bd);
 
-    // if (err < 0) {
-    //     auto e = Napi::Error::New(env, "Error while binding udp");
-    //     e.Set(STRING("code"), NUMBER(err));
-    //     throw e;
-    // }
-
     return VOID;
 }
 
-CLASS_METHOD_IMPL(Socket, address) {
+CLASS_METHOD_IMPL(Socket, address)
+{
     NO_ARGS();
 
     char addr[ZTS_IP_MAX_STR_LEN];
@@ -212,15 +220,21 @@ CLASS_METHOD_IMPL(Socket, address) {
     return OBJECT(ADD_FIELD(address, STRING(addr)); ADD_FIELD(port, NUMBER(pcb->local_port)));
 }
 
-CLASS_METHOD_IMPL(Socket, close) {
-    NO_ARGS();
+CLASS_METHOD_IMPL(Socket, close)
+{
+    NB_ARGS(1)
+    ARG_FUNC(0, callback)
 
-    if(pcb) tcpip_callback([](void* ctx) {
-        udp_remove((udp_pcb*) ctx);
-    }, pcb);
-    pcb = nullptr;
+    if (pcb) {
+        // struct cd {
 
-    recv_cb->Release();
+        // }
+
+        tcpip_callback([](void* ctx) { udp_remove((udp_pcb*)ctx); }, pcb);
+        pcb = nullptr;
+
+        onRecv->Release();
+    }
 
     return VOID;
 }

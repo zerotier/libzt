@@ -53,12 +53,11 @@ class Socket extends EventEmitter {
         if (!port) return handleError(Error("Connect not implemented"));
         if (!address) address = this.ipv6 ? "::1" : "127.0.0.1";
 
-        this.internal.send_to(msg, address, port);
-        // TODO callback
+        this.internal.send_to(msg, address, port, (callback??(()=>undefined)));
     }
 
     close() {
-        this.internal.close();
+        this.internal.close(()=>undefined);
     }
 }
 

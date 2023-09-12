@@ -1,10 +1,9 @@
 #include "ZeroTierSockets.h"
 #include "async.cc"
 #include "asynclambda.h"
+#include "macros.h"
 #include "tcp.cc"
 #include "udp.cc"
-
-#include "macros.h"
 
 #include <napi.h>
 #include <sstream>
@@ -29,7 +28,7 @@
 METHOD(init_from_storage)
 {
     NB_ARGS(1)
-    ARG_STRING(0, configPath)
+    auto configPath = ARG_STRING(0);
 
     int err = zts_init_from_storage(std::string(configPath).c_str());
     ERROR(err, "init_from_storage")
@@ -45,7 +44,7 @@ void event_handler(void* msgPtr)
 
     zts_event_msg_t* msg = (zts_event_msg_t*)msgPtr;
     int event = msg->event_code;
-    auto cb = [=](Napi::Env env, Napi::Function jsCallback) { jsCallback.Call({ NUMBER(event) }); };
+    auto cb = [=](TSFN_ARGS) { jsCallback.Call({ NUMBER(event) }); };
 
     event_callback.NonBlockingCall(cb);
 
@@ -58,7 +57,7 @@ void event_handler(void* msgPtr)
 METHOD(init_set_event_handler)
 {
     NB_ARGS(1)
-    ARG_FUNC(0, cb)
+    auto cb = ARG_FUNC(0);
 
     event_callback = Napi::ThreadSafeFunction::New(env, cb, "zts_event_listener", 0, 1);
 
@@ -82,6 +81,7 @@ METHOD(node_start)
 
 METHOD(node_is_online)
 {
+    NO_ARGS()
     return BOOL(zts_node_is_online());
 }
 
@@ -104,7 +104,8 @@ METHOD(node_stop)
     int err = zts_node_stop();
     ERROR(err, "node_stop")
 
-    if(event_callback) event_callback.Abort();
+    if (event_callback)
+        event_callback.Abort();
 
     return VOID;
 }
@@ -116,7 +117,8 @@ METHOD(node_free)
     int err = zts_node_free();
     ERROR(err, "node_free")
 
-    if(event_callback) event_callback.Abort();
+    if (event_callback)
+        event_callback.Abort();
 
     return VOID;
 }
@@ -131,7 +133,7 @@ uint64_t convert_net_id(std::string net_id)
 METHOD(net_join)
 {
     NB_ARGS(1)
-    ARG_STRING(0, net_id)
+    auto net_id = ARG_STRING(0);
 
     int err = zts_net_join(convert_net_id(net_id));
     ERROR(err, "net_join")
@@ -142,7 +144,7 @@ METHOD(net_join)
 METHOD(net_leave)
 {
     NB_ARGS(1)
-    ARG_STRING(0, net_id)
+    auto net_id = ARG_STRING(0);
 
     int err = zts_net_leave(convert_net_id(net_id));
     ERROR(err, "net_leave")
@@ -153,7 +155,7 @@ METHOD(net_leave)
 METHOD(net_transport_is_ready)
 {
     NB_ARGS(1)
-    ARG_STRING(0, net_id)
+    auto net_id = ARG_STRING(0);
 
     return BOOL(zts_net_transport_is_ready(convert_net_id(net_id)));
 }
@@ -163,8 +165,8 @@ METHOD(net_transport_is_ready)
 METHOD(addr_get_str)
 {
     NB_ARGS(2)
-    ARG_STRING(0, net_id)
-    ARG_BOOLEAN(1, ipv6)
+    auto net_id = ARG_STRING(0);
+    auto ipv6 = ARG_BOOLEAN(1);
 
     auto family = ipv6 ? ZTS_AF_INET6 : ZTS_AF_INET;
 
@@ -181,9 +183,9 @@ METHOD(addr_get_str)
 METHOD(bsd_socket)
 {
     NB_ARGS(3)
-    ARG_INT32(0, family)
-    ARG_INT32(1, type)
-    ARG_INT32(2, protocol)
+    auto family = ARG_NUMBER(0);
+    auto type = ARG_NUMBER(1);
+    auto protocol = ARG_NUMBER(2);
 
     int fd = zts_bsd_socket(family, type, protocol);
     CHECK_ERRNO(fd, "bsd_socket")
@@ -194,7 +196,7 @@ METHOD(bsd_socket)
 METHOD(bsd_close)
 {
     NB_ARGS(1)
-    ARG_INT32(0, fd)
+    auto fd = ARG_NUMBER(0);
 
     int err = zts_bsd_close(fd);
     CHECK_ERRNO(err, "bsd_close")
@@ -205,10 +207,10 @@ METHOD(bsd_close)
 METHOD(bsd_send)
 {
     NB_ARGS(4)
-    ARG_INT32(0, fd)
-    ARG_UINT8ARRAY(1, data)
-    ARG_INT32(2, flags)
-    ARG_FUNC(3, cb)
+    int fd = ARG_NUMBER(0);
+    auto data = ARG_UINT8ARRAY(1);
+    int flags = ARG_NUMBER(2);
+    auto cb = ARG_FUNC(3);
 
     int size = data.ByteLength();
     auto data_vec = new std::vector<uint8_t>();
@@ -225,54 +227,12 @@ METHOD(bsd_send)
 METHOD(bsd_recv)
 {
     NB_ARGS(4)
-    ARG_INT32(0, fd)
-    ARG_INT32(1, n)
-    ARG_INT32(2, flags)
-    ARG_FUNC(3, cb)
+    auto fd = ARG_NUMBER(0);
+    auto n = ARG_NUMBER(1).Int32Value();
+    auto flags = ARG_NUMBER(2);
+    auto cb = ARG_FUNC(3);
 
     auto worker = new BsdRecvWorker(cb, fd, n, flags);
-    worker->Queue();
-
-    return VOID;
-}
-
-METHOD(bsd_sendto)
-{
-    NB_ARGS(4)
-    ARG_INT32(0, fd)
-    ARG_UINT8ARRAY(1, data)
-    ARG_INT32(2, flags)
-    ARG_STRING(3, ipaddr)
-    ARG_INT32(4, port)
-    ARG_FUNC(5, cb)
-
-    int size = data.ByteLength();
-    auto data_vec = new std::vector<uint8_t>();
-    data_vec->insert(data_vec->begin(), data.Data(), data.Data() + size);
-
-    struct zts_sockaddr_storage addr;
-    zts_socklen_t addrlen = sizeof(struct zts_sockaddr_storage);
-    zts_util_ipstr_to_saddr(ipaddr.c_str(), port, (struct zts_sockaddr*)&addr, &addrlen);
-
-    auto execute = [fd, data_vec, size, flags, addr, addrlen]() {
-        return zts_bsd_sendto(fd, data_vec->data(), size, flags, (struct zts_sockaddr*)&addr, addrlen);
-    };
-    auto on_destroy = [data_vec]() { delete data_vec; };
-    auto worker = new AsyncLambda(cb, "bsd_send", execute, on_destroy);
-    worker->Queue();
-
-    return VOID;
-}
-
-METHOD(bsd_recvfrom)
-{
-    NB_ARGS(4)
-    ARG_INT32(0, fd)
-    ARG_INT32(1, n)
-    ARG_INT32(2, flags)
-    ARG_FUNC(3, cb)
-
-    auto worker = new BsdRecvFromWorker(cb, fd, n, flags);
     worker->Queue();
 
     return VOID;
@@ -283,9 +243,9 @@ METHOD(bsd_recvfrom)
 METHOD(bind)
 {
     NB_ARGS(3)
-    ARG_INT32(0, fd)
-    ARG_STRING(1, ipstr)
-    ARG_INT32(2, port)
+    auto fd = ARG_NUMBER(0);
+    auto ipstr = ARG_STRING(1);
+    int port = ARG_NUMBER(2);
 
     int err = zts_bind(fd, std::string(ipstr).c_str(), port);
     CHECK_ERRNO(err, "bind")
@@ -296,8 +256,8 @@ METHOD(bind)
 METHOD(listen)
 {
     NB_ARGS(2)
-    ARG_INT32(0, fd)
-    ARG_INT32(1, backlog)
+    auto fd = ARG_NUMBER(0);
+    auto backlog = ARG_NUMBER(1);
 
     int err = zts_listen(fd, backlog);
     CHECK_ERRNO(err, "listen")
@@ -308,8 +268,8 @@ METHOD(listen)
 METHOD(accept)
 {
     NB_ARGS(2)
-    ARG_INT32(0, fd)
-    ARG_FUNC(1, cb)
+    int fd = ARG_NUMBER(0);
+    auto cb = ARG_FUNC(1);
 
     auto worker = new AsyncLambda(
         cb,
@@ -328,11 +288,11 @@ METHOD(accept)
 METHOD(connect)
 {
     NB_ARGS(5)
-    ARG_INT32(0, fd)
-    ARG_STRING(1, ipstr)
-    ARG_INT32(2, port)
-    ARG_INT32(3, timeout)
-    ARG_FUNC(4, cb)
+    int fd = ARG_NUMBER(0);
+    std::string ipstr = ARG_STRING(1);
+    int port = ARG_NUMBER(2);
+    int timeout = ARG_NUMBER(3);
+    auto cb = ARG_FUNC(4);
 
     auto worker = new AsyncLambda(
         cb,
@@ -347,7 +307,7 @@ METHOD(connect)
 METHOD(shutdown_rd)
 {
     NB_ARGS(1)
-    ARG_INT32(0, fd)
+    auto fd = ARG_NUMBER(0);
 
     int err = zts_shutdown_rd(fd);
     CHECK_ERRNO(err, "shutdown_rd")
@@ -358,7 +318,7 @@ METHOD(shutdown_rd)
 METHOD(shutdown_wr)
 {
     NB_ARGS(1)
-    ARG_INT32(0, fd)
+    auto fd = ARG_NUMBER(0);
 
     int err = zts_shutdown_wr(fd);
     CHECK_ERRNO(err, "shutdown_wr")
@@ -369,7 +329,7 @@ METHOD(shutdown_wr)
 METHOD(getpeername)
 {
     NB_ARGS(1)
-    ARG_INT32(0, fd)
+    auto fd = ARG_NUMBER(0);
 
     char addr[ZTS_IP_MAX_STR_LEN];
     unsigned short port;
@@ -383,7 +343,7 @@ METHOD(getpeername)
 METHOD(getsockname)
 {
     NB_ARGS(1)
-    ARG_INT32(0, fd)
+    auto fd = ARG_NUMBER(0);
 
     char addr[ZTS_IP_MAX_STR_LEN];
     unsigned short port;
@@ -397,9 +357,9 @@ METHOD(getsockname)
 METHOD(set_recv_timeout)
 {
     NB_ARGS(3)
-    ARG_INT32(0, fd)
-    ARG_INT32(1, seconds)
-    ARG_INT32(2, microseconds)
+    auto fd = ARG_NUMBER(0);
+    auto seconds = ARG_NUMBER(1);
+    auto microseconds = ARG_NUMBER(2);
 
     int err = zts_set_recv_timeout(fd, seconds, microseconds);
     CHECK_ERRNO(err, "set_recv_timeout")
@@ -410,9 +370,9 @@ METHOD(set_recv_timeout)
 METHOD(set_send_timeout)
 {
     NB_ARGS(3)
-    ARG_INT32(0, fd)
-    ARG_INT32(1, seconds)
-    ARG_INT32(2, microseconds)
+    auto fd = ARG_NUMBER(0);
+    auto seconds = ARG_NUMBER(1);
+    auto microseconds = ARG_NUMBER(2);
 
     int err = zts_set_send_timeout(fd, seconds, microseconds);
     CHECK_ERRNO(err, "set_recv_timeout")
@@ -426,7 +386,6 @@ METHOD(create_class)
 
     return TCP::constructor->New({});
 }
-
 
 // NAPI initialiser
 
@@ -456,8 +415,6 @@ INIT_ADDON(zts)
     EXPORT(bsd_close)
     EXPORT(bsd_send)
     EXPORT(bsd_recv)
-    EXPORT(bsd_sendto)
-    EXPORT(bsd_recvfrom)
 
     // no ns socket
     EXPORT(bind)

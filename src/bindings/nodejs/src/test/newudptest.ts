@@ -56,11 +56,11 @@ async function main() {
         for(let i = 0; i < 1000000; i++) {
             console.log(`sending ${i}`);
             
-            socket.send(Buffer.from(`hello ${i}    `.repeat(20)), port, host, (err)=>{
+            socket.send(Buffer.from(`hello ${i}    `.repeat(100)), port, host, (err)=>{
                 console.log("sent");
                 if(err) console.log(err);
             });
-            await setTimeout(2);
+            await setTimeout(50);
         }
 
         // socket.close();

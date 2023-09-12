@@ -4,10 +4,10 @@ export interface ZtsError extends Error { code?: number, errno?: number }
 declare class UDP {
     constructor(ipv6: boolean, recvCallback: (data: Buffer, addr: string, port: number) => void)
 
-    send_to(data: Uint8Array, addr: string, port: number, callback: (error?: Error) => void): void
+    send_to(data: Uint8Array, addr: string, port: number, callback: (error?: ZtsError) => void): void
     bind(addr: string, port: number): void
 
-    address(): { port: number, address: string }
+    address(): { port: number, address: string, family: "udp6" | "udp4" }
     close(callback: ()=>void): void
 }
 
@@ -32,9 +32,6 @@ type ZTS = {
 
     bsd_send(fd: number, data: Uint8Array, flags: number, callback: (err: ZtsError | undefined, bytesWritten: number) => void): void;
     bsd_recv(fd: number, len: number, flags: number, callback: (err: ZtsError | null, data: Buffer) => void): void
-
-    bsd_sendto(fd: number, data: Uint8Array, flags: number, ipaddr: string, port: number, callback: (err: ZtsError | undefined, bytesWritten: number) => void): void
-    bsd_recvfrom(fd: number, len: number, flags: number, callback: (err: ZtsError | undefined, data: Buffer, address: string, port: number) => void): void
 
     bind(fd: number, ipAddr: string, port: number): void
     listen(fd: number, backlog: number): void

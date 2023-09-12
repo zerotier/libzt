@@ -7,9 +7,8 @@ interface UDPSocketEvents {
     "close": () => void
     "message": (msg: Buffer, rinfo: { address: string, family: "udp4" | "udp6", port: number, size: number }) => void
     "listening": () => void
-    "error": (err: Error) => void
+    "error": (err: ZtsError) => void
 }
-
 
 
 class Socket extends EventEmitter {
@@ -26,38 +25,42 @@ class Socket extends EventEmitter {
         });
     }
 
-    address(): { address: string, port: number, family: "udp4" | "udp6" } {
-        return { ...this.internal.address(), family: this.ipv6 ? "udp6" : "udp4" };
+    
+
+    address() {
+        return this.internal.address();
     }
 
     bind(port?: number, address?: string, callback?: UDPSocketEvents["listening"]) {
-        if (!address) address = this.ipv6 ? "::0" : "0.0.0.0";
+        if (!address) address = "";
         if (!port) port = 0;
 
         this.internal.bind(address, port);
         void callback; // TODO
     }
 
-    private _err(err: Error) {
-        if (!this.emit("error", err)) {
-            throw (err);
-        }
-    }
-
     send(msg: Buffer, port?: number, address?: string, callback?: (err?: ZtsError) => void) {
-        const handleError = (err: Error) => {
-            if (callback) callback(err);
-            else this._err(err);
-        };
-
-        if (!port) return handleError(Error("Connect not implemented"));
+        if (!port) return this.handleError(callback)(Error("Connect not implemented"));
         if (!address) address = this.ipv6 ? "::1" : "127.0.0.1";
 
-        this.internal.send_to(msg, address, port, (callback??(()=>undefined)));
+        this.internal.send_to(msg, address, port, this.handleError(callback));
     }
 
     close() {
         this.internal.close(()=>undefined);
+    }
+
+    private handleError(callback?: (err?: ZtsError)=>void) {
+        return (err?: Error) => {
+            if (callback) callback(err);
+            else {
+                if(!err) return;
+
+                if (!this.emit("error", err)) {
+                    throw (err);
+                }
+            }
+        };
     }
 }
 

@@ -20,14 +20,18 @@ class Socket extends EventEmitter {
     constructor(ipv6: boolean) {
         super();
         this.ipv6 = ipv6;
+        
+        this.internal = new zts.UDP(ipv6, (data, addr, port) => {
+            this.emit("message", data, { address: addr, family: isIPv6(addr) ? "udp6" : "udp4", port, size: data.length });
+        });
+        // unbound socket should not hold process open
+        this.unref();
+
         this.once("listening", () => {
             this.bound = true;
             this.ref();
         });
 
-        this.internal = new zts.UDP(ipv6, (data, addr, port) => {
-            this.emit("message", data, { address: addr, family: isIPv6(addr) ? "udp6" : "udp4", port, size: data.length });
-        });
     }
 
     ref() { this.internal.ref(); return this; }
@@ -35,6 +39,7 @@ class Socket extends EventEmitter {
     unref() { this.internal.unref(); return this; }
 
     address() {
+        if(!this.bound) throw Error("Unbound socket");
         return this.internal.address();
     }
 
@@ -43,11 +48,12 @@ class Socket extends EventEmitter {
         if (!address) address = "";
         if (!port) port = 0;
 
+        if(callback) this.once("listening", ()=>callback());
+
         this.internal.bind(address, port, (err) => {
             if (err) this.emit("error", err);
             else this.emit("listening");
         });
-        void callback; // TODO
     }
 
     send(msg: Buffer, port?: number, address?: string, callback?: (err?: UDPError) => void) {

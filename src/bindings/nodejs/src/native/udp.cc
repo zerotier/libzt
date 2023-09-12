@@ -36,12 +36,14 @@ CLASS(Socket)
     METHOD(bind);
     METHOD(address);
     METHOD(close);
-    METHOD(ref) {
+    METHOD(ref)
+    {
         NO_ARGS();
         onRecv.Ref(env);
         return VOID;
     }
-    METHOD(unref) {
+    METHOD(unref)
+    {
         NO_ARGS();
         onRecv.Unref(env);
         return VOID;

@@ -36,6 +36,16 @@ CLASS(Socket)
     METHOD(bind);
     METHOD(address);
     METHOD(close);
+    METHOD(ref) {
+        NO_ARGS();
+        onRecv.Ref(env);
+        return VOID;
+    }
+    METHOD(unref) {
+        NO_ARGS();
+        onRecv.Unref(env);
+        return VOID;
+    }
 };
 
 CLASS_INIT_IMPL(Socket)
@@ -45,7 +55,9 @@ CLASS_INIT_IMPL(Socket)
         { CLASS_INSTANCE_METHOD(Socket, send_to),
           CLASS_INSTANCE_METHOD(Socket, bind),
           CLASS_INSTANCE_METHOD(Socket, address),
-          CLASS_INSTANCE_METHOD(Socket, close) });
+          CLASS_INSTANCE_METHOD(Socket, close),
+          CLASS_INSTANCE_METHOD(Socket, ref),
+          CLASS_INSTANCE_METHOD(Socket, unref) });
 
     *constructor = Napi::Persistent(func);
 
@@ -177,17 +189,19 @@ CLASS_METHOD_IMPL(Socket, send_to)
 
 CLASS_METHOD_IMPL(Socket, bind)
 {
-    NB_ARGS(2)
+    NB_ARGS(3)
     std::string addr = ARG_STRING(0);
     auto port = ARG_NUMBER(1);
+    auto callback = ARG_FUNC(2);
 
     struct bind_data {
+        Napi::ThreadSafeFunction* bindCb;
         udp_pcb* pcb;
         ip_addr_t addr;
         uint16_t port;
     };
 
-    auto bd = new bind_data { pcb : pcb, port : port.Int32Value() };
+    auto bd = new bind_data { bindCb : TSFN_ONCE(callback, "udpBindCb", ), pcb : pcb, port : port.Int32Value() };
 
     if (addr.size() == 0)
         bd->addr = ip6_addr_any;
@@ -198,7 +212,18 @@ CLASS_METHOD_IMPL(Socket, bind)
         [](void* ctx) {
             auto bd = (bind_data*)ctx;
 
-            int err = udp_bind(bd->pcb, &bd->addr, bd->port);
+            auto err = udp_bind(bd->pcb, &bd->addr, bd->port);
+
+            bd->bindCb->BlockingCall([err](TSFN_ARGS) {
+                if (err != ERR_OK) {
+                    auto error = Napi::Error::New(env, "Bind error");
+                    error.Set("code", NUMBER(err));
+                    jsCallback.Call({ error.Value() });
+                }
+                else
+                    jsCallback.Call({});
+            });
+            bd->bindCb->Release();
 
             delete bd;
         },

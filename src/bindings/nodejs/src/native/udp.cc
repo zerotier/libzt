@@ -69,16 +69,12 @@ void lwip_recv_cb(void* arg, struct udp_pcb* pcb, struct pbuf* p, const ip_addr_
     thiz->onRecv->BlockingCall(rd);
 }
 
-#define FREE_PBUF(PTR) tcpip_callback([](void* p){pbuf_free((pbuf*) p);}, PTR);
+#define FREE_PBUF(PTR) tcpip_callback([](void* p) { pbuf_free((pbuf*)p); }, PTR);
 
-/*
- * 
-*/
 void tsfnOnRecv(Napi::Env env, Napi::Function jsCallback, nullptr_t* ctx, recv_data* rd)
 {
     if (env == NULL) {
         FREE_PBUF(rd->p);
-        // pbuf_free(rd->p);
         delete rd;
 
         return;
@@ -87,7 +83,6 @@ void tsfnOnRecv(Napi::Env env, Napi::Function jsCallback, nullptr_t* ctx, recv_d
 
     auto data =
         Napi::Buffer<char>::NewOrCopy(env, (char*)p->payload, p->len, [p](Napi::Env env, char* data) { FREE_PBUF(p) });
-        // Napi::Buffer<char>::Copy(env, (char*)p->payload, p->len);
 
     auto addr = STRING(rd->addr);
     auto port = NUMBER(rd->port);
@@ -132,22 +127,37 @@ CLASS_METHOD_IMPL(Socket, send_to)
 
     struct send_data {
         Napi::ThreadSafeFunction* onSent;
-        std::vector<uint8_t> data;
+
+        u16_t len;
+        uint8_t* data;
+        Napi::Reference<Napi::Uint8Array>* dataRef;
+
         udp_pcb* pcb;
         ip_addr_t ip_addr;
         u16_t port;
     };
 
-    auto sd = new send_data { 
-        onSent: new Napi::ThreadSafeFunction, 
-        pcb : pcb, port : port.Int32Value() };
+    auto sd = new send_data {
+        onSent : new Napi::ThreadSafeFunction,
 
-    *sd->onSent = Napi::ThreadSafeFunction::New(env, callback, "udpOnSent", 0, 1, [](Napi::Env env, Napi::ThreadSafeFunction* onSent){
-        delete onSent;
-    }, sd->onSent);
+        len : data.ByteLength(),
+        data : data.Data(),
+        dataRef : new Napi::Reference<Napi::Uint8Array>(),
 
-    int size = data.ByteLength();
-    sd->data.insert(sd->data.begin(), data.Data(), data.Data() + size);
+        pcb : pcb,
+        port : port.Int32Value()
+    };
+
+    *sd->onSent = Napi::ThreadSafeFunction::New(
+        env,
+        callback,
+        "udpOnSent",
+        0,
+        1,
+        [](Napi::Env env, Napi::ThreadSafeFunction* onSent) { delete onSent; },
+        sd->onSent);
+
+    *sd->dataRef = Napi::Persistent(data);
 
     ipaddr_aton(addr.c_str(), &sd->ip_addr);
 
@@ -155,12 +165,15 @@ CLASS_METHOD_IMPL(Socket, send_to)
         [](void* ctx) {
             auto sd = (send_data*)ctx;
 
-            struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, sd->data.size(), PBUF_RAM);
-            p->payload = sd->data.data();
+            struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, sd->len, PBUF_RAM);
+            p->payload = sd->data;
 
             auto err = udp_sendto(sd->pcb, p, &sd->ip_addr, sd->port);
 
-            sd->onSent->BlockingCall([err](Napi::Env env, Napi::Function jsCallback) {
+            auto dataRef = sd->dataRef;
+            sd->onSent->BlockingCall([err, dataRef](Napi::Env env, Napi::Function jsCallback) {
+                delete dataRef;   // allow data to be garbage collected
+
                 if (err != ERR_OK) {
                     auto error = Napi::Error::New(env, "send error");
                     error.Set("code", NUMBER(err));

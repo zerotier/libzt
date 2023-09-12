@@ -1,6 +1,7 @@
 #include "lwip/udp.h"
 
 #include "ZeroTierSockets.h"
+#include "lwip-macros.h"
 #include "lwip/tcpip.h"
 #include "macros.h"
 
@@ -130,47 +131,28 @@ CLASS_METHOD_IMPL(Socket, send_to)
     NB_ARGS(4)
     auto data = ARG_UINT8ARRAY(0);
     std::string addr = ARG_STRING(1);
-    auto port = ARG_NUMBER(2);
+    int port = ARG_NUMBER(2);
     auto callback = ARG_FUNC(3);
 
-    struct send_data {
-        Napi::ThreadSafeFunction* onSent;
-
-        u16_t len;
-        uint8_t* data;
-
-        udp_pcb* pcb;
-        ip_addr_t ip_addr;
-        u16_t port;
-    };
-
     auto dataRef = NEW_REF_UINT8ARRAY(data);
+    auto onSent = TSFN_ONCE(
+        callback,
+        "udpOnSent",
+        /* unref data when sending complete */ { delete dataRef; });
+    auto len = data.ByteLength();
+    auto buffer = data.Data();
 
-    auto sd = new send_data {
-        onSent : TSFN_ONCE(
-            callback,
-            "udpOnSent",
-            /* unref data when sending complete */ { delete dataRef; }),
+    ip_addr_t ip_addr;
+    ipaddr_aton(addr.c_str(), &ip_addr);
 
-        len : data.ByteLength(),
-        data : data.Data(),
+    TCPIP_CALLBACK(
+        {
+            struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
+            p->payload = buffer;
 
-        pcb : pcb,
-        port : port.Int32Value()
-    };
+            auto err = udp_sendto(pcb, p, &ip_addr, port);
 
-    ipaddr_aton(addr.c_str(), &sd->ip_addr);
-
-    tcpip_callback(
-        [](void* ctx) {
-            auto sd = (send_data*)ctx;
-
-            struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, sd->len, PBUF_RAM);
-            p->payload = sd->data;
-
-            auto err = udp_sendto(sd->pcb, p, &sd->ip_addr, sd->port);
-
-            sd->onSent->BlockingCall([err](TSFN_ARGS) {
+            onSent->BlockingCall([err](TSFN_ARGS) {
                 if (err != ERR_OK) {
                     auto error = Napi::Error::New(env, "send error");
                     error.Set("code", NUMBER(err));
@@ -179,12 +161,16 @@ CLASS_METHOD_IMPL(Socket, send_to)
                 else
                     jsCallback.Call({});
             });
-            sd->onSent->Release();
+            onSent->Release();
 
             pbuf_free(p);
-            delete sd;
         },
-        sd);
+        pcb,
+        len,
+        buffer,
+        port,
+        ip_addr,
+        onSent)
 
     return VOID;
 }
@@ -193,30 +179,22 @@ CLASS_METHOD_IMPL(Socket, bind)
 {
     NB_ARGS(3)
     std::string addr = ARG_STRING(0);
-    auto port = ARG_NUMBER(1);
+    int port = ARG_NUMBER(1);
     auto callback = ARG_FUNC(2);
 
-    struct bind_data {
-        Napi::ThreadSafeFunction* bindCb;
-        udp_pcb* pcb;
-        ip_addr_t addr;
-        uint16_t port;
-    };
-
-    auto bd = new bind_data { bindCb : TSFN_ONCE(callback, "udpBindCb", ), pcb : pcb, port : port.Int32Value() };
+    auto bindCb = TSFN_ONCE(callback, "udpBindCb", );
+    ip_addr_t ip_addr;
 
     if (addr.size() == 0)
-        bd->addr = ip6_addr_any;
+        ip_addr = ip6_addr_any;
     else
-        ipaddr_aton(addr.c_str(), &bd->addr);
+        ipaddr_aton(addr.c_str(), &ip_addr);
 
-    tcpip_callback(
-        [](void* ctx) {
-            auto bd = (bind_data*)ctx;
+    TCPIP_CALLBACK(
+        {
+            auto err = udp_bind(pcb, &ip_addr, port);
 
-            auto err = udp_bind(bd->pcb, &bd->addr, bd->port);
-
-            bd->bindCb->BlockingCall([err](TSFN_ARGS) {
+            bindCb->BlockingCall([err](TSFN_ARGS) {
                 if (err != ERR_OK) {
                     auto error = Napi::Error::New(env, "Bind error");
                     error.Set("code", NUMBER(err));
@@ -225,11 +203,12 @@ CLASS_METHOD_IMPL(Socket, bind)
                 else
                     jsCallback.Call({});
             });
-            bd->bindCb->Release();
-
-            delete bd;
+            bindCb->Release();
         },
-        bd);
+        pcb,
+        ip_addr,
+        port,
+        bindCb)
 
     return VOID;
 }
@@ -254,23 +233,18 @@ CLASS_METHOD_IMPL(Socket, close)
     auto callback = ARG_FUNC(0);
 
     if (pcb) {
-        struct close_data {
-            Napi::ThreadSafeFunction* onClose;
-            udp_pcb* pcb;
-        };
-        auto cd = new close_data { onClose : TSFN_ONCE(callback, "udpOnClose", { this->onRecv.Abort(); }), pcb : pcb };
+        auto onClose = TSFN_ONCE(callback, "udpOnClose", { this->onRecv.Abort(); });
 
-        tcpip_callback(
-            [](void* ctx) {
-                auto cd = (close_data*)ctx;
-                udp_remove(cd->pcb);
+        TCPIP_CALLBACK(
+            {
+                udp_remove(pcb);
 
-                cd->onClose->BlockingCall();
-                cd->onClose->Release();
-
-                delete cd;
+                onClose->BlockingCall();
+                onClose->Release();
             },
-            cd);
+            pcb,
+            onClose);
+
         pcb = nullptr;
     }
 

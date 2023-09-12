@@ -45,8 +45,7 @@ async function main() {
             });
 
         });
-        server.bind(port);
-        console.log(server.address());
+        server.bind(port, undefined, ()=>console.log(server.address()));
     } else {
 
         const socket = dgram.createSocket({type: "udp6"}, (msg, rinfo) => {

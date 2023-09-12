@@ -46,8 +46,9 @@ class Socket extends EventEmitter {
         this.internal.send_to(msg, address, port, this.handleError(callback));
     }
 
-    close() {
-        this.internal.close(()=>undefined);
+    close(callback?: ()=>void) {
+        if(callback) this.on("close", callback);
+        this.internal.close(()=>this.emit("close"));
     }
 
     private handleError(callback?: (err?: ZtsError)=>void) {

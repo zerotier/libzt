@@ -53,7 +53,7 @@ async function main() {
             console.log(`received: ${rinfo.size} from ${rinfo.address} at ${rinfo.port}`);
         });
 
-        for(let i = 0; i < 1000000; i++) {
+        for(let i = 0; i < 20; i++) {
             console.log(`sending ${i}`);
             
             socket.send(Buffer.from(`hello ${i}    `.repeat(100)), port, host, (err)=>{
@@ -63,7 +63,8 @@ async function main() {
             await setTimeout(50);
         }
 
-        // socket.close();
+        socket.close();
+        socket.on("close", ()=>console.log("closed!"));
 
         console.log("closed?");
 

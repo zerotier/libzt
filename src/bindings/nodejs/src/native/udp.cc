@@ -138,7 +138,7 @@ CLASS_METHOD_IMPL(Socket, send_to)
     };
 
     auto sd = new send_data {
-        onSent : TSFN_ONCE(callback, "udpOnSent"),
+        onSent : TSFN_ONCE(callback, "udpOnSent", ),
 
         len : data.ByteLength(),
         data : data.Data(),
@@ -232,14 +232,26 @@ CLASS_METHOD_IMPL(Socket, close)
     auto callback = ARG_FUNC(0);
 
     if (pcb) {
-        // struct cd {
+        struct close_data {
+            Napi::ThreadSafeFunction* onClose;
+            udp_pcb* pcb;
+        };
+        auto cd = new close_data { 
+            onClose : TSFN_ONCE(callback, "udpOnClose", this->onRecv->Abort();),
+             pcb : pcb };
 
-        // }
+        tcpip_callback(
+            [](void* ctx) {
+                auto cd = (close_data*)ctx;
+                udp_remove(cd->pcb);
 
-        tcpip_callback([](void* ctx) { udp_remove((udp_pcb*)ctx); }, pcb);
+                cd->onClose->BlockingCall();
+                cd->onClose->Release();
+
+                delete cd;
+            },
+            cd);
         pcb = nullptr;
-
-        onRecv->Release();
     }
 
     return VOID;

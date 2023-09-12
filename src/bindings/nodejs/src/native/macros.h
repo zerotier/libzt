@@ -111,12 +111,17 @@
 /**
  * returns pointer to a new threadafe function with the specified callback
  * Memory is automatically freed when the tsfn finalises
+ * 
+ * Last argument can contain extra finalising code (copy capture)
 */
-#define TSFN_ONCE(CALLBACK, NAME)                                                                                      \
+#define TSFN_ONCE(CALLBACK, NAME, FINALISE)                                                                                      \
     [&]() {                                                                                                            \
-        auto ptr = new Napi::ThreadSafeFunction;                                                                       \
-        *ptr = Napi::ThreadSafeFunction::New(env, CALLBACK, NAME, 0, 1, [ptr](Napi::Env) { delete ptr; });              \
-        return ptr;                                                                                                    \
+        auto __tsfn = new Napi::ThreadSafeFunction;                                                                       \
+        *__tsfn = Napi::ThreadSafeFunction::New(env, CALLBACK, NAME, 0, 1, [=](Napi::Env) { \
+            FINALISE;\
+            delete __tsfn; \ 
+        });              \
+        return __tsfn;                                                                                                    \
     }()
 
 #define TSFN_ARGS Napi::Env env, Napi::Function jsCallback

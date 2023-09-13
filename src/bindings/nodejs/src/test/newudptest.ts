@@ -52,7 +52,7 @@ async function main() {
             console.log(`received: ${rinfo.size} from ${rinfo.address} at ${rinfo.port}`);
         });
 
-        for(let i = 0; i < 20; i++) {
+        for(let i = 0; i < 5; i++) {
             console.log(`sending ${i}`);
             
             socket.send(Buffer.from(`hello ${i}    `.repeat(100)), port, host, (err)=>{
@@ -62,12 +62,31 @@ async function main() {
             await setTimeout(50);
         }
 
-        socket.close();
-        socket.on("close", ()=>console.log("closed!"));
+        socket.connect(port, host, async (err)=>{
+            console.log(err);
 
-        console.log("closed?");
+            console.log(socket.remoteAddress());
 
-        zts.node_free();
+            for(let i = 0; i < 5; i++) {
+                console.log(`sending ${i}`);
+                
+                socket.send(Buffer.from(`hello ${i}    `.repeat(100)));
+                await setTimeout(50);
+            }
+
+            socket.disconnect();
+
+            socket.close();
+            socket.on("close", ()=>{
+                console.log("closed!");
+
+                zts.node_free();
+            });
+    
+            console.log("closed?");
+        });
+
+
     }
 }
 

@@ -16,17 +16,21 @@ class Socket extends EventEmitter {
     private ipv6;
     private internal;
     private bound = false;
+    private connected = false;
+    private closed = false;
 
     constructor(ipv6: boolean) {
         super();
         this.ipv6 = ipv6;
-        
+
         this.internal = new zts.UDP(ipv6, (data, addr, port) => {
             this.emit("message", data, { address: addr, family: isIPv6(addr) ? "udp6" : "udp4", port, size: data.length });
         });
         // unbound socket should not hold process open
         this.unref();
 
+
+        this.on("connect", () => this.connected = true);
         this.once("listening", () => {
             this.bound = true;
             this.ref();
@@ -39,16 +43,24 @@ class Socket extends EventEmitter {
     unref() { this.internal.unref(); return this; }
 
     address() {
-        if(!this.bound) throw Error("Unbound socket");
+        this.checkClosed();
+        if (!this.bound) throw Error("Unbound socket");
         return this.internal.address();
     }
 
+    remoteAddress() {
+        this.checkClosed();
+        if (!this.connected) throw Error("Socket not connected");
+        return this.internal.remoteAddress();
+    }
+
     bind(port?: number, address?: string, callback?: UDPSocketEvents["listening"]) {
-        // TODO what if already bound?
+        this.checkClosed();
+        if (this.bound) throw Error("Socket already bound");
         if (!address) address = "";
         if (!port) port = 0;
 
-        if(callback) this.once("listening", ()=>callback());
+        if (callback) this.once("listening", () => callback());
 
         this.internal.bind(address, port, (err) => {
             if (err) this.emit("error", err);
@@ -56,8 +68,13 @@ class Socket extends EventEmitter {
         });
     }
 
-    send(msg: Buffer, port?: number, address?: string, callback?: (err?: UDPError) => void) {
-        if (!port) return this.handleError(callback)(Error("Connect not implemented, port must be specified"));
+    send(msg: Buffer, port?: number, address?: string, callback?: (err?: UDPError) => void): void {
+        this.checkClosed();
+        if (this.connected) {
+            port = 0;
+        } else {
+            if (!port) throw Error("Port must be specified on unconnected socket");
+        }
         if (!address) address = this.ipv6 ? "::1" : "127.0.0.1";
 
         const cb = this.bound ? this.handleError(callback) : (err?: UDPError) => {
@@ -65,12 +82,34 @@ class Socket extends EventEmitter {
 
             this.handleError(callback)(err);
         };
-        this.internal.send_to(msg, address, port, cb);
+        this.internal.send(msg, address, port, cb);
     }
 
     close(callback?: () => void) {
+        this.checkClosed();
+        this.closed = true;
         if (callback) this.on("close", callback);
         this.internal.close(() => this.emit("close"));
+    }
+
+    connect(port: number, address: string, callback?: (error?: UDPError) => void) {
+        this.checkClosed();
+        if (!port) throw Error("Port must be specified");
+        if (!address) address = this.ipv6 ? "::1" : "127.0.0.1";
+
+        this.internal.connect(address, port, (err?: UDPError) => {
+            if (err) this.handleError(callback)(err);
+            else {
+                if (callback) this.once("connect", callback);
+                this.emit("connect");
+            }
+        });
+    }
+
+    disconnect() {
+        this.checkClosed();
+        this.internal.disconnect();
+        this.connected = false;
     }
 
     private handleError(callback?: (err?: UDPError) => void) {
@@ -84,6 +123,10 @@ class Socket extends EventEmitter {
                 }
             }
         };
+    }
+
+    private checkClosed() {
+        if(this.closed) throw Error("Socket closed");
     }
 }
 

@@ -7,11 +7,16 @@ export interface UDPError extends Error { code?: udpErrorCodes }
 declare class UDP {
     constructor(ipv6: boolean, recvCallback: (data: Buffer, addr: string, port: number) => void)
 
-    send_to(data: Uint8Array, addr: string, port: number, callback: (error?: UDPError) => void): void
+    send(data: Uint8Array, addr: string, port: number, callback: (error?: UDPError) => void): void
     bind(addr: string, port: number, callback: (error?: UDPError) => void): void
+    close(callback: () => void): void
+
 
     address(): { port: number, address: string, family: "udp6" | "udp4" }
-    close(callback: () => void): void
+    remoteAddress(): { port: number, address: string, family: "udp6" | "udp4" }
+
+    connect(addr: string, port: number, callback?: (error?: UDPError) => void): void
+    disconnect(): void
 
     ref(): void
     unref(): void

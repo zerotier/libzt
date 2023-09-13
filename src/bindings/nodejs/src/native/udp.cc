@@ -32,10 +32,15 @@ CLASS(Socket)
     bool ipv6;
     udp_pcb* pcb;
 
-    METHOD(send_to);
+    METHOD(send);
     METHOD(bind);
-    METHOD(address);
     METHOD(close);
+
+    METHOD(address);
+    METHOD(remoteAddress);
+
+    METHOD(connect);
+    METHOD(disconnect);
     METHOD(ref)
     {
         NO_ARGS();
@@ -54,10 +59,13 @@ CLASS_INIT_IMPL(Socket)
 {
     auto func = CLASS_DEFINE(
         Socket,
-        { CLASS_INSTANCE_METHOD(Socket, send_to),
+        { CLASS_INSTANCE_METHOD(Socket, send),
           CLASS_INSTANCE_METHOD(Socket, bind),
-          CLASS_INSTANCE_METHOD(Socket, address),
           CLASS_INSTANCE_METHOD(Socket, close),
+          CLASS_INSTANCE_METHOD(Socket, address),
+          CLASS_INSTANCE_METHOD(Socket, remoteAddress),
+          CLASS_INSTANCE_METHOD(Socket, connect),
+          CLASS_INSTANCE_METHOD(Socket, disconnect),
           CLASS_INSTANCE_METHOD(Socket, ref),
           CLASS_INSTANCE_METHOD(Socket, unref) });
 
@@ -125,12 +133,12 @@ CONSTRUCTOR_IMPL(Socket)
         this);
 }
 
-CLASS_METHOD_IMPL(Socket, send_to)
+CLASS_METHOD_IMPL(Socket, send)
 {
     NB_ARGS(4)
     auto data = ARG_UINT8ARRAY(0);
     std::string addr = ARG_STRING(1);
-    auto port = ARG_NUMBER(2);
+    int port = ARG_NUMBER(2);
     auto callback = ARG_FUNC(3);
 
     struct send_data {
@@ -156,10 +164,11 @@ CLASS_METHOD_IMPL(Socket, send_to)
         data : data.Data(),
 
         pcb : pcb,
-        port : port.Int32Value()
+        port : port
     };
 
-    ipaddr_aton(addr.c_str(), &sd->ip_addr);
+    if (port)
+        ipaddr_aton(addr.c_str(), &sd->ip_addr);
 
     tcpip_callback(
         [](void* ctx) {
@@ -168,7 +177,7 @@ CLASS_METHOD_IMPL(Socket, send_to)
             struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, sd->len, PBUF_RAM);
             p->payload = sd->data;
 
-            auto err = udp_sendto(sd->pcb, p, &sd->ip_addr, sd->port);
+            auto err = sd->port ? udp_sendto(sd->pcb, p, &sd->ip_addr, sd->port) : udp_send(sd->pcb, p);
 
             sd->onSent->BlockingCall([err](TSFN_ARGS) {
                 if (err != ERR_OK) {
@@ -234,20 +243,6 @@ CLASS_METHOD_IMPL(Socket, bind)
     return VOID;
 }
 
-CLASS_METHOD_IMPL(Socket, address)
-{
-    NO_ARGS();
-
-    char addr[ZTS_IP_MAX_STR_LEN];
-    ipaddr_ntoa_r(&pcb->local_ip, addr, ZTS_IP_MAX_STR_LEN);
-
-    return OBJECT({
-        ADD_FIELD("address", STRING(addr));
-        ADD_FIELD("port", NUMBER(pcb->local_port));
-        ADD_FIELD("family", IP_IS_V6(&pcb->local_ip) ? STRING("udp6") : STRING("udp4"))
-    });
-}
-
 CLASS_METHOD_IMPL(Socket, close)
 {
     NB_ARGS(1)
@@ -273,6 +268,86 @@ CLASS_METHOD_IMPL(Socket, close)
             cd);
         pcb = nullptr;
     }
+
+    return VOID;
+}
+
+CLASS_METHOD_IMPL(Socket, address)
+{
+    NO_ARGS();
+
+    char addr[ZTS_IP_MAX_STR_LEN];
+    ipaddr_ntoa_r(&pcb->local_ip, addr, ZTS_IP_MAX_STR_LEN);
+
+    return OBJECT({
+        ADD_FIELD("address", STRING(addr));
+        ADD_FIELD("port", NUMBER(pcb->local_port));
+        ADD_FIELD("family", IP_IS_V6(&pcb->local_ip) ? STRING("udp6") : STRING("udp4"))
+    });
+}
+
+CLASS_METHOD_IMPL(Socket, remoteAddress)
+{
+    NO_ARGS();
+
+    char addr[ZTS_IP_MAX_STR_LEN];
+    ipaddr_ntoa_r(&pcb->remote_ip, addr, ZTS_IP_MAX_STR_LEN);
+
+    return OBJECT({
+        ADD_FIELD("address", STRING(addr));
+        ADD_FIELD("port", NUMBER(pcb->remote_port));
+        ADD_FIELD("family", IP_IS_V6(&pcb->remote_ip) ? STRING("udp6") : STRING("udp4"))
+    });
+}
+
+CLASS_METHOD_IMPL(Socket, connect)
+{
+    NB_ARGS(3)
+
+    std::string addr = ARG_STRING(0);
+    int port = ARG_NUMBER(1);
+    auto callback = ARG_FUNC(2);
+
+    struct connnect_data {
+        Napi::ThreadSafeFunction* onConnect;
+        udp_pcb* pcb;
+        ip_addr_t addr;
+        uint16_t port;
+    };
+
+    auto cd = new connnect_data { onConnect : TSFN_ONCE(callback, "udpConnectCb", ), pcb : pcb, port : port };
+
+    ipaddr_aton(addr.c_str(), &cd->addr);
+
+    tcpip_callback(
+        [](void* ctx) {
+            auto cd = (connnect_data*)ctx;
+
+            auto err = udp_connect(cd->pcb, &cd->addr, cd->port);
+
+            cd->onConnect->BlockingCall([err](TSFN_ARGS) {
+                if (err != ERR_OK) {
+                    auto error = Napi::Error::New(env, "Connect error");
+                    error.Set("code", NUMBER(err));
+                    jsCallback.Call({ error.Value() });
+                }
+                else
+                    jsCallback.Call({});
+            });
+            cd->onConnect->Release();
+
+            delete cd;
+        },
+        cd);
+
+    return VOID;
+}
+
+CLASS_METHOD_IMPL(Socket, disconnect)
+{
+    NO_ARGS();
+
+    tcpip_callback([](void* ctx) { udp_disconnect((udp_pcb*)ctx); }, pcb);
 
     return VOID;
 }

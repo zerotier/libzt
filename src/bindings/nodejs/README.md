@@ -15,12 +15,13 @@ npm test (TODO)
 - Subset of ZeroTierSockets.h directly accessible
 - Blocking calls (recv, accept...) made asynchronous using callback
 - Socket and Server for tcp, analogous to nodejs "net" (can be used for tls, http(s))
-- UDP connectionless
+- UDP
 - Linux only
 
 ## Todo
 
-- UDP connect
+- UDP flags
+- convert TCP to lwip callback api
 - Nicer wrapper around Node and Network
 - More features from ZeroTierSockets.h
 - Configure macos and windows (might work already, not tested)

@@ -1,6 +1,7 @@
 #include "lwip/udp.h"
 
 #include "ZeroTierSockets.h"
+#include "lwip-macros.h"
 #include "lwip/tcpip.h"
 #include "macros.h"
 
@@ -144,45 +145,26 @@ CLASS_METHOD_IMPL(Socket, send)
     int port = ARG_NUMBER(2);
     auto callback = ARG_FUNC(3);
 
-    struct send_data {
-        Napi::ThreadSafeFunction* onSent;
-
-        u16_t len;
-        uint8_t* data;
-
-        udp_pcb* pcb;
-        ip_addr_t ip_addr;
-        u16_t port;
-    };
-
     auto dataRef = NEW_REF_UINT8ARRAY(data);
+    auto onSent = TSFN_ONCE(
+        callback,
+        "udpOnSent",
+        /* unref data when sending complete */ { delete dataRef; });
+    auto len = data.ByteLength();
+    auto buffer = data.Data();
 
-    auto sd = new send_data {
-        onSent : TSFN_ONCE(
-            callback,
-            "udpOnSent",
-            /* unref data when sending complete */ { delete dataRef; }),
-
-        len : data.ByteLength(),
-        data : data.Data(),
-
-        pcb : pcb,
-        port : port
-    };
-
+    ip_addr_t ip_addr;
     if (port)
-        ipaddr_aton(addr.c_str(), &sd->ip_addr);
+        ipaddr_aton(addr.c_str(), &ip_addr);
 
-    tcpip_callback(
-        [](void* ctx) {
-            auto sd = (send_data*)ctx;
+    TCPIP_CALLBACK(
+        {
+            struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
+            p->payload = buffer;
 
-            struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, sd->len, PBUF_RAM);
-            p->payload = sd->data;
+            auto err = port ? udp_sendto(pcb, p, &ip_addr, port) : udp_send(pcb, p);
 
-            auto err = sd->port ? udp_sendto(sd->pcb, p, &sd->ip_addr, sd->port) : udp_send(sd->pcb, p);
-
-            sd->onSent->BlockingCall([err](TSFN_ARGS) {
+            onSent->BlockingCall([err](TSFN_ARGS) {
                 if (err != ERR_OK) {
                     auto error = Napi::Error::New(env, "send error");
                     error.Set("code", NUMBER(err));
@@ -191,12 +173,16 @@ CLASS_METHOD_IMPL(Socket, send)
                 else
                     jsCallback.Call({});
             });
-            sd->onSent->Release();
+            onSent->Release();
 
             pbuf_free(p);
-            delete sd;
         },
-        sd);
+        pcb,
+        len,
+        buffer,
+        port,
+        ip_addr,
+        onSent)
 
     return VOID;
 }
@@ -205,30 +191,22 @@ CLASS_METHOD_IMPL(Socket, bind)
 {
     NB_ARGS(3)
     std::string addr = ARG_STRING(0);
-    auto port = ARG_NUMBER(1);
+    int port = ARG_NUMBER(1);
     auto callback = ARG_FUNC(2);
 
-    struct bind_data {
-        Napi::ThreadSafeFunction* bindCb;
-        udp_pcb* pcb;
-        ip_addr_t addr;
-        uint16_t port;
-    };
-
-    auto bd = new bind_data { bindCb : TSFN_ONCE(callback, "udpBindCb", ), pcb : pcb, port : port.Int32Value() };
+    auto bindCb = TSFN_ONCE(callback, "udpBindCb", );
+    ip_addr_t ip_addr;
 
     if (addr.size() == 0)
-        bd->addr = ip6_addr_any;
+        ip_addr = ip6_addr_any;
     else
-        ipaddr_aton(addr.c_str(), &bd->addr);
+        ipaddr_aton(addr.c_str(), &ip_addr);
 
-    tcpip_callback(
-        [](void* ctx) {
-            auto bd = (bind_data*)ctx;
+    TCPIP_CALLBACK(
+        {
+            auto err = udp_bind(pcb, &ip_addr, port);
 
-            auto err = udp_bind(bd->pcb, &bd->addr, bd->port);
-
-            bd->bindCb->BlockingCall([err](TSFN_ARGS) {
+            bindCb->BlockingCall([err](TSFN_ARGS) {
                 if (err != ERR_OK) {
                     auto error = Napi::Error::New(env, "Bind error");
                     error.Set("code", NUMBER(err));
@@ -237,11 +215,12 @@ CLASS_METHOD_IMPL(Socket, bind)
                 else
                     jsCallback.Call({});
             });
-            bd->bindCb->Release();
-
-            delete bd;
+            bindCb->Release();
         },
-        bd);
+        pcb,
+        ip_addr,
+        port,
+        bindCb)
 
     return VOID;
 }
@@ -252,23 +231,18 @@ CLASS_METHOD_IMPL(Socket, close)
     auto callback = ARG_FUNC(0);
 
     if (pcb) {
-        struct close_data {
-            Napi::ThreadSafeFunction* onClose;
-            udp_pcb* pcb;
-        };
-        auto cd = new close_data { onClose : TSFN_ONCE(callback, "udpOnClose", { this->onRecv.Abort(); }), pcb : pcb };
+        auto onClose = TSFN_ONCE(callback, "udpOnClose", { this->onRecv.Abort(); });
 
-        tcpip_callback(
-            [](void* ctx) {
-                auto cd = (close_data*)ctx;
-                udp_remove(cd->pcb);
+        TCPIP_CALLBACK(
+            {
+                udp_remove(pcb);
 
-                cd->onClose->BlockingCall();
-                cd->onClose->Release();
-
-                delete cd;
+                onClose->BlockingCall();
+                onClose->Release();
             },
-            cd);
+            pcb,
+            onClose);
+
         pcb = nullptr;
     }
 
@@ -307,28 +281,19 @@ CLASS_METHOD_IMPL(Socket, connect)
 {
     NB_ARGS(3)
 
-    std::string addr = ARG_STRING(0);
+    std::string address = ARG_STRING(0);
     int port = ARG_NUMBER(1);
     auto callback = ARG_FUNC(2);
 
-    struct connnect_data {
-        Napi::ThreadSafeFunction* onConnect;
-        udp_pcb* pcb;
-        ip_addr_t addr;
-        uint16_t port;
-    };
+    auto onConnect = TSFN_ONCE(callback, "udpConnectCb", );
+    ip_addr_t addr;
+    ipaddr_aton(address.c_str(), &addr);
 
-    auto cd = new connnect_data { onConnect : TSFN_ONCE(callback, "udpConnectCb", ), pcb : pcb, port : port };
+    TCPIP_CALLBACK(
+        {
+            auto err = udp_connect(pcb, &addr, port);
 
-    ipaddr_aton(addr.c_str(), &cd->addr);
-
-    tcpip_callback(
-        [](void* ctx) {
-            auto cd = (connnect_data*)ctx;
-
-            auto err = udp_connect(cd->pcb, &cd->addr, cd->port);
-
-            cd->onConnect->BlockingCall([err](TSFN_ARGS) {
+            onConnect->BlockingCall([err](TSFN_ARGS) {
                 if (err != ERR_OK) {
                     auto error = Napi::Error::New(env, "Connect error");
                     error.Set("code", NUMBER(err));
@@ -337,11 +302,12 @@ CLASS_METHOD_IMPL(Socket, connect)
                 else
                     jsCallback.Call({});
             });
-            cd->onConnect->Release();
-
-            delete cd;
+            onConnect->Release();
         },
-        cd);
+        pcb,
+        addr,
+        port,
+        onConnect);
 
     return VOID;
 }

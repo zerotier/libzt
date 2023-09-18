@@ -121,12 +121,12 @@
         return __ref;                                                                                                  \
     }()
 
-#define NEW_REF_FUNC(FUNC)                                                                                             \
-    [&]() {                                                                                                            \
-        auto __ref = new Napi::FunctionReference;                                                            \
-        *__ref = Napi::Persistent(FUNC);                                                                               \
-        return __ref;                                                                                                  \
-    }()
+// #define NEW_REF_FUNC(FUNC)                                                                                             \
+//     [&]() {                                                                                                            \
+//         auto __ref = new Napi::FunctionReference;                                                            \
+//         *__ref = Napi::Persistent(FUNC);                                                                               \
+//         return __ref;                                                                                                  \
+//     }()
 
 // Threadsafe
 

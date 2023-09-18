@@ -10,8 +10,6 @@
 
 namespace UDP {
 
-FUNC_REF(constructor);
-
 struct recv_data {
     pbuf* p;
     char addr[ZTS_IP_MAX_STR_LEN];
@@ -24,6 +22,8 @@ using OnRecvTSFN = Napi::TypedThreadSafeFunction<nullptr_t, recv_data, tsfnOnRec
 CLASS(Socket)
 {
   public:
+    static Napi::FunctionReference* constructor;
+
     CLASS_INIT_DECL();
     CONSTRUCTOR_DECL(Socket);
 
@@ -55,6 +55,8 @@ CLASS(Socket)
         return VOID;
     }
 };
+
+Napi::FunctionReference* Socket::constructor = new Napi::FunctionReference;
 
 CLASS_INIT_IMPL(Socket)
 {

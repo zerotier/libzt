@@ -31,7 +31,7 @@
 
 METHOD(init_from_storage)
 {
-    NB_ARGS(1)
+    NB_ARGS(1);
     auto configPath = ARG_STRING(0);
 
     int err = zts_init_from_storage(std::string(configPath).c_str());
@@ -60,7 +60,7 @@ void event_handler(void* msgPtr)
  */
 METHOD(init_set_event_handler)
 {
-    NB_ARGS(1)
+    NB_ARGS(1);
     auto cb = ARG_FUNC(0);
 
     event_callback = Napi::ThreadSafeFunction::New(env, cb, "zts_event_listener", 0, 1);
@@ -136,7 +136,7 @@ uint64_t convert_net_id(std::string net_id)
 
 METHOD(net_join)
 {
-    NB_ARGS(1)
+    NB_ARGS(1);
     auto net_id = ARG_STRING(0);
 
     int err = zts_net_join(convert_net_id(net_id));
@@ -147,7 +147,7 @@ METHOD(net_join)
 
 METHOD(net_leave)
 {
-    NB_ARGS(1)
+    NB_ARGS(1);
     auto net_id = ARG_STRING(0);
 
     int err = zts_net_leave(convert_net_id(net_id));
@@ -158,7 +158,7 @@ METHOD(net_leave)
 
 METHOD(net_transport_is_ready)
 {
-    NB_ARGS(1)
+    NB_ARGS(1);
     auto net_id = ARG_STRING(0);
 
     return BOOL(zts_net_transport_is_ready(convert_net_id(net_id)));
@@ -168,7 +168,7 @@ METHOD(net_transport_is_ready)
 
 METHOD(addr_get_str)
 {
-    NB_ARGS(2)
+    NB_ARGS(2);
     auto net_id = ARG_STRING(0);
     auto ipv6 = ARG_BOOLEAN(1);
 
@@ -186,7 +186,7 @@ METHOD(addr_get_str)
 
 METHOD(bsd_socket)
 {
-    NB_ARGS(3)
+    NB_ARGS(3);
     auto family = ARG_NUMBER(0);
     auto type = ARG_NUMBER(1);
     auto protocol = ARG_NUMBER(2);
@@ -199,7 +199,7 @@ METHOD(bsd_socket)
 
 METHOD(bsd_close)
 {
-    NB_ARGS(1)
+    NB_ARGS(1);
     auto fd = ARG_NUMBER(0);
 
     int err = zts_bsd_close(fd);
@@ -210,7 +210,7 @@ METHOD(bsd_close)
 
 METHOD(bsd_send)
 {
-    NB_ARGS(4)
+    NB_ARGS(4);
     int fd = ARG_NUMBER(0);
     auto data = ARG_UINT8ARRAY(1);
     int flags = ARG_NUMBER(2);
@@ -230,7 +230,7 @@ METHOD(bsd_send)
 
 METHOD(bsd_recv)
 {
-    NB_ARGS(4)
+    NB_ARGS(4);
     auto fd = ARG_NUMBER(0);
     int n = ARG_NUMBER(1);
     auto flags = ARG_NUMBER(2);
@@ -246,7 +246,7 @@ METHOD(bsd_recv)
 
 METHOD(bind)
 {
-    NB_ARGS(3)
+    NB_ARGS(3);
     auto fd = ARG_NUMBER(0);
     std::string ipstr = ARG_STRING(1);
     int port = ARG_NUMBER(2);
@@ -259,7 +259,7 @@ METHOD(bind)
 
 METHOD(listen)
 {
-    NB_ARGS(2)
+    NB_ARGS(2);
     auto fd = ARG_NUMBER(0);
     auto backlog = ARG_NUMBER(1);
 
@@ -271,7 +271,7 @@ METHOD(listen)
 
 METHOD(accept)
 {
-    NB_ARGS(2)
+    NB_ARGS(2);
     int fd = ARG_NUMBER(0);
     auto cb = ARG_FUNC(1);
 
@@ -291,7 +291,7 @@ METHOD(accept)
 
 METHOD(connect)
 {
-    NB_ARGS(5)
+    NB_ARGS(5);
     int fd = ARG_NUMBER(0);
     std::string ipstr = ARG_STRING(1);
     int port = ARG_NUMBER(2);
@@ -310,7 +310,7 @@ METHOD(connect)
 
 METHOD(shutdown_rd)
 {
-    NB_ARGS(1)
+    NB_ARGS(1);
     auto fd = ARG_NUMBER(0);
 
     int err = zts_shutdown_rd(fd);
@@ -321,7 +321,7 @@ METHOD(shutdown_rd)
 
 METHOD(shutdown_wr)
 {
-    NB_ARGS(1)
+    NB_ARGS(1);
     auto fd = ARG_NUMBER(0);
 
     int err = zts_shutdown_wr(fd);
@@ -332,7 +332,7 @@ METHOD(shutdown_wr)
 
 METHOD(getpeername)
 {
-    NB_ARGS(1)
+    NB_ARGS(1);
     auto fd = ARG_NUMBER(0);
 
     char addr[ZTS_IP_MAX_STR_LEN];
@@ -349,7 +349,7 @@ METHOD(getpeername)
 
 METHOD(getsockname)
 {
-    NB_ARGS(1)
+    NB_ARGS(1);
     auto fd = ARG_NUMBER(0);
 
     char addr[ZTS_IP_MAX_STR_LEN];
@@ -366,7 +366,7 @@ METHOD(getsockname)
 
 METHOD(set_recv_timeout)
 {
-    NB_ARGS(3)
+    NB_ARGS(3);
     auto fd = ARG_NUMBER(0);
     auto seconds = ARG_NUMBER(1);
     auto microseconds = ARG_NUMBER(2);
@@ -379,7 +379,7 @@ METHOD(set_recv_timeout)
 
 METHOD(set_send_timeout)
 {
-    NB_ARGS(3)
+    NB_ARGS(3);
     auto fd = ARG_NUMBER(0);
     auto seconds = ARG_NUMBER(1);
     auto microseconds = ARG_NUMBER(2);

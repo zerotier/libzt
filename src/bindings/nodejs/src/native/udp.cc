@@ -115,7 +115,7 @@ void tsfnOnRecv(TSFN_ARGS, nullptr_t* ctx, recv_data* rd)
  */
 CONSTRUCTOR_IMPL(Socket)
 {
-    NB_ARGS(2)
+    NB_ARGS(2);
     auto ipv6 = ARG_BOOLEAN(0);
     auto recvCallback = ARG_FUNC(1);
 
@@ -136,7 +136,7 @@ CONSTRUCTOR_IMPL(Socket)
 
 CLASS_METHOD_IMPL(Socket, send)
 {
-    NB_ARGS(4)
+    NB_ARGS(4);
     auto data = ARG_UINT8ARRAY(0);
     std::string addr = ARG_STRING(1);
     int port = ARG_NUMBER(2);
@@ -179,7 +179,7 @@ CLASS_METHOD_IMPL(Socket, send)
 
 CLASS_METHOD_IMPL(Socket, bind)
 {
-    NB_ARGS(3)
+    NB_ARGS(3);
     std::string addr = ARG_STRING(0);
     int port = ARG_NUMBER(1);
     auto callback = ARG_FUNC(2);
@@ -212,7 +212,7 @@ CLASS_METHOD_IMPL(Socket, bind)
 
 CLASS_METHOD_IMPL(Socket, close)
 {
-    NB_ARGS(1)
+    NB_ARGS(1);
     auto callback = ARG_FUNC(0);
 
     if (pcb) {
@@ -261,7 +261,7 @@ CLASS_METHOD_IMPL(Socket, remoteAddress)
 
 CLASS_METHOD_IMPL(Socket, connect)
 {
-    NB_ARGS(3)
+    NB_ARGS(3);
 
     std::string address = ARG_STRING(0);
     int port = ARG_NUMBER(1);

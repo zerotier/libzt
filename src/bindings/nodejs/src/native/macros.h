@@ -13,10 +13,7 @@
     NODE_API_MODULE(NAME, Init_Wrap);                                                                                  \
     void Init(Napi::Env env, Napi::Object exports)
 
-#define EXPORT(F)                                                                                                      \
-    do {                                                                                                               \
-        exports[#F] = Napi::Function::New(env, F);                                                                     \
-    } while (0)
+#define EXPORT(F) exports[#F] = Napi::Function::New(env, F)
 
 // CLASS
 
@@ -56,9 +53,11 @@
 
 #define NB_ARGS(N)                                                                                                     \
     Napi::Env env = info.Env();                                                                                        \
-    if (info.Length() < N) {                                                                                           \
-        throw Napi::TypeError::New(env, "Wrong number of arguments. Expected: " #N);                                   \
-    }
+    do {                                                                                                               \
+        if (info.Length() < N) {                                                                                       \
+            throw Napi::TypeError::New(env, "Wrong number of arguments. Expected: " #N);                               \
+        }                                                                                                              \
+    } while (0)
 
 #define ARG_FUNC(POS)                                                                                                  \
     [&]() {                                                                                                            \

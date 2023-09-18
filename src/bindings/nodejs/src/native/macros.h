@@ -52,7 +52,7 @@
 
 // ENVIRONMENT AND ARGUMENTS
 
-#define NO_ARGS() Napi::Env env = info.Env();
+#define NO_ARGS() Napi::Env env = info.Env()
 
 #define NB_ARGS(N)                                                                                                     \
     Napi::Env env = info.Env();                                                                                        \
@@ -118,6 +118,13 @@
         \ 
         auto __ref = new Napi::Reference<Napi::Uint8Array>;                                                            \
         *__ref = Napi::Persistent(ARRAY);                                                                              \
+        return __ref;                                                                                                  \
+    }()
+
+#define NEW_REF_FUNC(FUNC)                                                                                             \
+    [&]() {                                                                                                            \
+        auto __ref = new Napi::FunctionReference;                                                            \
+        *__ref = Napi::Persistent(FUNC);                                                                               \
         return __ref;                                                                                                  \
     }()
 

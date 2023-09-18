@@ -42,4 +42,11 @@
             __data);                                                                                                   \
     }();
 
+
+#define FREE_PBUF(PTR)                                                                                                 \
+    do {                                                                                                               \
+        tcpip_callback([](void* p) { pbuf_free((pbuf*)p); }, PTR);                                                     \
+    } while (0)
+
+
 #endif

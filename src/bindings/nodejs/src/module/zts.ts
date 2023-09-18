@@ -1,7 +1,7 @@
 
 export interface ZtsError extends Error { code?: number, errno?: number }
 
-export interface UDPError extends Error { code?: udpErrorCodes }
+export interface UDPError extends Error { code?: SocketErrors }
 
 
 declare class UDP {
@@ -79,7 +79,7 @@ export enum errors {
 }
 
 /** Definitions for error constants. */
-export enum udpErrorCodes {
+export enum SocketErrors {
     /** No error, everything OK. */
     ERR_OK = 0,
     /** Out of memory error.     */

@@ -75,7 +75,7 @@ METHOD(init_set_event_handler)
 
 METHOD(node_start)
 {
-    NO_ARGS()
+    NO_ARGS();
 
     int err = zts_node_start();
     ERROR(err, "node_start");
@@ -85,13 +85,13 @@ METHOD(node_start)
 
 METHOD(node_is_online)
 {
-    NO_ARGS()
+    NO_ARGS();
     return BOOL(zts_node_is_online());
 }
 
 METHOD(node_get_id)
 {
-    NO_ARGS()
+    NO_ARGS();
 
     auto id = zts_node_get_id();
 
@@ -103,7 +103,7 @@ METHOD(node_get_id)
 
 METHOD(node_stop)
 {
-    NO_ARGS()
+    NO_ARGS();
 
     int err = zts_node_stop();
     ERROR(err, "node_stop");
@@ -116,7 +116,7 @@ METHOD(node_stop)
 
 METHOD(node_free)
 {
-    NO_ARGS()
+    NO_ARGS();
 
     int err = zts_node_free();
     ERROR(err, "node_free");

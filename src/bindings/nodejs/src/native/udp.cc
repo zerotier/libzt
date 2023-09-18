@@ -152,32 +152,25 @@ CLASS_METHOD_IMPL(Socket, send)
     if (port)
         ipaddr_aton(addr.c_str(), &ip_addr);
 
-    TCPIP_CALLBACK(
-        {
-            struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
-            p->payload = buffer;
+    typed_tcpip_callback([=]() {
+        struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
+        p->payload = buffer;
 
-            auto err = port ? udp_sendto(pcb, p, &ip_addr, port) : udp_send(pcb, p);
+        auto err = port ? udp_sendto(pcb, p, &ip_addr, port) : udp_send(pcb, p);
 
-            onSent->BlockingCall([err](TSFN_ARGS) {
-                if (err != ERR_OK) {
-                    auto error = Napi::Error::New(env, "send error");
-                    error.Set("code", NUMBER(err));
-                    jsCallback.Call({ error.Value() });
-                }
-                else
-                    jsCallback.Call({});
-            });
-            onSent->Release();
+        onSent->BlockingCall([err](TSFN_ARGS) {
+            if (err != ERR_OK) {
+                auto error = Napi::Error::New(env, "send error");
+                error.Set("code", NUMBER(err));
+                jsCallback.Call({ error.Value() });
+            }
+            else
+                jsCallback.Call({});
+        });
+        onSent->Release();
 
-            pbuf_free(p);
-        },
-        pcb,
-        len,
-        buffer,
-        port,
-        ip_addr,
-        onSent)
+        pbuf_free(p);
+    });
 
     return VOID;
 }
@@ -197,25 +190,20 @@ CLASS_METHOD_IMPL(Socket, bind)
     else
         ipaddr_aton(addr.c_str(), &ip_addr);
 
-    TCPIP_CALLBACK(
-        {
-            auto err = udp_bind(pcb, &ip_addr, port);
+    typed_tcpip_callback([=]() {
+        auto err = udp_bind(pcb, &ip_addr, port);
 
-            bindCb->BlockingCall([err](TSFN_ARGS) {
-                if (err != ERR_OK) {
-                    auto error = Napi::Error::New(env, "Bind error");
-                    error.Set("code", NUMBER(err));
-                    jsCallback.Call({ error.Value() });
-                }
-                else
-                    jsCallback.Call({});
-            });
-            bindCb->Release();
-        },
-        pcb,
-        ip_addr,
-        port,
-        bindCb)
+        bindCb->BlockingCall([err](TSFN_ARGS) {
+            if (err != ERR_OK) {
+                auto error = Napi::Error::New(env, "Bind error");
+                error.Set("code", NUMBER(err));
+                jsCallback.Call({ error.Value() });
+            }
+            else
+                jsCallback.Call({});
+        });
+        bindCb->Release();
+    });
 
     return VOID;
 }
@@ -228,15 +216,12 @@ CLASS_METHOD_IMPL(Socket, close)
     if (pcb) {
         auto onClose = TSFN_ONCE(callback, "udpOnClose", { this->onRecv.Abort(); });
 
-        TCPIP_CALLBACK(
-            {
-                udp_remove(pcb);
+        typed_tcpip_callback([=]() {
+            udp_remove(pcb);
 
-                onClose->BlockingCall();
-                onClose->Release();
-            },
-            pcb,
-            onClose);
+            onClose->BlockingCall();
+            onClose->Release();
+        });
 
         pcb = nullptr;
     }
@@ -284,25 +269,20 @@ CLASS_METHOD_IMPL(Socket, connect)
     ip_addr_t addr;
     ipaddr_aton(address.c_str(), &addr);
 
-    TCPIP_CALLBACK(
-        {
-            auto err = udp_connect(pcb, &addr, port);
+    typed_tcpip_callback([=]() {
+        auto err = udp_connect(pcb, &addr, port);
 
-            onConnect->BlockingCall([err](TSFN_ARGS) {
-                if (err != ERR_OK) {
-                    auto error = Napi::Error::New(env, "Connect error");
-                    error.Set("code", NUMBER(err));
-                    jsCallback.Call({ error.Value() });
-                }
-                else
-                    jsCallback.Call({});
-            });
-            onConnect->Release();
-        },
-        pcb,
-        addr,
-        port,
-        onConnect);
+        onConnect->BlockingCall([err](TSFN_ARGS) {
+            if (err != ERR_OK) {
+                auto error = Napi::Error::New(env, "Connect error");
+                error.Set("code", NUMBER(err));
+                jsCallback.Call({ error.Value() });
+            }
+            else
+                jsCallback.Call({});
+        });
+        onConnect->Release();
+    });
 
     return VOID;
 }

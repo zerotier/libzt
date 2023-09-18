@@ -1,5 +1,6 @@
 #include "lwip/tcp.h"
 
+#include "lwip/tcpip.h"
 #include "macros.h"
 
 #include <napi.h>
@@ -15,8 +16,10 @@ CLASS(Server)
     CONSTRUCTOR_DECL(Server);
 
   private:
-    tcp_pcb* pcb;  
+    tcp_pcb* pcb;
 };
+
+Napi::FunctionReference* Server::constructor = new Napi::FunctionReference;
 
 CONSTRUCTOR_IMPL(Server)
 {
@@ -25,10 +28,9 @@ CONSTRUCTOR_IMPL(Server)
     tcpip_callback(
         [](void* ctx) {
             auto thiz = (Server*)ctx;
-            
+
             thiz->pcb = tcp_new();
             tcp_arg(thiz->pcb, thiz);
-            
         },
         this);
 }
@@ -41,7 +43,7 @@ CLASS_INIT_IMPL(Server)
 
         });
 
-    constructor = NEW_REF_FUNC(func);
+    *Server::constructor = Napi::Persistent(func);
 
     exports["Server"] = func;
     return exports;
@@ -61,6 +63,8 @@ CLASS(Socket)
     struct tcp_pcb* pcb;
 };
 
+Napi::FunctionReference* Socket::constructor = new Napi::FunctionReference;
+
 CONSTRUCTOR_IMPL(Socket)
 {
     NO_ARGS();
@@ -74,7 +78,7 @@ CLASS_INIT_IMPL(Socket)
 
         });
 
-    constructor = NEW_REF_FUNC(func);
+    *constructor = Napi::Persistent(func);
 
     exports["Socket"] = func;
     return exports;

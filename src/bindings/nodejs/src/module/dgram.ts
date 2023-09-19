@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { UDPError, zts } from "./zts";
+import { NativeError, zts } from "./zts";
 import { isIPv6 } from "net";
 
 
@@ -7,7 +7,7 @@ interface UDPSocketEvents {
     "close": () => void
     "message": (msg: Buffer, rinfo: { address: string, family: "udp4" | "udp6", port: number, size: number }) => void
     "listening": () => void
-    "error": (err: UDPError) => void
+    "error": (err: NativeError) => void
 }
 
 
@@ -68,7 +68,7 @@ class Socket extends EventEmitter {
         });
     }
 
-    send(msg: Buffer, port?: number, address?: string, callback?: (err?: UDPError) => void): void {
+    send(msg: Buffer, port?: number, address?: string, callback?: (err?: NativeError) => void): void {
         this.checkClosed();
         if (this.connected) {
             port = 0;
@@ -77,7 +77,7 @@ class Socket extends EventEmitter {
         }
         if (!address) address = this.ipv6 ? "::1" : "127.0.0.1";
 
-        const cb = this.bound ? this.handleError(callback) : (err?: UDPError) => {
+        const cb = this.bound ? this.handleError(callback) : (err?: NativeError) => {
             if (!err) this.emit("listening");
 
             this.handleError(callback)(err);
@@ -92,12 +92,12 @@ class Socket extends EventEmitter {
         this.internal.close(() => this.emit("close"));
     }
 
-    connect(port: number, address: string, callback?: (error?: UDPError) => void) {
+    connect(port: number, address: string, callback?: (error?: NativeError) => void) {
         this.checkClosed();
         if (!port) throw Error("Port must be specified");
         if (!address) address = this.ipv6 ? "::1" : "127.0.0.1";
 
-        this.internal.connect(address, port, (err?: UDPError) => {
+        this.internal.connect(address, port, (err?: NativeError) => {
             if (err) this.handleError(callback)(err);
             else {
                 if (callback) this.once("connect", callback);
@@ -112,7 +112,7 @@ class Socket extends EventEmitter {
         this.connected = false;
     }
 
-    private handleError(callback?: (err?: UDPError) => void) {
+    private handleError(callback?: (err?: NativeError) => void) {
         return (err?: Error) => {
             if (callback) callback(err);
             else {

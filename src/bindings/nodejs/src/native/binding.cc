@@ -433,5 +433,7 @@ INIT_ADDON(zts)
 
 
     INIT_CLASS(TCP::Socket);
+    INIT_CLASS(TCP::Server);
+    
     INIT_CLASS(UDP::Socket);
 }

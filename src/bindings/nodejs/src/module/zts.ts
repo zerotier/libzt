@@ -1,21 +1,31 @@
 
 export interface ZtsError extends Error { code?: number, errno?: number }
 
-export interface UDPError extends Error { code?: SocketErrors }
+export interface NativeError extends Error { code?: SocketErrors }
 
+
+declare class Socket {
+
+}
+
+declare class Server {
+    constructor(onConnection: (error: NativeError | undefined, socket: Socket) => void)
+    listen(port: number, address: string, onListening: (error?: NativeError) => void): void
+    address(): { port: number, address: string, family: "IPv6" | "IPv4" }
+}
 
 declare class UDP {
     constructor(ipv6: boolean, recvCallback: (data: Buffer, addr: string, port: number) => void)
 
-    send(data: Uint8Array, addr: string, port: number, callback: (error?: UDPError) => void): void
-    bind(addr: string, port: number, callback: (error?: UDPError) => void): void
+    send(data: Uint8Array, addr: string, port: number, callback: (error?: NativeError) => void): void
+    bind(addr: string, port: number, callback: (error?: NativeError) => void): void
     close(callback: () => void): void
 
 
     address(): { port: number, address: string, family: "udp6" | "udp4" }
     remoteAddress(): { port: number, address: string, family: "udp6" | "udp4" }
 
-    connect(addr: string, port: number, callback?: (error?: UDPError) => void): void
+    connect(addr: string, port: number, callback?: (error?: NativeError) => void): void
     disconnect(): void
 
     ref(): void
@@ -57,6 +67,8 @@ type ZTS = {
     set_send_timeout(fd: number, seconds: number, microseconds: number): void
 
     UDP: new (ipv6: boolean, recvCallback: (data: Buffer, addr: string, port: number) => void) => UDP;
+
+    Server: new (onConnection: (error: NativeError | undefined, socket: Socket) => void) => Server;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires

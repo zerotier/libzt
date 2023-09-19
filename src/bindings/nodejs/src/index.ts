@@ -17,3 +17,4 @@ export * from "./module/zts";
 export * from "./module/Socket";
 export * from "./module/Server";
 export * as dgram from "./module/dgram";
+export * as net from "./module/net";

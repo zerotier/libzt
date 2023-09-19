@@ -161,11 +161,8 @@ CLASS_METHOD_IMPL(Socket, send)
         auto err = port ? udp_sendto(pcb, p, &ip_addr, port) : udp_send(pcb, p);
 
         onSent->BlockingCall([err](TSFN_ARGS) {
-            if (err != ERR_OK) {
-                auto error = Napi::Error::New(env, "send error");
-                error.Set("code", NUMBER(err));
-                jsCallback.Call({ error.Value() });
-            }
+            if (err != ERR_OK)
+                jsCallback.Call({ MAKE_ERROR("send error", { ERR_FIELD("code", NUMBER(err)); }).Value() });
             else
                 jsCallback.Call({});
         });
@@ -196,11 +193,8 @@ CLASS_METHOD_IMPL(Socket, bind)
         auto err = udp_bind(pcb, &ip_addr, port);
 
         bindCb->BlockingCall([err](TSFN_ARGS) {
-            if (err != ERR_OK) {
-                auto error = Napi::Error::New(env, "Bind error");
-                error.Set("code", NUMBER(err));
-                jsCallback.Call({ error.Value() });
-            }
+            if (err != ERR_OK)
+                jsCallback.Call({ MAKE_ERROR("Bind error", { ERR_FIELD("code", NUMBER(err)); }).Value() });
             else
                 jsCallback.Call({});
         });
@@ -275,11 +269,8 @@ CLASS_METHOD_IMPL(Socket, connect)
         auto err = udp_connect(pcb, &addr, port);
 
         onConnect->BlockingCall([err](TSFN_ARGS) {
-            if (err != ERR_OK) {
-                auto error = Napi::Error::New(env, "Connect error");
-                error.Set("code", NUMBER(err));
-                jsCallback.Call({ error.Value() });
-            }
+            if (err != ERR_OK)
+                jsCallback.Call({ MAKE_ERROR("connect error", { ERR_FIELD("code", NUMBER(err)); }).Value() });
             else
                 jsCallback.Call({});
         });

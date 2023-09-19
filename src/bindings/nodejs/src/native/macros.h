@@ -147,4 +147,15 @@
 
 #define TSFN_ARGS Napi::Env env, Napi::Function jsCallback
 
+// error creation
+
+#define MAKE_ERROR(REASON, FIELDS)                                                                                     \
+    [&]() {                                                                                                            \
+        auto __error = Napi::Error::New(env, REASON);                                                                  \
+        FIELDS;                                                                                                        \
+        return __error;                                                                                                \
+    }()
+
+#define ERR_FIELD(NAME, VALUE) __error.Set(STRING(NAME), VALUE)
+
 #endif   // NAPI_MACROS

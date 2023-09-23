@@ -18,7 +18,7 @@ export declare interface Server {
 }
 
 export class Server extends EventEmitter {
-    private fd: number;
+    private fd = -1;
     private listening = false;
 
 

@@ -30,7 +30,7 @@ async function main() {
     try {
         console.log(zts.addr_get_str(nwid, true));
     } catch (error) {
-        console.log(error.toString());
+        console.log(error);
     }
 
 

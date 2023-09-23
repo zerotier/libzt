@@ -114,18 +114,10 @@
  */
 #define NEW_REF_UINT8ARRAY(ARRAY)                                                                                      \
     [&]() {                                                                                                            \
-        \ 
         auto __ref = new Napi::Reference<Napi::Uint8Array>;                                                            \
         *__ref = Napi::Persistent(ARRAY);                                                                              \
         return __ref;                                                                                                  \
     }()
-
-// #define NEW_REF_FUNC(FUNC)                                                                                             \
-//     [&]() {                                                                                                            \
-//         auto __ref = new Napi::FunctionReference;                                                            \
-//         *__ref = Napi::Persistent(FUNC);                                                                               \
-//         return __ref;                                                                                                  \
-//     }()
 
 // Threadsafe
 

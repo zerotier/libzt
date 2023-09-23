@@ -31,22 +31,44 @@ async function main() {
     try {
         console.log(zts.addr_get_str(nwid, true));
     } catch (error) {
-        console.log(error.toString());
+        console.log(error);
     }
 
 
 
     if (server) {
-        const server = new net.Server({});
+        const server = new net.Server({}, socket => {
+            console.log("connection");
+            
+            const list: Buffer[] = [];
+            socket.on("data", (data: Buffer) => {
+                list.push(data);
+                console.log(list[0].toString().slice(0,20));
+                console.log(data.length);
+            });
+        });
         server.listen(port, "::", () => {
             console.log("listening");
             console.log(server.address());
         });
     } else {
         const socket = connect(host, port);
-        socket.on("connect", () => console.log("connected"));
+        socket.on("connect", async () => {
+            console.log("connected");
+
+            for (let i = 0; i < 100000; i++) {
+                console.log(`sending ${i}`);
+
+                socket.write(Buffer.from(`hello ${i} it is me :)`.repeat(100)));
+                await setTimeout(5);
+            }
+
+            socket.write(Buffer.from("hello!"));
+        });
         socket.on("error", error => console.log(error));
         socket.on("data", data => console.log(data));
+
+
     }
 }
 

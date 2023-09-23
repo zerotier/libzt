@@ -82,7 +82,7 @@ void lwip_recv_cb(void* arg, struct udp_pcb* pcb, struct pbuf* p, const ip_addr_
 {
     auto thiz = (Socket*)arg;
 
-    recv_data* rd = new recv_data { p : p, port : port };
+    recv_data* rd = new recv_data { p : p, addr : 0, port : port };
     ipaddr_ntoa_r(addr, rd->addr, ZTS_IP_MAX_STR_LEN);
 
     thiz->onRecv.BlockingCall(rd);

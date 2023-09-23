@@ -1,20 +1,20 @@
-import { EventEmitter } from "events";
-import { zts } from "./zts";
+import { EventEmitter } from "node:events";
+import { nativeSocket, zts } from "./zts";
+import { Duplex } from "node:stream";
 
 export class Server extends EventEmitter {
     private listening = false;
     private internal;
 
 
-    constructor(options: Record<string, never>, connectionListener?: () => void) {
+    constructor(options: Record<string, never>, connectionListener?: (socket: Socket) => void) {
         super();
         if (connectionListener) this.on("connection", connectionListener);
 
         this.internal = new zts.Server((error, socket) => {
-            console.log(error);
-            console.log(socket);
+            const s = new Socket({}, socket);
 
-            // todo add listeners to socket, emit
+            process.nextTick(() => this.emit("connection", s));
         });
     }
 
@@ -31,6 +31,31 @@ export class Server extends EventEmitter {
 
     address() {
         return this.internal.address();
+    }
+}
+
+/**
+ * 
+ */
+
+
+class Socket extends Duplex {
+    private internal: nativeSocket;
+    private reading = false;
+
+    constructor(options: { allowHalfOpen?: boolean }, internal?: nativeSocket) {
+        super({
+            ...options
+        });
+
+        this.internal = internal ?? new zts.Socket();
+        this.internal.init((data) => {
+            this.push(data);
+        });
+    }
+
+    _read() {
+        //
     }
 }
 

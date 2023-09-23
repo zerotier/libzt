@@ -1,5 +1,6 @@
 #include "lwip/tcp.h"
 
+#include "ZeroTierSockets.h"
 #include "lwip-macros.h"
 #include "lwip/tcpip.h"
 #include "macros.h"
@@ -11,6 +12,9 @@ namespace TCP {
 /* #########################################
  * ###############  SOCKET  ################
  * ######################################### */
+class Socket;
+void tsfnOnRecv(TSFN_ARGS, Socket* socket, pbuf* p);
+using OnRecvTSFN = Napi::TypedThreadSafeFunction<Socket, pbuf, tsfnOnRecv>;
 
 CLASS(Socket)
 {
@@ -23,24 +27,70 @@ CLASS(Socket)
     tcp_pcb* pcb;
 
   private:
+    OnRecvTSFN onRecv;
+
     METHOD(connect);
+    METHOD(init);
 };
 
 Napi::FunctionReference* Socket::constructor = new Napi::FunctionReference;
+
+CLASS_INIT_IMPL(Socket)
+{
+    auto func = CLASS_DEFINE(Socket, { CLASS_INSTANCE_METHOD(Socket, connect), CLASS_INSTANCE_METHOD(Socket, init) });
+
+    *constructor = Napi::Persistent(func);
+
+    exports["Socket"] = func;
+    return exports;
+}
 
 CONSTRUCTOR_IMPL(Socket)
 {
     NO_ARGS();
 }
 
-CLASS_INIT_IMPL(Socket)
+void tsfnOnRecv(TSFN_ARGS, Socket* thiz, pbuf* p)
 {
-    auto func = CLASS_DEFINE(Socket, { CLASS_INSTANCE_METHOD(Socket, connect) });
+    if (env == NULL) {
+        // cleanup
+        if (p)
+            FREE_PBUF(p);
+    }
 
-    *constructor = Napi::Persistent(func);
+    if (! p) {
+        jsCallback.Call({ VOID });
+        // TODO end tsfn
+    }
+    else {
+        const auto len = p->len;
+        auto data = Napi::Buffer<char>::NewOrCopy(env, (char*)p->payload, p->len, [p](Napi::Env env, char* data) {
+            FREE_PBUF(p);
+        });
+        jsCallback.Call({ data });
+        typed_tcpip_callback([=]() { tcp_recved(thiz->pcb, len); });
+    }
+}
 
-    exports["Socket"] = func;
-    return exports;
+CLASS_METHOD_IMPL(Socket, init)
+{
+    NB_ARGS(1);
+    auto onRecv = ARG_FUNC(0);
+    this->onRecv = OnRecvTSFN::New(env, onRecv, "tcpOnRecv", 0, 1, this);
+
+    typed_tcpip_callback([=]() {
+        if (! this->pcb)
+            this->pcb = tcp_new();
+        tcp_arg(this->pcb, this);
+
+        tcp_recv(this->pcb, [](void* arg, struct tcp_pcb* tpcb, struct pbuf* p, err_t err) -> err_t {
+            auto thiz = (Socket*)arg;
+            thiz->onRecv.BlockingCall(p);
+            return ERR_OK;
+        });
+    });
+
+    return VOID;
 }
 
 CLASS_METHOD_IMPL(Socket, connect)
@@ -51,6 +101,8 @@ CLASS_METHOD_IMPL(Socket, connect)
 
     ip_addr_t ip_addr;
     ipaddr_aton(address.c_str(), &ip_addr);
+
+    return VOID;
 }
 
 /* #########################################

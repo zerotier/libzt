@@ -4,12 +4,13 @@ export interface ZtsError extends Error { code?: number, errno?: number }
 export interface NativeError extends Error { code?: SocketErrors }
 
 
-declare class Socket {
-
+export declare class nativeSocket {
+    constructor()
+    init(onRecv: (data: Buffer | undefined) => void): void
 }
 
 declare class Server {
-    constructor(onConnection: (error: NativeError | undefined, socket: Socket) => void)
+    constructor(onConnection: (error: NativeError | undefined, socket: nativeSocket) => void)
     listen(port: number, address: string, onListening: (error?: NativeError) => void): void
     address(): { port: number, address: string, family: "IPv6" | "IPv4" }
 }
@@ -68,11 +69,12 @@ type ZTS = {
 
     UDP: new (ipv6: boolean, recvCallback: (data: Buffer, addr: string, port: number) => void) => UDP;
 
-    Server: new (onConnection: (error: NativeError | undefined, socket: Socket) => void) => Server;
+    Server: new (onConnection: (error: NativeError | undefined, socket: nativeSocket) => void) => Server;
+    Socket: new () => nativeSocket;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-export const zts = require("../../build/Release/nodezt.node") as ZTS;
+export const zts = require("../../build/Debug/nodezt.node") as ZTS;
 
 
 export enum errors {

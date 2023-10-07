@@ -59,33 +59,15 @@
         }                                                                                                              \
     } while (0)
 
-#define ARG_FUNC(POS)                                                                                                  \
-    [&]() {                                                                                                            \
-        if (! info[POS].IsFunction()) {                                                                                \
-            throw Napi::TypeError::New(env, "Argument at position " #POS "should be a function.");                     \
-        }                                                                                                              \
-        return info[POS].As<Napi::Function>();                                                                         \
-    }()
+#define ARG_FUNC(POS) [&]() { return info[POS].As<Napi::Function>(); }()
 
-#define ARG_NUMBER(POS)                                                                                                \
-    [&]() {                                                                                                            \
-        if (! info[POS].IsNumber()) {                                                                                  \
-            throw Napi::TypeError::New(env, "Argument at position " #POS "should be a number.");                       \
-        }                                                                                                              \
-        return info[POS].As<Napi::Number>();                                                                           \
-    }()
+#define ARG_NUMBER(POS) [&]() { return info[POS].As<Napi::Number>(); }()
 
 #define ARG_STRING(POS) [&]() { return info[POS].ToString(); }()
 
 #define ARG_BOOLEAN(POS) [&]() { return info[POS].ToBoolean(); }()
 
-#define ARG_UINT8ARRAY(POS)                                                                                            \
-    [&]() {                                                                                                            \
-        if (! info[POS].IsTypedArray()) {                                                                              \
-            throw Napi::TypeError::New(env, "Argument at position " #POS "should be a Uint8Array.");                   \
-        }                                                                                                              \
-        return info[POS].As<Napi::Uint8Array>();                                                                       \
-    }()
+#define ARG_UINT8ARRAY(POS) [&]() { return info[POS].As<Napi::Uint8Array>(); }()
 
 // WRAP DATA
 
@@ -98,13 +80,13 @@
 #define NUMBER(VALUE) Napi::Number::New(env, VALUE)
 
 // use inside of an OBJECT def macro
-#define ADD_FIELD(NAME, VALUE) ret_obj[NAME] = VALUE;
+#define ADD_FIELD(NAME, VALUE) __ret_obj[NAME] = VALUE;
 
 #define OBJECT(FIELDS)                                                                                                 \
     [&] {                                                                                                              \
-        auto ret_obj = Napi::Object::New(env);                                                                         \
+        auto __ret_obj = Napi::Object::New(env);                                                                       \
         FIELDS                                                                                                         \
-        return ret_obj;                                                                                                \
+        return __ret_obj;                                                                                              \
     }()
 
 // Reference

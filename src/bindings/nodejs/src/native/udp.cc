@@ -91,7 +91,7 @@ void lwip_recv_cb(void* arg, struct udp_pcb* pcb, struct pbuf* p, const ip_addr_
 void tsfnOnRecv(TSFN_ARGS, nullptr_t* ctx, recv_data* rd)
 {
     if (env == NULL) {
-        FREE_PBUF(rd->p);
+        ts_pbuf_free(rd->p);
         delete rd;
 
         return;
@@ -99,7 +99,7 @@ void tsfnOnRecv(TSFN_ARGS, nullptr_t* ctx, recv_data* rd)
     pbuf* p = rd->p;
 
     auto data =
-        Napi::Buffer<char>::NewOrCopy(env, (char*)p->payload, p->len, [p](Napi::Env env, char* data) { FREE_PBUF(p); });
+        Napi::Buffer<char>::NewOrCopy(env, (char*)p->payload, p->len, [p](Napi::Env env, char* data) { ts_pbuf_free(p); });
 
     auto addr = STRING(rd->addr);
     auto port = NUMBER(rd->port);

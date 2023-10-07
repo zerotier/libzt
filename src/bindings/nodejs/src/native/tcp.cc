@@ -55,7 +55,8 @@ void tsfnOnRecv(TSFN_ARGS, Socket* thiz, pbuf* p)
     if (env == NULL) {
         // cleanup
         if (p)
-            FREE_PBUF(p);
+            ts_pbuf_free(p);
+        return;
     }
 
     if (! p) {
@@ -65,9 +66,10 @@ void tsfnOnRecv(TSFN_ARGS, Socket* thiz, pbuf* p)
     else {
         const auto len = p->len;
         auto data = Napi::Buffer<char>::NewOrCopy(env, (char*)p->payload, p->len, [p](Napi::Env env, char* data) {
-            FREE_PBUF(p);
+            ts_pbuf_free(p);
         });
         jsCallback.Call({ data });
+        // TODO use callback to return information about buffersize? (use poll instead?)
         typed_tcpip_callback([=]() { tcp_recved(thiz->pcb, len); });
     }
 }

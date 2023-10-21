@@ -21,7 +21,6 @@ async function main() {
     console.log(zts.node_get_id());
 
     const nwid = "ff0000ffff000000";
-    // const nwid = "b15644912e521679";
 
     zts.net_join(nwid);
 

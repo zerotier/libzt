@@ -1,8 +1,9 @@
 import { setTimeout } from "timers/promises";
 
-import { startNode, zts, net, Socket, connect } from "../index";
+import { startNode, zts, net, Socket, connectOld, Server } from "../index";
+import { createReadStream, createWriteStream } from "fs";
 
-
+import * as osNet from "net";
 
 async function main() {
 
@@ -21,6 +22,7 @@ async function main() {
     console.log(zts.node_get_id());
 
     const nwid = "ff0000ffff000000";
+    // const nwid = "b15644912e521679";
 
     zts.net_join(nwid);
 
@@ -35,39 +37,34 @@ async function main() {
     }
 
 
-
+    // const total = 100_000_000;// 1_000_000_000;
     if (server) {
         const server = new net.Server({}, socket => {
             console.log("connection");
-            
-            const list: Buffer[] = [];
-            socket.on("data", (data: Buffer) => {
-                list.push(data);
-                console.log(list[0].toString().slice(0,20));
-                console.log(data.length);
-            });
+            socket.on("end", ()=>console.log("socket ended"));
+            socket.on("close", ()=>console.log("socket closed"));
+
+            const input = createReadStream("./randombytes");
+            input.pipe(socket);
         });
         server.listen(port, "::", () => {
             console.log("listening");
             console.log(server.address());
         });
     } else {
-        const socket = connect(host, port);
-        socket.on("connect", async () => {
+        const socket = net.connect(port, host, async () => {
             console.log("connected");
 
-            for (let i = 0; i < 100000; i++) {
-                console.log(`sending ${i}`);
-
-                socket.write(Buffer.from(`hello ${i} it is me :)`.repeat(100)));
-                await setTimeout(5);
-            }
-
-            socket.write(Buffer.from("hello!"));
+            const output = createWriteStream("./randomreceived");
+            socket.pipe(output);
+            socket.on("end", () => {
+                console.log("socket ended");
+                socket.end();
+            });
         });
-        socket.on("error", error => console.log(error));
-        socket.on("data", data => console.log(data));
 
+        socket.on("error", error => console.log(error));
+        socket.on("close", () => console.log("socket closed in main"));
 
     }
 }

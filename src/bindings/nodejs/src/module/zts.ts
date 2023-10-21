@@ -1,4 +1,3 @@
-
 export interface ZtsError extends Error { code?: number, errno?: number }
 
 export interface NativeError extends Error { code?: SocketErrors }
@@ -6,9 +5,10 @@ export interface NativeError extends Error { code?: SocketErrors }
 
 export declare class nativeSocket {
     constructor()
-    init(onRecv: (data: Buffer | undefined) => void, onSent: (length: number)=>void): void
+    init(emit: (event: string, ...args: unknown[]) => boolean): void
+    connect(port: number, address: string): void
     ack(length: number): void
-    send(data: Uint8Array, callback: (length: number)=>void): void
+    send(data: Uint8Array, callback: (length: number) => void): void
     shutdown_wr(): void
 }
 

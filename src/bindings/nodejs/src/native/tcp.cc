@@ -12,9 +12,6 @@ namespace TCP {
 /* #########################################
  * ###############  SOCKET  ################
  * ######################################### */
-class Socket;
-void tsfnOnRecv(TSFN_ARGS, Socket* socket, pbuf* p);
-using OnRecvTSFN = Napi::TypedThreadSafeFunction<Socket, pbuf, tsfnOnRecv>;
 
 CLASS(Socket)
 {
@@ -24,11 +21,15 @@ CLASS(Socket)
     CLASS_INIT_DECL();
     CONSTRUCTOR_DECL(Socket);
 
-    tcp_pcb* pcb;
+    void set_pcb(tcp_pcb * pcb)
+    {
+        this->pcb = pcb;
+    }
 
   private:
-    OnRecvTSFN onRecv;
-    Napi::ThreadSafeFunction onSent;
+    tcp_pcb* pcb = nullptr;
+
+    Napi::ThreadSafeFunction emit;
 
     METHOD(connect);
     METHOD(init);
@@ -43,8 +44,8 @@ CLASS_INIT_IMPL(Socket)
 {
     auto func = CLASS_DEFINE(
         Socket,
-        { CLASS_INSTANCE_METHOD(Socket, connect),
-          CLASS_INSTANCE_METHOD(Socket, init),
+        { CLASS_INSTANCE_METHOD(Socket, init),
+          CLASS_INSTANCE_METHOD(Socket, connect),
           CLASS_INSTANCE_METHOD(Socket, send),
           CLASS_INSTANCE_METHOD(Socket, ack),
           CLASS_INSTANCE_METHOD(Socket, shutdown_wr) });
@@ -60,35 +61,11 @@ CONSTRUCTOR_IMPL(Socket)
     NO_ARGS();
 }
 
-void tsfnOnRecv(TSFN_ARGS, Socket* thiz, pbuf* p)
-{
-    if (env == NULL) {
-        // cleanup
-        if (p)
-            ts_pbuf_free(p);
-        return;
-    }
-
-    if (! p) {
-        jsCallback.Call({ VOID });
-        // TODO end tsfn
-    }
-    else {
-        auto data = Napi::Buffer<char>::NewOrCopy(env, (char*)p->payload, p->len, [p](Napi::Env env, char* data) {
-            ts_pbuf_free(p);
-        });
-        jsCallback.Call({ data });
-    }
-}
-
 CLASS_METHOD_IMPL(Socket, init)
 {
-    NB_ARGS(2);
-    auto onRecv = ARG_FUNC(0);
-    auto onSent = ARG_FUNC(1);
-
-    this->onRecv = OnRecvTSFN::New(env, onRecv, "tcpOnRecv", 0, 1, this);
-    this->onSent = Napi::ThreadSafeFunction::New(env, onSent, "tcpOnSent", 0, 1);
+    NB_ARGS(1);
+    auto emit = ARG_FUNC(0);
+    this->emit = Napi::ThreadSafeFunction::New(env, emit, "tcpEventEmitter", 0, 1);
 
     typed_tcpip_callback([=]() {
         if (! this->pcb)
@@ -97,14 +74,39 @@ CLASS_METHOD_IMPL(Socket, init)
 
         tcp_recv(this->pcb, [](void* arg, struct tcp_pcb* tpcb, struct pbuf* p, err_t err) -> err_t {
             auto thiz = (Socket*)arg;
-            thiz->onRecv.BlockingCall(p);
+            thiz->emit.BlockingCall([=](TSFN_ARGS) {
+                if (env == NULL) {
+                    // TODO this should happen on thiz->emit.Acquire fail instead, currently not doing anything
+                    if (p)
+                        ts_pbuf_free(p);
+                    return;
+                }
+
+                if (! p) {
+                    jsCallback.Call({ STRING("data"), VOID });
+                }
+                else {
+                    auto data =
+                        Napi::Buffer<char>::NewOrCopy(env, (char*)p->payload, p->len, [p](Napi::Env env, char* data) {
+                            ts_pbuf_free(p);
+                        });
+                    jsCallback.Call({ STRING("data"), data });
+                }
+            });
             return ERR_OK;
         });
 
         tcp_sent(this->pcb, [](void* arg, struct tcp_pcb* tpcb, u16_t len) -> err_t {
             auto thiz = (Socket*)arg;
-            thiz->onSent.BlockingCall([=](TSFN_ARGS) { jsCallback.Call({ NUMBER(len) }); });
+            thiz->emit.BlockingCall([=](TSFN_ARGS) { jsCallback.Call({ STRING("sent"), NUMBER(len) }); });
             return ERR_OK;
+        });
+
+        tcp_err(this->pcb, [](void* arg, err_t err) {
+            auto thiz = (Socket*)arg;
+            thiz->emit.BlockingCall([=](TSFN_ARGS) {
+                jsCallback.Call({ STRING("error"), MAKE_ERROR("TCP error", ERR_FIELD("code", NUMBER(err))).Value() });
+            });
         });
     });
 
@@ -119,6 +121,14 @@ CLASS_METHOD_IMPL(Socket, connect)
 
     ip_addr_t ip_addr;
     ipaddr_aton(address.c_str(), &ip_addr);
+
+    typed_tcpip_callback([=]() {
+        tcp_connect(this->pcb, &ip_addr, port, [](void* arg, struct tcp_pcb* tpcb, err_t err) -> err_t {
+            auto thiz = (Socket*)arg;
+            thiz->emit.BlockingCall([](TSFN_ARGS) { jsCallback.Call({ STRING("connect") }); });
+            return ERR_OK;
+        });
+    });
 
     return VOID;
 }
@@ -224,7 +234,7 @@ CONSTRUCTOR_IMPL(Server)
             }
 
             auto socket = Socket::constructor->New({});
-            Socket::Unwrap(socket)->pcb = new_pcb;
+            Socket::Unwrap(socket)->set_pcb(new_pcb);
 
             jsCallback.Call({ VOID, socket });
 

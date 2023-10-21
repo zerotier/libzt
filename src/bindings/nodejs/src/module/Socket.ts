@@ -117,7 +117,7 @@ export class Socket extends Duplex {
     }
 }
 
-export function connect(host: string, port: number): Socket {
+export function connectOld(host: string, port: number): Socket {
     const fd = zts.bsd_socket(isIPv6(host) ? defs.ZTS_AF_INET6 : defs.ZTS_AF_INET, defs.ZTS_SOCK_STREAM, 0);
     
     const s = new Socket(fd);

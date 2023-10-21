@@ -1,6 +1,6 @@
 import { setTimeout } from "timers/promises";
 
-import { Server, connect, startNode, zts, dgram } from "../index";
+import { Server, connectOld as connect, startNode, zts, dgram } from "../index";
 
 async function main() {
 

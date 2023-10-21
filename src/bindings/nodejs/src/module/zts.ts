@@ -52,24 +52,6 @@ type ZTS = {
 
     addr_get_str(nwid: string, ipv6: boolean): string
 
-    bsd_socket(family: number, type: number, protocol: number): number
-    bsd_close(fd: number): void
-
-    bsd_send(fd: number, data: Uint8Array, flags: number, callback: (err: ZtsError | undefined, bytesWritten: number) => void): void;
-    bsd_recv(fd: number, len: number, flags: number, callback: (err: ZtsError | null, data: Buffer) => void): void
-
-    bind(fd: number, ipAddr: string, port: number): void
-    listen(fd: number, backlog: number): void
-    accept(fd: number, callback: (err: ZtsError | null, fd: number) => void): void
-    connect(fd: number, ipAddr: string, port: number, timeout: number, callback: (err: ZtsError | null) => void): void
-    shutdown_rd(fd: number): void
-    shutdown_wr(fd: number): void
-
-    getpeername(fd: number): { port: number, address: string }
-    getsockname(fd: number): { port: number, address: string }
-    set_recv_timeout(fd: number, seconds: number, microseconds: number): void
-    set_send_timeout(fd: number, seconds: number, microseconds: number): void
-
     UDP: new (ipv6: boolean, recvCallback: (data: Buffer, addr: string, port: number) => void) => UDP;
 
     Server: new (onConnection: (error: NativeError | undefined, socket: nativeSocket) => void) => Server;

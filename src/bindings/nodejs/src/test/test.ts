@@ -1,6 +1,6 @@
 import { setTimeout } from "timers/promises";
 
-import { Server, connectOld as connect, startNode, zts, dgram } from "../index";
+import { startNode, zts, dgram, net } from "../index";
 
 async function main() {
 
@@ -10,7 +10,7 @@ async function main() {
     const host = process.argv[5];
 
     console.log("starting node");
-    startNode(undefined, (event)=> console.log(event));
+    startNode(undefined, (event) => console.log(event));
 
     console.log("waiting for node to come online");
     while (!zts.node_is_online()) {
@@ -66,8 +66,10 @@ async function main() {
     } else if (protocol === "tcp") {
         if (server) {
             console.log("starting server");
-            const server = new Server({}, socket => {
-                console.log(`new connection ${socket.remoteAddress}`);
+            const server = new net.Server({}, socket => {
+                console.log(`new connection ${
+                    //socket.remoteAddress
+                    undefined}`);
                 socket.on("data", data => {
                     console.log(`${data}`);
                     socket.write(data);
@@ -82,8 +84,7 @@ async function main() {
 
         } else {
 
-            const s = connect(host, port);
-            // const s = net.connect(6000);
+            const s = net.connect(port, host);
 
             let i = 0;
             // s.setTimeout(1000);

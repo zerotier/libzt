@@ -1,9 +1,8 @@
 import { setTimeout } from "timers/promises";
 
-import { startNode, zts, net, Socket, connectOld, Server } from "../index";
+import { startNode, zts, net } from "../index";
 import { createReadStream, createWriteStream } from "fs";
 
-import * as osNet from "net";
 
 async function main() {
 

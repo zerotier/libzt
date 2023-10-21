@@ -28,16 +28,26 @@ CLASS(Socket)
 
   private:
     OnRecvTSFN onRecv;
+    Napi::ThreadSafeFunction onSent;
 
     METHOD(connect);
     METHOD(init);
+    METHOD(send);
+    METHOD(ack);
+    METHOD(shutdown_wr);
 };
 
 Napi::FunctionReference* Socket::constructor = new Napi::FunctionReference;
 
 CLASS_INIT_IMPL(Socket)
 {
-    auto func = CLASS_DEFINE(Socket, { CLASS_INSTANCE_METHOD(Socket, connect), CLASS_INSTANCE_METHOD(Socket, init) });
+    auto func = CLASS_DEFINE(
+        Socket,
+        { CLASS_INSTANCE_METHOD(Socket, connect),
+          CLASS_INSTANCE_METHOD(Socket, init),
+          CLASS_INSTANCE_METHOD(Socket, send),
+          CLASS_INSTANCE_METHOD(Socket, ack),
+          CLASS_INSTANCE_METHOD(Socket, shutdown_wr) });
 
     *constructor = Napi::Persistent(func);
 
@@ -64,21 +74,21 @@ void tsfnOnRecv(TSFN_ARGS, Socket* thiz, pbuf* p)
         // TODO end tsfn
     }
     else {
-        const auto len = p->len;
         auto data = Napi::Buffer<char>::NewOrCopy(env, (char*)p->payload, p->len, [p](Napi::Env env, char* data) {
             ts_pbuf_free(p);
         });
         jsCallback.Call({ data });
-        // TODO use callback to return information about buffersize? (use poll instead?)
-        typed_tcpip_callback([=]() { tcp_recved(thiz->pcb, len); });
     }
 }
 
 CLASS_METHOD_IMPL(Socket, init)
 {
-    NB_ARGS(1);
+    NB_ARGS(2);
     auto onRecv = ARG_FUNC(0);
+    auto onSent = ARG_FUNC(1);
+
     this->onRecv = OnRecvTSFN::New(env, onRecv, "tcpOnRecv", 0, 1, this);
+    this->onSent = Napi::ThreadSafeFunction::New(env, onSent, "tcpOnSent", 0, 1);
 
     typed_tcpip_callback([=]() {
         if (! this->pcb)
@@ -88,6 +98,12 @@ CLASS_METHOD_IMPL(Socket, init)
         tcp_recv(this->pcb, [](void* arg, struct tcp_pcb* tpcb, struct pbuf* p, err_t err) -> err_t {
             auto thiz = (Socket*)arg;
             thiz->onRecv.BlockingCall(p);
+            return ERR_OK;
+        });
+
+        tcp_sent(this->pcb, [](void* arg, struct tcp_pcb* tpcb, u16_t len) -> err_t {
+            auto thiz = (Socket*)arg;
+            thiz->onSent.BlockingCall([=](TSFN_ARGS) { jsCallback.Call({ NUMBER(len) }); });
             return ERR_OK;
         });
     });
@@ -103,6 +119,53 @@ CLASS_METHOD_IMPL(Socket, connect)
 
     ip_addr_t ip_addr;
     ipaddr_aton(address.c_str(), &ip_addr);
+
+    return VOID;
+}
+
+CLASS_METHOD_IMPL(Socket, send)
+{
+    NB_ARGS(2);
+    auto data = ARG_UINT8ARRAY(0);
+    auto callback = ARG_FUNC(1);
+
+    auto dataRef = NEW_REF_UINT8ARRAY(data);
+    auto sendCallback = TSFN_ONCE(callback, "sendCallback", {
+        // make sure that data is present in the callback
+        delete dataRef;
+    });
+
+    auto bufLength = data.ByteLength();
+    auto buffer = data.Data();
+
+    typed_tcpip_callback([=]() {
+        auto sndbuf = tcp_sndbuf(this->pcb);
+
+        u16_t len = (sndbuf < bufLength) ? sndbuf : bufLength;
+        tcp_write(this->pcb, buffer, len, TCP_WRITE_FLAG_COPY);
+
+        sendCallback->BlockingCall([=](TSFN_ARGS) { jsCallback.Call({ NUMBER(len) }); });
+        sendCallback->Release();
+    });
+
+    return VOID;
+}
+
+CLASS_METHOD_IMPL(Socket, ack)
+{
+    NB_ARGS(1);
+    int length = ARG_NUMBER(0);
+
+    typed_tcpip_callback([=]() { tcp_recved(this->pcb, length); });
+
+    return VOID;
+}
+
+CLASS_METHOD_IMPL(Socket, shutdown_wr)
+{
+    NB_ARGS(0);
+
+    typed_tcpip_callback([=]() { tcp_shutdown(this->pcb, 0, 1); });
 
     return VOID;
 }

@@ -30,7 +30,6 @@ CLASS(Socket)
     OnRecvTSFN onRecv;
 
   private:
-    bool ipv6;
     udp_pcb* pcb;
 
     METHOD(send);
@@ -118,22 +117,16 @@ void tsfnOnRecv(TSFN_ARGS, nullptr_t* ctx, recv_data* rd)
 CONSTRUCTOR_IMPL(Socket)
 {
     NB_ARGS(2);
-    auto ipv6 = ARG_BOOLEAN(0);
+    bool ipv6 = ARG_BOOLEAN(0);
     auto recvCallback = ARG_FUNC(1);
-
-    this->ipv6 = ipv6;
 
     onRecv = OnRecvTSFN::New(env, recvCallback, "recvCallback", 0, 1, nullptr);
 
-    tcpip_callback(
-        [](void* ctx) {
-            auto thiz = reinterpret_cast<Socket*>(ctx);
+    typed_tcpip_callback([this, ipv6]() {
+        this->pcb = udp_new_ip_type(ipv6 ? IPADDR_TYPE_V6 : IPADDR_TYPE_V4);
 
-            thiz->pcb = udp_new_ip_type(thiz->ipv6 ? IPADDR_TYPE_V6 : IPADDR_TYPE_V4);
-
-            udp_recv(thiz->pcb, lwip_recv_cb, thiz);
-        },
-        this);
+        udp_recv(this->pcb, lwip_recv_cb, this);
+    });
 }
 
 CLASS_METHOD_IMPL(Socket, send)
@@ -156,11 +149,11 @@ CLASS_METHOD_IMPL(Socket, send)
     if (port)
         ipaddr_aton(addr.c_str(), &ip_addr);
 
-    typed_tcpip_callback([=]() {
-        struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
+    typed_tcpip_callback([this, onSent, port, len, buffer, ip_addr]() {
+        struct pbuf* p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_REF);
         p->payload = buffer;
 
-        auto err = port ? udp_sendto(pcb, p, &ip_addr, port) : udp_send(pcb, p);
+        auto err = port ? udp_sendto(this->pcb, p, &ip_addr, port) : udp_send(this->pcb, p);
 
         onSent->BlockingCall([err](TSFN_ARGS) {
             if (err != ERR_OK)
@@ -214,7 +207,7 @@ CLASS_METHOD_IMPL(Socket, close)
     if (pcb) {
         auto onClose = TSFN_ONCE(callback, "udpOnClose", { this->onRecv.Abort(); });
 
-        typed_tcpip_callback([=]() {
+        typed_tcpip_callback([pcb = this->pcb, onClose]() {
             udp_remove(pcb);
 
             onClose->BlockingCall();
@@ -286,7 +279,7 @@ CLASS_METHOD_IMPL(Socket, disconnect)
 {
     NO_ARGS();
 
-    tcpip_callback([](void* ctx) { udp_disconnect(reinterpret_cast<udp_pcb*>(ctx)); }, pcb);
+    typed_tcpip_callback([=]() { udp_disconnect(pcb); });
 
     return VOID;
 }

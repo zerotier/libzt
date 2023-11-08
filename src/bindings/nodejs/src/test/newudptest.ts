@@ -38,7 +38,7 @@ async function main() {
     
     if (server) {
         const server = dgram.createSocket({type: "udp6"}, (msg, rinfo) => {
-            console.log(`received: ${msg.length} from ${rinfo.address} at ${rinfo.port}, rinfo size ${rinfo.size}`);
+            console.log(`received: ${msg.length} from ${rinfo.address} at ${rinfo.port}, rinfo size ${rinfo.size}: ${msg.toString().slice(0,16)}`);
             server.send(Buffer.from(msg.toString().toUpperCase()), rinfo.port, rinfo.address, (err)=> {
                 if(err) console.log(err);
                 console.log("sent");
@@ -49,13 +49,13 @@ async function main() {
     } else {
 
         const socket = dgram.createSocket({type: "udp6"}, (msg, rinfo) => {
-            console.log(`received: ${rinfo.size} from ${rinfo.address} at ${rinfo.port}`);
+            console.log(`received: ${rinfo.size} from ${rinfo.address} at ${rinfo.port}: ${msg.toString().slice(0,16)}`);
         });
 
         for(let i = 0; i < 5; i++) {
             console.log(`sending ${i}`);
             
-            socket.send(Buffer.from(`hello ${i}    `.repeat(100)), port, host, (err)=>{
+            socket.send(Buffer.from(`unconnected hello ${i}`.repeat(100)), port, host, (err)=>{
                 console.log("sent");
                 if(err) console.log(err);
             });
@@ -70,11 +70,13 @@ async function main() {
             for(let i = 0; i < 5; i++) {
                 console.log(`sending ${i}`);
                 
-                socket.send(Buffer.from(`hello ${i}    `.repeat(100)));
+                socket.send(Buffer.from(`connected hello ${i}`.repeat(100)));
                 await setTimeout(50);
             }
 
             socket.disconnect();
+
+            await setTimeout(100);
 
             socket.close();
             socket.on("close", ()=>{

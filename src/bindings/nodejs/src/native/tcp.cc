@@ -174,7 +174,7 @@ CLASS_METHOD_IMPL(Socket, ack)
 
 CLASS_METHOD_IMPL(Socket, shutdown_wr)
 {
-    NB_ARGS(0);
+    NO_ARGS();
 
     typed_tcpip_callback([=]() { tcp_shutdown(this->pcb, 0, 1); });
 

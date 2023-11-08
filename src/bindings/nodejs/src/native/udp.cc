@@ -207,8 +207,9 @@ CLASS_METHOD_IMPL(Socket, close)
     if (pcb) {
         auto onClose = TSFN_ONCE(callback, "udpOnClose", { this->onRecv.Abort(); });
 
-        typed_tcpip_callback([pcb = this->pcb, onClose]() {
-            udp_remove(pcb);
+        auto old_pcb = pcb;
+        typed_tcpip_callback([old_pcb, onClose]() {
+            udp_remove(old_pcb);
 
             onClose->BlockingCall();
             onClose->Release();

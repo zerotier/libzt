@@ -73,7 +73,7 @@ CLASS_METHOD_IMPL(Socket, init)
         tcp_arg(this->pcb, this);
 
         tcp_recv(this->pcb, [](void* arg, struct tcp_pcb* tpcb, struct pbuf* p, err_t err) -> err_t {
-            auto thiz = (Socket*)arg;
+            auto thiz = reinterpret_cast<Socket*>(arg);
             thiz->emit.BlockingCall([=](TSFN_ARGS) {
                 if (env == NULL) {
                     // TODO this should happen on thiz->emit.Acquire fail instead, currently not doing anything
@@ -86,10 +86,11 @@ CLASS_METHOD_IMPL(Socket, init)
                     jsCallback.Call({ STRING("data"), VOID });
                 }
                 else {
-                    auto data =
-                        Napi::Buffer<char>::NewOrCopy(env, (char*)p->payload, p->len, [p](Napi::Env env, char* data) {
-                            ts_pbuf_free(p);
-                        });
+                    auto data = Napi::Buffer<char>::NewOrCopy(
+                        env,
+                        reinterpret_cast<char*>(p->payload),
+                        p->len,
+                        [p](Napi::Env env, char* data) { ts_pbuf_free(p); });
                     jsCallback.Call({ STRING("data"), data });
                 }
             });
@@ -97,13 +98,13 @@ CLASS_METHOD_IMPL(Socket, init)
         });
 
         tcp_sent(this->pcb, [](void* arg, struct tcp_pcb* tpcb, u16_t len) -> err_t {
-            auto thiz = (Socket*)arg;
+            auto thiz = reinterpret_cast<Socket*>(arg);
             thiz->emit.BlockingCall([=](TSFN_ARGS) { jsCallback.Call({ STRING("sent"), NUMBER(len) }); });
             return ERR_OK;
         });
 
         tcp_err(this->pcb, [](void* arg, err_t err) {
-            auto thiz = (Socket*)arg;
+            auto thiz = reinterpret_cast<Socket*>(arg);
             thiz->emit.BlockingCall([=](TSFN_ARGS) {
                 jsCallback.Call({ STRING("error"), MAKE_ERROR("TCP error", ERR_FIELD("code", NUMBER(err))).Value() });
             });
@@ -124,7 +125,7 @@ CLASS_METHOD_IMPL(Socket, connect)
 
     typed_tcpip_callback([=]() {
         tcp_connect(this->pcb, &ip_addr, port, [](void* arg, struct tcp_pcb* tpcb, err_t err) -> err_t {
-            auto thiz = (Socket*)arg;
+            auto thiz = reinterpret_cast<Socket*>(arg);
             thiz->emit.BlockingCall([](TSFN_ARGS) { jsCallback.Call({ STRING("connect") }); });
             return ERR_OK;
         });
@@ -222,7 +223,7 @@ CONSTRUCTOR_IMPL(Server)
     this->onConnection = Napi::ThreadSafeFunction::New(env, onConnection, "TCP::onConnection", 0, 1);
 
     acceptCb = [](void* arg, tcp_pcb* new_pcb, err_t err) -> err_t {
-        auto thiz = (Server*)arg;
+        auto thiz = reinterpret_cast<Server*>(arg);
 
         // delay accepting connection until callback has been set up.
         tcp_backlog_delayed(new_pcb);

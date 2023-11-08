@@ -44,7 +44,7 @@ void event_handler(void* msgPtr)
 {
     event_callback.Acquire();
 
-    zts_event_msg_t* msg = (zts_event_msg_t*)msgPtr;
+    zts_event_msg_t* msg = reinterpret_cast<zts_event_msg_t*>(msgPtr);
     int event = msg->event_code;
     auto cb = [=](TSFN_ARGS) { jsCallback.Call({ NUMBER(event) }); };
 
@@ -205,6 +205,6 @@ INIT_ADDON(zts)
 
     INIT_CLASS(TCP::Socket);
     INIT_CLASS(TCP::Server);
-    
+
     INIT_CLASS(UDP::Socket);
 }

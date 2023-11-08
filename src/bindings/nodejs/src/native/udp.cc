@@ -80,7 +80,7 @@ CLASS_INIT_IMPL(Socket)
 
 void lwip_recv_cb(void* arg, struct udp_pcb* pcb, struct pbuf* p, const ip_addr_t* addr, u16_t port)
 {
-    auto thiz = (Socket*)arg;
+    auto thiz = reinterpret_cast<Socket*>(arg);
 
     recv_data* rd = new recv_data { p : p, addr : 0, port : port };
     ipaddr_ntoa_r(addr, rd->addr, ZTS_IP_MAX_STR_LEN);
@@ -99,7 +99,9 @@ void tsfnOnRecv(TSFN_ARGS, nullptr_t* ctx, recv_data* rd)
     pbuf* p = rd->p;
 
     auto data =
-        Napi::Buffer<char>::NewOrCopy(env, (char*)p->payload, p->len, [p](Napi::Env env, char* data) { ts_pbuf_free(p); });
+        Napi::Buffer<char>::NewOrCopy(env, reinterpret_cast<char*>(p->payload), p->len, [p](Napi::Env env, char* data) {
+            ts_pbuf_free(p);
+        });
 
     auto addr = STRING(rd->addr);
     auto port = NUMBER(rd->port);
@@ -125,7 +127,7 @@ CONSTRUCTOR_IMPL(Socket)
 
     tcpip_callback(
         [](void* ctx) {
-            auto thiz = (Socket*)ctx;
+            auto thiz = reinterpret_cast<Socket*>(ctx);
 
             thiz->pcb = udp_new_ip_type(thiz->ipv6 ? IPADDR_TYPE_V6 : IPADDR_TYPE_V4);
 
@@ -284,7 +286,7 @@ CLASS_METHOD_IMPL(Socket, disconnect)
 {
     NO_ARGS();
 
-    tcpip_callback([](void* ctx) { udp_disconnect((udp_pcb*)ctx); }, pcb);
+    tcpip_callback([](void* ctx) { udp_disconnect(reinterpret_cast<udp_pcb*>(ctx)); }, pcb);
 
     return VOID;
 }

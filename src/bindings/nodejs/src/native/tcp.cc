@@ -74,14 +74,12 @@ CLASS_METHOD_IMPL(Socket, init)
 
         tcp_recv(this->pcb, [](void* arg, struct tcp_pcb* tpcb, struct pbuf* p, err_t err) -> err_t {
             auto thiz = reinterpret_cast<Socket*>(arg);
+            if (thiz->emit.Acquire() != napi_ok) {
+                if (p)
+                    ts_pbuf_free(p);
+                return ERR_OK;   // TODO: other return code?
+            }
             thiz->emit.BlockingCall([=](TSFN_ARGS) {
-                if (env == NULL) {
-                    // TODO this should happen on thiz->emit.Acquire fail instead, currently not doing anything
-                    if (p)
-                        ts_pbuf_free(p);
-                    return;
-                }
-
                 if (! p) {
                     jsCallback.Call({ STRING("data"), VOID });
                 }
@@ -94,6 +92,7 @@ CLASS_METHOD_IMPL(Socket, init)
                     jsCallback.Call({ STRING("data"), data });
                 }
             });
+            thiz->emit.Release();
             return ERR_OK;
         });
 

@@ -658,7 +658,7 @@ if(BUILD_STATIC_LIB)
         ${STATIC_LIB_NAME} STATIC
         $<TARGET_OBJECTS:zt_pic> $<TARGET_OBJECTS:zto_pic>
         $<TARGET_OBJECTS:natpmp_pic> $<TARGET_OBJECTS:miniupnpc_pic>
-        $<TARGET_OBJECTS:lwip_pic> ${libztSrcGlob})
+        $<TARGET_OBJECTS:lwip_pic>)
     set_target_properties(
         ${STATIC_LIB_NAME}
         PROPERTIES LINKER_LANGUAGE CXX

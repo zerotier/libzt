@@ -5,6 +5,15 @@ import { startNode, zts,  dgram} from "../index";
 
 
 async function main() {
+    console.log(`
+Tests UDP using ad-hoc network."
+Usage: <cmd> server <port>"
+Usage: <cmd> client <port> <server ip>"
+Server echoes received messages in upper case.
+Client sends 10 messages, 5 unconnected (specifying recipient) and 5 connected.
+`);
+
+    if(process.argv.length < 3) return;
 
     const server = process.argv[2] === "server";
     const port = parseInt(process.argv[3]);
@@ -29,11 +38,10 @@ async function main() {
     }
 
     try {
-        console.log(zts.addr_get_str(nwid, true));
+        console.log(`ipv6 address: ${zts.addr_get_str(nwid, true)}`);
     } catch (error) {
         console.log(error);
     }
-
 
     
     if (server) {

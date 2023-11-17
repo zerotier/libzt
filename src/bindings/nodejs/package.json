@@ -5,8 +5,11 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "install": "cmake-js compile -p 12",
-    "build": "rimraf dist && tsc"
+    "install": "npm run compile",
+    "compile": "cmake-js compile -p 8",
+    "compile-debug": "npm run compile -- -D --out build-debug",
+    "build": "rimraf dist && tsc",
+    "build-debug": "rimraf dist && tsc --project tsconfig.debug.json"
   },
   "author": "",
   "license": "MIT",

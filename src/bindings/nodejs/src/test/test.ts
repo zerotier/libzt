@@ -3,6 +3,13 @@ import { setTimeout } from "timers/promises";
 import { startNode, zts, dgram, net } from "../index";
 
 async function main() {
+    console.log(`
+Might be outdated.
+Uses ad-hoc network.
+
+usage: <cmd> udp|tcp server|client <port> <server ip>
+    `);
+    if(process.argv.length < 3) return;
 
     const protocol = process.argv[2];
     const server = process.argv[3] === "server";

@@ -1,12 +1,34 @@
 # Nodejs libzt binding
 
-## Build in development
+## Building
+
+### Build
 
 ```bash
 cd src/bindings/nodejs
-npm ci            (rerun after changes to native code)
-npm run build     (rerun after changes to typescript)
+npm ci                  (rerun after changes to native code)
+npm run build           (rerun after changes to typescript)
 npm test (TODO)
+```
+
+### Build Debug
+
+```bash
+cd src/bindings/nodejs
+npm ci --ignore-scripts
+npm run compile-debug   (rerun after changes to native code)
+npm run build-debug     (rerun after changes to typescript)
+npm test (TODO)
+```
+
+## Running
+
+Test source code can be found in `./src/test/`.
+Run with no arguments to get description.
+
+```bash
+node dist/test/newudptest.js
+node dist/test/newtcptest.js
 ```
 
 ## Current features

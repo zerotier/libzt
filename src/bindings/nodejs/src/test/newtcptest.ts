@@ -1,11 +1,25 @@
 import { setTimeout } from "timers/promises";
 
 import { startNode, zts, net } from "../index";
-import { createReadStream, createWriteStream } from "fs";
+import { createReadStream, createWriteStream, existsSync } from "fs";
 
 
 async function main() {
+    console.log(`
+TCP test using ad-hoc network.
 
+usage: <cmd> server <port>
+usage: <cmd> client <port> <server ip>
+
+For testing, this test reads a file "randombytes" in nodejs root in one instance, other instance saves the file to "randomreceived" so the two can be compared for errors. 
+    `);
+    
+    if(process.argv.length < 3) return;
+    if(! existsSync("./randombytes")) {
+        console.log("File randombytes not found. See usage");
+        return;
+    }
+    
     const server = process.argv[2] === "server";
     const port = parseInt(process.argv[3]);
     const host = process.argv[4];

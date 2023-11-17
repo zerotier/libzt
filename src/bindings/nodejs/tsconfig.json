@@ -7,5 +7,6 @@
     },
     "include": [
         "src"
-    ]
+    ],
+    "exclude": ["src/module/target-debug.d.ts"]
 }

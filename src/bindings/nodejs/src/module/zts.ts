@@ -58,8 +58,26 @@ type ZTS = {
     Socket: new () => nativeSocket;
 }
 
+
+import { Target } from "target-enum";
+
+
+let modulePath = "";
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+if(Target.Current === Target.Release) {
+    modulePath = "../../build/Release/nodezt.node";
+} 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+if(Target.Current === Target.Debug) {
+    modulePath = "../../build-debug/Debug/nodezt.node";
+}
+
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-export const zts = require("../../build/Debug/nodezt.node") as ZTS;
+export const zts = require(modulePath) as ZTS;
 
 
 export enum errors {

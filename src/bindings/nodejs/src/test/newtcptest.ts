@@ -16,18 +16,15 @@ const progress = (true) ? new PassThrough() : new Transform({
 const sendFile = (socket: Duplex, filename: string) => {
     socket.on("end", () => console.log("socket ended"));
     socket.on("close", () => console.log("socket closed"));
-
+    socket.on("data", data=>console.log(data));
     const input = createReadStream(filename);
     input.pipe(progress).pipe(socket);
 };
 
 const recvFile = (socket: Duplex, filename: string) => {
-    socket.on("end", () => {
-        console.log("socket ended");
-        socket.end();
-    });
+    socket.on("end", () => { console.log("socket ended"); });
     socket.on("close", () => console.log("socket closed"));
-
+    socket.write(Buffer.from("abc"));
     const output = createWriteStream(filename);
     socket.pipe(progress).pipe(output);
 };
@@ -112,6 +109,13 @@ example usage: server-client pair on adhoc network, server sends "./send" and cl
     if (server) {
         const server = new net.Server({}, socket => {
             console.log("connection");
+            socket.on("error", error => {
+                console.log(error);
+                if ("code" in error) {
+                    console.log(`code means: ${SocketErrors[error.code as number]}`);
+                }
+            });
+
             handleSocket(socket, filename);
         });
 
@@ -126,10 +130,10 @@ example usage: server-client pair on adhoc network, server sends "./send" and cl
 
             handleSocket(socket, filename);
         });
-
+        console.log(socket.allowHalfOpen);
         socket.on("error", error => {
-            console.log(error); 
-            if("code" in error) {
+            console.log(error);
+            if ("code" in error) {
                 console.log(`code means: ${SocketErrors[error.code as number]}`);
             }
         });

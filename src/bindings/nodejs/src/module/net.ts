@@ -54,23 +54,24 @@ class Socket extends Duplex {
 
     constructor(options: { allowHalfOpen?: boolean }, internal?: nativeSocket) {
         super({
-            ...options
+            allowHalfOpen: options.allowHalfOpen ?? false
         });
 
         if (internal) this.connected = true;
         this.internal = internal ?? new zts.Socket();
 
         // events from native socket
-        this.internalEvents.on("data", (data) => {
+        this.internalEvents.on("data", (data?: Buffer) => {
             if (data) {
                 // console.log(`received ${data.length}`);
 
                 this.bytesRead += data.length;
                 this.receiver.write(data, undefined, () => {
                     // console.log(`acking ${data.length}`);
-                    if (data) this.internal.ack(data.length);
+                    this.internal.ack(data.length);
                 });
             } else {
+                // other side closed the connection
                 this.receiver.end();
             }
         });
@@ -80,7 +81,7 @@ class Socket extends Duplex {
         });
         this.internalEvents.on("error", (error) => {
             // console.log(error);
-            this.emit("error", error);
+            if(!this.emit("error", error)) throw error;
         });
         this.internal.init((event: string, ...args: unknown[]) => this.internalEvents.emit(event, ...args));
 
@@ -88,7 +89,10 @@ class Socket extends Duplex {
         this.receiver.on("data", chunk => {
             if (!this.push(chunk)) this.receiver.pause();
         });
-        this.receiver.on("end", ()=>this.push(null));
+        this.receiver.on("end", () => {
+            this.push(null);
+            // if (this.receiver.readableLength === 0 && this.receiver.isPaused()) this.receiver.resume();
+        });
         this.receiver.pause();
     }
 
@@ -135,7 +139,7 @@ class Socket extends Duplex {
     }
 
     _final(callback: (error?: Error | null | undefined) => void): void {
-        // console.log("final called");
+        console.log("final called, i.e. shutdown_wr");
         this.internal.shutdown_wr();
         callback();
     }

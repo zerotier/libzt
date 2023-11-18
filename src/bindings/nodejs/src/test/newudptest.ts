@@ -46,6 +46,7 @@ Client sends 10 messages, 5 unconnected (specifying recipient) and 5 connected.
     
     if (server) {
         const server = dgram.createSocket({type: "udp6"}, (msg, rinfo) => {
+            // message listener
             console.log(`received: ${msg.length} from ${rinfo.address} at ${rinfo.port}, rinfo size ${rinfo.size}: ${msg.toString().slice(0,16)}`);
             server.send(Buffer.from(msg.toString().toUpperCase()), rinfo.port, rinfo.address, (err)=> {
                 if(err) console.log(err);
@@ -57,6 +58,7 @@ Client sends 10 messages, 5 unconnected (specifying recipient) and 5 connected.
     } else {
 
         const socket = dgram.createSocket({type: "udp6"}, (msg, rinfo) => {
+            // message listener
             console.log(`received: ${rinfo.size} from ${rinfo.address} at ${rinfo.port}: ${msg.toString().slice(0,16)}`);
         });
 

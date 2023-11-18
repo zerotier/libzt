@@ -27,6 +27,8 @@ Test source code can be found in `./src/test/`.
 Run with no arguments to get description.
 
 ```bash
+node dist/test/tcp-example.js
+
 node dist/test/newudptest.js
 node dist/test/newtcptest.js
 ```

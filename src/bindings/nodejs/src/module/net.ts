@@ -63,11 +63,11 @@ class Socket extends Duplex {
         // events from native socket
         this.internalEvents.on("data", (data) => {
             if (data) {
-                console.log(`received ${data.length}`);
+                // console.log(`received ${data.length}`);
 
                 this.bytesRead += data.length;
                 this.receiver.write(data, undefined, () => {
-                    console.log(`acking ${data.length}`);
+                    // console.log(`acking ${data.length}`);
                     if (data) this.internal.ack(data.length);
                 });
             } else {
@@ -75,7 +75,7 @@ class Socket extends Duplex {
             }
         });
         this.internalEvents.on("sent", (length) => {
-            console.log(`internal has sent ${length}`);
+            // console.log(`internal has sent ${length}`);
             this.bytesWritten += length;
         });
         this.internalEvents.on("error", (error) => {
@@ -114,7 +114,7 @@ class Socket extends Duplex {
     private realWrite(chunk: Buffer, callback: (error?: Error | null) => void): void {
         const currentWritten = this.bytesWritten;
         this.internal.send(chunk, (length) => {
-            console.log(`written ${length}`);
+            // console.log(`written ${length}`);
             // everything was written out
             if (length === chunk.length) {
                 callback();
@@ -134,7 +134,7 @@ class Socket extends Duplex {
     }
 
     _final(callback: (error?: Error | null | undefined) => void): void {
-        console.log("final called");
+        // console.log("final called");
         this.internal.shutdown_wr();
         callback();
     }

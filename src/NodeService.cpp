@@ -1056,9 +1056,28 @@ void NodeService::sendEventToUser(unsigned int zt_event_code, const void* obj, u
         case ZTS_EVENT_PEER_PATH_DEAD: {
             pr = new zts_peer_info_t();
             ZT_Peer* peer = (ZT_Peer*)obj;
-            memcpy(pr, peer, sizeof(zts_peer_info_t));
-            for (unsigned int j = 0; j < peer->pathCount; j++) {
+
+            pr->peer_id = peer->address;
+            pr->ver_major = peer->versionMajor;
+            pr->ver_minor = peer->versionMinor;
+            pr->ver_rev = peer->versionRev;
+            pr->latency = peer->latency;
+            pr->role = static_cast<zts_peer_role_t>(peer->role);
+            pr->path_count = peer->pathCount;
+
+            for (unsigned int j = 0; j < peer->pathCount; j++) {               
                 native_ss_to_zts_ss(&(pr->paths[j].address), &(peer->paths[j].address));
+                pr->paths[j].last_tx = peer->paths[j].lastSend;
+                pr->paths[j].last_rx = peer->paths[j].lastReceive;
+                pr->paths[j].trusted_path_id = peer->paths[j].trustedPathId;
+                pr->paths[j].latency = peer->paths[j].latencyMean;
+
+                // TODO: ZT_PeerPhysicalPath has the ifname as an internal buffer instead of a pointer
+                // for now this seems like the best solution
+                pr->paths[j].ifname = nullptr; 
+
+                pr->paths[j].expired = peer->paths[j].expired;
+                pr->paths[j].preferred = peer->paths[j].preferred;
             }
             objptr = (void*)pr;
             break;

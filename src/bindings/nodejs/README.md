@@ -37,15 +37,13 @@ node dist/test/newtcptest.js
 
 - Typescript
 - Subset of ZeroTierSockets.h directly accessible
-- Blocking calls (recv, accept...) made asynchronous using callback
+- non-blocking TCP using lwip callback api (still WIP)
 - Socket and Server for tcp, analogous to nodejs "net" (can be used for tls, http(s))
-- UDP
+- non-blocking UDP using lwip callback api
 - Linux only
 
 ## Todo
 
-- UDP flags
-- convert TCP to lwip callback api
 - Nicer wrapper around Node and Network
 - More features from ZeroTierSockets.h
 - Configure macos and windows (might work already, not tested)

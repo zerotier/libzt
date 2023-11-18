@@ -79,7 +79,8 @@ class Socket extends Duplex {
             this.bytesWritten += length;
         });
         this.internalEvents.on("error", (error) => {
-            console.log(error);
+            // console.log(error);
+            this.emit("error", error);
         });
         this.internal.init((event: string, ...args: unknown[]) => this.internalEvents.emit(event, ...args));
 

@@ -8,10 +8,15 @@ import { fork } from "node:child_process";
 import * as streamConsumers from "node:stream/consumers";
 
 async function test() {
-
+    
     const payload = "abcdefgh";
 
     const server = process.argv.length < 3;
+    if(server) console.log(`
+This test starts a server, opens a client in a child process that connects to the server and tries to verify that cleanup of threads/exiting happens properly.
+(Not the case right now.)
+    `);
+
 
     const log = (...args: unknown[])=>{
         process.stdout.write(server ? "S:  " : " C: ");
@@ -20,9 +25,9 @@ async function test() {
 
     log(`Process started with args: ${process.argv}`);
 
-    const port = 80;
+    const port = 5000;
     
-    startNode();
+    startNode(`./id/adhoc-test/${server ? "server" : "client"}`, event=>log(`zts event ${event}`));
 
     while (!zts.node_is_online()) {
         await setTimeout(50);
@@ -30,7 +35,7 @@ async function test() {
 
     log("Node online");
 
-    const nwid = "0xff0000ffff000000";
+    const nwid = "ff0000ffff000000";
     zts.net_join(nwid);
 
     while (!zts.net_transport_is_ready(nwid)) {
@@ -48,7 +53,7 @@ async function test() {
         log("Starting server");
 
         const server = new net.Server({}, socket => {
-            // log(`Connection: ${socket.remoteAddress}`);
+            log("Connected");
             socket.once("data", data => {
                 log(`Received data: ${data}`);
                 socket.end(data);
@@ -78,9 +83,7 @@ async function test() {
     } else {
         const address = process.argv[2];
         log(`Connecting to: ${address}`);
-        const s = net.connect(port, address);
-
-        s.on("connect", () => {
+        const s = net.connect(port, address, () => {
             log("Connected");
             s.end(Buffer.from(payload));
         });

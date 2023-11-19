@@ -72,12 +72,18 @@ class Socket extends Duplex {
                 });
             } else {
                 // other side closed the connection
+                // console.log("FIN received");
                 this.receiver.end();
+                if(this.readableLength === 0) this.resume();
             }
         });
         this.internalEvents.on("sent", (length) => {
             // console.log(`internal has sent ${length}`);
             this.bytesWritten += length;
+        });
+        this.internalEvents.on("close", ()=>{
+            // TODO: is this actually necessary?
+            console.log("internal socket closed");
         });
         this.internalEvents.on("error", (error) => {
             // console.log(error);
@@ -139,7 +145,7 @@ class Socket extends Duplex {
     }
 
     _final(callback: (error?: Error | null | undefined) => void): void {
-        console.log("final called, i.e. shutdown_wr");
+        // console.log("final called, i.e. shutdown_wr");
         this.internal.shutdown_wr();
         callback();
     }

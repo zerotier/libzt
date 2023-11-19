@@ -14,9 +14,9 @@ const progress = (true) ? new PassThrough() : new Transform({
 });
 
 const sendFile = (socket: Duplex, filename: string) => {
+    // socket.on("data", ()=>undefined);
     socket.on("end", () => console.log("socket ended"));
     socket.on("close", () => console.log("socket closed"));
-    socket.on("data", data=>console.log(data));
     const input = createReadStream(filename);
     input.pipe(progress).pipe(socket);
 };
@@ -24,7 +24,6 @@ const sendFile = (socket: Duplex, filename: string) => {
 const recvFile = (socket: Duplex, filename: string) => {
     socket.on("end", () => { console.log("socket ended"); });
     socket.on("close", () => console.log("socket closed"));
-    socket.write(Buffer.from("abc"));
     const output = createWriteStream(filename);
     socket.pipe(progress).pipe(output);
 };

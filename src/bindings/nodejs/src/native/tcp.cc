@@ -79,10 +79,6 @@ CLASS_METHOD_IMPL(Socket, init)
                     ts_pbuf_free(p);
                 return ERR_OK;   // TODO: other return code?
             }
-            if (! p) {
-                // acknowledge other side sending FIN immediately
-                tcp_recved(tpcb, 0);
-            }
             thiz->emit.BlockingCall([=](TSFN_ARGS) {
                 if (! p) {
                     jsCallback.Call({ STRING("data"), VOID });

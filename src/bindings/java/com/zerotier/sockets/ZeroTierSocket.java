@@ -22,7 +22,7 @@ import java.net.*;
  *
  * @author  ZeroTier, Inc.
  */
-public class ZeroTierSocket {
+public class ZeroTierSocket implements Closeable {
     // File descriptor from lower native layer
     private int _zfd = -1;
     private int _family = -1;
@@ -58,11 +58,13 @@ public class ZeroTierSocket {
         return _zfd;
     }
 
-    private ZeroTierSocket(int family, int type, int protocol, int zfd)
+    private ZeroTierSocket(int family, int type, int protocol, int zfd, ZeroTierSocketAddress remoteAddr)
     {
         _family = family;
         _type = type;
         _protocol = protocol;
+        _remoteAddr = remoteAddr.toInetAddress();
+        _remotePort = remoteAddr.getPort();
         setNativeFileDescriptor(zfd);
         // Since we only call this from accept() we will mark it as connected
         _isConnected = true;
@@ -237,7 +239,7 @@ public class ZeroTierSocket {
         if ((acceptedFd = ZeroTierNative.zts_bsd_accept(_zfd, addr)) < 0) {
             throw new IOException("Error while accepting connection (" + acceptedFd + ")");
         }
-        return new ZeroTierSocket(_family, _type, _protocol, acceptedFd);
+        return new ZeroTierSocket(_family, _type, _protocol, acceptedFd, addr);
     }
 
     /**
@@ -632,7 +634,7 @@ public class ZeroTierSocket {
 
     /**
      * Set the timeout value for SO_RCVTIMEO
-     * @param timeout Socket receive timeout value.
+     * @param timeout Socket receive timeout value in milliseconds.
      *
      * @exception SocketException when an error occurs in the native socket layer
      */
@@ -644,8 +646,7 @@ public class ZeroTierSocket {
         if (timeout < 0) {
             throw new IllegalArgumentException("Error: SO_TIMEOUT < 0");
         }
-        // TODO: This is incorrect
-        if (ZeroTierNative.zts_set_recv_timeout(_zfd, timeout, timeout) != ZeroTierNative.ZTS_ERR_OK) {
+        if (ZeroTierNative.zts_set_recv_timeout(_zfd, timeout/1000, (timeout % 1000) * 1000) != ZeroTierNative.ZTS_ERR_OK) {
             throw new SocketException("Error: Could not set SO_RCVTIMEO");
         }
     }

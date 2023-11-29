@@ -21,7 +21,7 @@ import java.net.InetAddress;
  * You (as a consumer of this library) should probably not use this as it is non-standard
  * and very likely to be removed at some point.
  */
-class ZeroTierSocketAddress {
+public class ZeroTierSocketAddress {
     private byte[] _ip6 = new byte[16];
     private byte[] _ip4 = new byte[4];
 
@@ -82,6 +82,30 @@ class ZeroTierSocketAddress {
             }
         }
         return "";
+    }
+
+    /**
+     * Convert to InetAddress
+     */
+    public InetAddress toInetAddress() 
+    {
+        if (_family == ZeroTierNative.ZTS_AF_INET) {
+            try {
+                return InetAddress.getByAddress(_ip4);
+            }
+            catch (Exception e) {
+                System.out.println(e);
+            }
+        }
+        if (_family == ZeroTierNative.ZTS_AF_INET6) {
+            try {
+                return InetAddress.getByAddress(_ip6);
+            }
+            catch (Exception e) {
+                System.out.println(e);
+            }
+        }
+        return null;
     }
 
     /**

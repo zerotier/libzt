@@ -22,7 +22,7 @@ import java.net.*;
  *
  * @author  ZeroTier, Inc.
  */
-public class ZeroTierDatagramSocket {
+public class ZeroTierDatagramSocket implements Closeable {
     ZeroTierSocket _socket;
 
     /**

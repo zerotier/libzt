@@ -1353,28 +1353,6 @@ void test_client_socket_usage(char* ip4, uint16_t port4, char* ip6, uint16_t por
 // Start node                                                                 //
 //----------------------------------------------------------------------------//
 
-int test_api_abuse()
-{
-    /*
-
-    TODO
-
-    DEBUG_INFO("\n\n***\ttest_api_abuse");
-    if (join_network) {
-        for (int i = 0; i < 1024 * 4; i++) {
-            printf("join %d\n", i);
-            zts_net_join(net_id);
-            printf("leave %d\n", i);
-            zts_net_leave(net_id);
-        }
-        zts_node_stop();
-        zts_util_delay(2000);
-        exit(0);
-    }
-    */
-    return 0;
-}
-
 int test_start_node(
     char* path,
     uint64_t net_id,
@@ -1407,7 +1385,12 @@ int test_start_node(
         assert(zts_init_set_event_handler(&on_zts_event) == ZTS_ERR_OK);
     }
     if (use_identity) {
-        // TODO: tomorrow
+        //  Test incorrect values
+        assert(zts_init_from_memory(keypair, 0) == ZTS_ERR_ARG);
+        assert(zts_init_from_memory(keypair, ZTS_ID_STR_BUF_LEN+1) == ZTS_ERR_ARG);
+        assert(zts_init_from_memory(keypair, ZTS_ID_STR_BUF_LEN-1) == ZTS_ERR_ARG);
+        assert(zts_init_from_memory(NULL, ZTS_ID_STR_BUF_LEN) == ZTS_ERR_ARG);
+        // Correct
         assert(zts_init_from_memory(keypair, ZTS_ID_STR_BUF_LEN) == ZTS_ERR_OK);
     }
 
@@ -1427,7 +1410,19 @@ int test_start_node(
     // Test identity handling
     char keypair_i[ZTS_ID_STR_BUF_LEN] = { 0 };
     unsigned int keypair_len = ZTS_ID_STR_BUF_LEN;
+    unsigned int key_dst_len = 0;
+    // Test incorrect values
+    key_dst_len = 0;
+    assert(zts_node_get_id_pair(&keypair_i, NULL) == ZTS_ERR_ARG);
+    key_dst_len = ZTS_ID_STR_BUF_LEN+1;
+    assert(zts_node_get_id_pair(&keypair_i, &key_dst_len) == ZTS_ERR_ARG);
+    key_dst_len = ZTS_ID_STR_BUF_LEN-1;
+    assert(zts_node_get_id_pair(&keypair_i, &key_dst_len) == ZTS_ERR_ARG);
+    key_dst_len = ZTS_ID_STR_BUF_LEN;
+    assert(zts_node_get_id_pair(NULL, ZTS_ID_STR_BUF_LEN) == ZTS_ERR_ARG);
+    // Correct
     assert(zts_node_get_id_pair(keypair_i, &keypair_len) == ZTS_ERR_OK);
+
     DEBUG_INFO("Checking key length");
     assert(keypair_len <= ZTS_ID_STR_BUF_LEN);
     DEBUG_INFO("GET [identity = %s]", keypair_i);
@@ -1892,7 +1887,6 @@ int main(int argc, char** argv)
         test_addr_computation();
         test_roots_handling();
         test_start_sequences();
-        test_api_abuse();
         test_stats();
         // test_sockets();
     }

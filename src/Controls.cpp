@@ -304,6 +304,12 @@ int zts_id_pair_is_valid(const char* key, unsigned int len)
 int zts_node_get_id_pair(char* key, unsigned int* key_dst_len)
 {
     ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
+    if (key == NULL || key_dst_len == NULL) {
+        return ZTS_ERR_ARG;
+    }
+    if (*key_dst_len != ZT_IDENTITY_STRING_BUFFER_LENGTH) {
+        return ZTS_ERR_ARG;
+    }
     int err = ZTS_ERR_OK;
     if ((err = zts_service->getIdentity(key, key_dst_len)) != ZTS_ERR_OK) {
         return err;

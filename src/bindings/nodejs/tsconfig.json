@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "outDir": "dist",
+        "declaration": true,
+        "noImplicitAny": true,
+        "strict": true
+    },
+    "include": [
+        "src"
+    ],
+    "exclude": ["src/module/target-debug.d.ts"]
+}

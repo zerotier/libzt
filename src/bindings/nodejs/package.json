@@ -1,0 +1,28 @@
+{
+  "name": "libzt",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install": "npm run compile",
+    "compile": "cmake-js compile -p 8",
+    "compile-debug": "npm run compile -- -D --out build-debug",
+    "build": "rimraf dist && tsc",
+    "build-debug": "rimraf dist && tsc --project tsconfig.debug.json"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cmake-js": "^7.2.1",
+    "node-addon-api": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.2.5",
+    "@typescript-eslint/eslint-plugin": "^5.59.9",
+    "@typescript-eslint/parser": "^5.59.9",
+    "eslint": "^8.42.0",
+    "rimraf": "^5.0.1",
+    "typescript": "^5.1.3"
+  }
+}

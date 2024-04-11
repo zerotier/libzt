@@ -317,6 +317,10 @@ namespace ZeroTier.Sockets
                 throw new ArgumentOutOfRangeException("offset");
             }
             int flags = 0;
+
+            // Must pin memory before using raw pointer
+            // C# garbage collector can move memory while in use
+            GCHandle handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
             IntPtr bufferPtr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
             return zts_bsd_send(_fd, bufferPtr + offset, (uint)size, (int)flags);
         }
@@ -351,6 +355,9 @@ namespace ZeroTier.Sockets
                 throw new ArgumentOutOfRangeException("offset");
             }
             int flags = 0;
+            // Must pin memory before using raw pointer
+            // C# garbage collector can move memory while in use
+            GCHandle handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
             IntPtr bufferPtr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
             return zts_bsd_recv(_fd, bufferPtr + offset, (uint)Buffer.ByteLength(buffer), (int)flags);
         }

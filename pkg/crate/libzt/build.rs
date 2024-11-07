@@ -5,15 +5,22 @@ use std::path::{Path, PathBuf};
 
 fn main() {
     let dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let lib_dir = Path::new(&dir).join("../../../dist/native/lib").canonicalize().unwrap();
+    let lib_dir = Path::new(&dir)
+        .join("../../../dist/native/lib")
+        .canonicalize()
+        .unwrap();
 
-    println!("cargo:rustc-link-search=native={}", lib_dir.to_string_lossy());
+    println!(
+        "cargo:rustc-link-search=native={}",
+        lib_dir.to_string_lossy()
+    );
     println!("cargo:rustc-link-lib=static=zt");
     println!("cargo:rustc-link-lib=dylib=c++");
 
     let bindings = bindgen::Builder::default()
         .header("src/include/ZeroTierSockets.h")
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+        .size_t_is_usize(true)
         .generate()
         .expect("Unable to generate bindings");
 

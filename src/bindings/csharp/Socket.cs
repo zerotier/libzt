@@ -310,15 +310,19 @@ namespace ZeroTier.Sockets
             if (buffer == null) {
                 throw new ArgumentNullException("buffer");
             }
-            if (size < 0 || size > buffer.Length - offset) {
+            if (size <= 0 || size > buffer.Length - offset) {
                 throw new ArgumentOutOfRangeException("size");
             }
-            if (offset < 0 || offset > buffer.Length) {
+            if (offset < 0 || offset >= buffer.Length) {
                 throw new ArgumentOutOfRangeException("offset");
             }
             int flags = 0;
+
+            // Must pin memory before using raw pointer
+            // C# garbage collector can move memory while in use
+            GCHandle handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
             IntPtr bufferPtr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
-            return zts_bsd_send(_fd, bufferPtr + offset, (uint)Buffer.ByteLength(buffer), (int)flags);
+            return zts_bsd_send(_fd, bufferPtr + offset, (uint)size, (int)flags);
         }
 
         public int Available
@@ -344,13 +348,16 @@ namespace ZeroTier.Sockets
             if (buffer == null) {
                 throw new ArgumentNullException("buffer");
             }
-            if (size < 0 || size > buffer.Length - offset) {
+            if (size <= 0 || size > buffer.Length - offset) {
                 throw new ArgumentOutOfRangeException("size");
             }
-            if (offset < 0 || offset > buffer.Length) {
+            if (offset < 0 || offset >= buffer.Length) {
                 throw new ArgumentOutOfRangeException("offset");
             }
             int flags = 0;
+            // Must pin memory before using raw pointer
+            // C# garbage collector can move memory while in use
+            GCHandle handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
             IntPtr bufferPtr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
             return zts_bsd_recv(_fd, bufferPtr + offset, (uint)Buffer.ByteLength(buffer), (int)flags);
         }

@@ -253,6 +253,19 @@ NodeService::ReasonForTermination NodeService::run()
             _node = new Node(this, (void*)0, &cb, OSUtils::now());
         }
 
+        // Configure bonding
+        _node->bondController()->setBinder(&_binder);
+        std::string defaultBondingPolicy = "rapid-active-backup";
+        int defaultBondingPolicyCode = _node->bondController()->getPolicyCodeByStr(defaultBondingPolicy); 
+        _node->bondController()->setBondingLayerDefaultPolicy(defaultBondingPolicyCode);
+        _node->bondController()->setBondingLayerDefaultPolicyStr(defaultBondingPolicy);
+
+        // Set up custom policy
+        SharedPtr<Bond> newTemplateBond = new Bond(NULL, "active-backup", "rapid-active-backup", SharedPtr<Peer>());
+        newTemplateBond->setPolicy(_node->bondController()->getPolicyCodeByStr("active-backup"));
+        newTemplateBond->setFailoverInterval(1000);
+        _node->bondController()->addCustomPolicy(newTemplateBond);
+
         unsigned int minPort = (_randomPortRangeStart ? _randomPortRangeStart : 20000);
         unsigned int maxPort = (_randomPortRangeEnd ? _randomPortRangeEnd : 45500);
 

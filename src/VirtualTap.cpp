@@ -391,6 +391,10 @@ signed char zts_lwip_eth_tx(struct netif* n, struct pbuf* p)
         bufptr += q->len;
         totalLength += q->len;
     }
+    int len = totalLength - sizeof(struct eth_hdr);
+    if (len < 0) {
+        return ERR_IF;
+    }
     struct eth_hdr* ethhdr;
     ethhdr = (struct eth_hdr*)buf;
 
@@ -400,7 +404,6 @@ signed char zts_lwip_eth_tx(struct netif* n, struct pbuf* p)
     dest_mac.setTo(ethhdr->dest.addr, 6);
 
     char* data = buf + sizeof(struct eth_hdr);
-    int len = totalLength - sizeof(struct eth_hdr);
     int proto = Utils::ntoh((uint16_t)ethhdr->type);
     tap->_handler(tap->_arg, NULL, tap->_net_id, src_mac, dest_mac, proto, 0, data, len);
 

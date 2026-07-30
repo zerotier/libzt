@@ -47,14 +47,21 @@ extern "C" {
 size_t on_data(void* buffer, size_t size, size_t nmemb, void* userp)
 {
     DEBUG_INFO("buf=%p,size=%zu,nmemb=%zu,userp=%p", buffer, size, nmemb, userp);
-    int byte_count = (size * nmemb);
-    if (_resp_buf_offset + byte_count >= _resp_buf_len) {
+    // Compute in size_t. Truncating to int first allowed the bounds test below to be
+    // performed on an already-overflowed value.
+    Mutex::Lock _l(_responseBuffer_m);
+    if (! _resp_buf || _resp_buf_len <= 0 || _resp_buf_offset < 0) {
+        return 0;
+    }
+    size_t byte_count = size * nmemb;
+    size_t remaining = (size_t)_resp_buf_len - (size_t)_resp_buf_offset;
+    if (byte_count >= remaining) {
         DEBUG_INFO("Out of buffer space. Cannot store response from server");
         return 0;   // Signal to libcurl that our buffer is full (triggers a
                     // write error.)
     }
     memcpy(_resp_buf + _resp_buf_offset, buffer, byte_count);
-    _resp_buf_offset += byte_count;
+    _resp_buf_offset += (int)byte_count;
     return byte_count;
 }
 
@@ -97,21 +104,23 @@ int zts_central_init(const char* url_str, const char* token_str, char* resp_buf,
     // Initialize all curl internal submodules
     curl_global_init(CURL_GLOBAL_ALL);
 
-    int url_len = strnlen(url_str, ZTS_CENTRAL_MAX_URL_LEN);
-    if (url_len < 3 || url_len > ZTS_CENTRAL_MAX_URL_LEN) {
+    // api_url is ZTS_CENTRAL_MAX_URL_LEN bytes and must stay NUL-terminated, so the
+    // longest string it can hold is one byte shorter than the buffer.
+    size_t url_len = strnlen(url_str, ZTS_CENTRAL_MAX_URL_LEN);
+    if (url_len < 3 || url_len >= ZTS_CENTRAL_MAX_URL_LEN) {
         return ZTS_ERR_ARG;
     }
     else {
-        memset(api_url, 0, ZTS_CENTRAL_MAX_URL_LEN);
-        strncpy(api_url, url_str, url_len);
+        memset(api_url, 0, sizeof(api_url));
+        memcpy(api_url, url_str, url_len);
     }
-    int token_len = strnlen(token_str, ZTS_CENTRAL_TOKEN_LEN);
+    size_t token_len = strnlen(token_str, ZTS_CENTRAL_TOKEN_LEN);
     if (token_len != ZTS_CENTRAL_TOKEN_LEN) {
         return ZTS_ERR_ARG;
     }
     else {
-        memset(api_token, 0, ZTS_CENTRAL_TOKEN_LEN);
-        strncpy(api_token, token_str, token_len);
+        memset(api_token, 0, sizeof(api_token));
+        memcpy(api_token, token_str, token_len);
     }
     _bInit = true;
     return ZTS_ERR_OK;
@@ -146,19 +155,24 @@ int central_req(
         return ZTS_ERR_SERVICE;
     }
     zts_central_clear_resp_buf();
-    int central_strlen = strnlen(central_str, ZTS_CENTRAL_MAX_URL_LEN);
-    int api_route_strlen = strnlen(api_route_str, ZTS_CENTRAL_MAX_URL_LEN);
-    int token_strlen = strnlen(token_str, ZTS_CENTRAL_TOKEN_LEN);
-    int url_len = central_strlen + api_route_strlen;
+    size_t central_strlen = strnlen(central_str, ZTS_CENTRAL_MAX_URL_LEN);
+    size_t api_route_strlen = strnlen(api_route_str, ZTS_CENTRAL_MAX_URL_LEN);
+    size_t token_strlen = strnlen(token_str, ZTS_CENTRAL_TOKEN_LEN);
+    size_t url_len = central_strlen + api_route_strlen;
     if (token_strlen > ZTS_CENTRAL_TOKEN_LEN) {
         return ZTS_ERR_ARG;
     }
-    if (url_len > ZTS_CENTRAL_MAX_URL_LEN) {
+    // The concatenation must leave room for the terminating NUL. The previous test
+    // used `>` and then called strncat() with the destination *capacity* as its third
+    // argument, which is the number of bytes to append, not a bound on the result.
+    // That could write ZTS_CENTRAL_MAX_URL_LEN * 2 + 1 bytes into req_url.
+    char req_url[ZTS_CENTRAL_MAX_URL_LEN] = { 0 };
+    if (url_len >= sizeof(req_url)) {
         return ZTS_ERR_ARG;
     }
-    char req_url[ZTS_CENTRAL_MAX_URL_LEN] = { 0 };
-    strncpy(req_url, central_str, ZTS_CENTRAL_MAX_URL_LEN);
-    strncat(req_url, api_route_str, ZTS_CENTRAL_MAX_URL_LEN);
+    memcpy(req_url, central_str, central_strlen);
+    memcpy(req_url + central_strlen, api_route_str, api_route_strlen);
+    req_url[url_len] = '\0';
 
     CURL* curl;
     CURLcode res;
@@ -223,11 +237,21 @@ int central_req(
 
 int zts_central_get_last_resp_buf(char* dest_buffer, int dest_buf_len)
 {
+    if (! dest_buffer || dest_buf_len <= 0) {
+        return ZTS_ERR_ARG;
+    }
+    Mutex::Lock _l(_responseBuffer_m);
+    if (! _bInit || ! _resp_buf) {
+        return ZTS_ERR_SERVICE;
+    }
+    // _resp_buf_offset is how much of the response was actually written;
+    // _resp_buf_len is the buffer's capacity. Copying the latter would read past
+    // the response into uninitialized memory.
     if (dest_buf_len <= _resp_buf_offset) {
         return ZTS_ERR_ARG;
     }
-    int sz = dest_buf_len < _resp_buf_len ? dest_buf_len : _resp_buf_len;
-    memcpy(dest_buffer, _resp_buf, sz);
+    memcpy(dest_buffer, _resp_buf, (size_t)_resp_buf_offset);
+    dest_buffer[_resp_buf_offset] = '\0';
     return ZTS_ERR_OK;
 }
 

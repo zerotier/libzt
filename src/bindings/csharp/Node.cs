@@ -553,14 +553,14 @@ namespace ZeroTier.Core
         public string IdString
         {
             get {
-                return _id.ToString("x16").TrimStart('0');
+                return _id.ToString("x10");
             }
         }
 
         public string IdStr
         {
             get {
-                return string.Format("{0}", _id.ToString("x16"));
+                return string.Format("{0}", _id.ToString("x10"));
             }
         }
 

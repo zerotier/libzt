@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)
 project(zt)
 find_package(Threads)
 
@@ -404,8 +404,9 @@ else()
          ${RELEASE_OPTIMIZATION} \
          ${STACK_PROTECTOR_FLAGS}")
 
+    # ZeroTierOne's own build uses -std=c++17 (see ext/ZeroTierOne/make-mac.mk).
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-         ${ZT_FLAGS} -Wall -Wextra -std=c++11")
+         ${ZT_FLAGS} -Wall -Wextra -std=c++17")
 
     set(CMAKE_CXX_FLAGS_DEBUG
             "${CMAKE_CXX_FLAGS_DEBUG} \

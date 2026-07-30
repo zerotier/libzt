@@ -15,7 +15,7 @@
 
 #include "ZeroTierSockets.h"
 
-#include <node/C25519.hpp>
+#include <node/ECC.hpp>
 #include <node/World.hpp>
 #include <osdep/OSUtils.hpp>
 
@@ -26,6 +26,15 @@
 #else
 #include <unistd.h>   // for usleep
 #endif
+
+// The public header cannot include ZeroTierOne's internal headers, so these
+// constants are duplicated there. Fail the build if they ever drift apart.
+static_assert(
+    ZTS_SIGNING_KEYPAIR_LEN == (ZT_ECC_PUBLIC_KEY_SET_LEN + ZT_ECC_PRIVATE_KEY_SET_LEN),
+    "ZTS_SIGNING_KEYPAIR_LEN is out of sync with ZeroTierOne's ECC key sizes");
+static_assert(
+    ZTS_ROOT_SET_BUF_LEN >= ZT_WORLD_MAX_SERIALIZED_LENGTH,
+    "ZTS_ROOT_SET_BUF_LEN is smaller than ZT_WORLD_MAX_SERIALIZED_LENGTH");
 
 namespace ZeroTier {
 
@@ -75,29 +84,40 @@ int zts_util_sign_root_set(
     uint64_t ts,
     zts_root_set_t* roots_spec)
 {
-    if (! roots_spec || ! prev_key || ! curr_key || ! prev_key_len || ! curr_key_len) {
+    if (! roots_spec || ! roots_out || ! roots_len || ! prev_key || ! curr_key || ! prev_key_len
+        || ! curr_key_len) {
+        return ZTS_ERR_ARG;
+    }
+    // The *_len parameters are in/out: on input they carry the capacity of the
+    // corresponding output buffer, on success they are overwritten with the number
+    // of bytes actually written. Without the input capacity there is no way to bound
+    // the copies at the end of this function.
+    // The key buffers have a fixed known size so they can be checked up front. The
+    // root set is variable-length, so it is checked against its capacity just
+    // before the copy below.
+    const unsigned int keyPairLen = ZT_ECC_PUBLIC_KEY_SET_LEN + ZT_ECC_PRIVATE_KEY_SET_LEN;
+    if (*prev_key_len < keyPairLen || *curr_key_len < keyPairLen) {
         return ZTS_ERR_ARG;
     }
     // Generate signing keys
     std::string previous, current;
     if ((! OSUtils::readFile("previous.c25519", previous)) || (! OSUtils::readFile("current.c25519", current))) {
-        C25519::Pair np(C25519::generate());
+        ECC::Pair np(ECC::generate());
         previous = std::string();
-        previous.append((const char*)np.pub.data, ZT_C25519_PUBLIC_KEY_LEN);
-        previous.append((const char*)np.priv.data, ZT_C25519_PRIVATE_KEY_LEN);
+        previous.append((const char*)np.pub.data, ZT_ECC_PUBLIC_KEY_SET_LEN);
+        previous.append((const char*)np.priv.data, ZT_ECC_PRIVATE_KEY_SET_LEN);
         current = previous;
     }
-    if ((previous.length() != (ZT_C25519_PUBLIC_KEY_LEN + ZT_C25519_PRIVATE_KEY_LEN))
-        || (current.length() != (ZT_C25519_PUBLIC_KEY_LEN + ZT_C25519_PRIVATE_KEY_LEN))) {
+    if ((previous.length() != keyPairLen) || (current.length() != keyPairLen)) {
         // Previous.c25519 or current.c25519 empty or invalid
         return ZTS_ERR_ARG;
     }
-    C25519::Pair previousKP;
-    memcpy(previousKP.pub.data, previous.data(), ZT_C25519_PUBLIC_KEY_LEN);
-    memcpy(previousKP.priv.data, previous.data() + ZT_C25519_PUBLIC_KEY_LEN, ZT_C25519_PRIVATE_KEY_LEN);
-    C25519::Pair currentKP;
-    memcpy(currentKP.pub.data, current.data(), ZT_C25519_PUBLIC_KEY_LEN);
-    memcpy(currentKP.priv.data, current.data() + ZT_C25519_PUBLIC_KEY_LEN, ZT_C25519_PRIVATE_KEY_LEN);
+    ECC::Pair previousKP;
+    memcpy(previousKP.pub.data, previous.data(), ZT_ECC_PUBLIC_KEY_SET_LEN);
+    memcpy(previousKP.priv.data, previous.data() + ZT_ECC_PUBLIC_KEY_SET_LEN, ZT_ECC_PRIVATE_KEY_SET_LEN);
+    ECC::Pair currentKP;
+    memcpy(currentKP.pub.data, current.data(), ZT_ECC_PUBLIC_KEY_SET_LEN);
+    memcpy(currentKP.priv.data, current.data() + ZT_ECC_PUBLIC_KEY_SET_LEN, ZT_ECC_PRIVATE_KEY_SET_LEN);
 
     // Set up roots definition
     std::vector<World::Root> roots;
@@ -132,13 +152,16 @@ int zts_util_sign_root_set(
         // Serialization test failed
         return ZTS_ERR_GENERAL;
     }
-    // Write output
+    // Write output. Capacities were validated against the *_len in-values above.
+    if (outtmp.size() > *roots_len) {
+        return ZTS_ERR_ARG;
+    }
     memcpy(roots_out, (char*)outtmp.data(), outtmp.size());
     *roots_len = outtmp.size();
-    memcpy(prev_key, previous.data(), previous.length());
-    *prev_key_len = ZT_C25519_PRIVATE_KEY_LEN + ZT_C25519_PUBLIC_KEY_LEN;
-    memcpy(curr_key, current.data(), current.length());
-    *curr_key_len = ZT_C25519_PRIVATE_KEY_LEN + ZT_C25519_PUBLIC_KEY_LEN;
+    memcpy(prev_key, previous.data(), keyPairLen);
+    *prev_key_len = keyPairLen;
+    memcpy(curr_key, current.data(), keyPairLen);
+    *curr_key_len = keyPairLen;
     return ZTS_ERR_OK;
 }
 

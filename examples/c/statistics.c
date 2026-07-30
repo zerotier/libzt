@@ -1,23 +1,77 @@
 /**
- * libzt C API example
+ * libzt C API example — Protocol statistics
  *
- * Pingable node that also displays protocol statistics that are
- * useful for debugging.
+ * A pingable node that prints the lwIP protocol statistics (link, IP, ICMP,
+ * UDP, TCP and others) once per second. Useful for debugging traffic that is
+ * not arriving or is being dropped somewhere in the stack.
+ *
+ * Usage:
+ *   statistics <net_id>
+ *
+ *   <net_id>   ID of the ZeroTier network to join
+ *
+ * net_id is the 16-digit hexadecimal ID of an existing ZeroTier network. The
+ * device must be authorized for that network at my.zerotier.com (or via the web
+ * API) before it is assigned an address. This example does not persist its
+ * identity, so it generates a new node ID on every run and must be
+ * re-authorized each time.
+ *
+ * This example requires the library to be built with ZTS_ENABLE_STATS, which
+ * the BUILD_HOST configuration used by ./build.sh host sets automatically.
+ * Linking against a stock release build without it makes every statistics query
+ * return ZTS_ERR_NO_RESULT.
+ *
+ * Press Ctrl-C to shut down cleanly; zts_node_stop() runs before exit.
+ *
+ * Build from the repository root:
+ *   ./build.sh host "release"
+ * Binaries are written to dist/<platform>-<arch>-host-release/bin/
  */
 
 #include "ZeroTierSockets.h"
 
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+static volatile sig_atomic_t keep_running = 1;
+static void handle_sigint(int sig)
+{
+    (void)sig;
+    keep_running = 0;
+}
+
+static void usage(const char* prog)
+{
+    printf("\nlibzt example: Protocol statistics\n\n");
+    printf("Usage: %s <net_id>\n\n", prog);
+    printf("  <net_id>   16-digit hexadecimal ID of an existing ZeroTier network\n");
+    printf("\nThe device must be authorized for the network at my.zerotier.com before it is\n");
+    printf("assigned an address. This example does not persist its identity, so it generates a\n");
+    printf("new node ID on every run and must be re-authorized each time. It also requires a\n");
+    printf("library built with ZTS_ENABLE_STATS (./build.sh host sets this automatically);\n");
+    printf("without it every query returns ZTS_ERR_NO_RESULT. Press Ctrl-C to shut down\n");
+    printf("cleanly.\n");
+}
 
 int main(int argc, char** argv)
 {
+    // Line-buffer stdout so progress output appears immediately when it is
+    // redirected to a file or pipe (docker logs, systemd, CI) rather than
+    // sitting in the 4K stdio buffer.
+    setvbuf(stdout, NULL, _IOLBF, 0);
+    if (argc > 1 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)) {
+        usage(argv[0]);
+        return 0;
+    }
     if (argc != 2) {
-        printf("\nUsage:\n");
-        printf("statistics <net_id>\n");
-        exit(0);
+        usage(argv[0]);
+        return 1;
     }
     long long int net_id = strtoull(argv[1], NULL, 16);   // At least 64 bits
+
+    signal(SIGINT, handle_sigint);
 
     printf("Starting node...\n");
     zts_node_start();
@@ -27,7 +81,7 @@ int main(int argc, char** argv)
         zts_util_delay(50);
     }
 
-    printf("My public identity (node ID) is %llx\n", zts_node_get_id());
+    printf("My public identity (node ID) is %010llx\n", (unsigned long long)zts_node_get_id());
     char keypair[ZTS_ID_STR_BUF_LEN] = { 0 };
     unsigned int len = ZTS_ID_STR_BUF_LEN;
     if (zts_node_get_id_pair(keypair, &len) != ZTS_ERR_OK) {
@@ -35,7 +89,7 @@ int main(int argc, char** argv)
     }
     printf("Identity [public/secret pair] = %s\n", keypair);
 
-    printf("Joining network %llx\n", net_id);
+    printf("Joining network %llx\n", (unsigned long long)net_id);
     if (zts_net_join(net_id) != ZTS_ERR_OK) {
         printf("Unable to join network. Exiting.\n");
         exit(1);
@@ -48,13 +102,20 @@ int main(int argc, char** argv)
 
     printf("Waiting for address assignment from network\n");
     int err = 0;
-    while (! (err = zts_addr_is_assigned(net_id, ZTS_AF_INET))) {
-        zts_util_delay(500);
+    // zts_addr_is_assigned() returns 1 when assigned, 0 when not, and a negative
+    // error code on failure. Treating anything non-zero as success would exit the
+    // loop on error and then print an empty address.
+    while ((err = zts_addr_is_assigned(net_id, ZTS_AF_INET)) != 1) {
+        if (err < 0) {
+            printf("Error checking address assignment, error = %d. Exiting.\n", err);
+            exit(1);
+        }
+        zts_util_delay(50);
     }
 
     char ipstr[ZTS_IP_MAX_STR_LEN] = { 0 };
     zts_addr_get_str(net_id, ZTS_AF_INET, ipstr, ZTS_IP_MAX_STR_LEN);
-    printf("Join %llx from another machine and ping me at %s\n", net_id, ipstr);
+    printf("Join %llx from another machine and ping me at %s\n", (unsigned long long)net_id, ipstr);
 
     // Do network stuff!
     // zts_bsd_socket, zts_bsd_connect, etc
@@ -63,7 +124,7 @@ int main(int argc, char** argv)
 
     zts_stats_counter_t s = { 0 };
 
-    while (1) {
+    while (keep_running) {
         zts_util_delay(1000);
         if ((err = zts_stats_get_all(&s)) == ZTS_ERR_NO_RESULT) {
             printf("no results\n");

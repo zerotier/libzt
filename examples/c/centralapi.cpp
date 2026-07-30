@@ -1,3 +1,28 @@
+/**
+ * libzt C API example — ZeroTier Central web API client
+ *
+ * Queries the ZeroTier Central web API: hosted service status, network
+ * configuration, and member authorization. This portion of the libzt API is a
+ * thin wrapper around the web API at https://my.zerotier.com/help/api, with the
+ * HTTP requests performed by libcurl.
+ *
+ * Usage:
+ *   centralapi <central_url> <api_token>
+ *
+ *   <central_url>   API endpoint, e.g. https://my.zerotier.com
+ *   <api_token>     User API token, generate one at my.zerotier.com
+ *
+ * This example does NOT start a ZeroTier node and joins no network — it is a
+ * pure REST client, so no identity storage or network authorization is
+ * involved. It is also only compiled when the Central API is enabled, which is
+ * NOT the default: configure with cmake -DZTS_DISABLE_CENTRAL_API=OFF, which
+ * requires libcurl to be installed.
+ *
+ * Build from the repository root:
+ *   ./build.sh host "release"
+ * Binaries are written to dist/<platform>-<arch>-host-release/bin/
+ */
+
 #include "ZeroTierSockets.h"
 
 #include <iomanip>
@@ -8,7 +33,7 @@
 #include <string>
 
 // For optional JSON parsing
-#include "../ext/ZeroTierOne/ext/json/json.hpp"
+#include "../../ext/ZeroTierOne/ext/nlohmann/json.hpp"
 
 void process_response(char* response, int http_resp_code)
 {
@@ -29,12 +54,30 @@ void process_response(char* response, int http_resp_code)
 	std::cout << std::setw(4) << res << std::endl;
 }
 
+static void usage(const char* prog)
+{
+	printf("\nlibzt example: ZeroTier Central web API client\n\n");
+	printf("Usage: %s <central_url> <api_token>\n\n", prog);
+	printf("  <central_url>   API endpoint, e.g. https://my.zerotier.com\n");
+	printf("  <api_token>     User API token, generate one at my.zerotier.com\n");
+	printf("\nThis example does not start a node and joins no network; it is a pure REST\n");
+	printf("client. It is only built when the Central API is enabled (cmake\n");
+	printf("-DZTS_DISABLE_CENTRAL_API=OFF), which requires libcurl.\n");
+}
+
 int main(int argc, char** argv)
 {
+    // Line-buffer stdout so progress output appears immediately when it is
+    // redirected to a file or pipe (docker logs, systemd, CI) rather than
+    // sitting in the 4K stdio buffer.
+    setvbuf(stdout, NULL, _IOLBF, 0);
+	if (argc > 1 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)) {
+		usage(argv[0]);
+		return 0;
+	}
 	if (argc != 3) {
-		printf("\nlibzt example central API client\n");
-		printf("centralapi <central_url> <api_token>\n");
-		exit(0);
+		usage(argv[0]);
+		return 1;
 	}
 	char* central_url = argv[1];   // API endpoint
 	char* api_token = argv[2];     // User token (generate at my.zerotier.com)

@@ -310,15 +310,21 @@ namespace ZeroTier.Sockets
             if (buffer == null) {
                 throw new ArgumentNullException("buffer");
             }
-            if (size < 0 || size > buffer.Length - offset) {
-                throw new ArgumentOutOfRangeException("size");
-            }
             if (offset < 0 || offset > buffer.Length) {
                 throw new ArgumentOutOfRangeException("offset");
             }
+            if (size < 0 || size > buffer.Length - offset) {
+                throw new ArgumentOutOfRangeException("size");
+            }
             int flags = 0;
-            IntPtr bufferPtr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
-            return zts_bsd_send(_fd, bufferPtr + offset, (uint)Buffer.ByteLength(buffer), (int)flags);
+            GCHandle handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+            try {
+                IntPtr bufferPtr = handle.AddrOfPinnedObject();
+                return zts_bsd_send(_fd, bufferPtr + offset, (uint)size, (int)flags);
+            }
+            finally {
+                handle.Free();
+            }
         }
 
         public int Available
@@ -344,15 +350,21 @@ namespace ZeroTier.Sockets
             if (buffer == null) {
                 throw new ArgumentNullException("buffer");
             }
-            if (size < 0 || size > buffer.Length - offset) {
-                throw new ArgumentOutOfRangeException("size");
-            }
             if (offset < 0 || offset > buffer.Length) {
                 throw new ArgumentOutOfRangeException("offset");
             }
+            if (size < 0 || size > buffer.Length - offset) {
+                throw new ArgumentOutOfRangeException("size");
+            }
             int flags = 0;
-            IntPtr bufferPtr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
-            return zts_bsd_recv(_fd, bufferPtr + offset, (uint)Buffer.ByteLength(buffer), (int)flags);
+            GCHandle handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+            try {
+                IntPtr bufferPtr = handle.AddrOfPinnedObject();
+                return zts_bsd_recv(_fd, bufferPtr + offset, (uint)size, (int)flags);
+            }
+            finally {
+                handle.Free();
+            }
         }
 
         public int ReceiveTimeout

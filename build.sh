@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # -----------------------------------------------------------------------------
 # | SYSTEM DISCOVERY AND CONFIGURATION                                        |
 # -----------------------------------------------------------------------------
@@ -19,7 +21,10 @@ CLANG_FORMAT=clang-format-11
 PYTHON=python3
 PIP=pip3
 
-libzt=$(pwd)
+# Run from the script's own directory so relative paths behave no matter
+# where the script is invoked from
+libzt="$(cd "$(dirname "$0")" && pwd)"
+cd "$libzt"
 
 # Find and set cmake
 CMAKE=cmake3
@@ -30,7 +35,7 @@ fi
 if [[ $(which $CMAKE) = "" ]];
 then
     echo "CMake (cmake) not found. Please install before continuing."
-    exit
+    exit 1
 fi
 
 #
@@ -43,6 +48,10 @@ fi
 
 # Determine operating system
 OSNAME=$(uname | tr '[A-Z]' '[a-z]')
+# Defaults, overridden below (explicitly initialized for `set -u`)
+SHARED_LIB_NAME="libzt.so"
+STATIC_LIB_NAME="libzt.a"
+HOST_PLATFORM="unknown"
 if [[ $OSNAME = *"darwin"* ]]; then
     SHARED_LIB_NAME="libzt.dylib"
     STATIC_LIB_NAME="libzt.a"
@@ -61,6 +70,7 @@ if [[ $HOST_MACHINE_TYPE = *"x86_64"* ]]; then
 fi
 
 # Determine number of cores. We'll tell CMake to use them all
+N_PROCESSORS=1
 if [[ $OSNAME = *"darwin"* ]]; then
     N_PROCESSORS=$(sysctl -n hw.ncpu)
 fi
@@ -70,16 +80,23 @@ fi
 
 # How many processor cores CMake should use during builds,
 # comment out the below line out if you don't want parallelism:
-CMAKE_VERSION=$(cmake --version | head -n 1 | sed 's/[^0-9]*//')
+CMAKE_VERSION=$("$CMAKE" --version | head -n 1 | sed 's/[^0-9]*//')
 function ver()
 # Description: use for comparisons of version strings.
-# $1  : a version string of form 1.2.3.4
-# use: (( $(ver 1.2.3.4) >= $(ver 1.2.3.3) )) && echo "yes" || echo "no"
+# $1  : a version string of form 1.2.3.4 (any non-numeric suffix
+#       such as "-rc1" is ignored)
+# use: (( 10#$(ver 1.2.3.4) >= 10#$(ver 1.2.3.3) )) && echo "yes" || echo "no"
 # Clever solution from https://stackoverflow.com/users/10682202/christopher
 {
-    printf "%02d%02d%02d%02d" ${1//./ }
+    local v="$1"
+    # Strip anything from the first character that is not a digit or a dot
+    # (e.g. "3.28.3-rc1" -> "3.28.3") so printf only sees numbers
+    v="${v%%[!0-9.]*}"
+    printf "%02d%02d%02d%02d" ${v//./ }
 }
-if [[ (( $(ver $CMAKE_VERSION) > $(ver "3.12") )) ]]; then
+BUILD_CONCURRENCY=""
+# 10# forces base-10 so leading zeros aren't interpreted as octal
+if (( 10#$(ver "$CMAKE_VERSION") > 10#$(ver "3.12") )); then
     BUILD_CONCURRENCY="-j $N_PROCESSORS"
 fi
 
@@ -88,11 +105,11 @@ fi
 # -----------------------------------------------------------------------------
 
 # Where we place all finished artifacts
-BUILD_OUTPUT_DIR=$(pwd)/dist
+BUILD_OUTPUT_DIR=$libzt/dist
 # Where we tell CMake to place its build systems and their caches
-BUILD_CACHE_DIR=$(pwd)/cache
+BUILD_CACHE_DIR=$libzt/cache
 # Where package projects, scripts, spec files, etc live
-PKG_DIR=$(pwd)/pkg
+PKG_DIR=$libzt/pkg
 # Default location for (host) libraries
 DEFAULT_HOST_LIB_OUTPUT_DIR=$BUILD_OUTPUT_DIR/$HOST_PLATFORM-$HOST_MACHINE_TYPE
 # Default location for (host) binaries
@@ -139,7 +156,7 @@ xcframework()
     check_submodules
     if [[ ! $OSNAME = *"darwin"* ]]; then
         echo "Can only build this on a Mac"
-        exit 0
+        exit 1
     fi
     BUILD_TYPE=${1:-release}
     UPPERCASE_BUILD_TYPE="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
@@ -156,9 +173,9 @@ xcframework()
     PKG_OUTPUT_DIR=$TARGET_BUILD_DIR/pkg
     mkdir -p $PKG_OUTPUT_DIR
 
-    MACOS_FRAMEWORK_DIR=macos-x64-framework-$BUILD_TYPE
+    MACOS_FRAMEWORK_DIR=macos-$HOST_MACHINE_TYPE-framework-$BUILD_TYPE
     IOS_FRAMEWORK_DIR=iphoneos-arm64-framework-$BUILD_TYPE
-    IOS_SIM_FRAMEWORK_DIR=iphonesimulator-x64-framework-$BUILD_TYPE
+    IOS_SIM_FRAMEWORK_DIR=iphonesimulator-$HOST_MACHINE_TYPE-framework-$BUILD_TYPE
 
     # Pack everything
     rm -rf $PKG_OUTPUT_DIR/zt.xcframework # Remove prior to move to prevent error
@@ -193,14 +210,14 @@ iphonesimulator-framework()
     check_submodules
     if [[ ! $OSNAME = *"darwin"* ]]; then
         echo "Can only build this on a Mac"
-        exit 0
+        exit 1
     fi
     ARTIFACT="framework"
     BUILD_TYPE=${1:-Release}
     UPPERCASE_BUILD_TYPE="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
     VARIANT="-DBUILD_IOS_FRAMEWORK=True"
     TARGET_PLATFORM="iphonesimulator"
-    TARGET_MACHINE_TYPE="x64" # presumably
+    TARGET_MACHINE_TYPE=$HOST_MACHINE_TYPE
     CACHE_DIR=$BUILD_CACHE_DIR/$TARGET_PLATFORM-$TARGET_MACHINE_TYPE-$ARTIFACT-$BUILD_TYPE
     TARGET_BUILD_DIR=$BUILD_OUTPUT_DIR/$TARGET_PLATFORM-$TARGET_MACHINE_TYPE-$ARTIFACT-$BUILD_TYPE
     rm -rf $TARGET_BUILD_DIR
@@ -243,7 +260,7 @@ macos-framework()
     check_submodules
     if [[ ! $OSNAME = *"darwin"* ]]; then
         echo "Can only build this on a Mac"
-        exit 0
+        exit 1
     fi
     ARTIFACT="framework"
     BUILD_TYPE=${1:-Release}
@@ -290,7 +307,7 @@ iphoneos-framework()
     check_submodules
     if [[ ! $OSNAME = *"darwin"* ]]; then
         echo "Can only build this on a Mac"
-        exit 0
+        exit 1
     fi
     ARTIFACT="framework"
     BUILD_TYPE=${1:-Release}
@@ -348,7 +365,7 @@ host()
     BIN_OUTPUT_DIR=$TARGET_BUILD_DIR/bin
     mkdir -p $LIB_OUTPUT_DIR
     mkdir -p $BIN_OUTPUT_DIR
-    $CMAKE $VARIANT -H. -B$CACHE_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+    $CMAKE $VARIANT -S "$libzt" -B "$CACHE_DIR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE
     $CMAKE --build $CACHE_DIR $BUILD_CONCURRENCY
     rm -f $BUILD_OUTPUT_DIR/native
     ln -s $TARGET_BUILD_DIR $BUILD_OUTPUT_DIR/native
@@ -359,13 +376,27 @@ host()
 }
 host-install()
 {
-    cd cache/$HOST_PLATFORM-$HOST_MACHINE_TYPE-host-$1/
+    if [[ -z "${1:-}" ]]; then
+        echo "Usage: ./build.sh host-install <build_type> (e.g. release, debug)" >&2
+        exit 1
+    fi
+    cd "$BUILD_CACHE_DIR/$HOST_PLATFORM-$HOST_MACHINE_TYPE-host-$1" || {
+        echo "Build cache directory not found. Run: ./build.sh host \"$1\" first." >&2
+        exit 1
+    }
     make install
     cd -
 }
 host-uninstall()
 {
-    cd cache/$HOST_PLATFORM-$HOST_MACHINE_TYPE-host-$1/
+    if [[ -z "${1:-}" ]]; then
+        echo "Usage: ./build.sh host-uninstall <build_type> (e.g. release, debug)" >&2
+        exit 1
+    fi
+    cd "$BUILD_CACHE_DIR/$HOST_PLATFORM-$HOST_MACHINE_TYPE-host-$1" || {
+        echo "Build cache directory not found. Nothing to uninstall." >&2
+        exit 1
+    }
     xargs rm < install_manifest.txt
     cd -
 }
@@ -380,7 +411,7 @@ host-rust()
     cargo build # --verbose
 
     # Test Rust crate
-    if [[ $2 = *"test"* ]]; then
+    if [[ ${2:-} = *"test"* ]]; then
         cargo run --example libzt-test-app -- server $alice_path $testnet 0.0.0.0 $port4 &
         cargo run --example libzt-test-app -- client $bob_path $testnet $alice_ip4 $port4 &
     fi
@@ -398,6 +429,16 @@ host-rust()
 #
 host-python()
 {
+    # NOTE: This target is currently non-functional. It used to invoke
+    # pkg/pypi/build.sh, but that script no longer exists. pkg/pypi now
+    # contains a Poetry-based project (build.py, setup.py, pyproject.toml)
+    # and the wheel-building invocation has not been wired up here yet.
+    echo "ERROR: The host-python target is currently broken." >&2
+    echo "pkg/pypi/build.sh does not exist. pkg/pypi contains a Poetry-based" >&2
+    echo "project (build.py, setup.py, pyproject.toml); build the wheel from" >&2
+    echo "pkg/pypi with your Python packaging tooling instead." >&2
+    exit 1
+
     check_submodules
     ARTIFACT="python"
     # Default to release
@@ -414,10 +455,10 @@ host-python()
     echo $PKG_OUTPUT_DIR/*.whl
 
     # Test Python wheel
-    if [[ $2 = *"test"* ]]; then
-        if [[ -z "${alice_path}" ]]; then
+    if [[ ${2:-} = *"test"* ]]; then
+        if [[ -z "${alice_path:-}" ]]; then
             echo "Please set necessary environment variables for test"
-            exit 0
+            exit 1
         fi
         pip3 uninstall -y libzt
         pip3 install $PKG_OUTPUT_DIR/*.whl
@@ -441,7 +482,7 @@ host-python()
 #    mkdir -p $LIB_OUTPUT_DIR
 #    # Optional step to generate new SWIG wrapper
 #    swig -c++ -python -o src/bindings/python/zt_wrap.cxx -Iinclude src/bindings/python/zt.i
-#    $CMAKE $VARIANT -H. -B$CACHE_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+#    $CMAKE $VARIANT -S "$libzt" -B "$CACHE_DIR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 #    $CMAKE --build $CACHE_DIR $BUILD_CONCURRENCY
 #    cp -f $CACHE_DIR/lib/$SHARED_LIB_NAME $LIB_OUTPUT_DIR/_libzt.so
 #    echo -e "\n - Build cache  : $CACHE_DIR\n - Build output : $BUILD_OUTPUT_DIR\n"
@@ -462,17 +503,17 @@ host-pinvoke()
     LIB_OUTPUT_DIR=$TARGET_BUILD_DIR/lib
     BIN_OUTPUT_DIR=$TARGET_BUILD_DIR/bin
     mkdir -p $LIB_OUTPUT_DIR
-    $CMAKE $VARIANT -H. -B$CACHE_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+    $CMAKE $VARIANT -S "$libzt" -B "$CACHE_DIR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE
     $CMAKE --build $CACHE_DIR $BUILD_CONCURRENCY
     cp -f $CACHE_DIR/lib/libzt.* $LIB_OUTPUT_DIR
     echo -e "\n - Build cache  : $CACHE_DIR\n - Build output : $BUILD_OUTPUT_DIR\n"
     $TREE $TARGET_BUILD_DIR
 
     # Test C#
-    if [[ $2 = *"test"* ]]; then
-        if [[ -z "${alice_path}" ]]; then
+    if [[ ${2:-} = *"test"* ]]; then
+        if [[ -z "${alice_path:-}" ]]; then
             echo "Please set necessary environment variables for test"
-            exit 0
+            exit 1
         fi
         # TODO: This should eventually be converted to a proper dotnet project
         # Build C# managed API library
@@ -499,7 +540,7 @@ host-jar()
     PKG_VERSION=$(git describe --tags --abbrev=0)
     # Default to release
     BUILD_TYPE=${1:-release}
-    if [[ $1 = *"docs"* ]]; then
+    if [[ ${1:-} = *"docs"* ]]; then
         # Generate documentation
         javadoc src/bindings/java/com/zerotier/sockets/*.java -d docs/java
         exit 0
@@ -516,7 +557,7 @@ host-jar()
     mkdir -p $JAVA_JAR_SOURCE_TREE_DIR
     cp -f src/bindings/java/com/zerotier/sockets/*.java $JAVA_JAR_SOURCE_TREE_DIR
     # Build
-    $CMAKE $VARIANT -H. -B$CACHE_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+    $CMAKE $VARIANT -S "$libzt" -B "$CACHE_DIR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE
     $CMAKE --build $CACHE_DIR $BUILD_CONCURRENCY
     # Package everything
     cp -f $CACHE_DIR/lib/libzt.* $JAVA_JAR_DIR
@@ -536,10 +577,10 @@ host-jar()
     $TREE $TARGET_BUILD_DIR
 
     # Test JAR
-    if [[ $2 = *"test"* ]]; then
-        if [[ -z "${alice_path}" ]]; then
+    if [[ ${2:-} = *"test"* ]]; then
+        if [[ -z "${alice_path:-}" ]]; then
             echo "Please set necessary environment variables for test"
-            exit 0
+            exit 1
         fi
         cd test
         rm -rf *.dylib
@@ -560,19 +601,27 @@ host-jar()
 # | ANDROID CONFIG                                                            |
 # -----------------------------------------------------------------------------
 
-ANDROID_PKG_PROJ_DIR=$(pwd)/pkg/android
+ANDROID_PKG_PROJ_DIR=$libzt/pkg/android
 
-# Set ANDROID_HOME because setting sdk.dir in local.properties isn't always reliable
 #export PATH=/Library/Java/JavaVirtualMachines/$JDK/Contents/Home/bin/:${PATH}
 #export PATH=/Users/$USER/Library/Android/sdk/platform-tools/:${PATH}
 GRADLE_ARGS=--stacktrace
-# for our purposes we limit this to execution on macOS
-if [[ $OSNAME = *"linux"* ]]; then
-    export ANDROID_HOME=/usr/lib/android-sdk/
-fi
-if [[ $OSNAME = *"darwin"* ]]; then
-    export ANDROID_HOME=/Users/$USER/Library/Android/sdk
-fi
+
+# Set ANDROID_HOME because setting sdk.dir in local.properties isn't always
+# reliable. Only sets a default when ANDROID_HOME isn't already set, and only
+# when building for android (see android-aar), so a pre-existing correct
+# value is never clobbered.
+set-android-home()
+{
+    if [[ -z "${ANDROID_HOME:-}" ]]; then
+        if [[ $OSNAME = *"linux"* ]]; then
+            export ANDROID_HOME=/usr/lib/android-sdk/
+        fi
+        if [[ $OSNAME = *"darwin"* ]]; then
+            export ANDROID_HOME=/Users/$USER/Library/Android/sdk
+        fi
+    fi
+}
 
 # Build shared library with Java JNI wrapper symbols exported (.aar)
 #
@@ -589,9 +638,9 @@ fi
 android-aar()
 {
     check_submodules
+    set-android-home
     ARTIFACT="android"
     BUILD_TYPE=${1:-release} # Default to release
-    CMAKE_SWITCH="ZTS_ENABLE_JAVA"
     TARGET_PLATFORM="android"
     TARGET_MACHINE_TYPE=any
     CACHE_DIR=$BUILD_CACHE_DIR/$TARGET_PLATFORM-$TARGET_MACHINE_TYPE-$ARTIFACT-$BUILD_TYPE
@@ -600,7 +649,6 @@ android-aar()
     mkdir -p $PKG_OUTPUT_DIR
     # Build
     UPPERCASE_BUILD_TYPE="$(tr '[:lower:]' '[:upper:]' <<< ${BUILD_TYPE:0:1})${BUILD_TYPE:1}"
-    CMAKE_FLAGS="-D${CMAKE_SWITCH}=1 -D${CMAKE_SWITCH}=ON"
     cd $ANDROID_PKG_PROJ_DIR
     ./gradlew $GRADLE_ARGS assemble$UPPERCASE_BUILD_TYPE # assembleRelease / assembleDebug
     cp $ANDROID_PKG_PROJ_DIR/app/build/outputs/aar/libzt-$BUILD_TYPE.aar \
@@ -612,7 +660,8 @@ android-aar()
 
 # Build static library and selftest. Currently this only tests
 # the core C API, not any of the language bindings.
-test()
+# (Named run_tests rather than test so it doesn't shadow the shell builtin.)
+run_tests()
 {
     check_submodules
     ARTIFACT="test"
@@ -625,7 +674,7 @@ test()
     LIB_OUTPUT_DIR=$TARGET_BUILD_DIR/lib
     BIN_OUTPUT_DIR=$TARGET_BUILD_DIR/bin
     mkdir -p $BIN_OUTPUT_DIR
-    $CMAKE $VARIANT -H. -B$CACHE_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+    $CMAKE $VARIANT -S "$libzt" -B "$CACHE_DIR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE
     $CMAKE --build $CACHE_DIR $BUILD_CONCURRENCY
     cp -f $CACHE_DIR/bin/* $BIN_OUTPUT_DIR
     echo -e "\n - Build cache  : $CACHE_DIR\n - Build output : $BUILD_OUTPUT_DIR\n"
@@ -638,13 +687,13 @@ test()
 
 format-code()
 {
-    if [[ $1 = *"all"* ]]; then
+    if [[ ${1:-} = *"all"* ]]; then
         format-code "clang"
         format-code "python"
     fi
 
     # Clang-format
-    if [[ $1 = *"clang"* ]]; then
+    if [[ ${1:-} = *"clang"* ]]; then
         if [[ ! $(which $CLANG_FORMAT) = "" ]];
         then
             # Eventually: find . -path ./ext -prune -false -o -type f \( -iname \*.c -o -iname \*.h -o -iname \*.cpp -o -iname \*.hpp \) -exec clang-format -i {} \;
@@ -670,7 +719,7 @@ format-code()
         fi
     fi
     # Python
-    if [[ $1 = *"python"* ]]; then
+    if [[ ${1:-} = *"python"* ]]; then
         if [[ ! $($PIP list | grep black) = "" ]];
         then
             $PYTHON -m black src/bindings/python/libzt.py
@@ -688,14 +737,14 @@ format-code()
 # Test C API
 test-c()
 {
-    if [[ -z "${alice_path}" ]]; then
+    if [[ -z "${alice_path:-}" ]]; then
         echo "Please set necessary environment variables for test"
         #exit 0
     fi
     BUILD_TYPE=${1:-debug}
     #BUILD_TYPE="ASAN"
     # Build selftest
-    test $BUILD_TYPE
+    run_tests $BUILD_TYPE
     # Start Alice as server
     "$BIN_OUTPUT_DIR/selftest-c" $alice_path $testnet $port4 $port6 &
     # Start Bob as client
@@ -706,7 +755,8 @@ test-c()
 clean()
 {
     # Clean rust crate
-    (cd pkg/crate/libzt && cargo clean)
+    (cd pkg/crate/libzt && cargo clean) \
+        || echo "Warning: could not clean rust crate (is cargo installed?)"
     # Finished artifacts
     rm -rf $BUILD_OUTPUT_DIR
     # CMake's build system cache
@@ -722,8 +772,10 @@ clean()
     rm -rf $ANDROID_PKG_PROJ_DIR/app/build
     rm -rf $ANDROID_PKG_PROJ_DIR/app/src/main/java/com/zerotier/libzt/*.java
     rm -rf $ANDROID_PKG_PROJ_DIR/app/.externalNativeBuild
-    # Remove whatever remains
+    # Remove whatever remains (never descend into the submodules in ext/ or
+    # into .git, so prebuilt artifacts shipped with the submodules survive)
     find . \
+        \( -path ./ext -o -path ./.git \) -prune -o \
         \( -name '*.dylib' \
         -o -name '*.dll'   \
         -o -name '*.aar'   \
@@ -739,7 +791,9 @@ clean()
         -o -name '*.class' \
         \) -exec rm -rf {} +
 
-    find . -type d -name "__pycache__" -exec rm -rf {} +
+    find . \
+        \( -path ./ext -o -path ./.git \) -prune -o \
+        -type d -name "__pycache__" -prune -exec rm -rf {} +
     # Python pkg
     # cd pkg/pypi && ./build.sh clean
 }
@@ -750,12 +804,41 @@ tag_release()
     git push origin --tags
 }
 
+# Internal helpers that are functions but not build targets. Listing them would
+# advertise them as things the user can invoke.
+INTERNAL_FUNCS="check_submodules gethosttype set-android-home ver list run_tests"
+
 list()
 {
-    IFS=$'\n'
-    for f in $(declare -F); do
-        echo "${f:11}"
-    done
+    local f name
+    {
+        IFS=$'\n'
+        for f in $(declare -F); do
+            name="${f:11}"
+            case " $INTERNAL_FUNCS " in
+                *" $name "*) continue ;;
+            esac
+            echo "$name"
+        done
+        # run_tests is invoked as `test` (see the dispatcher below).
+        echo "test"
+    } | sort
 }
 
-"$@"
+# Dispatch: run the function named by the first argument.
+# `test` is kept as an alias for run_tests (the function was renamed so it
+# would not shadow the `test` shell builtin).
+if [[ -z "${1:-}" ]]; then
+    echo "Usage: $0 <target> [build type]"
+    echo "Run '$0 list' to see available targets."
+    exit 1
+elif [[ "${1:-}" = "test" ]]; then
+    shift
+    run_tests "$@"
+elif ! declare -F "$1" > /dev/null; then
+    echo "Unknown target: $1"
+    echo "Run '$0 list' to see available targets."
+    exit 1
+else
+    "$@"
+fi

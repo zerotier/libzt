@@ -935,6 +935,14 @@ typedef struct {
 #define ZTS_MAX_NUM_ROOTS          16
 #define ZTS_MAX_ENDPOINTS_PER_ROOT 32
 
+/** Size of a signing keypair (public set + private set) written by
+ * zts_util_sign_root_set() */
+#define ZTS_SIGNING_KEYPAIR_LEN 128
+
+/** Buffer size always sufficient to hold a root set from
+ * zts_util_sign_root_set(). Mirrors ZT_WORLD_MAX_SERIALIZED_LENGTH. */
+#define ZTS_ROOT_SET_BUF_LEN 8480
+
 /**
  * Structure used to specify a root topology (aka a world)
  */
@@ -1026,7 +1034,9 @@ typedef struct {
 // Central API                                                                //
 //----------------------------------------------------------------------------//
 
-#define ZTS_DISABLE_CENTRAL_API 1
+// ZTS_DISABLE_CENTRAL_API is owned by the build system (see CMakeLists.txt). It used
+// to be #defined unconditionally right here, which made the block below permanently
+// dead and impossible to re-enable from the build. See issue #121.
 
 #ifndef ZTS_DISABLE_CENTRAL_API
 
@@ -3064,8 +3074,25 @@ ZTS_API int ZTCALL zts_core_query_mc(uint64_t net_id, unsigned int idx, uint64_t
 /**
  * @brief Generates a new root set definition
  *
- * @param roots_id The desired World ID (arbitrary)
+ * The three length parameters are in/out. On input each must contain the capacity
+ * of its corresponding output buffer; on success each is overwritten with the
+ * number of bytes actually written.
+ *
+ * @param roots_out Buffer receiving the signed root set
+ * @param roots_len In: capacity of `roots_out`. Out: bytes written. The generated
+ *     set is variable-length; `ZTS_ROOT_SET_BUF_LEN` is always sufficient.
+ * @param prev_key Buffer receiving the previous signing keypair. Must be at least
+ *     `ZTS_SIGNING_KEYPAIR_LEN` bytes.
+ * @param prev_key_len In: capacity of `prev_key`. Out: bytes written.
+ * @param curr_key Buffer receiving the current signing keypair. Must be at least
+ *     `ZTS_SIGNING_KEYPAIR_LEN` bytes.
+ * @param curr_key_len In: capacity of `curr_key`. Out: bytes written.
+ * @param id The desired World ID (arbitrary)
  * @param ts Timestamp indicating when this generation took place
+ * @param roots_spec Public keys and stable endpoints for each root
+ * @return `ZTS_ERR_OK` if successful, `ZTS_ERR_ARG` if any pointer is NULL or any
+ *     buffer is too small, `ZTS_ERR_GENERAL` if the generated root set fails its
+ *     serialization self-test.
  */
 ZTS_API int ZTCALL zts_util_sign_root_set(
     char* roots_out,

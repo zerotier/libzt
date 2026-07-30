@@ -382,14 +382,29 @@ signed char zts_lwip_eth_tx(struct netif* n, struct pbuf* p)
     struct pbuf* q;
     char buf[ZT_MAX_MTU + 32] = { 0 };
     char* bufptr;
-    int totalLength = 0;
+    size_t totalLength = 0;
 
     VirtualTap* tap = (VirtualTap*)n->state;
+    if (! tap) {
+        return ERR_IF;
+    }
+    // A frame must carry a full Ethernet header, and must fit the staging buffer.
+    // Without these checks a short chain underflows the length computation below
+    // and an oversized chain overruns buf.
+    if (p->tot_len < sizeof(struct eth_hdr) || p->tot_len > sizeof(buf)) {
+        return ERR_ARG;
+    }
     bufptr = buf;
     for (q = p; q != NULL; q = q->next) {
+        if (totalLength + q->len > sizeof(buf)) {
+            return ERR_ARG;
+        }
         memcpy(bufptr, q->payload, q->len);
         bufptr += q->len;
         totalLength += q->len;
+    }
+    if (totalLength < sizeof(struct eth_hdr)) {
+        return ERR_ARG;
     }
     struct eth_hdr* ethhdr;
     ethhdr = (struct eth_hdr*)buf;
@@ -400,7 +415,7 @@ signed char zts_lwip_eth_tx(struct netif* n, struct pbuf* p)
     dest_mac.setTo(ethhdr->dest.addr, 6);
 
     char* data = buf + sizeof(struct eth_hdr);
-    int len = totalLength - sizeof(struct eth_hdr);
+    unsigned int len = (unsigned int)(totalLength - sizeof(struct eth_hdr));
     int proto = Utils::ntoh((uint16_t)ethhdr->type);
     tap->_handler(tap->_arg, NULL, tap->_net_id, src_mac, dest_mac, proto, 0, data, len);
 

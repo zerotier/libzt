@@ -250,7 +250,11 @@ NodeService::ReasonForTermination NodeService::run()
             cb.eventCallback = SnodeEventCallback;
             cb.pathCheckFunction = SnodePathCheckFunction;
             cb.pathLookupFunction = SnodePathLookupFunction;
-            _node = new Node(this, (void*)0, &cb, OSUtils::now());
+            // ZeroTierOne 1.16 added a node config struct. Zero means defaults:
+            // no encrypted HELLO, no low-bandwidth mode.
+            struct ZT_Node_Config nc;
+            memset(&nc, 0, sizeof(nc));
+            _node = new Node(this, (void*)0, &nc, &cb, OSUtils::now());
         }
 
         unsigned int minPort = (_randomPortRangeStart ? _randomPortRangeStart : 20000);
@@ -1490,14 +1494,25 @@ uint64_t NodeService::getNodeId()
 
 int NodeService::setIdentity(const char* keypair, unsigned int len)
 {
-    if (keypair == NULL || len < ZT_IDENTITY_STRING_BUFFER_LENGTH) {
-        //   return ZTS_ERR_ARG;
+    // This guard used to be commented out, which left strlen() below dereferencing a
+    // possibly-NULL pointer and let a caller-supplied len overrun _secretIdStr.
+    if (keypair == NULL || len == 0 || len >= ZT_IDENTITY_STRING_BUFFER_LENGTH) {
+        return ZTS_ERR_ARG;
     }
+    // Work on a NUL-terminated copy: the caller is not required to terminate within
+    // len, and Identity::fromString() expects a C string.
+    char tmp[ZT_IDENTITY_STRING_BUFFER_LENGTH] = { 0 };
+    memcpy(tmp, keypair, len);
+    tmp[len] = '\0';
+
     // Double check user-provided keypair
     Identity id;
-    if ((strlen(keypair) > 32) && (keypair[10] == ':')) {
-        if (! id.fromString(keypair)) {
-            return id.locallyValidate();
+    if ((strlen(tmp) > 32) && (tmp[10] == ':')) {
+        if (! id.fromString(tmp)) {
+            return ZTS_ERR_ARG;
+        }
+        if (! id.locallyValidate()) {
+            return ZTS_ERR_ARG;
         }
     }
     Mutex::Lock _lr(_run_m);
@@ -1505,7 +1520,7 @@ int NodeService::setIdentity(const char* keypair, unsigned int len)
         return ZTS_ERR_SERVICE;
     }
     Mutex::Lock _ls(_store_m);
-    memcpy(_secretIdStr, keypair, len);
+    memcpy(_secretIdStr, tmp, sizeof(_secretIdStr));
     return ZTS_ERR_OK;
 }
 
@@ -1541,7 +1556,11 @@ void NodeService::nodeStatePutFunction(
     switch (type) {
         case ZT_STATE_OBJECT_IDENTITY_PUBLIC:
             sendEventToUser(ZTS_EVENT_STORE_IDENTITY_PUBLIC, data, len);
+            if (len >= sizeof(_publicIdStr)) {
+                return;
+            }
             memcpy(_publicIdStr, data, len);
+            _publicIdStr[len] = '\0';
             if (_homePath.length() > 0 && _allowIdentityCaching) {
                 OSUtils::ztsnprintf(p, sizeof(p), "%s" ZT_PATH_SEPARATOR_S "identity.public", _homePath.c_str());
             }
@@ -1551,7 +1570,11 @@ void NodeService::nodeStatePutFunction(
             break;
         case ZT_STATE_OBJECT_IDENTITY_SECRET:
             sendEventToUser(ZTS_EVENT_STORE_IDENTITY_SECRET, data, len);
+            if (len >= sizeof(_secretIdStr)) {
+                return;
+            }
             memcpy(_secretIdStr, data, len);
+            _secretIdStr[len] = '\0';
             if (_homePath.length() > 0 && _allowIdentityCaching) {
                 OSUtils::ztsnprintf(p, sizeof(p), "%s" ZT_PATH_SEPARATOR_S "identity.secret", _homePath.c_str());
                 secure = true;
@@ -1677,7 +1700,8 @@ int NodeService::nodeStateGetFunction(
             }
             break;
         case ZT_STATE_OBJECT_PLANET:
-            if (_userDefinedWorld) {
+            // Bound against the caller's buffer, as the sibling cases above do.
+            if (_userDefinedWorld && _rootsDataLen > 0 && (unsigned int)_rootsDataLen <= maxlen) {
                 memcpy(data, _rootsData, _rootsDataLen);
                 return _rootsDataLen;
             }

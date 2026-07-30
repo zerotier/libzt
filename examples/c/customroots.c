@@ -1,19 +1,55 @@
 /**
- * libzt C API example
+ * libzt C API example — Custom roots (planet definition)
  *
- * An example demonstrating how to define your own planet. In this example
- * we limit the roots to US-only.
+ * Generates and signs a custom root set ("planet") definition, then starts a
+ * node that uses it instead of ZeroTier's default roots. Use this as a starting
+ * point when you want your nodes to bootstrap off your own root servers, or off
+ * a chosen subset of ZeroTier's.
+ *
+ * Usage:
+ *   customroots
+ *
+ *   (this example takes no arguments)
+ *
+ * The root set hardcoded below is not a US-only set: it contains a single
+ * ZeroTier root in Amsterdam (195.181.173.159 and 2a02:6ea0:c024::). Replace
+ * roots.public_id_str[] and roots.endpoint_ip_str[][] with your own roots to
+ * make this useful.
+ *
+ * This example calls zts_init_from_storage("."), so it reads and writes
+ * identity.public, identity.secret, roots, networks.d/ and peers.d/ in the
+ * CURRENT WORKING DIRECTORY. Two instances started from the same directory read
+ * the same identity keypair, present the same node ID to the network and will
+ * collide — run each instance from its own directory.
+ *
+ * Press Ctrl-C to shut down cleanly; zts_node_stop() runs before exit.
+ *
+ * Build from the repository root:
+ *   ./build.sh host "release"
+ * Binaries are written to dist/<platform>-<arch>-host-release/bin/
  */
 
 #include "ZeroTierSockets.h"
 
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#ifndef _WIN32
+#include <arpa/inet.h>
+#endif
+
+static volatile sig_atomic_t keep_running = 1;
+static void handle_sigint(int sig)
+{
+    (void)sig;
+    keep_running = 0;
+}
 
 void print_peer_details(const char* msg, zts_peer_info_t* d)
 {
     printf(" %s\n", msg);
-    printf("\t- peer       : %llx\n", d->peer_id);
+    printf("\t- peer       : %010llx\n", (unsigned long long)d->peer_id);
     printf("\t- role       : %d\n", d->role);
     printf("\t- latency    : %d\n", d->latency);
     printf("\t- version    : %d.%d.%d\n", d->ver_major, d->ver_minor, d->ver_rev);
@@ -57,17 +93,41 @@ void on_zts_event(void* msgPtr)
     }
 }
 
-int main()
+static void usage(const char* prog)
 {
+    printf("\nlibzt example: Custom roots (planet definition)\n\n");
+    printf("Usage: %s\n\n", prog);
+    printf("  (this example takes no arguments)\n");
+    printf("\nThe node's identity and state are read from and written to the CURRENT WORKING\n");
+    printf("DIRECTORY, so run each instance from its own directory or they will collide. The\n");
+    printf("roots hardcoded in this example point at a single ZeroTier root in Amsterdam.\n");
+    printf("Press Ctrl-C to shut down cleanly.\n");
+}
+
+int main(int argc, char** argv)
+{
+    // Line-buffer stdout so progress output appears immediately when it is
+    // redirected to a file or pipe (docker logs, systemd, CI) rather than
+    // sitting in the 4K stdio buffer.
+    setvbuf(stdout, NULL, _IOLBF, 0);
+    if (argc > 1) {
+        int help = (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0);
+        usage(argv[0]);
+        return help ? 0 : 1;
+    }
     // World generation
 
     // Buffers that will be filled after generating the roots
     char roots_data_out[4096] = { 0 };   // (binary) Your new custom roots definition
-    unsigned int roots_len = 0;
-    unsigned int prev_key_len = 0;
-    unsigned int curr_key_len = 0;
-    char prev_key[4096] = { 0 };   // (binary) (optional) For updating roots
-    char curr_key[4096] = { 0 };   // (binary) You should save this
+    char prev_key[4096] = { 0 };         // (binary) (optional) For updating roots
+    char curr_key[4096] = { 0 };         // (binary) You should save this
+
+    // The length parameters are in/out: on input they must carry the capacity
+    // of their buffer, on success they are overwritten with the number of
+    // bytes actually written.
+    unsigned int roots_len = sizeof(roots_data_out);
+    unsigned int prev_key_len = sizeof(prev_key);
+    unsigned int curr_key_len = sizeof(curr_key);
 
     // Arbitrary World ID
     uint64_t id = 149604618;
@@ -87,40 +147,46 @@ int main()
 
     // Generate roots
 
-    zts_util_sign_root_set(
-        roots_data_out,
-        &roots_len,
-        prev_key,
-        &prev_key_len,
-        curr_key,
-        &curr_key_len,
-        id,
-        ts,
-        &roots);
+    int err;
+    if ((err = zts_util_sign_root_set(
+             roots_data_out,
+             &roots_len,
+             prev_key,
+             &prev_key_len,
+             curr_key,
+             &curr_key_len,
+             id,
+             ts,
+             &roots))
+        != ZTS_ERR_OK) {
+        printf("Unable to generate root set, error = %d. Exiting.\n", err);
+        exit(1);
+    }
 
     printf("roots_data_out= ");
-    for (int i = 0; i < roots_len; i++) {
+    for (unsigned int i = 0; i < roots_len; i++) {
         if (i > 0) {
             printf(",");
         }
         printf("0x%.2x", (unsigned char)roots_data_out[i]);
     }
     printf("\n");
-    printf("roots_len    = %d\n", roots_len);
-    printf("prev_key_len = %d\n", prev_key_len);
-    printf("curr_key_len = %d\n", curr_key_len);
+    printf("roots_len    = %u\n", roots_len);
+    printf("prev_key_len = %u\n", prev_key_len);
+    printf("curr_key_len = %u\n", curr_key_len);
 
     // Now, initialize node and use newly-generated roots definition
 
-    zts_init_set_roots(&roots_data_out, roots_len);
+    zts_init_set_roots(roots_data_out, roots_len);
     zts_init_set_event_handler(&on_zts_event);
     zts_init_from_storage(".");
 
     //  Start node
 
+    signal(SIGINT, handle_sigint);
     zts_node_start();
 
-    while (1) {
+    while (keep_running) {
         zts_util_delay(500);
     }
 

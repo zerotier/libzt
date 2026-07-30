@@ -55,7 +55,7 @@ int main()
 git submodule update --init
 ```
 
-This project uses [CMake](https://cmake.org/download/) as a build system generator. The scripts `build.*` simplify building and packaging for various targets. There are many targets and configurations not mentioned here.
+This project uses [CMake](https://cmake.org/download/) (3.10 or newer) as a build system generator. The scripts `build.*` simplify building and packaging for various targets. There are many targets and configurations not mentioned here.
 
 |Platform| Build instructions | Notes |
 |:---|:---|:---|
@@ -63,12 +63,19 @@ This project uses [CMake](https://cmake.org/download/) as a build system generat
 |macOS | `./build.sh host "release"`| [build.sh](./build.sh) |
 |Windows | `. .\build.ps1; Build-Host -BuildType "Release" -Arch "x64"` | [build.ps1](./build.ps1), *Requires [PowerShell](https://github.com/powershell/powershell)*|
 
- Using the `host` keyword will automatically detect the current machine type and build standard libzt for use in C/C++ (no additional language bindings.) See `./build.sh list` for additional target options. `libzt` depends on [cURL](https://github.com/curl/curl) for the optional portion of the API that interfaces with our hosted web offering ([my.zerotier.com](my.zerotier.com)). If you do not need this functionality you can omit it by passing `-DZTS_DISABLE_CENTRAL_API=1` to CMake.
+ Using the `host` keyword will automatically detect the current machine type and build standard libzt for use in C/C++ (no additional language bindings.) See `./build.sh list` for additional target options.
 
-Example output:
+`libzt` has an optional portion of the API that interfaces with our hosted web offering ([my.zerotier.com](my.zerotier.com)). It is **disabled by default**. To enable it, invoke CMake directly with `-DZTS_DISABLE_CENTRAL_API=OFF`; this requires [cURL](https://github.com/curl/curl) and its development headers. The `build.sh` targets do not pass additional CMake flags, so enabling it means configuring the build yourself:
 
 ```
-~/libzt/dist/macos-x64-host-release
+cmake -DBUILD_HOST=True -DZTS_DISABLE_CENTRAL_API=OFF -S . -B cache/central -DCMAKE_BUILD_TYPE=release
+cmake --build cache/central
+```
+
+Example output. The directory is named for the detected platform and machine type, for example `macos-arm64-host-release`, `macos-x64-host-release`, or `linux-x64-host-release`:
+
+```
+~/libzt/dist/<platform>-<arch>-host-release
 ├── bin
 │   ├── client
 │   ├── server

@@ -1,0 +1,21 @@
+From: ZerotierB
+Subject: Phy dtor must not invoke socket handlers
+
+~Phy() runs during ~NodeService after later members (_tcpConnections_m)
+are already destroyed. close(..., true) calls phyOnTcpClose which locks
+that mutex → FORTIFY SIGABRT (PROXY→VPN swap). Binder already closes
+UDP/listen sockets with callHandlers=false; leftover TCP must match.
+
+diff --git a/osdep/Phy.hpp b/osdep/Phy.hpp
+index 456238a89..93796448b 100644
+--- a/osdep/Phy.hpp
++++ b/osdep/Phy.hpp
+@@ -220,7 +220,7 @@ public:
+ 	{
+ 		for(typename std::list<PhySocketImpl>::const_iterator s(_socks.begin());s!=_socks.end();++s) {
+ 			if (s->type != ZT_PHY_SOCKET_CLOSED)
+-				this->close((PhySocket *)&(*s),true);
++				this->close((PhySocket *)&(*s),false);
+ 		}
+ 		ZT_PHY_CLOSE_SOCKET(_whackReceiveSocket);
+ 		ZT_PHY_CLOSE_SOCKET(_whackSendSocket);

@@ -23,6 +23,9 @@
 #include "VirtualTap.hpp"
 
 #include <string.h>
+#ifndef __WINDOWS__
+#include <pthread.h>
+#endif
 
 using namespace ZeroTier;
 
@@ -53,6 +56,19 @@ Events* zts_events;
 
 extern Mutex events_m;
 Mutex service_m;
+
+#if !defined(__WINDOWS__)
+static pthread_t service_thread;
+static volatile int service_thread_joinable = 0;
+
+static void join_service_thread_if_running()
+{
+    if (service_thread_joinable) {
+        pthread_join(service_thread, NULL);
+        service_thread_joinable = 0;
+    }
+}
+#endif
 
 int init_subsystems()
 {
@@ -588,8 +604,12 @@ int zts_node_start()
     HANDLE serviceThread = CreateThread(NULL, 0, _runNodeService, (void*)NULL, 0, NULL);
     // TODO: Check success
 #else
-    pthread_t service_thread;
-    if ((res = pthread_create(&service_thread, NULL, _runNodeService, (void*)NULL)) != 0) {}
+    if ((res = pthread_create(&service_thread, NULL, _runNodeService, (void*)NULL)) != 0) {
+        service_thread_joinable = 0;
+    }
+    else {
+        service_thread_joinable = 1;
+    }
 #endif
 #if defined(__linux__)
     // pthread_setname_np(service_thread, ZTS_SERVICE_THREAD_NAME);
@@ -621,9 +641,17 @@ int zts_node_get_port()
 
 int zts_node_stop()
 {
-    ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
-    zts_events->clrState(ZTS_STATE_NODE_RUNNING);
-    zts_service->terminate();
+    {
+        Mutex::Lock _ls(service_m);
+        if (! zts_service || ! zts_service->isRunning()) {
+            return ZTS_ERR_SERVICE;
+        }
+        zts_events->clrState(ZTS_STATE_NODE_RUNNING);
+        zts_service->terminate();
+    }
+#if !defined(__WINDOWS__)
+    join_service_thread_if_running();
+#endif
 #if defined(__WINDOWS__)
     WSACleanup();
 #endif
@@ -632,10 +660,18 @@ int zts_node_stop()
 
 int zts_node_free()
 {
-    ACQUIRE_SERVICE(ZTS_ERR_SERVICE);
-    zts_events->setState(ZTS_STATE_FREE_CALLED);
-    zts_events->clrState(ZTS_STATE_NODE_RUNNING);
-    zts_service->terminate();
+    {
+        Mutex::Lock _ls(service_m);
+        if (! zts_service || ! zts_service->isRunning()) {
+            return ZTS_ERR_SERVICE;
+        }
+        zts_events->setState(ZTS_STATE_FREE_CALLED);
+        zts_events->clrState(ZTS_STATE_NODE_RUNNING);
+        zts_service->terminate();
+    }
+#if !defined(__WINDOWS__)
+    join_service_thread_if_running();
+#endif
 #if defined(__WINDOWS__)
     WSACleanup();
 #endif

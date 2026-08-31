@@ -4,6 +4,18 @@
 # | SYSTEM DISCOVERY AND CONFIGURATION                                        |
 # -----------------------------------------------------------------------------
 
+apply_zerotierone_patches()
+{
+    local p
+    shopt -s nullglob
+    for p in patches/zerotierone/*.patch; do
+        if git -C ext/ZeroTierOne apply --check "$p" >/dev/null 2>&1; then
+            echo "Applying $p"
+            git -C ext/ZeroTierOne apply "$p" || exit 1
+        fi
+    done
+}
+
 check_submodules()
 {
     if [ "$(ls -A ext/lwip)" ] && [ "$(ls -A ext/lwip-contrib)" ] && [ "$(ls -A ext/ZeroTierOne)" ]; then
@@ -12,6 +24,7 @@ check_submodules()
         echo "Submodules seem to be missing. Please run: git submodule update --init"
         exit 1
     fi
+    apply_zerotierone_patches
 }
 
 CLANG_FORMAT=clang-format-11

@@ -710,6 +710,10 @@ void NodeService::phyOnTcpData(PhySocket* sock, void** uptr, void* data, unsigne
             return;   // sanity check, should never happen
         }
         TcpConnection* tc = reinterpret_cast<TcpConnection*>(*uptr);
+        if (! tc) {   // sanity check
+            _phy.close(sock, true);
+            return;
+        }
         tc->lastReceive = OSUtils::now();
         switch (tc->type) {
             case TcpConnection::TCP_UNCATEGORIZED_INCOMING:
@@ -820,6 +824,10 @@ void NodeService::phyOnTcpData(PhySocket* sock, void** uptr, void* data, unsigne
 void NodeService::phyOnTcpWritable(PhySocket* sock, void** uptr)
 {
     TcpConnection* tc = reinterpret_cast<TcpConnection*>(*uptr);
+    if (! tc) {   // sanity check
+        _phy.close(sock, true);
+        return;
+    }
     bool closeit = false;
     {
         Mutex::Lock _l(tc->writeq_m);

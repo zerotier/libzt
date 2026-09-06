@@ -1,21 +1,16 @@
 name: Build Android AAR
-
-on: [workflow_dispatch]
-
+on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v2
-
-    - name: Checkout submodules
-      run: git submodule update --init
-
-    - name: Build
-      run: ./build.sh android-aar "release"
-
-    - uses: actions/upload-artifact@v2
+    - uses: actions/checkout@v3
       with:
-        path: dist
-
+        submodules: recursive
+    - name: Build AAR
+      run: bash ./build.sh android-aar release
+    - name: Upload AAR
+      uses: actions/upload-artifact@v3
+      with:
+        name: libzt-release-aar
+        path: dist/
